@@ -101,6 +101,7 @@ function launchPrint() {
     addSelected('selLevel', 'level');
     addSelected('selGroup', 'group');
     if (document.getElementById('cbResults').checked) params.push('withResults=1');
+    if (document.getElementById('cbAccColors').checked) params.push('useAccColors=1');
 
     window.open('PdfPools.php?' + params.join('&'), '_blank');
 }
@@ -132,7 +133,8 @@ echo '<option value="." selected>Toutes les poules</option>';
 echo '</select></td>';
 
 echo '<td class="Center" style="vertical-align:middle">';
-echo '<label><input type="checkbox" id="cbResults" checked>&nbsp;Avec résultats</label>';
+echo '<label><input type="checkbox" id="cbResults" checked>&nbsp;Avec résultats</label><br>';
+echo '<label><input type="checkbox" id="cbAccColors">&nbsp;Couleurs AccColors</label>';
 echo '</td>';
 
 echo '<td class="Center" style="vertical-align:middle">';
