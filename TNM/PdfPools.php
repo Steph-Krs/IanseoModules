@@ -152,7 +152,7 @@ function printMatchRow($pdf, $m, $teamNames, $b, $colNameBase, $maxEnds, $hasTie
         foreach ($endScores as $s)
             $pdf->Cell($b['endW'], $b['hRow'], $s ?: '', 1, 0, 'C', 0);
         // Total sets
-        $pdf->SetFont($pdf->FontFix, $showScore ? ($isLooser ? 'I' : 'B') : 'B', $b['fData']);
+        $pdf->SetFont($pdf->FontStd, $showScore ? ($isLooser ? 'I' : 'B') : 'B', $b['fData']);
         $pdf->Cell($b['colSetSc'], $b['hRow'], $m->RrMatchSetScore ?? '', 1, 0, 'C', 0);
         // Barrage (toujours présent si $hasTiebreak, vide si ce match n'en a pas)
         if ($hasTiebreak) {
@@ -411,7 +411,7 @@ while ($lev = safe_fetch($rsLev)) {
             }
 
             if ($withResults && $poolHasScore) {
-                $pdf->SetFont($pdf->FontFix, 'B', $b['fData']);
+                $pdf->SetFont($pdf->FontStd, 'B', $b['fData']);
                 $pdf->Cell($b['wPts'], $b['hRow'], $p->RrPartPoints,         1, 0, 'C', 0);
                 $pdf->SetFont($pdf->FontFix, 'I', $b['fData']);
                 $pdf->Cell($b['wTB'],  $b['hRow'], $p->RrPartTieBreaker,     1, 0, 'C', 0);

@@ -5,6 +5,7 @@ if (!empty($on) && (subFeatureAcl($acl, AclQualification, '') > AclReadOnly )) {
         $ret['MODS']['TNM'][] = 'Trophée National des Mixtes';
     }
 	$ret['MODS']['TNM'][] = 'Impressions' .'|'.$CFG->ROOT_DIR.'Modules/Custom/TNM/';
+    $ret['MODS']['TNM'][] = 'Configuration' . '|' . $CFG->ROOT_DIR . 'Modules/Custom/TNM/config.php';
 }
 
 ?>
