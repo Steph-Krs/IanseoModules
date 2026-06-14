@@ -126,7 +126,7 @@ function printMatchRow($pdf, $m, $teamNames, $b, $colNameBase, $maxEnds, $hasTie
     $name    = $teamNames[intval($m->RrMatchAthlete)] ?? '0';
     $isBye   = ($name === '0');
     $displayName = $isBye ? '-- Bye --' : mb_strtoupper($name, 'UTF-8');
-    $hasScore = $showScore && intval($m->RrMatchScore) > 0;
+    $hasScore = $showScore && (intval($m->RrMatchSetScore) > 0 || intval($m->RrMatchScore) > 0);
     $colScAll = $maxEnds * $b['endW'] + $b['colSetSc'] + ($hasTiebreak ? $b['colTbW'] : 0);
     $byeValue = $mBye ? (($isBye || $isLooser) ? '0' : '6') : '';
 
@@ -137,7 +137,7 @@ function printMatchRow($pdf, $m, $teamNames, $b, $colNameBase, $maxEnds, $hasTie
     $pdf->SetFont($pdf->FontStd, $style, $b['fData']);
     $pdf->Cell($colNameBase, $b['hRow'], $displayName, 1, 0, 'L', 0);
 
-    if (!$hasScore) {
+    if (!$hasScore||$mBye>0) {
         // Pas de résultat : une seule cellule vide
         $style = $isBye ? 'I' : ($byeValue>0 ? 'B' : 'I');
         $pdf->SetFont($pdf->FontStd, $style, $b['fData']);
@@ -340,11 +340,11 @@ while ($lev = safe_fetch($rsLev)) {
                 $r2IsLooser  = $name2 === '0' || ($r1->RrMatchWinLose === '1' && $r2->RrMatchWinLose === '0');
 
                 $withResults ?
-                    $mBye  = ($name1 === '0') || ($name2 === '0') || (($r1IsLooser||$r2IsLooser)&&($r1->RrMatchSetPoints   === '' || $r2->RrMatchSetPoints === '')): // match en Bye ou DNF (perdant sans résultat de volée)
+                    $mBye  = ($name1 === '0') || ($name2 === '0') || (($r1IsLooser||$r2IsLooser)&&($r1->RrMatchSetPoints   === '' || $r2->RrMatchSetPoints === '')&&($r1->RrMatchSetScore   === '6' || $r2->RrMatchSetScore === '6')&&($r1->RrMatchSetScore   === '0' || $r2->RrMatchSetScore === '0')): // match en Bye ou DNF (perdant sans résultat de volée)
                     $mBye  = ($name1 === '0') || ($name2 === '0'); // match avec BYE uniquement
                 
                 // Détecter si la poule a au moins un résultat
-                if (intval($r1->RrMatchScore) > 0 || intval($r2->RrMatchScore) > 0)
+                if (intval($r1->RrMatchSetScore) > 0 || intval($r2->RrMatchSetScore) > 0)
                     $poolHasScore = true;
 
                 // Team 1
@@ -417,7 +417,7 @@ while ($lev = safe_fetch($rsLev)) {
                 $pdf->Cell($b['wTB'],  $b['hRow'], $p->RrPartTieBreaker,     1, 0, 'C', 0);
                 $pdf->Cell($b['wTB'],  $b['hRow'], $p->RrPartTieBreaker2,    1, 0, 'C', 0);
                 $pdf->SetFont($pdf->FontStd, 'B', $b['fData']);
-                $pdf->Cell($b['wCl'],  $b['hRow'], $p->RrPartGroupRankBefSO, 1, 1, 'C', 0);
+                $pdf->Cell($b['wCl'],  $b['hRow'], $p->RrPartGroupRank!=='0' ? $p->RrPartGroupRank : $p->RrPartGroupRankBefSO, 1, 1, 'C', 0);
             } else {
                 // Pas de résultat dans la poule : une case vide
                 $pdf->Cell($b['wPts']+$b['wTB']*2+$b['wCl'], $b['hRow'], '', 1, 1, 'C', 0);

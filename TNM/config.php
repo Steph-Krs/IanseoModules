@@ -1,145 +1,296 @@
 <?php
 // =============================================================================
-// config.php — Configuration TNM par épreuve
+// config.php — Configuration TNM par épreuve (stockage DB : TNM_BsoConfig)
 // =============================================================================
-define('HTDOCS', dirname(__DIR__, 3));
+define('HTDOCS', dirname(dirname(dirname(__DIR__))));
 require_once(HTDOCS . '/config.php');
 CheckTourSession(true);
 checkFullACL(AclRobin, '', AclReadOnly);
 
 $tourId = intval($_SESSION['TourId']);
 
-// ── Fonctions JSON ────────────────────────────────────────────────────────────
-define('TNM_CONFIG_FILE', __DIR__ . '/tnm_config.json');
+// ── Création des tables si absentes ──────────────────────────────────────────
+safe_r_sql("CREATE TABLE IF NOT EXISTS TNM_BsoConfig (
+    BcTournament  SMALLINT    NOT NULL,
+    BcEvent       VARCHAR(10) NOT NULL,
+    BcBsoCount    SMALLINT    NOT NULL DEFAULT 10,
+    BcStartTarget SMALLINT    NOT NULL DEFAULT 1,
+    BcSchedule    TEXT,
+    BcUpdated     DATETIME    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    BcSkipCheck TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (BcTournament, BcEvent)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-function readTNMConfig() {
-    if (!file_exists(TNM_CONFIG_FILE)) return [];
-    return json_decode(file_get_contents(TNM_CONFIG_FILE), true) ?? [];
-}
-function writeTNMConfig($data) {
-    file_put_contents(TNM_CONFIG_FILE, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-}
-// Lecture d'une valeur globale à la compétition
-function getTNMValue($tourId, $key, $default = null) {
-    $cfg = readTNMConfig();
-    return $cfg[$tourId][$key] ?? $default;
-}
-// Lecture d'une valeur propre à une épreuve
+safe_r_sql("CREATE TABLE IF NOT EXISTS TNM_BsoVolee (
+    BvTournament  SMALLINT    NOT NULL,
+    BvEvent       VARCHAR(10) NOT NULL,
+    BvRound       TINYINT     NOT NULL,
+    BvTeam        INT         NOT NULL,
+    BvTarget      SMALLINT,
+    BvScore       SMALLINT,
+    BvStatus      TINYINT,
+    BvManual      TINYINT(1) NOT NULL DEFAULT 0,
+    BvUpdated     DATETIME    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    BvRank        TINYINT NULL,
+    PRIMARY KEY (BvTournament, BvEvent, BvRound, BvTeam)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// ── Helpers DB (même signature que l'ancienne version JSON) ───────────────────
+// PdfPools.php et PdfRanking.php peuvent remplacer leur copie locale par ceci.
 function getTNMEventValue($tourId, $evCode, $key, $default = null) {
-    $cfg = readTNMConfig();
-    return $cfg[$tourId]['events'][$evCode][$key] ?? $default;
-}
-// Écriture d'une valeur propre à une épreuve
-function setTNMEventValue($tourId, $evCode, $key, $value) {
-    $cfg = readTNMConfig();
-    $cfg[$tourId]['events'][$evCode][$key] = $value;
-    writeTNMConfig($cfg);
+    $map = ['bso_count' => 'BcBsoCount', 'start_target' => 'BcStartTarget'];
+    $col = $map[$key] ?? null;
+    if (!$col) return $default;
+    $rs = safe_r_sql("SELECT $col FROM TNM_BsoConfig
+                      WHERE BcTournament=$tourId AND BcEvent=".StrSafe_DB($evCode));
+    $r = safe_fetch($rs);
+    return ($r && $r->$col !== null) ? $r->$col : $default;
 }
 
 // ── Épreuves Round Robin de la compétition ────────────────────────────────────
 $rsEv = safe_r_sql(
     "SELECT EvCode, EvEventName FROM Events
      WHERE EvElimType=5 AND EvTeamEvent='1'
-     AND EvTournament=$tourId AND EvCodeParent=''
-     ORDER BY EvProgr"
+     AND EvTournament=$tourId AND EvCodeParent='' ORDER BY EvProgr"
 );
 $evList = [];
-while ($r = safe_fetch($rsEv)) {
-    $evList[] = ['code' => $r->EvCode, 'name' => get_text($r->EvEventName, '', '', true)];
-}
+while ($r = safe_fetch($rsEv))
+    $evList[] = ['code' => $r->EvCode, 'name' => get_text($r->EvEventName,'','',true)];
 
-// ── Traitement formulaire ─────────────────────────────────────────────────────
+// ── Équipes BSO déjà initialisées (round 1) ───────────────────────────────────
+$teamsCount = [];
+$rsTC = safe_r_sql("SELECT BvEvent, COUNT(*) as cnt FROM TNM_BsoVolee
+                    WHERE BvTournament=$tourId AND BvRound=1 GROUP BY BvEvent");
+while ($r = safe_fetch($rsTC)) $teamsCount[$r->BvEvent] = intval($r->cnt);
+
+// ── Traitement POST ───────────────────────────────────────────────────────────
 $saved = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['bso_count'])) {
     foreach ($_POST['bso_count'] as $evCode => $val) {
-        $evCode = preg_replace('/[^A-Za-z0-9]/', '', $evCode); // sécurité
-        $bso    = max(4, min(20, intval($val)));
-        setTNMEventValue($tourId, $evCode, 'bso_count', $bso);
+        $evCode   = preg_replace('/[^A-Za-z0-9]/', '', $evCode);
+        $bso      = max(4, min(20, intval($val)));
+        $tgt      = max(1, intval($_POST['start_target'][$evCode] ?? 1));
+        $time     = trim($_POST['start_time'][$evCode] ?? '');
+        $schedule = json_encode(['1' => $time], JSON_UNESCAPED_UNICODE);
+        $skip = !empty($_POST['skip_check'][$evCode]) ? 1 : 0;
+
+        safe_r_sql("INSERT INTO TNM_BsoConfig
+            (BcTournament, BcEvent, BcBsoCount, BcStartTarget, BcSchedule, BcSkipCheck)
+            VALUES ($tourId, ".StrSafe_DB($evCode).", $bso, $tgt, ".StrSafe_DB($schedule).", $skip)
+            ON DUPLICATE KEY UPDATE
+                BcBsoCount=$bso, BcStartTarget=$tgt, BcSchedule=".StrSafe_DB($schedule).", BcSkipCheck=$skip");
     }
     $saved = true;
 }
 
+// ── Lecture configs actuelles (fallback JSON si DB vide) ──────────────────────
+$configs = [];
+$rsC = safe_r_sql("SELECT * FROM TNM_BsoConfig WHERE BcTournament=$tourId");
+while ($r = safe_fetch($rsC)) $configs[$r->BcEvent] = $r;
+
+$jsonFallback = [];
+$jf = __DIR__ . '/tnm_config.json';
+if (file_exists($jf)) {
+    $jd = json_decode(file_get_contents($jf), true) ?? [];
+    $jsonFallback = $jd[$tourId]['events'] ?? [];
+}
+
 // ── Rendu ─────────────────────────────────────────────────────────────────────
 $PAGE_TITLE = 'Configuration TNM';
+$IncludeJquery = true;
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <style>
-    .tnm-cfg-table td, .tnm-cfg-table th { padding: 6px 10px; }
-    .tnm-cfg-note { color: #888; font-size: 0.85em; }
+.tnm td,.tnm th{padding:6px 10px}
+.tnm-note{color:#666;font-size:.85em}
+.btn-bso{font-size:.8em;padding:4px 8px;border-radius:4px;border:none;cursor:pointer;margin:2px 0;display:block;width:100%}
+.btn-confirm{background:#002B92;color:#fff}
+.btn-reset{background:#f0a500;color:#fff}
+.btn-recalc{background:#36d93e;color:#fff}
+.btn-delete{background:#d9363e;color:#fff}
+.btn-bso:disabled{opacity:.5;cursor:default}
 </style>
 <?php
 
 echo '<table class="Tabella">';
 echo '<tr><th class="Title" colspan="2">Configuration – Trophée National des Mixtes</th></tr>';
-if ($saved) {
-    echo '<tr><td colspan="2" class="Center" style="color:green;font-weight:bold;padding:8px">✓ Configuration sauvegardée</td></tr>';
-}
-echo '<tr>';
-echo '<td class="Right w-30">Compétition&nbsp;:</td>';
-echo '<td><strong>'.htmlspecialchars($_SESSION['TourNameSafe'] ?? '').' (ID&nbsp;: '.$tourId.')</strong></td>';
-echo '</tr>';
-echo '</table>';
+if ($saved)
+    echo '<tr><td colspan="2" class="Center" style="color:green;font-weight:bold;padding:8px">✓ Sauvegardé</td></tr>';
+echo '<tr><td class="Right">Compétition :</td><td><strong>'.htmlspecialchars($_SESSION['TourNameSafe'] ?? '').' (ID : '.$tourId.')</strong></td></tr>';
+echo '</table><br>';
 
 if (empty($evList)) {
-    echo '<p class="Center" style="color:#c00">Aucune épreuve Round Robin par équipes trouvée pour cette compétition.</p>';
-    include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');
-    exit;
+    echo '<p class="Center" style="color:#c00">Aucune épreuve Round Robin trouvée.</p>';
+    include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php'); exit;
 }
 
-echo '<br>';
 echo '<form method="POST">';
-echo '<table class="Tabella tnm-cfg-table" style="width:100%">';
+echo '<table class="Tabella tnm" style="width:100%">';
 
 // ── En-tête ───────────────────────────────────────────────────────────────────
-echo '<tr><th class="SubTitle" colspan="4">Big Shoot Off — Paramètres par épreuve</th></tr>';
+echo '<tr><th class="SubTitle" colspan="8">Big Shoot Off — Paramètres par épreuve</th></tr>';
 echo '<tr style="background:#eef">';
-echo '<th class="SubTitle" style="width:8%">Code</th>';
-echo '<th class="SubTitle" style="width:30%">Épreuve</th>';
-echo '<th class="SubTitle" style="width:18%">Qualifiés BSO<br><small>(entre 4 et 20)</small></th>';
-echo '<th class="SubTitle">Impact sur le Tour 2</th>';
+foreach (['Code','Épreuve','BSO qualifiés','Cible départ','Heure début','Impact','Actions BSO','Vérif. nb qualifiés'] as $h)
+    echo '<th class="SubTitle">'.$h.'</th>';
 echo '</tr>';
 
 // ── Une ligne par épreuve ─────────────────────────────────────────────────────
 foreach ($evList as $ev) {
-    $evCode   = $ev['code'];
-    $evName   = $ev['name'];
-    $bsoCurr  = intval(getTNMEventValue($tourId, $evCode, 'bso_count', 10));
-    $mainLimit = $bsoCurr * 2;
-    $inputName = 'bso_count[' . htmlspecialchars($evCode) . ']';
+    $c  = $ev['code'];
+    $cs = htmlspecialchars($c);
+    $hasTeams = ($teamsCount[$c] ?? 0) > 0;
+    $skip = isset($configs[$c]) ? intval($configs[$c]->BcSkipCheck) : 0;
+
+    if (isset($configs[$c])) {
+        $bso  = intval($configs[$c]->BcBsoCount);
+        $tgt  = intval($configs[$c]->BcStartTarget);
+        $sch  = json_decode($configs[$c]->BcSchedule ?? '{}', true) ?? [];
+        $time = $sch['1'] ?? '';
+    } else {
+        $bso  = intval($jsonFallback[$c]['bso_count'] ?? 10);
+        $tgt  = 1; $time = '';
+    }
 
     echo '<tr>';
-    echo '<td class="Center"><strong>'.htmlspecialchars($evCode).'</strong></td>';
-    echo '<td>'.htmlspecialchars($evName).'</td>';
-    echo '<td class="Center">';
-    echo '<input type="number" name="'.$inputName.'" value="'.$bsoCurr.'"
-               min="4" max="20"
-               style="width:60px;font-size:1.1em;text-align:center"
-               oninput="updateInfo(this)"
-               data-ev="'.htmlspecialchars($evCode).'">';
+    echo '<td class="Center"><strong>'.$cs.'</strong></td>';
+    echo '<td>'.htmlspecialchars($ev['name']).'</td>';
+    echo '<td class="Center"><input type="number" name="bso_count['.$cs.']" value="'.$bso.'"
+          min="4" max="20" style="width:55px;text-align:center"
+          oninput="upd(this)" data-ev="'.$cs.'" data-f="bso"></td>';
+    echo '<td class="Center"><input type="number" name="start_target['.$cs.']" value="'.$tgt.'"
+          min="1" max="200" style="width:55px;text-align:center"
+          oninput="upd(this)" data-ev="'.$cs.'" data-f="tgt"></td>';
+    echo '<td class="Center"><input type="time" name="start_time['.$cs.']"
+          value="'.htmlspecialchars($time).'"
+          style="width:90px"></td>';
+    echo '<td><span id="i_'.$cs.'" class="tnm-note">'.($bso*2).' éq. PP · cibles '.$tgt.'–'.($tgt+$bso-1).'</span></td>';
+
+    // ── Actions BSO ───────────────────────────────────────────────────────────
+    echo '<td style="min-width:130px">';
+    $cnt = $teamsCount[$c] ?? 0;
+    echo "<button type='button' class='btn-bso btn-confirm' id='btn-confirm-".$cs."'
+          onclick='confirmTeams(".json_encode($c).", this)'>".
+         ($cnt > 0 ? '✓ '.$cnt.' équipes' : 'Confirmer équipes').'</button>';
+    if ($hasTeams) {
+        echo "<button type='button' class='btn-bso btn-reset' id='btn-reset-".$cs."'
+              onclick='resetScores(".json_encode($c).", this)'>Reset scores</button>";
+        echo "<button type='button' class='btn-bso btn-recalc' id='btn-recalc-".$cs."'
+              onclick='recalcAll(".json_encode($c).", this)'>Recalculer scores</button>";
+        echo "<button type='button' class='btn-bso btn-delete' id='btn-delete-".$cs."'
+              onclick='deleteTeams(".json_encode($c).", this)'>Supprimer équipes</button>";
+    } else {
+        echo '<span id="extra-'.$cs.'"></span>';
+    }
     echo '</td>';
-    echo '<td>';
-    echo '<span id="info_'.htmlspecialchars($evCode).'" class="tnm-cfg-note">';
-    echo $mainLimit.' équipes en poules principales Tour&nbsp;2 ('.$bsoCurr.'&nbsp;×&nbsp;2)';
-    echo '</span>';
-    echo '</td>';
+    echo '<td class="Center"><label><input type="checkbox" name="skip_check['.$cs.']"'
+   . ($skip ? ' checked' : '') . '> Ignorer</label></td>';
     echo '</tr>';
 }
 
-echo '<tr><td colspan="4" class="Center" style="padding:14px">';
+echo '<tr><td colspan="6" class="Center" style="padding:14px">';
 echo '<div class="Button" onclick="this.closest(\'form\').submit()">Enregistrer toutes les épreuves</div>';
+echo '</td>';
+echo '<td colspan="2" class="Center" style="padding:14px">';
+echo '<label><input type="checkbox" id="ScheduleAccColors" checked>&nbsp;Couleurs AccColors</label><br><br>';
+echo '<div class="Button" onclick="printBSO()">Planning BSO</div>';
 echo '</td></tr>';
-echo '</table>';
-echo '</form>';
+echo '<tr><th colspan="8" class="Button" onclick="window.location.href=\''.$CFG->ROOT_DIR.'Modules/Custom/TNM/PoolRankingEdit.php\'">Édition manuelle classement poule</th></tr>';
+echo '</table></form>';
 
+
+$bsoActionUrl = $CFG->ROOT_DIR . 'Modules/Custom/TNM/bso-action.php';
 ?>
+<div id="cfg-msg" style="text-align:center;padding:8px;min-height:24px;font-size:.9em"></div>
 <script>
-function updateInfo(input) {
-    var ev  = input.getAttribute('data-ev');
-    var bso = parseInt(input.value) || 0;
-    var el  = document.getElementById('info_' + ev);
-    if (el) el.textContent = (bso * 2) + ' équipes en poules principales Tour 2 (' + bso + ' × 2)';
+var BSO_URL = '<?= $bsoActionUrl ?>';
+
+function showMsg(msg, ok) {
+    var el = document.getElementById('cfg-msg');
+    el.textContent = msg;
+    el.style.color = ok ? 'green' : '#c00';
+    setTimeout(function(){ el.textContent=''; }, 4000);
+}
+
+function upd(el) {
+    var ev = el.dataset.ev;
+    var bso = parseInt(document.querySelector('[data-ev="'+ev+'"][data-f="bso"]').value)||0;
+    var tgt = parseInt(document.querySelector('[data-ev="'+ev+'"][data-f="tgt"]').value)||1;
+    var s = document.getElementById('i_'+ev);
+    if (s) s.textContent = (bso*2)+' éq. PP · cibles '+tgt+'–'+(tgt+bso-1);
+}
+
+function confirmTeams(ev, btn) {
+    console.log('Confirm teams for', ev);
+    btn.disabled = true; btn.textContent = '...';
+    $.getJSON(BSO_URL, {act:'initVolee', event:ev, round:1}, function(data) {
+        if (!data.error) {
+            console.log('Teams initialized:', data.teams);
+            var n = data.teams ? data.teams.length : '?';
+            btn.textContent = '✓ '+n+' équipes';
+            // Afficher les boutons reset/supprimer si absents
+            var extra = document.getElementById('extra-'+ev);
+            if (extra) {
+                extra.innerHTML =
+                    '<button type="button" class="btn-bso btn-reset" onclick="resetScores('+JSON.stringify(ev)+', this)">Reset scores</button>' +
+                    '<button type="button" class="btn-bso btn-recalc" onclick="recalcAll('+JSON.stringify(ev)+', this)">Recalculer scores</button>' +
+                    '<button type="button" class="btn-bso btn-delete" onclick="deleteTeams('+JSON.stringify(ev)+', this)">Supprimer équipes</button>';
+            }
+            showMsg('✓ '+n+' équipes initialisées pour '+ev, true);
+        } else {
+            btn.disabled = false; btn.textContent = 'Confirmer équipes';
+            showMsg('Erreur : '+(data.msg||'inconnue'), false);
+        }
+    }).fail(function(){ btn.disabled=false; btn.textContent='Confirmer équipes'; showMsg('Erreur réseau', false); });
+}
+
+function recalcAll(ev, btn) {
+    if (!confirm('Recalculer tous les scores BSO de '+ev+' ?')) return;
+    btn.disabled = true;
+    $.getJSON(BSO_URL, {act:'recalcAll', event:ev}, function(data) {
+        btn.disabled = false;
+        showMsg(data.error ? ('Erreur : '+(data.msg||'')) : '✓ Scores recalculés ('+ev+')', !data.error);
+    });
+}
+
+function resetScores(ev, btn) {
+    if (!confirm('Remettre à zéro tous les scores BSO de '+ev+' ?')) return;
+    btn.disabled = true;
+    $.getJSON(BSO_URL, {act:'resetScores', event:ev}, function(data) {
+        btn.disabled = false;
+        showMsg(data.error ? ('Erreur : '+(data.msg||'')) : '✓ Scores remis à zéro ('+ev+')', !data.error);
+    });
+}
+
+function deleteTeams(ev, btn) {
+    if (!confirm('Supprimer toutes les équipes BSO de '+ev+' ?\nLes scores saisis seront perdus.')) return;
+    btn.disabled = true;
+    $.getJSON(BSO_URL, {act:'deleteTeams', event:ev}, function(data) {
+        btn.disabled = false;
+        if (!data.error) {
+            var confirmBtn = document.getElementById('btn-confirm-'+ev);
+            if (confirmBtn) { confirmBtn.disabled=false; confirmBtn.textContent='Confirmer équipes'; }
+            btn.parentNode.querySelector('.btn-reset') && btn.parentNode.querySelector('.btn-reset').remove();
+            btn.parentNode.querySelector('.btn-recalc') && btn.parentNode.querySelector('.btn-recalc').remove();
+            btn.remove();
+            showMsg('✓ Équipes supprimées ('+ev+')', true);
+        } else {
+            showMsg('Erreur : '+(data.msg||''), false);
+        }
+    });
+}
+
+function printBSO() {
+    var params = [];
+
+    /*function addSelected(selId, name) {
+        var vals = Array.from(document.getElementById(selId).selectedOptions).map(o => o.value);
+        if (vals.length === 0) vals = ['.'];
+        vals.forEach(v => params.push(encodeURIComponent(name+'[]') + '=' + encodeURIComponent(v)));
+    }*/
+    
+    if (document.getElementById('ScheduleAccColors').checked) params.push('useAccColors=1');
+    window.open('PdfBsoPlanning.php?' + params.join('&'), '_blank');
 }
 </script>
 <?php
-
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

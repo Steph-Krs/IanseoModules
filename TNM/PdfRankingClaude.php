@@ -69,12 +69,6 @@ function getEventColor($evCode, $colorMap) {
     }
     return null;
 }
-function loadIrmTypes() {
-    $rs = safe_r_sql("SELECT IrmId, IrmType FROM IrmTypes");
-    $map = [];
-    while ($r = safe_fetch($rs)) $map[(int)$r->IrmId] = $r->IrmType;
-    return $map;
-}
 
 // ── Classement avec gestion des égalités ─────────────────────────────────────
 // Affecte $p->ComputedRank (1-indexed, partagé en cas d'égalité)
@@ -83,7 +77,7 @@ function assignRanks(&$parts) {
     for ($i = 0; $i < $n; ) {
         $rankVal = $i + 1;
         $k = [
-            intval($parts[$i]->RrPartGroupRank),
+            intval($parts[$i]->RrPartGroupRankBefSO),
             intval($parts[$i]->RrPartPoints),
             intval($parts[$i]->RrPartTieBreaker),
             intval($parts[$i]->RrPartTieBreaker2),
@@ -91,7 +85,7 @@ function assignRanks(&$parts) {
         $j = $i;
         while ($j < $n) {
             $kj = [
-                intval($parts[$j]->RrPartGroupRank),
+                intval($parts[$j]->RrPartGroupRankBefSO),
                 intval($parts[$j]->RrPartPoints),
                 intval($parts[$j]->RrPartTieBreaker),
                 intval($parts[$j]->RrPartTieBreaker2),
@@ -106,8 +100,7 @@ function assignRanks(&$parts) {
 
 // ── Comparateur de tri ────────────────────────────────────────────────────────
 $sortFn = fn($a, $b) =>
-    intval($a->RrPartIrmType)        - intval($b->RrPartIrmType)
-    ?: intval($a->RrPartGroupRank)      - intval($b->RrPartGroupRank)
+    intval($a->RrPartGroupRankBefSO) - intval($b->RrPartGroupRankBefSO)
     ?: intval($b->RrPartPoints)      - intval($a->RrPartPoints)
     ?: intval($b->RrPartTieBreaker)  - intval($a->RrPartTieBreaker)
     ?: intval($b->RrPartTieBreaker2) - intval($a->RrPartTieBreaker2)
@@ -203,7 +196,6 @@ $wClub = $W - $wSec - $wRk - $wPl - $wPts - $wDiff - $wPS; // = 102mm
 $pdf       = new ResultPDF('Classement Round Robin', true);
 $firstPage = true;
 $colorMap  = loadAccColors($tourId);
-$irmTypes  = loadIrmTypes();
 
 while ($ev = safe_fetch($rsEvList)) {
     $evCode = $ev->EvCode;
@@ -235,43 +227,10 @@ while ($ev = safe_fetch($rsEvList)) {
 
     if (count($distinctLevels) === 1 && $minLevel === 1) {
 
-    // ── TOUR 1 : split selon l'affectation réelle Tour 2 (niveau 2) ────────
-    // Le split positionnel par ComputedRank est faux en cas d'égalité au cut :
-    // toutes les équipes à égalité passeraient le test <= $mainLimit.
-    // On se base donc sur la répartition réelle des poules niveau 2.
-
-    // teamsPerPool pour calculer nPoolsMain
-    $rsLevInfo = safe_r_sql(
-        "SELECT RrLevGroupArchers FROM RoundRobinLevel
-         WHERE RrLevTournament=$tourId AND RrLevEvent=".StrSafe_DB($evCode)." AND RrLevLevel=2"
-    );
-    $teamsPerPool = 4;
-    if ($li = safe_fetch($rsLevInfo)) $teamsPerPool = max(2, intval($li->RrLevGroupArchers));
-    $nPoolsMain = intdiv($mainLimit, $teamsPerPool); // = ($bsoCount*2)/teamsPerPool
-
-    // Affectation réelle niveau 2 : CoId => PP (true) / PC (false)
-    $rsAssign = safe_r_sql(
-        "SELECT RrPartParticipant, RrPartGroup FROM RoundRobinParticipants
-         WHERE RrPartTournament=$tourId AND RrPartEvent=".StrSafe_DB($evCode)."
-         AND RrPartLevel=2 AND RrPartParticipant!=0"
-    );
-    $isMainTeam = [];
-    while ($a = safe_fetch($rsAssign))
-        $isMainTeam[intval($a->RrPartParticipant)] = intval($a->RrPartGroup) <= $nPoolsMain;
-
-    // Split selon l'affectation réelle (fallback sur ComputedRank si non affecté)
-    assignRanks($allParts);
-    $mainParts  = [];
-    $classParts = [];
-    foreach ($allParts as $p) {
-        $coId = intval($p->RrPartParticipant);
-        if (isset($isMainTeam[$coId])) {
-            $isMainTeam[$coId] ? $mainParts[] = $p : $classParts[] = $p;
-        } else {
-            // Équipe pas encore affectée niveau 2 : fallback positionnel
-            $p->ComputedRank <= $mainLimit ? $mainParts[] = $p : $classParts[] = $p;
-        }
-    }
+        // ── TOUR 1 : split positional ─────────────────────────────────────────
+        assignRanks($allParts);
+        $mainParts  = array_values(array_filter($allParts, fn($p) => $p->ComputedRank <= $mainLimit));
+        $classParts = array_values(array_filter($allParts, fn($p) => $p->ComputedRank > $mainLimit));
         $nMain      = count($mainParts);
         $nClass     = count($classParts);
 
@@ -425,7 +384,7 @@ while ($ev = safe_fetch($rsEvList)) {
     $pdf->SetFont($pdf->FontStd, 'B', $S['fTitle']);
     $pdf->Cell($W, $S['hTitle'], $evName, 0, 1, 'C', 1);
     $pdf->SetFont($pdf->FontStd, 'B', $S['fSub']);
-    $pdf->Cell($W, $S['hSub'], ($minLevel===1?'Répartition':'Classement').' à l\'issue du '.$tourLabel, 0, 1, 'C', 1);
+    $pdf->Cell($W, $S['hSub'], 'Classement à l\'issue du '.$tourLabel, 0, 1, 'C', 1);
     $pdf->SetDefaultColor();
     $marginX = $pdf->GetX();
     $pdf->Ln($LN_GAP);
@@ -466,12 +425,7 @@ while ($ev = safe_fetch($rsEvList)) {
 
         // ── Lignes de données (décalées de $wSec pour laisser la colonne label) ──
         foreach ($sParts as $p) {
-            $irm = (int)$p->RrPartIrmType;
-            if ($irm > 0) {
-                $rankDisplay = $irmTypes[$irm] ?? '—';
-            } else {
-                $rankDisplay = ($minLevel===1 ? '—' : ($noRank ? '—' : ($p->ComputedRank + $offset)));
-            }
+            $rankDisplay = $noRank ? '—' : ($p->ComputedRank + $offset);
 
             $pdf->SetX($marginX + $wSec);
             $pdf->SetFont($pdf->FontStd, 'B', $S['fData']);
@@ -490,7 +444,7 @@ while ($ev = safe_fetch($rsEvList)) {
             $pdf->SetDefaultColor();
 
             $pdf->SetFont($pdf->FontFix, '', $S['fData']);
-            $pdf->Cell($wPl,   $S['hRow'], $p->RrPartGroupRank, 1, 0, 'C', 0);
+            $pdf->Cell($wPl,   $S['hRow'], $p->RrPartGroupRankBefSO, 1, 0, 'C', 0);
             $pdf->Cell($wPts,  $S['hRow'], $p->RrPartPoints,          1, 0, 'C', 0);
             $pdf->Cell($wDiff, $S['hRow'], $p->RrPartTieBreaker,      1, 0, 'C', 0);
             $pdf->Cell($wPS,   $S['hRow'], $p->RrPartTieBreaker2,     1, 1, 'C', 0);
