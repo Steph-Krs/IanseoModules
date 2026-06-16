@@ -23,11 +23,15 @@ while ($r = safe_fetch($rsEv)) {
 
 // Numéros de niveaux par épreuve : { "BB": [1,2], "CL": [1,2,3] }
 $rsLev = safe_r_sql(
-    "SELECT DISTINCT RrLevEvent, RrLevLevel FROM RoundRobinLevel
+    "SELECT DISTINCT RrLevEvent, RrLevLevel, RrLevName FROM RoundRobinLevel
      WHERE RrLevTournament=$tourId ORDER BY RrLevEvent, RrLevLevel"
 );
 $levByEvent = [];
-while ($r = safe_fetch($rsLev)) $levByEvent[$r->RrLevEvent][] = intval($r->RrLevLevel);
+$levNameByEvLev = [];
+while ($r = safe_fetch($rsLev)) {
+    $levByEvent[$r->RrLevEvent][] = intval($r->RrLevLevel);
+    $levNameByEvLev[$r->RrLevEvent.':'.$r->RrLevLevel] = $r->RrLevName ?: ('Tour '.$r->RrLevLevel);
+}
 
 // Numéros de poules par épreuve:niveau : { "BB:1": [1,2,3], "BB:2": [1,2] }
 $rsGrp = safe_r_sql(
@@ -42,6 +46,7 @@ while ($r = safe_fetch($rsGrp)) {
 <script>
 var levByEvent = <?= json_encode($levByEvent, JSON_UNESCAPED_UNICODE) ?>;
 var grpByEvLev = <?= json_encode($grpByEvLev, JSON_UNESCAPED_UNICODE) ?>;
+var levNameByEvLev = <?= json_encode($levNameByEvLev, JSON_UNESCAPED_UNICODE) ?>;
 
 function updateLevels() {
     var evChosen = Array.from(document.getElementById('selEvent').selectedOptions).map(o => o.value);
@@ -107,12 +112,23 @@ function launchPrint() {
 }
 
 function initRankLevels() {
+    var levNames = levNameByEvLev || {};
     var allLevels = new Set();
     Object.values(levByEvent).forEach(function(arr) { arr.forEach(function(n) { allLevels.add(n); }); });
+
     var sel = document.getElementById('selRankLevel');
     Array.from(allLevels).sort(function(a,b){return a-b;}).forEach(function(n) {
+        var names = new Set();
+        Object.keys(levByEvent).forEach(function(ev) {
+            var key = ev + ':' + n;
+            if (levNames[key]) names.add(levNames[key]);
+        });
+
+        var label = 'Tour ' + n;
+        if (names.size === 1) label = Array.from(names)[0];
+
         var o = document.createElement('option');
-        o.value = n; o.textContent = 'Tour ' + n;
+        o.value = n; o.textContent = label;
         sel.appendChild(o);
     });
 }
@@ -171,7 +187,7 @@ echo '<script>updateLevels();</script>';
 // ── SECTION CLASSEMENT ────────────────────────────────────────────────────────
 echo '<br>';
 echo '<table class="Tabella">';
-echo '<tr><th class="Title" colspan="5">Classement général</th></tr>';
+echo '<tr><th class="Title" colspan="5">Classement général <i style="font-size:10px;">*à imprimer après validation du tour</i></th></tr>';
 echo '<tr>';
 foreach (['Épreuve', 'Tour(s)', 'Options', '', ''] as $h)
     echo '<th class="SubTitle">' . $h . '</th>';

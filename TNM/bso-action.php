@@ -13,6 +13,18 @@ header('Content-Type: application/json; charset=utf-8');
 $act    = $_REQUEST['act'] ?? '';
 $tourId = intval($_SESSION['TourId']);
 
+// ── Contrôle d'accès renforcé pour les actions admin ─────────────────────────
+// checkFullACL() (ligne 9) garantit AclReadOnly pour toutes les requêtes.
+// requireWriteAcl() vérifie en plus AclReadWrite pour les actions destructrices
+// ou qui modifient la structure des données (initVolee, resetScores, deleteTeams,
+// recalcAll, setPoolTeamRanking).
+function requireWriteAcl() {
+    if (!hasFullACL(AclRobin, '', AclReadWrite)) {
+        echo json_encode(['error' => 1, 'msg' => 'Droits insuffisants — action réservée aux administrateurs (ReadWrite requis)']);
+        exit;
+    }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getBsoConfig($tourId, $evCode) {
     $rs = safe_r_sql("SELECT * FROM TNM_BsoConfig
@@ -519,6 +531,11 @@ case 'saveScore':
     $team   = intval($_REQUEST['team']  ?? 0);
     $score  = intval($_REQUEST['score'] ?? 0);
 
+    if ($evCode === '' || $round <= 0 || $team <= 0 || $score < 0) {
+        echo json_encode(['error' => 1, 'msg' => 'Paramètres invalides']);
+        break;
+    }
+
     safe_r_sql("UPDATE TNM_BsoVolee SET BvScore=$score
         WHERE BvTournament=$tourId AND BvEvent=".StrSafe_DB($evCode)."
         AND BvRound=$round AND BvTeam=$team");
@@ -538,6 +555,11 @@ case 'setStatus':
     $rank   = isset($_REQUEST['rank']) && $_REQUEST['rank'] !== '' ? intval($_REQUEST['rank']) : null;
     $rankSQL = $rank === null ? 'NULL' : $rank;
 
+    if ($evCode === '' || $round <= 0 || $team <= 0) {
+        echo json_encode(['error' => 1, 'msg' => 'Paramètres invalides']);
+        break;
+    }
+
     safe_r_sql("UPDATE TNM_BsoVolee SET BvStatus=$status, BvRank=$rankSQL, BvManual=1
         WHERE BvTournament=$tourId AND BvEvent=".StrSafe_DB($evCode)."
         AND BvRound=$round AND BvTeam=$team");
@@ -556,8 +578,14 @@ case 'setStatus':
 
 // ── Initialisation d'une volée (calcul équipes + cibles) ─────────────────────
 case 'initVolee':
+    requireWriteAcl();
     $evCode = preg_replace('/[^A-Za-z0-9]/', '', $_REQUEST['event'] ?? '');
     $round  = intval($_REQUEST['round'] ?? 1);
+    if ($evCode === '' || $round <= 0) {
+        echo json_encode(['error' => 1, 'msg' => 'Paramètres invalides']);
+        break;
+    }
+    error_log("TNM BSO initVolee tourId=$tourId evCode=$evCode round=$round");
 
     $cfg = getBsoConfig($tourId, $evCode);
     if (!$cfg) { echo json_encode(['error' => 1, 'msg' => 'Config BSO manquante']); break; }
@@ -650,7 +678,9 @@ case 'initVolee':
 
 // ── Recalcule (corrige) toutes les volées complètes d'une épreuve ────────────
 case 'recalcAll':
+    requireWriteAcl();
     $evCode = preg_replace('/[^A-Za-z0-9]/', '', $_REQUEST['event'] ?? '');
+    error_log("TNM BSO recalcAll tourId=$tourId evCode=$evCode");
     $cfg = getBsoConfig($tourId, $evCode);
     if (!$cfg) { echo json_encode(['error'=>1,'msg'=>'Config BSO manquante']); break; }
     $bsoCount = intval($cfg->BcBsoCount);
@@ -668,7 +698,13 @@ case 'recalcAll':
 
 // ── Reset des scores (garde les équipes/cibles de la volée 1, supprime les volées suivantes) ─
 case 'resetScores':
+    requireWriteAcl();
     $evCode = preg_replace('/[^A-Za-z0-9]/', '', $_REQUEST['event'] ?? '');
+    if ($evCode === '') {
+        echo json_encode(['error' => 1, 'msg' => 'Code épreuve manquant']);
+        break;
+    }
+    error_log("TNM BSO resetScores tourId=$tourId evCode=$evCode");
 
     safe_r_sql(
         "DELETE FROM TNM_BsoVolee
@@ -683,7 +719,13 @@ case 'resetScores':
 
 // ── Suppression complète des équipes BSO (toutes volées) ─────────────────────
 case 'deleteTeams':
+    requireWriteAcl();
     $evCode = preg_replace('/[^A-Za-z0-9]/', '', $_REQUEST['event'] ?? '');
+    if ($evCode === '') {
+        echo json_encode(['error' => 1, 'msg' => 'Code épreuve manquant']);
+        break;
+    }
+    error_log("TNM BSO deleteTeams tourId=$tourId evCode=$evCode");
 
     safe_r_sql(
         "DELETE FROM TNM_BsoVolee
@@ -937,10 +979,15 @@ case 'getPoolTeams':
 
 // ── Écriture manuelle des valeurs de classement d'une équipe ─────────────────
 case 'setPoolTeamRanking':
+    requireWriteAcl();
     $evCode = preg_replace('/[^A-Za-z0-9]/', '', $_REQUEST['event'] ?? '');
     $level  = intval($_REQUEST['level'] ?? 1);
     $group  = intval($_REQUEST['group'] ?? 0);
     $team   = intval($_REQUEST['team']  ?? 0);
+    if ($evCode === '' || $team <= 0 || $level <= 0 || $group <= 0) {
+        echo json_encode(['error' => 1, 'msg' => 'Paramètres invalides']);
+        break;
+    }
 
     $groupRankBefSO = intval($_REQUEST['groupRankBefSO'] ?? 0);
     $groupRank      = intval($_REQUEST['groupRank'] ?? 0);
@@ -959,6 +1006,67 @@ case 'setPoolTeamRanking':
     echo json_encode(['error'=>0]);
     break;
     
+// ── Composition des poules Tour 1 avec détection des conflits géographiques ───
+case 'getPoolsTour1':
+    $evCode = preg_replace('/[^A-Za-z0-9]/', '', $_REQUEST['event'] ?? '');
+
+    $rs = safe_r_sql(
+        "SELECT rp.RrPartGroup, rp.RrPartParticipant,
+                co.CoName, co.CoCode
+         FROM RoundRobinParticipants rp
+         LEFT JOIN Countries co ON co.CoId=rp.RrPartParticipant AND co.CoTournament=rp.RrPartTournament
+         WHERE rp.RrPartTournament=$tourId AND rp.RrPartTeam=1 AND rp.RrPartLevel=1
+           AND rp.RrPartEvent=" . StrSafe_DB($evCode) . "
+           AND rp.RrPartParticipant>0
+         ORDER BY rp.RrPartGroup ASC, rp.RrPartParticipant ASC"
+    );
+
+    $poolsByGroup = [];
+    while ($r = safe_fetch($rs)) {
+        $group = (int)$r->RrPartGroup;
+        if (!isset($poolsByGroup[$group])) $poolsByGroup[$group] = [];
+        $code = $r->CoCode ?? '';
+        $poolsByGroup[$group][] = [
+            'team'   => (int)$r->RrPartParticipant,
+            'name'   => $r->CoName ?? '',
+            'code'   => $code,
+            'region' => substr($code, 0, 2),
+            'dept'   => substr($code, 0, 4),
+        ];
+    }
+
+    if (empty($poolsByGroup)) {
+        echo json_encode(['error' => 0, 'pools' => [], 'conflicts' => 0]);
+        break;
+    }
+
+    $result = [];
+    $conflicts = 0;
+    foreach ($poolsByGroup as $group => $members) {
+        $deptCount = []; $regionCount = [];
+        foreach ($members as $t) {
+            if ($t['dept'])   $deptCount[$t['dept']]     = ($deptCount[$t['dept']]     ?? 0) + 1;
+            if ($t['region']) $regionCount[$t['region']] = ($regionCount[$t['region']] ?? 0) + 1;
+        }
+        $out = [];
+        foreach ($members as $t) {
+            $dc = $t['dept']   !== '' && ($deptCount[$t['dept']]     ?? 0) > 1;
+            $rc = !$dc && $t['region'] !== '' && ($regionCount[$t['region']] ?? 0) > 1;
+            if ($dc || $rc) $conflicts++;
+            $out[] = [
+                'team'          => $t['team'],
+                'name'          => $t['name'],
+                'code'          => $t['code'],
+                'deptConflict'  => $dc,
+                'regionConflict'=> $rc,
+            ];
+        }
+        $result[] = ['group' => $group, 'teams' => $out];
+    }
+
+    echo json_encode(['error' => 0, 'pools' => $result, 'conflicts' => $conflicts]);
+    break;
+
 default:
     echo json_encode(['error' => 1, 'msg' => 'Action inconnue : '.$act]);
 }

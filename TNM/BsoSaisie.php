@@ -30,6 +30,7 @@ body { font-family: sans-serif; background: #f4f4f4; margin: 0; }
 /* cache le menu ianseo*/
 #TourInfo{display:none}
 #navigation{display:none}
+#tnm-nav{display:none}
 .modal{dsplay:none}
 #Content{padding:0;height:auto}
 
