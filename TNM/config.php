@@ -194,7 +194,7 @@ echo '<td colspan="2" class="Center" style="padding:14px">';
 echo '<label><input type="checkbox" id="ScheduleAccColors" checked>&nbsp;Couleurs AccColors</label><br><br>';
 echo '<div class="Button" onclick="printBSO()">Planning BSO</div>';
 echo '</td></tr>';
-echo '<tr><th colspan="8" class="Button" onclick="window.location.href=\''.$CFG->ROOT_DIR.'Modules/Custom/TNM/PoolRankingEdit.php\'">Édition manuelle classement poule</th></tr>';
+echo '<tr><th colspan="8" class="Button" onclick="window.location.href=\''.$CFG->ROOT_DIR.'Modules/Custom/TNM/PoolRankingEdit.php\'">Édition manuelle classement poule (DNS/DNF)</th></tr>';
 echo '</table></form>';
 
 
