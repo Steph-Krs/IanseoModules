@@ -105,12 +105,12 @@ while ($r = safe_fetch($rsEv))
 </tr>
 <tr id="view-draw"><td style="padding:12px 16px">
     <p style="margin:0 0 12px;font-size:.88em;color:#444">
-        En cas d'égalité parfaite, attribuez un numéro aléatoire à chaque archer.
-        L'archer ayant le numéro le plus élevé est retenu en priorité.
+        En cas d'égalité parfaite, attribuez un numéro aléatoire à chaque équipe.
+        L'équipe ayant le numéro le plus petit obtient le meilleur classement.
         Cliquez sur <strong>Tirer</strong> pour générer un nouveau tirage.
     </p>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-        <label style="font-size:.9em;font-weight:bold">Nombre d'archers à départager :</label>
+        <label style="font-size:.9em;font-weight:bold">Nombre d'équipes à départager :</label>
         <input type="number" id="draw-count" value="2" min="2" max="20"
                style="width:64px;padding:4px 6px;border:1px solid #bbb;border-radius:4px;font-size:1em">
         <button type="button" id="btn-draw"
@@ -261,7 +261,7 @@ document.getElementById('btn-draw').addEventListener('click', function () {
         var suffix = rank === 1 ? 'er' : 'ème';
         var isFirst = rank === 1;
         html += '<div class="draw-card">'
-              + '<div class="draw-label">Archer ' + (i + 1) + '</div>'
+              + '<div class="draw-label">Equipe ' + (i + 1) + '</div>'
               + '<div class="draw-number">' + numbers[i] + '</div>'
               + '<div class="draw-rank' + (isFirst ? ' draw-rank-first' : '') + '">' + rank + suffix + '</div>'
               + '</div>';
