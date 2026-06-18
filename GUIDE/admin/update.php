@@ -247,10 +247,10 @@ if ($action === 'update-module') {
     if (!$repo) {
         $messages[] = ['err', 'URL GitHub invalide.'];
     } else {
-        $branch  = $cfg['github_branch'] ?: 'main';
-        $token   = $cfg['github_token']  ?: '';
-        $prefix  = upd_remote_prefix($cfg);
-        $rawBase = "https://raw.githubusercontent.com/{$repo['owner']}/{$repo['repo']}/$branch/{$prefix}";
+        $branch      = $cfg['github_branch'] ?: 'main';
+        $token       = $cfg['github_token']  ?: '';
+        $prefixPath  = rtrim(upd_remote_prefix($cfg), '/');
+        $rawBase     = "https://raw.githubusercontent.com/{$repo['owner']}/{$repo['repo']}/$branch" . ($prefixPath ? "/$prefixPath" : '');
         $files   = [
             'assets/guide.css' => $MODULE_DIR . '/assets/guide.css',
             'assets/guide.js'  => $MODULE_DIR . '/assets/guide.js',
@@ -266,7 +266,7 @@ if ($action === 'update-module') {
             }
         }
         // Mettre à jour le fichier VERSION
-        $verContent = upd_gh_raw("{$rawBase}VERSION", $token);
+        $verContent = upd_gh_raw("$rawBase/VERSION", $token);
         if ($verContent) file_put_contents($MODULE_DIR . '/VERSION', $verContent);
 
         if ($fail === 0) {
@@ -277,10 +277,18 @@ if ($action === 'update-module') {
     }
 }
 
-$cfg    = upd_load_config(); // recharger après save
-$local  = upd_local_formations();
-$repo   = upd_parse_repo($cfg['github_url'] ?? '');
+$cfg         = upd_load_config(); // recharger après save
+$local       = upd_local_formations();
+$repo        = upd_parse_repo($cfg['github_url'] ?? '');
 $localModVer = is_file($MODULE_DIR . '/VERSION') ? trim(file_get_contents($MODULE_DIR . '/VERSION')) : null;
+
+// Calculer si tout est à jour (uniquement après une vérification)
+$allUpToDate = false;
+if ($checkResults !== null) {
+    $hasFormationUpdates = !empty(array_filter($checkResults, function ($r) { return $r['status'] !== 'ok'; }));
+    $hasModuleUpdate     = $moduleCheckResult && $moduleCheckResult['update'];
+    $allUpToDate         = !$hasFormationUpdates && !$hasModuleUpdate && !empty($checkResults);
+}
 
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
@@ -288,14 +296,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 <style>
 .upd-section { max-width: 860px; margin-bottom: 32px; }
 .upd-section h2 { color: #0254a8; font-size: 16px; margin: 0 0 12px; padding-bottom: 6px; border-bottom: 2px solid #dde6f5; }
-.upd-form label { display: block; margin-bottom: 12px; font-size: 13px; color: #333; }
-.upd-form label span { display: block; font-weight: 600; margin-bottom: 4px; }
-.upd-form input[type=text], .upd-form input[type=password] {
-  width: 100%; max-width: 500px; padding: 7px 10px; border: 1px solid #c8d4ec;
-  border-radius: 6px; font-size: 13px; box-sizing: border-box;
-}
 .upd-btn { padding: 8px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; }
-.upd-btn-save   { background: linear-gradient(80deg,#0254a8 10%,#082c7c 100%); color:#fff; }
 .upd-btn-check  { background: #f0f4ff; color: #0254a8; border: 1px solid #b0c4e8; }
 .upd-btn-apply  { background: #1a8a4a; color: #fff; }
 .upd-btn-module { background: #082c7c; color: #fff; }
@@ -313,7 +314,19 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .upd-new    { background: #e8f0ff; color: #0254a8; }
 .upd-update { background: #fff0d4; color: #7a4a00; }
 .upd-hint { font-size: 12px; color: #888; margin-top: 6px; }
-.upd-code { background: #f0f4ff; border: 1px solid #c5cef5; border-radius: 4px; padding: 10px 14px; font-family: monospace; font-size: 12px; color: #082c7c; margin: 8px 0; white-space: pre-wrap; }
+.upd-source { font-size: 13px; color: #555; background: #f7f9ff; border: 1px solid #dde2f5; border-radius: 6px; padding: 10px 14px; display: inline-block; line-height: 1.8; }
+.upd-source b { color: #082c7c; }
+details.upd-force > summary {
+  cursor: pointer; list-style: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 18px; border-radius: 6px;
+  border: 1px solid #c8d4ec; background: #f0f4ff;
+  color: #0254a8; font-size: 13px; font-weight: 600; user-select: none;
+}
+details.upd-force > summary::-webkit-details-marker { display: none; }
+details.upd-force > summary::before { content: '▶'; font-size: 10px; display: inline-block; transition: transform .15s; }
+details.upd-force[open] > summary::before { transform: rotate(90deg); }
+details.upd-force .upd-force-body { margin-top: 16px; }
 </style>
 
 <h1>Guide FFTA — Mises à jour</h1>
@@ -323,45 +336,20 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   <div class="upd-msg <?= $type === 'ok' ? 'upd-msg-ok' : 'upd-msg-err' ?>"><?= htmlspecialchars($text) ?></div>
 <?php endforeach; ?>
 
-<!-- === CONFIG GITHUB === -->
+<!-- === SOURCE === -->
 <div class="upd-section">
-  <h2>Configuration GitHub</h2>
-  <form method="post" class="upd-form">
-    <input type="hidden" name="action" value="save-config">
-    <label>
-      <span>URL du dépôt GitHub</span>
-      <input type="text" name="github_url" value="<?= htmlspecialchars($cfg['github_url']) ?>"
-             placeholder="https://github.com/propriétaire/guide-ianseo">
-    </label>
-    <label>
-      <span>Branche</span>
-      <input type="text" name="github_branch" value="<?= htmlspecialchars($cfg['github_branch'] ?: 'main') ?>" style="max-width:200px">
-    </label>
-    <label>
-      <span>Sous-dossier dans le dépôt <span style="font-weight:400;color:#888">(laisser vide si le module est à la racine)</span></span>
-      <input type="text" name="github_path" value="<?= htmlspecialchars($cfg['github_path'] ?? '') ?>"
-             placeholder="ex: GUIDE" style="max-width:200px">
-    </label>
-    <label>
-      <span>Token GitHub (optionnel — pour dépôt privé ou quota élevé)</span>
-      <input type="password" name="github_token" value="<?= htmlspecialchars($cfg['github_token']) ?>"
-             placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
-    </label>
-    <button type="submit" class="upd-btn upd-btn-save">Enregistrer</button>
-  </form>
-
-  <?php if (!$repo): ?>
-    <p class="upd-hint">
-      Pas encore de dépôt GitHub ? Créez un dépôt public avec cette structure :
+  <h2>Source</h2>
+  <?php if ($repo): ?>
+    <p class="upd-source">
+      Dépôt : <b><?= htmlspecialchars($cfg['github_url']) ?></b><br>
+      Branche : <b><?= htmlspecialchars($cfg['github_branch'] ?: 'main') ?></b>
+      <?php if (!empty($cfg['github_path'])): ?>
+        &nbsp;|&nbsp; Dossier : <b><?= htmlspecialchars($cfg['github_path']) ?></b>
+      <?php endif; ?>
+      <br>Version locale du module : <b><?= htmlspecialchars($localModVer ?? 'inconnue') ?></b>
     </p>
-    <div class="upd-code">MonDepot/                       ← dépôt GitHub
-└── GUIDE/                      ← sous-dossier (champ "Sous-dossier")
-    ├── assets/
-    │   ├── guide.css
-    │   └── guide.js
-    ├── content/
-    │   └── 01-premiere-competition.json
-    └── VERSION                 ← fichier texte : numéro de version (ex: 1.0.0)</div>
+  <?php else: ?>
+    <p style="color:#c0392b;font-size:13px">⚠ Aucun dépôt GitHub configuré dans <code>guide-config.json</code>.</p>
   <?php endif; ?>
 </div>
 
@@ -420,12 +408,17 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     <?php endif; ?>
   <?php endif; ?>
 </div>
-<?php endif; ?>
 
 <!-- === ACTIONS === -->
-<?php if ($repo): ?>
 <div class="upd-section">
+
+<?php if ($allUpToDate): ?>
+  <details class="upd-force">
+    <summary>Forcer une mise à jour</summary>
+    <div class="upd-force-body">
+<?php else: ?>
   <h2>Appliquer les mises à jour</h2>
+<?php endif; ?>
 
   <div style="margin-bottom:20px">
     <h3 style="font-size:14px;color:#333;margin:0 0 8px">Formations</h3>
@@ -456,6 +449,12 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     </form>
     <p class="upd-hint">Remplace les fichiers assets locaux par la version du dépôt distant.</p>
   </div>
+
+<?php if ($allUpToDate): ?>
+    </div>
+  </details>
+<?php endif; ?>
+
 </div>
 <?php endif; ?>
 
