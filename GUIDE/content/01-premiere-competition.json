@@ -1,0 +1,343 @@
+{
+    "id": "n4kp7xm2r9f1a8q5t3wb",
+    "title": "Ma première compétition (~10min)",
+    "description": "De la création à l'export FFTA, maîtrisez toutes les étapes d'une compétition de tir à l'arc avec ianseo.",
+    "version": "1.1",
+    "steps": [
+        {
+            "id": "bienvenue",
+            "title": "Bienvenue dans le Guide FFTA !",
+            "content": "<p>Ce guide interactif vous accompagne pas à pas pour créer et gérer votre première compétition avec ianseo.<\/p><p><b>Au programme :<\/b><\/p><ul><li>Créer et configurer la compétition<\/li><li>Importer les licenciés et inscrire les participants<\/li><li>Gérer les scores le jour J<\/li><li>Exporter les résultats vers l'extranet FFTA<\/li><\/ul><p>Si une compétition est déjà ouverte, commencez par la fermer puis cliquez sur <b>Suivant<\/b> pour commencer.<\/p>",
+            "page": "\/",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "no_tournament",
+                    "required": true
+                }
+            ],
+            "optional": false
+        },
+        {
+            "id": "mise-a-jour",
+            "title": "Mettre à jour ianseo",
+            "content": "<p>Avant toute compétition, mettez à jour ianseo pour bénéficier des derniers correctifs.<\/p><p>Dans le menu principal, cliquez sur <b>Modules<\/b> puis <b style=\"\">Mettre à&nbsp;jour Ianseo<\/b>.<\/p><p><\/p><ol><li>Cochez la case pour <b>accepter les CG<\/b>.<\/li><li><b>Validez<\/b><\/li><li>Cliquez sur <b>OK<\/b> sur la page suivante<\/li><\/ol><p>Ici vous pouvez faire une sauvegarde de l'ensemble de vos compétitions via <b>Export de toutes les compétitions !<\/b><\/p><p><\/p><p><\/p><p class=\"guide-tip\">⚠️ Cette étape est indispensable — elle garantit la compatibilité avec les exports FFTA et les dernières règles fédérales.<\/p>",
+            "page": "\/Update\/",
+            "triggers": [
+                {
+                    "kind": "action",
+                    "trigger": "mouseover",
+                    "selector": "#navigation > ul > li:nth-child(3) > a",
+                    "required": true,
+                    "page": "\/"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": "#navigation > ul > li:nth-child(3) > ul > li:nth-child(1) > a",
+                    "required": true,
+                    "page": "\/"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": "#Content > div > div.checkbox > div:nth-child(1) > input[type=checkbox]",
+                    "required": true,
+                    "page": "\/Update\/"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": "#AcceptLicense > input[type=button]",
+                    "required": true,
+                    "page": "\/Update\/"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": "#UpdateTable > div:nth-child(2) > input[type=button]",
+                    "required": true,
+                    "page": "\/Update\/?acceptLicense"
+                }
+            ]
+        },
+        {
+            "id": "nouvelle-competition",
+            "title": "Créer une nouvelle compétition",
+            "content": "<p>Sur la page d'accueil, cliquez sur le bouton <b>Nouvelle Compétition<\/b>.<\/p><p>Si une compétition est déjà ouverte, fermez-la d'abord via <b>Compétition &gt; Fermer la compétition<\/b>.<\/p><p class=\"guide-tip\">💡 Vous pouvez avoir plusieurs compétitions sauvegardées, mais une seule est active à la fois.<\/p>",
+            "page": "\/",
+            "triggers": [
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": "#Content > table > tbody > tr:nth-child(3) > td > a",
+                    "required": true,
+                    "page": "\/"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": null,
+                    "required": false
+                }
+            ]
+        },
+        {
+            "id": "infos-base",
+            "title": "Informations de base",
+            "content": "<p>Allez dans <b>Compétition &gt; Modifier les informations &gt; Informations de la compétition<\/b> et remplissez :<\/p><ul><li><b>Code<\/b> : identifiant unique de la compétition (ex : <code>26-23145<\/code>&nbsp;: année + numéro de compétition FFTA)<\/li><li><b>Nom<\/b> : nom complet de la compétition, affiché sur tous les documents<\/li><li><b>Nom court<\/b> : Egalement utilisé pour les affichages<\/li><li><b>Organisée par :<\/b><\/li><\/ul><p>&nbsp; &nbsp; &nbsp; &nbsp; Champ du haut : <b>Numéro d'affiliation<\/b> du club<\/p><p>&nbsp; &nbsp; &nbsp; &nbsp; Champ du bas : Nom de <b>l'organisateur<\/b><\/p><ul><li><b>Règle locale<\/b> : sélectionnez <b>Règles françaises<\/b><\/li><li><b>Type de Compétition<\/b> : sélectionnez <b>la discipline<\/b><\/li><li><b>Sous-règle<\/b> : sélectionnez <b>Sélectif<\/b><\/li><li><font color=\"#082c7c\"><b>Lieu<\/b><\/font> : nom du stade, de la salle, de la forêt<\/li><li><font color=\"#082c7c\"><b>Ville<\/b><\/font> : ajouter le nom de la ville<\/li><li><font color=\"#082c7c\"><b>Date<\/b><\/font> : saisir les date déclarées au <font color=\"#082c7c\"><b>calendrier FFTA<\/b><\/font><\/li><\/ul><p>Enregistrer en cliquant sur<font color=\"#082c7c\"><b>&nbsp;Sauvegarder<\/b><\/font><\/p><p class=\"guide-tip\">⚠️ Le Code de la compétition doit être unique sur votre machine. Il ne peut pas être modifié après la création.<\/p><p class=\"guide-tip\">⚠️ Les règles et sous-règles garantissent le respect des règles de la FFTA et la conformité du fichier TXT.<\/p><p class=\"guide-tip\">💡 Sélectif + Para uniquement si para ne tirant pas à la distance des valides (ex: Critérium, HV, Supports...)<\/p><p class=\"guide-tip\"><b>🚨<\/b><b>NE PAS MODIFIER LES PRECONFIGURATIONS🚨<\/b><\/p>",
+            "page": "\/Tournament\/index.php",
+            "triggers": [
+                {
+                    "trigger": "change",
+                    "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(4) > td > input",
+                    "required": true,
+                    "hint": "ex : 26-XXXXX = année + numéro de compétition FFTA"
+                },
+                {
+                    "trigger": "change",
+                    "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(5) > td > textarea",
+                    "required": true,
+                    "hint": "Compétition sélective de XXX 2026"
+                },
+                {
+                    "trigger": "change",
+                    "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(6) > td > input",
+                    "required": true,
+                    "hint": "Sélectif XXX 2026"
+                },
+                {
+                    "trigger": "change",
+                    "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(7) > td > input",
+                    "required": true,
+                    "hint": "IMPORTANT > Numéro d'agrément"
+                },
+                {
+                    "trigger": "change",
+                    "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(7) > td > textarea",
+                    "required": true,
+                    "hint": "Nom du club"
+                },
+                {
+                    "trigger": "change",
+                    "selector": "#d_Rule",
+                    "required": true,
+                    "hint": "Règles françaises"
+                },
+                {
+                    "trigger": "change",
+                    "selector": "#d_ToType",
+                    "required": true,
+                    "hint": "Discipline"
+                },
+                {
+                    "trigger": "change",
+                    "selector": "#d_SubRule",
+                    "required": true,
+                    "hint": "Sélectif ou Sélectif + para"
+                },
+                {
+                    "trigger": "change",
+                    "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(13) > td > textarea",
+                    "required": true,
+                    "hint": "Stade, salle ou fôret de XXX"
+                },
+                {
+                    "trigger": "change",
+                    "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(14) > td > input",
+                    "required": true
+                },
+                {
+                    "trigger": "mouseover",
+                    "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(17) > td > select:nth-child(3)",
+                    "required": true,
+                    "hint": "Date du calendrier fédéral"
+                },
+                {
+                    "trigger": "mouseover",
+                    "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(17) > td > select:nth-child(8)",
+                    "required": true,
+                    "hint": "Date du calendrier fédéral"
+                },
+                {
+                    "trigger": "click",
+                    "selector": "#Frm > table > tbody:nth-child(3) > tr > td > input[type=submit]:nth-child(1)",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "id": "sessions",
+            "title": "Configurer les départs (sessions)",
+            "content": "<p>Allez dans <b>Compétition &gt; Modifier les informations &gt; Session<\/b>.<\/p><p>Après avoir renseigné le nombre de départs et sauvegardé, pour chaque départ, renseignez :<\/p><ul><li><b>Nombre de cibles<\/b><\/li><li><b>Archers par cible<\/b> (rythme AB-CD, ABC...)<\/li><\/ul><p class=\"guide-tip\">💡 Créez autant de départs que nécessaire (1, 2, 3...). Vous pouvez en ajouter ou en modifier après coup.<\/p><p class=\"guide-tip\"><span style=\"font-family: Poppins, PoppinsFallback, Helvetica, sans-serif;\">⚠️&nbsp;<\/span>Le nombre de cible doit correspondre à minima au nombre de cibles utilisées.<\/p>",
+            "page": "\/Tournament\/ManSessions_kiss.php",
+            "triggers": [
+                {
+                    "trigger": "mouseover",
+                    "selector": "#navigation > ul > li:nth-child(1) > a",
+                    "required": true,
+                    "page": "\/Tournament\/index.php"
+                },
+                {
+                    "trigger": "mouseover",
+                    "selector": "#navigation > ul > li:nth-child(1) > ul > li:nth-child(7) > a",
+                    "required": true,
+                    "page": "\/Tournament\/index.php"
+                },
+                {
+                    "trigger": "mouseover",
+                    "selector": "#navigation > ul > li:nth-child(1) > ul > li:nth-child(7) > ul > li:nth-child(3) > a",
+                    "required": true,
+                    "page": "\/Tournament\/index.php"
+                },
+                {
+                    "trigger": "mouseover",
+                    "selector": "#txtNumSession",
+                    "required": true
+                },
+                {
+                    "trigger": "click",
+                    "selector": "#Content > table:nth-child(1) > tbody > tr:nth-child(3) > td.w-10.Center > input:nth-child(1)",
+                    "required": false
+                },
+                {
+                    "trigger": "mouseover",
+                    "selector": "#t4s_1",
+                    "required": false,
+                    "hint": "A minima les cibles réellement utilisées"
+                },
+                {
+                    "trigger": "mouseover",
+                    "selector": "#a4t_1",
+                    "required": false,
+                    "hint": "4 pour de l'AB-CD"
+                }
+            ]
+        },
+        {
+            "id": "synchro-licencies",
+            "title": "Synchroniser les licenciés",
+            "content": "<p>Allez dans <b>Participants &gt; Synchronisation des compétiteurs &gt; Synchronisation des compétiteurs<\/b>.<\/p><p>Chargez le fichier <code>parametres_ianseo.ffta<\/code> obtenu depuis votre <b>espace dirigeant FFTA<\/b> (extranet.ffta.fr).<\/p><p>Ce fichier contient la liste à jour de tous les licenciés français.<\/p><p class=\"guide-tip\">⚠️ À faire avant chaque compétition pour garantir que les numéros de licence et les informations des archers sont à jour.<\/p>",
+            "page": "\/Partecipants\/LookupTableLoad.php",
+            "triggers": [
+                {
+                    "trigger": "change",
+                    "selector": "input[name=\"UploadedFile\"]",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "id": "ajout-participants",
+            "title": "Ajouter des participants",
+            "content": "<p>Allez dans <b>Participants &gt; Liste (Simple)<\/b>.<\/p><p>Pour chaque archer, cliquez sur <b>Ajouter<\/b> et renseignez :<\/p><ul><li><b>N° de licence<\/b> : la fiche est remplie automatiquement depuis le fichier synchronisé<\/li><li><b>Départ<\/b> : A, B, C...<\/li><li><b>Division<\/b> : CL (classique), CO (compound), BB (arc nu)...<\/li><li><b>Classement<\/b> : Éliminatoire, Régional, National...<\/li><\/ul><p class=\"guide-tip\">💡 Para-archers tirant avec des valides : utilisez la même division (CL ou CO), pas de division para spécifique.<\/p><p class=\"guide-tip\">🌍 Archer étranger sans licence FFTA : saisissez <code>999999<\/code> comme numéro de licence, puis complétez manuellement nom, prénom et club.<\/p><p>Quand tous les archers sont saisis, cochez <b>Marquer comme fait<\/b> ci-dessous.<\/p>",
+            "page": "\/Partecipants\/index.php",
+            "triggers": [
+                {
+                    "trigger": null,
+                    "selector": null,
+                    "required": true
+                }
+            ]
+        },
+        {
+            "id": "autres-tirs",
+            "title": "Archers \"autres tirs\" (multi-catégories)",
+            "content": "<p>Un archer qui tire dans plusieurs catégories (ex : CL et CO) doit être inscrit <b>deux fois<\/b> dans la liste.<\/p><p>Pour le second enregistrement :<\/p><ul><li>Même numéro de licence<\/li><li>Division différente<\/li><li>Dans le champ <b>Finale Ind.<\/b>, sélectionnez <b>Non<\/b><\/li><\/ul><p class=\"guide-tip\">⚠️ Sans ce réglage (\"Finale Ind. = Non\"), l'archer apparaîtrait deux fois dans le tableau des finales, ce qui est interdit.<\/p>",
+            "page": "\/Partecipants\/index.php",
+            "triggers": []
+        },
+        {
+            "id": "affectation-cibles",
+            "title": "Affecter les cibles",
+            "content": "<p>Allez dans <b>Participants &gt; Cibles &gt; Tirage<\/b>.<\/p><p>Dans l'écran d'affectation automatique :<\/p><ol><li>Entrez <code>%<\/code> dans le champ de filtre (sélectionne tous les archers)<\/li><li>Cochez <b>Assigner aux cibles<\/b><\/li><li>Cliquez <b>OK<\/b><\/li><\/ol><p class=\"guide-tip\">💡 Vérifiez ensuite l'affectation et ajustez manuellement si nécessaire via <b>Participants &gt; Cibles &gt; Affectation manuelle<\/b>.<\/p>",
+            "page": "\/Partecipants\/SetTarget_auto.php",
+            "triggers": [
+                {
+                    "trigger": "change",
+                    "selector": "input[name=\"Event\"]",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "id": "sauvegarde-avant-j",
+            "title": "Sauvegarder la compétition",
+            "content": "<p>Avant le jour J, sauvegardez votre compétition.<\/p><p>Allez dans <b>Compétition &gt; Exports &gt; Sauvegarder la compétition<\/b>.<\/p><p>Conservez le fichier en lieu sûr (clé USB, réseau partagé...).<\/p><p>Quand la sauvegarde est effectuée, cochez <b>Marquer comme fait<\/b>.<\/p><p class=\"guide-tip\">⚠️ Effectuez des <b>sauvegardes régulières<\/b>, notamment après chaque session de saisie de scores. Une compétition perdue ne se récupère pas.<\/p>",
+            "page": "\/Tournament\/TournamentExport.php",
+            "triggers": [
+                {
+                    "trigger": null,
+                    "selector": null,
+                    "required": true
+                }
+            ]
+        },
+        {
+            "id": "feuilles-marques",
+            "title": "Imprimer les feuilles de marques",
+            "content": "<p>Le jour de la compétition, allez dans <b>Qualification &gt; Impression feuilles de marque<\/b>.<\/p><p>Options recommandées :<\/p><ul><li>Laissez les valeurs par défaut<\/li><li>Cochez <b>Sans cibles vides<\/b> pour ne pas imprimer les cibles non assignées<\/li><li>Sélectionnez le départ concerné (1, 2, 3...)<\/li><\/ul><p>Imprimez et distribuez les feuilles avant le début du tir.<\/p>",
+            "page": "\/Qualification\/PrintScore.php",
+            "triggers": [
+                {
+                    "trigger": "change",
+                    "selector": "#x_Session",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "id": "saisie-scores",
+            "title": "Saisir les scores",
+            "content": "<p>Allez dans <b>Qualification &gt; Saisie des feuilles de marque &gt; Tableau Standard<\/b>.<\/p><ol><li>Sélectionnez le départ<\/li><li>Cochez <b>G\/X<\/b> pour activer les colonnes 10+X et X<\/li><li>Cliquez <b>OK<\/b><\/li><\/ol><p>Saisissez le score total, puis les colonnes 10+X et X. <b>Sauvegardez après chaque série.<\/b><\/p><p class=\"guide-tip\">💡 En cas d'égalité pour un podium, une page de départage est disponible.<\/p>",
+            "page": "\/Qualification\/index.php",
+            "triggers": [
+                {
+                    "trigger": "change",
+                    "selector": "#x_Gold",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "id": "classements",
+            "title": "Consulter les classements",
+            "content": "<p>Allez dans <b>Qualification &gt; Impression du tour de Qualification<\/b>.<\/p><p>Sélectionnez <b>Qualifications - Complètes<\/b> pour afficher le classement officiel avec tous les ex-æquos résolus.<\/p><p>Vous pouvez imprimer ce document et l'afficher pour les archers.<\/p>",
+            "page": "\/Qualification\/PrintOut.php",
+            "triggers": [
+                {
+                    "trigger": "click",
+                    "selector": "a[href*=\"PrnComplete.php\"]",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "id": "export-ffta",
+            "title": "Exporter les résultats pour la FFTA",
+            "content": "<p>Allez dans <b>Compétition &gt; Exports &gt; Export pour FFTA<\/b>.<\/p><p>Choisissez le type d'export :<\/p><ul><li><b>Sélectif<\/b> : pour les compétitions avec archers valides ou para-archers tirant dans les catégories valides uniquement<\/li><li><b>Sélectif Para<\/b> : si des para-archers participent dans leur catégories spécifiques (Open, Fédéral, Challenge, HV...)<\/li><\/ul><p>Cliquez sur le lien généré pour télécharger le fichier <code>.txt<\/code>.<\/p><p class=\"guide-tip\">⚠️ Ouvrez le fichier <code>.txt<\/code> dans un éditeur de texte et vérifiez rapidement que le nombre de lignes correspond bien au nombre d'archers inscrits avant de le déposer.<\/p><p class=\"guide-tip\"><b>🚨NE PAS MODIFIER CE FICHIER<\/b>&nbsp;<\/p><p class=\"guide-tip\">💡 S'il y a une erreur, ca provient de la configuration de la compétition<\/p>",
+            "page": "\/Modules\/Sets\/FR\/exports\/",
+            "triggers": [
+                {
+                    "trigger": "change",
+                    "selector": "select",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "id": "extranet-ffta",
+            "title": "Déposer sur l'extranet FFTA",
+            "content": "<p>Connectez-vous à <b>extranet.ffta.fr<\/b> avec vos identifiants de club.<\/p><ol><li>Allez dans <b>Gestion Sportive &gt; Résultats &gt; Intégration TXT<\/b><\/li><li>Cliquez sur votre compétition dans la liste<\/li><li>Cliquez sur <b>Intégrer un fichier TXT<\/b><\/li><li>Entrez votre adresse e-mail de contact<\/li><li>Sélectionnez le fichier <code>.txt<\/code> exporté depuis ianseo<\/li><li>Cliquez <b>OK<\/b><\/li><\/ol><p class=\"guide-tip\">⚠️ Vous avez <b>48 heures<\/b> pour corriger d'éventuelles erreurs et re-déposer le fichier si nécessaire.<\/p><p class=\"guide-tip\">💡 En cas d'erreur un tutoriel explique la résolution des erreurs les plus communes.<\/p>",
+            "page": null,
+            "triggers": []
+        },
+        {
+            "id": "fin",
+            "title": "Félicitations !",
+            "content": "<p>Vous avez complété la formation <b>\"Ma première compétition\"<\/b>.<\/p><p>Vous maîtrisez maintenant :<\/p><ul><li>✅ La création et configuration d'une compétition<\/li><li>✅ L'import des licenciés et l'inscription des participants<\/li><li>✅ La saisie des scores et la consultation des classements<\/li><li>✅ L'export des résultats vers l'extranet FFTA<\/li><\/ul><p>Consultez les autres formations disponibles dans le Guide FFTA pour aller plus loin.<\/p>",
+            "page": null,
+            "triggers": []
+        }
+    ]
+}
