@@ -19,9 +19,15 @@ $CONFIG_FILE = $MODULE_DIR . '/guide-config.json';
 
 function upd_load_config() {
     global $CONFIG_FILE;
-    if (!is_file($CONFIG_FILE)) return ['github_url' => '', 'github_branch' => 'main', 'github_token' => ''];
+    $defaults = ['github_url' => '', 'github_branch' => 'main', 'github_path' => '', 'github_token' => ''];
+    if (!is_file($CONFIG_FILE)) return $defaults;
     $d = json_decode(file_get_contents($CONFIG_FILE), true);
-    return is_array($d) ? $d : ['github_url' => '', 'github_branch' => 'main', 'github_token' => ''];
+    return is_array($d) ? array_merge($defaults, $d) : $defaults;
+}
+
+function upd_remote_prefix($cfg) {
+    $p = trim($cfg['github_path'] ?? '', '/');
+    return $p !== '' ? "$p/" : '';
 }
 
 function upd_save_config($cfg) {
@@ -99,6 +105,7 @@ $action   = $_POST['action'] ?? '';
 if ($action === 'save-config') {
     $cfg['github_url']    = trim($_POST['github_url']    ?? '');
     $cfg['github_branch'] = trim($_POST['github_branch'] ?? 'main') ?: 'main';
+    $cfg['github_path']   = trim(trim($_POST['github_path'] ?? ''), '/');
     $cfg['github_token']  = trim($_POST['github_token']  ?? '');
     upd_save_config($cfg);
     $messages[] = ['ok', 'Configuration sauvegardée.'];
@@ -114,12 +121,13 @@ if ($action === 'check') {
     if (!$repo) {
         $messages[] = ['err', 'URL GitHub invalide. Format attendu : https://github.com/propriétaire/dépôt'];
     } else {
-        $branch = $cfg['github_branch'] ?: 'main';
-        $token  = $cfg['github_token']  ?: '';
+        $branch  = $cfg['github_branch'] ?: 'main';
+        $token   = $cfg['github_token']  ?: '';
+        $prefix  = upd_remote_prefix($cfg);
         $apiBase = "https://api.github.com/repos/{$repo['owner']}/{$repo['repo']}";
 
         // Vérifier formations
-        $contentList = upd_gh_fetch("$apiBase/contents/content?ref=$branch", $token);
+        $contentList = upd_gh_fetch("$apiBase/contents/{$prefix}content?ref=$branch", $token);
         if (isset($contentList['_error'])) {
             $messages[] = ['err', 'GitHub : ' . $contentList['_error']];
         } else {
@@ -149,8 +157,8 @@ if ($action === 'check') {
             }
         }
 
-        // Vérifier version module (fichier VERSION à la racine du repo)
-        $moduleVerRaw = upd_gh_raw("https://raw.githubusercontent.com/{$repo['owner']}/{$repo['repo']}/$branch/VERSION", $token);
+        // Vérifier version module (fichier VERSION dans le sous-dossier du module)
+        $moduleVerRaw = upd_gh_raw("https://raw.githubusercontent.com/{$repo['owner']}/{$repo['repo']}/$branch/{$prefix}VERSION", $token);
         $localVerFile = $MODULE_DIR . '/VERSION';
         $localModVer  = is_file($localVerFile) ? trim(file_get_contents($localVerFile)) : null;
         $remoteModVer = $moduleVerRaw ? trim($moduleVerRaw) : null;
@@ -173,8 +181,9 @@ if ($action === 'update-formations') {
         upd_ensure_schema();
         $branch      = $cfg['github_branch'] ?: 'main';
         $token       = $cfg['github_token']  ?: '';
+        $prefix      = upd_remote_prefix($cfg);
         $apiBase     = "https://api.github.com/repos/{$repo['owner']}/{$repo['repo']}";
-        $contentList = upd_gh_fetch("$apiBase/contents/content?ref=$branch", $token);
+        $contentList = upd_gh_fetch("$apiBase/contents/{$prefix}content?ref=$branch", $token);
         $local       = upd_local_formations();
         $contentDir  = $MODULE_DIR . '/content/';
         $updated = $added = $skipped = 0;
@@ -240,7 +249,8 @@ if ($action === 'update-module') {
     } else {
         $branch  = $cfg['github_branch'] ?: 'main';
         $token   = $cfg['github_token']  ?: '';
-        $rawBase = "https://raw.githubusercontent.com/{$repo['owner']}/{$repo['repo']}/$branch";
+        $prefix  = upd_remote_prefix($cfg);
+        $rawBase = "https://raw.githubusercontent.com/{$repo['owner']}/{$repo['repo']}/$branch/{$prefix}";
         $files   = [
             'assets/guide.css' => $MODULE_DIR . '/assets/guide.css',
             'assets/guide.js'  => $MODULE_DIR . '/assets/guide.js',
@@ -256,7 +266,7 @@ if ($action === 'update-module') {
             }
         }
         // Mettre à jour le fichier VERSION
-        $verContent = upd_gh_raw("$rawBase/VERSION", $token);
+        $verContent = upd_gh_raw("{$rawBase}VERSION", $token);
         if ($verContent) file_put_contents($MODULE_DIR . '/VERSION', $verContent);
 
         if ($fail === 0) {
@@ -328,6 +338,11 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
       <input type="text" name="github_branch" value="<?= htmlspecialchars($cfg['github_branch'] ?: 'main') ?>" style="max-width:200px">
     </label>
     <label>
+      <span>Sous-dossier dans le dépôt <span style="font-weight:400;color:#888">(laisser vide si le module est à la racine)</span></span>
+      <input type="text" name="github_path" value="<?= htmlspecialchars($cfg['github_path'] ?? '') ?>"
+             placeholder="ex: GUIDE" style="max-width:200px">
+    </label>
+    <label>
       <span>Token GitHub (optionnel — pour dépôt privé ou quota élevé)</span>
       <input type="password" name="github_token" value="<?= htmlspecialchars($cfg['github_token']) ?>"
              placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
@@ -339,13 +354,14 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     <p class="upd-hint">
       Pas encore de dépôt GitHub ? Créez un dépôt public avec cette structure :
     </p>
-    <div class="upd-code">guide-ianseo/
-├── assets/
-│   ├── guide.css
-│   └── guide.js
-├── content/
-│   └── 01-premiere-competition.json
-└── VERSION        ← fichier texte avec le numéro de version (ex: 1.0)</div>
+    <div class="upd-code">MonDepot/                       ← dépôt GitHub
+└── GUIDE/                      ← sous-dossier (champ "Sous-dossier")
+    ├── assets/
+    │   ├── guide.css
+    │   └── guide.js
+    ├── content/
+    │   └── 01-premiere-competition.json
+    └── VERSION                 ← fichier texte : numéro de version (ex: 1.0.0)</div>
   <?php endif; ?>
 </div>
 
