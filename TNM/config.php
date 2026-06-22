@@ -192,7 +192,9 @@ echo '<div class="Button" onclick="this.closest(\'form\').submit()">Enregistrer 
 echo '</td>';
 echo '<td colspan="2" class="Center" style="padding:14px">';
 echo '<label><input type="checkbox" id="ScheduleAccColors" checked>&nbsp;Couleurs AccColors</label><br><br>';
-echo '<div class="Button" onclick="printBSO()">Planning BSO</div>';
+echo '<div class="Button" onclick="printBSO()" style="margin-bottom:6px">Planning BSO</div>';
+echo '<div class="Button" onclick="printScheduleTNM()" style="margin-bottom:6px">Programme de compétition</div>';
+echo '<div class="Button" onclick="printFopTNM()">Plan de cible</div>';
 echo '</td></tr>';
 echo '<tr><th colspan="8" class="Button" onclick="window.location.href=\''.$CFG->ROOT_DIR.'Modules/Custom/TNM/PoolRankingEdit.php\'">Édition manuelle classement poule (DNS/DNF)</th></tr>';
 echo '</table></form>';
@@ -277,6 +279,14 @@ function deleteTeams(ev, btn) {
             showMsg('Erreur : '+(data.msg||''), false);
         }
     });
+}
+
+function printScheduleTNM() {
+    window.open('<?= $CFG->ROOT_DIR ?>Modules/Custom/TNM/PdfSchedule.php', '_blank');
+}
+
+function printFopTNM() {
+    window.open('<?= $CFG->ROOT_DIR ?>Scheduler/index.php?fop=1', '_blank');
 }
 
 function printBSO() {
