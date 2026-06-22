@@ -9,7 +9,16 @@ checkFullACL(AclRobin, '', AclReadOnly);
 
 $tourId = intval($_SESSION['TourId']);
 
-// ── Création des tables si absentes ──────────────────────────────────────────
+// ── Schéma DB ─────────────────────────────────────────────────────────────────
+// CREATE TABLE IF NOT EXISTS est idempotent — safe à chaque chargement de config.php.
+// Pour les futures modifications de colonnes, vérifier via information_schema.COLUMNS
+// avant l'ALTER TABLE (pattern en commentaire en fin de section).
+define('TNM_VERSION', '1.0.0');
+
+// $GLOBALS['_tnm_tables_ok'] est posé par menu.php en tout début de requête.
+// S'il vaut false ici, les tables n'existent pas encore → fraîche installation.
+$tnmFreshInstall = !($GLOBALS['_tnm_tables_ok'] ?? false);
+
 safe_r_sql("CREATE TABLE IF NOT EXISTS TNM_BsoConfig (
     BcTournament  SMALLINT    NOT NULL,
     BcEvent       VARCHAR(10) NOT NULL,
@@ -17,7 +26,7 @@ safe_r_sql("CREATE TABLE IF NOT EXISTS TNM_BsoConfig (
     BcStartTarget SMALLINT    NOT NULL DEFAULT 1,
     BcSchedule    TEXT,
     BcUpdated     DATETIME    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    BcSkipCheck TINYINT(1) NOT NULL DEFAULT 0,
+    BcSkipCheck   TINYINT(1)  NOT NULL DEFAULT 0,
     PRIMARY KEY (BcTournament, BcEvent)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
@@ -29,11 +38,35 @@ safe_r_sql("CREATE TABLE IF NOT EXISTS TNM_BsoVolee (
     BvTarget      SMALLINT,
     BvScore       SMALLINT,
     BvStatus      TINYINT,
-    BvManual      TINYINT(1) NOT NULL DEFAULT 0,
+    BvManual      TINYINT(1)  NOT NULL DEFAULT 0,
     BvUpdated     DATETIME    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    BvRank        TINYINT NULL,
+    BvRank        TINYINT     NULL,
     PRIMARY KEY (BvTournament, BvEvent, BvRound, BvTeam)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+if ($tnmFreshInstall) $GLOBALS['_tnm_tables_ok'] = true;
+
+// ── Template migration future ─────────────────────────────────────────────────
+// $rs = safe_r_sql("SELECT 1 FROM information_schema.COLUMNS
+//     WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='TNM_BsoConfig' AND COLUMN_NAME='BcNewCol'");
+// if (!safe_fetch($rs))
+//     safe_r_sql("ALTER TABLE TNM_BsoConfig ADD COLUMN BcNewCol TINYINT NOT NULL DEFAULT 0");
+
+// ── Vérification mise à jour GitHub ──────────────────────────────────────────
+// Résultat mis en cache en session 1h pour ne pas bloquer si pas de réseau.
+define('TNM_GITHUB_JSON', 'https://raw.githubusercontent.com/Steph-Krs/IanseoModules/main/TNM/version.json');
+$tnmRemoteVer = null;
+if (empty($_SESSION['_tnm_ver']) || (time() - ($_SESSION['_tnm_ver']['ts'] ?? 0)) > 3600) {
+    $_ctx = stream_context_create(['http' => ['timeout' => 2, 'ignore_errors' => true]]);
+    $_SESSION['_tnm_ver'] = ['ts' => time(), 'raw' => @file_get_contents(TNM_GITHUB_JSON, false, $_ctx) ?: null];
+    unset($_ctx);
+}
+if (!empty($_SESSION['_tnm_ver']['raw'])) {
+    $_rem = json_decode($_SESSION['_tnm_ver']['raw'], true);
+    if (is_array($_rem) && isset($_rem['version']) && version_compare($_rem['version'], TNM_VERSION, '>'))
+        $tnmRemoteVer = $_rem;
+    unset($_rem);
+}
 
 // ── Helpers DB (même signature que l'ancienne version JSON) ───────────────────
 // PdfPools.php et PdfRanking.php peuvent remplacer leur copie locale par ceci.
@@ -116,7 +149,20 @@ echo '<table class="Tabella">';
 echo '<tr><th class="Title" colspan="2">Configuration – Trophée National des Mixtes</th></tr>';
 if ($saved)
     echo '<tr><td colspan="2" class="Center" style="color:green;font-weight:bold;padding:8px">✓ Sauvegardé</td></tr>';
+if ($tnmFreshInstall)
+    echo '<tr><td colspan="2" class="Center" style="color:#1a7a3a;font-weight:bold;padding:8px">✓ Module TNM installé avec succès</td></tr>';
+if ($tnmRemoteVer)
+    echo '<tr><td colspan="2" style="background:#fff8e0;padding:6px 14px">'
+        . '⚠ <strong>Mise à jour disponible : v' . htmlspecialchars($tnmRemoteVer['version']) . '</strong>'
+        . (!empty($tnmRemoteVer['notes']) ? ' — ' . htmlspecialchars($tnmRemoteVer['notes']) : '')
+        . ' &nbsp;<a href="https://github.com/Steph-Krs/IanseoModules/tree/main/TNM" target="_blank">Voir sur GitHub →</a>'
+        . '</td></tr>';
 echo '<tr><td class="Right">Compétition :</td><td><strong>'.htmlspecialchars($_SESSION['TourNameSafe'] ?? '').' (ID : '.$tourId.')</strong></td></tr>';
+echo '<tr><td class="Right" style="color:#999;font-size:.8em">Version module :</td>'
+    . '<td style="font-size:.8em">v' . TNM_VERSION
+    . ($tnmRemoteVer ? ' <span style="color:#c07000">⚠ mise à jour disponible</span>'
+                     : ' <span style="color:#2a7">✓ à jour</span>')
+    . '</td></tr>';
 echo '</table><br>';
 
 if (empty($evList)) {
