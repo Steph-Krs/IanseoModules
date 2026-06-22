@@ -1,5 +1,26 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "date": "2026-06-22",
-  "notes": "Version initiale"
+  "notes": "Correction bug menu.php + système de mise à jour",
+  "files": [
+    "bso-action.php",
+    "BsoCommentateur.php",
+    "BsoSaisie.php",
+    "config.php",
+    "ImportQualScores.php",
+    "index.php",
+    "menu.php",
+    "PdfBsoPlanning.php",
+    "PdfPools.php",
+    "PdfRanking.php",
+    "PdfSchedule.php",
+    "PdfScorecards.php",
+    "PoolRankingEdit.php",
+    "PoolsAssist.php",
+    "PrintScore.php",
+    "PrintScore-action.php",
+    "PrintScore.js",
+    "QualValidate-action.php",
+    "version.json"
+  ]
 }

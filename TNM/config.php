@@ -53,11 +53,15 @@ if ($tnmFreshInstall) $GLOBALS['_tnm_tables_ok'] = true;
 //     safe_r_sql("ALTER TABLE TNM_BsoConfig ADD COLUMN BcNewCol TINYINT NOT NULL DEFAULT 0");
 
 // ── Vérification mise à jour GitHub ──────────────────────────────────────────
-// Résultat mis en cache en session 1h pour ne pas bloquer si pas de réseau.
+// Cache session 1h. ?refresh_ver=1 force un nouveau contrôle immédiat.
 define('TNM_GITHUB_JSON', 'https://raw.githubusercontent.com/Steph-Krs/IanseoModules/main/TNM/version.json');
+define('TNM_GITHUB_RAW',  'https://raw.githubusercontent.com/Steph-Krs/IanseoModules/main/TNM/');
+
+if (!empty($_GET['refresh_ver'])) unset($_SESSION['_tnm_ver']);
+
 $tnmRemoteVer = null;
 if (empty($_SESSION['_tnm_ver']) || (time() - ($_SESSION['_tnm_ver']['ts'] ?? 0)) > 3600) {
-    $_ctx = stream_context_create(['http' => ['timeout' => 2, 'ignore_errors' => true]]);
+    $_ctx = stream_context_create(['http' => ['timeout' => 3, 'ignore_errors' => true]]);
     $_SESSION['_tnm_ver'] = ['ts' => time(), 'raw' => @file_get_contents(TNM_GITHUB_JSON, false, $_ctx) ?: null];
     unset($_ctx);
 }
@@ -66,6 +70,36 @@ if (!empty($_SESSION['_tnm_ver']['raw'])) {
     if (is_array($_rem) && isset($_rem['version']) && version_compare($_rem['version'], TNM_VERSION, '>'))
         $tnmRemoteVer = $_rem;
     unset($_rem);
+}
+
+// ── Mise à jour en 1 clic ─────────────────────────────────────────────────────
+$tnmUpdateResults = null;
+$tnmUpdateError   = null;
+if (($_POST['act'] ?? '') === 'tnm_update') {
+    if (!hasFullACL(AclRobin, '', AclReadWrite)) {
+        $tnmUpdateError = 'Droits insuffisants (ReadWrite requis).';
+    } elseif (!$tnmRemoteVer || empty($tnmRemoteVer['files'])) {
+        $tnmUpdateError = 'Aucune mise à jour disponible ou clé "files" manquante dans version.json.';
+    } else {
+        $_ctx = stream_context_create(['http' => ['timeout' => 10, 'ignore_errors' => true]]);
+        $tnmUpdateResults = [];
+        foreach ($tnmRemoteVer['files'] as $_f) {
+            // Protection traversée de chemin : uniquement noms simples
+            if (!preg_match('/^[\w.\-]+$/', $_f) || str_contains($_f, '..')) {
+                $tnmUpdateResults[$_f] = '⚠ Nom invalide — ignoré';
+                continue;
+            }
+            $_content = @file_get_contents(TNM_GITHUB_RAW . $_f, false, $_ctx);
+            if ($_content === false || $_content === '') {
+                $tnmUpdateResults[$_f] = '✗ Téléchargement échoué';
+            } elseif (file_put_contents(__DIR__ . '/' . $_f, $_content) === false) {
+                $tnmUpdateResults[$_f] = '✗ Écriture impossible (permissions ?)';
+            } else {
+                $tnmUpdateResults[$_f] = '✓';
+            }
+        }
+        unset($_SESSION['_tnm_ver'], $_ctx, $_f, $_content); // Forcer re-contrôle au prochain chargement
+    }
 }
 
 // ── Helpers DB (même signature que l'ancienne version JSON) ───────────────────
@@ -151,18 +185,41 @@ if ($saved)
     echo '<tr><td colspan="2" class="Center" style="color:green;font-weight:bold;padding:8px">✓ Sauvegardé</td></tr>';
 if ($tnmFreshInstall)
     echo '<tr><td colspan="2" class="Center" style="color:#1a7a3a;font-weight:bold;padding:8px">✓ Module TNM installé avec succès</td></tr>';
-if ($tnmRemoteVer)
-    echo '<tr><td colspan="2" style="background:#fff8e0;padding:6px 14px">'
-        . '⚠ <strong>Mise à jour disponible : v' . htmlspecialchars($tnmRemoteVer['version']) . '</strong>'
-        . (!empty($tnmRemoteVer['notes']) ? ' — ' . htmlspecialchars($tnmRemoteVer['notes']) : '')
-        . ' &nbsp;<a href="https://github.com/Steph-Krs/IanseoModules/tree/main/TNM" target="_blank">Voir sur GitHub →</a>'
-        . '</td></tr>';
+
+// ── Résultats de mise à jour ───────────────────────────────────────────────────
+if ($tnmUpdateError)
+    echo '<tr><td colspan="2" style="color:#c00;padding:6px 14px">✗ ' . htmlspecialchars($tnmUpdateError) . '</td></tr>';
+if ($tnmUpdateResults !== null) {
+    $ok  = count(array_filter($tnmUpdateResults, fn($v) => $v === '✓'));
+    $err = count($tnmUpdateResults) - $ok;
+    echo '<tr><td colspan="2" style="background:#f0fff4;padding:8px 14px;border-top:2px solid #2a7">';
+    echo '<strong style="color:#1a7a3a">Mise à jour effectuée : ' . $ok . ' fichier(s) ✓'
+       . ($err ? ', <span style="color:#c00">' . $err . ' erreur(s)</span>' : '') . '</strong>';
+    echo ' &mdash; <em>Rechargez la page pour appliquer la nouvelle version.</em><br><small style="color:#555">';
+    foreach ($tnmUpdateResults as $_f => $_r) echo htmlspecialchars($_f) . ' : ' . $_r . ' &nbsp;';
+    echo '</small></td></tr>';
+    unset($ok, $err, $_f, $_r);
+}
+
 echo '<tr><td class="Right">Compétition :</td><td><strong>'.htmlspecialchars($_SESSION['TourNameSafe'] ?? '').' (ID : '.$tourId.')</strong></td></tr>';
-echo '<tr><td class="Right" style="color:#999;font-size:.8em">Version module :</td>'
-    . '<td style="font-size:.8em">v' . TNM_VERSION
-    . ($tnmRemoteVer ? ' <span style="color:#c07000">⚠ mise à jour disponible</span>'
-                     : ' <span style="color:#2a7">✓ à jour</span>')
-    . '</td></tr>';
+
+// ── Ligne version + contrôle de mise à jour ───────────────────────────────────
+echo '<tr><td class="Right" style="color:#999;font-size:.8em">Version module :</td><td style="font-size:.8em">';
+echo 'v' . TNM_VERSION . ' &nbsp;';
+if ($tnmRemoteVer) {
+    echo '<span style="color:#c07000;font-weight:bold">⚠ v' . htmlspecialchars($tnmRemoteVer['version']) . ' disponible</span>';
+    if (!empty($tnmRemoteVer['notes']))
+        echo ' <span style="color:#888">— ' . htmlspecialchars($tnmRemoteVer['notes']) . '</span>';
+    echo ' &nbsp;';
+    echo '<form method="POST" style="display:inline">'
+       . '<input type="hidden" name="act" value="tnm_update">'
+       . '<button type="submit" style="background:#002B92;color:#fff;border:none;border-radius:3px;padding:2px 12px;cursor:pointer;font-size:.85em">⬇ Mettre à jour</button>'
+       . '</form>';
+} else {
+    echo '<span style="color:#2a7">✓ à jour</span>';
+}
+echo ' &nbsp;<a href="?refresh_ver=1" style="color:#aaa;font-size:.85em;text-decoration:none" title="Forcer la vérification GitHub">↺ Vérifier</a>';
+echo '</td></tr>';
 echo '</table><br>';
 
 if (empty($evList)) {
