@@ -13,7 +13,10 @@ $tourId = intval($_SESSION['TourId']);
 // CREATE TABLE IF NOT EXISTS est idempotent — safe à chaque chargement de config.php.
 // Pour les futures modifications de colonnes, vérifier via information_schema.COLUMNS
 // avant l'ALTER TABLE (pattern en commentaire en fin de section).
-define('TNM_VERSION', '1.0.0');
+// Version installée lue depuis version.json local — mis à jour par le mécanisme de MàJ.
+$_lvJson = @json_decode(@file_get_contents(__DIR__ . '/version.json'), true);
+define('TNM_VERSION', $_lvJson['version'] ?? '0.0.0');
+unset($_lvJson);
 
 // $GLOBALS['_tnm_tables_ok'] est posé par menu.php en tout début de requête.
 // S'il vaut false ici, les tables n'existent pas encore → fraîche installation.
