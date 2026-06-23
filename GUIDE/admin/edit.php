@@ -226,20 +226,22 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .tr-row.tr-dragging { opacity: .35; }
 .tr-row.tr-over     { border-color: #0254a8; background: #eef4ff; }
 .tr-main { display: flex; gap: 6px; align-items: center; }
-.tr-body { display: flex; gap: 6px; align-items: center; flex: 1; min-width: 0; }
+.tr-body { display: flex; gap: 6px; align-items: center; margin-top: 5px; }
 .tr-drag { cursor: grab; color: #bbb; font-size: 15px; user-select: none; flex-shrink: 0; }
 .tr-drag:active { cursor: grabbing; }
 .tr-kind { padding: 4px 5px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 11px; flex-shrink: 0; background: #fff; }
 .tr-kind option[value="action"] { color: #0254a8; }
 .tr-kind option[value="etat"]   { color: #7c5cbf; }
-.tr-page { padding: 4px 6px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 11px; width: 78px; flex-shrink: 0; box-sizing: border-box; }
+/* Annule le width:100% de .ge-opt input[type=text] pour les champs de trigger */
+.tr-row input[type=text] { width: auto; }
+.tr-page { padding: 4px 6px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 11px; flex: 0 0 130px; box-sizing: border-box; }
 .tr-type { padding: 4px 5px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex-shrink: 0; }
-.tr-sel  { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1; min-width: 0; box-sizing: border-box; }
+.tr-sel  { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1 1 0; min-width: 0; box-sizing: border-box; }
 .tr-cond { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1; min-width: 0; background: #f8f4ff; color: #3a2660; }
 .tr-req  { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #555; white-space: nowrap; cursor: pointer; flex-shrink: 0; }
 .tr-req input { margin: 0; }
 .tr-del  { padding: 3px 7px !important; font-size: 11px !important; flex-shrink: 0; }
-.tr-hint { display: block; margin-top: 5px; padding: 4px 7px; border: 1px dashed #c8d4ec; border-radius: 4px; font-size: 11px; width: 100%; box-sizing: border-box; color: #555; background: #fafbff; }
+.tr-hint { flex: 1; min-width: 0; padding: 4px 7px; border: 1px dashed #c8d4ec; border-radius: 4px; font-size: 11px; box-sizing: border-box; color: #555; background: #fafbff; }
 
 /* ===== JSON (accordéon) ===== */
 .ge-json-sect  { margin-top: 20px; }
@@ -404,6 +406,13 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
       </div>
 
       <div class="ge-opt">
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;">
+          <input type="checkbox" id="opt-strict-click" onchange="captureAndSync()" style="margin:0;">
+          Non-permissif <span class="ge-hint">(bloque tout clic hors du sélecteur attendu)</span>
+        </label>
+      </div>
+
+      <div class="ge-opt">
         <label>
           Triggers
           <span class="ge-hint">— déclenchés dans l'ordre ; glisser-déposer pour réordonner</span>
@@ -487,8 +496,9 @@ function captureStep() {
   var s     = _fd.steps[_sidx];
   s.title   = document.getElementById('pv-stitle').textContent.trim();
   s.content = cleanHtml(document.getElementById('pv-content').innerHTML);
-  s.page     = getVal('opt-page') || null;
-  s.optional = document.getElementById('opt-optional').checked;
+  s.page         = getVal('opt-page') || null;
+  s.optional     = document.getElementById('opt-optional').checked;
+  s.strict_click = document.getElementById('opt-strict-click').checked;
 
   // Collecte les triggers depuis les lignes de la liste
   s.triggers = [];
@@ -555,7 +565,8 @@ function loadStepToDOM() {
   document.getElementById('pv-stitle').textContent = s.title   || '';
   document.getElementById('pv-content').innerHTML  = s.content || '';
   setVal('opt-page', s.page || '');
-  document.getElementById('opt-optional').checked = (s.optional !== false);
+  document.getElementById('opt-optional').checked    = (s.optional !== false);
+  document.getElementById('opt-strict-click').checked = !!(s.strict_click);
 
   var list = document.getElementById('triggers-list');
   list.innerHTML = '';
@@ -632,9 +643,10 @@ function buildConditionOptions() {
 
 function setTriggerKind(row, kind) {
   var isAction = kind !== 'etat';
-  row.querySelector('.tr-body-action').style.display = isAction ? 'contents' : 'none';
-  row.querySelector('.tr-body-etat').style.display   = isAction ? 'none' : 'contents';
+  row.querySelector('.tr-body-action').style.display = isAction ? 'flex' : 'none';
+  row.querySelector('.tr-body-etat').style.display   = isAction ? 'none' : 'flex';
   row.querySelector('.tr-hint').style.display        = isAction ? '' : 'none';
+  row.querySelector('.tr-req').style.marginLeft      = isAction ? '' : 'auto';
 }
 
 function addTrigger(t) {
@@ -652,23 +664,29 @@ function addTrigger(t) {
         '<option value="action">⚡ Action</option>' +
         '<option value="etat">✓ État</option>' +
       '</select>' +
-      '<div class="tr-body tr-body-action">' +
-        '<input type="text" class="tr-page" placeholder="/page" title="Page (vide = page de l\'étape)">' +
-        '<select class="tr-type">' +
-          '<option value="null">— aucun</option>' +
-          '<option value="change">change</option>' +
-          '<option value="click">click</option>' +
-          '<option value="mouseover">survol</option>' +
-        '</select>' +
-        '<input type="text" class="tr-sel" placeholder="#sélecteur-css">' +
-      '</div>' +
-      '<div class="tr-body tr-body-etat" style="display:none">' +
-        '<select class="tr-cond">' + buildConditionOptions() + '</select>' +
-      '</div>' +
+      '<input type="text" class="tr-hint" placeholder="💬 Info-bulle (optionnelle)">' +
       '<label class="tr-req"><input type="checkbox"> Oblig.</label>' +
-      '<button type="button" class="ge-btn ge-btn-del tr-del" title="Supprimer" onclick="removeTrigger(this)">🗑</button>' +
+      '<button type="button" class="ge-btn ge-btn-del tr-del" title="Supprimer" onclick="removeTrigger(this)">✕</button>' +
     '</div>' +
-    '<input type="text" class="tr-hint" placeholder="💬 Info-bulle sous la flèche (optionnelle)">';
+    '<div class="tr-body tr-body-action">' +
+      '<input type="text" class="tr-page" placeholder="/page" title="Page (vide = page de l\'étape)">' +
+      '<select class="tr-type">' +
+        '<option value="null">— aucun</option>' +
+        '<option value="click">clic</option>' +
+        '<option value="dblclick">double-clic</option>' +
+        '<option value="change">changement</option>' +
+        '<option value="input">saisie (temps réel)</option>' +
+        '<option value="keyup">touche relâchée</option>' +
+        '<option value="keydown">touche pressée</option>' +
+        '<option value="focus">focus</option>' +
+        '<option value="submit">soumission</option>' +
+        '<option value="mouseover">survol</option>' +
+      '</select>' +
+      '<input type="text" class="tr-sel" placeholder="#sélecteur-css">' +
+    '</div>' +
+    '<div class="tr-body tr-body-etat" style="display:none">' +
+      '<select class="tr-cond">' + buildConditionOptions() + '</select>' +
+    '</div>';
 
   // Valeurs initiales
   row.querySelector('.tr-kind').value        = kind;

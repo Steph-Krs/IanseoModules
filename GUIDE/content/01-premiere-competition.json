@@ -16,12 +16,13 @@
                     "required": true
                 }
             ],
-            "optional": false
+            "optional": false,
+            "strict_click": false
         },
         {
             "id": "mise-a-jour",
             "title": "Mettre à jour ianseo",
-            "content": "<p>Avant toute compétition, mettez à jour ianseo pour bénéficier des derniers correctifs.<\/p><p>Dans le menu principal, cliquez sur <b>Modules<\/b> puis <b style=\"\">Mettre à&nbsp;jour Ianseo<\/b>.<\/p><p><\/p><ol><li>Cochez la case pour <b>accepter les CG<\/b>.<\/li><li><b>Validez<\/b><\/li><li>Cliquez sur <b>OK<\/b> sur la page suivante<\/li><\/ol><p>Ici vous pouvez faire une sauvegarde de l'ensemble de vos compétitions via <b>Export de toutes les compétitions !<\/b><\/p><p><\/p><p><\/p><p class=\"guide-tip\">⚠️ Cette étape est indispensable — elle garantit la compatibilité avec les exports FFTA et les dernières règles fédérales.<\/p>",
+            "content": "<p>Avant toute compétition, mettez à jour ianseo pour bénéficier des derniers correctifs.<\/p><p>Dans le menu principal, cliquez sur <b>Modules<\/b> puis <b style=\"\">Mettre à&nbsp;jour Ianseo<\/b>.<\/p><p><\/p><ol><li>Cochez la case pour <b>accepter les CG<\/b>.<\/li><li><b>Validez<\/b><\/li><li>Cliquez sur <b>OK<\/b> sur la page suivante<\/li><\/ol><p>Ici, vous pouvez faire une sauvegarde de l'ensemble de vos compétitions via <b>Export de toutes les compétitions !<\/b><\/p><p><\/p><p><\/p><p class=\"guide-tip\">⚠️ Cette étape est indispensable — elle garantit la compatibilité avec les exports FFTA et les dernières règles fédérales.<\/p>",
             "page": "\/Update\/",
             "triggers": [
                 {
@@ -59,14 +60,21 @@
                     "required": true,
                     "page": "\/Update\/?acceptLicense"
                 }
-            ]
+            ],
+            "optional": false,
+            "strict_click": true
         },
         {
             "id": "nouvelle-competition",
             "title": "Créer une nouvelle compétition",
-            "content": "<p>Sur la page d'accueil, cliquez sur le bouton <b>Nouvelle Compétition<\/b>.<\/p><p>Si une compétition est déjà ouverte, fermez-la d'abord via <b>Compétition &gt; Fermer la compétition<\/b>.<\/p><p class=\"guide-tip\">💡 Vous pouvez avoir plusieurs compétitions sauvegardées, mais une seule est active à la fois.<\/p>",
+            "content": "<p>Retournez sur la page d'accueil et cliquez sur le bouton <b>Nouvelle Compétition<\/b>.<\/p><p>Si une compétition est déjà ouverte, fermez-la d'abord via <b>Compétition &gt; Fermer la compétition<\/b>.<\/p><p class=\"guide-tip\">💡 Vous pouvez avoir plusieurs compétitions sauvegardées, mais une seule est active à la fois.<\/p>",
             "page": "\/",
             "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "no_tournament",
+                    "required": true
+                },
                 {
                     "kind": "action",
                     "trigger": "click",
@@ -80,7 +88,9 @@
                     "selector": null,
                     "required": false
                 }
-            ]
+            ],
+            "optional": false,
+            "strict_click": true
         },
         {
             "id": "infos-base",
@@ -89,82 +99,97 @@
             "page": "\/Tournament\/index.php",
             "triggers": [
                 {
-                    "trigger": "change",
+                    "kind": "action",
+                    "trigger": "keyup",
                     "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(4) > td > input",
                     "required": true,
                     "hint": "ex : 26-XXXXX = année + numéro de compétition FFTA"
                 },
                 {
-                    "trigger": "change",
+                    "kind": "action",
+                    "trigger": "keyup",
                     "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(5) > td > textarea",
                     "required": true,
                     "hint": "Compétition sélective de XXX 2026"
                 },
                 {
-                    "trigger": "change",
+                    "kind": "action",
+                    "trigger": "keyup",
                     "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(6) > td > input",
                     "required": true,
                     "hint": "Sélectif XXX 2026"
                 },
                 {
-                    "trigger": "change",
+                    "kind": "action",
+                    "trigger": "keyup",
                     "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(7) > td > input",
                     "required": true,
                     "hint": "IMPORTANT > Numéro d'agrément"
                 },
                 {
-                    "trigger": "change",
+                    "kind": "action",
+                    "trigger": "keyup",
                     "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(7) > td > textarea",
                     "required": true,
                     "hint": "Nom du club"
                 },
                 {
+                    "kind": "action",
                     "trigger": "change",
                     "selector": "#d_Rule",
                     "required": true,
                     "hint": "Règles françaises"
                 },
                 {
+                    "kind": "action",
                     "trigger": "change",
                     "selector": "#d_ToType",
                     "required": true,
                     "hint": "Discipline"
                 },
                 {
+                    "kind": "action",
                     "trigger": "change",
                     "selector": "#d_SubRule",
                     "required": true,
                     "hint": "Sélectif ou Sélectif + para"
                 },
                 {
-                    "trigger": "change",
+                    "kind": "action",
+                    "trigger": "keyup",
                     "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(13) > td > textarea",
                     "required": true,
                     "hint": "Stade, salle ou fôret de XXX"
                 },
                 {
-                    "trigger": "change",
+                    "kind": "action",
+                    "trigger": "keyup",
                     "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(14) > td > input",
                     "required": true
                 },
                 {
-                    "trigger": "mouseover",
+                    "kind": "action",
+                    "trigger": "focus",
                     "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(17) > td > select:nth-child(3)",
                     "required": true,
                     "hint": "Date du calendrier fédéral"
                 },
                 {
-                    "trigger": "mouseover",
+                    "kind": "action",
+                    "trigger": "focus",
                     "selector": "#Frm > table > tbody:nth-child(1) > tr:nth-child(17) > td > select:nth-child(8)",
                     "required": true,
                     "hint": "Date du calendrier fédéral"
                 },
                 {
+                    "kind": "action",
                     "trigger": "click",
                     "selector": "#Frm > table > tbody:nth-child(3) > tr > td > input[type=submit]:nth-child(1)",
                     "required": true
                 }
-            ]
+            ],
+            "optional": false,
+            "strict_click": false
         },
         {
             "id": "sessions",
@@ -173,46 +198,54 @@
             "page": "\/Tournament\/ManSessions_kiss.php",
             "triggers": [
                 {
+                    "kind": "action",
                     "trigger": "mouseover",
                     "selector": "#navigation > ul > li:nth-child(1) > a",
                     "required": true,
                     "page": "\/Tournament\/index.php"
                 },
                 {
+                    "kind": "action",
                     "trigger": "mouseover",
                     "selector": "#navigation > ul > li:nth-child(1) > ul > li:nth-child(7) > a",
                     "required": true,
                     "page": "\/Tournament\/index.php"
                 },
                 {
+                    "kind": "action",
                     "trigger": "mouseover",
                     "selector": "#navigation > ul > li:nth-child(1) > ul > li:nth-child(7) > ul > li:nth-child(3) > a",
                     "required": true,
                     "page": "\/Tournament\/index.php"
                 },
                 {
+                    "kind": "action",
                     "trigger": "mouseover",
                     "selector": "#txtNumSession",
                     "required": true
                 },
                 {
+                    "kind": "action",
                     "trigger": "click",
                     "selector": "#Content > table:nth-child(1) > tbody > tr:nth-child(3) > td.w-10.Center > input:nth-child(1)",
                     "required": false
                 },
                 {
+                    "kind": "action",
                     "trigger": "mouseover",
                     "selector": "#t4s_1",
                     "required": false,
                     "hint": "A minima les cibles réellement utilisées"
                 },
                 {
+                    "kind": "action",
                     "trigger": "mouseover",
                     "selector": "#a4t_1",
                     "required": false,
                     "hint": "4 pour de l'AB-CD"
                 }
-            ]
+            ],
+            "optional": false
         },
         {
             "id": "synchro-licencies",
@@ -221,11 +254,13 @@
             "page": "\/Partecipants\/LookupTableLoad.php",
             "triggers": [
                 {
+                    "kind": "action",
                     "trigger": "change",
                     "selector": "input[name=\"UploadedFile\"]",
                     "required": true
                 }
-            ]
+            ],
+            "optional": false
         },
         {
             "id": "ajout-participants",
@@ -234,18 +269,21 @@
             "page": "\/Partecipants\/index.php",
             "triggers": [
                 {
+                    "kind": "action",
                     "trigger": null,
                     "selector": null,
                     "required": true
                 }
-            ]
+            ],
+            "optional": false
         },
         {
             "id": "autres-tirs",
             "title": "Archers \"autres tirs\" (multi-catégories)",
             "content": "<p>Un archer qui tire dans plusieurs catégories (ex : CL et CO) doit être inscrit <b>deux fois<\/b> dans la liste.<\/p><p>Pour le second enregistrement :<\/p><ul><li>Même numéro de licence<\/li><li>Division différente<\/li><li>Dans le champ <b>Finale Ind.<\/b>, sélectionnez <b>Non<\/b><\/li><\/ul><p class=\"guide-tip\">⚠️ Sans ce réglage (\"Finale Ind. = Non\"), l'archer apparaîtrait deux fois dans le tableau des finales, ce qui est interdit.<\/p>",
             "page": "\/Partecipants\/index.php",
-            "triggers": []
+            "triggers": [],
+            "optional": false
         },
         {
             "id": "affectation-cibles",
@@ -254,11 +292,13 @@
             "page": "\/Partecipants\/SetTarget_auto.php",
             "triggers": [
                 {
+                    "kind": "action",
                     "trigger": "change",
                     "selector": "input[name=\"Event\"]",
                     "required": true
                 }
-            ]
+            ],
+            "optional": true
         },
         {
             "id": "sauvegarde-avant-j",

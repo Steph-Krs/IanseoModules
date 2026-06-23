@@ -289,6 +289,7 @@
     var tPage = triggerPage(step, t);
     clearHighlight();
     if (t.selector && isOnRightPage(tPage)) highlight(t.selector, t.hint || '');
+    if (step.strict_click && t.selector && isOnRightPage(tPage)) enableStrictClick(t.selector);
 
     // Trigger manuel (trigger: null, required: true) → l'utilisateur clique "Marquer comme fait"
     if (!t.trigger || !t.selector) return;
@@ -336,6 +337,7 @@
 
   function clearTrigger() {
     if (_triggerOff) { _triggerOff(); _triggerOff = null; }
+    disableStrictClick();
   }
 
   function autoValidateStep(step) {
@@ -406,9 +408,40 @@
 
   /* ===== Surbrillance ===== */
 
-  var _highlighted = null;
-  var _arrow       = null;
-  var _hint        = '';
+  var _highlighted     = null;
+  var _arrow           = null;
+  var _hint            = '';
+  var _strictClickOff  = null;
+
+  function enableStrictClick(selector) {
+    disableStrictClick();
+    var handler = function (e) {
+      var panel = document.getElementById('guide-panel');
+      if (panel && panel.contains(e.target)) return;
+      try { if (e.target.closest && e.target.closest(selector)) return; } catch (ex) {}
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      flashPanel();
+    };
+    document.addEventListener('click',     handler, true);
+    document.addEventListener('mousedown', handler, true);
+    _strictClickOff = function () {
+      document.removeEventListener('click',     handler, true);
+      document.removeEventListener('mousedown', handler, true);
+    };
+  }
+
+  function disableStrictClick() {
+    if (_strictClickOff) { _strictClickOff(); _strictClickOff = null; }
+  }
+
+  function flashPanel() {
+    var panel = document.getElementById('guide-panel');
+    if (!panel) return;
+    panel.classList.remove('guide-panel-flash');
+    void panel.offsetWidth;
+    panel.classList.add('guide-panel-flash');
+  }
 
   function highlight(selector, hint) {
     var el = document.querySelector(selector);
@@ -420,6 +453,7 @@
     placeArrow(el);
     window.addEventListener('resize', onResize);
     window.addEventListener('scroll', onResize);
+    document.addEventListener('scroll', onResize, true);
   }
 
   function placeArrow(el) {
@@ -439,7 +473,7 @@
       container.appendChild(bubble);
     }
 
-    container.style.top  = (rect.bottom + window.scrollY + 6) + 'px';
+    container.style.top  = (rect.bottom + 6) + 'px';
     container.style.left = (rect.left + rect.width / 2 - 11) + 'px';
     document.body.appendChild(container);
     _arrow = container;
@@ -458,6 +492,7 @@
     clearConditionWait();
     window.removeEventListener('resize', onResize);
     window.removeEventListener('scroll', onResize);
+    document.removeEventListener('scroll', onResize, true);
   }
 
   /* ===== Visibilité panneau ===== */
