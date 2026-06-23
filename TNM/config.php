@@ -392,7 +392,7 @@ function printScheduleTNM() {
 }
 
 function printFopTNM() {
-    window.open('<?= $CFG->ROOT_DIR ?>Scheduler/index.php?fop=1', '_blank');
+    window.open('<?= $CFG->ROOT_DIR ?>Modules/Custom/TNM/PdfFop.php', '_blank');
 }
 
 function printBSO() {

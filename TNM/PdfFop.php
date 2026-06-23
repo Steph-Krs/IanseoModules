@@ -1,7 +1,8 @@
 <?php
-// PdfSchedule.php — Programme de compétition TNM
-// Même format qu'ianseo, mais les lignes Round Robin sont fusionnées par
-// (niveau, rencontre) : "Tour 1 Rencontre 1" au lieu de "Tour 1 Poule 1 Rencontre 1"
+// PdfFop.php — Plan de cible TNM
+// Même format qu'ianseo, mais les 3 rencontres d'un même tour/épreuve sont
+// fusionnées en une seule ligne : heure de début de la 1ère, heure de fin
+// de la dernière, affectation de cibles identique (inchangée par ianseo).
 define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
 CheckTourSession(true);
@@ -13,5 +14,4 @@ require_once('Common/Lib/Fun_Scheduler.php');
 require_once(__DIR__ . '/tnm-scheduler.inc.php');
 
 $Schedule = new TNM_Scheduler();
-$pdf      = $Schedule->getSchedulePDF();
-$pdf->Output();
+$Schedule->FOP(); // FOP() active FopMergeRounds avant d'appeler parent::FOP()
