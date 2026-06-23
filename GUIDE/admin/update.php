@@ -1,197 +1,138 @@
 <?php
 define('HTDOCS', dirname(dirname(dirname(dirname(dirname(__FILE__))))));
 require_once(HTDOCS . '/config.php');
+require_once dirname(dirname(__DIR__)) . '/_shared/update-lib.php';
 
 checkFullACL(AclRoot, '', AclReadWrite);
 
-// PHP 7 compat
-if (!function_exists('str_ends_with')) {
-    function str_ends_with($haystack, $needle) {
-        return $needle !== '' && substr($haystack, -strlen($needle)) === $needle;
-    }
-}
-
 $PAGE_TITLE = 'Guide FFTA — Mises à jour';
 $MODULE_DIR = dirname(__DIR__);
-$CONFIG_FILE = $MODULE_DIR . '/guide-config.json';
 
-/* ---- Helpers ---- */
+/* ---- Helpers formations (GUIDE-spécifique) ---- */
 
-function upd_load_config() {
-    global $CONFIG_FILE;
-    $defaults = ['github_url' => '', 'github_branch' => 'main', 'github_path' => '', 'github_token' => ''];
-    if (!is_file($CONFIG_FILE)) return $defaults;
-    $d = json_decode(file_get_contents($CONFIG_FILE), true);
-    return is_array($d) ? array_merge($defaults, $d) : $defaults;
-}
-
-function upd_remote_prefix($cfg) {
-    $p = trim($cfg['github_path'] ?? '', '/');
-    return $p !== '' ? "$p/" : '';
-}
-
-function upd_save_config($cfg) {
-    global $CONFIG_FILE;
-    file_put_contents($CONFIG_FILE, json_encode($cfg, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-}
-
-function upd_parse_repo($url) {
-    if (preg_match('|github\.com/([^/\s]+)/([^/\s]+?)(?:\.git)?$|i', $url, $m)) {
-        return ['owner' => $m[1], 'repo' => rtrim($m[2], '/')];
-    }
-    return null;
-}
-
-function upd_gh_fetch($url, $token = '') {
-    $headers = "User-Agent: ianseo-guide/1.0\r\n";
-    if ($token) $headers .= "Authorization: token $token\r\n";
-    $ctx = stream_context_create(['http' => [
-        'header'        => $headers,
-        'timeout'       => 15,
-        'ignore_errors' => true,
-    ]]);
-    $res = @file_get_contents($url, false, $ctx);
-    if ($res === false) return ['_error' => 'Impossible de joindre GitHub (vérifiez la connexion internet)'];
-    $data = json_decode($res, true);
-    // GitHub rate-limit / auth error
-    if (isset($data['message'])) return ['_error' => $data['message']];
-    return $data;
-}
-
-function upd_gh_raw($url, $token = '') {
-    $headers = "User-Agent: ianseo-guide/1.0\r\n";
-    if ($token) $headers .= "Authorization: token $token\r\n";
-    $ctx = stream_context_create(['http' => [
-        'header'        => $headers,
-        'timeout'       => 15,
-        'ignore_errors' => true,
-    ]]);
-    return @file_get_contents($url, false, $ctx);
-}
-
-function upd_local_formations() {
+function guide_local_formations() {
     global $MODULE_DIR;
     $result = [];
     foreach (glob($MODULE_DIR . '/content/*.json') as $f) {
         $d = json_decode(file_get_contents($f), true);
         if (!$d || empty($d['id'])) continue;
-        $result[$d['id']] = ['version' => $d['version'] ?? '1.0', 'file' => $f, 'title' => $d['title'] ?? $d['id']];
+        $result[$d['id']] = [
+            'version' => $d['version'] ?? '1.0',
+            'file'    => $f,
+            'title'   => $d['title'] ?? $d['id'],
+        ];
     }
     return $result;
 }
 
-function upd_ensure_schema() {
+function guide_ensure_schema() {
     if (!empty($_SESSION['_guide_schema_ok'])) return;
     $rs = safe_r_sql("SHOW TABLES LIKE 'GUIDE_Progress'");
     if (!safe_fetch($rs)) {
         safe_w_sql("CREATE TABLE GUIDE_Progress (
-            GpId INT AUTO_INCREMENT PRIMARY KEY,
-            GpFormId VARCHAR(100) NOT NULL, GpFormVer VARCHAR(20) NOT NULL DEFAULT '1.0',
-            GpTourId INT NOT NULL DEFAULT 0, GpStep INT NOT NULL DEFAULT 0,
-            GpStatus ENUM('en_cours','termine','obsolete') NOT NULL DEFAULT 'en_cours',
-            GpValidated TEXT, GpCreatedAt DATETIME NOT NULL, GpUpdatedAt DATETIME NOT NULL,
+            GpId        INT AUTO_INCREMENT PRIMARY KEY,
+            GpFormId    VARCHAR(100) NOT NULL,
+            GpFormVer   VARCHAR(20)  NOT NULL DEFAULT '1.0',
+            GpTourId    INT          NOT NULL DEFAULT 0,
+            GpStep      INT          NOT NULL DEFAULT 0,
+            GpStatus    ENUM('en_cours','termine','obsolete') NOT NULL DEFAULT 'en_cours',
+            GpValidated TEXT,
+            GpCreatedAt DATETIME NOT NULL,
+            GpUpdatedAt DATETIME NOT NULL,
             UNIQUE KEY uq_form_tour (GpFormId, GpTourId)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     }
     $_SESSION['_guide_schema_ok'] = true;
 }
 
-/* ---- Actions POST ---- */
+/* ---- Init ---- */
 
-$cfg      = upd_load_config();
+$cfg      = upd_load_config($MODULE_DIR);
 $messages = [];
 $action   = $_POST['action'] ?? '';
 
-if ($action === 'save-config') {
-    $cfg['github_url']    = trim($_POST['github_url']    ?? '');
-    $cfg['github_branch'] = trim($_POST['github_branch'] ?? 'main') ?: 'main';
-    $cfg['github_path']   = trim(trim($_POST['github_path'] ?? ''), '/');
-    $cfg['github_token']  = trim($_POST['github_token']  ?? '');
-    upd_save_config($cfg);
-    $messages[] = ['ok', 'Configuration sauvegardée.'];
-    header('Location: ' . $_SERVER['REQUEST_URI']);
-    exit;
-}
+$localVer    = upd_local_version($MODULE_DIR);
+$localModVer = $localVer['version'] ?? null;
 
-$checkResults    = null;
+$checkResults      = null;
 $moduleCheckResult = null;
+
+/* ---- Actions POST ---- */
 
 if ($action === 'check') {
     $repo = upd_parse_repo($cfg['github_url'] ?? '');
     if (!$repo) {
-        $messages[] = ['err', 'URL GitHub invalide. Format attendu : https://github.com/propriétaire/dépôt'];
+        $messages[] = ['err', 'URL GitHub invalide dans module.json'];
     } else {
         $branch  = $cfg['github_branch'] ?: 'main';
         $token   = $cfg['github_token']  ?: '';
         $prefix  = upd_remote_prefix($cfg);
         $apiBase = "https://api.github.com/repos/{$repo['owner']}/{$repo['repo']}";
 
-        // Vérifier formations
+        // Formations
         $contentList = upd_gh_fetch("$apiBase/contents/{$prefix}content?ref=$branch", $token);
         if (isset($contentList['_error'])) {
             $messages[] = ['err', 'GitHub : ' . $contentList['_error']];
         } else {
-            $local       = upd_local_formations();
+            $local        = guide_local_formations();
             $checkResults = [];
             foreach ($contentList as $item) {
                 if (!isset($item['name']) || !str_ends_with($item['name'], '.json')) continue;
                 $raw  = upd_gh_raw($item['download_url'], $token);
                 $data = $raw ? json_decode($raw, true) : null;
                 if (!$data || empty($data['id'])) continue;
-                $id      = $data['id'];
-                $remVer  = $data['version'] ?? '1.0';
-                $locVer  = $local[$id]['version'] ?? null;
-                $status  = 'new';
-                if ($locVer !== null) {
-                    $status = version_compare($remVer, $locVer, '>') ? 'update' : 'ok';
-                }
+                $id     = $data['id'];
+                $remVer = $data['version'] ?? '1.0';
+                $locVer = $local[$id]['version'] ?? null;
+                $status = ($locVer === null) ? 'new'
+                        : (version_compare($remVer, $locVer, '>') ? 'update' : 'ok');
                 $checkResults[] = [
-                    'id'        => $id,
-                    'title'     => $data['title'] ?? $id,
-                    'local_ver' => $locVer,
-                    'remote_ver'=> $remVer,
-                    'status'    => $status,
-                    'filename'  => $item['name'],
-                    'raw_url'   => $item['download_url'],
+                    'id'         => $id,
+                    'title'      => $data['title'] ?? $id,
+                    'local_ver'  => $locVer,
+                    'remote_ver' => $remVer,
+                    'status'     => $status,
+                    'filename'   => $item['name'],
+                    'raw_url'    => $item['download_url'],
                 ];
             }
         }
 
-        // Vérifier version module (fichier VERSION dans le sous-dossier du module)
-        $moduleVerRaw = upd_gh_raw("https://raw.githubusercontent.com/{$repo['owner']}/{$repo['repo']}/$branch/{$prefix}VERSION", $token);
-        $localVerFile = $MODULE_DIR . '/VERSION';
-        $localModVer  = is_file($localVerFile) ? trim(file_get_contents($localVerFile)) : null;
-        $remoteModVer = $moduleVerRaw ? trim($moduleVerRaw) : null;
-        if ($remoteModVer) {
+        // Version module
+        $remoteVer = upd_remote_version($cfg);
+        if (isset($remoteVer['_error'])) {
+            $messages[] = ['err', 'Module : ' . $remoteVer['_error']];
+        } else {
             $moduleCheckResult = [
                 'local'  => $localModVer,
-                'remote' => $remoteModVer,
-                'update' => ($localModVer === null || version_compare($remoteModVer, $localModVer, '>')),
+                'remote' => $remoteVer['version'],
+                'notes'  => $remoteVer['notes'] ?? null,
+                'date'   => $remoteVer['date']  ?? null,
+                'update' => ($localModVer === null || version_compare($remoteVer['version'], $localModVer, '>')),
             ];
         }
     }
 }
 
 if ($action === 'update-formations') {
-    $mode = $_POST['mode'] ?? 'merge'; // merge | replace
+    $mode = $_POST['mode'] ?? 'merge';
     $repo = upd_parse_repo($cfg['github_url'] ?? '');
     if (!$repo) {
         $messages[] = ['err', 'URL GitHub invalide.'];
     } else {
-        upd_ensure_schema();
+        guide_ensure_schema();
         $branch      = $cfg['github_branch'] ?: 'main';
         $token       = $cfg['github_token']  ?: '';
         $prefix      = upd_remote_prefix($cfg);
         $apiBase     = "https://api.github.com/repos/{$repo['owner']}/{$repo['repo']}";
         $contentList = upd_gh_fetch("$apiBase/contents/{$prefix}content?ref=$branch", $token);
-        $local       = upd_local_formations();
+        $local       = guide_local_formations();
         $contentDir  = $MODULE_DIR . '/content/';
         $updated = $added = $skipped = 0;
 
         if (isset($contentList['_error'])) {
             $messages[] = ['err', 'GitHub : ' . $contentList['_error']];
         } else {
-            // En mode replace : supprimer les fichiers locaux absents du repo distant
             if ($mode === 'replace') {
                 $remoteIds = [];
                 foreach ($contentList as $item) {
@@ -204,27 +145,21 @@ if ($action === 'update-formations') {
                     if (!in_array($lid, $remoteIds)) unlink($ldata['file']);
                 }
             }
-
             foreach ($contentList as $item) {
                 if (!isset($item['name']) || !str_ends_with($item['name'], '.json')) continue;
                 $raw  = upd_gh_raw($item['download_url'], $token);
                 $data = $raw ? json_decode($raw, true) : null;
                 if (!$data || empty($data['id']) || !is_string($raw)) continue;
-
-                $id      = $data['id'];
-                $remVer  = $data['version'] ?? '1.0';
-                $locVer  = $local[$id]['version'] ?? null;
-
+                $id     = $data['id'];
+                $remVer = $data['version'] ?? '1.0';
+                $locVer = $local[$id]['version'] ?? null;
                 if ($locVer !== null && !version_compare($remVer, $locVer, '>') && $mode === 'merge') {
-                    $skipped++; continue;
+                    $skipped++;
+                    continue;
                 }
-
-                // Écrire le fichier
                 file_put_contents($contentDir . $item['name'], $raw);
-
                 if ($locVer !== null) {
                     $updated++;
-                    // Marquer les progressions "terminées" comme obsolètes si version changée
                     if (version_compare($remVer, $locVer, '>')) {
                         $now = date('Y-m-d H:i:s');
                         safe_w_sql("UPDATE GUIDE_Progress
@@ -237,52 +172,34 @@ if ($action === 'update-formations') {
                     $added++;
                 }
             }
-            $messages[] = ['ok', "Formations mises à jour : $updated modifiée(s), $added ajoutée(s), $skipped déjà à jour."];
+            $messages[] = ['ok', "Formations : $updated modifiée(s), $added ajoutée(s), $skipped déjà à jour."];
         }
     }
 }
 
 if ($action === 'update-module') {
-    $repo = upd_parse_repo($cfg['github_url'] ?? '');
-    if (!$repo) {
-        $messages[] = ['err', 'URL GitHub invalide.'];
+    $remoteVer = upd_remote_version($cfg);
+    if (isset($remoteVer['_error'])) {
+        $messages[] = ['err', 'Impossible de lire version.json distant : ' . $remoteVer['_error']];
+    } elseif (empty($remoteVer['files'])) {
+        $messages[] = ['err', 'Le version.json distant ne contient pas de liste de fichiers (files[]).'];
     } else {
-        $branch      = $cfg['github_branch'] ?: 'main';
-        $token       = $cfg['github_token']  ?: '';
-        $prefixPath  = rtrim(upd_remote_prefix($cfg), '/');
-        $rawBase     = "https://raw.githubusercontent.com/{$repo['owner']}/{$repo['repo']}/$branch" . ($prefixPath ? "/$prefixPath" : '');
-        $files   = [
-            'assets/guide.css' => $MODULE_DIR . '/assets/guide.css',
-            'assets/guide.js'  => $MODULE_DIR . '/assets/guide.js',
-        ];
-        $ok = $fail = 0;
-        foreach ($files as $remotePath => $localPath) {
-            $content = upd_gh_raw("$rawBase/$remotePath", $token);
-            if ($content && strlen($content) > 100) {
-                file_put_contents($localPath, $content);
-                $ok++;
-            } else {
-                $fail++;
-            }
-        }
-        // Mettre à jour le fichier VERSION
-        $verContent = upd_gh_raw("$rawBase/VERSION", $token);
-        if ($verContent) file_put_contents($MODULE_DIR . '/VERSION', $verContent);
-
-        if ($fail === 0) {
-            $messages[] = ['ok', "Module mis à jour ($ok fichier(s) téléchargé(s))."];
+        $result = upd_sync_files($cfg, $MODULE_DIR, $remoteVer['files']);
+        // Recharger la version locale (version.json vient d'être téléchargé)
+        $localVer    = upd_local_version($MODULE_DIR);
+        $localModVer = $localVer['version'] ?? null;
+        if (empty($result['fail'])) {
+            $messages[] = ['ok', "Module mis à jour vers {$remoteVer['version']} ({$result['ok']} fichier(s))."];
         } else {
-            $messages[] = ['err', "$fail fichier(s) n'ont pas pu être téléchargé(s). $ok réussi(s)."];
+            $messages[] = ['err', "{$result['ok']} fichier(s) OK. Échec : " . implode(', ', $result['fail'])];
         }
     }
 }
 
-$cfg         = upd_load_config(); // recharger après save
-$local       = upd_local_formations();
-$repo        = upd_parse_repo($cfg['github_url'] ?? '');
-$localModVer = is_file($MODULE_DIR . '/VERSION') ? trim(file_get_contents($MODULE_DIR . '/VERSION')) : null;
+/* ---- Recalcul allUpToDate ---- */
 
-// Calculer si tout est à jour (uniquement après une vérification)
+$repo = upd_parse_repo($cfg['github_url'] ?? '');
+
 $allUpToDate = false;
 if ($checkResults !== null) {
     $hasFormationUpdates = !empty(array_filter($checkResults, function ($r) { return $r['status'] !== 'ok'; }));
@@ -316,6 +233,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .upd-hint { font-size: 12px; color: #888; margin-top: 6px; }
 .upd-source { font-size: 13px; color: #555; background: #f7f9ff; border: 1px solid #dde2f5; border-radius: 6px; padding: 10px 14px; display: inline-block; line-height: 1.8; }
 .upd-source b { color: #082c7c; }
+.upd-notes { font-size: 12px; color: #555; background: #fffbea; border-left: 3px solid #f5a623; padding: 6px 10px; border-radius: 0 6px 6px 0; margin-top: 6px; }
 details.upd-force > summary {
   cursor: pointer; list-style: none;
   display: inline-flex; align-items: center; gap: 8px;
@@ -347,9 +265,12 @@ details.upd-force .upd-force-body { margin-top: 16px; }
         &nbsp;|&nbsp; Dossier : <b><?= htmlspecialchars($cfg['github_path']) ?></b>
       <?php endif; ?>
       <br>Version locale du module : <b><?= htmlspecialchars($localModVer ?? 'inconnue') ?></b>
+      <?php if ($localVer && !empty($localVer['date'])): ?>
+        &nbsp;(<?= htmlspecialchars($localVer['date']) ?>)
+      <?php endif; ?>
     </p>
   <?php else: ?>
-    <p style="color:#c0392b;font-size:13px">⚠ Aucun dépôt GitHub configuré dans <code>guide-config.json</code>.</p>
+    <p style="color:#c0392b;font-size:13px">⚠ Aucun dépôt GitHub configuré dans <code>module.json</code>.</p>
   <?php endif; ?>
 </div>
 
@@ -393,11 +314,14 @@ details.upd-force .upd-force-body { margin-top: 16px; }
 
     <?php if ($moduleCheckResult): ?>
       <br>
-      <h3 style="font-size:14px;color:#333;margin:0 0 8px">Module (assets CSS/JS)</h3>
+      <h3 style="font-size:14px;color:#333;margin:0 0 8px">Module (fichiers du moteur)</h3>
       <p style="font-size:13px">
         Version locale : <b><?= htmlspecialchars($moduleCheckResult['local'] ?? 'inconnue') ?></b>
         &nbsp;|&nbsp;
         Version distante : <b><?= htmlspecialchars($moduleCheckResult['remote']) ?></b>
+        <?php if ($moduleCheckResult['date']): ?>
+          <span style="color:#888;font-size:11px">(<?= htmlspecialchars($moduleCheckResult['date']) ?>)</span>
+        <?php endif; ?>
         &nbsp;
         <?php if ($moduleCheckResult['update']): ?>
           <span class="upd-badge upd-update">Mise à jour disponible</span>
@@ -405,6 +329,9 @@ details.upd-force .upd-force-body { margin-top: 16px; }
           <span class="upd-badge upd-ok">À jour</span>
         <?php endif; ?>
       </p>
+      <?php if ($moduleCheckResult['notes']): ?>
+        <p class="upd-notes"><?= htmlspecialchars($moduleCheckResult['notes']) ?></p>
+      <?php endif; ?>
     <?php endif; ?>
   <?php endif; ?>
 </div>
@@ -429,25 +356,25 @@ details.upd-force .upd-force-body { margin-top: 16px; }
       <button type="submit" class="upd-btn upd-btn-apply">↓ Fusionner (conserver les formations locales)</button>
     </form>
     <form method="post" style="display:inline"
-          onsubmit="return confirm('ATTENTION : Cette action supprimera les formations locales absentes du dépôt distant et remplacera toutes les autres. Continuer ?')">
+          onsubmit="return confirm('ATTENTION : Cette action supprimera les formations locales absentes du dépôt distant. Continuer ?')">
       <input type="hidden" name="action" value="update-formations">
       <input type="hidden" name="mode" value="replace">
       <button type="submit" class="upd-btn upd-btn-danger" style="margin-left:8px">↓ Remplacer (écraser tout)</button>
     </form>
     <p class="upd-hint">
       <b>Fusionner</b> : télécharge les formations nouvelles ou mises à jour, conserve les formations locales absentes du dépôt.<br>
-      <b>Remplacer</b> : le contenu du dépôt distant devient la seule référence. Les formations locales non présentes dans le dépôt sont supprimées.
+      <b>Remplacer</b> : le contenu du dépôt devient la seule référence. Les formations locales non présentes dans le dépôt sont supprimées.
     </p>
   </div>
 
   <div>
-    <h3 style="font-size:14px;color:#333;margin:0 0 8px">Module (guide.css et guide.js)</h3>
+    <h3 style="font-size:14px;color:#333;margin:0 0 8px">Module (fichiers du moteur)</h3>
     <form method="post" style="display:inline"
-          onsubmit="return confirm('Télécharger et remplacer guide.css et guide.js depuis GitHub ?')">
+          onsubmit="return confirm('Télécharger et remplacer les fichiers du module depuis GitHub ?\n\nLes fichiers listés dans version.json seront remplacés.')">
       <input type="hidden" name="action" value="update-module">
       <button type="submit" class="upd-btn upd-btn-module">↓ Mettre à jour le module</button>
     </form>
-    <p class="upd-hint">Remplace les fichiers assets locaux par la version du dépôt distant.</p>
+    <p class="upd-hint">Remplace les fichiers listés dans <code>version.json</code> par la version du dépôt distant. La config locale (<code>module.json</code>) n'est pas modifiée.</p>
   </div>
 
 <?php if ($allUpToDate): ?>

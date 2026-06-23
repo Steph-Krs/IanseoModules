@@ -1,0 +1,17 @@
+{
+    "version": "0.1.5",
+    "date": "2026-06-24",
+    "notes": "Mode non-permissif, indicateur scroll-suiveur (position fixed), nouveaux types de triggers (dblclick, input, keyup, keydown, focus, submit), info-bulle inline, tr-page élargi",
+    "files": [
+        "menu.php",
+        "index.php",
+        "guide-api.php",
+        "conditions.json",
+        "version.json",
+        "admin/index.php",
+        "admin/edit.php",
+        "admin/update.php",
+        "assets/guide.css",
+        "assets/guide.js"
+    ]
+}
