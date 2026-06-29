@@ -1,7 +1,7 @@
 {
-    "version": "0.1.5",
-    "date": "2026-06-24",
-    "notes": "Mode non-permissif, indicateur scroll-suiveur (position fixed), nouveaux types de triggers (dblclick, input, keyup, keydown, focus, submit), info-bulle inline, tr-page élargi",
+    "version": "0.1.8",
+    "date": "2026-06-30",
+    "notes": "Images (vignette formation + 1 image/étape, 16:9 bandes noires, GIF), trigger '*' sur toutes les pages, refonte header (réduire/agrandir/fermer), page d'aide à la création, correction saut de ligne après un encadré conseil, trigger d'état intégré 'Page active' (vérifie la page courante, configurable, distincte de la page de l'étape), editeur : navigation entre étapes via les boutons Préc./Suivant de la preview (suppression du ✕ et de la barre < > redondante), boutons + Avant/+ Après/🗑 regroupés sous la preview",
     "files": [
         "menu.php",
         "index.php",
@@ -11,6 +11,7 @@
         "admin/index.php",
         "admin/edit.php",
         "admin/update.php",
+        "admin/help.php",
         "assets/guide.css",
         "assets/guide.js"
     ]

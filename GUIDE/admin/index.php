@@ -52,6 +52,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .gadm-btn-del  { background: #c0392b; color: #fff; }
 .gadm-btn-new  { background: linear-gradient(80deg,#0254a8 10%,#082c7c 100%); color: #fff; padding: 8px 20px; font-size: 14px; border-radius: 5px; border: none; cursor: pointer; }
 .gadm-btn-upd  { background: #1a8a4a; color: #fff; padding: 8px 20px; font-size: 14px; border-radius: 5px; border: none; cursor: pointer; }
+.gadm-btn-help { background: #f0f4ff; color: #0254a8; border: 1px solid #b0c4e8; padding: 8px 20px; font-size: 14px; border-radius: 5px; cursor: pointer; }
 .gadm-meta { color: #888; font-size: 12px; }
 </style>
 
@@ -64,6 +65,10 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   &nbsp;
   <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/update.php">
     <button class="gadm-btn-upd">↑ Mises à jour</button>
+  </a>
+  &nbsp;
+  <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/help.php">
+    <button class="gadm-btn-help">❔ Aide à la création</button>
   </a>
   &nbsp;
   <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/">← Retour au catalogue</a>

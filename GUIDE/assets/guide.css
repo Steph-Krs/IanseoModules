@@ -25,6 +25,11 @@
   left: 20px;
 }
 
+#guide-panel.guide-panel-wide {
+  width: 720px;
+  max-width: calc(100vw - 40px);
+}
+
 /* ---- Header ---- */
 #guide-panel-header {
   background: linear-gradient(80deg, #0254a8 10%, #082c7c 100%);
@@ -64,23 +69,34 @@
   text-align: center;
 }
 
+#guide-panel-header-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+#guide-panel-min,
+#guide-panel-max,
 #guide-panel-close {
   background: rgba(255,255,255,.15);
   border: none;
   color: #fff;
   cursor: pointer;
-  font-size: 14px;
-  width: 28px;
-  height: 28px;
+  font-size: 13px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   padding: 0;
+  line-height: 1;
   transition: background .15s;
 }
-#guide-panel-close:hover { background: rgba(255,255,255,.3); }
+#guide-panel-min:hover,
+#guide-panel-max:hover { background: rgba(255,255,255,.3); }
+#guide-panel-close:hover { background: #e74c3c; }
 
 /* ---- Nom formation ---- */
 #guide-panel-formation-name {
@@ -127,6 +143,24 @@
   flex: 1;
   overflow-y: auto;
   padding: 14px 16px 6px;
+}
+
+/* ---- Image d'étape (16:9, bandes noires automatiques) ---- */
+#guide-panel-step-image { margin-bottom: 10px; }
+.guide-img-16x9 {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 */
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.guide-img-16x9 img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 #guide-panel-step-title {
@@ -285,14 +319,6 @@
   flex: 1;
 }
 #guide-btn-next:hover:not(:disabled) { opacity: .9; color: #fff !important; }
-
-#guide-btn-stop {
-  color: #b00 !important;
-  border-color: #f5c0c0 !important;
-  font-size: 11px;
-  padding: 7px 10px;
-}
-#guide-btn-stop:hover:not(:disabled) { background: #fff0f0 !important; }
 
 /* ===== FAB (panneau réduit) ===== */
 #guide-fab {

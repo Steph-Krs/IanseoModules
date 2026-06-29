@@ -192,6 +192,20 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   padding: 1px 5px; font-size: 11px; font-family: monospace; color: #082c7c; font-weight: 600;
 }
 
+/* Image 16:9 (bandes noires auto) — preview éditeur + vignettes */
+.guide-img-16x9 {
+  position: relative; width: 100%; padding-top: 56.25%;
+  background: #000; border-radius: 8px; overflow: hidden;
+}
+.guide-img-16x9 img {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  object-fit: contain; display: block;
+}
+#pv-step-image { margin: 12px 16px 0; }
+#step-img-thumb  { width: 120px; flex-shrink: 0; }
+#f-img-preview   { width: 180px; flex-shrink: 0; }
+.ge-img-ctrl { display: flex; gap: 10px; align-items: flex-start; margin-top: 4px; }
+
 /* Barre nav panneau (décorative) */
 .ge-panel-nav {
   display: flex; justify-content: space-between; align-items: center;
@@ -199,17 +213,17 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 }
 .ge-panel-nav-btn {
   padding: 7px 12px; border-radius: 8px; border: 1px solid #d0d8f0;
-  font-size: 12px; font-family: inherit; background: #fff; color: #444; cursor: default;
+  font-size: 12px; font-family: inherit; background: #fff; color: #444; cursor: pointer;
 }
+.ge-panel-nav-btn:hover:not(:disabled) { background: #eef2ff; border-color: #0254a8; color: #0254a8; }
+.ge-panel-nav-btn:disabled { opacity: .4; cursor: default; }
 #pv-btn-next {
   background: linear-gradient(80deg,#0254a8 10%,#082c7c 100%) !important;
   color: #fff !important; border: none !important; flex: 1; text-align: center;
 }
 
-/* ===== Colonne droite (navigation + options) ===== */
-.ge-step-nav  { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
-.ge-step-ctr  { flex: 1; text-align: center; font-size: 13px; font-weight: 700; color: #082c7c; }
-.ge-step-acts { display: flex; gap: 8px; margin-bottom: 18px; }
+/* ===== Actions étape (sous la preview) + options ===== */
+.ge-step-acts { display: flex; gap: 8px; margin-top: 12px; }
 
 .ge-opts { background: #fff; border: 1px solid #dde2f5; border-radius: 10px; padding: 14px 16px; }
 .ge-opts-title { font-size: 11px; font-weight: 700; color: #0254a8; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; }
@@ -238,6 +252,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .tr-type { padding: 4px 5px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex-shrink: 0; }
 .tr-sel  { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1 1 0; min-width: 0; box-sizing: border-box; }
 .tr-cond { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1; min-width: 0; background: #f8f4ff; color: #3a2660; }
+.tr-cond-page { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1; min-width: 0; box-sizing: border-box; background: #f8f4ff; color: #3a2660; }
 .tr-req  { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #555; white-space: nowrap; cursor: pointer; flex-shrink: 0; }
 .tr-req input { margin: 0; }
 .tr-del  { padding: 3px 7px !important; font-size: 11px !important; flex-shrink: 0; }
@@ -264,8 +279,6 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .ge-btn-save:hover { opacity: .9; }
 .ge-btn-ghost { background: #f0f4ff; color: #0254a8; border: 1px solid #b0c4e8; }
 .ge-btn-ghost:hover { background: #e4ecff; }
-.ge-btn-nav   { background: #fff; border: 1px solid #c8d4ec; color: #444; font-size: 12px; padding: 5px 10px; }
-.ge-btn-nav:hover { background: #eef2ff; border-color: #0254a8; }
 .ge-btn-add   { background: #1a8a4a; color: #fff; font-size: 12px; padding: 6px 12px; flex: 1; }
 .ge-btn-add:hover { background: #147a3f; }
 .ge-btn-del   { background: #c0392b; color: #fff; font-size: 12px; padding: 6px 10px; }
@@ -293,6 +306,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     ⬆ Importer JSON
     <input type="file" id="import-file" accept=".json,application/json" style="display:none">
   </label>
+  <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/help.php" target="_blank"
+     class="ge-btn ge-btn-ghost" style="text-decoration:none;margin-left:auto">❔ Aide à la création</a>
 </div>
 
 <!-- Métadonnées formation -->
@@ -310,10 +325,25 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     <input type="text" id="f-version" placeholder="1.0" oninput="captureAndSync()">
   </div>
 </div>
-<p style="font-size:11px;color:#aaa;margin:-12px 0 18px">
+<p style="font-size:11px;color:#aaa;margin:-12px 0 14px">
   ID : <code style="background:#f0f4ff;padding:1px 6px;border-radius:3px;color:#555"><?= htmlspecialchars($formation['id']) ?></code>
   — identifiant unique auto-généré, modifiable via le JSON si nécessaire
 </p>
+
+<!-- Vignette de la formation -->
+<div class="ge-opt" style="margin-bottom:18px">
+  <label>Vignette de la formation <span class="ge-hint">(optionnelle · 16:9 · GIF accepté · affichée dans le catalogue)</span></label>
+  <div class="ge-img-ctrl">
+    <div id="f-img-preview" style="display:none"></div>
+    <div>
+      <label class="ge-btn ge-btn-ghost" style="cursor:pointer">
+        🖼 Choisir une image
+        <input type="file" accept="image/*" style="display:none" onchange="handleFormationImageFile(this)">
+      </label>
+      <button type="button" class="ge-btn ge-btn-del" id="f-img-remove" style="display:none;margin-left:6px" onclick="removeFormationImage()">Retirer</button>
+    </div>
+  </div>
+</div>
 
 <!-- Éditeur -->
 <div class="ge-editor">
@@ -351,6 +381,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         <span class="ge-panel-prog-txt" id="pv-prog-txt">Étape 1 / 1</span>
       </div>
 
+      <!-- Image d'étape (preview) -->
+      <div id="pv-step-image" style="display:none"></div>
+
       <!-- Titre (éditable) -->
       <div id="pv-stitle" contenteditable="true"
            data-ph="Titre de l'étape..."
@@ -364,38 +397,46 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
            oninput="captureAndSync()">
       </div>
 
-      <!-- Boutons nav (décoratifs) -->
+      <!-- Boutons nav (fonctionnels : navigation entre étapes, comme en formation) -->
       <div class="ge-panel-nav">
-        <button class="ge-panel-nav-btn">◀ Préc.</button>
-        <button class="ge-panel-nav-btn" style="color:#b00;border-color:#f5c0c0;font-size:11px">✕</button>
-        <button class="ge-panel-nav-btn" id="pv-btn-next">Suivant ▶</button>
+        <button class="ge-panel-nav-btn" id="pv-btn-prev" onclick="navStep(-1)">◀ Préc.</button>
+        <button class="ge-panel-nav-btn" id="pv-btn-next" onclick="navStep(1)">Suivant ▶</button>
       </div>
+    </div>
+
+    <!-- Actions sur l'étape (regroupées sous la preview) -->
+    <div class="ge-step-acts">
+      <button class="ge-btn ge-btn-add" onclick="addStep(-1)" title="Insérer une étape avant celle-ci">+ Avant</button>
+      <button class="ge-btn ge-btn-add" onclick="addStep(1)"  title="Insérer une étape après celle-ci">+ Après</button>
+      <button class="ge-btn ge-btn-del" onclick="deleteStep()" title="Supprimer cette étape">✕</button>
     </div>
 
   </div><!-- /ge-left -->
 
-  <!-- Colonne droite : navigation + options -->
+  <!-- Colonne droite : options -->
   <div class="ge-right">
-
-    <!-- Navigation étapes -->
-    <div class="ge-step-nav">
-      <button class="ge-btn ge-btn-nav" onclick="navStep(-1)">◀</button>
-      <span class="ge-step-ctr" id="step-counter">1 / 1</span>
-      <button class="ge-btn ge-btn-nav" onclick="navStep(1)">▶</button>
-    </div>
-    <div class="ge-step-acts">
-      <button class="ge-btn ge-btn-add" onclick="addStep(-1)" title="Insérer une étape avant celle-ci">+ Avant</button>
-      <button class="ge-btn ge-btn-add" onclick="addStep(1)"  title="Insérer une étape après celle-ci">+ Après</button>
-      <button class="ge-btn ge-btn-del" onclick="deleteStep()" title="Supprimer cette étape">🗑</button>
-    </div>
 
     <!-- Options de l'étape -->
     <div class="ge-opts">
       <div class="ge-opts-title">Options de l'étape</div>
 
       <div class="ge-opt">
-        <label>Page par défaut <span class="ge-hint">(pour les triggers sans page propre)</span></label>
-        <input type="text" id="opt-page" placeholder="/path/to/file.php" oninput="captureAndSync()">
+        <label>Page par défaut <span class="ge-hint">(pour les triggers sans page propre · <code>*</code> = toutes les pages)</span></label>
+        <input type="text" id="opt-page" placeholder="/path/to/file.php ou *" oninput="captureAndSync()">
+      </div>
+
+      <div class="ge-opt">
+        <label>Image de l'étape <span class="ge-hint">(optionnelle · 16:9 · GIF accepté)</span></label>
+        <div class="ge-img-ctrl">
+          <div id="step-img-thumb" style="display:none"></div>
+          <div>
+            <label class="ge-btn ge-btn-ghost" style="cursor:pointer;font-size:12px;padding:5px 12px">
+              🖼 Choisir
+              <input type="file" accept="image/*" style="display:none" onchange="handleStepImageFile(this)">
+            </label>
+            <button type="button" class="ge-btn ge-btn-del" id="step-img-remove" style="display:none;margin-top:6px;font-size:12px" onclick="removeStepImage()">Retirer</button>
+          </div>
+        </div>
       </div>
 
       <div class="ge-opt">
@@ -464,15 +505,49 @@ var _syncing = false; // évite les boucles de sync
 /* ===== Init ===== */
 
 document.addEventListener('DOMContentLoaded', function () {
-  document.getElementById('pv-content').addEventListener('focus', function () {
+  var pv = document.getElementById('pv-content');
+  pv.addEventListener('focus', function () {
     document.execCommand('defaultParagraphSeparator', false, 'p');
   });
+  pv.addEventListener('keydown', onContentKeydown);
   document.getElementById('import-file').addEventListener('change', handleImport);
 
   _fd = <?= json_encode($formation, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?>;
   clampStep();
   syncToDOM();
 });
+
+/* Entrée dans un encadré conseil → sort en paragraphe normal.
+   Shift+Entrée → reste dans le conseil (saut de ligne <br>, comportement natif). */
+function onContentKeydown(e) {
+  if (e.key !== 'Enter' || e.shiftKey) return;
+  var tip = currentTipElement();
+  if (!tip) return;
+  e.preventDefault();
+  var p = document.createElement('p');
+  p.appendChild(document.createElement('br'));
+  if (tip.nextSibling) tip.parentNode.insertBefore(p, tip.nextSibling);
+  else                 tip.parentNode.appendChild(p);
+  var range = document.createRange();
+  range.setStart(p, 0);
+  range.collapse(true);
+  var sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  setTimeout(captureAndSync, 0);
+}
+
+function currentTipElement() {
+  var sel = window.getSelection();
+  if (!sel.rangeCount) return null;
+  var node = sel.anchorNode;
+  var root = document.getElementById('pv-content');
+  while (node && node !== root) {
+    if (node.nodeType === 1 && node.classList && node.classList.contains('guide-tip')) return node;
+    node = node.parentNode;
+  }
+  return null;
+}
 
 /* ===== DOM → JSON ===== */
 
@@ -509,6 +584,10 @@ function captureStep() {
     if (kind === 'etat') {
       var cond = row.querySelector('.tr-cond').value || null;
       tr = { kind: 'etat', condition: cond, required: req };
+      if (cond === '__page') {
+        var cpage = row.querySelector('.tr-cond-page').value.trim() || null;
+        if (cpage) tr.page = cpage;
+      }
     } else {
       var page = row.querySelector('.tr-page').value.trim() || null;
       var type = row.querySelector('.tr-type').value;
@@ -539,7 +618,7 @@ function updatePanelChrome() {
   setText('pv-fname',   _fd.title || '(titre formation)');
   document.getElementById('pv-fill').style.width = pct + '%';
   setText('pv-prog-txt', 'Étape ' + (_sidx + 1) + ' / ' + total);
-  setText('step-counter', (_sidx + 1) + ' / ' + total);
+  document.getElementById('pv-btn-prev').disabled = (_sidx === 0);
   setText('pv-btn-next', _sidx === total - 1 ? 'Terminer ✓' : 'Suivant ▶');
 }
 
@@ -552,6 +631,7 @@ function syncToDOM() {
     setVal('f-title',       _fd.title       || '');
     setVal('f-description', _fd.description || '');
     setVal('f-version',     _fd.version     || '1.0');
+    renderFormationImagePreview();
     clampStep();
     loadStepToDOM();
   } finally {
@@ -567,6 +647,7 @@ function loadStepToDOM() {
   setVal('opt-page', s.page || '');
   document.getElementById('opt-optional').checked    = (s.optional !== false);
   document.getElementById('opt-strict-click').checked = !!(s.strict_click);
+  renderStepImagePreview();
 
   var list = document.getElementById('triggers-list');
   list.innerHTML = '';
@@ -635,6 +716,7 @@ var _dragSrc = null;
 
 function buildConditionOptions() {
   var opts = '<option value="">— choisir une condition…</option>';
+  opts += '<option value="__page">📍 Page active</option>';
   GUIDE_CONDITIONS.forEach(function (c) {
     opts += '<option value="' + c.id + '">' + c.label + '</option>';
   });
@@ -647,6 +729,13 @@ function setTriggerKind(row, kind) {
   row.querySelector('.tr-body-etat').style.display   = isAction ? 'none' : 'flex';
   row.querySelector('.tr-hint').style.display        = isAction ? '' : 'none';
   row.querySelector('.tr-req').style.marginLeft      = isAction ? '' : 'auto';
+  if (!isAction) setEtatCondUI(row);
+}
+
+/* Affiche le champ "page à vérifier" uniquement pour la condition intégrée 📍 Page active. */
+function setEtatCondUI(row) {
+  var cond = row.querySelector('.tr-cond').value;
+  row.querySelector('.tr-cond-page').style.display = (cond === '__page') ? '' : 'none';
 }
 
 function addTrigger(t) {
@@ -669,7 +758,7 @@ function addTrigger(t) {
       '<button type="button" class="ge-btn ge-btn-del tr-del" title="Supprimer" onclick="removeTrigger(this)">✕</button>' +
     '</div>' +
     '<div class="tr-body tr-body-action">' +
-      '<input type="text" class="tr-page" placeholder="/page" title="Page (vide = page de l\'étape)">' +
+      '<input type="text" class="tr-page" placeholder="/page ou *" title="Page : vide = page de l\'étape · * = toutes les pages">' +
       '<select class="tr-type">' +
         '<option value="null">— aucun</option>' +
         '<option value="click">clic</option>' +
@@ -686,6 +775,8 @@ function addTrigger(t) {
     '</div>' +
     '<div class="tr-body tr-body-etat" style="display:none">' +
       '<select class="tr-cond">' + buildConditionOptions() + '</select>' +
+      '<input type="text" class="tr-cond-page" placeholder="/page à vérifier ou *" style="display:none" ' +
+             'title="Page que l\'utilisateur doit avoir active (peut différer de la page de l\'étape)">' +
     '</div>';
 
   // Valeurs initiales
@@ -694,6 +785,7 @@ function addTrigger(t) {
   row.querySelector('.tr-type').value        = t.trigger   || 'null';
   row.querySelector('.tr-sel').value         = t.selector  || '';
   row.querySelector('.tr-cond').value        = t.condition || '';
+  row.querySelector('.tr-cond-page').value   = (t.condition === '__page') ? (t.page || '') : '';
   row.querySelector('.tr-req input').checked = !!t.required;
   row.querySelector('.tr-hint').value        = t.hint      || '';
   setTriggerKind(row, kind);
@@ -705,7 +797,10 @@ function addTrigger(t) {
   row.querySelector('.tr-page').addEventListener('input',  captureAndSync);
   row.querySelector('.tr-type').addEventListener('change', captureAndSync);
   row.querySelector('.tr-sel').addEventListener('input',   captureAndSync);
-  row.querySelector('.tr-cond').addEventListener('change', captureAndSync);
+  row.querySelector('.tr-cond').addEventListener('change', function () {
+    setEtatCondUI(row); captureAndSync();
+  });
+  row.querySelector('.tr-cond-page').addEventListener('input', captureAndSync);
   row.querySelector('.tr-req input').addEventListener('change', captureAndSync);
   row.querySelector('.tr-hint').addEventListener('input',  captureAndSync);
 
@@ -785,6 +880,81 @@ function insertCode() {
   document.execCommand('insertHTML', false,
     '<code>' + esc(sel || 'code') + '</code>');
   setTimeout(captureAndSync, 0);
+}
+
+/* ===== Images (base64 embarqué) ===== */
+
+function readImageFile(input, cb) {
+  var file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { alert('Veuillez choisir une image (PNG, JPG, GIF…).'); return; }
+  if (file.size > 2 * 1024 * 1024) {
+    var mo = (file.size / 1024 / 1024).toFixed(1);
+    if (!confirm('Cette image fait ' + mo + ' Mo.\nLes grosses images alourdissent la formation et sa synchronisation GitHub.\nContinuer quand même ?')) return;
+  }
+  var reader = new FileReader();
+  reader.onload = function (e) { cb(e.target.result); };
+  reader.readAsDataURL(file);
+}
+
+function handleFormationImageFile(input) {
+  readImageFile(input, function (dataUrl) {
+    if (!_fd) return;
+    _fd.image = dataUrl;
+    renderFormationImagePreview();
+    captureAndSync();
+  });
+}
+function removeFormationImage() {
+  if (_fd) delete _fd.image;
+  renderFormationImagePreview();
+  captureAndSync();
+}
+
+function handleStepImageFile(input) {
+  readImageFile(input, function (dataUrl) {
+    if (!_fd || !_fd.steps || !_fd.steps[_sidx]) return;
+    _fd.steps[_sidx].image = dataUrl;
+    renderStepImagePreview();
+    captureAndSync();
+  });
+}
+function removeStepImage() {
+  if (_fd && _fd.steps && _fd.steps[_sidx]) delete _fd.steps[_sidx].image;
+  renderStepImagePreview();
+  captureAndSync();
+}
+
+function setImageBox(id, img) {
+  var wrap = document.getElementById(id);
+  if (!wrap) return;
+  if (img && /^data:image\//.test(img)) {
+    var box = document.createElement('div');
+    box.className = 'guide-img-16x9';
+    var el = document.createElement('img');
+    el.src = img;
+    box.appendChild(el);
+    wrap.innerHTML = '';
+    wrap.appendChild(box);
+    wrap.style.display = '';
+  } else {
+    wrap.innerHTML = '';
+    wrap.style.display = 'none';
+  }
+}
+
+function renderFormationImagePreview() {
+  var img = _fd && _fd.image;
+  setImageBox('f-img-preview', img);
+  document.getElementById('f-img-remove').style.display = (img ? '' : 'none');
+}
+
+function renderStepImagePreview() {
+  var img = (_fd && _fd.steps && _fd.steps[_sidx]) ? _fd.steps[_sidx].image : null;
+  setImageBox('pv-step-image', img);
+  setImageBox('step-img-thumb', img);
+  document.getElementById('step-img-remove').style.display = (img ? '' : 'none');
 }
 
 /* ===== Export / Import ===== */

@@ -17,6 +17,7 @@ foreach (glob($dir . '*.json') as $file) {
         'description' => $data['description'] ?? '',
         'steps_count' => count($data['steps'] ?? []),
         'version'     => $data['version'] ?? '1.0',
+        'image'       => $data['image'] ?? '',
     ];
 }
 usort($formations, function ($a, $b) { return strcmp($a['title'], $b['title']); });
@@ -35,6 +36,22 @@ usort($formations, function ($a, $b) { return strcmp($a['title'], $b['title']); 
   width: 320px;
   position: relative;
   background: #fff;
+}
+.guide-card-img {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 */
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.guide-card-img img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .guide-card h2 {
   color: #0254a8;
@@ -111,6 +128,9 @@ usort($formations, function ($a, $b) { return strcmp($a['title'], $b['title']); 
 <div class="guide-catalogue" id="guide-catalogue">
 <?php foreach ($formations as $f): ?>
   <div class="guide-card" id="card-<?= htmlspecialchars($f['id']) ?>">
+    <?php if (!empty($f['image'])): ?>
+      <div class="guide-card-img"><img src="<?= htmlspecialchars($f['image']) ?>" alt=""></div>
+    <?php endif; ?>
     <h2><?= htmlspecialchars($f['title']) ?></h2>
     <p><?= htmlspecialchars($f['description']) ?></p>
     <p class="guide-card-meta"><?= $f['steps_count'] ?> étapes</p>

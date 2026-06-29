@@ -24,9 +24,13 @@ $_gvj  = filemtime($_gdir . 'guide.js');
 
 <div id="guide-panel" style="display:none">
   <div id="guide-panel-header">
-    <button id="guide-panel-toggle-side" title="Déplacer vers la gauche">←</button>
+    <button id="guide-panel-toggle-side" title="Déplacer">←</button>
     <span id="guide-panel-header-title">Guide FFTA</span>
-    <button id="guide-panel-close" title="Réduire">✕</button>
+    <span id="guide-panel-header-btns">
+      <button id="guide-panel-min"   title="Réduire">▁</button>
+      <button id="guide-panel-max"   title="Agrandir">▢</button>
+      <button id="guide-panel-close" title="Fermer la formation">✕</button>
+    </span>
   </div>
   <div id="guide-panel-formation-name"></div>
   <div id="guide-panel-progress">
@@ -36,6 +40,7 @@ $_gvj  = filemtime($_gdir . 'guide.js');
     <span id="guide-panel-progress-text"></span>
   </div>
   <div id="guide-panel-step">
+    <div id="guide-panel-step-image" style="display:none"></div>
     <div id="guide-panel-step-title"></div>
     <div id="guide-panel-step-content"></div>
     <div id="guide-panel-page-info" style="display:none"></div>
@@ -46,7 +51,6 @@ $_gvj  = filemtime($_gdir . 'guide.js');
   </div>
   <div id="guide-panel-nav">
     <button id="guide-btn-prev" disabled>◀ Préc.</button>
-    <button id="guide-btn-stop" title="Quitter la formation">✕</button>
     <button id="guide-btn-next">Suivant ▶</button>
   </div>
 </div>

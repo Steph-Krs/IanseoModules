@@ -5,6 +5,7 @@
   var LS_STATE = 'guide_state';
   var LS_DONE  = 'guide_completed';
   var LS_SIDE  = 'guide_panel_side';
+  var LS_WIDE  = 'guide_panel_wide';
 
   var state       = null;
   var formation   = null;
@@ -21,15 +22,17 @@
     fab   = document.getElementById('guide-fab');
     if (!panel) return;
 
-    document.getElementById('guide-panel-close').addEventListener('click', hidePanel);
+    document.getElementById('guide-panel-min').addEventListener('click', hidePanel);
+    document.getElementById('guide-panel-max').addEventListener('click', togglePanelWide);
+    document.getElementById('guide-panel-close').addEventListener('click', stopFormation);
     document.getElementById('guide-panel-toggle-side').addEventListener('click', togglePanelSide);
     document.getElementById('guide-btn-prev').addEventListener('click', prevStep);
     document.getElementById('guide-btn-next').addEventListener('click', nextStep);
-    document.getElementById('guide-btn-stop').addEventListener('click', stopFormation);
     document.getElementById('guide-btn-validate').addEventListener('click', toggleValidate);
     fab.addEventListener('click', onFabClick);
 
     applyPanelSide(loadSide());
+    applyWide(loadWide());
 
     state = loadState();
 
@@ -137,6 +140,27 @@
   function togglePanelSide() {
     var next = loadSide() === 'right' ? 'left' : 'right';
     saveSide(next); applyPanelSide(next);
+  }
+
+  /* ===== Largeur normale / agrandie ===== */
+
+  function loadWide() { return localStorage.getItem(LS_WIDE) === '1'; }
+
+  function applyWide(wide) {
+    if (!panel) return;
+    panel.classList.toggle('guide-panel-wide', wide);
+    var btn = document.getElementById('guide-panel-max');
+    if (btn) {
+      btn.textContent = wide ? '❐' : '▢';
+      btn.title       = wide ? 'Taille normale' : 'Agrandir';
+    }
+    if (_highlighted) placeArrow(_highlighted);
+  }
+
+  function togglePanelWide() {
+    var next = !loadWide();
+    localStorage.setItem(LS_WIDE, next ? '1' : '0');
+    applyWide(next);
   }
 
   /* ===== Navigation ===== */
@@ -272,12 +296,15 @@
 
     var t = triggers[_triggerIdx];
 
-    // ---- Trigger état (vérification serveur) ----
+    // ---- Trigger état (condition serveur ou page active) ----
     if (t.kind === 'etat') {
       clearHighlight();
-      checkCondition(t.condition || '', function (met, label) {
+      evaluateEtat(step, t, function (met, label) {
         if (met) {
           onTriggerFired(step);
+        } else if (t.condition === '__page') {
+          // Le lien "aller sur la page" est géré par updatePageInfo() — pas de message redondant
+          clearConditionWait();
         } else {
           showConditionWait(label);
         }
@@ -360,6 +387,7 @@
     document.getElementById('guide-panel-formation-name').textContent = formation.title;
     document.getElementById('guide-panel-progress-fill').style.width  = pct + '%';
     document.getElementById('guide-panel-progress-text').textContent  = 'Étape ' + (idx + 1) + ' / ' + total;
+    renderStepImage(step);
     document.getElementById('guide-panel-step-title').textContent     = step.title;
     document.getElementById('guide-panel-step-content').innerHTML     = sanitizeContent(step.content);
 
@@ -382,11 +410,39 @@
     }
   }
 
+  function renderStepImage(step) {
+    var wrap = document.getElementById('guide-panel-step-image');
+    if (!wrap) return;
+    if (step.image && /^data:image\//.test(step.image)) {
+      wrap.innerHTML = '';
+      var box = document.createElement('div');
+      box.className = 'guide-img-16x9';
+      var img = document.createElement('img');
+      img.src = step.image;
+      img.alt = '';
+      box.appendChild(img);
+      wrap.appendChild(box);
+      wrap.style.display = '';
+    } else {
+      wrap.style.display = 'none';
+      wrap.innerHTML = '';
+    }
+  }
+
+  function evaluateEtat(step, t, cb) {
+    if (t.condition === '__page') {
+      var page = t.page || step.page || null;
+      cb(isOnRightPage(page), 'Vous devez être sur la page : ' + (page || '(non définie)'));
+    } else {
+      checkCondition(t.condition || '', cb);
+    }
+  }
+
   function revalidateEtat(step, etatTriggers) {
     var remaining = etatTriggers.length;
     var allMet    = true;
     etatTriggers.forEach(function (t) {
-      checkCondition(t.condition || '', function (met) {
+      evaluateEtat(step, t, function (met) {
         if (!met) allMet = false;
         if (--remaining === 0) {
           if (allMet) {
@@ -616,7 +672,7 @@
   }
 
   function isOnRightPage(page) {
-    if (!page) return true;
+    if (!page || page === '*') return true;
     var base  = apiRoot().replace(/\/$/, '');
     var qIdx  = page.indexOf('?');
     var pagePath   = qIdx === -1 ? page : page.slice(0, qIdx);
