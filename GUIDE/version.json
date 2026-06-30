@@ -1,7 +1,7 @@
 {
-    "version": "0.2.0",
+    "version": "0.2.2",
     "date": "2026-06-30",
-    "notes": "Enregistreur de triggers (capture des clics + page active, panneau dédié, insertion dans l'étape) ; branches conditionnelles par trigger (when/when_not : un trigger non satisfait est ignoré, pour des parcours si/sinon puis suite commune) ; surbrillance fiabilisée (suivi par sélecteur + écouteur délégué sur document résistant aux rafraîchissements partiels de ianseo, ancrage sur le parent visible le plus proche pour les éléments masqués et sous-menus, détection du masquage hors-écran corrigeant les coordonnées aberrantes de la flèche, indicateur calé à gauche, plus de flèche fantôme au rechargement) ; progression d'étape monotone qui ne redémarre plus après une soumission ianseo lente (ex. LookupTableLoad.php) ; contraste de l'éditeur amélioré (lignes de trigger bleu clair/marine, conditions en mauve).",
+    "notes": "Guide et enregistreur désormais actifs dans les popups ianseo (PopEdit.php…) via interception de window.open (injection même-origine, sans modifier le core) ; import/export de formations au format .ianseo compressé (zlib) comme les exports natifs ianseo, l'édition directe du JSON restant disponible, panneau de formation : deux boutons entre Préc. et Suivant — 🔄 recommencer les indications de l'étape (retour au 1er trigger) et ↶ revenir à l'indication précédente (recul manuel d'un trigger, sans cascade automatique). Désactivés quand non applicables.",
     "files": [
         "menu.php",
         "index.php",

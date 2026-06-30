@@ -51,6 +51,8 @@ $_gvj  = filemtime($_gdir . 'guide.js');
   </div>
   <div id="guide-panel-nav">
     <button id="guide-btn-prev" disabled>◀ Préc.</button>
+    <button id="guide-btn-restart" title="Recommencer les indications de cette étape">🔄</button>
+    <button id="guide-btn-back" title="Revenir à l'indication précédente">↶</button>
     <button id="guide-btn-next">Suivant ▶</button>
   </div>
 </div>

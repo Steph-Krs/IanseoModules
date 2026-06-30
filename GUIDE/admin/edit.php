@@ -9,6 +9,38 @@ $editId      = isset($_GET['id']) ? preg_replace('/[^a-z0-9\-]/', '', strtolower
 $condFile    = dirname(__DIR__) . '/conditions.json';
 $conditions  = file_exists($condFile) ? (json_decode(file_get_contents($condFile), true) ?: []) : [];
 
+$action = $_POST['action'] ?? '';
+
+/* ---- Export .ianseo (JSON compressé zlib, comme les exports natifs ianseo) ---- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'export-ianseo') {
+    $data = json_decode($_POST['json_raw'] ?? '', true);
+    if (!$data || empty($data['id'])) { http_response_code(400); echo 'JSON invalide'; exit; }
+    $payload = gzcompress(json_encode($data, JSON_UNESCAPED_UNICODE), 9);
+    $fname   = preg_replace('/[^a-z0-9\-]/', '', strtolower($data['id'])) . '.ianseo';
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename="' . $fname . '"');
+    header('Content-Length: ' . strlen($payload));
+    echo $payload;
+    exit;
+}
+
+/* ---- Import .ianseo (ou .json brut en repli) ---- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'import-ianseo') {
+    header('Content-Type: application/json; charset=utf-8');
+    if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+        echo json_encode(['error' => 'Fichier manquant ou en erreur.']); exit;
+    }
+    $raw  = file_get_contents($_FILES['file']['tmp_name']);
+    $json = @gzuncompress($raw);          // .ianseo (zlib)
+    if ($json === false) $json = $raw;    // repli : .json non compressé
+    $data = json_decode($json, true);
+    if (!$data || empty($data['id']) || !isset($data['steps'])) {
+        echo json_encode(['error' => 'Fichier invalide (formation non reconnue).']); exit;
+    }
+    echo json_encode(['ok' => true, 'formation' => $data], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 /* ---- Sauvegarde ---- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['json_raw'])) {
     $isAjax = !empty($_POST['is_ajax']);
@@ -304,10 +336,10 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 <!-- Barre Export / Import -->
 <div class="ge-top-bar">
-  <button class="ge-btn ge-btn-ghost" onclick="exportJson()">⬇ Exporter JSON</button>
+  <button class="ge-btn ge-btn-ghost" onclick="exportIanseo()" title="Fichier .ianseo compressé (plus léger), comme les exports natifs ianseo">⬇ Exporter (.ianseo)</button>
   <label class="ge-btn ge-btn-ghost" style="cursor:pointer">
-    ⬆ Importer JSON
-    <input type="file" id="import-file" accept=".json,application/json" style="display:none">
+    ⬆ Importer (.ianseo)
+    <input type="file" id="import-file" accept=".ianseo,.json,application/json" style="display:none">
   </label>
   <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/help.php" target="_blank"
      class="ge-btn ge-btn-ghost" style="text-decoration:none;margin-left:auto">❔ Aide à la création</a>
@@ -1048,30 +1080,39 @@ function checkRecResult() {
     + (step.title || ('étape ' + (idx + 1))) + ' ».\nVérifiez-les puis enregistrez la formation.');
 }
 
-/* ===== Export / Import ===== */
+/* ===== Export / Import (.ianseo = JSON compressé zlib côté serveur) ===== */
 
-function exportJson() {
+function exportIanseo() {
   captureAndSync();
-  var raw = document.getElementById('guide-json-editor').value;
-  var data; try { data = JSON.parse(raw); } catch(e) { alert('JSON invalide.'); return; }
-  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  var url  = URL.createObjectURL(blob);
-  var a    = document.createElement('a');
-  a.href = url; a.download = (data.id || 'formation') + '.json'; a.click();
-  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  var json = document.getElementById('guide-json-editor').value;
+  try { JSON.parse(json); } catch (e) { alert('JSON invalide.'); return; }
+  // Soumission par formulaire caché → la réponse binaire déclenche le téléchargement du .ianseo
+  var f  = document.createElement('form');
+  f.method = 'POST'; f.action = ''; f.style.display = 'none';
+  var i1 = document.createElement('input'); i1.type = 'hidden'; i1.name = 'action';   i1.value = 'export-ianseo';
+  var i2 = document.createElement('input'); i2.type = 'hidden'; i2.name = 'json_raw'; i2.value = json;
+  f.appendChild(i1); f.appendChild(i2);
+  document.body.appendChild(f);
+  f.submit();
+  document.body.removeChild(f);
 }
 
 function handleImport(e) {
   var file = e.target.files[0]; if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function (ev) {
-    try {
-      var data = JSON.parse(ev.target.result);
-      if (!data.id || !Array.isArray(data.steps)) { alert('Structure invalide (champs id et steps requis).'); return; }
-      _fd = data; _sidx = 0; syncToDOM();
-    } catch(ex) { alert('JSON invalide : ' + ex.message); }
-  };
-  reader.readAsText(file);
+  var fd = new FormData();
+  fd.append('action', 'import-ianseo');
+  fd.append('file', file);
+  fetch('', { method: 'POST', body: fd })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.ok && data.formation) {
+        _fd = data.formation; _sidx = 0; syncToDOM();
+        showSaveStatus('ok', '✓ Formation importée — vérifiez puis enregistrez');
+      } else {
+        alert('Import : ' + (data.error || 'erreur inconnue'));
+      }
+    })
+    .catch(function () { alert('Erreur réseau lors de l\'import.'); });
   e.target.value = '';
 }
 

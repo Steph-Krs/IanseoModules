@@ -312,6 +312,14 @@
 #guide-panel-nav button:disabled { opacity: .35; cursor: default; }
 #guide-panel-nav button:hover:not(:disabled) { background: #eef2ff; border-color: #0254a8; color: #0254a8; }
 
+#guide-btn-restart,
+#guide-btn-back {
+  padding: 7px 9px;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 #guide-btn-next {
   background: linear-gradient(80deg, #0254a8 10%, #082c7c 100%) !important;
   color: #fff !important;

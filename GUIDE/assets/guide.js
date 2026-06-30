@@ -41,10 +41,14 @@
 
   /* ===== Init ===== */
 
-  document.addEventListener('DOMContentLoaded', function () {
+  function guideInit() {
     panel = document.getElementById('guide-panel');
     fab   = document.getElementById('guide-fab');
     if (!panel) return;
+
+    // Permettre au guide de s'afficher dans les popups ianseo (PopEdit.php…), qui n'incluent pas
+    // get_which_menu() — donc pas notre injection serveur. On intercepte window.open côté parent.
+    setupPopupInjection();
 
     document.getElementById('guide-panel-min').addEventListener('click', hidePanel);
     document.getElementById('guide-panel-max').addEventListener('click', togglePanelWide);
@@ -52,6 +56,8 @@
     document.getElementById('guide-panel-toggle-side').addEventListener('click', togglePanelSide);
     document.getElementById('guide-btn-prev').addEventListener('click', prevStep);
     document.getElementById('guide-btn-next').addEventListener('click', nextStep);
+    document.getElementById('guide-btn-restart').addEventListener('click', restartTriggers);
+    document.getElementById('guide-btn-back').addEventListener('click', backOneTrigger);
     document.getElementById('guide-btn-validate').addEventListener('click', toggleValidate);
     fab.addEventListener('click', onFabClick);
 
@@ -89,7 +95,11 @@
     } else {
       showFabIfNeeded();
     }
-  });
+  }
+
+  // Exécute l'init même si le DOM est déjà prêt (cas des popups où guide.js est injecté après chargement).
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', guideInit);
+  else guideInit();
 
   /* ===== API publique ===== */
 
@@ -219,6 +229,67 @@
     saveState(); scheduleSync(); renderStep();
   }
 
+  // Index du trigger actionnable précédent (saute les sous-étapes non actionnables).
+  function prevActionableIdx(step, fromIdx) {
+    var triggers = step.triggers || [];
+    var i = fromIdx - 1;
+    while (i >= 0) {
+      var t = triggers[i];
+      var isAction = !t.kind || t.kind === 'action';
+      if (isAction ? (t.trigger || t.required) : t.required) return i;
+      i--;
+    }
+    return -1;
+  }
+
+  // 🔄 Recommencer : remet les indications de l'étape à zéro (réinitialisation volontaire).
+  function restartTriggers() {
+    if (!formation || !state) return;
+    var step = formation.steps[state.step_index];
+    if (!(step.triggers || []).length) return;
+    _dbg('restartTriggers (manuel) → trigger_index=0');
+    clearHighlight(); clearTrigger();
+    _triggerIdx = 0;
+    _doneTriggerMask = {};
+    if (state.validated) delete state.validated[step.id];
+    state.trigger_index = 0;
+    saveState(); scheduleSync();
+    renderValidateBtn(); updateNextBtn();
+    startTriggerSequence(step);
+  }
+
+  // ↶ Revenir d'une indication : recule au trigger actionnable précédent (manuel, pas de cascade).
+  function backOneTrigger() {
+    if (!formation || !state) return;
+    var step = formation.steps[state.step_index];
+    var i = prevActionableIdx(step, _triggerIdx);
+    if (i < 0) return;
+    _dbg('backOneTrigger (manuel) ' + _triggerIdx + ' → ' + i);
+    clearHighlight(); clearTrigger();
+    for (var k = i; k < (step.triggers || []).length; k++) delete _doneTriggerMask[k];
+    _triggerIdx = i;
+    if (state.validated) delete state.validated[step.id];
+    state.trigger_index = i;
+    saveState(); scheduleSync();
+    renderValidateBtn(); updateNextBtn();
+    startTriggerSequence(step);
+  }
+
+  // Active/désactive (et masque sans trigger) les boutons Recommencer / Revenir.
+  function updateTriggerNavBtns() {
+    var back    = document.getElementById('guide-btn-back');
+    var restart = document.getElementById('guide-btn-restart');
+    if (!back || !restart || !formation || !state) return;
+    var step      = formation.steps[state.step_index];
+    var nTrig     = (step.triggers || []).length;
+    var validated = !!(state.validated && state.validated[step.id]);
+    var show      = nTrig > 0;
+    back.style.display    = show ? '' : 'none';
+    restart.style.display = show ? '' : 'none';
+    back.disabled    = prevActionableIdx(step, _triggerIdx) < 0;
+    restart.disabled = (_triggerIdx === 0 && !validated);
+  }
+
   function completeFormation() {
     if (!state) return;
     var done = loadCompleted();
@@ -315,6 +386,7 @@
 
   function attachCurrentTrigger(step) {
     clearTrigger(); clearConditionWait();
+    updateTriggerNavBtns();
     var triggers = step.triggers || [];
 
     if (_triggerIdx >= triggers.length) {
@@ -526,6 +598,7 @@
     updatePageInfo(step);
     renderValidateBtn();
     updateNextBtn();
+    updateTriggerNavBtns();
     if (state && state.validated && state.validated[step.id]) {
       var requiredEtat = (step.triggers || []).filter(function (t) { return t.kind === 'etat' && t.required; });
       if (requiredEtat.length > 0) {
@@ -941,6 +1014,87 @@
       .replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  /* ===== Injection du guide dans les popups ianseo (PopEdit.php…) =====
+     Les popups utilisent head-popup.php qui n'appelle pas get_which_menu() → notre panneau n'y est
+     pas injecté côté serveur. On enveloppe window.open (parent) pour injecter, dans la popup (même
+     origine), le CSS + le balisage du panneau/recorder + une instance de guide.js qui s'auto-initialise. */
+
+  function setupPopupInjection() {
+    if (window._guidePopupWrapped) return;
+    window._guidePopupWrapped = true;
+    var orig = window.open;
+    if (typeof orig !== 'function') return;
+    window.open = function () {
+      var w = orig.apply(window, arguments);
+      try { if (w) watchPopup(w); } catch (e) {}
+      return w;
+    };
+  }
+
+  function shouldGuidePopup() {
+    if (recActive()) return true;
+    var s = loadState();
+    return !!(s && s.active);
+  }
+
+  function watchPopup(win) {
+    var ticks = 0;
+    var iv = setInterval(function () {
+      if (++ticks > 2400) { clearInterval(iv); return; } // garde-fou (~30 min)
+      var doc;
+      try {
+        if (win.closed) { clearInterval(iv); return; }
+        doc = win.document;                                   // lève si cross-origin
+        if (!doc || doc.readyState !== 'complete' || !doc.body) return;
+      } catch (e) { clearInterval(iv); return; }              // autre origine → on abandonne
+      if (!shouldGuidePopup()) return;                         // rien à afficher
+      if (!doc.getElementById('guide-panel')) injectGuide(win);// (ré)injecte après chargement/rechargement
+    }, 750);
+  }
+
+  // Réutilise l'URL (versionnée ?v=mtime) d'un asset déjà chargé dans la fenêtre parente.
+  function guideAssetUrl(rx, fallback) {
+    var tags = document.querySelectorAll('link[href],script[src]');
+    for (var i = 0; i < tags.length; i++) {
+      var u = tags[i].href || tags[i].src;
+      if (u && rx.test(u)) return u;
+    }
+    return fallback;
+  }
+
+  function injectGuide(win) {
+    try {
+      var doc = win.document;
+      if (!doc || doc.getElementById('guide-panel')) return;
+      var root = apiRoot();
+      var head = doc.head || doc.documentElement;
+
+      var sVar = doc.createElement('script');
+      sVar.textContent = 'var WebDir=' + JSON.stringify(root) + ';';
+      head.appendChild(sVar);
+
+      var link = doc.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = guideAssetUrl(/Modules\/Custom\/GUIDE\/assets\/guide\.css/, root + 'Modules/Custom/GUIDE/assets/guide.css');
+      head.appendChild(link);
+
+      // Copie du panneau + FAB + recorder depuis la fenêtre parente (sans état d'affichage hérité)
+      ['guide-panel', 'guide-fab', 'guide-rec'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var imported = doc.importNode(el, true);
+        imported.style.display = 'none';
+        if (imported.classList) imported.classList.remove('guide-panel-wide', 'guide-panel-left', 'guide-fab-left');
+        doc.body.appendChild(imported);
+      });
+
+      // Instance de guide.js dans la popup : s'auto-initialise (DOM déjà prêt)
+      var sc = doc.createElement('script');
+      sc.src = guideAssetUrl(/Modules\/Custom\/GUIDE\/assets\/guide\.js/, root + 'Modules/Custom/GUIDE/assets/guide.js');
+      doc.body.appendChild(sc);
+    } catch (e) { /* popup fermée / cross-origin */ }
+  }
+
   /* ===== Enregistreur de triggers ===== */
 
   var LS_REC = 'guide_rec';
@@ -951,6 +1105,9 @@
   function recSave() { localStorage.setItem(LS_REC, JSON.stringify(_rec)); }
   function recClearStorage() { localStorage.removeItem(LS_REC); }
   function recActive() { var r = recLoad(); return !!(r && r.active); }
+  // Recharge _rec depuis localStorage avant toute modif : parent et popup partagent le même
+  // enregistrement, on évite ainsi qu'une fenêtre écrase les triggers ajoutés par l'autre.
+  function recResync() { var fresh = recLoad(); if (fresh && fresh.active) _rec = fresh; }
 
   function recInit() {
     _rec = recLoad();
@@ -987,6 +1144,7 @@
 
       var tag  = target.tagName.toLowerCase();
       var type = (tag === 'input' || tag === 'select' || tag === 'textarea') ? 'change' : 'click';
+      recResync();
       _rec.triggers.push({ kind: 'action', trigger: type, selector: sel, page: currentPagePath(), required: true });
       recSave();
       recRenderList();
@@ -1009,10 +1167,12 @@
     if (box) box.classList.toggle('guide-rec-paused', !!_rec.paused);
   }
   function recAddPage() {
+    recResync();
     _rec.triggers.push({ kind: 'etat', condition: '__page', page: currentPagePath(), required: true });
     recSave(); recRenderList();
   }
   function recUndo() {
+    recResync();
     if (!_rec.triggers.length) return;
     _rec.triggers.pop();
     recSave(); recRenderList();
