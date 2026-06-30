@@ -236,7 +236,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 /* ===== Triggers ===== */
 .tr-empty { font-size: 12px; color: #bbb; font-style: italic; padding: 6px 0; }
-.tr-row { display: block; padding: 7px 8px; margin-bottom: 5px; background: #f7f9ff; border: 1px solid #dde2f5; border-radius: 7px; }
+.tr-row { display: block; padding: 7px 8px; margin-bottom: 5px; background: #d8e9ff; border: 1px solid #082c7c; border-radius: 7px; }
 .tr-row.tr-dragging { opacity: .35; }
 .tr-row.tr-over     { border-color: #0254a8; background: #eef4ff; }
 .tr-main { display: flex; gap: 6px; align-items: center; }
@@ -251,8 +251,11 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .tr-page { padding: 4px 6px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 11px; flex: 0 0 130px; box-sizing: border-box; }
 .tr-type { padding: 4px 5px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex-shrink: 0; }
 .tr-sel  { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1 1 0; min-width: 0; box-sizing: border-box; }
-.tr-cond { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1; min-width: 0; background: #f8f4ff; color: #3a2660; }
+.tr-cond { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1; min-width: 0; background: #d8d4ff; color: #3a2660; }
 .tr-cond-page { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1; min-width: 0; box-sizing: border-box; background: #f8f4ff; color: #3a2660; }
+.tr-gate { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
+.tr-gate-label { color: #b0a0c8; font-size: 13px; flex-shrink: 0; }
+.tr-gate-cond { flex: 1; min-width: 0; padding: 3px 6px; border: 1px dashed #cbb8e0; border-radius: 4px; font-size: 11px; background: #fbf9ff; color: #6a5a8a; }
 .tr-req  { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #555; white-space: nowrap; cursor: pointer; flex-shrink: 0; }
 .tr-req input { margin: 0; }
 .tr-del  { padding: 3px 7px !important; font-size: 11px !important; flex-shrink: 0; }
@@ -464,6 +467,12 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
                 style="margin-top:8px;font-size:12px;padding:5px 14px">
           + Ajouter un trigger
         </button>
+        <button type="button" class="ge-btn ge-btn-ghost"
+                onclick="startRecording()"
+                style="margin-top:8px;margin-left:6px;font-size:12px;padding:5px 14px;border-color:#e0b4ae;color:#c0392b"
+                title="Naviguer dans ianseo et cliquer sur les éléments pour enregistrer des triggers automatiquement">
+          🔴 Enregistrer les triggers
+        </button>
       </div>
     </div>
 
@@ -515,6 +524,7 @@ document.addEventListener('DOMContentLoaded', function () {
   _fd = <?= json_encode($formation, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?>;
   clampStep();
   syncToDOM();
+  checkRecResult();
 });
 
 /* Entrée dans un encadré conseil → sort en paragraphe normal.
@@ -596,6 +606,14 @@ function captureStep() {
       tr = { kind: 'action', trigger: type === 'null' ? null : type, selector: sel || null, required: req };
       if (page) tr.page = page;
       if (hint) tr.hint = hint;
+    }
+    // Condition d'activation (branche conditionnelle) — commune action/état
+    var gate = row.querySelector('.tr-gate-cond').value;
+    if (gate) {
+      var sep = gate.indexOf(':');
+      var mode = gate.slice(0, sep), cid = gate.slice(sep + 1);
+      if (mode === 'met') tr.when = cid;
+      else if (mode === 'not') tr.when_not = cid;
     }
     s.triggers.push(tr);
   });
@@ -723,6 +741,16 @@ function buildConditionOptions() {
   return opts;
 }
 
+/* Condition d'activation (branche) : le trigger n'est pris en compte que si elle est vraie/fausse. */
+function buildGateOptions() {
+  var opts = '<option value="">⎇ toujours actif</option>';
+  GUIDE_CONDITIONS.forEach(function (c) {
+    opts += '<option value="met:' + c.id + '">si : ' + c.label + '</option>';
+    opts += '<option value="not:' + c.id + '">si PAS : ' + c.label + '</option>';
+  });
+  return opts;
+}
+
 function setTriggerKind(row, kind) {
   var isAction = kind !== 'etat';
   row.querySelector('.tr-body-action').style.display = isAction ? 'flex' : 'none';
@@ -777,6 +805,10 @@ function addTrigger(t) {
       '<select class="tr-cond">' + buildConditionOptions() + '</select>' +
       '<input type="text" class="tr-cond-page" placeholder="/page à vérifier ou *" style="display:none" ' +
              'title="Page que l\'utilisateur doit avoir active (peut différer de la page de l\'étape)">' +
+    '</div>' +
+    '<div class="tr-gate" title="Branche conditionnelle : ce trigger n\'est pris en compte que si la condition est remplie">' +
+      '<span class="tr-gate-label">⎇</span>' +
+      '<select class="tr-gate-cond">' + buildGateOptions() + '</select>' +
     '</div>';
 
   // Valeurs initiales
@@ -786,6 +818,7 @@ function addTrigger(t) {
   row.querySelector('.tr-sel').value         = t.selector  || '';
   row.querySelector('.tr-cond').value        = t.condition || '';
   row.querySelector('.tr-cond-page').value   = (t.condition === '__page') ? (t.page || '') : '';
+  row.querySelector('.tr-gate-cond').value   = t.when ? ('met:' + t.when) : (t.when_not ? ('not:' + t.when_not) : '');
   row.querySelector('.tr-req input').checked = !!t.required;
   row.querySelector('.tr-hint').value        = t.hint      || '';
   setTriggerKind(row, kind);
@@ -801,6 +834,7 @@ function addTrigger(t) {
     setEtatCondUI(row); captureAndSync();
   });
   row.querySelector('.tr-cond-page').addEventListener('input', captureAndSync);
+  row.querySelector('.tr-gate-cond').addEventListener('change', captureAndSync);
   row.querySelector('.tr-req input').addEventListener('change', captureAndSync);
   row.querySelector('.tr-hint').addEventListener('input',  captureAndSync);
 
@@ -955,6 +989,63 @@ function renderStepImagePreview() {
   setImageBox('pv-step-image', img);
   setImageBox('step-img-thumb', img);
   document.getElementById('step-img-remove').style.display = (img ? '' : 'none');
+}
+
+/* ===== Enregistrement de triggers ===== */
+
+function startRecording() {
+  captureAndSync();
+  if (!_fd || !_fd.id) { alert('La formation doit avoir un identifiant.'); return; }
+  var step = _fd.steps[_sidx];
+  if (!step) return;
+  if (!confirm('Démarrer l\'enregistrement des triggers ?\n\n'
+    + 'La formation va d\'abord être enregistrée, puis vous serez redirigé dans ianseo. '
+    + 'Cliquez sur les éléments souhaités : ils seront ajoutés à cette étape. '
+    + 'Cliquez sur « Terminer » dans le panneau rouge pour revenir ici.')) return;
+
+  var json = document.getElementById('guide-json-editor').value;
+  var fd = new FormData();
+  fd.append('json_raw', json);
+  fd.append('is_ajax', '1');
+  fetch('', { method: 'POST', body: fd })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.ok) { alert('Échec de la sauvegarde : ' + (data.error || 'inconnue')); return; }
+      var rec = {
+        active: true, paused: false,
+        formation_id: _fd.id, step_id: step.id,
+        // Forcer l'id dans l'URL de retour : une nouvelle formation sans ?id se recréerait à vide
+        return_url: window.location.pathname + '?id=' + encodeURIComponent(_fd.id),
+        triggers: []
+      };
+      localStorage.setItem('guide_rec', JSON.stringify(rec));
+      var root = (typeof WebDir !== 'undefined') ? WebDir : '/';
+      var page = (step.page && step.page !== '*') ? step.page : '';
+      window.location.href = page ? (root.replace(/\/$/, '') + page) : root;
+    })
+    .catch(function () { alert('Erreur réseau lors de la sauvegarde.'); });
+}
+
+function checkRecResult() {
+  var raw = localStorage.getItem('guide_rec_result');
+  if (!raw) return;
+  localStorage.removeItem('guide_rec_result');
+  var res; try { res = JSON.parse(raw); } catch (e) { return; }
+  if (!res || !res.triggers || !res.triggers.length) return;
+  if (_fd && res.formation_id && res.formation_id !== _fd.id) return;
+
+  var idx = -1;
+  if (res.step_id) {
+    idx = _fd.steps.findIndex(function (s) { return s.id === res.step_id; });
+  }
+  if (idx < 0) idx = _sidx;
+  _sidx = idx;
+  var step = _fd.steps[idx];
+  if (!step.triggers) step.triggers = [];
+  res.triggers.forEach(function (t) { step.triggers.push(t); });
+  syncToDOM();
+  alert(res.triggers.length + ' trigger(s) enregistré(s) ont été ajoutés à l\'étape « '
+    + (step.title || ('étape ' + (idx + 1))) + ' ».\nVérifiez-les puis enregistrez la formation.');
 }
 
 /* ===== Export / Import ===== */

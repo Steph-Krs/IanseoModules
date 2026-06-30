@@ -7,9 +7,38 @@
         {
             "id": "bienvenue",
             "title": "Bienvenue dans le Guide FFTA !",
-            "content": "<p>Ce guide interactif vous accompagne pas à pas pour créer et gérer votre première compétition avec ianseo.<\/p><p><b>Au programme :<\/b><\/p><ul><li>Créer et configurer la compétition<\/li><li>Importer les licenciés et inscrire les participants<\/li><li>Gérer les scores le jour J<\/li><li>Exporter les résultats vers l'extranet FFTA<\/li><\/ul><p>Cliquez sur <b>Suivant<\/b> pour commencer.<\/p>",
+            "content": "<p>Ce guide interactif vous accompagne pas à pas pour créer et gérer votre première compétition avec ianseo.<\/p><p><b>Au programme :<\/b><\/p><ul><li>Créer et configurer la compétition<\/li><li>Importer les licenciés et inscrire les participants<\/li><li>Gérer les scores le jour J<\/li><li>Exporter les résultats vers l'extranet FFTA<\/li><\/ul><p>Si une compétition est déjà ouverte, fermez-la d'abord via&nbsp;<b>Compétition &gt; Fermer la compétition<\/b>.<\/p><p>Cliquez sur <b>Suivant<\/b> pour commencer.<\/p>",
             "page": "*",
-            "triggers": [],
+            "triggers": [
+                {
+                    "kind": "action",
+                    "trigger": "mouseover",
+                    "selector": "#navigation > ul > li > a",
+                    "required": true,
+                    "page": "*",
+                    "when": "tournament_open"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": "#navigation > ul > li > ul > li:nth-of-type(2) > a",
+                    "required": true,
+                    "page": "*",
+                    "when": "tournament_open"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "no_tournament",
+                    "required": true
+                },
+                {
+                    "kind": "action",
+                    "trigger": "change",
+                    "selector": "#d_q_QuSession_",
+                    "required": false,
+                    "page": "\/Partecipants\/PopEdit.php?id=0"
+                }
+            ],
             "optional": false,
             "strict_click": false
         },
@@ -23,20 +52,20 @@
                     "kind": "action",
                     "trigger": "mouseover",
                     "selector": "#navigation > ul > li:nth-child(3) > a",
-                    "required": true,
+                    "required": false,
                     "page": "*"
                 },
                 {
                     "kind": "action",
                     "trigger": "click",
                     "selector": "#navigation > ul > li:nth-child(3) > ul > li:nth-child(1) > a",
-                    "required": true,
+                    "required": false,
                     "page": "*"
                 },
                 {
                     "kind": "etat",
                     "condition": "__page",
-                    "required": true,
+                    "required": false,
                     "page": "\/Update\/"
                 },
                 {
@@ -59,6 +88,13 @@
                     "selector": "#UpdateTable > div:nth-child(2) > input[type=button]",
                     "required": true,
                     "page": "\/Update\/?acceptLicense"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": "body > div.jconfirm.jconfirm-light.jconfirm-open > div.jconfirm-scrollpane > div > div > div > div > div > div > div > div.jconfirm-buttons > button",
+                    "required": true,
+                    "page": "\/Update\/?acceptLicense"
                 }
             ],
             "optional": false,
@@ -68,18 +104,27 @@
         {
             "id": "nouvelle-competition",
             "title": "Créer une nouvelle compétition",
-            "content": "<p>Retournez sur la page d'accueil et cliquez sur le bouton <b>Nouvelle Compétition<\/b>.<\/p><p>Si une compétition est déjà ouverte, fermez-la d'abord via <b>Compétition &gt; Fermer la compétition<\/b>.<\/p><p class=\"guide-tip\">💡 Vous pouvez avoir plusieurs compétitions sauvegardées, mais une seule est active à la fois.<\/p>",
-            "page": "\/",
+            "content": "<p>Retournez sur la page d'accueil (<b>Compétition &gt; Ouvrir<\/b>) et cliquez sur le bouton <b>Nouvelle Compétition<\/b>.<\/p><p class=\"guide-tip\">💡 Vous pouvez avoir plusieurs compétitions sauvegardées, mais une seule est active à la fois.<\/p>",
+            "page": "*",
             "triggers": [
                 {
-                    "kind": "etat",
-                    "condition": "no_tournament",
-                    "required": true
+                    "kind": "action",
+                    "trigger": "mouseover",
+                    "selector": "#navigation > ul > li:nth-child(1) > a",
+                    "required": true,
+                    "page": "\/Update\/"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": "#navigation > ul > li:nth-child(1) > ul > li:nth-child(2) > a",
+                    "required": true,
+                    "page": "\/Update\/"
                 },
                 {
                     "kind": "etat",
                     "condition": "__page",
-                    "required": false,
+                    "required": true,
                     "page": "\/"
                 },
                 {
@@ -90,10 +135,10 @@
                     "page": "\/"
                 },
                 {
-                    "kind": "action",
-                    "trigger": "click",
-                    "selector": null,
-                    "required": false
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "\/Tournament\/index.php?New="
                 }
             ],
             "optional": false,
@@ -209,21 +254,21 @@
                     "trigger": "mouseover",
                     "selector": "#navigation > ul > li:nth-child(1) > a",
                     "required": true,
-                    "page": "\/Tournament\/index.php"
+                    "page": "*"
                 },
                 {
                     "kind": "action",
                     "trigger": "mouseover",
                     "selector": "#navigation > ul > li:nth-child(1) > ul > li:nth-child(7) > a",
                     "required": true,
-                    "page": "\/Tournament\/index.php"
+                    "page": "*"
                 },
                 {
                     "kind": "action",
-                    "trigger": "mouseover",
+                    "trigger": "click",
                     "selector": "#navigation > ul > li:nth-child(1) > ul > li:nth-child(7) > ul > li:nth-child(3) > a",
                     "required": true,
-                    "page": "\/Tournament\/index.php"
+                    "page": "*"
                 },
                 {
                     "kind": "action",
@@ -235,24 +280,25 @@
                     "kind": "action",
                     "trigger": "click",
                     "selector": "#Content > table:nth-child(1) > tbody > tr:nth-child(3) > td.w-10.Center > input:nth-child(1)",
-                    "required": false
+                    "required": true
                 },
                 {
                     "kind": "action",
                     "trigger": "mouseover",
                     "selector": "#t4s_1",
-                    "required": false,
+                    "required": true,
                     "hint": "A minima les cibles réellement utilisées"
                 },
                 {
                     "kind": "action",
                     "trigger": "mouseover",
                     "selector": "#a4t_1",
-                    "required": false,
+                    "required": true,
                     "hint": "4 pour de l'AB-CD"
                 }
             ],
-            "optional": false
+            "optional": false,
+            "strict_click": false
         },
         {
             "id": "synchro-licencies",
@@ -262,27 +308,86 @@
             "triggers": [
                 {
                     "kind": "action",
+                    "trigger": "mouseover",
+                    "selector": "#navigation > ul > li:nth-of-type(2) > a",
+                    "required": true,
+                    "page": "*"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "mouseover",
+                    "selector": "li:nth-of-type(2) > ul > li:nth-of-type(8) > a.submenu",
+                    "required": true,
+                    "page": "*"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": "li:nth-of-type(2) > ul > li:nth-of-type(8) > ul > li > a",
+                    "required": true,
+                    "page": "*"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "\/Partecipants\/LookupTableLoad.php"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": "a.Link",
+                    "required": true,
+                    "page": "\/Partecipants\/LookupTableLoad.php"
+                },
+                {
+                    "kind": "action",
                     "trigger": "change",
-                    "selector": "input[name=\"UploadedFile\"]",
-                    "required": true
+                    "selector": "tr:nth-of-type(5) > td.Center > input",
+                    "required": true,
+                    "page": "\/Partecipants\/LookupTableLoad.php"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": "tr:nth-of-type(6) > td.Center > input",
+                    "required": true,
+                    "page": "\/Partecipants\/LookupTableLoad.php"
                 }
             ],
-            "optional": false
+            "optional": false,
+            "strict_click": true
         },
         {
             "id": "ajout-participants",
             "title": "Ajouter des participants",
-            "content": "<p>Allez dans <b>Participants &gt; Liste (Simple)<\/b>.<\/p><p>Pour chaque archer, cliquez sur <b>Ajouter<\/b> et renseignez :<\/p><ul><li><b>N° de licence<\/b> : la fiche est remplie automatiquement depuis le fichier synchronisé<\/li><li><b>Départ<\/b> : A, B, C...<\/li><li><b>Division<\/b> : CL (classique), CO (compound), BB (arc nu)...<\/li><li><b>Classement<\/b> : Éliminatoire, Régional, National...<\/li><\/ul><p class=\"guide-tip\">💡 Para-archers tirant avec des valides : utilisez la même division (CL ou CO), pas de division para spécifique.<\/p><p class=\"guide-tip\">🌍 Archer étranger sans licence FFTA : saisissez <code>999999<\/code> comme numéro de licence, puis complétez manuellement nom, prénom et club.<\/p><p>Quand tous les archers sont saisis, cochez <b>Marquer comme fait<\/b> ci-dessous.<\/p>",
+            "content": "<p>Allez dans <b>Participants &gt; Liste (Simple)<\/b>.<\/p><p>Pour chaque archer, cliquez sur <b>Ajouter<\/b> et renseignez :<\/p><ul><li><b>N° de licence<\/b> : la fiche est remplie automatiquement depuis le fichier synchronisé<\/li><li><b>Départ<\/b> : 1, 2, 3...<\/li><li><b>Division<\/b> : CL (classique), CO (compound), BB (arc nu)...<\/li><li><b>Classement<\/b> : En cas de surclassement c'est ici que vous pouvez affecter une autre catégorie...<\/li><\/ul><p class=\"guide-tip\">💡 Para-archers tirant avec des valides : utilisez la même division (CL ou CO), pas de division para spécifique.<\/p><p class=\"guide-tip\">🌍 Archer étranger sans licence FFTA : saisissez <code>999999<\/code> comme numéro de licence, puis complétez manuellement nom, prénom et club.<\/p><p>Quand tous les archers sont saisis, cochez <b>Marquer comme fait<\/b> ci-dessous.<\/p>",
             "page": "\/Partecipants\/index.php",
             "triggers": [
                 {
                     "kind": "action",
-                    "trigger": null,
-                    "selector": null,
-                    "required": true
+                    "trigger": "mouseover",
+                    "selector": "#navigation > ul > li:nth-of-type(2) > a",
+                    "required": true,
+                    "page": "\/Partecipants\/index.php"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": "#navigation > ul > li:nth-of-type(2) > ul > li > a",
+                    "required": true,
+                    "page": "\/Partecipants\/index.php"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "click",
+                    "selector": "a.Link",
+                    "required": true,
+                    "page": "\/Partecipants\/index.php"
                 }
             ],
-            "optional": false
+            "optional": true,
+            "strict_click": false
         },
         {
             "id": "autres-tirs",
@@ -290,7 +395,8 @@
             "content": "<p>Un archer qui tire dans plusieurs catégories (ex : CL et CO) doit être inscrit <b>deux fois<\/b> dans la liste.<\/p><p>Pour le second enregistrement :<\/p><ul><li>Même numéro de licence<\/li><li>Division différente<\/li><li>Dans le champ <b>Finale Ind.<\/b>, sélectionnez <b>Non<\/b><\/li><\/ul><p class=\"guide-tip\">⚠️ Sans ce réglage (\"Finale Ind. = Non\"), l'archer apparaîtrait deux fois dans le tableau des finales, ce qui est interdit.<\/p>",
             "page": "\/Partecipants\/index.php",
             "triggers": [],
-            "optional": false
+            "optional": false,
+            "strict_click": false
         },
         {
             "id": "affectation-cibles",
@@ -305,7 +411,8 @@
                     "required": true
                 }
             ],
-            "optional": true
+            "optional": true,
+            "strict_click": false
         },
         {
             "id": "sauvegarde-avant-j",

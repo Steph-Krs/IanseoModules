@@ -42,7 +42,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     <li><a href="#images">5. Les images</a></li>
     <li><a href="#triggers">6. Les triggers (déclencheurs)</a></li>
     <li><a href="#selecteurs">7. Trouver un sélecteur CSS</a></li>
-    <li><a href="#options">8. Options d'étape</a></li>
+    <li><a href="#enregistrer">8. Enregistrer les triggers automatiquement</a></li>
+    <li><a href="#options">9. Options d'étape</a></li>
   </ul>
 </div>
 
@@ -149,6 +150,25 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   Un trigger en <code>*</code> reste actif quelle que soit la page affichée.
 </div>
 
+<h3>Branches conditionnelles (⎇ Actif si…)</h3>
+<p>
+  Chaque trigger (action ou état) a un sélecteur <b>⎇</b> « condition d'activation ». Par défaut
+  le trigger est <b>toujours actif</b>. On peut le rendre <b>conditionnel</b> :
+</p>
+<ul>
+  <li><b>si</b> une condition est remplie (ex. « si : Compétition ouverte ») ;</li>
+  <li><b>si PAS</b> une condition (ex. « si PAS : Compétition ouverte »).</li>
+</ul>
+<p>
+  Un trigger dont la condition n'est pas satisfaite est <b>ignoré</b> (la séquence passe au suivant).
+  Cela permet des <b>parcours différents</b> selon l'état de ianseo, puis de revenir à une suite commune :
+</p>
+<div class="help-tip">
+  Exemple : « si PAS : Compétition ouverte » → trigger qui guide la création d'une compétition ;
+  les triggers suivants <b>sans condition</b> sont communs aux deux cas. Astuce : pour un « sinon »,
+  mettez deux triggers, l'un en <i>si X</i>, l'autre en <i>si PAS X</i>.
+</div>
+
 <h2 id="selecteurs">7. Trouver un sélecteur CSS</h2>
 <p>Pour cibler un élément (bouton, champ, lien) :</p>
 <ul>
@@ -161,7 +181,26 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   Astuce : dans l'inspecteur, clic droit sur la ligne de l'élément → <b>Copier</b> → <b>Copier le sélecteur</b>.
 </div>
 
-<h2 id="options">8. Options d'étape</h2>
+<h2 id="enregistrer">8. Enregistrer les triggers automatiquement</h2>
+<p>
+  Plutôt que de saisir les sélecteurs à la main, le bouton <b>🔴 Enregistrer les triggers</b>
+  (dans les options de l'étape) permet de les capturer en cliquant directement dans ianseo :
+</p>
+<ul>
+  <li>La formation est <b>d'abord enregistrée</b>, puis vous êtes redirigé vers la page de l'étape (ou l'accueil).</li>
+  <li>Un <b>panneau rouge</b> apparaît. <b>Chaque clic</b> que vous faites dans ianseo est enregistré comme trigger
+      (le clic fonctionne normalement — vous pouvez naviguer entre les pages, l'enregistrement continue).</li>
+  <li><b>📍 Page active</b> : ajoute un trigger d'état qui vérifie la présence sur la page courante.</li>
+  <li><b>⏸ Pause</b> : suspend la capture (pour cliquer sans enregistrer). <b>↶ Annuler</b> : retire le dernier trigger.</li>
+  <li><b>✓ Terminer</b> : revient à l'éditeur et ajoute les triggers capturés à l'étape. <b>✕</b> : abandonne.</li>
+</ul>
+<div class="help-tip">
+  Après l'enregistrement, <b>relisez les triggers</b> ajoutés (type, info-bulle, obligatoire…), ajustez si besoin,
+  puis <b>enregistrez la formation</b>. Les sélecteurs générés sont robustes mais pas infaillibles sur les
+  éléments très dynamiques.
+</div>
+
+<h2 id="options">9. Options d'étape</h2>
 <table>
   <tr><th>Option</th><th>Effet</th></tr>
   <tr><td><b>Facultatif</b></td><td>Affiche un bouton « Marquer comme fait » : l'utilisateur peut valider l'étape lui-même sans réaliser l'action.</td></tr>

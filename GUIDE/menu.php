@@ -57,6 +57,22 @@ $_gvj  = filemtime($_gdir . 'guide.js');
 
 <button id="guide-fab" style="display:none">🎯 Guide FFTA</button>
 
+<div id="guide-rec" style="display:none">
+  <div id="guide-rec-header">
+    <span class="guide-rec-dot"></span>
+    <span id="guide-rec-title">Enregistrement</span>
+    <button id="guide-rec-close" title="Abandonner l'enregistrement">✕</button>
+  </div>
+  <div id="guide-rec-hint">Cliquez sur les éléments à enregistrer comme triggers. La navigation est conservée.</div>
+  <div id="guide-rec-list"></div>
+  <div id="guide-rec-actions">
+    <button id="guide-rec-pause" class="guide-rec-btn">⏸ Pause</button>
+    <button id="guide-rec-page"  class="guide-rec-btn" title="Enregistrer la page courante comme condition d'état">📍 Page active</button>
+    <button id="guide-rec-undo"  class="guide-rec-btn" title="Annuler le dernier trigger enregistré">↶ Annuler</button>
+    <button id="guide-rec-done"  class="guide-rec-btn guide-rec-btn-done">✓ Terminer</button>
+  </div>
+</div>
+
 <script src="<?= $_gr ?>Modules/Custom/GUIDE/assets/guide.js?v=<?= $_gvj ?>"></script>
 <?php
 unset($_gr, $_gdir, $_gvc, $_gvj);
