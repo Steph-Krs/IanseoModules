@@ -45,20 +45,20 @@
                     "kind": "action",
                     "trigger": "mouseover",
                     "selector": "#navigation > ul > li:nth-child(3) > a",
-                    "required": false,
+                    "required": true,
                     "page": "*"
                 },
                 {
                     "kind": "action",
                     "trigger": "click",
                     "selector": "#navigation > ul > li:nth-child(3) > ul > li:nth-child(1) > a",
-                    "required": false,
+                    "required": true,
                     "page": "*"
                 },
                 {
                     "kind": "etat",
                     "condition": "__page",
-                    "required": false,
+                    "required": true,
                     "page": "\/Update\/"
                 },
                 {
@@ -79,13 +79,6 @@
                     "kind": "action",
                     "trigger": "click",
                     "selector": "#UpdateTable > div:nth-child(2) > input[type=button]",
-                    "required": true,
-                    "page": "\/Update\/?acceptLicense"
-                },
-                {
-                    "kind": "action",
-                    "trigger": "click",
-                    "selector": "body > div.jconfirm.jconfirm-light.jconfirm-open > div.jconfirm-scrollpane > div > div > div > div > div > div > div > div.jconfirm-buttons > button",
                     "required": true,
                     "page": "\/Update\/?acceptLicense"
                 }
