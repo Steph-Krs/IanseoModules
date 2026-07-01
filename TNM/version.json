@@ -1,7 +1,7 @@
 {
-  "version": "1.0.13",
+  "version": "1.0.14",
   "date": "2026-07-01",
-  "notes": "Fix collation MySQL 8.0 (Error 1267) sur les JOINs TNM ↔ ianseo",
+  "notes": "Impression « Affectation des cibles » (PdfTargetAssign.php) depuis la page index",
   "files": [
     "admin/update.php",
     "bso-action.php",
@@ -13,6 +13,7 @@
     "menu.php",
     "PdfBsoPlanning.php",
     "PdfFop.php",
+    "PdfTargetAssign.php",
     "PdfPools.php",
     "PdfRanking.php",
     "PdfSchedule.php",

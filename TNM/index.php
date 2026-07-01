@@ -42,11 +42,74 @@ $grpByEvLev = [];
 while ($r = safe_fetch($rsGrp)) {
     $grpByEvLev[$r->RrGrEvent.':'.$r->RrGrLevel][] = intval($r->RrGrGroup);
 }
+
+// Numéros de matchs (rounds) par épreuve:niveau : { "BB:1": [1,2,3] }
+$rsMat = safe_r_sql(
+    "SELECT DISTINCT RrMatchEvent, RrMatchLevel, RrMatchRound FROM RoundRobinMatches
+     WHERE RrMatchTournament=$tourId ORDER BY RrMatchEvent, RrMatchLevel, RrMatchRound"
+);
+$matchByEvLev = [];
+while ($r = safe_fetch($rsMat)) {
+    $matchByEvLev[$r->RrMatchEvent.':'.$r->RrMatchLevel][] = intval($r->RrMatchRound);
+}
 ?>
 <script>
 var levByEvent = <?= json_encode($levByEvent, JSON_UNESCAPED_UNICODE) ?>;
 var grpByEvLev = <?= json_encode($grpByEvLev, JSON_UNESCAPED_UNICODE) ?>;
 var levNameByEvLev = <?= json_encode($levNameByEvLev, JSON_UNESCAPED_UNICODE) ?>;
+var matchByEvLev = <?= json_encode($matchByEvLev, JSON_UNESCAPED_UNICODE) ?>;
+
+// ── Affectation des cibles : sélecteurs cascadants Épreuve > Tour > Match ───────
+function taSel(id) {
+    return Array.from(document.getElementById(id).selectedOptions).map(o => o.value);
+}
+function taFill(id, allLabel, nums, labelFn) {
+    var sel = document.getElementById(id);
+    sel.innerHTML = '<option value="." selected>' + allLabel + '</option>';
+    Array.from(nums).sort((a, b) => a - b).forEach(function(n) {
+        var o = document.createElement('option');
+        o.value = n; o.textContent = labelFn(n);
+        sel.appendChild(o);
+    });
+}
+function taUpdateLevels() {
+    var evChosen = taSel('selTAEvent');
+    var allEv    = evChosen.length === 0 || evChosen.includes('.');
+    var sources  = allEv ? Object.keys(levByEvent) : evChosen;
+    var nums = new Set();
+    sources.forEach(ev => (levByEvent[ev] || []).forEach(n => nums.add(n)));
+    taFill('selTALevel', 'Tous les tours', nums, n => 'Tour ' + n);
+    taUpdateMatches();
+}
+function taUpdateMatches() {
+    var evChosen  = taSel('selTAEvent');
+    var levChosen = taSel('selTALevel');
+    var allEv     = evChosen.length === 0 || evChosen.includes('.');
+    var allLev    = levChosen.length === 0 || levChosen.includes('.');
+    var evSrc     = allEv ? Object.keys(levByEvent) : evChosen;
+    var levNums   = allLev ? null : levChosen.map(Number);
+    var nums = new Set();
+    evSrc.forEach(function(ev) {
+        var lv = levNums || (levByEvent[ev] || []);
+        lv.forEach(function(l) {
+            (matchByEvLev[ev + ':' + l] || []).forEach(m => nums.add(m));
+        });
+    });
+    taFill('selTAMatch', 'Tous les matchs', nums, m => 'Match ' + m);
+}
+function launchTargetAssign() {
+    var params = [];
+    function add(id, name) {
+        var vals = taSel(id);
+        if (vals.length === 0) vals = ['.'];
+        vals.forEach(v => params.push(encodeURIComponent(name + '[]') + '=' + encodeURIComponent(v)));
+    }
+    add('selTAEvent', 'event');
+    add('selTALevel', 'level');
+    add('selTAMatch', 'match');
+    if (document.getElementById('cbTAAccColors').checked) params.push('useAccColors=1');
+    window.open('PdfTargetAssign.php?' + params.join('&'), '_blank');
+}
 
 function updateLevels() {
     var evChosen = Array.from(document.getElementById('selEvent').selectedOptions).map(o => o.value);
@@ -147,6 +210,43 @@ function launchRanking() {
 }
 </script>
 <?php
+
+// ── SECTION AFFECTATION DES CIBLES ────────────────────────────────────────────
+echo '<table class="Tabella">';
+echo '<tr><th class="Title" colspan="5">Affectation des cibles <i style="font-size:10px;">*cible de départ par équipe, pour un match donné</i></th></tr>';
+echo '<tr>';
+foreach (['Épreuve', 'Tour', 'Match', 'Options', ''] as $h)
+    echo '<th class="SubTitle">' . $h . '</th>';
+echo '</tr><tr>';
+
+echo '<td class="Center">';
+echo '<select id="selTAEvent" multiple="multiple" size="6" onchange="taUpdateLevels()">';
+echo '<option value=".">Toutes les épreuves</option>';
+foreach ($evList as $ev)
+    echo '<option value="'.htmlspecialchars($ev['code']).'">'.htmlspecialchars($ev['name']).'</option>';
+echo '</select></td>';
+
+echo '<td class="Center">';
+echo '<select id="selTALevel" multiple="multiple" size="6" onchange="taUpdateMatches()">';
+echo '<option value="." selected>Tous les tours</option>';
+echo '</select></td>';
+
+echo '<td class="Center">';
+echo '<select id="selTAMatch" multiple="multiple" size="6">';
+echo '<option value="." selected>Tous les matchs</option>';
+echo '</select></td>';
+
+echo '<td class="Center" style="vertical-align:middle">';
+echo '<label><input type="checkbox" id="cbTAAccColors" checked>&nbsp;Couleurs AccColors</label>';
+echo '</td>';
+
+echo '<td class="Center" style="vertical-align:middle">';
+echo '<div class="Button" onclick="launchTargetAssign()">Imprimer les cibles</div>';
+echo '</td>';
+
+echo '</tr></table>';
+echo '<script>taUpdateLevels();</script>';
+echo '<br>';
 
 echo '<table class="Tabella">';
 echo '<tr><th class="Title" colspan="5">Impression des Poules</th></tr>';
