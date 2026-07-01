@@ -20,6 +20,10 @@ if (!empty($on) && (subFeatureAcl($acl, AclQualification, '') > AclReadOnly)) {
 
     $ret['MODS']['TNM'][] = 'Configuration' . '|' . $CFG->ROOT_DIR . 'Modules/Custom/TNM/config.php';
 
+    if (subFeatureAcl($acl, AclRoot, '') >= AclReadWrite) {
+        $ret['MODS']['TNM'][] = 'Mise à jour module' . '|' . $CFG->ROOT_DIR . 'Modules/Custom/TNM/admin/update.php';
+    }
+
     if ($_tnm_ok) {
         $ret['MODS']['TNM'][] = 'Import qualif' . '|' . $CFG->ROOT_DIR . 'Modules/Custom/TNM/ImportQualScores.php';
         $ret['MODS']['TNM'][] = 'Impr. feuilles de marques' . '|' . $CFG->ROOT_DIR . 'Modules/Custom/TNM/PrintScore.php?team=1';

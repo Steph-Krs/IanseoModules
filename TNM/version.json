@@ -1,8 +1,9 @@
 {
-  "version": "1.0.11",
+  "version": "1.0.12",
   "date": "2026-06-23",
-  "notes": "Plan de cible TNM : tous les types d'items (Q, Z, E, I, T) désormais visibles",
+  "notes": "Système de mise à jour depuis GitHub (admin/update.php)",
   "files": [
+    "admin/update.php",
     "bso-action.php",
     "BsoCommentateur.php",
     "BsoSaisie.php",

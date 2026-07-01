@@ -198,7 +198,7 @@ if ($tnmUpdateResults !== null) {
     echo '<tr><td colspan="2" style="background:#f0fff4;padding:8px 14px;border-top:2px solid #2a7">';
     echo '<strong style="color:#1a7a3a">Mise à jour effectuée : ' . $ok . ' fichier(s) ✓'
        . ($err ? ', <span style="color:#c00">' . $err . ' erreur(s)</span>' : '') . '</strong>';
-    echo ' &mdash; <em>Rechargez la page pour appliquer la nouvelle version.</em><br><small style="color:#555">';
+    echo ' &mdash; <em>Cliquez sur <u>↺ Vérifier<u> pour masquer les mises à jour</em><br><small style="color:#555">';
     foreach ($tnmUpdateResults as $_f => $_r) echo htmlspecialchars($_f) . ' : ' . $_r . ' &nbsp;';
     echo '</small></td></tr>';
     unset($ok, $err, $_f, $_r);
