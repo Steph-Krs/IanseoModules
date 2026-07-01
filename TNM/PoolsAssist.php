@@ -13,7 +13,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 // Épreuves configurées BSO
 $rsEv = safe_r_sql(
     "SELECT c.BcEvent, e.EvEventName FROM TNM_BsoConfig c
-     JOIN Events e ON e.EvTournament=c.BcTournament AND e.EvCode=c.BcEvent
+     JOIN Events e ON e.EvTournament=c.BcTournament AND e.EvCode=c.BcEvent COLLATE utf8mb4_unicode_ci
      WHERE c.BcTournament=$tourId ORDER BY e.EvProgr"
 );
 $evList = [];

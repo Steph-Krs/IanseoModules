@@ -435,7 +435,7 @@ case 'getEvents':
     $rs = safe_r_sql(
         "SELECT e.EvCode, e.EvEventName, b.BcBsoCount, b.BcStartTarget, b.BcSchedule
          FROM Events e
-         LEFT JOIN TNM_BsoConfig b ON b.BcTournament=e.EvTournament AND b.BcEvent=e.EvCode
+         LEFT JOIN TNM_BsoConfig b ON b.BcTournament=e.EvTournament AND b.BcEvent COLLATE utf8mb4_unicode_ci=e.EvCode
          WHERE e.EvElimType=5 AND e.EvTeamEvent='1'
          AND e.EvTournament=$tourId AND e.EvCodeParent=''
          ORDER BY e.EvProgr"

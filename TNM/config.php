@@ -31,7 +31,7 @@ safe_r_sql("CREATE TABLE IF NOT EXISTS TNM_BsoConfig (
     BcUpdated     DATETIME    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     BcSkipCheck   TINYINT(1)  NOT NULL DEFAULT 0,
     PRIMARY KEY (BcTournament, BcEvent)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
 safe_r_sql("CREATE TABLE IF NOT EXISTS TNM_BsoVolee (
     BvTournament  SMALLINT    NOT NULL,
@@ -45,7 +45,7 @@ safe_r_sql("CREATE TABLE IF NOT EXISTS TNM_BsoVolee (
     BvUpdated     DATETIME    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     BvRank        TINYINT     NULL,
     PRIMARY KEY (BvTournament, BvEvent, BvRound, BvTeam)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
 if ($tnmFreshInstall) $GLOBALS['_tnm_tables_ok'] = true;
 

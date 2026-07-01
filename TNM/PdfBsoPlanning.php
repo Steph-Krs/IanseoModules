@@ -70,7 +70,7 @@ $useAccColors = !empty($_REQUEST['useAccColors']);
 $rs = safe_r_sql(
     "SELECT c.BcEvent, c.BcBsoCount, c.BcStartTarget, c.BcSchedule, e.EvEventName
      FROM TNM_BsoConfig c
-     JOIN Events e ON e.EvTournament=c.BcTournament AND e.EvCode=c.BcEvent
+     JOIN Events e ON e.EvTournament=c.BcTournament AND e.EvCode=c.BcEvent COLLATE utf8mb4_unicode_ci
      WHERE c.BcTournament=$tourId"
 );
 

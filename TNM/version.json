@@ -1,7 +1,7 @@
 {
-  "version": "1.0.12",
-  "date": "2026-06-23",
-  "notes": "Système de mise à jour depuis GitHub (admin/update.php)",
+  "version": "1.0.13",
+  "date": "2026-07-01",
+  "notes": "Fix collation MySQL 8.0 (Error 1267) sur les JOINs TNM ↔ ianseo",
   "files": [
     "admin/update.php",
     "bso-action.php",
