@@ -439,27 +439,39 @@ foreach ($evRows as $ev) {
         if ($firstPage) { $firstPage = false; } else { $pdf->AddPage(); }
 
         // ── Auto-scale : tout le classement tient sur 1 page ─────────────────
-        $PT_MM  = 25.4 / 72;
-        $CHR    = 1.25;
-        $margins   = $pdf->getMargins();
-        $LN_GAP    = 4;
-        $pageAvail = $pdf->getPageHeight() - $margins['top'] - $margins['bottom'] - $DEF['hTitle'] - $DEF['hSub'] - $LN_GAP;
-        $nRows     = array_sum(array_map(fn($s) => count($s['parts']), $sections));
+        // TCPDF force la hauteur d'une cellule à taille_police × 1.25 + paddings
+        // verticaux. getCellHeight() donne cette hauteur réelle ; l'ancienne
+        // estimation (× 1.25 sec, titre/sous-titre à leur hauteur nominale) la
+        // sous-évaluait de ~1-3 mm par page → aux comptes limites (48 équipes),
+        // les dernières lignes basculaient sur une 2e page.
+        $cellH   = fn($pt) => $pdf->getCellHeight($pt / $pdf->getScaleFactor());
+        $margins = $pdf->getMargins();
+        $LN_GAP  = 4;
+        $nRows   = array_sum(array_map(fn($s) => count($s['parts']), $sections));
 
         $scale = 1.0;
-        $fD    = $DEF['fData'];
-        $fH    = $DEF['fHdr'];
-        $rH    = max($DEF['hRow'], $fD * $PT_MM * $CHR);
-        $hH    = max($DEF['hHdr'], $fH * $PT_MM * $CHR);
+        $fD = $DEF['fData'];  $fH = $DEF['fHdr'];
+        $rH = max($DEF['hRow'], $cellH($fD));
+        $hH = max($DEF['hHdr'], $cellH($fH));
+        $pageAvail = $pdf->getPageHeight() - $margins['top'] - $margins['bottom']
+                   - max($DEF['hTitle'], $cellH($DEF['fTitle']))
+                   - max($DEF['hSub'],   $cellH($DEF['fSub']))
+                   - $LN_GAP;
 
         if ($nRows > 0) {
             for ($iter = 0; $iter < 25; $iter++) {
-                $fD  = max(6, (int)round($DEF['fData'] * $scale));
-                $fH  = max(6, (int)round($DEF['fHdr']  * $scale));
-                $rH  = $fD * $PT_MM * $CHR;
-                $hH  = max($fH * $PT_MM * $CHR, round($DEF['hHdr'] * $scale, 1));
+                $fD = max(6, (int)round($DEF['fData'] * $scale));
+                $fH = max(6, (int)round($DEF['fHdr']  * $scale));
+                $fT = max(8, (int)round($DEF['fTitle'] * $scale));
+                $fS = max(7, (int)round($DEF['fSub']   * $scale));
+                // Hauteurs réellement rendues (minimum TCPDF par police)
+                $hT = max(($scale < 1.0) ? max(4.0, round($DEF['hTitle'] * $scale, 1)) : $DEF['hTitle'], $cellH($fT));
+                $hS = max(($scale < 1.0) ? max(3.0, round($DEF['hSub']   * $scale, 1)) : $DEF['hSub'],   $cellH($fS));
+                $rH = $cellH($fD);
+                $hH = max($cellH($fH), round($DEF['hHdr'] * $scale, 1));
+                $pageAvail = $pdf->getPageHeight() - $margins['top'] - $margins['bottom'] - $hT - $hS - $LN_GAP;
                 $predicted = $hH + $nRows * $rH;
-                if ($predicted <= $pageAvail) break;
+                if ($predicted <= $pageAvail - 0.5) break;
                 $scale = max(0.3, $scale * ($pageAvail - 0.5) / max(0.1, $predicted));
             }
 
@@ -469,14 +481,16 @@ foreach ($evRows as $ev) {
         }
 
         $S = $DEF;
+        // Hauteurs effectives appliquées même sans réduction (scale=1.0) pour que
+        // le rendu corresponde exactement à la prédiction.
+        $S['hRow'] = ($scale < 1.0) ? $spreadH : $rH;
+        $S['hHdr'] = $hH;
         if ($scale < 1.0) {
             $S['fData'] = $fD;
             $S['fHdr']  = $fH;
-            $S['fTitle'] = max(8,  (int)round($DEF['fTitle'] * $scale));
-            $S['fSub']   = max(7,  (int)round($DEF['fSub']   * $scale));
+            $S['fTitle'] = $fT;
+            $S['fSub']   = $fS;
             $S['fLabel'] = max(6,  (int)round($DEF['fLabel'] * $scale));
-            $S['hRow']  = $spreadH;
-            $S['hHdr']  = $hH;
             $S['hTitle'] = max(4.0, round($DEF['hTitle'] * $scale, 1));
             $S['hSub']   = max(3.0, round($DEF['hSub']   * $scale, 1));
         }

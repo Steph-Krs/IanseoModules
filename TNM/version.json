@@ -1,7 +1,7 @@
 {
-  "version": "1.0.14",
-  "date": "2026-07-01",
-  "notes": "Impression « Affectation des cibles » (PdfTargetAssign.php) depuis la page index",
+  "version": "1.0.15",
+  "date": "2026-07-04",
+  "notes": "Classement général : fix auto-ajustement (hauteurs réelles TCPDF) — plus de débordement sur 2 pages à 48 équipes",
   "files": [
     "admin/update.php",
     "bso-action.php",
