@@ -47,7 +47,7 @@
         "checks": [
             { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
             {
-                "table": "Event",
+                "table": "Events",
                 "aggregate": "count",
                 "where": [
                     { "column": "EvTournament", "source": "session", "key": "TourId" },
@@ -65,7 +65,7 @@
         "checks": [
             { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
             {
-                "table": "Event",
+                "table": "Events",
                 "aggregate": "count",
                 "where": [
                     { "column": "EvTournament", "source": "session", "key": "TourId" },
@@ -75,6 +75,84 @@
                 "op": "gt",
                 "value": 0
             }
+        ]
+    },
+    {
+        "id": "has_participant",
+        "label": "Au moins 1 participant inscrit à la compétition",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "Entries",
+                "aggregate": "count",
+                "where": [
+                    { "column": "EnTournament", "source": "session", "key": "TourId" },
+                    { "column": "EnAthlete", "op": "eq", "value": "1" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_judge",
+        "label": "Au moins 1 arbitre déclaré",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "TournamentInvolved",
+                "aggregate": "count",
+                "where": [
+                    { "column": "TiTournament", "source": "session", "key": "TourId" },
+                    { "column": "TiType", "op": "in", "value": "1,5,20,21,22,25" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_target_assigned",
+        "label": "Au moins 1 cible attribuée",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "Qualifications",
+                "aggregate": "count",
+                "join": { "table": "Entries", "on": "QuId = EnId" },
+                "where": [
+                    { "column": "EnTournament", "source": "session", "key": "TourId" },
+                    { "column": "QuTargetNo", "op": "neq", "value": "" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_score",
+        "label": "Au moins 1 score saisi",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "Qualifications",
+                "aggregate": "count",
+                "join": { "table": "Entries", "on": "QuId = EnId" },
+                "where": [
+                    { "column": "EnTournament", "source": "session", "key": "TourId" },
+                    { "column": "QuScore", "op": "gt", "value": "0" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "ffta_export_visited",
+        "label": "Page de téléchargement du fichier résultats FFTA visitée",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            { "source": "visited", "path": "/Modules/Sets/FR/exports/" }
         ]
     }
 ]

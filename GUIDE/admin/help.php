@@ -1,8 +1,9 @@
 <?php
 define('HTDOCS', dirname(dirname(dirname(dirname(dirname(__FILE__))))));
 require_once(HTDOCS . '/config.php');
+require_once(dirname(__DIR__) . '/lib/guide-lib.inc.php');
 
-checkFullACL(AclRoot, '', AclReadWrite);
+guide_check_admin();
 
 $PAGE_TITLE = 'Guide FFTA — Aide à la création';
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
@@ -46,6 +47,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     <li><a href="#options">9. Options d'étape</a></li>
     <li><a href="#activites">10. QCM et Défi (cibles bronze/argent/or)</a></li>
     <li><a href="#parcours">11. Parcours, checklists, FAQ, aide contextuelle</a></li>
+    <li><a href="#comptes">12. Comptes utilisateurs (serveur en ligne)</a></li>
   </ul>
 </div>
 
@@ -255,6 +257,16 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
       <b>constructeur de conditions</b> (bouton ⚡ de l'administration), avec un test en direct sur la
       compétition ouverte.</li>
 </ul>
+<p>Des conditions prêtes à l'emploi couvrent le déroulé type d'une compétition FFTA :</p>
+<ul>
+  <li><b>Au moins 1 participant inscrit</b>, <b>au moins 1 arbitre déclaré</b> (officiels de type
+      arbitre), <b>au moins 1 cible attribuée</b>, <b>au moins 1 score saisi</b> — vérifiées sur la
+      compétition ouverte ;</li>
+  <li><b>Page de téléchargement du fichier résultats FFTA visitée</b> — utilise le check
+      « <b>Page visitée</b> » du constructeur : la visite d'une page donnée est mémorisée
+      <b>par utilisateur et par compétition</b> (cochez « n'importe quelle compétition » pour une
+      visite globale). Idéal pour un défi « envoie tes résultats à la fédération ».</li>
+</ul>
 
 <h2 id="parcours">11. Parcours, checklists, FAQ, aide contextuelle</h2>
 <ul>
@@ -267,6 +279,24 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
       Création via « + FAQ » (édition JSON).</li>
   <li><b>Aide contextuelle</b> : activée par défaut, le bouton flottant 🎯 signale (pastille orange)
       les contenus liés à la page ianseo affichée. Désactivable depuis le catalogue ou le panneau.</li>
+</ul>
+
+<h2 id="comptes">12. Comptes utilisateurs (serveur en ligne)</h2>
+<p>
+  Si le serveur utilise un module de comptes (authentification ianseo, ex. serveur fédéral),
+  <b>chaque compte a son propre suivi</b> : formations en cours, étapes validées, QCM, défis et
+  distinctions sont enregistrés par utilisateur, sans impacter les autres. La bannière
+  « Apprendre à utiliser ianseo » s'affiche pour un compte qui ne voit encore <b>aucune
+  compétition</b> (nouvel organisateur). Les <b>formations</b> elles-mêmes restent communes à tout
+  le serveur. Sans module de comptes, rien ne change : le suivi est simplement celui de
+  l'installation.
+</p>
+<ul>
+  <li><b>Administration réservée</b> : ces pages d'administration (éditeur, conditions, mises à
+      jour…) ne sont accessibles qu'à l'<b>administrateur du serveur</b> quand l'authentification
+      est active — un compte club/comité n'y a pas accès et ne voit pas l'entrée de menu.</li>
+  <li><b>Aide contextuelle</b> : le réglage (activée/désactivée) est <b>propre à chaque compte</b>
+      et le suit d'un ordinateur à l'autre. Sans compte, il reste mémorisé dans le navigateur.</li>
 </ul>
 
 <div class="help-note" style="margin-top:24px">

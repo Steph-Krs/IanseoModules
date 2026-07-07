@@ -1,10 +1,198 @@
 <?php
 /**
  * Bibliothèque interne du module GUIDE.
+ * - Utilisateur courant + schéma DB (progression et visites, par utilisateur)
  * - Évaluation des conditions (lecture seule sur la DB ianseo)
  * - Catalogue des contenus (formations, checklists, FAQ) trié pour les parcours
- * Incluse par guide-api.php, index.php et les pages admin.
+ * Incluse par guide-api.php, menu.php, index.php et les pages admin.
  */
+
+/* ======= Utilisateur courant (module de comptes facultatif) ======= */
+
+/**
+ * Identifiant de l'utilisateur connecté, '' sans système de comptes.
+ * $_SESSION['AUTH_User'] est la convention du cœur ianseo (USERAUTH) : posée
+ * par le module d'authentification (ex. Modules/Custom/AUTH) et revalidée à
+ * chaque requête. Absente → installation locale classique : tout le monde
+ * partage le suivi de l'utilisateur ''.
+ */
+function guide_current_user() {
+    return substr(trim((string)($_SESSION['AUTH_User'] ?? '')), 0, 64);
+}
+
+/**
+ * Nombre de compétitions visibles par l'utilisateur courant. Avec un module de
+ * comptes, la liste est restreinte par $_SESSION['AUTH_COMP'] (codes exacts ou
+ * motifs LIKE) — même convention que la liste d'accueil du cœur ianseo.
+ */
+function guide_visible_tournament_count() {
+    if (guide_current_user() !== '' && empty($_SESSION['AUTH_ROOT']) && isset($_SESSION['AUTH_COMP']) && is_array($_SESSION['AUTH_COMP'])) {
+        $parts = [];
+        foreach ($_SESSION['AUTH_COMP'] as $p) {
+            $p = (string)$p;
+            $parts[] = (strpos($p, '%') !== false || strpos($p, '_') !== false)
+                ? 'ToCode LIKE ' . StrSafe_DB($p)
+                : 'ToCode = ' . StrSafe_DB($p);
+        }
+        if (!count($parts)) return 0;
+        $rs = safe_r_sql("SELECT COUNT(*) AS cnt FROM Tournament WHERE " . implode(' OR ', $parts));
+    } else {
+        $rs = safe_r_sql("SELECT COUNT(*) AS cnt FROM Tournament");
+    }
+    $row = safe_fetch($rs);
+    return $row ? (int)$row->cnt : 0;
+}
+
+/**
+ * Droit d'administrer le GUIDE. AclRoot ne suffit pas : avec un module de
+ * comptes, authCheckACL accorde AclReadWrite à tout organisateur connecté sur
+ * les pages hors compétition → on exige en plus la vue Administrateur serveur
+ * (AUTH_ROOT). Sans compte (install locale, localhost), ACL ianseo classique.
+ */
+function guide_is_admin() {
+    if (guide_current_user() !== '' && empty($_SESSION['AUTH_ROOT'])) return false;
+    return hasFullACL(AclRoot, '', AclReadWrite);
+}
+
+/** Garde des pages admin : avorte (noAccess) si non autorisé. */
+function guide_check_admin() {
+    global $CFG;
+    checkFullACL(AclRoot, '', AclReadWrite);
+    if (guide_current_user() !== '' && empty($_SESSION['AUTH_ROOT'])) {
+        CD_redirect($CFG->ROOT_DIR . 'noAccess.php');
+        die();
+    }
+}
+
+/* ======= Préférences par utilisateur ======= */
+
+/** Aide contextuelle activée pour l'utilisateur courant (préférence serveur). */
+function guide_pref_ctx() {
+    guide_ensure_schema();
+    $rs  = safe_r_sql("SELECT GfCtxHelp FROM GUIDE_Prefs WHERE GfUser=" . StrSafe_DB(guide_current_user()));
+    $row = safe_fetch($rs);
+    return $row ? (int)$row->GfCtxHelp : 1;
+}
+
+function guide_pref_set_ctx($on) {
+    guide_ensure_schema();
+    safe_w_sql("INSERT INTO GUIDE_Prefs (GfUser, GfCtxHelp, GfUpdatedAt) VALUES ("
+        . StrSafe_DB(guide_current_user()) . ", " . ($on ? 1 : 0) . ", " . StrSafe_DB(date('Y-m-d H:i:s')) . ")
+        ON DUPLICATE KEY UPDATE GfCtxHelp=VALUES(GfCtxHelp), GfUpdatedAt=VALUES(GfUpdatedAt)");
+}
+
+/* ======= Schéma DB ======= */
+
+function guide_ensure_schema() {
+    if (!empty($_SESSION['_guide_schema_v4'])) return;
+
+    $rs = safe_r_sql("SHOW TABLES LIKE 'GUIDE_Progress'");
+    if (safe_fetch($rs)) {
+        $rc_col = safe_r_sql("SHOW COLUMNS FROM GUIDE_Progress LIKE 'GpTourId'");
+        $rc_old = safe_r_sql("SHOW INDEX FROM GUIDE_Progress WHERE Key_name='uq_form_tour'");
+        if (!safe_fetch($rc_col) || safe_fetch($rc_old)) {
+            // schéma d'avant la clé unique par formation → recréer
+            safe_w_sql("DROP TABLE GUIDE_Progress");
+        } else {
+            $rc = safe_r_sql("SHOW COLUMNS FROM GUIDE_Progress LIKE 'GpQuiz'");
+            if (!safe_fetch($rc)) {
+                safe_w_sql("ALTER TABLE GUIDE_Progress
+                    ADD COLUMN GpQuiz TINYINT(1) NOT NULL DEFAULT 0,
+                    ADD COLUMN GpChallenge TINYINT(1) NOT NULL DEFAULT 0");
+            }
+            // v3 : suivi par utilisateur (module de comptes) — les lignes
+            // existantes deviennent la progression de l'utilisateur ''
+            $rc = safe_r_sql("SHOW COLUMNS FROM GUIDE_Progress LIKE 'GpUser'");
+            if (!safe_fetch($rc)) {
+                safe_w_sql("ALTER TABLE GUIDE_Progress
+                    ADD COLUMN GpUser VARCHAR(64) NOT NULL DEFAULT '' AFTER GpId");
+                safe_w_sql("ALTER TABLE GUIDE_Progress
+                    DROP INDEX uq_form,
+                    ADD UNIQUE KEY uq_user_form (GpUser, GpFormId)");
+            }
+        }
+    }
+
+    $rs = safe_r_sql("SHOW TABLES LIKE 'GUIDE_Progress'");
+    if (!safe_fetch($rs)) {
+        safe_w_sql("CREATE TABLE GUIDE_Progress (
+            GpId        INT AUTO_INCREMENT PRIMARY KEY,
+            GpUser      VARCHAR(64)  NOT NULL DEFAULT '',
+            GpFormId    VARCHAR(30)  NOT NULL,
+            GpFormVer   VARCHAR(20)  NOT NULL DEFAULT '1.0',
+            GpTourId    INT          NOT NULL DEFAULT 0,
+            GpStep      INT          NOT NULL DEFAULT 0,
+            GpStatus    ENUM('en_cours','termine','obsolete') NOT NULL DEFAULT 'en_cours',
+            GpQuiz      TINYINT(1)   NOT NULL DEFAULT 0,
+            GpChallenge TINYINT(1)   NOT NULL DEFAULT 0,
+            GpValidated TEXT,
+            GpUpdatedAt DATETIME     NOT NULL,
+            UNIQUE KEY uq_user_form (GpUser, GpFormId)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    }
+
+    // Visites de pages (checks « visited »), par utilisateur et compétition
+    safe_w_sql("CREATE TABLE IF NOT EXISTS GUIDE_Visits (
+        GvId     INT AUTO_INCREMENT PRIMARY KEY,
+        GvUser   VARCHAR(64)  NOT NULL DEFAULT '',
+        GvTourId INT          NOT NULL DEFAULT 0,
+        GvPath   VARCHAR(120) NOT NULL,
+        GvWhen   DATETIME     NOT NULL,
+        UNIQUE KEY uq_user_tour_path (GvUser, GvTourId, GvPath)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // Préférences par utilisateur (aide contextuelle…)
+    safe_w_sql("CREATE TABLE IF NOT EXISTS GUIDE_Prefs (
+        GfUser      VARCHAR(64) NOT NULL PRIMARY KEY,
+        GfCtxHelp   TINYINT(1)  NOT NULL DEFAULT 1,
+        GfUpdatedAt DATETIME    NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $_SESSION['_guide_schema_v4'] = true;
+}
+
+/* ======= Visites de pages ======= */
+
+/** Chemin du script courant relatif à la racine ianseo, normalisé. */
+function guide_script_rel() {
+    global $CFG;
+    $s = $_SERVER['SCRIPT_NAME'] ?? '';
+    $root = rtrim($CFG->ROOT_DIR ?? '/', '/');
+    if ($root && strpos($s, $root) === 0) $s = substr($s, strlen($root));
+    return guide_norm_path($s !== '' ? $s : '/');
+}
+
+/** Chemins surveillés = tous les checks « visited » de conditions.json. */
+function guide_tracked_paths() {
+    static $paths = null;
+    if (!is_null($paths)) return $paths;
+    $paths = [];
+    foreach (guide_load_conditions() as $c) {
+        foreach (($c['checks'] ?? []) as $ch) {
+            if (($ch['source'] ?? '') === 'visited' && !empty($ch['path'])) {
+                $paths[] = guide_norm_path($ch['path']);
+            }
+        }
+    }
+    $paths = array_values(array_unique($paths));
+    return $paths;
+}
+
+/**
+ * Mémorise la visite de la page courante si une condition la surveille.
+ * Appelée depuis menu.php (toutes les pages) : ne touche la DB que pour les
+ * pages effectivement surveillées.
+ */
+function guide_track_visit() {
+    $path = guide_script_rel();
+    if (!in_array($path, guide_tracked_paths())) return;
+    guide_ensure_schema();
+    safe_w_sql("INSERT IGNORE INTO GUIDE_Visits (GvUser, GvTourId, GvPath, GvWhen) VALUES ("
+        . StrSafe_DB(guide_current_user()) . ", "
+        . max(0, (int)($_SESSION['TourId'] ?? 0)) . ", "
+        . StrSafe_DB($path) . ", "
+        . StrSafe_DB(date('Y-m-d H:i:s')) . ")");
+}
 
 /* ======= Conditions ======= */
 
@@ -33,21 +221,47 @@ function guide_evaluate_check($check) {
         return guide_compare($val, $check['op'], $check['value']);
     }
 
-    // Agrégat COUNT sur une table
+    // Page visitée par cet utilisateur (enregistrée par guide_track_visit).
+    // Par défaut limitée à la compétition ouverte ; "any_tournament": true
+    // pour accepter une visite faite sur n'importe quelle compétition.
+    if (isset($check['source']) && $check['source'] === 'visited') {
+        $path = guide_norm_path((string)($check['path'] ?? ''));
+        if ($path === '') return false;
+        guide_ensure_schema();
+        $sql = "SELECT 1 FROM GUIDE_Visits WHERE GvUser=" . StrSafe_DB(guide_current_user())
+            . " AND GvPath=" . StrSafe_DB($path);
+        if (empty($check['any_tournament'])) {
+            $sql .= " AND GvTourId=" . max(0, (int)($_SESSION['TourId'] ?? 0));
+        }
+        $rs = safe_r_sql($sql . " LIMIT 1");
+        return (bool)safe_fetch($rs);
+    }
+
+    // Agrégat COUNT sur une table (jointure interne facultative :
+    // "join": {"table": "Entries", "on": "QuId = EnId"})
     if (isset($check['aggregate']) && $check['aggregate'] === 'count') {
         $table = preg_replace('/[^a-zA-Z0-9_]/', '', $check['table']);
+        $join  = '';
+        if (!empty($check['join']['table'])
+            && preg_match('/^(\w+)\s*=\s*(\w+)$/', $check['join']['on'] ?? '', $m)) {
+            $jt   = preg_replace('/[^a-zA-Z0-9_]/', '', $check['join']['table']);
+            $join = " INNER JOIN `$jt` ON `{$m[1]}` = `{$m[2]}`";
+        }
         $where = [];
         foreach ($check['where'] as $w) {
             $col = preg_replace('/[^a-zA-Z0-9_]/', '', $w['column']);
             if (isset($w['source']) && $w['source'] === 'session') {
                 $where[] = "`$col` = " . (int)($_SESSION[$w['key']] ?? 0);
+            } elseif (($w['op'] ?? '') === 'in') {
+                $vals = array_map('trim', explode(',', (string)$w['value']));
+                $where[] = "`$col` IN (" . implode(',', array_map('StrSafe_DB', $vals)) . ")";
             } else {
                 $ops = ['eq' => '=', 'neq' => '!=', 'gt' => '>', 'gte' => '>=', 'lt' => '<', 'lte' => '<='];
                 $op  = $ops[$w['op'] ?? 'eq'] ?? '=';
                 $where[] = "`$col` $op " . StrSafe_DB($w['value']);
             }
         }
-        $sql = "SELECT COUNT(*) AS cnt FROM `$table`" . ($where ? ' WHERE ' . implode(' AND ', $where) : '');
+        $sql = "SELECT COUNT(*) AS cnt FROM `$table`$join" . ($where ? ' WHERE ' . implode(' AND ', $where) : '');
         $rs  = safe_r_sql($sql);
         $row = safe_fetch($rs);
         return guide_compare($row ? (int)$row->cnt : 0, $check['op'], $check['value']);

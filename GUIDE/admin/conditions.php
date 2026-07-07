@@ -3,7 +3,7 @@ define('HTDOCS', dirname(dirname(dirname(dirname(dirname(__FILE__))))));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib/guide-lib.inc.php');
 
-checkFullACL(AclRoot, '', AclReadWrite);
+guide_check_admin();
 
 /* ---- Test AJAX d'une condition (définition posée, pas encore sauvegardée) ---- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'test') {
@@ -94,9 +94,10 @@ details.gc-raw summary { cursor: pointer; font-size: 12px; color: #666; padding:
 <?php if ($error): ?><div class="gc-msg-err">✗ <?= htmlspecialchars($error) ?></div><?php endif; ?>
 
 <p style="font-size:13px;color:#555;max-width:760px">
-  Les conditions vérifient l'état de la compétition (session, tables ianseo, en lecture seule).
+  Les conditions vérifient l'état de la compétition (session, tables ianseo, pages visitées — en lecture seule).
   Elles servent aux <b>triggers d'état</b>, aux <b>branches conditionnelles</b>, aux <b>défis</b> et aux
-  <b>checklists auto-cochables</b>. Le bouton <b>Tester</b> évalue la condition sur la compétition ouverte.
+  <b>checklists auto-cochables</b>. Le bouton <b>Tester</b> évalue la condition sur la compétition ouverte,
+  pour l'utilisateur connecté.
 </p>
 
 <!-- Liste -->
@@ -153,7 +154,7 @@ details.gc-raw summary { cursor: pointer; font-size: 12px; color: #666; padding:
 <script>
 var CONDS = <?= json_encode(array_values($conditions), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
 var OPS = [['eq','='],['neq','≠'],['gt','>'],['gte','≥'],['lt','<'],['lte','≤']];
-var TABLES = ['Tournament','Entries','Individuals','Teams','Events','Classes','Divisions','Qualifications','Session','DistanceInformation'];
+var TABLES = ['Tournament','Entries','Individuals','Teams','Events','Classes','Divisions','Qualifications','Session','DistanceInformation','TournamentInvolved'];
 var _editIdx = -1;
 
 /* ===== Liste ===== */
@@ -233,6 +234,7 @@ function opSelect(cls, val) {
 
 function checkType(ch) {
   if (ch.source === 'session') return 'session';
+  if (ch.source === 'visited') return 'visited';
   if (ch.aggregate === 'count') return 'count';
   return 'column';
 }
@@ -248,6 +250,7 @@ function addCheck(ch) {
         '<option value="session"' + (type === 'session' ? ' selected' : '') + '>Variable de session</option>' +
         '<option value="count"'   + (type === 'count'   ? ' selected' : '') + '>Nombre de lignes (COUNT)</option>' +
         '<option value="column"'  + (type === 'column'  ? ' selected' : '') + '>Valeur d\'une colonne</option>' +
+        '<option value="visited"' + (type === 'visited' ? ' selected' : '') + '>Page visitée</option>' +
       '</select>' +
       '<button type="button" class="gc-btn gc-btn-del" onclick="this.closest(\'.gc-check\').remove()">✕</button>' +
       '<span class="gc-res-icons"></span>' +
@@ -273,14 +276,23 @@ function buildCheckBody(div, type, ch) {
   } else if (type === 'count') {
     var whereRows = '';
     ((ch.where) || []).forEach(function (w) { whereRows += whereRowHtml(w); });
+    var jn = ch.join || {};
     b.innerHTML = 'Table <input type="text" class="gc-table-in" list="gc-tables" value="' + esc(ch.table || '') + '" style="width:150px">' + dl +
       ' — nombre de lignes ' + opSelect('gc-op', ch.op || 'gt') +
       '<input type="text" class="gc-val" value="' + esc(ch.value !== undefined ? String(ch.value) : '0') + '" style="width:70px">' +
+      '<div style="width:100%">jointure (option) : table <input type="text" class="gc-jtable" list="gc-tables" value="' + esc(jn.table || '') + '" style="width:130px" placeholder="Entries">' +
+      ' sur <input type="text" class="gc-jon" value="' + esc(jn.on || '') + '" style="width:130px" placeholder="QuId = EnId" title="Colonne = Colonne"></div>' +
       '<div class="gc-where" style="width:100%">' +
         '<div class="gc-where-list">' + whereRows + '</div>' +
         '<button type="button" class="gc-btn gc-btn-test" onclick="addWhere(this)">+ critère WHERE</button>' +
-        '<p class="gc-hint">Op « = session » : compare la colonne à une variable de session (valeur = nom de la clé, ex. TourId).</p>' +
+        '<p class="gc-hint">Op « = session » : compare la colonne à une variable de session (valeur = nom de la clé, ex. TourId). ' +
+        'Op « ∈ liste » : la colonne doit être dans une liste de valeurs séparées par des virgules (ex. 1,5,20).</p>' +
       '</div>';
+  } else if (type === 'visited') {
+    b.innerHTML = 'Chemin de la page <input type="text" class="gc-vpath" value="' + esc(ch.path || '') + '" style="width:280px" placeholder="/Modules/Sets/FR/exports/">' +
+      ' <label style="font-size:12px"><input type="checkbox" class="gc-vany"' + (ch.any_tournament ? ' checked' : '') + '> n\'importe quelle compétition</label>' +
+      '<p class="gc-hint" style="width:100%">Vraie si l\'utilisateur a ouvert cette page (relative à la racine ianseo, sans paramètres ; /index.php final facultatif). ' +
+      'Par défaut la visite doit avoir eu lieu sur la compétition actuellement ouverte. Les visites sont enregistrées par utilisateur à partir du moment où la condition existe.</p>';
   } else {
     b.innerHTML = 'Table <input type="text" class="gc-table-in" list="gc-tables" value="' + esc(ch.table || '') + '" style="width:140px">' + dl +
       ' colonne <input type="text" class="gc-col" value="' + esc(ch.column || '') + '" style="width:120px">' +
@@ -293,9 +305,11 @@ function buildCheckBody(div, type, ch) {
 function whereRowHtml(w) {
   w = w || {};
   var isSess = (w.source === 'session');
+  var isIn   = (!isSess && w.op === 'in');
   var h = '<div class="gc-where-row">Colonne <input type="text" class="gc-wcol" value="' + esc(w.column || '') + '" style="width:130px">';
   h += '<select class="gc-wop">';
-  OPS.forEach(function (o) { h += '<option value="' + o[0] + '"' + (!isSess && o[0] === (w.op || 'eq') ? ' selected' : '') + '>' + o[1] + '</option>'; });
+  OPS.forEach(function (o) { h += '<option value="' + o[0] + '"' + (!isSess && !isIn && o[0] === (w.op || 'eq') ? ' selected' : '') + '>' + o[1] + '</option>'; });
+  h += '<option value="in"' + (isIn ? ' selected' : '') + '>∈ liste</option>';
   h += '<option value="session"' + (isSess ? ' selected' : '') + '>= session</option></select>';
   h += '<input type="text" class="gc-wval" value="' + esc(isSess ? (w.key || 'TourId') : (w.value !== undefined ? String(w.value) : '')) + '" style="width:90px">';
   h += '<button type="button" class="gc-btn gc-btn-del" onclick="this.parentNode.remove()">✕</button></div>';
@@ -321,6 +335,10 @@ function captureBuilder() {
     if (/^-?\d+$/.test(val)) val = parseInt(val, 10);
     if (type === 'session') {
       checks.push({ source: 'session', key: div.querySelector('.gc-skey').value.trim(), op: op, value: val });
+    } else if (type === 'visited') {
+      var vc = { source: 'visited', path: div.querySelector('.gc-vpath').value.trim() };
+      if (div.querySelector('.gc-vany').checked) vc.any_tournament = true;
+      checks.push(vc);
     } else if (type === 'count') {
       var where = [];
       div.querySelectorAll('.gc-where-row').forEach(function (r) {
@@ -329,12 +347,17 @@ function captureBuilder() {
         var wval = r.querySelector('.gc-wval').value.trim();
         if (!wcol) return;
         if (wop === 'session') where.push({ column: wcol, source: 'session', key: wval });
+        else if (wop === 'in') where.push({ column: wcol, op: 'in', value: wval });
         else {
           if (/^-?\d+$/.test(wval)) wval = parseInt(wval, 10);
           where.push({ column: wcol, op: wop, value: wval });
         }
       });
-      checks.push({ table: div.querySelector('.gc-table-in').value.trim(), aggregate: 'count', where: where, op: op, value: val });
+      var cc = { table: div.querySelector('.gc-table-in').value.trim(), aggregate: 'count', where: where, op: op, value: val };
+      var jt = div.querySelector('.gc-jtable').value.trim();
+      var jo = div.querySelector('.gc-jon').value.trim();
+      if (jt && jo) cc.join = { table: jt, on: jo };
+      checks.push(cc);
     } else {
       checks.push({
         table: div.querySelector('.gc-table-in').value.trim(),

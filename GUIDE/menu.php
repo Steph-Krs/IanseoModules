@@ -4,10 +4,15 @@
  * Inclus sur TOUTES les pages par get_which_menu() dans Common/Menu.php.
  */
 
+require_once(dirname(__FILE__) . '/lib/guide-lib.inc.php');
+
 /* ---- Menu Modules ---- */
 $ret['MODS']['GUIDE'][] = 'Guide FFTA';
 $ret['MODS']['GUIDE'][] = 'Formations disponibles|' . $CFG->ROOT_DIR . 'Modules/Custom/GUIDE/';
-if (isset($acl) && subFeatureAcl($acl, AclRoot, '') == AclReadWrite) {
+// Avec un module de comptes, l'entrée Administration est réservée à la vue
+// Administrateur serveur (authCheckACL accorde AclRoot à tout connecté)
+if (isset($acl) && subFeatureAcl($acl, AclRoot, '') == AclReadWrite
+    && (guide_current_user() === '' || !empty($_SESSION['AUTH_ROOT']))) {
     $ret['MODS']['GUIDE'][] = 'Administration|' . $CFG->ROOT_DIR . 'Modules/Custom/GUIDE/admin/';
 }
 
@@ -15,11 +20,17 @@ if (isset($acl) && subFeatureAcl($acl, AclRoot, '') == AclReadWrite) {
 if (!empty($GLOBALS['_guide_panel_done'])) return;
 $GLOBALS['_guide_panel_done'] = true;
 
+guide_track_visit();   // conditions « page visitée » (ne touche la DB que sur les pages surveillées)
+
 $_gr   = $CFG->ROOT_DIR;
 $_gdir = dirname(__FILE__) . '/assets/';
 $_gvc  = filemtime($_gdir . 'guide.css');
 $_gvj  = filemtime($_gdir . 'guide.js');
 ?>
+<script>
+window.GUIDE_USER = <?= json_encode(guide_current_user(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+window.GUIDE_CTX  = <?= guide_current_user() !== '' ? (int)guide_pref_ctx() : 'null' ?>; // null = pas de compte → préférence localStorage
+</script>
 <link rel="stylesheet" href="<?= $_gr ?>Modules/Custom/GUIDE/assets/guide.css?v=<?= $_gvc ?>">
 
 <div id="guide-panel" style="display:none">
@@ -60,16 +71,12 @@ $_gvj  = filemtime($_gdir . 'guide.js');
 <button id="guide-fab" style="display:none">🎯 Guide FFTA</button>
 
 <?php
-/* Bannière "Apprendre" : page d'accueil ianseo + AUCUNE compétition en base (nouvel utilisateur).
-   Dès qu'au moins une compétition existe, la bannière disparaît. */
+/* Bannière "Apprendre" : page d'accueil ianseo + AUCUNE compétition visible (nouvel utilisateur).
+   Avec le module de comptes, chaque compte ne voit que ses compétitions → la bannière s'adresse
+   au compte qui n'en a encore aucune. Dès qu'une compétition est visible, elle disparaît. */
 $_gIsHome = isset($_SERVER['SCRIPT_NAME'])
     && $_SERVER['SCRIPT_NAME'] === rtrim($CFG->ROOT_DIR, '/') . '/index.php';
-$_gNoTour = false;
-if ($_gIsHome) {
-    $_gRs  = safe_r_sql("SELECT COUNT(*) AS cnt FROM Tournament");
-    $_gRow = safe_fetch($_gRs);
-    $_gNoTour = (!$_gRow || (int)$_gRow->cnt === 0);
-}
+$_gNoTour = $_gIsHome && guide_visible_tournament_count() === 0;
 if ($_gNoTour):
 ?>
 <div id="guide-learn-banner" style="display:none">

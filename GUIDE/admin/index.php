@@ -1,8 +1,9 @@
 <?php
 define('HTDOCS', dirname(dirname(dirname(dirname(dirname(__FILE__))))));
 require_once(HTDOCS . '/config.php');
+require_once(dirname(__DIR__) . '/lib/guide-lib.inc.php');
 
-checkFullACL(AclRoot, '', AclReadWrite);
+guide_check_admin();
 
 /* Actions */
 $action = $_POST['action'] ?? '';

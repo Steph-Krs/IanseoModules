@@ -2,8 +2,16 @@
 (function () {
   'use strict';
 
-  var LS_STATE = 'guide_state';
-  var LS_DONE  = 'guide_completed';
+  // Cloisonnement par compte (module d'authentification facultatif) : menu.php pose
+  // window.GUIDE_USER ('' sans compte). L'état fonctionnel est suffixé par utilisateur
+  // pour que deux comptes sur le même navigateur ne partagent ni formation en cours ni
+  // progression. Les préférences cosmétiques (côté, taille) restent communes.
+  var GUSER     = (typeof window.GUIDE_USER === 'string') ? window.GUIDE_USER : '';
+  var LS_SUFFIX = GUSER ? '::' + GUSER : '';
+
+  var LS_STATE = 'guide_state' + LS_SUFFIX;
+  var LS_DONE  = 'guide_completed' + LS_SUFFIX;
+  var LS_CTX   = 'guide_ctx_help' + LS_SUFFIX;
   var LS_SIDE  = 'guide_panel_side';
   var LS_WIDE  = 'guide_panel_wide';
 
@@ -1635,7 +1643,21 @@
 
   var _ctxItems = [];
 
-  function ctxEnabled() { return localStorage.getItem('guide_ctx_help') !== '0'; }
+  // Avec un compte, la préférence vient du serveur (window.GUIDE_CTX injecté par menu.php
+  // sur chaque page) : elle suit l'utilisateur d'un poste à l'autre. Sans compte, localStorage.
+  function ctxEnabled() {
+    if (GUSER && typeof window.GUIDE_CTX !== 'undefined' && window.GUIDE_CTX !== null) return window.GUIDE_CTX != 0;
+    return localStorage.getItem(LS_CTX) !== '0';
+  }
+
+  function setCtxPref(on) {
+    if (GUSER) {
+      window.GUIDE_CTX = on ? 1 : 0;
+      serverPost('pref', { ctx_help: on ? 1 : 0 });
+    } else {
+      localStorage.setItem(LS_CTX, on ? '1' : '0');
+    }
+  }
 
   function maybeContextHelp() {
     if (state && state.active) return;
@@ -1669,7 +1691,7 @@
     off.innerHTML = '<a href="#" style="font-size:11px;color:#999">Désactiver l\'aide contextuelle</a>';
     off.querySelector('a').addEventListener('click', function (e) {
       e.preventDefault();
-      localStorage.setItem('guide_ctx_help', '0');
+      setCtxPref(false);
       _ctxItems = [];
       hidePanel();
     });
@@ -1733,7 +1755,9 @@
       var head = doc.head || doc.documentElement;
 
       var sVar = doc.createElement('script');
-      sVar.textContent = 'var WebDir=' + JSON.stringify(root) + ';';
+      sVar.textContent = 'var WebDir=' + JSON.stringify(root) + ';'
+        + 'window.GUIDE_USER=' + JSON.stringify(GUSER) + ';'
+        + 'window.GUIDE_CTX=' + JSON.stringify(typeof window.GUIDE_CTX === 'undefined' ? null : window.GUIDE_CTX) + ';';
       head.appendChild(sVar);
 
       var link = doc.createElement('link');

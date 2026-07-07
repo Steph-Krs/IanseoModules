@@ -2,8 +2,9 @@
 define('HTDOCS', dirname(dirname(dirname(dirname(dirname(__FILE__))))));
 require_once(HTDOCS . '/config.php');
 require_once dirname(dirname(__DIR__)) . '/_shared/update-lib.php';
+require_once dirname(__DIR__) . '/lib/guide-lib.inc.php'; // guide_ensure_schema (schéma v3 partagé)
 
-checkFullACL(AclRoot, '', AclReadWrite);
+guide_check_admin();
 
 $PAGE_TITLE = 'Guide FFTA — Mises à jour';
 $MODULE_DIR = dirname(__DIR__);
@@ -23,26 +24,6 @@ function guide_local_formations() {
         ];
     }
     return $result;
-}
-
-function guide_ensure_schema() {
-    if (!empty($_SESSION['_guide_schema_ok'])) return;
-    $rs = safe_r_sql("SHOW TABLES LIKE 'GUIDE_Progress'");
-    if (!safe_fetch($rs)) {
-        safe_w_sql("CREATE TABLE GUIDE_Progress (
-            GpId        INT AUTO_INCREMENT PRIMARY KEY,
-            GpFormId    VARCHAR(100) NOT NULL,
-            GpFormVer   VARCHAR(20)  NOT NULL DEFAULT '1.0',
-            GpTourId    INT          NOT NULL DEFAULT 0,
-            GpStep      INT          NOT NULL DEFAULT 0,
-            GpStatus    ENUM('en_cours','termine','obsolete') NOT NULL DEFAULT 'en_cours',
-            GpValidated TEXT,
-            GpCreatedAt DATETIME NOT NULL,
-            GpUpdatedAt DATETIME NOT NULL,
-            UNIQUE KEY uq_form_tour (GpFormId, GpTourId)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    }
-    $_SESSION['_guide_schema_ok'] = true;
 }
 
 /* ---- Init ---- */

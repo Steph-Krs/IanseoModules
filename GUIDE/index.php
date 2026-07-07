@@ -219,19 +219,33 @@ foreach ($formations as $f) {
 var _guideFormVers = <?= json_encode(array_column($formations, 'version', 'id')) ?>;
 
 document.addEventListener('DOMContentLoaded', function () {
+  /* Clés localStorage suffixées par compte — mêmes clés que guide.js (GUIDE_USER via menu.php) */
+  var sfx = (typeof window.GUIDE_USER === 'string' && window.GUIDE_USER) ? '::' + window.GUIDE_USER : '';
   var lsState = null, lsDone = [];
-  try { lsState = JSON.parse(localStorage.getItem('guide_state')); } catch(e) {}
-  try { lsDone  = JSON.parse(localStorage.getItem('guide_completed')) || []; } catch(e) {}
+  try { lsState = JSON.parse(localStorage.getItem('guide_state' + sfx)); } catch(e) {}
+  try { lsDone  = JSON.parse(localStorage.getItem('guide_completed' + sfx)) || []; } catch(e) {}
 
-  /* Toggle aide contextuelle */
+  /* Toggle aide contextuelle — avec un compte : préférence serveur (suit l'utilisateur
+     d'un poste à l'autre) ; sans compte : localStorage (comportement historique) */
+  var root = (typeof WebDir !== 'undefined') ? WebDir : '/';
+  var hasUser = (typeof window.GUIDE_USER === 'string' && window.GUIDE_USER !== '');
   var ctx = document.getElementById('gd-ctx-toggle');
-  ctx.checked = localStorage.getItem('guide_ctx_help') !== '0';
+  ctx.checked = (hasUser && typeof window.GUIDE_CTX !== 'undefined' && window.GUIDE_CTX !== null)
+    ? (window.GUIDE_CTX != 0)
+    : (localStorage.getItem('guide_ctx_help' + sfx) !== '0');
   ctx.addEventListener('change', function () {
-    localStorage.setItem('guide_ctx_help', ctx.checked ? '1' : '0');
+    if (hasUser) {
+      window.GUIDE_CTX = ctx.checked ? 1 : 0;
+      var px = new XMLHttpRequest();
+      px.open('POST', root + 'Modules/Custom/GUIDE/guide-api.php?action=pref', true);
+      px.setRequestHeader('Content-Type', 'application/json');
+      px.send(JSON.stringify({ ctx_help: ctx.checked ? 1 : 0 }));
+    } else {
+      localStorage.setItem('guide_ctx_help' + sfx, ctx.checked ? '1' : '0');
+    }
   });
 
   /* Charger la progression depuis le serveur */
-  var root = (typeof WebDir !== 'undefined') ? WebDir : '/';
   var xhr  = new XMLHttpRequest();
   xhr.open('GET', root + 'Modules/Custom/GUIDE/guide-api.php?action=progress-all', true);
   xhr.onreadystatechange = function () {
