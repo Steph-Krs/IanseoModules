@@ -21,7 +21,7 @@ if ($action === 'delete' && !empty($_POST['id'])) {
     exit;
 }
 
-/* Charger les formations */
+/* Charger les contenus (formations, checklists, FAQ) */
 $formations = [];
 $dir = dirname(__DIR__) . '/content/';
 foreach (glob($dir . '*.json') as $file) {
@@ -29,14 +29,22 @@ foreach (glob($dir . '*.json') as $file) {
     if (!$data || empty($data['id'])) continue;
     $formations[] = [
         'id'          => $data['id'],
+        'type'        => $data['type'] ?? 'formation',
         'title'       => $data['title'] ?? '(sans titre)',
         'description' => $data['description'] ?? '',
+        'group'       => $data['group'] ?? '',
         'steps_count' => count($data['steps'] ?? []),
+        'has_quiz'    => !empty($data['quiz']['questions']),
+        'has_chall'   => !empty($data['challenge']['conditions']),
         'version'     => $data['version'] ?? '',
         'file'        => basename($file),
     ];
 }
-usort($formations, function ($a, $b) { return strcmp($a['title'], $b['title']); });
+usort($formations, function ($a, $b) {
+    if ($a['type'] !== $b['type']) return strcmp($a['type'], $b['type']);
+    return strcmp($a['title'], $b['title']);
+});
+$typeLabels = ['formation' => '🎓 Formation', 'checklist' => '🧰 Checklist', 'faq' => '🛟 FAQ'];
 
 $PAGE_TITLE = 'Guide FFTA — Administration';
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
@@ -63,12 +71,24 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     <button class="gadm-btn-new">+ Nouvelle formation</button>
   </a>
   &nbsp;
+  <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/edit-json.php?new=checklist">
+    <button class="gadm-btn-help">+ Checklist</button>
+  </a>
+  &nbsp;
+  <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/edit-json.php?new=faq">
+    <button class="gadm-btn-help">+ FAQ</button>
+  </a>
+  &nbsp;
+  <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/conditions.php">
+    <button class="gadm-btn-help">⚡ Conditions</button>
+  </a>
+  &nbsp;
   <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/update.php">
     <button class="gadm-btn-upd">↑ Mises à jour</button>
   </a>
   &nbsp;
   <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/help.php">
-    <button class="gadm-btn-help">❔ Aide à la création</button>
+    <button class="gadm-btn-help">❔ Aide</button>
   </a>
   &nbsp;
   <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/">← Retour au catalogue</a>
@@ -80,9 +100,10 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 <table class="gadm-table">
   <thead>
     <tr>
+      <th>Type</th>
       <th>Titre</th>
-      <th>ID</th>
-      <th>Étapes</th>
+      <th>Groupe</th>
+      <th>Contenu</th>
       <th>Version</th>
       <th>Actions</th>
     </tr>
@@ -90,15 +111,25 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   <tbody>
   <?php foreach ($formations as $f): ?>
     <tr>
+      <td class="gadm-meta"><?= $typeLabels[$f['type']] ?? htmlspecialchars($f['type']) ?></td>
       <td>
         <strong><?= htmlspecialchars($f['title']) ?></strong><br>
         <span class="gadm-meta"><?= htmlspecialchars($f['description']) ?></span>
       </td>
-      <td class="gadm-meta"><?= htmlspecialchars($f['id']) ?></td>
-      <td><?= $f['steps_count'] ?></td>
+      <td class="gadm-meta"><?= htmlspecialchars($f['group']) ?></td>
+      <td class="gadm-meta"><?php
+        if ($f['type'] === 'formation') {
+            echo $f['steps_count'] . ' étapes';
+            if ($f['has_quiz'])  echo ' · QCM';
+            if ($f['has_chall']) echo ' · Défi';
+        } else {
+            echo htmlspecialchars($f['id']);
+        }
+      ?></td>
       <td class="gadm-meta"><?= htmlspecialchars($f['version']) ?></td>
       <td>
-        <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/edit.php?id=<?= urlencode($f['id']) ?>">
+        <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/<?=
+          $f['type'] === 'formation' ? 'edit.php' : 'edit-json.php' ?>?id=<?= urlencode($f['id']) ?>">
           <button class="gadm-btn gadm-btn-edit">Éditer</button>
         </a>
         &nbsp;

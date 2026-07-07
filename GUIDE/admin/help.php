@@ -44,6 +44,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     <li><a href="#selecteurs">7. Trouver un sélecteur CSS</a></li>
     <li><a href="#enregistrer">8. Enregistrer les triggers automatiquement</a></li>
     <li><a href="#options">9. Options d'étape</a></li>
+    <li><a href="#activites">10. QCM et Défi (cibles bronze/argent/or)</a></li>
+    <li><a href="#parcours">11. Parcours, checklists, FAQ, aide contextuelle</a></li>
   </ul>
 </div>
 
@@ -143,6 +145,14 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   alors. Cette page <b>peut être différente</b> de la page de l'étape. Tant que l'utilisateur
   n'y est pas, l'étape reste bloquée et le lien « Aller sur la page → » s'affiche.
 </p>
+<p>
+  Autre condition intégrée : <b>🔎 Présence / absence d'un élément</b>. On indique un
+  <b>sélecteur CSS</b> (les sélecteurs dynamiques <code>[id^="…"]</code> fonctionnent) et si
+  l'élément doit être <b>présent</b> ou <b>absent</b> à l'écran. Utile pour attendre l'apparition
+  d'un message de confirmation, l'ouverture d'une fenêtre, la disparition d'un chargement, etc.
+  La condition est <b>re-vérifiée automatiquement</b> (l'élément peut apparaître ou disparaître
+  sans rechargement de page).
+</p>
 
 <div class="help-note">
   <b>Le sélecteur <code>*</code> pour la page</b> fonctionne aussi bien au niveau de la
@@ -181,6 +191,23 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   Astuce : dans l'inspecteur, clic droit sur la ligne de l'élément → <b>Copier</b> → <b>Copier le sélecteur</b>.
 </div>
 
+<h3>Sélecteurs dynamiques (id qui change à chaque fois)</h3>
+<p>
+  Certains id ianseo contiennent un numéro d'enregistrement qui change selon le participant ou la
+  compétition (ex. <code>#d_q_QuSession_25360</code>, <code>#d_QuD1Score_25360</code>). Un sélecteur
+  exact ne fonctionnerait qu'une fois. Utilisez un <b>sélecteur par préfixe</b> :
+</p>
+<ul>
+  <li><code>[id^="d_q_QuSession_"]</code> — id qui <b>commence par</b> ce préfixe ;</li>
+  <li><code>[id$="_suffixe"]</code> — id qui <b>finit par</b> ; <code>[id*="milieu"]</code> — id qui <b>contient</b>.</li>
+</ul>
+<p>
+  Le trigger se déclenche alors sur <b>n'importe quel</b> élément correspondant (ex. la case Session de
+  n'importe quel participant), et la flèche indique le premier trouvé.
+  L'<b>enregistreur de triggers</b> détecte automatiquement ces id à suffixe numérique et génère
+  le sélecteur par préfixe à votre place.
+</p>
+
 <h2 id="enregistrer">8. Enregistrer les triggers automatiquement</h2>
 <p>
   Plutôt que de saisir les sélecteurs à la main, le bouton <b>🔴 Enregistrer les triggers</b>
@@ -206,6 +233,41 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   <tr><td><b>Facultatif</b></td><td>Affiche un bouton « Marquer comme fait » : l'utilisateur peut valider l'étape lui-même sans réaliser l'action.</td></tr>
   <tr><td><b>Non-permissif</b></td><td>Bloque tout clic <b>hors</b> de l'élément attendu : l'utilisateur ne peut interagir qu'avec la cible. Le panneau clignote en rouge si un clic est bloqué.</td></tr>
 </table>
+
+<h2 id="activites">10. QCM et Défi — cibles bronze / argent / or</h2>
+<p>
+  Chaque formation peut proposer jusqu'à <b>trois activités</b> : le <b>guide</b> pas-à-pas, un
+  <b>QCM</b> et un <b>défi</b>. À la fin du guide, l'utilisateur est invité à enchaîner sur le QCM,
+  puis le défi, puis la formation suivante. Chaque activité réussie fait progresser la distinction :
+</p>
+<table>
+  <tr><th>Distinction</th><th>Condition</th></tr>
+  <tr><td>🎯 Cible de bronze</td><td>Guide terminé</td></tr>
+  <tr><td>🎯 Cible d'argent</td><td>Guide + une autre activité</td></tr>
+  <tr><td>🎯 Cible d'or</td><td>Toutes les activités disponibles réussies</td></tr>
+</table>
+<ul>
+  <li><b>QCM</b> (section « 📝 QCM » de l'éditeur) : questions à 2-4 choix, <b>une ou plusieurs</b>
+      bonnes réponses cochées (l'utilisateur doit alors sélectionner exactement les bonnes), explication
+      optionnelle, score minimal (70 % par défaut), option d'affichage des réponses en <b>ordre aléatoire</b>.</li>
+  <li><b>Défi</b> (section « 🎯 Défi ») : une consigne, et des <b>conditions d'état</b> qui vérifient
+      le résultat dans ianseo (l'utilisateur agit sans aucune aide). Les conditions se créent dans le
+      <b>constructeur de conditions</b> (bouton ⚡ de l'administration), avec un test en direct sur la
+      compétition ouverte.</li>
+</ul>
+
+<h2 id="parcours">11. Parcours, checklists, FAQ, aide contextuelle</h2>
+<ul>
+  <li><b>Parcours</b> : les champs <b>Groupe</b>, <b>Sous-groupe</b> et <b>Ordre</b> de la formation
+      organisent le catalogue en sections ordonnées. La « formation suivante » proposée en fin de
+      formation suit cet ordre.</li>
+  <li><b>Checklists</b> : quelques questions à boutons, puis une liste de tâches adaptée aux réponses.
+      Les items avec une condition se cochent automatiquement. Création via « + Checklist » (édition JSON).</li>
+  <li><b>FAQ interactive</b> : un arbre question → réponses → solution, pour guider le dépannage.
+      Création via « + FAQ » (édition JSON).</li>
+  <li><b>Aide contextuelle</b> : activée par défaut, le bouton flottant 🎯 signale (pastille orange)
+      les contenus liés à la page ianseo affichée. Désactivable depuis le catalogue ou le panneau.</li>
+</ul>
 
 <div class="help-note" style="margin-top:24px">
   Une fois la formation prête, enregistrez-la. Elle apparaît immédiatement dans le catalogue

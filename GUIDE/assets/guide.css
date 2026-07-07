@@ -13,7 +13,8 @@
   box-shadow: 0 8px 40px rgba(8, 44, 124, 0.22), 0 2px 12px rgba(0,0,0,.08);
   display: flex;
   flex-direction: column;
-  z-index: 9999;
+  /* Très haut : les fenêtres internes ianseo (recherche, dialogs) montent au-dessus de 10000 */
+  z-index: 2147483000;
   font-family: "Poppins", "PoppinsFallback", "Helvetica", sans-serif;
   font-size: 13px;
   overflow: hidden;
@@ -28,6 +29,13 @@
 #guide-panel.guide-panel-wide {
   width: 720px;
   max-width: calc(100vw - 40px);
+}
+
+/* Réduction exceptionnelle (le temps d'un trigger) quand le panneau couvre l'élément des deux côtés.
+   Déclaré après .guide-panel-wide pour l'emporter si les deux classes coexistent. */
+#guide-panel.guide-panel-half {
+  width: 190px;
+  max-height: 42vh;
 }
 
 /* ---- Header ---- */
@@ -344,7 +352,7 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: .4px;
-  z-index: 9998;
+  z-index: 2147482900;
   display: none;
   box-shadow: 0 4px 18px rgba(8, 44, 124, 0.4);
   transition: all .2s;
@@ -378,7 +386,8 @@
 /* Flèche indicatrice + bulle hint positionnées par JS */
 #guide-highlight-arrow {
   position: fixed;
-  z-index: 9996;
+  /* Au-dessus des fenêtres internes ianseo ET du panneau (qui s'écarte automatiquement) */
+  z-index: 2147483100;
   pointer-events: none;
   text-align: left;
   animation: guide-bounce .8s ease-in-out infinite alternate;
@@ -426,6 +435,107 @@
 }
 #guide-panel.guide-panel-flash { animation: guide-panel-flash .4s ease; }
 
+/* ===== Vues du panneau : boutons d'action (fin, QCM, défi, checklist, FAQ) ===== */
+.guide-cta {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid #c8d4ec;
+  background: #fff;
+  color: #2a2f5a;
+  font-family: "Poppins", "Helvetica", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: all .15s;
+}
+.guide-cta:hover:not(:disabled) { border-color: #0254a8; background: #eef4ff; color: #0254a8; }
+.guide-cta-main {
+  background: linear-gradient(80deg, #0254a8 10%, #082c7c 100%) !important;
+  color: #fff !important;
+  border: none !important;
+}
+.guide-cta-main:hover:not(:disabled) { opacity: .9; }
+.guide-cta-ghost { background: #f7f9ff; color: #666; font-weight: 500; }
+
+/* QCM */
+.guide-quiz-good { border-color: #1a8a4a !important; background: #e8faf0 !important; color: #1a5a33 !important; opacity: 1 !important; }
+.guide-quiz-bad  { border-color: #c0392b !important; background: #fdecea !important; color: #8a1a1a !important; opacity: 1 !important; }
+.guide-quiz-choice:disabled { opacity: .55; cursor: default; }
+.guide-quiz-fb {
+  padding: 8px 10px;
+  border-radius: 0 6px 6px 0;
+  font-size: 12px;
+  margin: 8px 0;
+  line-height: 1.5;
+}
+.guide-quiz-fb.ok { background: #e8faf0; border-left: 3px solid #1a8a4a; color: #1a5a33; }
+.guide-quiz-fb.ko { background: #fdecea; border-left: 3px solid #c0392b; color: #8a1a1a; }
+
+/* Défi */
+.guide-defi-cond {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 7px 9px;
+  margin: 5px 0;
+  background: #f7f9ff;
+  border: 1px solid #e6e9f5;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.guide-defi-cond.met { background: #e8faf0; border-color: #bfe8d0; }
+.guide-defi-hint { font-size: 11px; color: #999; margin: 6px 0 0; }
+
+/* Checklist */
+.guide-ck-item {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 7px 4px;
+  border-bottom: 1px dashed #eef0f8;
+  font-size: 12.5px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+.guide-ck-item input { margin-top: 2px; flex-shrink: 0; }
+.guide-ck-item.done span { color: #999; text-decoration: line-through; }
+.guide-ck-item.done span a { text-decoration: none; }
+.guide-ck-link { color: #0254a8 !important; font-weight: 700; text-decoration: none !important; }
+
+/* FAQ */
+.guide-faq-sol {
+  background: #eef4ff;
+  border-left: 3px solid #0254a8;
+  padding: 9px 11px;
+  border-radius: 0 6px 6px 0;
+  font-size: 12.5px;
+  margin-bottom: 8px;
+  line-height: 1.55;
+}
+
+/* Badges cibles */
+.guide-badge-bronze { color: #a05a2c; }
+.guide-badge-argent { color: #7a828e; }
+.guide-badge-or     { color: #b8860b; }
+
+/* FAB avec pastille d'aide contextuelle */
+#guide-fab.guide-fab-ctx::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 6px;
+  width: 9px;
+  height: 9px;
+  background: #f5a623;
+  border: 2px solid #fff;
+  border-radius: 50%;
+}
+
 /* ===== Enregistreur de triggers ===== */
 #guide-rec {
   position: fixed;
@@ -439,7 +549,7 @@
   box-shadow: 0 8px 40px rgba(192,57,43,.28), 0 2px 12px rgba(0,0,0,.1);
   display: flex;
   flex-direction: column;
-  z-index: 10000;
+  z-index: 2147483200;
   font-family: "Poppins", "PoppinsFallback", "Helvetica", sans-serif;
   font-size: 13px;
   overflow: hidden;
@@ -501,7 +611,36 @@
 .guide-rec-btn-done { background: #1a8a4a; color: #fff; border: none; }
 .guide-rec-btn-done:hover { background: #157a40; color: #fff; }
 
+/* ===== Bannière "Apprendre à utiliser ianseo" (accueil sans compétition) ===== */
+#guide-learn-banner { margin: 14px 0 20px; }
+#guide-learn-banner a {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 640px;
+  padding: 18px 26px;
+  background: linear-gradient(80deg, #0254a8 10%, #082c7c 100%);
+  color: #fff !important;
+  border-radius: 14px;
+  text-decoration: none !important;
+  font-family: "Poppins", "PoppinsFallback", "Helvetica", sans-serif;
+  box-shadow: 0 6px 26px rgba(8, 44, 124, 0.35);
+  transition: transform .15s, box-shadow .15s;
+}
+#guide-learn-banner a:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(8, 44, 124, 0.45); }
+#guide-learn-banner .glb-emoji { font-size: 34px; flex-shrink: 0; }
+#guide-learn-banner .glb-txt b { display: block; font-size: 19px; letter-spacing: .3px; }
+#guide-learn-banner .glb-txt span { font-size: 12.5px; opacity: .85; }
+#guide-learn-banner .glb-arrow { margin-left: auto; font-size: 26px; opacity: .8; }
+
+/* Choix sélectionné (QCM à réponses multiples, avant validation) */
+.guide-quiz-choice.sel {
+  border-color: #0254a8 !important;
+  background: #dcebff !important;
+  color: #082c7c !important;
+}
+
 @media print {
-  #guide-panel, #guide-fab, #guide-highlight-arrow { display: none !important; }
+  #guide-panel, #guide-fab, #guide-highlight-arrow, #guide-learn-banner { display: none !important; }
   .guide-highlight { animation: none !important; box-shadow: none !important; }
 }

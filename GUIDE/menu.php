@@ -59,6 +59,40 @@ $_gvj  = filemtime($_gdir . 'guide.js');
 
 <button id="guide-fab" style="display:none">🎯 Guide FFTA</button>
 
+<?php
+/* Bannière "Apprendre" : page d'accueil ianseo + AUCUNE compétition en base (nouvel utilisateur).
+   Dès qu'au moins une compétition existe, la bannière disparaît. */
+$_gIsHome = isset($_SERVER['SCRIPT_NAME'])
+    && $_SERVER['SCRIPT_NAME'] === rtrim($CFG->ROOT_DIR, '/') . '/index.php';
+$_gNoTour = false;
+if ($_gIsHome) {
+    $_gRs  = safe_r_sql("SELECT COUNT(*) AS cnt FROM Tournament");
+    $_gRow = safe_fetch($_gRs);
+    $_gNoTour = (!$_gRow || (int)$_gRow->cnt === 0);
+}
+if ($_gNoTour):
+?>
+<div id="guide-learn-banner" style="display:none">
+  <a href="<?= $_gr ?>Modules/Custom/GUIDE/">
+    <span class="glb-emoji">🎯</span>
+    <span class="glb-txt">
+      <b>Apprendre à utiliser ianseo</b>
+      <span>Formations interactives pas-à-pas, QCM et défis — Guide FFTA</span>
+    </span>
+    <span class="glb-arrow">→</span>
+  </a>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var b = document.getElementById('guide-learn-banner');
+  if (!b) return;
+  var c = document.getElementById('Content') || document.body;
+  c.insertBefore(b, c.firstChild);
+  b.style.display = 'block';
+});
+</script>
+<?php endif; ?>
+
 <div id="guide-rec" style="display:none">
   <div id="guide-rec-header">
     <span class="guide-rec-dot"></span>

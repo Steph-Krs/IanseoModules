@@ -77,14 +77,33 @@
          ' active=' + (state && state.active) + ' validated=' + (state && state.validated ? Object.keys(state.validated).join(',') : '-'));
 
     // Sync état local → serveur au chargement (rattrape les navigations interrompues)
-    if (state && state.active && state.gp_id) {
+    if (state && state.active && state.gp_id && (!state.mode || state.mode === 'guide')) {
       serverPost('update', {
         gp_id: state.gp_id, step: state.step_index || 0,
         status: 'en_cours', validated: state.validated || {}
       }, null);
     }
 
-    if (state && state.active && state.formation_id) {
+    if (state && state.active && state.mode === 'quiz' && state.formation_id) {
+      fetchFormation(state.formation_id, function (f) {
+        formation = f;
+        if (!formation || !formation.quiz) { resetState(); showFabIfNeeded(); return; }
+        renderQuiz(); showPanel();
+      });
+    } else if (state && state.active && state.mode === 'defi' && state.formation_id) {
+      fetchFormation(state.formation_id, function (f) {
+        formation = f;
+        if (!formation || !formation.challenge) { resetState(); showFabIfNeeded(); return; }
+        renderChallenge(); showPanel();
+      });
+    } else if (state && state.active && (state.mode === 'checklist' || state.mode === 'faq') && state.tool_id) {
+      fetchFormation(state.tool_id, function (f) {
+        formation = f;
+        if (!formation) { resetState(); showFabIfNeeded(); return; }
+        if (state.mode === 'checklist') renderChecklist(); else renderFaq();
+        showPanel();
+      });
+    } else if (state && state.active && state.formation_id) {
       fetchFormation(state.formation_id, function (f) {
         formation = f;
         if (!formation) { resetState(); showFabIfNeeded(); return; }
@@ -93,7 +112,7 @@
         showPanel();
       });
     } else {
-      showFabIfNeeded();
+      maybeContextHelp();
     }
   }
 
@@ -298,28 +317,32 @@
       localStorage.setItem(LS_DONE, JSON.stringify(done));
     }
     clearHighlight(); clearTrigger();
-    state.active = false;
-    saveState();
     serverPost('update', {
       gp_id: state.gp_id, step: state.step_index || 0,
       status: 'termine', validated: state.validated || {}
     }, null);
-    formation = null;
-    hidePanel(); showFabIfNeeded();
-    alert('Félicitations ! Formation terminée.\nVous pouvez en démarrer une autre depuis le catalogue.');
+    state.active = false;
+    state.mode = null;
+    saveState();
+    renderCompletionView(); // le panneau reste ouvert : QCM / défi / formation suivante
   }
 
   function stopFormation() {
-    if (!confirm('Quitter la formation ?\nVotre progression est sauvegardée — vous pourrez reprendre ici.')) return;
+    if (!state || !state.active) { formation = null; hidePanel(); return; }
+    var isTool = (state.mode === 'checklist' || state.mode === 'faq' || state.mode === 'quiz' || state.mode === 'defi');
+    var msg = isTool
+      ? 'Fermer ?\nVotre progression locale est conservée.'
+      : 'Quitter la formation ?\nVotre progression est sauvegardée — vous pourrez reprendre ici.';
+    if (!confirm(msg)) return;
     clearHighlight(); clearTrigger(); clearTourWarning();
-    if (state && state.gp_id) {
+    if (!isTool && state.gp_id) {
       serverPost('update', {
         gp_id: state.gp_id, step: state.step_index || 0,
         status: 'en_cours', validated: state.validated || {}
       }, null);
     }
     resetState(); formation = null;
-    hidePanel(); showFabIfNeeded();
+    hidePanel();
   }
 
   /* ===== Validation d'une étape ===== */
@@ -458,6 +481,7 @@
           clearConditionWait();
         } else {
           showConditionWait(label);
+          if (t.condition === '__css') startEtatPoll(step, t); // élément dynamique → re-vérifie
         }
       });
       return;
@@ -561,6 +585,7 @@
 
   function clearTrigger() {
     if (_triggerOff) { _triggerOff(); _triggerOff = null; }
+    stopEtatPoll();
     disableStrictClick();
   }
 
@@ -577,6 +602,7 @@
 
   function renderStep() {
     if (!formation || !state) return;
+    showNav(true);
     var step  = formation.steps[state.step_index];
     var total = formation.steps.length;
     var idx   = state.step_index;
@@ -634,10 +660,39 @@
     if (t.condition === '__page') {
       var page = t.page || step.page || null;
       cb(isOnRightPage(page), 'Vous devez être sur la page : ' + (page || '(non définie)'));
+    } else if (t.condition === '__css') {
+      var present = cssElementVisible(t.selector);
+      var met = t.absent ? !present : present;
+      var label = t.hint || (t.absent
+        ? 'En attente : l\'élément indiqué doit disparaître.'
+        : 'En attente : l\'élément indiqué doit apparaître à l\'écran.');
+      cb(met, label);
     } else {
       checkCondition(t.condition || '', cb);
     }
   }
+
+  // Présence "visible à l'écran" d'un sélecteur (gère les sélecteurs dynamiques [id^="…"]).
+  function cssElementVisible(selector) {
+    if (!selector) return false;
+    try {
+      var el = document.querySelector(selector);
+      return !!(el && isElementVisible(el));
+    } catch (e) { return false; }
+  }
+
+  // Polling d'un état client (__css) : l'élément peut apparaître/disparaître sans rechargement.
+  var _etatPoll = null;
+  function startEtatPoll(step, t) {
+    stopEtatPoll();
+    _etatPoll = setInterval(function () {
+      if (!state || !formation || formation.steps[state.step_index] !== step) { stopEtatPoll(); return; }
+      evaluateEtat(step, t, function (met) {
+        if (met) { stopEtatPoll(); clearConditionWait(); onTriggerFired(step); }
+      });
+    }, 700);
+  }
+  function stopEtatPoll() { if (_etatPoll) { clearInterval(_etatPoll); _etatPoll = null; } }
 
   // Re-validation d'un état en tenant compte de sa condition d'activation :
   // une branche non prise (gate faux) ne doit pas pouvoir dé-valider l'étape.
@@ -749,6 +804,8 @@
     var handler = function (e) {
       var panel = document.getElementById('guide-panel');
       if (panel && panel.contains(e.target)) return;
+      // Ne jamais bloquer les contrôles du guide lui-même (FAB, recorder)
+      if (e.target.closest && e.target.closest('#guide-fab, #guide-rec')) return;
       try { if (e.target.closest && e.target.closest(selector)) return; } catch (ex) {}
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -795,6 +852,53 @@
     container.style.left = (rect.left + rect.width / 2 - 11) + 'px';
     document.body.appendChild(container);
     _arrow = container;
+    avoidPanelOverlap(el);
+  }
+
+  // Empêche le panneau de recouvrir l'ÉLÉMENT indiqué (on ignore la flèche).
+  // Règle : élément à l'intérieur du panneau → bascule de côté ; si toujours à l'intérieur
+  // après bascule → réduit exceptionnellement le panneau de moitié, le temps du trigger.
+  // On calcule la position FINALE du panneau (indépendante de l'animation de bascule).
+  var _panelDodged = false;
+  var _panelShrunk = false;
+
+  function rectsOverlap(a, b) {
+    return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+  }
+
+  // Rectangle qu'occuperait le panneau pour un côté donné (ancré en bas, marge 20px).
+  function panelSideRect(side, w, h) {
+    var vw = window.innerWidth  || document.documentElement.clientWidth;
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    var bottom = vh - 20;
+    var top    = Math.max(20, bottom - h);
+    return (side === 'left')
+      ? { left: 20,          right: 20 + w,     top: top, bottom: bottom }
+      : { left: vw - 20 - w, right: vw - 20,    top: top, bottom: bottom };
+  }
+
+  function avoidPanelOverlap(el) {
+    if (!panel || panel.style.display === 'none') return;
+    var elRect = el.getBoundingClientRect();
+    var pr = panel.getBoundingClientRect();
+    var w = pr.width || 360, h = pr.height || 300;
+    var side = panel.classList.contains('guide-panel-left') ? 'left' : 'right';
+
+    // 1) L'élément est-il à l'intérieur du panneau (à sa position finale) ?
+    if (!rectsOverlap(panelSideRect(side, w, h), elRect)) return;
+
+    // 2) Déplacer de l'autre côté (une seule fois)
+    if (!_panelDodged) {
+      _panelDodged = true;
+      side = (side === 'right') ? 'left' : 'right';
+      applyPanelSide(side); // visuel seulement, non sauvegardé
+    }
+
+    // 3) Toujours à l'intérieur après déplacement → réduire de moitié (une seule fois)
+    if (!_panelShrunk && rectsOverlap(panelSideRect(side, w, h), elRect)) {
+      _panelShrunk = true;
+      panel.classList.add('guide-panel-half');
+    }
   }
 
   function removeArrow() {
@@ -806,6 +910,8 @@
   function clearHighlight() {
     stopVisibilityWatch();
     _curSelector = null;
+    if (_panelShrunk) { _panelShrunk = false; if (panel) panel.classList.remove('guide-panel-half'); }
+    if (_panelDodged) { _panelDodged = false; applyPanelSide(loadSide()); }
     if (_highlighted) { _highlighted.classList.remove('guide-highlight'); _highlighted = null; }
     _hint = '';
     removeArrow();
@@ -844,24 +950,51 @@
   }
 
   function showPanel() { panel.style.display = 'flex'; if (fab) fab.style.display = 'none'; }
-  function hidePanel()  { panel.style.display = 'none'; clearHighlight(); showFabIfNeeded(); }
+
+  // Réduire = PAUSE : on détache le trigger actif ET le mode non-permissif (sinon le blocage
+  // des clics empêcherait même de rouvrir via le FAB). Rouvrir (FAB) ré-attache tout (play).
+  function hidePanel() {
+    panel.style.display = 'none';
+    clearHighlight();
+    clearTrigger();
+    showFabIfNeeded();
+    if (!state || !state.active) maybeContextHelp();
+  }
 
   function showFabIfNeeded() {
     if (!fab) return;
-    fab.style.display = (state && state.active) ? 'flex' : 'none';
+    if (state && state.active) {
+      fab.style.display = 'flex';
+      fab.classList.remove('guide-fab-ctx');
+      return;
+    }
+    if (_ctxItems && _ctxItems.length && ctxEnabled()) {
+      fab.style.display = 'flex';
+      fab.classList.add('guide-fab-ctx');
+      return;
+    }
+    fab.style.display = 'none';
+  }
+
+  function renderCurrentMode() {
+    if (state.mode === 'quiz')           renderQuiz();
+    else if (state.mode === 'defi')      renderChallenge();
+    else if (state.mode === 'checklist') renderChecklist();
+    else if (state.mode === 'faq')       renderFaq();
+    else                                 renderStep();
   }
 
   function onFabClick() {
-    if (state && state.active && formation) {
-      renderStep(); showPanel();
-    } else if (state && state.active && state.formation_id) {
-      fetchFormation(state.formation_id, function (f) {
+    if (state && state.active) {
+      if (formation) { renderCurrentMode(); showPanel(); return; }
+      fetchFormation(state.tool_id || state.formation_id, function (f) {
         formation = f;
-        if (formation) { renderStep(); showPanel(); }
+        if (formation) { renderCurrentMode(); showPanel(); }
       });
-    } else {
-      window.location.href = buildUrl('/Modules/Custom/GUIDE/');
+      return;
     }
+    if (_ctxItems && _ctxItems.length) { renderContextPanel(); showPanel(); return; }
+    window.location.href = buildUrl('/Modules/Custom/GUIDE/');
   }
 
   /* ===== Sync serveur ===== */
@@ -1012,6 +1145,536 @@
     return String(s)
       .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
       .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /* ===== Vues du panneau (QCM, défi, checklist, FAQ, fin de formation) ===== */
+
+  function showNav(show) {
+    var n = document.getElementById('guide-panel-nav');
+    if (n) n.style.display = show ? 'flex' : 'none';
+  }
+
+  // Remplit le panneau avec une vue non-guide : masque les zones spécifiques au guide.
+  function setPanelView(titleText, contentNode, progressText) {
+    clearHighlight();
+    var img = document.getElementById('guide-panel-step-image');
+    if (img) { img.style.display = 'none'; img.innerHTML = ''; }
+    var pageInfo = document.getElementById('guide-panel-page-info');
+    if (pageInfo) { pageInfo.style.display = 'none'; pageInfo.innerHTML = ''; }
+    var vw = document.getElementById('guide-panel-validate');
+    if (vw) vw.style.display = 'none';
+    showNav(false);
+    clearTourWarning();
+    document.getElementById('guide-panel-formation-name').textContent = formation ? (formation.title || '') : '';
+    document.getElementById('guide-panel-progress-text').textContent  = progressText || '';
+    document.getElementById('guide-panel-progress-fill').style.width  = '0%';
+    document.getElementById('guide-panel-step-title').textContent     = titleText || '';
+    var c = document.getElementById('guide-panel-step-content');
+    c.innerHTML = '';
+    if (contentNode) c.appendChild(contentNode);
+  }
+
+  function ctaBtn(html, cls, onClick) {
+    var b = document.createElement('button');
+    b.className = 'guide-cta' + (cls ? ' ' + cls : '');
+    b.innerHTML = html;
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function fetchNextFormation(fid, cb) {
+    var url = apiRoot() + 'Modules/Custom/GUIDE/guide-api.php?action=next&f=' + encodeURIComponent(fid);
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      try { var d = JSON.parse(xhr.responseText); cb(d && d.next ? d.next : null); }
+      catch (e) { cb(null); }
+    };
+    xhr.send();
+  }
+
+  function hasQuiz(f)      { return !!(f && f.quiz && f.quiz.questions && f.quiz.questions.length); }
+  function hasChallenge(f) { return !!(f && f.challenge && f.challenge.conditions && f.challenge.conditions.length); }
+
+  // Badge cible : niveau selon les activités réussies parmi celles disponibles
+  function badgeLevel(f, srv) {
+    var avail = 1 + (hasQuiz(f) ? 1 : 0) + (hasChallenge(f) ? 1 : 0);
+    var done  = 1 + ((srv && srv.quiz) ? 1 : 0) + ((srv && srv.challenge) ? 1 : 0);
+    if (done > avail) done = avail;
+    if (done >= avail) return 'or';
+    return done >= 2 ? 'argent' : 'bronze';
+  }
+
+  function badgeHtml(lvl) {
+    var label = lvl === 'or' ? "Cible d'or" : (lvl === 'argent' ? "Cible d'argent" : 'Cible de bronze');
+    return '<b class="guide-badge-' + lvl + '">🎯 ' + label + '</b>';
+  }
+
+  function updateDoneBadge(fid) {
+    fetchServerProgress(fid, function (s) {
+      var el = document.getElementById('guide-done-badge');
+      if (!el || !formation) return;
+      var lvl = badgeLevel(formation, s);
+      el.innerHTML = 'Distinction : ' + badgeHtml(lvl) +
+        (lvl !== 'or' ? '<br><span style="font-size:11px;color:#888">Réussissez toutes les activités pour la cible d\'or.</span>' : '');
+    });
+  }
+
+  /* ---- Écran de fin de guide ---- */
+
+  function renderCompletionView() {
+    var f = formation;
+    if (!f) return;
+    var wrap = document.createElement('div');
+    var p = document.createElement('p');
+    p.innerHTML = '<b>Félicitations !</b> Vous avez terminé le guide de cette formation.';
+    wrap.appendChild(p);
+    var badge = document.createElement('p');
+    badge.id = 'guide-done-badge';
+    wrap.appendChild(badge);
+    if (hasQuiz(f))      wrap.appendChild(ctaBtn('📝 Passer au QCM', 'guide-cta-main', function () { GuideStartQuiz(f.id); }));
+    if (hasChallenge(f)) wrap.appendChild(ctaBtn('🎯 Relever le défi', hasQuiz(f) ? '' : 'guide-cta-main', function () { GuideStartChallenge(f.id); }));
+    var nextHolder = document.createElement('div');
+    wrap.appendChild(nextHolder);
+    wrap.appendChild(ctaBtn('🏠 Retour au catalogue', 'guide-cta-ghost', function () { window.location.href = buildUrl('/Modules/Custom/GUIDE/'); }));
+    setPanelView('🎉 Formation terminée !', wrap, f.title);
+    document.getElementById('guide-panel-progress-fill').style.width = '100%';
+    updateDoneBadge(f.id);
+    fetchNextFormation(f.id, function (n) {
+      if (n) nextHolder.appendChild(ctaBtn('▶ Formation suivante : ' + esc(n.title), (hasQuiz(f) || hasChallenge(f)) ? '' : 'guide-cta-main', function () { GuideStart(n.id); }));
+    });
+  }
+
+  /* ---- QCM ---- */
+
+  window.GuideStartQuiz = function (fid) {
+    clearHighlight(); clearTrigger();
+    fetchFormation(fid, function (f) {
+      if (!f || !hasQuiz(f)) { alert('Pas de QCM pour cette formation.'); return; }
+      formation = f;
+      state = { active: true, formation_id: fid, mode: 'quiz', qi: 0, qok: 0 };
+      saveState();
+      renderQuiz(); showPanel();
+    });
+  };
+
+  // 'correct' : index (héritage) ou tableau d'index (réponses multiples)
+  function quizCorrectSet(q) {
+    return Array.isArray(q.correct) ? q.correct.slice() : [q.correct || 0];
+  }
+
+  function shuffleArr(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function renderQuiz() {
+    var qs = formation.quiz.questions;
+    var i  = state.qi || 0;
+    if (i >= qs.length) { renderQuizResult(); return; }
+    var q       = qs[i];
+    var correct = quizCorrectSet(q);
+    var multi   = correct.length > 1;
+    var wrap    = document.createElement('div');
+
+    if (multi) {
+      var note = document.createElement('p');
+      note.style.cssText = 'font-size:11px;color:#7c5cbf;margin:0 0 6px';
+      note.textContent = '☑ Plusieurs réponses possibles — sélectionnez puis validez.';
+      wrap.appendChild(note);
+    }
+
+    // Ordre d'affichage (aléatoire si demandé), chaque bouton garde son index d'origine
+    var order = (q.choices || []).map(function (_, k) { return k; });
+    if (formation.quiz.shuffle) shuffleArr(order);
+
+    order.forEach(function (orig) {
+      var b = ctaBtn(esc(q.choices[orig]), 'guide-quiz-choice', function () {
+        if (wrap._answered) return;
+        if (multi) { b._sel = !b._sel; b.classList.toggle('sel', b._sel); }
+        else answerQuiz([orig], wrap, q, correct);
+      });
+      b._orig = orig;
+      wrap.appendChild(b);
+    });
+
+    if (multi) {
+      wrap.appendChild(ctaBtn('Valider la réponse ✓', 'guide-cta-main', function () {
+        if (wrap._answered) return;
+        var sel = [];
+        var btns = wrap.querySelectorAll('.guide-quiz-choice');
+        for (var k = 0; k < btns.length; k++) if (btns[k]._sel) sel.push(btns[k]._orig);
+        if (!sel.length) return; // toujours au moins une réponse
+        answerQuiz(sel, wrap, q, correct);
+      }));
+    }
+
+    setPanelView(q.q || '', wrap, 'QCM — Question ' + (i + 1) + ' / ' + qs.length);
+    document.getElementById('guide-panel-progress-fill').style.width = Math.round(i / qs.length * 100) + '%';
+  }
+
+  function answerQuiz(selected, wrap, q, correct) {
+    if (wrap._answered) return;
+    wrap._answered = true;
+    // Bonne réponse = exactement l'ensemble des réponses correctes
+    var ok = selected.length === correct.length && selected.every(function (s) { return correct.indexOf(s) !== -1; });
+    if (ok) state.qok = (state.qok || 0) + 1;
+    var btns = wrap.querySelectorAll('.guide-quiz-choice');
+    for (var k = 0; k < btns.length; k++) {
+      var b = btns[k];
+      b.disabled = true;
+      if (correct.indexOf(b._orig) !== -1) b.classList.add('guide-quiz-good');
+      else if (selected.indexOf(b._orig) !== -1) b.classList.add('guide-quiz-bad');
+      b.classList.remove('sel');
+    }
+    var fb = document.createElement('div');
+    fb.className = 'guide-quiz-fb ' + (ok ? 'ok' : 'ko');
+    fb.innerHTML = (ok ? '✅ Bonne réponse !' : '❌ Mauvaise réponse.') + (q.explain ? '<br>' + esc(q.explain) : '');
+    wrap.appendChild(fb);
+    var isLast = (state.qi || 0) >= formation.quiz.questions.length - 1;
+    wrap.appendChild(ctaBtn(isLast ? 'Voir le résultat ▶' : 'Question suivante ▶', 'guide-cta-main', function () {
+      state.qi = (state.qi || 0) + 1;
+      saveState();
+      renderQuiz();
+    }));
+    saveState();
+  }
+
+  function renderQuizResult() {
+    var f     = formation;
+    var total = f.quiz.questions.length;
+    var ok    = state.qok || 0;
+    var score = Math.round(ok / total * 100);
+    var pass  = f.quiz.pass_score || 70;
+    var passed = score >= pass;
+    var wrap = document.createElement('div');
+    var p = document.createElement('p');
+    if (passed) {
+      p.innerHTML = '✅ <b>QCM réussi !</b> Score : ' + score + '% (' + ok + '/' + total + ').';
+      wrap.appendChild(p);
+      var badge = document.createElement('p');
+      badge.id = 'guide-done-badge';
+      wrap.appendChild(badge);
+      serverPost('activity', { formation_id: f.id, activity: 'quiz' }, function () { updateDoneBadge(f.id); });
+      if (hasChallenge(f)) wrap.appendChild(ctaBtn('🎯 Relever le défi', 'guide-cta-main', function () { GuideStartChallenge(f.id); }));
+      var nh = document.createElement('div');
+      wrap.appendChild(nh);
+      fetchNextFormation(f.id, function (n) {
+        if (n) nh.appendChild(ctaBtn('▶ Formation suivante : ' + esc(n.title), hasChallenge(f) ? '' : 'guide-cta-main', function () { GuideStart(n.id); }));
+      });
+      state.active = false; state.mode = null; saveState();
+    } else {
+      p.innerHTML = '❌ Score : ' + score + '% (' + ok + '/' + total + ') — il faut au moins ' + pass + '%.';
+      wrap.appendChild(p);
+      wrap.appendChild(ctaBtn('↺ Réessayer', 'guide-cta-main', function () {
+        state.qi = 0; state.qok = 0; saveState();
+        renderQuiz();
+      }));
+    }
+    wrap.appendChild(ctaBtn('🏠 Retour au catalogue', 'guide-cta-ghost', function () { window.location.href = buildUrl('/Modules/Custom/GUIDE/'); }));
+    setPanelView(passed ? '🎉 QCM réussi !' : 'Résultat du QCM', wrap, f.title + ' — QCM');
+    document.getElementById('guide-panel-progress-fill').style.width = '100%';
+  }
+
+  /* ---- Défi ---- */
+
+  var _defiTimer = null;
+
+  window.GuideStartChallenge = function (fid) {
+    clearHighlight(); clearTrigger();
+    fetchFormation(fid, function (f) {
+      if (!f || !hasChallenge(f)) { alert('Pas de défi pour cette formation.'); return; }
+      formation = f;
+      state = { active: true, formation_id: fid, mode: 'defi' };
+      saveState();
+      renderChallenge(); showPanel();
+    });
+  };
+
+  function renderChallenge() {
+    var c = formation.challenge;
+    var wrap = document.createElement('div');
+    if (c.intro) {
+      var d = document.createElement('div');
+      d.innerHTML = sanitizeContent(c.intro);
+      wrap.appendChild(d);
+    }
+    var list = document.createElement('div');
+    list.id = 'guide-defi-conds';
+    (c.conditions || []).forEach(function (cid) {
+      var row = document.createElement('div');
+      row.className = 'guide-defi-cond';
+      row.dataset.cid = cid;
+      row.innerHTML = '<span class="guide-defi-status">⏳</span> <span class="guide-defi-label">' + esc(cid) + '</span>';
+      list.appendChild(row);
+    });
+    wrap.appendChild(list);
+    wrap.appendChild(ctaBtn('🔍 Vérifier maintenant', 'guide-cta-main', runDefiCheck));
+    var hint = document.createElement('p');
+    hint.className = 'guide-defi-hint';
+    hint.textContent = 'Vérification automatique toutes les 10 secondes.';
+    wrap.appendChild(hint);
+    setPanelView('🎯 Défi', wrap, formation.title + ' — Défi');
+    runDefiCheck();
+    if (_defiTimer) clearInterval(_defiTimer);
+    _defiTimer = setInterval(function () {
+      if (!state || state.mode !== 'defi') { clearInterval(_defiTimer); _defiTimer = null; return; }
+      runDefiCheck();
+    }, 10000);
+  }
+
+  function runDefiCheck() {
+    var rows = document.querySelectorAll('#guide-defi-conds .guide-defi-cond');
+    if (!rows.length) return;
+    var remaining = rows.length;
+    var allMet = true;
+    Array.prototype.forEach.call(rows, function (row) {
+      checkCondition(row.dataset.cid, function (met, label) {
+        row.querySelector('.guide-defi-status').textContent = met ? '✅' : '❌';
+        row.querySelector('.guide-defi-label').textContent  = label || row.dataset.cid;
+        row.classList.toggle('met', met);
+        if (!met) allMet = false;
+        if (--remaining === 0 && allMet) defiSuccess();
+      });
+    });
+  }
+
+  function defiSuccess() {
+    if (!state || state.mode !== 'defi') return;
+    if (_defiTimer) { clearInterval(_defiTimer); _defiTimer = null; }
+    var f = formation;
+    serverPost('activity', { formation_id: f.id, activity: 'challenge' }, function () { updateDoneBadge(f.id); });
+    state.active = false; state.mode = null; saveState();
+    var wrap = document.createElement('div');
+    var p = document.createElement('p');
+    p.innerHTML = '<b>Bravo !</b> Toutes les conditions du défi sont remplies.';
+    wrap.appendChild(p);
+    var badge = document.createElement('p');
+    badge.id = 'guide-done-badge';
+    wrap.appendChild(badge);
+    var nh = document.createElement('div');
+    wrap.appendChild(nh);
+    wrap.appendChild(ctaBtn('🏠 Retour au catalogue', 'guide-cta-ghost', function () { window.location.href = buildUrl('/Modules/Custom/GUIDE/'); }));
+    setPanelView('🏆 Défi réussi !', wrap, f.title + ' — Défi');
+    document.getElementById('guide-panel-progress-fill').style.width = '100%';
+    fetchNextFormation(f.id, function (n) {
+      if (n) nh.appendChild(ctaBtn('▶ Formation suivante : ' + esc(n.title), 'guide-cta-main', function () { GuideStart(n.id); }));
+    });
+  }
+
+  /* ---- Outils : checklist & FAQ ---- */
+
+  window.GuideStartTool = function (id) {
+    clearHighlight(); clearTrigger();
+    fetchFormation(id, function (f) {
+      if (!f) { alert('Contenu introuvable.'); return; }
+      formation = f;
+      if (f.type === 'checklist') {
+        // Conserver l'avancement local si on rouvre la même checklist
+        var prev = loadState();
+        if (prev && prev.tool_id === id && prev.mode === 'checklist') state = prev;
+        else state = { active: true, tool_id: id, mode: 'checklist', qidx: 0, tags: [], answers: null, checked: {} };
+        state.active = true;
+        saveState();
+        renderChecklist();
+      } else if (f.type === 'faq') {
+        state = { active: true, tool_id: id, mode: 'faq', node: 'start', hist: [] };
+        saveState();
+        renderFaq();
+      } else {
+        window.GuideStart(id);
+        return;
+      }
+      showPanel();
+    });
+  };
+
+  function renderChecklist() {
+    var t  = formation;
+    var qs = t.questions || [];
+    if (qs.length && !state.answers) { renderChecklistQuestion(); return; }
+    var tags  = state.tags || [];
+    var items = [];
+    (t.items || []).forEach(function (it, idx) {
+      if (!it.tags || !it.tags.length) { it._idx = idx; items.push(it); return; }
+      for (var k = 0; k < it.tags.length; k++) {
+        if (tags.indexOf(it.tags[k]) !== -1) { it._idx = idx; items.push(it); return; }
+      }
+    });
+    var wrap = document.createElement('div');
+    items.forEach(function (it) {
+      var key = 'i' + it._idx;
+      var row = document.createElement('label');
+      row.className = 'guide-ck-item';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!(state.checked && state.checked[key]);
+      cb.addEventListener('change', function () {
+        if (!state.checked) state.checked = {};
+        state.checked[key] = cb.checked;
+        row.classList.toggle('done', cb.checked);
+        saveState();
+        updateCkProgress();
+      });
+      row.appendChild(cb);
+      var span = document.createElement('span');
+      span.innerHTML = esc(it.label) + (it.page ? ' <a href="' + esc(buildUrl(it.page)) + '" class="guide-ck-link" title="Aller sur la page">↗</a>' : '');
+      row.appendChild(span);
+      if (cb.checked) row.classList.add('done');
+      wrap.appendChild(row);
+      // Auto-cochage par condition (sans re-render : mise à jour ciblée)
+      if (it.condition && !cb.checked) {
+        checkCondition(it.condition, function (met) {
+          if (met && !cb.checked) {
+            cb.checked = true;
+            row.classList.add('done');
+            if (!state.checked) state.checked = {};
+            state.checked[key] = true;
+            saveState();
+            updateCkProgress();
+          }
+        });
+      }
+    });
+    if (qs.length) {
+      wrap.appendChild(ctaBtn('↺ Refaire le questionnaire', 'guide-cta-ghost', function () {
+        state.answers = null; state.tags = []; state.qidx = 0;
+        saveState();
+        renderChecklist();
+      }));
+    }
+    setPanelView(t.title || 'Checklist', wrap, '');
+    updateCkProgress();
+  }
+
+  function updateCkProgress() {
+    var rows  = document.querySelectorAll('#guide-panel-step-content .guide-ck-item');
+    var done  = document.querySelectorAll('#guide-panel-step-content .guide-ck-item.done');
+    var total = rows.length;
+    document.getElementById('guide-panel-progress-text').textContent = 'Checklist — ' + done.length + ' / ' + total;
+    document.getElementById('guide-panel-progress-fill').style.width = (total ? Math.round(done.length / total * 100) : 0) + '%';
+  }
+
+  function renderChecklistQuestion() {
+    var t  = formation;
+    var qs = t.questions || [];
+    var i  = state.qidx || 0;
+    if (i >= qs.length) {
+      state.answers = true;
+      saveState();
+      renderChecklist();
+      return;
+    }
+    var q = qs[i];
+    var wrap = document.createElement('div');
+    (q.choices || []).forEach(function (ch) {
+      wrap.appendChild(ctaBtn(esc(ch.label), 'guide-cta-main', function () {
+        state.tags = (state.tags || []).concat(ch.tags || []);
+        state.qidx = i + 1;
+        saveState();
+        renderChecklistQuestion();
+      }));
+    });
+    setPanelView(q.q || '', wrap, 'Question ' + (i + 1) + ' / ' + qs.length);
+  }
+
+  function renderFaq() {
+    var nodes = formation.nodes || {};
+    var nid = state.node || 'start';
+    var n = nodes[nid] || nodes.start;
+    var wrap = document.createElement('div');
+    if (!n) {
+      wrap.textContent = 'FAQ vide ou nœud "start" manquant.';
+      setPanelView(formation.title || 'FAQ', wrap, '');
+      return;
+    }
+    if (n.solution) {
+      var d = document.createElement('div');
+      d.className = 'guide-faq-sol';
+      d.innerHTML = sanitizeContent(n.solution);
+      wrap.appendChild(d);
+      if (n.page)      wrap.appendChild(ctaBtn('📍 Aller sur la page', 'guide-cta-main', function () { window.location.href = buildUrl(n.page); }));
+      if (n.formation) wrap.appendChild(ctaBtn('🎓 Lancer la formation liée', '', function () { GuideStart(n.formation); }));
+    } else {
+      var p = document.createElement('p');
+      p.textContent = n.q || '';
+      wrap.appendChild(p);
+      (n.answers || []).forEach(function (a) {
+        wrap.appendChild(ctaBtn(esc(a.label), 'guide-faq-a', function () {
+          state.hist = (state.hist || []).concat([nid]);
+          state.node = a.next;
+          saveState();
+          renderFaq();
+        }));
+      });
+    }
+    if ((state.hist || []).length) {
+      wrap.appendChild(ctaBtn('↶ Retour', 'guide-cta-ghost', function () {
+        var h = state.hist || [];
+        state.node = h.pop() || 'start';
+        state.hist = h;
+        saveState();
+        renderFaq();
+      }));
+    }
+    if (nid !== 'start') {
+      wrap.appendChild(ctaBtn('⟲ Recommencer', 'guide-cta-ghost', function () {
+        state.node = 'start'; state.hist = [];
+        saveState();
+        renderFaq();
+      }));
+    }
+    setPanelView(formation.title || 'Dépannage', wrap, 'Dépannage');
+  }
+
+  /* ---- Aide contextuelle ---- */
+
+  var _ctxItems = [];
+
+  function ctxEnabled() { return localStorage.getItem('guide_ctx_help') !== '0'; }
+
+  function maybeContextHelp() {
+    if (state && state.active) return;
+    if (!ctxEnabled()) { showFabIfNeeded(); return; }
+    var url = apiRoot() + 'Modules/Custom/GUIDE/guide-api.php?action=context&path=' + encodeURIComponent(window.location.pathname);
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      try { _ctxItems = JSON.parse(xhr.responseText) || []; } catch (e) { _ctxItems = []; }
+      showFabIfNeeded();
+    };
+    xhr.send();
+  }
+
+  function renderContextPanel() {
+    formation = null;
+    var wrap = document.createElement('div');
+    var p = document.createElement('p');
+    p.textContent = 'Contenus du Guide FFTA liés à cette page :';
+    wrap.appendChild(p);
+    var icons = { formation: '🎓', checklist: '🧰', faq: '🛟' };
+    _ctxItems.forEach(function (it) {
+      wrap.appendChild(ctaBtn((icons[it.type] || '📄') + ' ' + esc(it.title), 'guide-cta-main', function () {
+        if (it.type === 'formation') GuideStart(it.id);
+        else GuideStartTool(it.id);
+      }));
+    });
+    wrap.appendChild(ctaBtn('🏠 Tout le catalogue', 'guide-cta-ghost', function () { window.location.href = buildUrl('/Modules/Custom/GUIDE/'); }));
+    var off = document.createElement('p');
+    off.innerHTML = '<a href="#" style="font-size:11px;color:#999">Désactiver l\'aide contextuelle</a>';
+    off.querySelector('a').addEventListener('click', function (e) {
+      e.preventDefault();
+      localStorage.setItem('guide_ctx_help', '0');
+      _ctxItems = [];
+      hidePanel();
+    });
+    wrap.appendChild(off);
+    setPanelView('💡 Aide contextuelle', wrap, '');
   }
 
   /* ===== Injection du guide dans les popups ianseo (PopEdit.php…) =====
@@ -1222,9 +1885,20 @@
     if (window.CSS && CSS.escape) return CSS.escape(s);
     return String(s).replace(/([^a-zA-Z0-9_-])/g, '\\$1');
   }
+  // Id dynamique type "d_q_QuSession_25360" (suffixe numérique = id d'enregistrement DB) :
+  // le #id exact ne survivrait pas au changement de participant/compétition → sélecteur
+  // d'attribut par préfixe [id^="d_q_QuSession_"], stable et qui matche tous les équivalents.
+  function dynamicIdSelector(id) {
+    var m = id.match(/^(.+?[_-])\d+$/);
+    if (m && m[1].length >= 3) return '[id^="' + m[1].replace(/"/g, '\\"') + '"]';
+    return null;
+  }
+
   function buildSelector(el) {
     if (!el || el.nodeType !== 1) return null;
     if (el.id) {
+      var dyn = dynamicIdSelector(el.id);
+      if (dyn) return dyn;
       var idSel = '#' + cssEsc(el.id);
       try { if (document.querySelectorAll(idSel).length === 1) return idSel; } catch (e) {}
     }
@@ -1232,7 +1906,7 @@
     var node = el, depth = 0;
     while (node && node.nodeType === 1 && node !== document.body && depth < 6) {
       if (node.id) {
-        var s = '#' + cssEsc(node.id);
+        var s = dynamicIdSelector(node.id) || ('#' + cssEsc(node.id));
         try { if (document.querySelectorAll(s).length === 1) { parts.unshift(s); return parts.join(' > '); } } catch (e) {}
       }
       var part = node.tagName.toLowerCase();

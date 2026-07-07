@@ -118,7 +118,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 /* Formation metadata */
 .ge-meta {
   display: grid;
-  grid-template-columns: 1fr 1fr 80px;
+  grid-template-columns: 2fr 3fr 90px;
   gap: 10px;
   background: #f7f9ff;
   border: 1px solid #dde2f5;
@@ -285,6 +285,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .tr-sel  { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1 1 0; min-width: 0; box-sizing: border-box; }
 .tr-cond { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1; min-width: 0; background: #d8d4ff; color: #3a2660; }
 .tr-cond-page { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1; min-width: 0; box-sizing: border-box; background: #f8f4ff; color: #3a2660; }
+.tr-cond-css { padding: 4px 7px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex: 1; min-width: 0; box-sizing: border-box; background: #f8f4ff; color: #3a2660; }
+.tr-cond-css-mode { padding: 4px 5px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex-shrink: 0; background: #f8f4ff; color: #3a2660; }
 .tr-gate { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
 .tr-gate-label { color: #b0a0c8; font-size: 13px; flex-shrink: 0; }
 .tr-gate-cond { flex: 1; min-width: 0; padding: 3px 6px; border: 1px dashed #cbb8e0; border-radius: 4px; font-size: 11px; background: #fbf9ff; color: #6a5a8a; }
@@ -292,6 +294,28 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .tr-req input { margin: 0; }
 .tr-del  { padding: 3px 7px !important; font-size: 11px !important; flex-shrink: 0; }
 .tr-hint { flex: 1; min-width: 0; padding: 4px 7px; border: 1px dashed #c8d4ec; border-radius: 4px; font-size: 11px; box-sizing: border-box; color: #555; background: #fafbff; }
+
+/* ===== Sections QCM / Défi ===== */
+details.ge-extra { margin-top: 18px; border: 1px solid #dde2f5; border-radius: 10px; background: #fff; }
+details.ge-extra > summary {
+  cursor: pointer; padding: 11px 16px; font-size: 13px; font-weight: 700; color: #0254a8;
+  list-style: none; user-select: none;
+}
+details.ge-extra > summary::-webkit-details-marker { display: none; }
+details.ge-extra > summary::before { content: '▶'; font-size: 10px; margin-right: 8px; display: inline-block; transition: transform .15s; }
+details.ge-extra[open] > summary::before { transform: rotate(90deg); }
+details.ge-extra .ge-extra-body { padding: 4px 16px 16px; }
+details.ge-extra .ge-hint { font-weight: 400; }
+#defi-intro { width: 100%; padding: 7px 9px; border: 1px solid #c8d4ec; border-radius: 5px; font-size: 12px; box-sizing: border-box; font-family: monospace; resize: vertical; }
+#defi-conds label { display: flex; align-items: center; gap: 7px; font-size: 12.5px; padding: 3px 0; cursor: pointer; }
+#defi-conds input { margin: 0; }
+.qz-block { background: #f7f9ff; border: 1px solid #dde2f5; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+.qz-block textarea, .qz-block input[type=text] { width: 100%; padding: 6px 8px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; box-sizing: border-box; }
+.qz-choice-row { display: flex; gap: 7px; align-items: center; margin: 4px 0; }
+.qz-choice-row input[type=radio] { margin: 0; flex-shrink: 0; }
+.qz-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.qz-head b { color: #0254a8; font-size: 12px; }
+.qz-lbl { font-size: 11px; color: #888; margin: 6px 0 2px; }
 
 /* ===== JSON (accordéon) ===== */
 .ge-json-sect  { margin-top: 20px; }
@@ -358,6 +382,18 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   <div class="ge-meta-field">
     <label>Version</label>
     <input type="text" id="f-version" placeholder="1.0" oninput="captureAndSync()">
+  </div>
+  <div class="ge-meta-field">
+    <label>Groupe <span style="text-transform:none;font-weight:400;color:#999">(parcours)</span></label>
+    <input type="text" id="f-group" placeholder="Les bases" oninput="captureAndSync()">
+  </div>
+  <div class="ge-meta-field">
+    <label>Sous-groupe</label>
+    <input type="text" id="f-subgroup" placeholder="(optionnel)" oninput="captureAndSync()">
+  </div>
+  <div class="ge-meta-field">
+    <label>Ordre</label>
+    <input type="number" id="f-order" placeholder="10" oninput="captureAndSync()">
   </div>
 </div>
 <p style="font-size:11px;color:#aaa;margin:-12px 0 14px">
@@ -511,6 +547,43 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   </div><!-- /ge-right -->
 </div><!-- /ge-editor -->
 
+<!-- Activités : QCM et Défi -->
+<details class="ge-extra" id="sect-quiz">
+  <summary>📝 QCM de validation <span class="ge-hint">(optionnel — proposé à la fin du guide, compte pour la cible d'argent/or)</span></summary>
+  <div class="ge-extra-body">
+    <div class="ge-opt" style="max-width:240px">
+      <label>Score minimal pour réussir (%)</label>
+      <input type="number" id="quiz-pass" min="1" max="100" placeholder="70" oninput="captureAndSync()">
+    </div>
+    <div class="ge-opt">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;text-transform:none;">
+        <input type="checkbox" id="quiz-shuffle" onchange="captureAndSync()" style="margin:0;">
+        Réponses affichées dans un ordre aléatoire
+      </label>
+    </div>
+    <div id="quiz-list"></div>
+    <button type="button" class="ge-btn ge-btn-ghost" onclick="addQuizQuestion()" style="font-size:12px;padding:5px 14px">
+      + Ajouter une question
+    </button>
+  </div>
+</details>
+
+<details class="ge-extra" id="sect-defi">
+  <summary>🎯 Défi <span class="ge-hint">(optionnel — l'utilisateur agit sans aide, validation par conditions d'état)</span></summary>
+  <div class="ge-extra-body">
+    <div class="ge-opt">
+      <label>Consigne <span class="ge-hint">(HTML autorisé)</span></label>
+      <textarea id="defi-intro" rows="3" oninput="captureAndSync()"
+                placeholder="<p>Créez une compétition avec 2 sessions...</p>"></textarea>
+    </div>
+    <div class="ge-opt">
+      <label>Conditions à remplir <span class="ge-hint">(toutes)</span></label>
+      <div id="defi-conds"></div>
+      <p class="ge-hint">Créez de nouvelles conditions avec le <a href="conditions.php">constructeur de conditions</a>.</p>
+    </div>
+  </div>
+</details>
+
 <!-- JSON source (accordéon, pour experts) -->
 <div class="ge-json-sect">
   <button class="ge-json-toggle" onclick="toggleJson()">
@@ -554,6 +627,7 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('import-file').addEventListener('change', handleImport);
 
   _fd = <?= json_encode($formation, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?>;
+  initDefiConds();
   clampStep();
   syncToDOM();
   checkRecResult();
@@ -597,7 +671,130 @@ function captureAndSync() {
   if (_syncing) return;
   captureFormation();
   captureStep();
+  captureExtras();
   renderJson();
+}
+
+/* ===== Activités : QCM & Défi ===== */
+
+function initDefiConds() {
+  var box = document.getElementById('defi-conds');
+  box.innerHTML = '';
+  if (!GUIDE_CONDITIONS.length) {
+    box.innerHTML = '<p class="ge-hint">Aucune condition définie.</p>';
+    return;
+  }
+  GUIDE_CONDITIONS.forEach(function (c) {
+    var lab = document.createElement('label');
+    var cb  = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = c.id;
+    cb.className = 'defi-cond-cb';
+    cb.addEventListener('change', captureAndSync);
+    lab.appendChild(cb);
+    lab.appendChild(document.createTextNode(' ' + c.label + ' '));
+    var code = document.createElement('code');
+    code.textContent = c.id;
+    code.style.cssText = 'font-size:10px;color:#999';
+    lab.appendChild(code);
+    box.appendChild(lab);
+  });
+}
+
+function addQuizQuestion(q) {
+  q = q || { q: '', choices: ['', ''], correct: 0, explain: '' };
+  var correct = Array.isArray(q.correct) ? q.correct : [q.correct || 0];
+  var block = document.createElement('div');
+  block.className = 'qz-block';
+  var choicesHtml = '';
+  for (var i = 0; i < 4; i++) {
+    choicesHtml +=
+      '<div class="qz-choice-row">' +
+        '<input type="checkbox" class="qz-correct"' + (correct.indexOf(i) !== -1 ? ' checked' : '') + ' title="Bonne réponse">' +
+        '<input type="text" class="qz-choice" placeholder="Réponse ' + (i + 1) + (i > 1 ? ' (optionnelle)' : '') + '" value="">' +
+      '</div>';
+  }
+  block.innerHTML =
+    '<div class="qz-head"><b>Question</b>' +
+      '<button type="button" class="ge-btn ge-btn-del" style="font-size:11px;padding:3px 8px" onclick="this.closest(\'.qz-block\').remove();captureAndSync()">✕</button>' +
+    '</div>' +
+    '<textarea class="qz-q" rows="2" placeholder="Énoncé de la question..."></textarea>' +
+    '<div class="qz-lbl">Réponses — cochez la ou les bonnes (au moins une) :</div>' +
+    choicesHtml +
+    '<div class="qz-lbl">Explication (affichée après la réponse, optionnelle) :</div>' +
+    '<input type="text" class="qz-explain" placeholder="Pourquoi cette réponse...">';
+
+  block.querySelector('.qz-q').value = q.q || '';
+  var inputs = block.querySelectorAll('.qz-choice');
+  (q.choices || []).forEach(function (c, i) { if (inputs[i]) inputs[i].value = c; });
+  block.querySelector('.qz-explain').value = q.explain || '';
+
+  block.querySelectorAll('textarea, input').forEach(function (el) {
+    el.addEventListener('input',  captureAndSync);
+    el.addEventListener('change', captureAndSync);
+  });
+  document.getElementById('quiz-list').appendChild(block);
+}
+
+function captureExtras() {
+  if (!_fd) return;
+  // QCM
+  var questions = [];
+  document.querySelectorAll('#quiz-list .qz-block').forEach(function (block) {
+    var qText = block.querySelector('.qz-q').value.trim();
+    var rows  = block.querySelectorAll('.qz-choice-row');
+    var choices = [], correct = [], kept = 0;
+    rows.forEach(function (row) {
+      var txt = row.querySelector('.qz-choice').value.trim();
+      var cb  = row.querySelector('.qz-correct');
+      if (txt === '') return;
+      if (cb.checked) correct.push(kept);
+      choices.push(txt);
+      kept++;
+    });
+    if (!qText || choices.length < 2) return;
+    if (!correct.length) correct = [0]; // toujours au moins une bonne réponse
+    var entry = { q: qText, choices: choices, correct: (correct.length === 1 ? correct[0] : correct) };
+    var expl = block.querySelector('.qz-explain').value.trim();
+    if (expl) entry.explain = expl;
+    questions.push(entry);
+  });
+  if (questions.length) {
+    var pass = parseInt(getVal('quiz-pass'), 10);
+    _fd.quiz = { pass_score: (!isNaN(pass) && pass >= 1 && pass <= 100) ? pass : 70, questions: questions };
+    if (document.getElementById('quiz-shuffle').checked) _fd.quiz.shuffle = true;
+  } else {
+    delete _fd.quiz;
+  }
+  // Défi
+  var conds = [];
+  document.querySelectorAll('#defi-conds .defi-cond-cb:checked').forEach(function (cb) { conds.push(cb.value); });
+  var intro = document.getElementById('defi-intro').value.trim();
+  if (conds.length) {
+    _fd.challenge = { intro: intro, conditions: conds };
+  } else {
+    delete _fd.challenge;
+  }
+}
+
+function syncExtras() {
+  if (!_fd) return;
+  // QCM
+  var list = document.getElementById('quiz-list');
+  list.innerHTML = '';
+  var qz = _fd.quiz || {};
+  setVal('quiz-pass', qz.pass_score ? String(qz.pass_score) : '');
+  document.getElementById('quiz-shuffle').checked = !!qz.shuffle;
+  (qz.questions || []).forEach(function (q) { addQuizQuestion(q); });
+  if (qz.questions && qz.questions.length) document.getElementById('sect-quiz').open = true;
+  // Défi
+  var ch = _fd.challenge || {};
+  document.getElementById('defi-intro').value = ch.intro || '';
+  var selected = ch.conditions || [];
+  document.querySelectorAll('#defi-conds .defi-cond-cb').forEach(function (cb) {
+    cb.checked = selected.indexOf(cb.value) !== -1;
+  });
+  if (selected.length) document.getElementById('sect-defi').open = true;
 }
 
 function captureFormation() {
@@ -606,6 +803,12 @@ function captureFormation() {
   _fd.title       = getVal('f-title');
   _fd.description = getVal('f-description');
   _fd.version     = getVal('f-version') || '1.0';
+  var grp = getVal('f-group').trim();
+  var sgr = getVal('f-subgroup').trim();
+  var ord = parseInt(getVal('f-order'), 10);
+  if (grp) _fd.group = grp; else delete _fd.group;
+  if (sgr) _fd.subgroup = sgr; else delete _fd.subgroup;
+  if (!isNaN(ord)) _fd.order = ord; else delete _fd.order;
 }
 
 function captureStep() {
@@ -629,6 +832,10 @@ function captureStep() {
       if (cond === '__page') {
         var cpage = row.querySelector('.tr-cond-page').value.trim() || null;
         if (cpage) tr.page = cpage;
+      } else if (cond === '__css') {
+        var csel = row.querySelector('.tr-cond-css').value.trim();
+        if (csel) tr.selector = csel;
+        if (row.querySelector('.tr-cond-css-mode').value === 'absent') tr.absent = true;
       }
     } else {
       var page = row.querySelector('.tr-page').value.trim() || null;
@@ -681,7 +888,11 @@ function syncToDOM() {
     setVal('f-title',       _fd.title       || '');
     setVal('f-description', _fd.description || '');
     setVal('f-version',     _fd.version     || '1.0');
+    setVal('f-group',       _fd.group       || '');
+    setVal('f-subgroup',    _fd.subgroup    || '');
+    setVal('f-order',       (_fd.order !== undefined && _fd.order !== null) ? String(_fd.order) : '');
     renderFormationImagePreview();
+    syncExtras();
     clampStep();
     loadStepToDOM();
   } finally {
@@ -767,6 +978,7 @@ var _dragSrc = null;
 function buildConditionOptions() {
   var opts = '<option value="">— choisir une condition…</option>';
   opts += '<option value="__page">📍 Page active</option>';
+  opts += '<option value="__css">🔎 Présence / absence d\'un élément</option>';
   GUIDE_CONDITIONS.forEach(function (c) {
     opts += '<option value="' + c.id + '">' + c.label + '</option>';
   });
@@ -792,10 +1004,12 @@ function setTriggerKind(row, kind) {
   if (!isAction) setEtatCondUI(row);
 }
 
-/* Affiche le champ "page à vérifier" uniquement pour la condition intégrée 📍 Page active. */
+/* Affiche les champs spécifiques selon la condition intégrée sélectionnée (📍 Page active / 🔎 Élément). */
 function setEtatCondUI(row) {
   var cond = row.querySelector('.tr-cond').value;
-  row.querySelector('.tr-cond-page').style.display = (cond === '__page') ? '' : 'none';
+  row.querySelector('.tr-cond-page').style.display     = (cond === '__page') ? '' : 'none';
+  row.querySelector('.tr-cond-css').style.display      = (cond === '__css')  ? '' : 'none';
+  row.querySelector('.tr-cond-css-mode').style.display = (cond === '__css')  ? '' : 'none';
 }
 
 function addTrigger(t) {
@@ -831,12 +1045,19 @@ function addTrigger(t) {
         '<option value="submit">soumission</option>' +
         '<option value="mouseover">survol</option>' +
       '</select>' +
-      '<input type="text" class="tr-sel" placeholder="#sélecteur-css">' +
+      '<input type="text" class="tr-sel" placeholder="#sélecteur-css" ' +
+        'title="Id dynamique (ex : #d_q_QuSession_25360) ? Utilisez un sélecteur par préfixe : [id^=&quot;d_q_QuSession_&quot;]">' +
     '</div>' +
     '<div class="tr-body tr-body-etat" style="display:none">' +
       '<select class="tr-cond">' + buildConditionOptions() + '</select>' +
       '<input type="text" class="tr-cond-page" placeholder="/page à vérifier ou *" style="display:none" ' +
              'title="Page que l\'utilisateur doit avoir active (peut différer de la page de l\'étape)">' +
+      '<input type="text" class="tr-cond-css" placeholder="#sélecteur-css" style="display:none" ' +
+             'title="Élément à détecter (accepte [id^=&quot;…&quot;] pour les id dynamiques)">' +
+      '<select class="tr-cond-css-mode" style="display:none" title="L\'élément doit être…">' +
+        '<option value="present">présent</option>' +
+        '<option value="absent">absent</option>' +
+      '</select>' +
     '</div>' +
     '<div class="tr-gate" title="Branche conditionnelle : ce trigger n\'est pris en compte que si la condition est remplie">' +
       '<span class="tr-gate-label">⎇</span>' +
@@ -849,7 +1070,9 @@ function addTrigger(t) {
   row.querySelector('.tr-type').value        = t.trigger   || 'null';
   row.querySelector('.tr-sel').value         = t.selector  || '';
   row.querySelector('.tr-cond').value        = t.condition || '';
-  row.querySelector('.tr-cond-page').value   = (t.condition === '__page') ? (t.page || '') : '';
+  row.querySelector('.tr-cond-page').value     = (t.condition === '__page') ? (t.page || '') : '';
+  row.querySelector('.tr-cond-css').value      = (t.condition === '__css') ? (t.selector || '') : '';
+  row.querySelector('.tr-cond-css-mode').value = t.absent ? 'absent' : 'present';
   row.querySelector('.tr-gate-cond').value   = t.when ? ('met:' + t.when) : (t.when_not ? ('not:' + t.when_not) : '');
   row.querySelector('.tr-req input').checked = !!t.required;
   row.querySelector('.tr-hint').value        = t.hint      || '';
@@ -866,6 +1089,8 @@ function addTrigger(t) {
     setEtatCondUI(row); captureAndSync();
   });
   row.querySelector('.tr-cond-page').addEventListener('input', captureAndSync);
+  row.querySelector('.tr-cond-css').addEventListener('input', captureAndSync);
+  row.querySelector('.tr-cond-css-mode').addEventListener('change', captureAndSync);
   row.querySelector('.tr-gate-cond').addEventListener('change', captureAndSync);
   row.querySelector('.tr-req input').addEventListener('change', captureAndSync);
   row.querySelector('.tr-hint').addEventListener('input',  captureAndSync);

@@ -9,6 +9,7 @@
  */
 define('HTDOCS', dirname(dirname(dirname(dirname(__FILE__)))));
 require_once(HTDOCS . '/config.php');
+require_once(__DIR__ . '/lib/guide-lib.inc.php');
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -22,12 +23,16 @@ elseif ($action === 'update')          guide_update();
 elseif ($action === 'progress')        guide_progress();
 elseif ($action === 'progress-all')    guide_progress_all();
 elseif ($action === 'check-condition') guide_check_condition();
+elseif ($action === 'next')            guide_next_formation();
+elseif ($action === 'context')         guide_context();
+elseif ($action === 'activity')        guide_activity();
+elseif ($action === 'test-condition')  guide_test_condition();
 else                                   guide_get_formation();
 
 /* ======= Schéma ======= */
 
 function guide_ensure_schema() {
-    if (!empty($_SESSION['_guide_schema_ok'])) return;
+    if (!empty($_SESSION['_guide_schema_v2'])) return;
 
     $rs = safe_r_sql("SHOW TABLES LIKE 'GUIDE_Progress'");
     if (safe_fetch($rs)) {
@@ -38,8 +43,14 @@ function guide_ensure_schema() {
             // Vérifie que c'est bien le nouveau schéma (clé unique sur GpFormId seul)
             $rc_old = safe_r_sql("SHOW INDEX FROM GUIDE_Progress WHERE Key_name='uq_form_tour'");
             if (!safe_fetch($rc_old)) {
-                // GpTourId existe et pas d'ancienne clé composite → schéma correct
-                $_SESSION['_guide_schema_ok'] = true;
+                // Migration : colonnes des activités QCM / défi
+                $rc_quiz = safe_r_sql("SHOW COLUMNS FROM GUIDE_Progress LIKE 'GpQuiz'");
+                if (!safe_fetch($rc_quiz)) {
+                    safe_w_sql("ALTER TABLE GUIDE_Progress
+                        ADD COLUMN GpQuiz TINYINT(1) NOT NULL DEFAULT 0,
+                        ADD COLUMN GpChallenge TINYINT(1) NOT NULL DEFAULT 0");
+                }
+                $_SESSION['_guide_schema_v2'] = true;
                 return;
             }
         }
@@ -54,12 +65,14 @@ function guide_ensure_schema() {
         GpTourId    INT          NOT NULL DEFAULT 0,
         GpStep      INT          NOT NULL DEFAULT 0,
         GpStatus    ENUM('en_cours','termine','obsolete') NOT NULL DEFAULT 'en_cours',
+        GpQuiz      TINYINT(1)   NOT NULL DEFAULT 0,
+        GpChallenge TINYINT(1)   NOT NULL DEFAULT 0,
         GpValidated TEXT,
         GpUpdatedAt DATETIME     NOT NULL,
         UNIQUE KEY uq_form (GpFormId)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    $_SESSION['_guide_schema_ok'] = true;
+    $_SESSION['_guide_schema_v2'] = true;
 }
 
 /* ======= Handlers ======= */
@@ -156,6 +169,8 @@ function guide_progress() {
         'form_ver'        => $row->GpFormVer,
         'tour_id'         => (int)$row->GpTourId,
         'current_tour_id' => $currentTourId,
+        'quiz'            => (int)$row->GpQuiz,
+        'challenge'       => (int)$row->GpChallenge,
         'validated'       => $row->GpValidated ? json_decode($row->GpValidated, true) : [],
     ]);
 }
@@ -164,9 +179,8 @@ function guide_check_condition() {
     $cid = preg_replace('/[^a-z0-9_\-]/', '', strtolower($_GET['cid'] ?? ''));
     if (!$cid) { echo json_encode(['error' => 'missing cid']); exit; }
 
-    $file = file_get_contents(__DIR__ . '/conditions.json');
-    if (!$file) { echo json_encode(['error' => 'conditions.json not found']); exit; }
-    $conditions = json_decode($file, true);
+    $conditions = guide_load_conditions();
+    if (!$conditions) { echo json_encode(['error' => 'conditions.json not found']); exit; }
 
     $cond = null;
     foreach ($conditions as $c) {
@@ -175,75 +189,6 @@ function guide_check_condition() {
     if (!$cond) { echo json_encode(['error' => 'condition not found', 'met' => false]); exit; }
 
     echo json_encode(['met' => guide_evaluate_condition($cond), 'label' => $cond['label']]);
-}
-
-function guide_evaluate_condition($cond) {
-    foreach ($cond['checks'] as $check) {
-        if (!guide_evaluate_check($check)) return false;
-    }
-    return true;
-}
-
-function guide_evaluate_check($check) {
-    // Check sur la session
-    if (isset($check['source']) && $check['source'] === 'session') {
-        $val = isset($_SESSION[$check['key']]) ? (int)$_SESSION[$check['key']] : 0;
-        return guide_compare($val, $check['op'], $check['value']);
-    }
-
-    // Agrégat COUNT sur une table
-    if (isset($check['aggregate']) && $check['aggregate'] === 'count') {
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $check['table']);
-        $where = [];
-        foreach ($check['where'] as $w) {
-            $col = preg_replace('/[^a-zA-Z0-9_]/', '', $w['column']);
-            if (isset($w['source']) && $w['source'] === 'session') {
-                $where[] = "`$col` = " . (int)($_SESSION[$w['key']] ?? 0);
-            } else {
-                $ops = ['eq' => '=', 'neq' => '!=', 'gt' => '>', 'gte' => '>=', 'lt' => '<', 'lte' => '<='];
-                $op  = $ops[$w['op'] ?? 'eq'] ?? '=';
-                $where[] = "`$col` $op " . StrSafe_DB($w['value']);
-            }
-        }
-        $sql = "SELECT COUNT(*) AS cnt FROM `$table`" . ($where ? ' WHERE ' . implode(' AND ', $where) : '');
-        $rs  = safe_r_sql($sql);
-        $row = safe_fetch($rs);
-        return guide_compare($row ? (int)$row->cnt : 0, $check['op'], $check['value']);
-    }
-
-    // Valeur d'une colonne avec jointure sur session
-    if (isset($check['table']) && isset($check['column'])) {
-        $table = preg_replace('/[^a-zA-Z0-9_]/', '', $check['table']);
-        $col   = preg_replace('/[^a-zA-Z0-9_]/', '', $check['column']);
-        $where = '';
-        if (isset($check['join'])) {
-            // Format: "ToId = TourId" → WHERE `ToId` = $_SESSION['TourId']
-            if (preg_match('/^(\w+)\s*=\s*(\w+)$/', $check['join'], $m)) {
-                $jcol = preg_replace('/[^a-zA-Z0-9_]/', '', $m[1]);
-                $jkey = preg_replace('/[^a-zA-Z0-9_]/', '', $m[2]);
-                $where = " WHERE `$jcol` = " . (int)($_SESSION[$jkey] ?? 0);
-            }
-        }
-        $sql = "SELECT `$col` FROM `$table`$where LIMIT 1";
-        $rs  = safe_r_sql($sql);
-        $row = safe_fetch($rs);
-        if (!$row) return false;
-        return guide_compare($row->$col, $check['op'], $check['value']);
-    }
-
-    return false;
-}
-
-function guide_compare($actual, $op, $expected) {
-    switch ($op) {
-        case 'eq':  return $actual == $expected;
-        case 'neq': return $actual != $expected;
-        case 'gt':  return $actual >  $expected;
-        case 'gte': return $actual >= $expected;
-        case 'lt':  return $actual <  $expected;
-        case 'lte': return $actual <= $expected;
-        default:    return false;
-    }
 }
 
 function guide_progress_all() {
@@ -258,7 +203,90 @@ function guide_progress_all() {
             'form_ver'        => $row->GpFormVer,
             'tour_id'         => (int)$row->GpTourId,
             'current_tour_id' => $currentTourId,
+            'quiz'            => (int)$row->GpQuiz,
+            'challenge'       => (int)$row->GpChallenge,
         ];
     }
     echo json_encode($result);
+}
+
+/* ======= Parcours / activités / contexte ======= */
+
+// Formation suivante dans l'ordre du parcours (groupes/order du catalogue)
+function guide_next_formation() {
+    $f = preg_replace('/[^a-z0-9\-]/', '', strtolower($_GET['f'] ?? ''));
+    $list = guide_formations_ordered();
+    $next = null;
+    foreach ($list as $i => $c) {
+        if ($c['id'] === $f && isset($list[$i + 1])) {
+            $next = ['id' => $list[$i + 1]['id'], 'title' => $list[$i + 1]['title']];
+            break;
+        }
+    }
+    echo json_encode(['next' => $next]);
+}
+
+// Marque une activité (quiz / challenge) comme réussie pour une formation
+function guide_activity() {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405); echo json_encode(['error' => 'method']); exit;
+    }
+    $body     = json_decode(file_get_contents('php://input'), true) ?? [];
+    $formId   = preg_replace('/[^a-z0-9\-]/', '', strtolower($body['formation_id'] ?? ''));
+    $activity = $body['activity'] ?? '';
+    if (!$formId || !in_array($activity, ['quiz', 'challenge'])) {
+        echo json_encode(['error' => 'bad params']); exit;
+    }
+    $col = $activity === 'quiz' ? 'GpQuiz' : 'GpChallenge';
+    $now = date('Y-m-d H:i:s');
+    // La ligne peut ne pas exister (activité lancée sans avoir fait le guide)
+    safe_w_sql("INSERT IGNORE INTO GUIDE_Progress
+        (GpFormId, GpFormVer, GpTourId, GpStep, GpStatus, GpValidated, GpUpdatedAt)
+        VALUES (" . StrSafe_DB($formId) . ", '1.0', " . (int)($_SESSION['TourId'] ?? 0) . ",
+                0, 'en_cours', NULL, " . StrSafe_DB($now) . ")");
+    safe_w_sql("UPDATE GUIDE_Progress SET $col=1, GpUpdatedAt=" . StrSafe_DB($now) . "
+        WHERE GpFormId=" . StrSafe_DB($formId));
+    echo json_encode(['ok' => true]);
+}
+
+// Contenus liés à une page (aide contextuelle)
+function guide_context() {
+    $path = guide_norm_path($_GET['path'] ?? '');
+    if (!$path) { echo json_encode([]); exit; }
+    $items = [];
+    foreach (guide_content_list() as $c) {
+        foreach ($c['pages'] as $p) {
+            if (guide_norm_path($p) === $path) {
+                $items[] = ['id' => $c['id'], 'title' => $c['title'], 'type' => $c['type']];
+                break;
+            }
+        }
+    }
+    // Formations d'abord, puis outils
+    usort($items, function ($a, $b) {
+        $rank = ['formation' => 0, 'checklist' => 1, 'faq' => 2];
+        return ($rank[$a['type']] ?? 9) - ($rank[$b['type']] ?? 9);
+    });
+    echo json_encode($items);
+}
+
+// Test d'une condition en cours d'édition (constructeur admin uniquement)
+function guide_test_condition() {
+    if (!hasFullACL(AclRoot, '', AclReadWrite)) {
+        http_response_code(403); echo json_encode(['error' => 'forbidden']); exit;
+    }
+    $body = json_decode(file_get_contents('php://input'), true) ?? [];
+    $cond = $body['condition'] ?? null;
+    if (!$cond || empty($cond['checks']) || !is_array($cond['checks'])) {
+        echo json_encode(['error' => 'condition invalide']); exit;
+    }
+    $results = [];
+    $met = true;
+    foreach ($cond['checks'] as $check) {
+        $ok = false;
+        try { $ok = guide_evaluate_check($check); } catch (Throwable $e) { $ok = false; }
+        $results[] = $ok;
+        if (!$ok) $met = false;
+    }
+    echo json_encode(['met' => $met, 'results' => $results]);
 }
