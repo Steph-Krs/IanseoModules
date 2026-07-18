@@ -214,6 +214,33 @@ function guide_evaluate_condition($cond) {
     return true;
 }
 
+/** Jointure interne facultative d'un check agrégat. */
+function guide_build_join($check) {
+    if (empty($check['join']['table'])
+        || !preg_match('/^(\w+)\s*=\s*(\w+)$/', $check['join']['on'] ?? '', $m)) return '';
+    $jt = preg_replace('/[^a-zA-Z0-9_]/', '', $check['join']['table']);
+    return " INNER JOIN `$jt` ON `{$m[1]}` = `{$m[2]}`";
+}
+
+/** Clause WHERE d'un check agrégat (op 'in' = liste CSV ; source 'session' = clé de session). */
+function guide_build_where($wheres) {
+    $out = [];
+    foreach ($wheres as $w) {
+        $col = preg_replace('/[^a-zA-Z0-9_]/', '', $w['column']);
+        if (isset($w['source']) && $w['source'] === 'session') {
+            $out[] = "`$col` = " . (int)($_SESSION[$w['key']] ?? 0);
+        } elseif (($w['op'] ?? '') === 'in') {
+            $vals = array_map('trim', explode(',', (string)$w['value']));
+            $out[] = "`$col` IN (" . implode(',', array_map('StrSafe_DB', $vals)) . ")";
+        } else {
+            $ops = ['eq' => '=', 'neq' => '!=', 'gt' => '>', 'gte' => '>=', 'lt' => '<', 'lte' => '<='];
+            $op  = $ops[$w['op'] ?? 'eq'] ?? '=';
+            $out[] = "`$col` $op " . StrSafe_DB($w['value']);
+        }
+    }
+    return $out ? ' WHERE ' . implode(' AND ', $out) : '';
+}
+
 function guide_evaluate_check($check) {
     // Check sur la session
     if (isset($check['source']) && $check['source'] === 'session') {
@@ -237,32 +264,27 @@ function guide_evaluate_check($check) {
         return (bool)safe_fetch($rs);
     }
 
-    // Agrégat COUNT sur une table (jointure interne facultative :
-    // "join": {"table": "Entries", "on": "QuId = EnId"})
-    if (isset($check['aggregate']) && $check['aggregate'] === 'count') {
+    // Agrégats sur une table, avec jointure interne facultative
+    // ("join": {"table": "Entries", "on": "QuId = EnId"}) :
+    //  - "count"     : nombre de lignes
+    //  - "max_group" : taille du plus gros groupe ("group_by": ["EnDivision","EnClass"])
+    //                  → « au moins N archers dans UNE MÊME catégorie »
+    $agg = $check['aggregate'] ?? '';
+    if ($agg === 'count' || $agg === 'max_group') {
         $table = preg_replace('/[^a-zA-Z0-9_]/', '', $check['table']);
-        $join  = '';
-        if (!empty($check['join']['table'])
-            && preg_match('/^(\w+)\s*=\s*(\w+)$/', $check['join']['on'] ?? '', $m)) {
-            $jt   = preg_replace('/[^a-zA-Z0-9_]/', '', $check['join']['table']);
-            $join = " INNER JOIN `$jt` ON `{$m[1]}` = `{$m[2]}`";
-        }
-        $where = [];
-        foreach ($check['where'] as $w) {
-            $col = preg_replace('/[^a-zA-Z0-9_]/', '', $w['column']);
-            if (isset($w['source']) && $w['source'] === 'session') {
-                $where[] = "`$col` = " . (int)($_SESSION[$w['key']] ?? 0);
-            } elseif (($w['op'] ?? '') === 'in') {
-                $vals = array_map('trim', explode(',', (string)$w['value']));
-                $where[] = "`$col` IN (" . implode(',', array_map('StrSafe_DB', $vals)) . ")";
-            } else {
-                $ops = ['eq' => '=', 'neq' => '!=', 'gt' => '>', 'gte' => '>=', 'lt' => '<', 'lte' => '<='];
-                $op  = $ops[$w['op'] ?? 'eq'] ?? '=';
-                $where[] = "`$col` $op " . StrSafe_DB($w['value']);
+        $sql   = "FROM `$table`" . guide_build_join($check) . guide_build_where($check['where'] ?? []);
+
+        if ($agg === 'max_group') {
+            $cols = [];
+            foreach ((array)($check['group_by'] ?? []) as $g) {
+                $cols[] = '`' . preg_replace('/[^a-zA-Z0-9_]/', '', $g) . '`';
             }
+            if (!$cols) return false;
+            $rs  = safe_r_sql("SELECT COUNT(*) AS cnt $sql GROUP BY " . implode(',', $cols)
+                . " ORDER BY cnt DESC LIMIT 1");
+        } else {
+            $rs = safe_r_sql("SELECT COUNT(*) AS cnt $sql");
         }
-        $sql = "SELECT COUNT(*) AS cnt FROM `$table`$join" . ($where ? ' WHERE ' . implode(' AND ', $where) : '');
-        $rs  = safe_r_sql($sql);
         $row = safe_fetch($rs);
         return guide_compare($row ? (int)$row->cnt : 0, $check['op'], $check['value']);
     }

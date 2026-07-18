@@ -366,4 +366,19 @@ details.upd-force .upd-force-body { margin-top: 16px; }
 </div>
 <?php endif; ?>
 
+<!-- === ZONE DE DANGER === -->
+<div class="upd-section">
+  <details class="upd-force">
+    <summary style="border-color:#e8b4ae;background:#fdf0ef;color:#c0392b">Désinstaller le module</summary>
+    <div class="upd-force-body">
+      <p class="upd-hint" style="margin-top:0">
+        Supprime les fichiers du module. Une sauvegarde est créée avant suppression ;
+        la suppression des données en base reste optionnelle.
+      </p>
+      <a class="upd-btn upd-btn-danger" style="text-decoration:none;display:inline-block"
+         href="<?= $CFG->ROOT_DIR ?>Modules/Custom/_shared/uninstall.php?module=GUIDE">🗑 Désinstaller GUIDE…</a>
+    </div>
+  </details>
+</div>
+
 <?php include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php'); ?>

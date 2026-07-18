@@ -1,0 +1,179 @@
+{
+    "id": "logos-ecriteaux",
+    "type": "formation",
+    "title": "Logos et écriteaux (~10min)",
+    "description": "Habillez votre compétition : logos de la compétition, récupération automatique des logos des clubs depuis l'extranet FFTA, et impression d'écriteaux (fléchage, QR-codes, affichages).",
+    "version": "1.0",
+    "group": "Pour aller plus loin",
+    "order": 11,
+    "steps": [
+        {
+            "id": "intro",
+            "title": "Trois choses différentes",
+            "content": "<p>Nous allons voir trois éléments visuels :<\/p><ul><li>les <b>logos de la compétition<\/b> : votre en-tête et votre bandeau, sur tous les documents PDF ;<\/li><li>les <b>logos des clubs<\/b> : récupérés automatiquement depuis l'<b>extranet FFTA<\/b>, ils s'affichent à côté de chaque archer ;<\/li><li>les <b>écriteaux<\/b> : les affiches que vous imprimez pour le gymnase (fléchage, accueil, QR-codes).<\/li><\/ul><p>Cliquez sur <b>Suivant<\/b>.<\/p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "ouvrir",
+            "title": "Ouvrir une compétition",
+            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte<\/b>.<\/p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "tournament_open",
+                    "required": true
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "logos-competition",
+            "title": "Les logos de la compétition",
+            "content": "<p>Allez dans <b>Compétition &gt; Paramètres de la compétition &gt; Images<\/b>.<\/p><p>Vous pouvez charger <b>trois images<\/b> :<\/p><ul><li>le <b>logo de gauche<\/b> (souvent celui du club organisateur),<\/li><li>le <b>logo de droite<\/b> (souvent celui du comité ou de la FFTA),<\/li><li>la <b>bannière de pied de page<\/b> (partenaires, sponsors).<\/li><\/ul><p>Ces images apparaîtront sur <b>tous les documents PDF<\/b> générés : programme, plan de cible, feuilles de marque, classements.<\/p><p class=\"guide-tip\">💡 Une fois une image chargée, une case <b>Supprimer<\/b> apparaît à sa place pour la remplacer.<\/p>",
+            "page": "\/Tournament\/ManLogo.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "\/Tournament\/ManLogo.php"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_image",
+                    "required": true
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "logos-clubs",
+            "title": "Les logos des clubs (extranet FFTA)",
+            "content": "<p>ianseo sait récupérer <b>automatiquement<\/b> le logo de chaque club présent dans votre compétition.<\/p><p><b>Prérequis :<\/b> le club doit avoir <b>déposé son logo<\/b> sur l'espace extranet FFTA. Vous ne pouvez rien faire à sa place.<\/p><p><b>Comment faire :<\/b> allez dans <b>Participants &gt; Synchronisation des compétiteurs<\/b>, cochez la case <b>logo<\/b>, puis lancez la <b>synchronisation des données des athlètes<\/b>.<\/p><p>Le résultat s'affiche en <b>fin de ligne<\/b> pour chaque club :<\/p><ul><li><b>OK<\/b> → le logo a été trouvé et importé,<\/li><li><b>None<\/b> (Aucun) → le club n'a pas déposé de logo sur l'extranet.<\/li><\/ul><p class=\"guide-tip\">💡 Un <b>None<\/b> n'est pas une erreur de votre part : c'est au club de déposer son logo sur l'extranet FFTA. Rien à corriger dans ianseo.<\/p>",
+            "page": "\/Partecipants\/LookupTableLoad.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "\/Partecipants\/LookupTableLoad.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "ecriteaux-simple",
+            "title": "Les écriteaux — page simple",
+            "content": "<p>Allez dans <b>Impressions &gt; Écriteau<\/b>.<\/p><p>Les écriteaux reprennent automatiquement l'<b>en-tête et le pied de page<\/b> de votre compétition (vos logos !). Vous obtenez donc des affiches <b>à votre charte<\/b>, sans travail de mise en page.<\/p><p>La <b>première partie<\/b> de la page produit une <b>page simple<\/b> :<\/p><ul><li>une <b>première ligne<\/b> (grand texte),<\/li><li>une <b>seconde ligne<\/b> — utilisez ici des <b>flèches de direction<\/b> pour le fléchage,<\/li><li>un <b>QR-Code<\/b> (par exemple le lien vers les résultats en ligne).<\/li><\/ul><p class=\"guide-tip\">💡 Idéal pour : « Accueil \/ Greffe → », « Vestiaires → », « Résultats en direct » avec le QR-code.<\/p>",
+            "page": "\/Common\/Sign\/",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "\/Common\/Sign\/"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "focus",
+                    "selector": "input[name=\"First\"]",
+                    "required": true,
+                    "page": "\/Common\/Sign\/",
+                    "hint": "Le grand texte de votre écriteau"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "ecriteaux-document",
+            "title": "Les écriteaux — document long",
+            "content": "<p>La <b>seconde partie<\/b> de la même page permet de produire des <b>textes plus longs<\/b>, avec un <b>Titre<\/b>, un <b>Sujet<\/b> et un <b>corps de texte<\/b>.<\/p><p>Le corps accepte une <b>mise en forme HTML<\/b> : vous pouvez donc utiliser gras, listes, sauts de ligne…<\/p><p class=\"guide-tip\">💡 Parfait pour afficher le <b>règlement intérieur<\/b>, les <b>consignes de sécurité<\/b> ou le <b>mot d'accueil<\/b> du président, toujours à l'en-tête de la compétition.<\/p>",
+            "page": "\/Common\/Sign\/",
+            "triggers": [
+                {
+                    "kind": "action",
+                    "trigger": "focus",
+                    "selector": "textarea[name=\"Body\"]",
+                    "required": true,
+                    "page": "\/Common\/Sign\/",
+                    "hint": "Corps du document (mise en forme HTML acceptée)"
+                }
+            ],
+            "optional": true,
+            "strict_click": false
+        },
+        {
+            "id": "fin",
+            "title": "C'est terminé !",
+            "content": "<p>Votre compétition a une identité visuelle.<\/p><p><b>À retenir :<\/b><\/p><ul><li><b>Compétition &gt; Paramètres de la compétition &gt; Images<\/b> : vos deux logos + la bannière, repris sur tous les PDF.<\/li><li>Les <b>logos des clubs<\/b> se récupèrent via la <b>synchronisation<\/b> (case « logo ») — <b>None<\/b> = le club n'en a pas déposé sur l'extranet FFTA.<\/li><li><b>Impressions &gt; Écriteau<\/b> : affiches et fléchage, à votre charte, avec QR-code possible.<\/li><\/ul><p>Place au <b>QCM<\/b> et au <b>défi<\/b> !<\/p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        }
+    ],
+    "quiz": {
+        "pass_score": 70,
+        "questions": [
+            {
+                "q": "Le logo d'un club affiche « None » après la synchronisation. Que faut-il faire ?",
+                "choices": [
+                    "Rien dans ianseo : c'est au club de déposer son logo sur l'extranet FFTA",
+                    "Recharger la page de synchronisation",
+                    "Charger le logo manuellement dans Images",
+                    "Supprimer puis réinscrire les archers de ce club"
+                ],
+                "correct": 0,
+                "explain": "ianseo ne fait que récupérer le logo mis à disposition sur l'extranet FFTA. Sans dépôt, il n'y a rien à importer."
+            },
+            {
+                "q": "Comment récupère-t-on les logos des clubs ?",
+                "choices": [
+                    "En cochant la case « logo » puis en lançant la synchronisation des athlètes",
+                    "Dans Compétition > Paramètres de la compétition > Images",
+                    "Dans Impressions > Écriteau",
+                    "En les téléchargeant un par un sur le site du club"
+                ],
+                "correct": 0,
+                "explain": "C'est la synchronisation des compétiteurs qui va chercher les logos sur l'extranet."
+            },
+            {
+                "q": "Où charge-t-on les logos de la compétition (en-tête et bannière) ?",
+                "choices": [
+                    "Compétition > Paramètres de la compétition > Images",
+                    "Participants > Impressions",
+                    "Sorties > Sorties TV",
+                    "Impressions > Écriteau"
+                ],
+                "correct": 0,
+                "explain": "Trois images : logo gauche, logo droit et bannière de pied de page."
+            },
+            {
+                "q": "Quel est l'intérêt principal des écriteaux de ianseo ?",
+                "choices": [
+                    "Ils reprennent automatiquement l'en-tête et le pied de page de la compétition",
+                    "Ils affichent les scores en direct",
+                    "Ils remplacent les feuilles de marque",
+                    "Ils envoient les résultats à la FFTA"
+                ],
+                "correct": 0,
+                "explain": "Les écriteaux sont à la charte de votre compétition sans aucun travail de mise en page."
+            }
+        ],
+        "shuffle": true
+    },
+    "challenge": {
+        "intro": "<p>À vous de jouer.<\/p><ol><li>Ouvrez une compétition.<\/li><li>Chargez au moins <b>une image<\/b> (logo de gauche, de droite ou bannière) dans <b>Compétition &gt; Paramètres de la compétition &gt; Images<\/b>.<\/li><\/ol><p class=\"guide-tip\">💡 Profitez-en pour aller créer un écriteau de fléchage — même si le défi ne le vérifie pas, votre gymnase vous remerciera.<\/p><p>Cliquez sur <b>Vérifier<\/b> quand c'est fait.<\/p>",
+        "conditions": [
+            "has_image"
+        ]
+    }
+}

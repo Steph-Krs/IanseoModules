@@ -1,0 +1,177 @@
+{
+    "id": "import-tableur",
+    "type": "formation",
+    "title": "Importer les participants par tableur (~10min)",
+    "description": "Inscrivez des dizaines d'archers d'un coup : par copier/coller depuis votre tableur, ou par import d'un fichier CSV. Structure des colonnes et pièges à éviter.",
+    "version": "1.0",
+    "group": "Pour aller plus loin",
+    "order": 10,
+    "steps": [
+        {
+            "id": "intro",
+            "title": "Deux façons d'importer en masse",
+            "content": "<p>Saisir 150 archers un par un, c'est long. ianseo sait les avaler <b>en une fois</b>, de deux manières :</p><ul><li>par <b>copier/coller</b> depuis votre tableur directement dans une zone de texte,</li><li>par <b>import d'un fichier</b> (au format <b>.csv</b>).</li></ul><p>Dans les deux cas, c'est la <b>même structure de colonnes</b> qui est attendue.</p><p class=\"guide-tip\">⚠️ Prérequis : la <b>base des licenciés</b> doit être synchronisée (Participants &gt; Synchronisation des compétiteurs). C'est elle qui permet à ianseo de retrouver un archer à partir de son numéro de licence.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "ouvrir",
+            "title": "Ouvrir une compétition",
+            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p><p>Allez dans <b>Compétition &gt; Ouvrir</b>.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "tournament_open",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : ouvrez une compétition."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "page-import",
+            "title": "La page d'importation tableur",
+            "content": "<p>Allez dans <b>Participants &gt; Synchronisation des compétiteurs &gt; Chargement de liste (importation tableur)</b>.</p><p>La page se divise en deux :</p><ul><li>à gauche, une grande <b>zone de texte</b> (pour le copier/coller) et un bouton de <b>choix de fichier</b>,</li><li>à droite, la <b>liste numérotée des colonnes</b> attendues — votre aide-mémoire.</li></ul>",
+            "page": "/Partecipants/ListLoad.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Partecipants/ListLoad.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "structure",
+            "title": "La structure du tableur",
+            "content": "<p>Vos colonnes, <b>dans cet ordre</b>, <b>sans ligne d'en-tête</b> :</p><ol><li><b>Numéro de licence</b></li><li><b>Départ</b> (session)</li><li><b>Division</b> (arme : CL, CO, BB…)</li><li><b>Classe</b> (catégorie d'âge/sexe)</li><li><b>Cible</b></li><li><b>Qualification individuelle</b> (1 = oui, 0 = non)</li><li><b>Qualification par équipe</b></li><li><b>Finale individuelle</b> (les duels !)</li><li><b>Finale par équipe</b></li><li><b>Double mixte</b></li></ol><p class=\"guide-tip\">⚠️ <b>Attention à l'ordre des 4 colonnes de participation</b> : c'est <b>Qualif Indiv, Qualif Équipe, Finale Indiv, Finale Équipe</b>. On inverse souvent « Qualif Équipe » et « Finale Indiv » — et on se retrouve avec des archers absents des duels.</p><p class=\"guide-tip\">💡 La colonne <b>Finale individuelle</b> (8) correspond exactement à la case « participation aux épreuves individuelles ». Mettez <b>1</b> pour que l'archer puisse faire des duels.</p>",
+            "page": "/Partecipants/ListLoad.php",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "copier-coller",
+            "title": "Méthode 1 — Le copier/coller",
+            "content": "<p>Dans votre tableur, <b>sélectionnez vos lignes</b> (sans l'en-tête) et copiez-les (<code>Ctrl+C</code>).</p><p>Cliquez dans la <b>grande zone de texte</b> de ianseo et collez (<code>Ctrl+V</code>).</p><p>Les colonnes de votre tableur deviennent des colonnes séparées par des tabulations — c'est exactement ce que ianseo attend.</p><p class=\"guide-tip\">💡 C'est la méthode la plus rapide pour un ajout ponctuel de quelques archers, sans passer par un fichier.</p>",
+            "page": "/Partecipants/ListLoad.php",
+            "triggers": [
+                {
+                    "kind": "action",
+                    "trigger": "focus",
+                    "selector": "#txtList",
+                    "required": true,
+                    "page": "/Partecipants/ListLoad.php",
+                    "hint": "Collez ici les lignes copiées depuis votre tableur (Ctrl+V)"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "fichier",
+            "title": "Méthode 2 — L'import d'un fichier",
+            "content": "<p>Pour une liste complète, enregistrez votre tableur au format <b>.csv</b>.</p><p>Cliquez sur <b>Choisir un fichier</b>, sélectionnez votre <b>.csv</b> : son nom s'affiche alors dans la zone.</p><p class=\"guide-tip\">⚠️ Le format <b>.csv</b> est obligatoire pour être compatible avec l'import ianseo. Un <b>.xlsx</b> ne sera pas lu — pensez à « Enregistrer sous » dans votre tableur.</p>",
+            "page": "/Partecipants/ListLoad.php",
+            "triggers": [
+                {
+                    "kind": "action",
+                    "trigger": "mouseover",
+                    "selector": "input[name=\"UploadedFile\"]",
+                    "required": true,
+                    "page": "/Partecipants/ListLoad.php",
+                    "hint": "Sélectionnez votre fichier .csv"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "options",
+            "title": "Les cases dangereuses",
+            "content": "<p>Avant de valider, regardez bien les <b>cases à cocher</b> proposées :</p><ul><li>l'une <b>efface les archers</b> déjà présents dans la compétition <b>qui ne figurent pas dans le fichier</b>,</li><li>l'autre <b>efface les archers</b> qui apparaissent <b>plusieurs fois</b>.</li></ul><p class=\"guide-tip\">⚠️ <b>Ces cases doivent rester décochées par défaut.</b> Cochées par erreur sur un import partiel, elles suppriment des inscriptions déjà saisies. Ne les utilisez qu'en connaissance de cause, sur un fichier qui fait référence.</p><p>Validez ensuite l'import : ianseo affiche un <b>récapitulatif des modifications</b> avant d'écrire.</p>",
+            "page": "/Partecipants/ListLoad.php",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "autres-tirs",
+            "title": "Le cas des « autres tirs »",
+            "content": "<p>Un archer qui tire <b>plusieurs départs</b> doit être <b>inscrit plusieurs fois</b> (comme dans Result'Arc).</p><p>Mais pour ses inscriptions supplémentaires, il faut mettre la <b>Finale individuelle à 0</b> (colonne 8), sinon il apparaîtrait <b>plusieurs fois dans le tableau de duels</b>.</p><p class=\"guide-tip\">💡 En saisie manuelle, c'est le champ <b>Finale Ind.</b> qu'on passe à <b>Non</b> sur la fiche de l'archer.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "fin",
+            "title": "C'est terminé !",
+            "content": "<p>Vous savez inscrire en masse.</p><p><b>À retenir :</b></p><ul><li>Copier/coller <b>ou</b> fichier <b>.csv</b> — même structure de colonnes.</li><li>Ordre des participations : <b>Qualif Indiv, Qualif Équipe, Finale Indiv, Finale Équipe, Double mixte</b>.</li><li>Les cases de suppression restent <b>décochées</b>.</li><li>Deuxième départ d'un archer = <b>Finale individuelle à 0</b>.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        }
+    ],
+    "quiz": {
+        "pass_score": 70,
+        "shuffle": true,
+        "questions": [
+            {
+                "q": "Quel format de fichier faut-il pour l'import tableur de ianseo ?",
+                "choices": [".csv", ".xlsx", ".pdf", ".txt uniquement"],
+                "correct": 0,
+                "explain": "Le tableur doit être enregistré au format .csv pour être lu par ianseo."
+            },
+            {
+                "q": "Dans quel ordre sont les colonnes de participation ?",
+                "choices": [
+                    "Qualif Indiv, Qualif Équipe, Finale Indiv, Finale Équipe, Double mixte",
+                    "Finale Indiv, Finale Équipe, Qualif Indiv, Qualif Équipe, Double mixte",
+                    "Double mixte, Qualif Indiv, Finale Indiv, Qualif Équipe, Finale Équipe",
+                    "Qualif Indiv, Finale Indiv, Qualif Équipe, Finale Équipe, Double mixte"
+                ],
+                "correct": 0,
+                "explain": "Les deux qualifications d'abord, puis les deux finales, puis le double mixte. C'est une source classique d'erreur."
+            },
+            {
+                "q": "Les cases « effacer les archers absents du fichier » et « effacer les doublons » doivent être…",
+                "choices": [
+                    "décochées par défaut",
+                    "toujours cochées",
+                    "cochées au premier import seulement",
+                    "sans effet sur les données"
+                ],
+                "correct": 0,
+                "explain": "Cochées par erreur, elles suppriment des inscriptions déjà saisies. On les laisse décochées."
+            },
+            {
+                "q": "Un archer tire deux départs. Que faut-il faire pour sa deuxième inscription ?",
+                "choices": [
+                    "Mettre la Finale individuelle à 0 (colonne 8)",
+                    "Ne rien changer",
+                    "Lui donner un autre numéro de licence",
+                    "Le supprimer du premier départ"
+                ],
+                "correct": 0,
+                "explain": "Sans cela, il apparaîtrait deux fois dans le tableau de duels."
+            }
+        ]
+    },
+    "challenge": {
+        "intro": "<p>À vous de jouer.</p><ol><li>Ouvrez une compétition.</li><li>Rendez-vous sur la page d'<b>importation tableur</b>.</li><li>Importez (ou collez) au moins <b>un archer</b> pour qu'il soit inscrit à la compétition.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+        "conditions": [
+            "listload_visited",
+            "has_participant"
+        ]
+    }
+}

@@ -6,7 +6,10 @@ define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once dirname(dirname(__DIR__)) . '/_shared/update-lib.php';
 
-checkFullACL(AclRoot, '', AclReadWrite);
+// AclRoot seul ne suffit pas : avec un module de comptes, authCheckACL accorde
+// AclReadWrite à tout organisateur connecté hors compétition. upd_admin_guard()
+// exige en plus la vue Administrateur serveur (AUTH_ROOT).
+upd_admin_guard();
 
 $PAGE_TITLE = 'Poules — Mise à jour du module';
 $MODULE_DIR = dirname(__DIR__);
@@ -159,5 +162,20 @@ details.upd-force .upd-force-body { margin-top: 16px; }
 <?php endif; ?>
 </div>
 <?php endif; ?>
+
+<!-- === ZONE DE DANGER === -->
+<div class="upd-section">
+  <details class="upd-force">
+    <summary style="border-color:#e8b4ae;background:#fdf0ef;color:#c0392b">Désinstaller le module</summary>
+    <div class="upd-force-body">
+      <p class="upd-hint" style="margin-top:0">
+        Supprime les fichiers du module. Une sauvegarde est créée avant suppression.
+        Ce module ne crée aucune table : aucune donnée n'est perdue.
+      </p>
+      <a class="upd-btn" style="background:#c0392b;color:#fff;text-decoration:none;display:inline-block"
+         href="<?= $CFG->ROOT_DIR ?>Modules/Custom/_shared/uninstall.php?module=POULES">🗑 Désinstaller POULES…</a>
+    </div>
+  </details>
+</div>
 
 <?php include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php'); ?>

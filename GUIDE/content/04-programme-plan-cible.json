@@ -1,0 +1,224 @@
+{
+    "id": "programme-plan-cible",
+    "type": "formation",
+    "title": "Le programme et le plan de cible (~15min)",
+    "description": "Définissez les départs (sessions), rédigez le programme de la compétition, affectez les archers sur les cibles et imprimez le plan de cible et les listes du greffe.",
+    "version": "1.0",
+    "group": "Les bases",
+    "order": 4,
+    "steps": [
+        {
+            "id": "intro",
+            "title": "Programme et plan de cible : de quoi parle-t-on ?",
+            "content": "<p>Deux documents que tout organisateur doit produire :</p><ul><li>Le <b>programme</b> : le déroulé de la journée (ouverture du greffe, départs, entraînements, podiums…).</li><li>Le <b>plan de cible</b> : qui tire sur quelle cible, sur quel blason.</li></ul><p>Les deux reposent sur la même fondation : les <b>départs (sessions)</b>.</p><p><b>Au programme :</b></p><ol><li>Définir les départs et leurs cibles</li><li>Rédiger le programme</li><li>Affecter les archers sur les cibles</li><li>Imprimer le plan de cible et les listes du greffe</li></ol><p>Cliquez sur <b>Suivant</b>.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "ouvrir-competition",
+            "title": "Ouvrir votre compétition",
+            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b> avec au moins un participant inscrit.</p><p>Allez dans <b>Compétition &gt; Ouvrir</b>.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "tournament_open",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : ouvrez une compétition (Compétition > Ouvrir)."
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_participant",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : inscrivez au moins un participant."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "sessions",
+            "title": "Définir les départs (sessions)",
+            "content": "<p>Allez dans <b>Compétition &gt; Paramètres de la compétition &gt; Session</b>.</p><p>Un <b>départ</b> (session) = un groupe d'archers qui tire au même moment. Pour chaque départ, vous définissez :</p><ul><li>le <b>nombre de cibles</b> disponibles,</li><li>le <b>nombre d'archers par cible</b> (2, 3 ou 4),</li><li>la <b>première cible</b> (utile si le départ 2 commence à la cible 11, par exemple),</li><li>les <b>distances et blasons</b> de la session.</li></ul><p class=\"guide-tip\">💡 C'est ici que tout se joue : <b>cibles × archers par cible = capacité du départ</b>. Si vous ne pouvez pas affecter tous vos archers plus tard, c'est presque toujours ce réglage qu'il faut revoir.</p>",
+            "page": "/Tournament/ManSessions_kiss.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Tournament/ManSessions_kiss.php"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_session_configured",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : au moins un départ doit avoir un nombre de cibles défini."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "programme",
+            "title": "Rédiger le programme",
+            "content": "<p>Allez dans <b>Compétition &gt; Programme</b>.</p><p>Les <b>départs</b> que vous venez de définir s'affichent <b>automatiquement</b>. Vous complétez autour d'eux tout ce qui fait la journée :</p><ul><li>l'<b>ouverture du greffe</b>,</li><li>la <b>vérification du matériel</b>,</li><li>les <b>volées d'entraînement</b>,</li><li>les <b>podiums</b>, réunions, etc.</li></ul><p>Chaque ligne a une <b>date</b>, une <b>heure</b> et une <b>durée</b>, puis un <b>Titre</b>, un <b>Sous-titre</b> et un <b>Texte</b> selon l'affichage souhaité.</p><p class=\"guide-tip\">⚠️ Les <b>dates et heures sont obligatoires</b> — sans elles, la ligne ne s'affichera pas correctement dans le programme.</p><p class=\"guide-tip\">💡 Pour modifier l'horaire d'un <b>départ</b>, ne le faites pas ici : passez par le <b>paramétrage avancé des départs</b>.</p>",
+            "page": "/Scheduler/",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Scheduler/"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_schedule",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : ajoutez au moins une ligne au programme."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "commentaire-session",
+            "title": "Le commentaire d'un départ",
+            "content": "<p>Toujours dans le <b>Programme</b>, chaque session peut recevoir un <b>commentaire</b> affiché sur le document.</p><p>Pour les qualifications, la FFTA recommande d'<b>inclure l'entraînement</b> dans l'horaire et la durée du départ, puis de détailler dans le commentaire, par exemple :</p><p><code>Entraînement (3 volées) suivi du tir de classement en rythme AB/CD</code></p><p>Vous pouvez aussi y décrire la <b>répartition des blasons</b> par cible, avec cette syntaxe :</p><p><code>1-4@18m@TrispotsCo,5-10@18m@TrispotsCl,11-15@18m@Blason40</code></p><p class=\"guide-tip\">💡 Lecture : cibles 1 à 4 en trispots poulies, 5 à 10 en trispots classique, 11 à 15 en blason 40. Un archer et un arbitre lisent ainsi le plan de tir d'un coup d'œil.</p>",
+            "page": "/Scheduler/",
+            "triggers": [],
+            "optional": true,
+            "strict_click": false
+        },
+        {
+            "id": "affectation-cibles",
+            "title": "Affecter les archers sur les cibles",
+            "content": "<p>Allez dans <b>Participants &gt; Cible &gt; Affectation automatique</b>.</p><p>C'est le <b>tirage au sort</b> du plan de cible. Réglages utiles :</p><ul><li><b>Session</b> : le départ concerné,</li><li><b>Grouper par division / par classe</b> : place les archers d'une même arme ou d'une même catégorie sur des cibles voisines,</li><li><b>De / À</b> : limiter le tirage à une plage de cibles,</li><li><b>Effectuer l'affectation</b> : la case à cocher qui <b>écrit réellement</b> le résultat (sans elle, c'est une simulation).</li></ul><p class=\"guide-tip\">⚠️ Sans la case <b>Effectuer l'affectation</b>, ianseo vous montre le résultat mais <b>n'enregistre rien</b>. C'est une sécurité : vérifiez d'abord, cochez ensuite.</p><p class=\"guide-tip\">💡 <b>Affectation manuelle</b> (menu voisin) permet de corriger un archer à la main après coup, sans refaire tout le tirage.</p>",
+            "page": "/Partecipants/SetTarget_auto.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Partecipants/SetTarget_auto.php"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "mouseover",
+                    "selector": "#DoAssign",
+                    "required": true,
+                    "page": "/Partecipants/SetTarget_auto.php",
+                    "hint": "La case qui enregistre réellement l'affectation"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_target_assigned",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : au moins un archer doit avoir une cible attribuée."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "impressions",
+            "title": "Imprimer le plan de cible et les listes du greffe",
+            "content": "<p>Allez dans <b>Participants &gt; Impressions</b>.</p><p>Vous pouvez éditer la liste des archers par <b>cibles</b>, par <b>clubs</b>, par <b>ordre alphabétique</b> ou par <b>catégorie de classement</b>.</p><p><b>Les deux documents recommandés par la FFTA :</b></p><ul><li><b>Liste des cibles (+ Type de cible)</b> → c'est votre <b>plan de cible</b>. C'est le document le plus proche de la liste de greffe de Result'Arc.</li><li><b>Liste des participants par ordre alphabétique (+ Type de cible)</b> → la <b>feuille de greffe</b> pour l'accueil.</li></ul><p class=\"guide-tip\">💡 Le <b>programme complet</b> en PDF, lui, s'obtient depuis la page <b>Programme</b>, bouton <b>Programme complet</b>.</p>",
+            "page": "/Partecipants/PrintOut.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Partecipants/PrintOut.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "fin",
+            "title": "C'est terminé !",
+            "content": "<p>Votre compétition a un <b>programme</b> et un <b>plan de cible</b>.</p><p><b>À retenir :</b></p><ul><li>Tout part des <b>départs</b> : cibles × archers par cible.</li><li>Le programme <b>reprend les départs automatiquement</b> ; vous ajoutez le reste (greffe, entraînements, podiums).</li><li>L'affectation automatique n'écrit rien <b>sans la case « Effectuer l'affectation »</b>.</li><li>Le plan de cible s'imprime via <b>Participants &gt; Impressions &gt; Liste des cibles (+ Type de cible)</b>.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        }
+    ],
+    "quiz": {
+        "pass_score": 70,
+        "shuffle": true,
+        "questions": [
+            {
+                "q": "Vous lancez l'affectation automatique, le résultat s'affiche… mais rien n'est enregistré. Pourquoi ?",
+                "choices": [
+                    "La case « Effectuer l'affectation » n'était pas cochée",
+                    "Il faut redémarrer ianseo",
+                    "Les scores ne sont pas encore saisis",
+                    "Le programme n'est pas complété"
+                ],
+                "correct": 0,
+                "explain": "Sans cette case, ianseo simule le tirage et affiche le résultat sans l'écrire. C'est une sécurité volontaire."
+            },
+            {
+                "q": "Où définit-on le nombre de cibles et le nombre d'archers par cible ?",
+                "choices": [
+                    "Compétition > Paramètres de la compétition > Session (les départs)",
+                    "Dans le programme",
+                    "Dans la fiche de chaque participant",
+                    "Dans les impressions"
+                ],
+                "correct": 0,
+                "explain": "Les départs (sessions) portent la capacité de tir : nombre de cibles et archers par cible."
+            },
+            {
+                "q": "Quel document constitue le « plan de cible » recommandé par la FFTA ?",
+                "choices": [
+                    "Liste des cibles (+ Type de cible)",
+                    "Liste par clubs",
+                    "Classement par catégorie",
+                    "Le programme complet"
+                ],
+                "correct": 0,
+                "explain": "C'est le document le plus proche de la liste de greffe de Result'Arc."
+            },
+            {
+                "q": "Dans le programme, les horaires des départs…",
+                "choices": [
+                    "s'affichent automatiquement à partir des sessions",
+                    "doivent être ressaisis à la main",
+                    "sont générés après les qualifications",
+                    "ne peuvent pas apparaître"
+                ],
+                "correct": 0,
+                "explain": "Les départs sont repris automatiquement ; pour les modifier, on passe par le paramétrage avancé des départs."
+            },
+            {
+                "q": "Que signifie le commentaire de session « 1-4@18m@TrispotsCo,5-10@18m@TrispotsCl » ?",
+                "choices": [
+                    "Cibles 1 à 4 : 18 m trispots poulies ; cibles 5 à 10 : 18 m trispots classique",
+                    "4 archers sur la cible 1 et 10 sur la cible 5",
+                    "Les départs 1 et 5 commencent à 18 h",
+                    "Les scores 1 à 4 comptent double"
+                ],
+                "correct": 0,
+                "explain": "La syntaxe est plage-de-cibles@distance@blason : elle décrit la répartition des blasons sur le pas de tir."
+            }
+        ]
+    },
+    "challenge": {
+        "intro": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition ouverte :</p><ol><li>Définissez au moins un <b>départ</b> avec un nombre de cibles.</li><li>Ajoutez au moins une ligne au <b>programme</b> (par exemple l'ouverture du greffe).</li><li>Lancez l'<b>affectation des cibles</b> pour qu'au moins un archer ait une cible.</li></ol><p>Cliquez sur <b>Vérifier</b> quand vous avez terminé.</p>",
+        "conditions": [
+            "has_session_configured",
+            "has_schedule",
+            "has_target_assigned"
+        ]
+    }
+}

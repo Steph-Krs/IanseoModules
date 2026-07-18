@@ -1,0 +1,187 @@
+{
+    "id": "isk-ng-lite",
+    "type": "formation",
+    "title": "Saisie sur téléphone avec ISK-NG Lite (~15min)",
+    "description": "Faites saisir les scores par les archers eux-mêmes, sur leur propre téléphone, avec la version gratuite d'IanseoScoreKeeper NG. Activation, QR-codes et verrouillage des sessions.",
+    "version": "1.0",
+    "group": "Pour aller plus loin",
+    "order": 14,
+    "steps": [
+        {
+            "id": "intro",
+            "title": "ISK-NG Lite : la saisie par les archers",
+            "content": "<p><b>IanseoScoreKeeper NG</b> (ISK-NG) est l'application mobile de ianseo. Les archers saisissent leurs scores <b>sur leur propre téléphone</b>, et les scores remontent <b>automatiquement</b> dans ianseo.</p><p>Il existe deux versions :</p><ul><li><b>Lite</b> — <b>gratuite et sans publicité</b> : saisie des scores, récolte des <b>scores de qualification</b>, contrôle des sessions accessibles aux archers, QR-codes sur les feuilles de marque.</li><li><b>Pro</b> — payante (licence) : en plus, la récolte des <b>scores de duels</b>, le regroupement de tablettes, la <b>supervision en direct</b> et le contrôle à distance.</li></ul><p><b>Cette formation couvre la version Lite</b>, celle qui convient à l'immense majorité des concours de club.</p><p class=\"guide-tip\">💡 En Lite, ce sont les <b>téléphones des archers</b> qui servent — vous n'avez aucun matériel à acheter.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "ouvrir",
+            "title": "Ouvrir une compétition",
+            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "tournament_open",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : ouvrez une compétition."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "activer",
+            "title": "Activer ISK-NG en version Lite",
+            "content": "<p>Allez dans <b>Compétition &gt; Paramètres de la compétition &gt; Informations de la compétition</b> et descendez jusqu'au bloc <b>ISK-NG</b>.</p><p>Réglez :</p><ul><li><b>Mode</b> → <b>ng-lite</b> (la version gratuite),</li><li><b>Adresse du serveur</b> → l'<b>adresse IP de votre ordinateur</b> sur le réseau Wi-Fi du gymnase.</li></ul><p>Puis <b>Sauvegardez</b>.</p><p class=\"guide-tip\">⚠️ <b>L'adresse IP est indispensable</b>, même en version Lite. C'est elle que les téléphones vont contacter. Vous la trouvez dans les paramètres de votre Wi-Fi, sous <b>« Adresse IPv4 »</b> — par exemple <code>192.168.0.82</code>. Saisissez-la telle quelle.</p><p class=\"guide-tip\">💡 Si vous choisissez <b>ng-pro</b> sans saisir de <b>numéro de licence</b>, ianseo <b>rebascule automatiquement en Lite</b>. Pas de mauvaise surprise possible.</p>",
+            "page": "/Tournament/index.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Tournament/index.php"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "isk_ng_lite_enabled",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : réglez le mode ISK-NG sur « ng-lite » et sauvegardez."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "menu-isk",
+            "title": "Le menu ISK apparaît",
+            "content": "<p>Une fois ISK-NG activé et la compétition rouverte, un nouveau menu <b>ISK</b> apparaît dans la barre de navigation.</p><p>En version <b>Lite</b>, il contient :</p><ul><li><b>Imprimer les codes d'installation QR</b> — pour que les archers installent et connectent l'appli,</li><li><b>Imprimer les scores de cible sur feuille de QR-Code</b> — le QR-code que l'archer scanne pour ouvrir la saisie de sa cible,</li><li><b>Gérer les sessions verrouillées</b> — pour ouvrir/fermer la saisie,</li><li>les <b>Paramètres de calcul du classement</b> et le <b>Groupement de périphériques</b>.</li></ul><p class=\"guide-tip\">💡 Les entrées <b>Gestion des périphériques</b>, <b>Résultats</b> et <b>Contrôle du terrain</b> n'apparaissent <b>pas</b> en Lite : elles sont réservées à la version Pro. C'est normal, ne les cherchez pas.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "qr-installation",
+            "title": "Les codes d'installation QR",
+            "content": "<p>Allez dans <b>ISK &gt; Imprimer les codes d'installation QR</b>.</p><p>ianseo génère une feuille de <b>QR-codes</b>. Chaque archer :</p><ol><li>installe l'application <b>IanseoScoreKeeper NG</b> (gratuite) sur son téléphone,</li><li><b>scanne le QR-code</b> depuis le menu de l'application,</li><li>se retrouve automatiquement connecté à <b>votre</b> compétition, sur <b>votre</b> serveur.</li></ol><p>Affichez ces QR-codes à l'accueil et sur le pas de tir.</p><p class=\"guide-tip\">⚠️ Les téléphones doivent être sur le <b>même réseau Wi-Fi</b> que l'ordinateur ianseo — c'est tout l'intérêt de l'adresse IP saisie à l'étape précédente. Pas de Wi-Fi commun = pas de remontée de scores.</p>",
+            "page": "/Api/ISK-NG/QRcodes.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Api/ISK-NG/QRcodes.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "qr-cibles",
+            "title": "Les QR-codes des cibles",
+            "content": "<p>Allez ensuite dans <b>ISK &gt; Imprimer les scores de cible sur feuille de QR-Code</b>.</p><p>En scannant le QR-code de sa cible, le téléphone de l'archer sait <b>qui tire où</b> : il ouvre directement la bonne feuille de marque. C'est le <b>même QR-code</b> que celui qui figure sur les feuilles de marque imprimées.</p><p class=\"guide-tip\">💡 Vous pouvez donc aussi faire figurer les <b>QR-codes directement sur les feuilles de marque</b> (Qualification &gt; Impression des feuilles de marque). Le QR-code tient alors compte de la <b>série</b> sur laquelle l'archer va saisir.</p><p class=\"guide-tip\">⚠️ Les <b>codes-barres</b> classiques ne sont lisibles qu'avec une <b>imprimante laser</b> — le jet d'encre n'est pas assez précis. Préférez les <b>QR-codes</b>.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "sessions-verrouillees",
+            "title": "Verrouiller / déverrouiller les sessions",
+            "content": "<p>Allez dans <b>ISK &gt; Gérer les sessions verrouillées</b>.</p><p>C'est votre <b>interrupteur</b> : vous décidez quelles <b>sessions (départs)</b> sont ouvertes à la saisie par les archers.</p><ul><li><b>Déverrouillée</b> → les archers de ce départ peuvent saisir.</li><li><b>Verrouillée</b> → la saisie est fermée (avant le départ, ou une fois les scores validés).</li></ul><p class=\"guide-tip\">⚠️ <b>Verrouillez le départ dès que les scores sont validés.</b> Sinon un archer peut encore modifier sa feuille de marque après signature — et vos classements bougent sous vos pieds.</p>",
+            "page": "/Api/ISK-NG/Sessions.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Api/ISK-NG/Sessions.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "fin",
+            "title": "C'est terminé !",
+            "content": "<p>Vos archers peuvent saisir depuis leur téléphone.</p><p><b>À retenir :</b></p><ul><li><b>Lite = gratuit</b> : qualifications, sur les téléphones des archers. <b>Pro = payant</b> : duels, tablettes, supervision.</li><li>Il faut <b>toujours</b> renseigner l'<b>adresse IP</b> de l'ordinateur ianseo, même en Lite.</li><li>Tout le monde sur le <b>même Wi-Fi</b>.</li><li>Les <b>QR-codes</b> connectent l'appli, puis la cible.</li><li><b>Verrouillez la session</b> dès les scores validés.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        }
+    ],
+    "quiz": {
+        "pass_score": 70,
+        "shuffle": true,
+        "questions": [
+            {
+                "q": "Que permet la version Lite (gratuite) d'ISK-NG ?",
+                "choices": [
+                    "La récolte des scores de qualification sur les téléphones des archers",
+                    "La récolte des scores de duels",
+                    "La supervision en direct de la récolte",
+                    "Le contrôle à distance des tablettes"
+                ],
+                "correct": 0,
+                "explain": "Les duels, la supervision en direct et le contrôle à distance sont réservés à la version Pro (payante)."
+            },
+            {
+                "q": "Faut-il renseigner l'adresse IP du serveur en version Lite ?",
+                "choices": [
+                    "Oui, elle est indispensable dans les deux versions",
+                    "Non, seulement en version Pro",
+                    "Non, ianseo la détecte tout seul",
+                    "Seulement si on utilise des tablettes"
+                ],
+                "correct": 0,
+                "explain": "C'est l'adresse que les téléphones contactent : sans elle, aucune remontée de score."
+            },
+            {
+                "q": "Vous choisissez le mode « ng-pro » sans saisir de numéro de licence. Que se passe-t-il ?",
+                "choices": [
+                    "ianseo rebascule automatiquement en Lite",
+                    "La compétition est bloquée",
+                    "Les fonctions Pro sont activées gratuitement",
+                    "Les scores ne remontent plus"
+                ],
+                "correct": 0,
+                "explain": "La version Pro exige une licence ; sans elle, ianseo retombe proprement sur ng-lite."
+            },
+            {
+                "q": "Pourquoi verrouiller une session dans ISK ?",
+                "choices": [
+                    "Pour empêcher les archers de modifier leurs scores une fois validés",
+                    "Pour économiser la batterie des téléphones",
+                    "Pour accélérer le calcul du classement",
+                    "Pour imprimer les feuilles de marque"
+                ],
+                "correct": 0,
+                "explain": "Une session déverrouillée reste modifiable par les archers, même après signature."
+            },
+            {
+                "q": "Codes-barres ou QR-codes sur les feuilles de marque ?",
+                "choices": [
+                    "QR-codes : les codes-barres exigent une imprimante laser",
+                    "Codes-barres : ils sont plus fiables",
+                    "Peu importe, les deux se valent",
+                    "Ni l'un ni l'autre en version Lite"
+                ],
+                "correct": 0,
+                "explain": "Les imprimantes jet d'encre ne sont pas assez précises pour un code-barres exploitable."
+            }
+        ]
+    },
+    "challenge": {
+        "intro": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition :</p><ol><li>Activez <b>ISK-NG en mode Lite</b> (<code>ng-lite</code>) dans les informations de la compétition, avec l'adresse IP de votre machine.</li><li>Allez imprimer les <b>codes d'installation QR</b> depuis le menu ISK.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+        "conditions": [
+            "isk_ng_lite_enabled",
+            "isk_qrcodes_visited"
+        ]
+    }
+}

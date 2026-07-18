@@ -1,0 +1,176 @@
+{
+    "id": "publication-ianseo-net",
+    "type": "formation",
+    "title": "Publier les résultats sur ianseo.net (~10min)",
+    "description": "Demandez un code internet, puis publiez en ligne participants, plan de cible, programme et résultats en direct. Attention : cela ne remplace pas l'envoi du fichier TXT à la FFTA.",
+    "version": "1.0",
+    "group": "Pour aller plus loin",
+    "order": 15,
+    "steps": [
+        {
+            "id": "intro",
+            "title": "Publier en ligne — et ce que ça ne remplace pas",
+            "content": "<p>ianseo permet de publier votre compétition sur <b>ianseo.net</b> : les archers, les familles et les clubs suivent les <b>résultats en direct</b> depuis leur téléphone.</p><p class=\"guide-tip\">⚠️ <b>À lire absolument :</b> publier sur ianseo.net <b>ne remplace en aucun cas</b> l'envoi du <b>fichier TXT à la FFTA</b> à la fin de la compétition. Ce sont <b>deux démarches totalement distinctes</b> : ianseo.net, c'est la vitrine publique ; le fichier TXT, c'est la <b>transmission officielle des résultats</b> à la fédération. Publier en ligne et oublier le TXT = résultats jamais enregistrés par la FFTA.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "ouvrir",
+            "title": "Ouvrir votre compétition",
+            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p><p class=\"guide-tip\">⚠️ Le <b>code de la compétition</b> saisi à la création <b>ne devra plus être modifié</b> une fois la demande de code internet envoyée. Vérifiez-le avant de continuer.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "tournament_open",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : ouvrez une compétition."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "demande-code",
+            "title": "Demander un code internet",
+            "content": "<p>Pour publier, il faut d'abord obtenir un <b>numéro unique</b> attribué à votre compétition par l'équipe ianseo.</p><p>Allez dans <b>Compétition &gt; Envoyer à ianseo.net &gt; Envoyer</b>, puis cliquez sur le titre <b>« Cliquez ici pour demander un code »</b>.</p><p>Un <b>récapitulatif</b> de la configuration de votre compétition s'affiche. Vous devez saisir :</p><ul><li>un <b>mot de passe</b>,</li><li>une <b>adresse e-mail</b>.</li></ul><p class=\"guide-tip\">⚠️ <b>Ne demandez un code que pour les concours qui auront réellement lieu.</b> Chaque demande est validée manuellement par une équipe de bénévoles — les demandes fantaisistes leur font perdre du temps.</p>",
+            "page": "/Tournament/UploadResults.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Tournament/UploadResults.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "validation",
+            "title": "Attendre la validation (deux e-mails)",
+            "content": "<p>Vous allez recevoir <b>deux e-mails</b>, et ils ne veulent pas dire la même chose :</p><ol><li>Le <b>premier</b> confirme que votre compétition a bien été <b>reçue</b> par le système ianseo et qu'elle est <b>en cours de validation</b>. <b>Aucune publication n'est encore possible.</b></li><li>Le <b>second</b> arrive après la <b>validation manuelle</b> par l'équipe ianseo. C'est seulement à partir de là que vous pouvez publier.</li></ol><p class=\"guide-tip\">⚠️ Ne vous y prenez donc <b>pas la veille</b> : la validation est faite par des humains et peut prendre du temps. Demandez votre code <b>dès que la compétition est configurée</b>.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "codes",
+            "title": "Saisir les codes en ligne",
+            "content": "<p>Une fois le <b>second e-mail</b> reçu, allez dans <b>Compétition &gt; Envoyer à ianseo.net &gt; Saisie des codes en-ligne</b>.</p><p>Reportez les <b>informations reçues par e-mail</b> (identifiant de la compétition et mot de passe).</p><p>C'est cette page qui <b>authentifie</b> votre ianseo auprès de ianseo.net. Sans elle, les envois seront refusés.</p>",
+            "page": "/Tournament/SetCredentials.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Tournament/SetCredentials.php"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "online_codes_visited",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : ouvrez la page de saisie des codes en-ligne."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "envoyer",
+            "title": "Envoyer les informations",
+            "content": "<p>Retournez dans <b>Compétition &gt; Envoyer à ianseo.net &gt; Envoyer</b>.</p><p><b>Commencez par le début :</b> envoyez d'abord les <b>images</b> et les <b>participants</b>. Vous pouvez publier la liste des participants par <b>club/pays</b>, par <b>cible</b> ou par <b>ordre alphabétique</b>.</p><p>Vous pouvez ensuite publier les autres documents utiles :</p><ul><li>le <b>programme</b>,</li><li>le <b>plan de cibles</b>,</li><li>le <b>mandat</b>,</li><li>des <b>liens</b> vers le site de votre club.</li></ul><p>Pendant la compétition, revenez sur cette page pour <b>envoyer les scores</b> au fil de l'eau.</p><p class=\"guide-tip\">💡 La page distingue les compétitions <b>avec duels</b> et <b>sans duels</b> : les options proposées s'adaptent à votre configuration.</p>",
+            "page": "/Tournament/UploadResults.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Tournament/UploadResults.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "txt-ffta",
+            "title": "Et le fichier FFTA, alors ?",
+            "content": "<p>Répétons-le, c'est <b>la</b> confusion classique :</p><p class=\"guide-tip\">⚠️ <b>ianseo.net ≠ FFTA.</b> Publier vos résultats sur ianseo.net est une opération de <b>communication</b>. La <b>transmission officielle</b> des résultats à la fédération se fait <b>séparément</b>, en générant le <b>fichier TXT</b> et en le déposant sur l'extranet FFTA, à la fin de la compétition.</p><p>Le fichier TXT se télécharge depuis <b>Compétition &gt; Exports &gt; Export pour FFTA</b>.</p><p class=\"guide-tip\">💡 Une compétition magnifiquement publiée en ligne dont le TXT n'a jamais été envoyé, c'est une compétition <b>qui n'a pas eu lieu</b> pour la FFTA : pas de classement national, pas de progression pour vos archers.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "fin",
+            "title": "C'est terminé !",
+            "content": "<p><b>À retenir :</b></p><ul><li><b>Demandez le code internet tôt</b> : la validation est manuelle.</li><li><b>Deux e-mails</b> : le 1er = bien reçu ; le 2nd = vous pouvez publier.</li><li>Le <b>code de la compétition</b> ne doit plus changer après la demande.</li><li>On envoie d'abord <b>images + participants</b>, puis les documents, puis les scores.</li><li><b>ianseo.net ne remplace JAMAIS le fichier TXT à la FFTA.</b></li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        }
+    ],
+    "quiz": {
+        "pass_score": 70,
+        "shuffle": true,
+        "questions": [
+            {
+                "q": "Vous avez publié tous vos résultats sur ianseo.net. Que reste-t-il à faire pour la FFTA ?",
+                "choices": [
+                    "Générer le fichier TXT et le déposer sur l'extranet FFTA",
+                    "Rien, la FFTA récupère les résultats sur ianseo.net",
+                    "Envoyer un e-mail à la fédération",
+                    "Rien, la publication vaut transmission officielle"
+                ],
+                "correct": 0,
+                "explain": "ianseo.net est une vitrine publique. La transmission officielle passe obligatoirement par le fichier TXT."
+            },
+            {
+                "q": "Que signifie le PREMIER e-mail reçu après la demande de code ?",
+                "choices": [
+                    "La compétition est reçue et en cours de validation : on ne peut pas encore publier",
+                    "La publication est active",
+                    "La demande est refusée",
+                    "Le fichier TXT a été transmis"
+                ],
+                "correct": 0,
+                "explain": "Il faut attendre le second e-mail, qui confirme la validation manuelle par l'équipe ianseo."
+            },
+            {
+                "q": "Après la demande de code internet, que ne faut-il plus modifier ?",
+                "choices": [
+                    "Le code de la compétition",
+                    "Le nom du club organisateur",
+                    "Les horaires du programme",
+                    "Le nombre de cibles"
+                ],
+                "correct": 0,
+                "explain": "Le code identifie la compétition auprès de ianseo.net : le changer casse le lien."
+            },
+            {
+                "q": "Quand faut-il demander le code internet ?",
+                "choices": [
+                    "Dès que la compétition est configurée, car la validation est manuelle",
+                    "La veille de la compétition",
+                    "Le matin même",
+                    "Après les qualifications"
+                ],
+                "correct": 0,
+                "explain": "La validation est faite par des humains : s'y prendre tard, c'est risquer de ne pas pouvoir publier."
+            }
+        ]
+    },
+    "challenge": {
+        "intro": "<p>À vous de jouer.</p><p>Sur votre compétition ouverte :</p><ol><li>Ouvrez la page <b>Envoyer à ianseo.net</b> et repérez le lien de <b>demande de code</b>.</li><li>Ouvrez la page <b>Saisie des codes en-ligne</b>.</li></ol><p class=\"guide-tip\">💡 Ce défi ne vous demande <b>pas</b> de faire une vraie demande de code : ne demandez un code que pour un concours qui aura réellement lieu.</p><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+        "conditions": [
+            "upload_results_visited",
+            "online_codes_visited"
+        ]
+    }
+}

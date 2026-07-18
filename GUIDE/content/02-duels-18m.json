@@ -1,0 +1,336 @@
+{
+    "id": "duels-18m",
+    "type": "formation",
+    "title": "Configurer les duels (18 m) (~20min)",
+    "description": "Sur une compétition 18 m existante, configurez de A à Z les phases finales d'une épreuve : premier tour, archers par cible, flèches par set, cibles, horaires, entraînements, ex-aequo, saisie par grille et impression du classement.",
+    "version": "1.0",
+    "group": "Les bases",
+    "order": 2,
+    "steps": [
+        {
+            "id": "intro",
+            "title": "Avant de commencer",
+            "content": "<p>Cette formation part d'une <b>compétition 18 m déjà créée</b>, avec des archers inscrits et des scores saisis. Nous n'allons donc <b>rien créer</b> : nous allons configurer les <b>duels</b> (phases finales) d'une épreuve existante.</p><p><b>Au programme :</b></p><ul><li>Vérifier la participation aux épreuves individuelles</li><li>Choisir le premier tour des duels (1/4 de finale)</li><li>Archers par cible, flèches par set</li><li>Numéros de cibles, horaires, entraînements</li><li>Contrôler les ex-aequo, saisir les duels, imprimer le classement</li></ul><p class=\"guide-tip\">⚠️ Règle d'or : <b>aucun paramétrage de duel ne doit être modifié après le début des qualifications</b>. Tout se prépare en amont.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "ouvrir-competition",
+            "title": "Ouvrir votre compétition 18 m",
+            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p><p>Si ce n'est pas déjà fait, allez dans <b>Compétition &gt; Ouvrir</b> et ouvrez votre compétition 18 m.</p><p class=\"guide-tip\">💡 Vous n'avez pas encore de compétition ? Suivez d'abord la formation <b>Ma première compétition</b>, puis revenez ici.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "tournament_open",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : ouvrez une compétition (Compétition > Ouvrir)."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "prerequis-archers",
+            "title": "Prérequis : 8 archers avec des scores",
+            "content": "<p>Pour faire des duels en <b>1/4 de finale</b>, il faut <b>8 archers dans une même catégorie</b> (8 archers = 4 matchs de quart de finale).</p><p>Le guide attend que votre compétition contienne, dans une <b>même catégorie</b> (même arme, même classe) :</p><ul><li>au moins <b>8 archers</b>,</li><li>dont la <b>participation aux épreuves individuelles</b> est à <b>Oui</b>,</li><li>et qui ont un <b>score de qualification</b> saisi.</li></ul><p class=\"guide-tip\">⚠️ <b>Le point le plus souvent oublié : la participation aux épreuves individuelles.</b> Un archer dont cette case n'est pas cochée <b>n'apparaîtra jamais dans les duels</b>, même s'il a le meilleur score. C'est l'étape suivante — nous allons la vérifier ensemble.</p><p>Saisissez les scores manquants via <b>Qualification &gt; Saisie des feuilles de marque</b> si nécessaire.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "has_8_archers_same_category",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : 8 archers d'une même catégorie, participation individuelle à Oui, avec un score."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "participation-indiv",
+            "title": "La participation aux épreuves individuelles",
+            "content": "<p>Rendez-vous dans <b>Participants &gt; Participation des compétiteurs aux épreuves Ind/Equipe</b>.</p><p>Cette page est <b>capitale</b>. Chaque archer y a une case par type d'épreuve. Celle qui nous intéresse est la colonne des <b>épreuves individuelles (duels)</b> :</p><ul><li>Case <b>cochée</b> = l'archer participera aux duels.</li><li>Case <b>décochée</b> = l'archer sera dans le classement de qualification, mais <b>exclu des duels</b>.</li></ul><p>La case de <b>l'en-tête de colonne</b> permet de cocher/décocher <b>tous les archers d'un coup</b> (lien « Tous »).</p><p class=\"guide-tip\">⚠️ C'est <b>l'erreur n°1</b> en compétition : des archers absents du tableau de duels parce que cette case n'était pas cochée. Vérifiez-la <b>avant</b> le début des qualifications.</p>",
+            "page": "/Partecipants/ManEventAccess.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Partecipants/ManEventAccess.php"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "mouseover",
+                    "selector": "#d_e_EnIndFEvent",
+                    "required": true,
+                    "page": "/Partecipants/ManEventAccess.php",
+                    "hint": "Case d'en-tête : coche la participation individuelle pour TOUS les archers"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "premier-tour",
+            "title": "Choisir le premier tour des duels",
+            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Gestion des Épreuves</b>.</p><p>Les <b>épreuves</b> (= catégories de classement) sont <b>déjà pré-configurées</b> par ianseo : il ne faut <b>pas les supprimer</b>.</p><p>Sur la ligne de la catégorie où vous avez vos 8 archers, ouvrez la liste <b>Premier tour</b> et choisissez <b>1/4</b>.</p><ul><li><b>1/4</b> = les duels démarrent en quart de finale (8 archers).</li><li><b>« - - - »</b> = <b>pas de duels</b> pour cette épreuve, mais la catégorie reste au classement de qualification.</li></ul><p>Vérifiez aussi sur la même ligne : le <b>format des duels</b> (Set ou Cumulatif, selon l'arme), le <b>type de blason</b>, sa <b>taille</b> et la <b>distance</b>.</p><p class=\"guide-tip\">💡 Le format <b>Set</b> est utilisé pour l'arc classique, le <b>Cumulatif</b> pour l'arc à poulies. En règles françaises, ianseo pré-remplit correctement.</p>",
+            "page": "/Final/Individual/ListEvents.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Final/Individual/ListEvents.php"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "change",
+                    "selector": "[id^=\"d_EvFinalFirstPhase_\"]",
+                    "required": true,
+                    "page": "/Final/Individual/ListEvents.php",
+                    "hint": "Sélectionnez 1/4 pour votre catégorie (8 archers)"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_quarter_final_event",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : une épreuve individuelle doit avoir 1/4 comme premier tour."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "archers-par-cible",
+            "title": "Archers par cible",
+            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Archers par cible</b>.</p><p>Ce tableau croise vos <b>épreuves</b> (en lignes) et les <b>tours</b> (1/4, 1/2, Bronze, Finale Or…). Cliquez sur les <b>pastilles</b> pour changer la valeur.</p><p>Les quatre réglages possibles :</p><ul><li><b>1 archer par cible</b></li><li><b>2 archers par cible</b></li><li><b>1 match par cible</b></li><li><b>2 matchs par cible</b> (tir en AB/CD)</li></ul><p class=\"guide-tip\">💡 Chaque épreuve <b>et</b> chaque tour peuvent avoir un réglage différent : en 1/4 on met souvent 2 matchs par cible pour aller vite, et 1 match par cible pour la finale.</p>",
+            "page": "/Final/PhaseDetails.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Final/PhaseDetails.php"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "__css",
+                    "required": true,
+                    "selector": "#TableBody tr",
+                    "page": "/Final/PhaseDetails.php",
+                    "hint": "En attente : le tableau des épreuves doit s'afficher."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "fleches-par-set",
+            "title": "Flèches par set",
+            "content": "<p>Toujours dans <b>Configuration des épreuves individuelles</b>, ouvrez <b>Flèches par set</b>.</p><p>Vous y définissez, pour chaque épreuve et chaque tour, le nombre de <b>reprises (sets)</b>, le nombre de <b>flèches</b> et les flèches de <b>barrage</b> (shoot-off).</p><p class=\"guide-tip\">⚠️ En 18 m règles françaises, les valeurs par défaut sont conformes. Ne les modifiez que si votre mandat prévoit un format particulier.</p>",
+            "page": "/Final/PhaseDetails.php?option=ArrowPhase",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Final/PhaseDetails.php?option=ArrowPhase"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "numeros-cibles",
+            "title": "Attribuer les numéros de cibles",
+            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Numéro des cibles</b>.</p><p>Vous attribuez ici une <b>cible à chaque match</b>.</p><p><b>Astuce qui fait gagner beaucoup de temps :</b> saisissez la première case avec un <b>+</b> à la suite du numéro (par exemple <code>1+</code>) : les cibles suivantes seront numérotées automatiquement avec un incrément de 1. Les symboles <code>-</code> et <code>*</code> sont également disponibles avec d'autres incréments.</p><p class=\"guide-tip\">⚠️ Une case <b>rouge</b> signale que <b>deux matchs</b> sont prévus sur la <b>même cible</b>, à la <b>même heure</b> (ou sans heure définie). Corrigez avant la compétition.</p>",
+            "page": "/Final/Individual/ManTarget.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Final/Individual/ManTarget.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "horaires",
+            "title": "Attribuer les horaires des duels",
+            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Programme</b>.</p><p>Attribuez les <b>horaires de chaque tour</b>, une épreuve après l'autre.</p><p><b>Astuce :</b> les cases situées <b>au-dessus des grilles</b> permettent d'attribuer une heure à <b>tous les duels du tour en une seule fois</b>, avec le bouton <b>Assigner à tous</b>.</p><p class=\"guide-tip\">⚠️ Si les cases deviennent <b>jaunes</b> : vérifiez le format (<code>jj-mm-aaaa</code> et <code>hh:mm</code>), puis que les <b>dates correspondent bien</b> à celles saisies dans les informations de la compétition.</p>",
+            "page": "/Final/Individual/ManSchedule.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Final/Individual/ManSchedule.php"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_final_schedule",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : au moins un duel doit avoir une cible ET un horaire."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "entrainements",
+            "title": "Les horaires d'entraînement",
+            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Horaire des entraînements</b>.</p><p>Vous pouvez ajouter les <b>entraînements qui précèdent les duels</b>. Affectez les <b>cibles</b> de chaque phase d'entraînement pour qu'elles apparaissent dans le <b>plan de cible</b>.</p><p class=\"guide-tip\">💡 Une fois les horaires posés, les duels <b>apparaissent automatiquement dans le programme</b> de la compétition.</p>",
+            "page": "/Final/ManTraining.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Final/ManTraining.php"
+                }
+            ],
+            "optional": true,
+            "strict_click": false
+        },
+        {
+            "id": "ex-aequo",
+            "title": "Contrôler les ex-aequo AVANT les phases finales",
+            "content": "<p>Étape <b>indispensable le jour J</b>, une fois les qualifications terminées : <b>Finales individuelles &gt; Contrôler les ex-aequo avant les phases finales</b>.</p><p>Deux archers à égalité de score ne peuvent pas être départagés automatiquement pour l'entrée dans le tableau de duels : il faut un <b>barrage</b> (ou un tirage au sort selon le règlement).</p><p>ianseo <b>liste ici les ex-aequo à départager</b>. Tant qu'ils ne le sont pas, le tableau de duels ne peut pas être figé correctement.</p><p class=\"guide-tip\">⚠️ Le menu <b>Finales individuelles</b> n'apparaît qu'une fois le premier tour défini. Si vous ne le voyez pas, revenez à l'étape « premier tour ».</p>",
+            "page": "/Final/Individual/AbsIndividual.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Final/Individual/AbsIndividual.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "saisie-grille",
+            "title": "Saisir les duels (vue Grille)",
+            "content": "<p>Allez dans <b>Finales individuelles &gt; Saisie des données (Grille)</b>.</p><p>C'est la vue la plus lisible : vous voyez le <b>tableau de duels complet</b> (l'arbre), et vous saisissez le résultat de chaque match directement dans la grille. Le <b>vainqueur avance automatiquement</b> au tour suivant.</p><p>Saisissez au moins un match pour voir la propagation.</p><p class=\"guide-tip\">💡 La vue <b>Tableau</b> (Saisie des données (Tableau)) affiche la même chose sous forme de liste — pratique pour saisir vite au clavier. La <b>vue Grille</b> est idéale pour suivre l'avancement et vérifier.</p>",
+            "page": "/Final/Individual/InsertPoint_Bra.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Final/Individual/InsertPoint_Bra.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "impression",
+            "title": "Imprimer le classement final",
+            "content": "<p>Dernière étape : <b>Impressions &gt; Tours finaux</b>.</p><p>Vous y trouvez les documents des phases finales :</p><ul><li>les <b>grilles de duels</b> (à afficher pour le public),</li><li>le <b>classement final</b> de chaque épreuve, une fois les duels terminés.</li></ul><p>Sélectionnez votre épreuve, puis générez le PDF.</p><p class=\"guide-tip\">💡 Le classement final tient compte des duels ; le classement de qualification reste disponible séparément dans le menu <b>Qualification</b>.</p>",
+            "page": "/Final/PrintOut.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Final/PrintOut.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "fin",
+            "title": "C'est terminé !",
+            "content": "<p>Vous savez configurer les <b>duels</b> d'une compétition 18 m de bout en bout.</p><p><b>À retenir :</b></p><ul><li>La <b>participation aux épreuves individuelles</b> doit être à <b>Oui</b> — sinon pas de duel.</li><li>Le <b>premier tour</b> (1/4 = 8 archers) déclenche tout le reste.</li><li>Cibles + horaires + entraînements = un plan de cible et un programme complets.</li><li>Les <b>ex-aequo</b> se contrôlent <b>avant</b> les phases finales.</li><li>Aucun paramétrage ne se modifie <b>après</b> le début des qualifications.</li></ul><p>Testez vos connaissances avec le <b>QCM</b>, puis relevez le <b>défi</b> !</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        }
+    ],
+    "quiz": {
+        "pass_score": 70,
+        "shuffle": true,
+        "questions": [
+            {
+                "q": "Un archer a le meilleur score de qualification mais n'apparaît pas dans le tableau de duels. Quelle est la cause la plus probable ?",
+                "choices": [
+                    "Sa participation aux épreuves individuelles n'est pas à « Oui »",
+                    "Son score n'a pas été validé par un arbitre",
+                    "Il faut relancer le calcul du classement",
+                    "Sa cible n'a pas été attribuée"
+                ],
+                "correct": 0,
+                "explain": "C'est l'erreur la plus fréquente : sans la participation aux épreuves individuelles cochée, l'archer reste au classement de qualification mais est exclu des duels."
+            },
+            {
+                "q": "Combien d'archers faut-il, dans une même catégorie, pour démarrer les duels en 1/4 de finale ?",
+                "choices": ["4", "8", "16", "32"],
+                "correct": 1,
+                "explain": "Le 1/4 de finale, c'est 4 matchs, donc 8 archers."
+            },
+            {
+                "q": "Dans la Gestion des Épreuves, que signifie « - - - » dans la colonne du premier tour ?",
+                "choices": [
+                    "Pas de duels pour cette épreuve, mais la catégorie reste au classement",
+                    "L'épreuve est supprimée",
+                    "Le premier tour sera calculé automatiquement",
+                    "L'épreuve est réservée aux équipes"
+                ],
+                "correct": 0,
+                "explain": "« - - - » désactive les duels tout en conservant la catégorie dans les classements. Il ne faut surtout pas supprimer l'épreuve."
+            },
+            {
+                "q": "Quand peut-on modifier le paramétrage des duels ?",
+                "choices": [
+                    "Avant le début des qualifications",
+                    "À tout moment, ianseo recalcule",
+                    "Pendant les qualifications uniquement",
+                    "Après la remise des récompenses"
+                ],
+                "correct": 0,
+                "explain": "Aucun paramétrage de duel ne doit être modifié après le début des qualifications, sous peine d'incohérences."
+            },
+            {
+                "q": "Dans la page des numéros de cibles, que signale une case rouge ?",
+                "choices": [
+                    "Deux matchs sur la même cible à la même heure (ou sans heure)",
+                    "Un archer est absent",
+                    "La cible n'existe pas dans la compétition",
+                    "Le score est en attente de validation"
+                ],
+                "correct": 0,
+                "explain": "Le rouge signale un conflit : deux matchs partagent la même cible au même moment, ou l'heure n'est pas définie."
+            },
+            {
+                "q": "Que doit-on faire une fois les qualifications terminées, avant de lancer les duels ?",
+                "choices": [
+                    "Contrôler les ex-aequo avant les phases finales",
+                    "Supprimer les épreuves inutilisées",
+                    "Réimporter les licenciés",
+                    "Changer le format des duels"
+                ],
+                "correct": 0,
+                "explain": "Les archers à égalité doivent être départagés (barrage) avant que le tableau de duels ne soit figé."
+            }
+        ]
+    },
+    "challenge": {
+        "intro": "<p>À vous de jouer, <b>sans aide</b> cette fois.</p><p>Sur votre compétition 18 m ouverte :</p><ol><li>Assurez-vous d'avoir <b>8 archers d'une même catégorie</b>, avec la <b>participation aux épreuves individuelles à Oui</b> et un <b>score</b> saisi.</li><li>Configurez cette épreuve avec un <b>premier tour en 1/4 de finale</b>.</li><li>Attribuez au moins <b>une cible et un horaire</b> à un duel.</li></ol><p>Cliquez sur <b>Vérifier</b> quand vous pensez avoir terminé.</p>",
+        "conditions": [
+            "has_8_archers_same_category",
+            "has_quarter_final_event",
+            "has_final_schedule"
+        ]
+    }
+}

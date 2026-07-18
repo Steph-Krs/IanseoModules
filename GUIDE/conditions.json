@@ -154,5 +154,288 @@
             { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
             { "source": "visited", "path": "/Modules/Sets/FR/exports/" }
         ]
+    },
+    {
+        "id": "has_8_archers_same_category",
+        "label": "Au moins 8 archers d'une même catégorie, inscrits aux épreuves individuelles et avec un score",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "Entries",
+                "aggregate": "max_group",
+                "join": { "table": "Qualifications", "on": "QuId = EnId" },
+                "group_by": ["EnDivision", "EnClass"],
+                "where": [
+                    { "column": "EnTournament", "source": "session", "key": "TourId" },
+                    { "column": "EnAthlete", "op": "eq", "value": "1" },
+                    { "column": "EnIndFEvent", "op": "eq", "value": "1" },
+                    { "column": "QuScore", "op": "gt", "value": "0" }
+                ],
+                "op": "gte",
+                "value": 8
+            }
+        ]
+    },
+    {
+        "id": "has_quarter_final_event",
+        "label": "Une épreuve individuelle démarre en 1/4 de finale",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "Events",
+                "aggregate": "count",
+                "where": [
+                    { "column": "EvTournament", "source": "session", "key": "TourId" },
+                    { "column": "EvTeamEvent", "op": "eq", "value": "0" },
+                    { "column": "EvFinalFirstPhase", "op": "eq", "value": "4" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_final_schedule",
+        "label": "Au moins un duel a une cible et un horaire attribués",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "FinSchedule",
+                "aggregate": "count",
+                "where": [
+                    { "column": "FSTournament", "source": "session", "key": "TourId" },
+                    { "column": "FSTarget", "op": "neq", "value": "" },
+                    { "column": "FSScheduledTime", "op": "neq", "value": "" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_team_event_configured",
+        "label": "Une épreuve par équipe a un premier tour de duels",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "Events",
+                "aggregate": "count",
+                "where": [
+                    { "column": "EvTournament", "source": "session", "key": "TourId" },
+                    { "column": "EvTeamEvent", "op": "eq", "value": "1" },
+                    { "column": "EvFinalFirstPhase", "op": "neq", "value": "0" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_mixed_team_event",
+        "label": "Une épreuve « double mixte » est définie",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "Events",
+                "aggregate": "count",
+                "where": [
+                    { "column": "EvTournament", "source": "session", "key": "TourId" },
+                    { "column": "EvTeamEvent", "op": "eq", "value": "1" },
+                    { "column": "EvMixedTeam", "op": "eq", "value": "1" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_team_created",
+        "label": "Au moins une équipe est constituée",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "Teams",
+                "aggregate": "count",
+                "where": [
+                    { "column": "TeTournament", "source": "session", "key": "TourId" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_schedule",
+        "label": "Le programme de la compétition contient au moins une ligne",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "Scheduler",
+                "aggregate": "count",
+                "where": [
+                    { "column": "SchTournament", "source": "session", "key": "TourId" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_session_configured",
+        "label": "Au moins une session avec des cibles est définie",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "Session",
+                "aggregate": "count",
+                "where": [
+                    { "column": "SesTournament", "source": "session", "key": "TourId" },
+                    { "column": "SesTar4Session", "op": "gt", "value": "0" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_parent_event",
+        "label": "Une épreuve de consolante (épreuve parente) est configurée",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "Events",
+                "aggregate": "count",
+                "where": [
+                    { "column": "EvTournament", "source": "session", "key": "TourId" },
+                    { "column": "EvCodeParent", "op": "neq", "value": "" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_pool_event",
+        "label": "Une épreuve est configurée en « Matchs de Poules »",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "Events",
+                "aggregate": "count",
+                "where": [
+                    { "column": "EvTournament", "source": "session", "key": "TourId" },
+                    { "column": "EvElimType", "op": "eq", "value": "5" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_image",
+        "label": "Au moins une image (logo) est chargée dans la compétition",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "Images",
+                "aggregate": "count",
+                "where": [
+                    { "column": "ImTournament", "source": "session", "key": "TourId" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_tv_rule",
+        "label": "Au moins un canal de sortie TV est créé",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "TVRules",
+                "aggregate": "count",
+                "where": [
+                    { "column": "TVRTournament", "source": "session", "key": "TourId" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "has_id_card",
+        "label": "Un modèle de badge / dossard est enregistré",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "IdCards",
+                "aggregate": "count",
+                "where": [
+                    { "column": "IcTournament", "source": "session", "key": "TourId" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "online_codes_visited",
+        "label": "Page « Saisie des codes en-ligne » (ianseo.net) visitée",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            { "source": "visited", "path": "/Tournament/SetCredentials.php" }
+        ]
+    },
+    {
+        "id": "listload_visited",
+        "label": "Page d'importation tableur visitée",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            { "source": "visited", "path": "/Partecipants/ListLoad.php" }
+        ]
+    },
+    {
+        "id": "isk_ng_lite_enabled",
+        "label": "ISK-NG est activé en version Lite (gratuite)",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "table": "ModulesParameters",
+                "aggregate": "count",
+                "where": [
+                    { "column": "MpTournament", "source": "session", "key": "TourId" },
+                    { "column": "MpModule", "op": "eq", "value": "ISK-NG" },
+                    { "column": "MpParameter", "op": "eq", "value": "Mode" },
+                    { "column": "MpValue", "op": "eq", "value": "ng-lite" }
+                ],
+                "op": "gte",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "id": "isk_qrcodes_visited",
+        "label": "Page d'impression des QR-codes ISK visitée",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            { "source": "visited", "path": "/Api/ISK-NG/QRcodes.php" }
+        ]
+    },
+    {
+        "id": "accreditation_visited",
+        "label": "Page d'accréditation visitée",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            { "source": "visited", "path": "/Accreditation/" }
+        ]
+    },
+    {
+        "id": "upload_results_visited",
+        "label": "Page d'envoi vers ianseo.net visitée",
+        "checks": [
+            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            { "source": "visited", "path": "/Tournament/UploadResults.php" }
+        ]
     }
 ]

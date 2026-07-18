@@ -1,0 +1,213 @@
+{
+    "id": "epreuves-parentes",
+    "type": "formation",
+    "title": "Duels avec consolantes : l'épreuve parente (~15min)",
+    "description": "Faites tirer les perdants ! Configurez une compétition « montante-descendante » : les archers éliminés continuent à s'affronter dans des tableaux de classement liés à l'épreuve principale.",
+    "version": "1.0",
+    "group": "Pour aller plus loin",
+    "order": 12,
+    "steps": [
+        {
+            "id": "intro",
+            "title": "Le principe de la consolante",
+            "content": "<p>Dans un tableau de duels classique, un archer éliminé en 1/8 <b>rentre chez lui</b>. Sur beaucoup de compétitions jeunes, on veut au contraire que <b>tout le monde continue à tirer</b>.</p><p>C'est la compétition dite <b>« montante-descendante »</b> : les <b>perdants</b> d'un tour basculent dans un <b>tableau de classement</b> (la consolante) pour se départager.</p><p>ianseo réalise cela avec la notion d'<b>épreuve parente</b> : on crée une <b>épreuve liée</b> qui <b>récupère les perdants</b> d'une autre épreuve.</p><p class=\"guide-tip\">💡 Prérequis : savoir configurer des duels classiques. Si ce n'est pas le cas, faites d'abord la formation <b>Configurer les duels</b>.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "ouvrir",
+            "title": "Une compétition avec des duels",
+            "content": "<p>Le guide attend une <b>compétition ouverte</b> dans laquelle au moins une <b>épreuve individuelle a un premier tour de duels</b> défini.</p><p>C'est notre <b>épreuve principale</b> — celle dont nous allons récupérer les perdants.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "tournament_open",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : ouvrez une compétition."
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_individual_duel",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : une épreuve individuelle doit avoir un premier tour de duels."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "plan",
+            "title": "Le plan : une épreuve par niveau de consolante",
+            "content": "<p>Prenons l'exemple d'une épreuve principale <code>U15FCL</code> (U15 Femme Arc Classique) qui démarre en <b>1/8</b>.</p><p>Il faut créer <b>autant d'épreuves que de niveaux de consolante</b> :</p><ul><li><code>U15FCL2</code> → places <b>5 à 8</b> (les perdants des 1/4)</li><li><code>U15FCL3</code> → places <b>9 à 12</b> (les perdants des 1/8)</li><li><code>U15FCL4</code> → places <b>13 à 16</b></li></ul><p class=\"guide-tip\">⚠️ Le <b>code de l'épreuve</b> ne doit contenir que des <b>chiffres et des lettres</b> — pas de caractères spéciaux, pas d'espace.</p><p class=\"guide-tip\">💡 Nommez les épreuves liées en reprenant le code d'origine suivi d'un chiffre : la lecture des grilles en devient évidente.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "creer-epreuve",
+            "title": "Créer l'épreuve liée",
+            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Gestion des Épreuves</b>.</p><p>Sur la <b>dernière ligne</b> du tableau (la ligne de création), saisissez :</p><ul><li>le <b>code</b> de l'épreuve liée (ex. <code>U15FCL2</code>),</li><li>son <b>libellé</b> (ex. « U15 Femme Arc Classique (5-8) »),</li><li>l'<b>ordre</b> : sans incidence, mettez ce que vous voulez,</li><li>le <b>format des duels</b> : Set ou Cumulatif, <b>comme l'épreuve principale</b>,</li><li>le <b>premier tour</b> : la phase nécessaire pour gérer ces duels de classement.</li></ul><p>Puis <b>Sauvegarder</b>.</p><p class=\"guide-tip\">💡 Pour un tableau de 4 archers (places 5-8), le premier tour est une <b>1/2</b> : deux matchs, puis la « finale » qui donne la 5ème place.</p>",
+            "page": "/Final/Individual/ListEvents.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Final/Individual/ListEvents.php"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "focus",
+                    "selector": "#New_EvCode",
+                    "required": true,
+                    "page": "/Final/Individual/ListEvents.php",
+                    "hint": "Code de l'épreuve liée (lettres et chiffres uniquement), ex. U15FCL2"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "change",
+                    "selector": "#New_EvFinalFirstPhase",
+                    "required": true,
+                    "page": "/Final/Individual/ListEvents.php",
+                    "hint": "Phase nécessaire pour ces duels de classement"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "avance",
+            "title": "Le menu « Avancé » : le cœur du mécanisme",
+            "content": "<p>Ouvrez la <b>configuration</b> de votre épreuve liée : dans la Gestion des Épreuves, cliquez sur le bouton portant le <b>code de l'épreuve</b> (première colonne). Puis cliquez sur <b>Avancé</b> : un nouveau bloc de réglages apparaît.</p><p>Quatre champs nous intéressent :</p><ul><li><b>Nombre d'athlètes à sélectionner</b> → combien d'archers jouent au départ de ce tableau (4 pour des places 5-8).</li><li><b>Rang du premier athlète sélectionné</b> → à partir de quelle place on récupère.</li><li><b>Code de l'épreuve parente</b> → <b>l'épreuve depuis laquelle on récupère les archers</b>. C'est LE champ clé.</li><li><b>Classement final du vainqueur</b> → la place obtenue par celui qui gagne ce tableau (par exemple <b>5</b> pour une consolante 5-8).</li></ul><p class=\"guide-tip\">⚠️ La liste des épreuves parentes ne propose que les épreuves qui <b>démarrent plus en amont</b> (ex. un 1/4 ou un 1/8 pour une consolante en 1/2). C'est logique : on ne récupère des perdants que d'un tableau qui a commencé <b>avant</b>.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__css",
+                    "required": true,
+                    "selector": "#EvCodeParent",
+                    "hint": "En attente : ouvrez la configuration de l'épreuve liée, puis cliquez sur « Avancé »."
+                },
+                {
+                    "kind": "action",
+                    "trigger": "change",
+                    "selector": "#EvCodeParent",
+                    "required": true,
+                    "hint": "Épreuve depuis laquelle les perdants sont récupérés"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "change",
+                    "selector": "#EvWinnerFinalRank",
+                    "required": true,
+                    "hint": "Classement final du vainqueur de ce tableau (ex. 5)"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_parent_event",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : une épreuve doit avoir une épreuve parente définie."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "chainage",
+            "title": "Enchaîner les consolantes",
+            "content": "<p>Le mécanisme <b>se chaîne</b>. Dans notre exemple :</p><ul><li><code>U15FCL2</code> (places 5-8) a pour parent <b>l'épreuve principale</b> <code>U15FCL</code> — elle récupère les <b>perdants des 1/4</b>.</li><li><code>U15FCL3</code> (places 9-12) a pour parent <code>U15FCL</code> aussi — elle récupère les <b>perdants des 1/8</b>.</li><li><code>U15FCL4</code> (places 13-16) a pour parent <code>U15FCL3</code> — elle récupère les <b>perdants de la consolante</b> !</li></ul><p>Une épreuve liée peut donc être elle-même la <b>parente</b> d'une autre : c'est ainsi qu'on construit une cascade complète où <b>personne ne s'arrête de tirer</b>.</p><p class=\"guide-tip\">⚠️ Sur les pages de cibles et d'horaires, les <b>cases rouges sont normales</b> dans le cas d'épreuves liées : plusieurs tableaux partagent les mêmes cibles et les mêmes créneaux. Ne cherchez pas à les faire disparaître.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "reste",
+            "title": "Et ensuite ?",
+            "content": "<p>Une épreuve liée est une <b>épreuve comme les autres</b>. Il reste donc à faire, pour chacune, exactement ce que vous savez déjà :</p><ul><li>le nombre d'<b>archers par cible</b>,</li><li>les <b>flèches par set</b>,</li><li>les <b>numéros de cibles</b>,</li><li>les <b>horaires</b>.</li></ul><p class=\"guide-tip\">💡 Comptez large sur les créneaux : avec les consolantes, il y a <b>beaucoup plus de matchs</b> qu'un tableau simple. C'est le prix à payer pour que tous les jeunes tirent.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "fin",
+            "title": "C'est terminé !",
+            "content": "<p>Vous savez faire tirer les perdants.</p><p><b>À retenir :</b></p><ul><li>Une <b>consolante = une épreuve liée</b> (un code par niveau : ...2, ...3, ...4).</li><li>Le champ <b>Code de l'épreuve parente</b> (menu <b>Avancé</b>) désigne d'où viennent les perdants.</li><li><b>Classement final du vainqueur</b> donne la place réellement gagnée (5, 9, 13…).</li><li>Une épreuve liée peut être la <b>parente</b> d'une autre → cascade.</li><li>Les <b>cases rouges</b> sont normales avec des épreuves liées.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        }
+    ],
+    "quiz": {
+        "pass_score": 70,
+        "shuffle": true,
+        "questions": [
+            {
+                "q": "À quoi sert le champ « Code de l'épreuve parente » ?",
+                "choices": [
+                    "À désigner l'épreuve depuis laquelle les archers perdants sont récupérés",
+                    "À copier les réglages d'une autre épreuve",
+                    "À fusionner deux catégories au classement",
+                    "À définir l'ordre d'affichage des épreuves"
+                ],
+                "correct": 0,
+                "explain": "C'est le cœur du mécanisme de la consolante : les perdants du tableau parent alimentent le tableau lié."
+            },
+            {
+                "q": "Sur une consolante qui attribue les places 5 à 8, que met-on dans « Classement final du vainqueur » ?",
+                "choices": ["5", "1", "8", "4"],
+                "correct": 0,
+                "explain": "Celui qui gagne ce tableau termine 5ème de la compétition."
+            },
+            {
+                "q": "Les pages de cibles et d'horaires affichent des cases rouges sur vos épreuves liées. Que faire ?",
+                "choices": [
+                    "Rien : c'est normal avec des épreuves liées",
+                    "Changer toutes les cibles jusqu'à ce que ce soit vert",
+                    "Supprimer les épreuves liées",
+                    "Repasser le premier tour à « - - - »"
+                ],
+                "correct": 0,
+                "explain": "Les tableaux liés partagent cibles et créneaux : le rouge est attendu dans ce cas de figure."
+            },
+            {
+                "q": "Peut-on récupérer les perdants d'une consolante dans une autre consolante ?",
+                "choices": [
+                    "Oui : une épreuve liée peut être la parente d'une autre",
+                    "Non, une seule consolante par épreuve",
+                    "Oui, mais seulement pour les équipes",
+                    "Non, il faut une compétition séparée"
+                ],
+                "correct": 0,
+                "explain": "C'est ce chaînage qui permet une cascade complète (5-8, 9-12, 13-16…)."
+            },
+            {
+                "q": "Que doit contenir le code d'une épreuve liée ?",
+                "choices": [
+                    "Uniquement des chiffres et des lettres",
+                    "Obligatoirement un tiret",
+                    "Le nom complet de la catégorie",
+                    "Un numéro de licence"
+                ],
+                "correct": 0,
+                "explain": "Pas de caractères spéciaux ni d'espaces dans le code d'une épreuve."
+            }
+        ]
+    },
+    "challenge": {
+        "intro": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition :</p><ol><li>Créez une <b>épreuve liée</b> (par exemple <code>...2</code> pour les places 5-8) avec un premier tour adapté.</li><li>Dans son menu <b>Avancé</b>, désignez son <b>épreuve parente</b> et son <b>classement final du vainqueur</b>.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+        "conditions": [
+            "has_individual_duel",
+            "has_parent_event"
+        ]
+    }
+}

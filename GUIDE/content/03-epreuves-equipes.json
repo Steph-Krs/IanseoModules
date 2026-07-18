@@ -1,0 +1,275 @@
+{
+    "id": "epreuves-equipes",
+    "type": "formation",
+    "title": "Les épreuves par équipe (~20min)",
+    "description": "Sur une compétition TAE existante, créez trois types d'équipes : équipe classique (3 archers), double mixte (1 femme + 1 homme) et équipe panachée (1 archer par arme). Comprenez le système des 1ère/2ème équipes.",
+    "version": "1.0",
+    "group": "Les bases",
+    "order": 3,
+    "steps": [
+        {
+            "id": "intro",
+            "title": "Avant de commencer",
+            "content": "<p>Cette formation part d'une <b>compétition TAE déjà créée</b>, avec des archers inscrits.</p><p>Une <b>épreuve par équipe</b> se définit par une <b>règle de composition</b> : « prendre N archers répondant à tel critère de division et de classe ». Nous allons construire <b>trois cas concrets</b> :</p><ul><li><b>Équipe TAE</b> : 3 archers, même sexe, même arme</li><li><b>Double mixte</b> : 1 femme + 1 homme, même arme</li><li><b>Équipe panachée</b> (style parcours) : 3 archers, même sexe, 1 par arme</li></ul><p class=\"guide-tip\">💡 Cette formation <b>ne crée pas les matchs</b> par équipe. Une fois les épreuves définies, la configuration des duels par équipe suit <b>exactement le même principe</b> que les duels individuels (premier tour, cibles, horaires…) — voir la formation <b>Configurer les duels</b>.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "ouvrir-competition",
+            "title": "Ouvrir votre compétition TAE",
+            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p><p>Allez dans <b>Compétition &gt; Ouvrir</b> et ouvrez votre compétition TAE (ou une compétition avec des archers inscrits).</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "tournament_open",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : ouvrez une compétition (Compétition > Ouvrir)."
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_participant",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : la compétition doit contenir au moins un participant."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "participation-equipe",
+            "title": "La participation aux épreuves par équipe",
+            "content": "<p>Rendez-vous dans <b>Participants &gt; Participation des compétiteurs aux épreuves Ind/Equipe</b>.</p><p>Comme pour les duels individuels, chaque archer a une case de participation — mais cette fois pour les <b>épreuves par équipe</b>.</p><ul><li>Case <b>cochée</b> = l'archer peut être <b>sélectionné dans une équipe</b>.</li><li>Case <b>décochée</b> = l'archer ne sera <b>jamais retenu</b>, même s'il a le meilleur score du club.</li></ul><p>La case de l'<b>en-tête de colonne</b> coche/décoche tout le monde d'un coup.</p><p class=\"guide-tip\">⚠️ <b>Insistons :</b> une équipe incomplète ou absente vient presque toujours de là. Si un club a bien 3 archers mais qu'une seule équipe de 2 apparaît, vérifiez <b>cette case</b> en premier.</p>",
+            "page": "/Partecipants/ManEventAccess.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Partecipants/ManEventAccess.php"
+                },
+                {
+                    "kind": "action",
+                    "trigger": "mouseover",
+                    "selector": "#d_e_EnTeamFEvent",
+                    "required": true,
+                    "page": "/Partecipants/ManEventAccess.php",
+                    "hint": "Case d'en-tête : participation aux épreuves par ÉQUIPE pour tous les archers"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "gestion-epreuves-equipe",
+            "title": "La page Gestion des Épreuves (équipes)",
+            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves par équipe &gt; Gestion des Épreuves</b>.</p><p>C'est ici que vivent les épreuves par équipe. Sur chaque ligne, vous retrouvez les mêmes réglages que pour l'individuel :</p><ul><li><b>Grille normale</b> pour des éliminations directes classiques,</li><li>le <b>format des matchs</b> : Set ou Cumul,</li><li>le <b>premier tour</b> : 1/8, 1/4, 1/2… ou <b>« - - - »</b> s'il n'y a pas de phase finale (juste un classement),</li><li>le <b>type de blason</b>, sa <b>taille</b> et la <b>distance</b>.</li></ul><p>Pour <b>définir la composition</b> d'une équipe, cliquez sur le bouton portant le <b>code de l'épreuve</b> (première colonne du tableau). Il s'affiche en <b>rouge</b> tant qu'aucune règle de composition n'est définie.</p>",
+            "page": "/Final/Team/ListEvents.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Final/Team/ListEvents.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "cas1-equipe-tae",
+            "title": "Cas 1 — L'équipe TAE (3 archers, même sexe, même arme)",
+            "content": "<p>Ouvrez la <b>configuration d'une épreuve par équipe</b> (par exemple « Femme Arc Classique »).</p><p>La composition se définit avec <b>trois colonnes</b> :</p><ul><li><b>Nombre</b> : combien d'archers répondant au critère entrent dans l'équipe → ici <b>3</b></li><li><b>Division</b> : la (ou les) arme(s) autorisée(s) → ici <b>Arc Classique</b></li><li><b>Classe</b> : les classes d'âge <b>et de sexe</b> → ici les classes <b>Femmes</b> (de U18 à S3 par exemple)</li></ul><p>Maintenez <b>Ctrl</b> pour sélectionner plusieurs classes, puis <b>Sauvegarder</b>.</p><p>Résultat : ianseo constituera une équipe avec les <b>3 meilleures archères Arc Classique</b> de chaque club.</p><p class=\"guide-tip\">💡 « <b>Épreuve Équipe Mixte</b> » reste sur <b>Non</b> : ce réglage est réservé au <b>double mixte</b>, pas à une équipe de 3 archers du même sexe.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__css",
+                    "required": true,
+                    "selector": "#EcNumber",
+                    "hint": "En attente : ouvrez la configuration d'une épreuve par équipe (règles de composition)."
+                },
+                {
+                    "kind": "action",
+                    "trigger": "change",
+                    "selector": "#EcNumber",
+                    "required": true,
+                    "hint": "Nombre d'archers pour cette règle : saisissez 3"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "cas2-double-mixte",
+            "title": "Cas 2 — Le double mixte (1 femme + 1 homme)",
+            "content": "<p>Le double mixte se construit avec <b>deux règles</b> dans la <b>même épreuve</b> :</p><ol><li><b>1</b> archer — Arc Classique — classes <b>Femmes</b> (U18 à S3)</li><li><b>1</b> archer — Arc Classique — classes <b>Hommes</b> (U18 à S3)</li></ol><p>Ajoutez la première règle et sauvegardez, puis ajoutez la seconde et sauvegardez.</p><p>Puis — et c'est <b>le point clé</b> — passez <b>Épreuve Équipe Mixte</b> sur <b>Oui</b>.</p><p class=\"guide-tip\">⚠️ <b>Attention au piège :</b> « Épreuve Équipe Mixte = Oui » sert <b>uniquement au double mixte</b>. Pour une équipe « scratch » qui contient des hommes et des femmes sans être un double mixte (voir cas 3), il faut laisser <b>Non</b>.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__css",
+                    "required": true,
+                    "selector": "#EvMixedTeam",
+                    "hint": "En attente : ouvrez la configuration d'une épreuve par équipe."
+                },
+                {
+                    "kind": "action",
+                    "trigger": "change",
+                    "selector": "#EvMixedTeam",
+                    "required": true,
+                    "hint": "Épreuve Équipe Mixte : Oui (double mixte uniquement)"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "cas3-panachage",
+            "title": "Cas 3 — L'équipe panachée (1 archer par arme)",
+            "content": "<p>C'est la composition utilisée dans les <b>disciplines de parcours</b> : 3 archers du même sexe, <b>un par arme</b>.</p><p>On crée <b>trois règles</b> dans la même épreuve :</p><ol><li><b>1</b> archer — <b>Arc Classique</b> — classes Femmes</li><li><b>1</b> archer — <b>Arc à Poulies</b> — classes Femmes</li><li><b>1</b> archer — <b>Bare-Bow</b> — classes Femmes</li></ol><p>ianseo retiendra la <b>meilleure archère de chaque arme</b> pour composer l'équipe du club.</p><p class=\"guide-tip\">⚠️ Même si l'équipe mélange plusieurs profils, <b>Épreuve Équipe Mixte reste sur Non</b>. Ce réglage ne concerne que le double mixte.</p><p class=\"guide-tip\">💡 Même principe pour une équipe « 4 meilleurs jeunes archers classiques de U11 à U21, hommes ou femmes » : une seule règle, Nombre = 4, avec toutes les classes concernées — et <b>Mixte = Non</b>.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "sous-equipes",
+            "title": "1ère / 2ème équipe : composer les équipes soi-même",
+            "content": "<p>Par défaut, ianseo compose les équipes <b>automatiquement</b> avec les <b>meilleurs résultats</b> de chaque club. Le <b>Mode de création des équipes</b> vaut alors : <b>« Par défaut (2e équipe si disponible, sinon 1ère équipe) »</b>.</p><p>Si vous voulez <b>composer vos équipes vous-même</b> (et non selon les scores), sélectionnez <b>« Toujours 2ème équipe »</b> dans les paramètres de l'épreuve.</p><p>Il faut ensuite <b>désigner les archers</b> concernés, un par un, sur leur <b>fiche participant</b>.</p><p class=\"guide-tip\">💡 Ce mécanisme sert par exemple à aligner une « équipe 2 » d'un club, ou à constituer des équipes qui ne suivent pas la logique du meilleur score.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__css",
+                    "required": true,
+                    "selector": "#EvTeamCreationMode",
+                    "hint": "En attente : ouvrez la configuration d'une épreuve par équipe."
+                },
+                {
+                    "kind": "action",
+                    "trigger": "change",
+                    "selector": "#EvTeamCreationMode",
+                    "required": true,
+                    "hint": "Mode de création des équipes"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "fiche-participant",
+            "title": "Le champ « Équipe partielle » de la fiche participant",
+            "content": "<p>Allez dans <b>Participants &gt; Liste (Simple)</b> et <b>ouvrez la fiche d'un archer</b> (elle s'ouvre dans une <b>fenêtre séparée</b> — le guide vous y suit).</p><p>Cherchez le champ <b>Équipe partielle</b>. C'est lui qui porte le numéro d'équipe :</p><ul><li><b>vide ou 0</b> → l'archer appartient à l'<b>équipe 1</b> (comportement normal)</li><li><b>2</b> → l'archer est affecté à l'<b>équipe 2</b> du club</li></ul><p>Avec le mode <b>« Toujours 2ème équipe »</b>, ce sont donc les archers portant le numéro <b>2</b> qui formeront l'équipe.</p><p class=\"guide-tip\">💡 Les informations de la 2ème équipe <b>ne doivent pas obligatoirement correspondre</b> aux clubs existants : c'est un regroupement libre.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__css",
+                    "required": true,
+                    "selector": "#d_e_EnSubTeam_",
+                    "hint": "En attente : ouvrez la fiche d'un participant (fenêtre d'édition)."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "impression-equipes",
+            "title": "Imprimer le classement de l'épreuve par équipe",
+            "content": "<p>Deux endroits, selon ce que vous cherchez :</p><ul><li><b>Impressions &gt; Tours finaux</b> : les <b>grilles de matchs</b> et le <b>classement final</b> des épreuves par équipe (après les duels).</li><li><b>Qualification &gt; Impressions tous résultats</b> : le <b>classement des équipes issu des qualifications</b> (cumul des scores des équipiers), qui sert de base à la constitution du tableau.</li></ul><p>Sélectionnez votre épreuve par équipe, puis générez le PDF.</p>",
+            "page": "/Final/PrintOut.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Final/PrintOut.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "fin",
+            "title": "C'est terminé !",
+            "content": "<p>Vous savez définir les <b>trois grandes familles</b> d'épreuves par équipe.</p><p><b>À retenir :</b></p><ul><li>Une équipe = une suite de règles <b>Nombre + Division + Classe</b>.</li><li><b>Mixte = Oui</b> <b>uniquement</b> pour le double mixte.</li><li>La <b>participation aux épreuves par équipe</b> doit être à <b>Oui</b>.</li><li><b>« Toujours 2ème équipe »</b> + champ <b>Équipe partielle</b> = composer soi-même ses équipes.</li></ul><p><b>Et les matchs ?</b> Une fois les épreuves définies, les duels par équipe se configurent <b>exactement comme en individuel</b> : premier tour, archers par cible, cibles, horaires. Reprenez la formation <b>Configurer les duels</b> en passant par le menu <b>Configuration des épreuves par équipe</b>.</p><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        }
+    ],
+    "quiz": {
+        "pass_score": 70,
+        "shuffle": true,
+        "questions": [
+            {
+                "q": "Vous configurez un double mixte (1 femme + 1 homme, arc classique). Que faut-il faire ?",
+                "choices": [
+                    "Deux règles à 1 archer (classes Femmes, puis classes Hommes) et Épreuve Équipe Mixte = Oui",
+                    "Une règle à 2 archers avec toutes les classes, et Mixte = Non",
+                    "Une règle à 2 archers et Mixte = Oui",
+                    "Deux règles à 1 archer et Mixte = Non"
+                ],
+                "correct": 0,
+                "explain": "Le double mixte se compose de deux règles distinctes (1 femme, 1 homme) ET du réglage Épreuve Équipe Mixte = Oui."
+            },
+            {
+                "q": "Une équipe « parcours » réunit 3 archères : 1 classique, 1 poulies, 1 bare-bow. Quel réglage pour « Épreuve Équipe Mixte » ?",
+                "choices": [
+                    "Non — ce réglage est réservé au double mixte",
+                    "Oui — l'équipe mélange plusieurs armes",
+                    "Oui — dès qu'il y a plusieurs divisions",
+                    "Peu importe, ianseo corrige tout seul"
+                ],
+                "correct": 0,
+                "explain": "« Mixte » ne désigne pas le panachage d'armes mais le double mixte (1 homme + 1 femme). Ici, on laisse Non."
+            },
+            {
+                "q": "Que représentent les trois colonnes d'une règle de composition d'équipe ?",
+                "choices": [
+                    "Le nombre d'archers, la (ou les) division(s), et les classes d'âge/sexe",
+                    "Le nombre d'équipes, la cible et l'horaire",
+                    "Le score minimum, la distance et le blason",
+                    "Le club, le nom et le numéro de licence"
+                ],
+                "correct": 0,
+                "explain": "Nombre + Division + Classe : « prendre N archers répondant à ces critères »."
+            },
+            {
+                "q": "Vous voulez composer vos équipes vous-même, sans vous baser sur les meilleurs scores. Que faites-vous ?",
+                "choices": [
+                    "Mode de création « Toujours 2ème équipe », puis renseigner « Équipe partielle » = 2 sur les fiches des archers",
+                    "Vous supprimez les archers non retenus de la compétition",
+                    "Vous décochez leur participation individuelle",
+                    "Vous saisissez manuellement les scores des équipes"
+                ],
+                "correct": 0,
+                "explain": "Le mode « Toujours 2ème équipe » fait basculer ianseo sur les archers marqués en équipe 2 dans leur fiche participant."
+            },
+            {
+                "q": "Un club a 3 archers mais aucune équipe n'apparaît. Que vérifier en premier ?",
+                "choices": [
+                    "La participation aux épreuves par équipe (case à Oui)",
+                    "La couleur du blason",
+                    "L'ordre d'affichage des épreuves",
+                    "La taille de la cible"
+                ],
+                "correct": 0,
+                "explain": "Comme pour l'individuel, la case de participation aux épreuves par équipe conditionne la sélection de l'archer."
+            }
+        ]
+    },
+    "challenge": {
+        "intro": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition ouverte :</p><ol><li>Configurez une <b>épreuve par équipe</b> avec un <b>premier tour</b> de duels (autre que « - - - »).</li><li>Créez une épreuve <b>double mixte</b> : deux règles à 1 archer (une pour les classes Femmes, une pour les classes Hommes) et <b>Épreuve Équipe Mixte = Oui</b>.</li></ol><p class=\"guide-tip\">💡 Pensez à la participation aux épreuves par équipe des archers !</p><p>Cliquez sur <b>Vérifier</b> quand vous avez terminé.</p>",
+        "conditions": [
+            "has_team_event_configured",
+            "has_mixed_team_event"
+        ]
+    }
+}

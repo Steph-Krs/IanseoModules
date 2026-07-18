@@ -1,0 +1,184 @@
+{
+    "id": "accreditation-dossards",
+    "type": "formation",
+    "title": "Accréditations et dossards (~15min)",
+    "description": "Créez les badges d'accréditation et les dossards de vos archers : tarifs, couleurs, photos, modèles de badges et impression pour les qualifications comme pour les duels.",
+    "version": "1.0",
+    "group": "Pour aller plus loin",
+    "order": 16,
+    "steps": [
+        {
+            "id": "intro",
+            "title": "Accréditation, badge, dossard : qui fait quoi ?",
+            "content": "<p>Trois notions qu'on mélange souvent :<\/p><ul><li>L'<b>accréditation<\/b> : le passage au greffe. On pointe l'archer, on encaisse éventuellement son engagement, on lui remet ses documents.<\/li><li>Le <b>badge<\/b> : la carte que porte l'archer (nom, club, catégorie, photo, code-barres).<\/li><li>Le <b>dossard<\/b> : le numéro que l'archer porte dans le dos — indispensable en duels et pour le public.<\/li><\/ul><p>ianseo produit les trois, à partir des mêmes données.<\/p><p>Cliquez sur <b>Suivant<\/b>.<\/p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "ouvrir",
+            "title": "Une compétition avec des archers",
+            "content": "<p>Le guide attend une <b>compétition ouverte<\/b> avec au moins un <b>participant<\/b>.<\/p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "tournament_open",
+                    "required": true
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_participant",
+                    "required": true
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "tarifs",
+            "title": "Les tarifs d'engagement",
+            "content": "<p>Allez dans <b>Participants &gt; Accréditation &gt; Paramétrage des tarifs<\/b>.<\/p><p>Définissez ici le <b>montant de l'engagement<\/b>, éventuellement différent selon la catégorie (jeunes, adultes) ou le type de tir.<\/p><p>Le suivi des paiements se fait ensuite dans <b>État des paiements des athlètes<\/b> : vous voyez d'un coup d'œil qui a réglé et qui doit encore passer à la caisse.<\/p><p class=\"guide-tip\">💡 Facultatif, mais très utile sur les gros concours : le greffe sait immédiatement si l'archer qui se présente est à jour.<\/p>",
+            "page": "\/Accreditation\/ManagePrices.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "\/Accreditation\/ManagePrices.php"
+                }
+            ],
+            "optional": true,
+            "strict_click": false
+        },
+        {
+            "id": "couleurs",
+            "title": "Les couleurs d'accréditation",
+            "content": "<p>Allez dans <b>Participants &gt; Accréditation &gt; Gestion des couleurs d'accréditation<\/b>.<\/p><p>Vous associez une <b>couleur<\/b> à chaque type de personne : archers, entraîneurs, arbitres, organisation, invités…<\/p><p>Au premier coup d'œil sur un badge, on sait <b>qui a le droit d'être où<\/b>.<\/p><p class=\"guide-tip\">💡 Sur un championnat, c'est ce qui permet à un bénévole de l'entrée de refuser poliment l'accès au pas de tir à un accompagnateur — sans avoir à connaître tout le monde.<\/p>",
+            "page": "\/Accreditation\/Colors.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "\/Accreditation\/Colors.php"
+                }
+            ],
+            "optional": true,
+            "strict_click": false
+        },
+        {
+            "id": "accreditation",
+            "title": "La page d'accréditation",
+            "content": "<p>Allez dans <b>Participants &gt; Accréditation &gt; Accréditation<\/b>.<\/p><p>C'est <b>l'écran du greffe<\/b> le jour J. Vous y recherchez un archer, vérifiez ses informations, et l'<b>accréditez<\/b>.<\/p><p>Vous pouvez aussi lui <b>prendre une photo<\/b> (menu <b>Prendre une photo<\/b>) : elle apparaîtra sur son badge.<\/p><p class=\"guide-tip\">💡 Sur une compétition de club, la photo est superflue. Sur un championnat avec contrôle d'accès, elle devient précieuse.<\/p>",
+            "page": "\/Accreditation\/",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "\/Accreditation\/"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "badges",
+            "title": "Créer et imprimer les badges",
+            "content": "<p>Allez dans <b>Participants &gt; Accréditation &gt; Impression des badges d'accréditation<\/b>.<\/p><p>C'est un véritable <b>éditeur de modèle<\/b> : vous choisissez une <b>image de fond<\/b>, puis vous <b>placez les éléments<\/b> (nom, prénom, club, catégorie, cible, photo, code-barres…) à l'endroit voulu sur la carte.<\/p><p>Le modèle est <b>enregistré dans la compétition<\/b> : vous le réutilisez d'une année sur l'autre en réimportant la compétition.<\/p><p class=\"guide-tip\">💡 Prenez le temps de faire un beau modèle une fois — il vous resservira sur toutes vos compétitions.<\/p>",
+            "page": "\/Accreditation\/IdCards.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "\/Accreditation\/IdCards.php"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_id_card",
+                    "required": true
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "dossards",
+            "title": "Les dossards des différentes phases",
+            "content": "<p>Le <b>dossard<\/b> utilise le même éditeur que le badge, mais avec un <b>type<\/b> différent selon la phase de la compétition :<\/p><ul><li>depuis <b>Qualification &gt; Nouveaux dossards<\/b> → les dossards de la <b>phase de qualification<\/b>,<\/li><li>depuis <b>Finales individuelles &gt; Nouveaux dossards<\/b> → les dossards des <b>duels<\/b>,<\/li><li>de même pour les <b>éliminatoires<\/b> et les <b>équipes<\/b>.<\/li><\/ul><p>Les informations affichées ne sont pas les mêmes selon la phase — d'où un <b>type de dossard par phase<\/b>.<\/p><p class=\"guide-tip\">⚠️ On évite d'imprimer un dossard avec un numéro de cible ou de départ qui peuvent changer.<\/p><p><\/p><p><\/p><p><\/p><p class=\"guide-tip\">💡Mettez les noms de clubs en majuscule<\/p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "fin",
+            "title": "C'est terminé !",
+            "content": "<p>Vos archers ont badge et dossard.<\/p><p><b>À retenir :<\/b><\/p><ul><li><b>Tarifs<\/b> et <b>couleurs<\/b> : facultatifs, mais ils font gagner du temps au greffe et à l'entrée.<\/li><li>Le <b>modèle de badge<\/b> se dessine une fois et se réutilise.<\/li><li>Le <b>dossard<\/b> a un <b>type par phase<\/b> (qualification, duels, équipes).<\/li><li>Évitez d'imprimer sur un dossard des informations qui peuvent <b>changer<\/b> (numéro de cible, départ).<\/li><\/ul><p>Place au <b>QCM<\/b> et au <b>défi<\/b> !<\/p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        }
+    ],
+    "quiz": {
+        "pass_score": 70,
+        "questions": [
+            {
+                "q": "Pourquoi éviter d'imprimer le numéro de cible ou de départ sur les dossards ?",
+                "choices": [
+                    "Parce que ces informations peuvent changer et rendre le dossard faux",
+                    "Parce que c'est interdit par la FFTA",
+                    "Parce que l'éditeur de badges ne le permet pas",
+                    "Parce que cela ralentit l'impression"
+                ],
+                "correct": 0,
+                "explain": "Une réaffectation de cible ou un changement de départ rendrait le dossard faux : on n'imprime pas d'informations susceptibles de changer."
+            },
+            {
+                "q": "À quoi servent les couleurs d'accréditation ?",
+                "choices": [
+                    "À identifier d'un coup d'œil le rôle de chacun (archer, arbitre, organisation…)",
+                    "À distinguer les catégories d'âge",
+                    "À coder les armes utilisées",
+                    "À numéroter les cibles"
+                ],
+                "correct": 0,
+                "explain": "Elles permettent de contrôler les accès sans connaître personnellement tout le monde."
+            },
+            {
+                "q": "Le dossard des duels et celui des qualifications…",
+                "choices": [
+                    "sont deux types différents, imprimés depuis des menus différents",
+                    "sont strictement identiques",
+                    "n'existent pas dans ianseo",
+                    "s'impriment tous les deux depuis le menu Participants uniquement"
+                ],
+                "correct": 0,
+                "explain": "En qualification l'archer porte sa cible ; en duel il porte son rang\/match. D'où deux types de dossards."
+            },
+            {
+                "q": "Le modèle de badge que vous dessinez est…",
+                "choices": [
+                    "enregistré dans la compétition et réutilisable",
+                    "perdu à la fermeture de la compétition",
+                    "commun à toutes les compétitions du serveur",
+                    "imposé par la FFTA"
+                ],
+                "correct": 0,
+                "explain": "Il est stocké avec la compétition : en réimportant celle-ci, vous récupérez votre modèle."
+            }
+        ],
+        "shuffle": true
+    },
+    "challenge": {
+        "intro": "<p>À vous de jouer.<\/p><p>Sur votre compétition ouverte :<\/p><ol><li>Passez par la page d'<b>Accréditation<\/b>.<\/li><li>Créez et <b>enregistrez un modèle<\/b> de badge ou de dossard (Impression des badges d'accréditation).<\/li><\/ol><p>Cliquez sur <b>Vérifier<\/b> quand c'est fait.<\/p>",
+        "conditions": [
+            "has_id_card",
+            "accreditation_visited"
+        ]
+    }
+}

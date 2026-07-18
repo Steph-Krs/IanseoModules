@@ -1,7 +1,7 @@
 {
-    "version": "0.2.9",
-    "date": "2026-07-07",
-    "notes": "Multi-comptes : le module fonctionne avec le module d'authentification — chaque compte a son propre suivi (formations en cours, étapes validées, QCM, défis, distinctions) sans impacter les autres ; les formations restent communes ; sans module de comptes, comportement inchangé (migration automatique, la progression existante est conservée). Administration réservée à l'administrateur du serveur quand l'authentification est active (pages verrouillées + entrée de menu masquée pour les clubs/comités). Réglage de l'aide contextuelle propre à chaque compte et synchronisé côté serveur (il suit l'utilisateur d'un poste à l'autre) ; sans compte, mémorisation navigateur comme avant. Bannière « Apprendre à utiliser ianseo » basée sur les compétitions VISIBLES par le compte. État local (navigateur) cloisonné par compte, y compris dans les popups. Nouvelles conditions prêtes à l'emploi : au moins 1 participant inscrit, au moins 1 arbitre déclaré, au moins 1 cible attribuée, au moins 1 score saisi, page de téléchargement du fichier résultats FFTA visitée. Nouveau check « Page visitée » dans le constructeur (mémorisé par utilisateur et par compétition), jointure optionnelle sur les COUNT et opérateur « ∈ liste ». Correctif : les conditions duel (individuel/équipe) pointaient une table inexistante (Event → Events) ; suppression d'un doublon de schéma obsolète dans la page Mises à jour.",
+    "version": "0.3.1",
+    "date": "2026-07-18",
+    "notes": "Désinstallation depuis la page Mises à jour : zone repliée « Désinstaller le module » menant à un désinstallateur commun, qui archive le module en ZIP avant de supprimer ses fichiers. Option décochée par défaut pour supprimer aussi les données en base (GUIDE_Progress, GUIDE_Visits, GUIDE_Prefs — progression, visites et préférences des comptes) ; confirmation par saisie du nom du module. Le désinstallateur vit dans _shared/ et non dans le module : un script qui supprime son propre dossier échoue sous Windows.",
     "files": [
         "menu.php",
         "index.php",
@@ -17,5 +17,10 @@
         "admin/help.php",
         "assets/guide.css",
         "assets/guide.js"
+    ],
+    "tables": [
+        "GUIDE_Progress",
+        "GUIDE_Visits",
+        "GUIDE_Prefs"
     ]
 }

@@ -1,7 +1,7 @@
 {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "date": "2026-07-18",
-    "notes": "Version initiale : vue commentateur des poules Round Robin équipes (classement live, rangs atteignables, matchs décisifs).",
+    "notes": "Désinstallation depuis la page Mises à jour : zone repliée « Désinstaller le module » menant au désinstallateur commun (_shared/uninstall.php), qui archive le module en ZIP avant de supprimer ses fichiers. Le module ne crée aucune table : aucune donnée n'est perdue. Sécurité : la page Mises à jour exigeait seulement AclRoot, insuffisant avec un module de comptes (tout organisateur connecté y accédait) — elle exige désormais aussi la vue Administrateur serveur.",
     "files": [
         "menu.php",
         "index.php",

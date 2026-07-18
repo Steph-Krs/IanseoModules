@@ -1,0 +1,189 @@
+{
+    "id": "poules",
+    "type": "formation",
+    "title": "Les épreuves en Matchs de Poules (~15min)",
+    "description": "Faites s'affronter tous les archers d'un groupe entre eux avant les phases finales : configurez une épreuve en « Matchs de Poules », composez les groupes et affectez les cibles.",
+    "version": "1.0",
+    "group": "Pour aller plus loin",
+    "order": 13,
+    "steps": [
+        {
+            "id": "intro",
+            "title": "Pourquoi des poules ?",
+            "content": "<p>Dans une grille classique, un archer qui perd son premier duel a <b>fini sa journée</b>.</p><p>Avec le système de <b>Matchs de Poules</b> (Round Robin), les archers sont répartis en <b>groupes</b> et <b>chacun rencontre tous les autres</b> de son groupe. Chacun tire donc <b>plusieurs matchs garantis</b>, et les meilleurs sortent de la poule pour la suite.</p><p>C'est le format retenu notamment pour les <b>compétitions par équipes de club (D1/D2)</b> et pour beaucoup de formats jeunes.</p><p class=\"guide-tip\">💡 ianseo appelle cela « <b>Matchs de Poules</b> » (ou R-Session). C'est un <b>type d'élimination</b> qu'on choisit à la place de la « Grille normale ».</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "ouvrir",
+            "title": "Ouvrir une compétition avec des archers",
+            "content": "<p>Le guide attend une <b>compétition ouverte</b> avec des <b>participants</b>.</p><p class=\"guide-tip\">💡 Prévoyez assez d'archers dans la catégorie visée : une poule de 4 archers, c'est 6 matchs. Avec 3 archers on ne fait pas grand-chose.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "tournament_open",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : ouvrez une compétition."
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_participant",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : inscrivez au moins un participant."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "type-elimination",
+            "title": "Passer l'épreuve en Matchs de Poules",
+            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Gestion des Épreuves</b>.</p><p>Sur la ligne de votre épreuve, repérez la colonne du <b>type d'élimination</b>. Par défaut, elle affiche <b>Grille normale</b>.</p><p>Cliquez sur le bouton <b>Changer</b> de cette colonne : une page de choix s'ouvre. Sélectionnez <b>Matchs de Poules</b>.</p><p>Les autres choix possibles (pour information) :</p><ul><li><b>Grille normale</b> : élimination directe classique,</li><li><b>1er / 2ème tour éliminatoires</b> : les anciens formats à tours de qualification,</li><li><b>Pool 2 / Pool 4</b> : formats de poules internationaux,</li><li><b>Matchs de Poules</b> : le format qui nous intéresse.</li></ul>",
+            "page": "/Final/Individual/ListEvents.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Final/Individual/ListEvents.php"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_pool_event",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : une épreuve doit être passée en « Matchs de Poules »."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "parametrage",
+            "title": "Le paramétrage de la poule",
+            "content": "<p>Une fois l'épreuve passée en Matchs de Poules, un bouton <b>Paramétrage</b> apparaît sur sa ligne. Cliquez dessus (ou allez dans <b>Compétition &gt; Configuration Round Robin</b>).</p><p>La page affiche trois onglets : <b>Paramétrage</b>, <b>Affectation de groupe</b>, <b>Affectation des cibles</b>. Commençons par le premier.</p><p>Vous y définissez le <b>nombre de tours (niveaux)</b>, et ianseo calcule pour vous :</p><ul><li>les <b>archers qualifiés</b>,</li><li>le nombre de <b>tours par groupe</b>,</li><li>les <b>matchs par personne</b>,</li><li>les <b>matchs par tour</b>.</li></ul><p class=\"guide-tip\">💡 Ces valeurs calculées sont votre <b>garde-fou</b> : si « matchs par tour » explose, votre pas de tir ne suivra pas. Ajustez le nombre de groupes en conséquence.</p><p class=\"guide-tip\">⚠️ Vous pouvez <b>copier le paramétrage</b> d'une autre épreuve avec la liste prévue à cet effet — pratique quand toutes les catégories suivent le même format.</p>",
+            "page": "/Modules/RoundRobin/Setup.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Modules/RoundRobin/Setup.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "groupes",
+            "title": "Composer les groupes",
+            "content": "<p>Passez à l'onglet <b>Affectation de groupe</b>.</p><p>C'est ici que vous <b>répartissez les archers dans les poules</b>. La répartition se fait normalement selon le <b>classement de qualification</b> (le 1er et le dernier ne sont pas dans la même poule — on « serpente »).</p><p>Vous pouvez ajuster manuellement si votre règlement l'impose.</p><p class=\"guide-tip\">⚠️ Les groupes doivent être composés <b>après</b> les qualifications (il faut le classement) mais <b>avant</b> le début des matchs de poule. C'est une étape du jour J, à ne pas oublier dans le rush.</p>",
+            "page": "/Modules/RoundRobin/Grouping.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Modules/RoundRobin/Grouping.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "cibles",
+            "title": "Affecter les cibles des poules",
+            "content": "<p>Dernier onglet : <b>Affectation des cibles</b>.</p><p>Vous attribuez ici les <b>cibles de chaque groupe</b>. Chaque poule occupe en général un <b>bloc de cibles</b> dédié pendant toute la durée des matchs.</p><p class=\"guide-tip\">💡 Réserver un bloc par poule simplifie énormément la vie des arbitres et du speaker : « poule A, cibles 1 à 4 » se comprend immédiatement.</p>",
+            "page": "/Modules/RoundRobin/Targets.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/Modules/RoundRobin/Targets.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "saisie",
+            "title": "Saisir et suivre les poules",
+            "content": "<p>Une fois la compétition lancée, un menu <b>Matchs de Poules</b> apparaît dans la barre de navigation. Vous y trouvez :</p><ul><li>le <b>contrôle des ex-aequo</b> avant les matchs,</li><li>l'<b>affectation des cibles</b> et des groupes,</li><li>la <b>saisie des données</b> (vue tableau),</li><li>les <b>feuilles de marque</b> et les <b>impressions</b> (classement des poules).</li></ul><p class=\"guide-tip\">💡 Le classement de poule tient compte des matchs gagnés/perdus. Les qualifiés sortent ensuite vers la phase finale, exactement comme depuis un classement de qualification.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "fin",
+            "title": "C'est terminé !",
+            "content": "<p>Vous savez configurer des poules.</p><p><b>À retenir :</b></p><ul><li>Le type d'élimination se change dans la <b>Gestion des Épreuves</b> → <b>Matchs de Poules</b>.</li><li>Trois onglets : <b>Paramétrage</b> (niveaux), <b>Affectation de groupe</b> (qui joue avec qui), <b>Affectation des cibles</b>.</li><li>Les groupes se composent <b>après les qualifications</b>, avant les matchs.</li><li>Surveillez les <b>matchs par tour</b> : c'est ce que votre pas de tir devra absorber.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        }
+    ],
+    "quiz": {
+        "pass_score": 70,
+        "shuffle": true,
+        "questions": [
+            {
+                "q": "Quel est l'intérêt principal des Matchs de Poules par rapport à une grille normale ?",
+                "choices": [
+                    "Chaque archer a plusieurs matchs garantis, il n'est pas éliminé au premier duel perdu",
+                    "Les matchs sont plus courts",
+                    "Il n'y a pas besoin de classement de qualification",
+                    "On peut se passer d'arbitres"
+                ],
+                "correct": 0,
+                "explain": "En poule, chacun rencontre tous les autres de son groupe : plus de tirs pour tout le monde."
+            },
+            {
+                "q": "Où passe-t-on une épreuve en « Matchs de Poules » ?",
+                "choices": [
+                    "Dans la Gestion des Épreuves, colonne du type d'élimination",
+                    "Dans le programme de la compétition",
+                    "Dans les informations de la compétition",
+                    "Dans la fiche de chaque archer"
+                ],
+                "correct": 0,
+                "explain": "C'est un type d'élimination, à la place de « Grille normale »."
+            },
+            {
+                "q": "Quand compose-t-on les groupes de poule ?",
+                "choices": [
+                    "Après les qualifications, avant les matchs",
+                    "Avant l'inscription des archers",
+                    "Après les matchs de poule",
+                    "Au moment de la remise des récompenses"
+                ],
+                "correct": 0,
+                "explain": "Il faut le classement de qualification pour répartir équitablement les archers dans les poules."
+            },
+            {
+                "q": "Quels sont les trois onglets du paramétrage des poules ?",
+                "choices": [
+                    "Paramétrage, Affectation de groupe, Affectation des cibles",
+                    "Archers, Scores, Résultats",
+                    "Qualification, Duels, Classement",
+                    "Programme, Cibles, Impressions"
+                ],
+                "correct": 0,
+                "explain": "Ces trois onglets couvrent tout le cycle : format, composition des groupes, puis cibles."
+            }
+        ]
+    },
+    "challenge": {
+        "intro": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition :</p><ol><li>Passez une épreuve individuelle en <b>Matchs de Poules</b> (via la colonne du type d'élimination, bouton Changer).</li><li>Ouvrez son <b>Paramétrage</b> et vérifiez les valeurs calculées.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+        "conditions": [
+            "has_pool_event"
+        ]
+    }
+}

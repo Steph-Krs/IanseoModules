@@ -88,10 +88,11 @@ foreach ($formations as $f) {
 .gd-act {
   padding: 7px 13px; border-radius: 5px; border: 1px solid #c8d4ec;
   background: #fff; color: #2a2f5a; font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all .5s ease;
 }
-.gd-act:hover { border-color: #0254a8; color: #0254a8; background: #eef4ff; }
-.gd-act-main { background: linear-gradient(80deg, #0254a8 10%, #082c7c 100%); color: #fff; border: none; }
-.gd-act-main:hover { opacity: .88; color: #fff; }
+.gd-act:hover { border-color: #0254a8; color: #0254a8; background: #eef4ff; transition: all .5s ease; }
+.gd-act-main { background: linear-gradient(80deg, #0254a8 10%, #082c7c 100%); color: #fff; border: 1px solid linear-gradient(80deg, #0254a8 10%, #082c7c 100%); transition: all 1s ease; }
+.gd-act-main:hover { border: 1px solid #082c7c; opacity: .88; color: #082c7c; transition: all 1s ease; }
 .gd-act .ok { color: #1a8a4a; }
 
 /* Progression globale */

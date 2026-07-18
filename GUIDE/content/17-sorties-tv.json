@@ -1,0 +1,154 @@
+{
+    "id": "sorties-tv",
+    "type": "formation",
+    "title": "Les sorties TV et leurs canaux (~15min)",
+    "description": "Diffusez les scores sur les écrans du gymnase : créez des règles de sortie TV (participants, qualifications, phases finales) et pilotez les canaux d'affichage.",
+    "version": "1.0",
+    "group": "Pour aller plus loin",
+    "order": 17,
+    "steps": [
+        {
+            "id": "intro",
+            "title": "Afficher les scores sur écran",
+            "content": "<p>Pour rendre les scores visibles de tous, ianseo sait <b>diffuser des pages sur des écrans</b> (téléviseur, vidéoprojecteur, second écran d'ordinateur).</p><p>Le mécanisme repose sur deux notions à bien distinguer :</p><ul><li>la <b>règle de sortie TV</b> : <b>quoi</b> afficher (la liste des participants ? les qualifications ? les duels ?) et avec quelle mise en forme,</li><li>le <b>canal de sortie</b> : <b>où</b> l'afficher, c'est-à-dire quel écran reçoit quelle règle.</li></ul><p>Une règle peut être envoyée sur plusieurs canaux, et un canal peut changer de règle en cours de journée.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "ouvrir",
+            "title": "Ouvrir une compétition",
+            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p>",
+            "page": "*",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "tournament_open",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : ouvrez une compétition."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "regles",
+            "title": "Créer une règle de sortie TV",
+            "content": "<p>Allez dans <b>Sorties &gt; Sortie TV</b>.</p><p>Créez une <b>règle</b>. Les trois grands types :</p><ul><li>la <b>liste des participants</b>,</li><li>l'affichage des <b>scores de qualification</b>,</li><li>l'affichage des <b>scores en phases finales</b> (duels).</li></ul><p>Pour que l'affichage soit exploitable sur un écran, sélectionnez le rendu <b>« Page CSS »</b>.</p><p class=\"guide-tip\">💡 Créez une règle <b>par moment de la journée</b> : « participants » avant le départ, « qualifications » pendant les séries, « phases finales » l'après-midi. Vous n'aurez plus qu'à basculer les canaux.</p>",
+            "page": "/TV/",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/TV/"
+                },
+                {
+                    "kind": "etat",
+                    "condition": "has_tv_rule",
+                    "required": true,
+                    "page": "*",
+                    "hint": "En attente : créez au moins une règle de sortie TV."
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "mise-en-forme",
+            "title": "La mise en forme",
+            "content": "<p>Chaque règle a ses <b>couleurs</b> : fond de page, fond de tableau, en-têtes, ligne courante, ligne suivante, police de caractères.</p><p>Vous pouvez donc adapter l'affichage à votre <b>écran</b> et à la <b>lumière du gymnase</b>.</p><p class=\"guide-tip\">💡 Sur un écran vu de loin : <b>gros caractères</b>, fort contraste (texte clair sur fond sombre), peu de lignes à la fois. Un tableau magnifique mais illisible depuis le pas de tir ne sert à rien.</p>",
+            "page": "/TV/",
+            "triggers": [],
+            "optional": true,
+            "strict_click": false
+        },
+        {
+            "id": "canaux",
+            "title": "Les canaux de sortie",
+            "content": "<p>Allez dans <b>Sorties &gt; Canaux de sortie TV</b>.</p><p>Un <b>canal</b> = un <b>écran</b>. Pour chacun, vous choisissez :</p><ul><li>son <b>nom</b> (« Écran hall », « Écran pas de tir »…),</li><li>la <b>compétition</b> et la <b>règle</b> qu'il affiche,</li><li>son <b>statut</b> (actif ou non),</li><li>éventuellement un <b>message</b> à faire défiler, ou un <b>fichier</b> à afficher.</li></ul><p>Sur l'ordinateur relié à l'écran, il suffit d'ouvrir l'<b>URL du canal</b> en plein écran : il se met à jour <b>tout seul</b>.</p><p class=\"guide-tip\">💡 C'est là toute la puissance du système : vous <b>changez la règle d'un canal depuis le greffe</b>, et l'écran du hall bascule des qualifications aux phases finales — sans que personne n'aille toucher à l'ordinateur du hall.</p>",
+            "page": "/TV/ChannelSetup.php",
+            "triggers": [
+                {
+                    "kind": "etat",
+                    "condition": "__page",
+                    "required": true,
+                    "page": "/TV/ChannelSetup.php"
+                }
+            ],
+            "optional": false,
+            "strict_click": false
+        },
+        {
+            "id": "spotting",
+            "title": "Les autres sorties",
+            "content": "<p>Le menu <b>Sorties</b> propose aussi deux affichages utiles :</p><ul><li><b>Spotting</b> : la vue des <b>flèches dans le blason</b>, pour les duels — parfait sur un écran face au public.</li><li>l'affichage <b>en direct du score du match en cours</b> (dernière entrée du menu).</li></ul><p class=\"guide-tip\">💡 Sur une finale, un écran en Spotting et un écran en scores, c'est ce qui transforme une remise de médailles en spectacle.</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": true,
+            "strict_click": false
+        },
+        {
+            "id": "fin",
+            "title": "C'est terminé !",
+            "content": "<p>Vos écrans sont vivants.</p><p><b>À retenir :</b></p><ul><li>Une <b>règle</b> = <b>quoi</b> afficher (participants / qualifications / phases finales), en <b>« Page CSS »</b>.</li><li>Un <b>canal</b> = <b>où</b> l'afficher. On ouvre son URL en plein écran sur l'ordinateur de l'écran.</li><li>On <b>bascule un canal d'une règle à l'autre depuis le greffe</b>, sans se déplacer.</li><li>Gros caractères, fort contraste : ça se lit de loin.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "page": "*",
+            "triggers": [],
+            "optional": false,
+            "strict_click": false
+        }
+    ],
+    "quiz": {
+        "pass_score": 70,
+        "shuffle": true,
+        "questions": [
+            {
+                "q": "Quelle est la différence entre une règle et un canal de sortie TV ?",
+                "choices": [
+                    "La règle définit QUOI afficher, le canal définit OÙ l'afficher",
+                    "La règle est pour les qualifications, le canal pour les duels",
+                    "Ce sont deux mots pour la même chose",
+                    "La règle concerne les couleurs, le canal les scores"
+                ],
+                "correct": 0,
+                "explain": "Une règle (contenu + mise en forme) est envoyée vers un ou plusieurs canaux (les écrans)."
+            },
+            {
+                "q": "Quel rendu faut-il sélectionner pour afficher une sortie TV sur un écran ?",
+                "choices": ["Page CSS", "Page PDF", "Page XML", "Page Excel"],
+                "correct": 0,
+                "explain": "Le rendu « Page CSS » produit la page d'affichage destinée aux écrans."
+            },
+            {
+                "q": "Quels sont les trois grands types de sorties TV ?",
+                "choices": [
+                    "Liste des participants, scores de qualification, scores des phases finales",
+                    "Programme, plan de cible, mandat",
+                    "Badges, dossards, feuilles de marque",
+                    "Participants, arbitres, organisation"
+                ],
+                "correct": 0,
+                "explain": "Ces trois types couvrent le déroulé complet d'une compétition."
+            },
+            {
+                "q": "En pleine compétition, vous voulez que l'écran du hall passe des qualifications aux phases finales. Que faites-vous ?",
+                "choices": [
+                    "Vous changez la règle affectée à ce canal, depuis le greffe",
+                    "Vous allez rouvrir une autre page sur l'ordinateur du hall",
+                    "Vous redémarrez ianseo",
+                    "Vous créez une nouvelle compétition"
+                ],
+                "correct": 0,
+                "explain": "C'est tout l'intérêt des canaux : l'écran se met à jour seul, sans intervention sur place."
+            }
+        ]
+    },
+    "challenge": {
+        "intro": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition ouverte :</p><ol><li>Créez au moins une <b>règle de sortie TV</b> (par exemple l'affichage des scores de qualification, en « Page CSS »).</li><li>Allez ensuite voir les <b>Canaux de sortie TV</b> et affectez-lui un canal.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+        "conditions": [
+            "has_tv_rule"
+        ]
+    }
+}
