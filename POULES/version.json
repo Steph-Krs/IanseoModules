@@ -1,0 +1,12 @@
+{
+    "version": "1.0.0",
+    "date": "2026-07-18",
+    "notes": "Version initiale : vue commentateur des poules Round Robin équipes (classement live, rangs atteignables, matchs décisifs).",
+    "files": [
+        "menu.php",
+        "index.php",
+        "action.php",
+        "admin/update.php",
+        "version.json"
+    ]
+}
