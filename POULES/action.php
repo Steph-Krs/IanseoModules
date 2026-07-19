@@ -19,7 +19,7 @@ $out = [
 
 $levels = [];
 $rs = safe_r_sql("SELECT L.RrLevEvent, L.RrLevLevel, L.RrLevName, L.RrLevWinPoints, L.RrLevTiePoints, L.RrLevMatchMode,
-        L.RrLevTieBreakSystem, L.RrLevTieBreakSystem2, E.EvEventName
+        L.RrLevTieBreakSystem, L.RrLevTieBreakSystem2, L.RrLevTieAllowed, L.RrLevEnds, E.EvEventName
     FROM RoundRobinLevel L
     INNER JOIN Events E ON E.EvTournament=L.RrLevTournament AND E.EvCode=L.RrLevEvent AND E.EvTeamEvent=L.RrLevTeam
     WHERE L.RrLevTournament=$tourId AND L.RrLevTeam=1
@@ -113,9 +113,14 @@ foreach ($levels as $lev) {
                     if (!$currentRound) $currentRound = $round;
                 }
 
+                // volées déjà tirées (SetPointsByEnd = points de set par volée, séparés
+                // par |) : sert au client à borner l'issue d'un match en cours
+                $epA = trim($a->spe) !== '' ? count(array_filter(explode('|', $a->spe), 'strlen')) : 0;
+                $epB = trim($b->spe) !== '' ? count(array_filter(explode('|', $b->spe), 'strlen')) : 0;
+
                 $matches[] = [
                     'r' => $round, 'tg' => $a->tg, 'time' => substr($a->t, 0, 5), 'date' => $a->d,
-                    'state' => $state,
+                    'state' => $state, 'ep' => max($epA, $epB),
                     'a' => ['id' => $idA, 'sc' => intval($a->sc), 'st' => intval($a->st),
                             'wl' => intval($a->wl), 'irm' => intval($a->irm)],
                     'b' => ['id' => $idB, 'sc' => intval($b->sc), 'st' => intval($b->st),
@@ -138,6 +143,8 @@ foreach ($levels as $lev) {
             'matchMode'    => intval($lev->RrLevMatchMode), // 1 = sets, 0 = cumul de points
             'tieSys'       => intval($lev->RrLevTieBreakSystem),
             'tieSys2'      => intval($lev->RrLevTieBreakSystem2),
+            'tieAllowed'   => intval($lev->RrLevTieAllowed),
+            'ends'         => intval($lev->RrLevEnds) ?: 4,
 
             'teams'        => array_values($teams),
             'matches'      => $matches,

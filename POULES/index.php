@@ -185,12 +185,10 @@ function ordTxt(n) { return n === 1 ? '1re' : n + 'e'; }
 /* ── Analyse d'une poule ─────────────────────────────────────────────────── */
 function analyze(ev) {
     var win = ev.winPts || 2;
+    var E = ev.ends || 4; // volées par match
     var T = ev.teams.map(function (t) { return Object.assign({}, t); });
     // tb / tb2 arrivent du serveur : Σ des tie-breaks natifs ianseo par match,
     // qui suivent le système configuré (sets ou cumul de points)
-    T.forEach(function (t) {
-        t.maxPts = t.pts + win * t.remaining;
-    });
     T.sort(function (x, y) {
         return (y.pts - x.pts) || (y.tb - x.tb) || (y.tb2 - x.tb2) || x.name.localeCompare(y.name);
     });
@@ -200,26 +198,140 @@ function analyze(ev) {
     var Q = Math.min(prefs.q, N);
     var safeLine = N - Math.min(prefs.r, N);
 
+    // Raffinement par le départage (différence de sets, système 5, épreuves en
+    // sets sans nul) : un match ne peut se finir qu'en 6-0…5-4 (équipes) ou
+    // 6-0…6-5 (indiv) → le vainqueur gagne +1 à +6 de différentiel, le perdant
+    // −1 à −6. Pour un match EN COURS, les sets déjà acquis resserrent ces
+    // bornes (écart actuel ± 2 × volées restantes) et peuvent rendre l'issue
+    // certaine avant la fin : ces certitudes entrent dans les projections.
+    var refine = (ev.matchMode === 1 && ev.tieSys === 5 && !ev.tieAllowed);
+    var byIdT = {};
+    T.forEach(function (t) { byIdT[t.id] = t; });
+
+    var pending = [];
+    ev.matches.forEach(function (m) {
+        if (m.state === 'done') return;
+        var A = byIdT[m.a.id], B = byIdT[m.b.id];
+        if (!A || !B) return;
+        var r = Math.max(0, E - (m.ep || 0)); // volées restantes
+        var d = (m.a.st || 0) - (m.b.st || 0); // écart de sets actuel
+        var p = {
+            A: A, B: B,
+            canA: !refine || d + 2 * r >= 0,   // égalité finale → tir de barrage → possible
+            canB: !refine || 2 * r - d >= 0,
+            minA: Math.max(1, d - 2 * r), maxA: Math.min(6, Math.max(1, d + 2 * r)),
+            minB: Math.max(1, -d - 2 * r), maxB: Math.min(6, Math.max(1, 2 * r - d))
+        };
+        if (!p.canA && !p.canB) { p.canA = p.canB = true; } // données incohérentes : tout ouvrir
+        pending.push(p);
+    });
+    var allDone = pending.length === 0;
+
+    // Agrégats par équipe : victoires encore possibles / déjà acquises (matchs
+    // en cours pliés), et bornes du différentiel final.
+    T.forEach(function (t) { t.winnable = 0; t.certain = 0; t._tbUp = 0; t._tbDn = 0; });
+    pending.forEach(function (p) {
+        if (p.canA) { p.A.winnable++; p.A._tbUp += p.maxA; } else { p.A._tbUp -= p.minB; }
+        if (p.canB) { p.A._tbDn -= p.maxB; } else { p.A.certain++; p.A._tbDn += p.minA; }
+        if (p.canB) { p.B.winnable++; p.B._tbUp += p.maxB; } else { p.B._tbUp -= p.minA; }
+        if (p.canA) { p.B._tbDn -= p.maxA; } else { p.B.certain++; p.B._tbDn += p.minB; }
+    });
     T.forEach(function (t) {
-        var best = 1, worst = 1;
+        t.maxPts = t.pts + win * t.winnable;
+        t.minPts = t.pts + win * t.certain;
+        t.maxTb  = t.tb + t._tbUp;
+        t.minTb  = t.tb + t._tbDn;
+    });
+
+    // Meilleur rang atteignable : t gagne tout ce qu'il peut encore gagner (avec
+    // l'écart max) ; les prétendants perdent tout ce qu'ils peuvent perdre ;
+    // seuls leurs matchs ENTRE EUX (issue libre) sont énumérés.
+    function bestRankOf(t) {
+        var alwaysAbove = 0, contenders = [];
         T.forEach(function (o) {
             if (o === t) return;
-            // o finit forcément devant t ?
-            if (o.pts > t.maxPts ||
-                (o.pts === t.maxPts && o.remaining === 0 && t.remaining === 0 && o.rank < t.rank)) best++;
-            // o peut finir devant t ?
-            if (o.maxPts > t.pts ||
-                (o.maxPts === t.pts && (o.remaining > 0 || t.remaining > 0 ? true : o.rank < t.rank))) worst++;
+            if (o.minPts > t.maxPts) alwaysAbove++;
+            else if (o.maxPts >= t.maxPts) contenders.push(o);
         });
-        t.best = best;
+        var simple = 1 + alwaysAbove + (allDone ? T.filter(function (o) {
+            return o !== t && o.pts === t.maxPts && o.rank < t.rank;
+        }).length : 0);
+        if (!refine) return simple;
+
+        var cid = {};
+        contenders.forEach(function (o) { cid[o.id] = true; });
+        var base = {};
+        contenders.forEach(function (o) { base[o.id] = { w: 0, tb: o.tb }; });
+        var free = [];
+        pending.forEach(function (p) {
+            var isA = !!cid[p.A.id], isB = !!cid[p.B.id];
+            if (p.A === t || p.B === t) {
+                var tIsA = (p.A === t);
+                var o = tIsA ? p.B : p.A;
+                if (!cid[o.id]) return;
+                var tCan = tIsA ? p.canA : p.canB;
+                if (tCan) base[o.id].tb -= tIsA ? p.maxA : p.maxB;      // t gagne large
+                else { base[o.id].w++; base[o.id].tb += tIsA ? p.minB : p.minA; }
+                return;
+            }
+            if (isA && isB) {
+                if (p.canA && p.canB) { free.push(p); return; }
+                if (p.canA) { base[p.A.id].w++; base[p.A.id].tb += p.minA; base[p.B.id].tb -= p.maxA; }
+                else        { base[p.B.id].w++; base[p.B.id].tb += p.minB; base[p.A.id].tb -= p.maxB; }
+                return;
+            }
+            if (isA) { if (p.canB) base[p.A.id].tb -= p.maxB; else { base[p.A.id].w++; base[p.A.id].tb += p.minA; } }
+            else if (isB) { if (p.canA) base[p.B.id].tb -= p.maxA; else { base[p.B.id].w++; base[p.B.id].tb += p.minB; } }
+        });
+        if (free.length > 12) return simple; // trop tôt dans la poule : borne simple
+
+        var best = Infinity, n = free.length;
+        for (var mask = 0; mask < (1 << n); mask++) {
+            var addW = {}, addTb = {};
+            contenders.forEach(function (o) { addW[o.id] = 0; addTb[o.id] = 0; });
+            for (var i = 0; i < n; i++) {
+                var f = free[i];
+                if ((mask >> i) & 1) { addW[f.A.id]++; addTb[f.A.id] += f.minA; addTb[f.B.id] -= f.maxA; }
+                else                 { addW[f.B.id]++; addTb[f.B.id] += f.minB; addTb[f.A.id] -= f.maxB; }
+            }
+            var above = alwaysAbove;
+            for (var j = 0; j < contenders.length; j++) {
+                var o = contenders[j];
+                var pp = o.pts + win * (base[o.id].w + addW[o.id]);
+                if (pp > t.maxPts) above++;
+                else if (pp === t.maxPts) {
+                    var tbMin = base[o.id].tb + addTb[o.id];
+                    if (tbMin > t.maxTb) above++;
+                    else if (tbMin === t.maxTb && allDone && o.rank < t.rank) above++;
+                }
+            }
+            if (above + 1 < best) best = above + 1;
+            if (best === alwaysAbove + 1) break;
+        }
+        return best;
+    }
+
+    T.forEach(function (t) {
+        // pire rang (pessimiste : t perd tout ce qu'il peut perdre, les autres
+        // gagnent tout ce qu'ils peuvent gagner)
+        var worst = 1;
+        T.forEach(function (o) {
+            if (o === t) return;
+            if (o.maxPts > t.minPts) worst++;
+            else if (o.maxPts === t.minPts) {
+                if (o.remaining === 0 && t.remaining === 0) { if (o.rank < t.rank) worst++; }
+                else if (!refine || o.maxTb >= t.minTb) worst++;
+            }
+        });
+        t.best = bestRankOf(t);
         t.worst = worst;
-        t.qSecured = Q > 0 && worst <= Q;
-        t.qOut     = Q > 0 && best > Q;
+        t.qSecured = Q > 0 && t.worst <= Q;
+        t.qOut     = Q > 0 && t.best > Q;
         t.qRace    = Q > 0 && !t.qSecured && !t.qOut;
-        t.rDoomed  = prefs.r > 0 && best > safeLine;
-        t.rRisk    = prefs.r > 0 && !t.rDoomed && worst > safeLine;
-        t.canWin   = best === 1;
-        t.firstSecured = worst === 1;
+        t.rDoomed  = prefs.r > 0 && t.best > safeLine;
+        t.rRisk    = prefs.r > 0 && !t.rDoomed && t.worst > safeLine;
+        t.canWin   = t.best === 1;
+        t.firstSecured = t.worst === 1;
     });
     var byId = {};
     T.forEach(function (t) { byId[t.id] = t; });

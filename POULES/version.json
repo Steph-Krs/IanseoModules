@@ -1,7 +1,7 @@
 {
-    "version": "1.0.4",
+    "version": "1.0.5",
     "date": "2026-07-18",
-    "notes": "Round en cours : bouton de bascule rapide entre tri par enjeu et tri par ordre de cibles (choix mémorisé).",
+    "notes": "Projections affinées par le départage : bornes d'écart de sets par match (+1 à +6), calendrier réel des matchs restants (énumération des scénarios entre prétendants), et prise en compte des matchs en direct (une issue déjà certaine compte immédiatement, les sets acquis resserrent les bornes). Détecte les éliminations/qualifications que les seuls points de match ne montrent pas.",
     "files": [
         "menu.php",
         "index.php",
