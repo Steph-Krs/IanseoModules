@@ -275,7 +275,9 @@ function badgeHtml(t) {
 function renderStandings(a) {
     var h = '<table class="pl-std"><thead><tr>' +
         '<th></th><th style="text-align:left">Équipe</th><th>J</th><th>V</th><th>D</th>' +
-        '<th>Pts</th><th title="Différence de points de sets">TB</th><th>Max</th><th>Peut finir</th><th></th>' +
+        '<th>Pts</th><th title="Différence de points de sets (1er critère de départage)">TB</th>' +
+        '<th title="Points de sets marqués (2e critère de départage)">Sets +</th>' +
+        '<th>Max</th><th>Peut finir</th><th></th>' +
         '</tr></thead><tbody>';
     a.teams.forEach(function (t) {
         var cls = [];
@@ -290,6 +292,7 @@ function renderStandings(a) {
             '<td>' + t.played + '</td><td>' + t.wins + '</td><td>' + t.losses + '</td>' +
             '<td class="pts">' + t.pts + '</td>' +
             '<td>' + (t.tb > 0 ? '+' : '') + t.tb + '</td>' +
+            '<td>' + t.sf + '</td>' +
             '<td style="color:#7d8183">' + t.maxPts + '</td>' +
             '<td class="range">' + range + '</td>' +
             '<td style="text-align:left">' + badgeHtml(t) + '</td>' +
