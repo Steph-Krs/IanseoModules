@@ -18,7 +18,8 @@ $out = [
 ];
 
 $levels = [];
-$rs = safe_r_sql("SELECT L.RrLevEvent, L.RrLevLevel, L.RrLevName, L.RrLevWinPoints, L.RrLevTiePoints, E.EvEventName
+$rs = safe_r_sql("SELECT L.RrLevEvent, L.RrLevLevel, L.RrLevName, L.RrLevWinPoints, L.RrLevTiePoints, L.RrLevMatchMode,
+        L.RrLevTieBreakSystem, L.RrLevTieBreakSystem2, E.EvEventName
     FROM RoundRobinLevel L
     INNER JOIN Events E ON E.EvTournament=L.RrLevTournament AND E.EvCode=L.RrLevEvent AND E.EvTeamEvent=L.RrLevTeam
     WHERE L.RrLevTournament=$tourId AND L.RrLevTeam=1
@@ -51,6 +52,7 @@ foreach ($levels as $lev) {
                 'id' => $id, 'name' => $t->CoName ?: ('#' . $id), 'code' => $t->CoCode ?: '',
                 'played' => 0, 'wins' => 0, 'losses' => 0, 'ties' => 0, 'pts' => 0,
                 'sf' => 0, 'sa' => 0, 'scf' => 0, 'sca' => 0, 'remaining' => 0,
+                'tb' => 0, 'tb2' => 0, // Σ des tie-breaks natifs par match (suivent le système configuré)
             ];
         }
         if (!$teams) continue;
@@ -60,6 +62,7 @@ foreach ($levels as $lev) {
                 RrMatchScheduledDate d, RrMatchScheduledTime t,
                 RrMatchAthlete id, RrMatchScore sc, RrMatchSetScore st,
                 RrMatchWinLose wl, RrMatchRoundPoints rp, RrMatchIrmType irm,
+                RrMatchTieBreaker mtb, RrMatchTieBreaker2 mtb2,
                 RrMatchSetPointsByEnd spe
             FROM RoundRobinMatches
             WHERE RrMatchTournament=$tourId AND RrMatchTeam=1
@@ -100,6 +103,8 @@ foreach ($levels as $lev) {
                         $t['sa']  += intval($op->st);
                         $t['scf'] += intval($me->sc);
                         $t['sca'] += intval($op->sc);
+                        $t['tb']  += intval($me->mtb);
+                        $t['tb2'] += intval($me->mtb2);
                         unset($t);
                     }
                 } else {
@@ -130,6 +135,10 @@ foreach ($levels as $lev) {
             'name'         => $name,
             'winPts'       => intval($lev->RrLevWinPoints) ?: 2,
             'tiePts'       => intval($lev->RrLevTiePoints),
+            'matchMode'    => intval($lev->RrLevMatchMode), // 1 = sets, 0 = cumul de points
+            'tieSys'       => intval($lev->RrLevTieBreakSystem),
+            'tieSys2'      => intval($lev->RrLevTieBreakSystem2),
+
             'teams'        => array_values($teams),
             'matches'      => $matches,
             'totalRounds'  => $totalRounds,

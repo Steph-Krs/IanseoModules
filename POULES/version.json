@@ -1,7 +1,7 @@
 {
-    "version": "1.0.2",
+    "version": "1.0.3",
     "date": "2026-07-18",
-    "notes": "Classement : colonne « Sets + » (points de sets marqués, 2e critère de départage) ajoutée après le différentiel TB.",
+    "notes": "Affichage des matchs selon le mode de l'épreuve : points de sets si épreuve en sets (sans cumul de flèches), score de points si épreuve en cumul. Départages : sommes des tie-breaks natifs ianseo (suivent le système configuré), en-têtes de colonnes adaptés.",
     "files": [
         "menu.php",
         "index.php",

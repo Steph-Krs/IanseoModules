@@ -180,9 +180,9 @@ function ordTxt(n) { return n === 1 ? '1re' : n + 'e'; }
 function analyze(ev) {
     var win = ev.winPts || 2;
     var T = ev.teams.map(function (t) { return Object.assign({}, t); });
+    // tb / tb2 arrivent du serveur : Σ des tie-breaks natifs ianseo par match,
+    // qui suivent le système configuré (sets ou cumul de points)
     T.forEach(function (t) {
-        t.tb = t.sf - t.sa;   // départage 1 ianseo (système 5) : diff. de points de sets
-        t.tb2 = t.sf;         // départage 2 ianseo (système 2) : points de sets marqués
         t.maxPts = t.pts + win * t.remaining;
     });
     T.sort(function (x, y) {
@@ -217,7 +217,8 @@ function analyze(ev) {
     });
     var byId = {};
     T.forEach(function (t) { byId[t.id] = t; });
-    return { teams: T, byId: byId, N: N, Q: Q, safeLine: safeLine, win: win };
+    return { teams: T, byId: byId, N: N, Q: Q, safeLine: safeLine, win: win,
+             mode: ev.matchMode, tieSys: ev.tieSys, tieSys2: ev.tieSys2 };
 }
 
 /* « t assuré de finir dans le top Q en cas de victoire contre opp ? » */
@@ -272,11 +273,22 @@ function badgeHtml(t) {
     return b.join(' ');
 }
 
+/* libellé + valeur d'un critère de départage selon le système ianseo configuré */
+function tieLabel(sys, mode) {
+    if (sys === 1) return mode ? 'Sets G' : 'Volées G';
+    if (sys === 2) return mode ? 'Sets +' : 'Volées +';
+    if (sys === 3) return 'Score';
+    if (sys === 5) return 'Diff';
+    return 'TB';
+}
+function tieVal(sys, v) { return (sys === 5 && v > 0 ? '+' : '') + v; }
+
 function renderStandings(a) {
     var h = '<table class="pl-std"><thead><tr>' +
         '<th></th><th style="text-align:left">Équipe</th><th>J</th><th>V</th><th>D</th>' +
-        '<th>Pts</th><th title="Différence de points de sets (1er critère de départage)">TB</th>' +
-        '<th title="Points de sets marqués (2e critère de départage)">Sets +</th>' +
+        '<th>Pts</th>' +
+        '<th title="1er critère de départage">' + tieLabel(a.tieSys, a.mode) + '</th>' +
+        '<th title="2e critère de départage">' + tieLabel(a.tieSys2, a.mode) + '</th>' +
         '<th>Max</th><th>Peut finir</th><th></th>' +
         '</tr></thead><tbody>';
     a.teams.forEach(function (t) {
@@ -291,8 +303,8 @@ function renderStandings(a) {
             '<td class="nm">' + esc(t.name) + '</td>' +
             '<td>' + t.played + '</td><td>' + t.wins + '</td><td>' + t.losses + '</td>' +
             '<td class="pts">' + t.pts + '</td>' +
-            '<td>' + (t.tb > 0 ? '+' : '') + t.tb + '</td>' +
-            '<td>' + t.sf + '</td>' +
+            '<td>' + tieVal(a.tieSys, t.tb) + '</td>' +
+            '<td>' + tieVal(a.tieSys2, t.tb2) + '</td>' +
             '<td style="color:#7d8183">' + t.maxPts + '</td>' +
             '<td class="range">' + range + '</td>' +
             '<td style="text-align:left">' + badgeHtml(t) + '</td>' +
@@ -313,14 +325,16 @@ function teamCell(a, m, side, cssSide) {
 function matchHtml(a, m, withStakes) {
     var live = m.state === 'live';
     var done = m.state === 'done';
+    // épreuve en sets : points de sets (le cumul de flèches n'a pas d'intérêt) ;
+    // épreuve en cumul : score de points
+    var sA = a.mode ? m.a.st : m.a.sc;
+    var sB = a.mode ? m.b.st : m.b.sc;
     var mid;
     if (done) {
         var wa = m.a.wl ? 'win' : 'lose', wb = m.b.wl ? 'win' : 'lose';
-        mid = '<span class="' + wa + '">' + m.a.st + '</span> – <span class="' + wb + '">' + m.b.st + '</span>' +
-              '<div class="tsub">' + m.a.sc + ' / ' + m.b.sc + '</div>';
+        mid = '<span class="' + wa + '">' + sA + '</span> – <span class="' + wb + '">' + sB + '</span>';
     } else if (live) {
-        mid = '<span class="pl-live-dot"></span>' + m.a.st + ' – ' + m.b.st +
-              '<div class="tsub">' + m.a.sc + ' / ' + m.b.sc + '</div>';
+        mid = '<span class="pl-live-dot"></span>' + sA + ' – ' + sB;
     } else {
         mid = '<span class="vs">vs</span>';
     }
