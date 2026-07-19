@@ -66,7 +66,12 @@ body { font-family: 'Segoe UI', Verdana, sans-serif; background: #eef1f6; margin
 
 .pl-card { background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow: hidden; }
 .pl-card h2 { margin: 0; background: #f0f4ff; color: #01367c; font-size: .85em; text-transform: uppercase;
-              letter-spacing: .06em; padding: 8px 12px; border-bottom: 1px solid #d2d4d6; }
+              letter-spacing: .06em; padding: 8px 12px; border-bottom: 1px solid #d2d4d6;
+              display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pl-sort { background: #fff; border: 1px solid #b0c4e8; color: #0254a8; border-radius: 5px;
+           padding: 3px 10px; font-size: .95em; font-weight: 700; cursor: pointer;
+           text-transform: none; letter-spacing: normal; white-space: nowrap; }
+.pl-sort:hover { background: #e2ecfb; }
 
 /* ── Classement ── */
 table.pl-std { width: 100%; border-collapse: collapse; font-size: .92em; }
@@ -145,7 +150,8 @@ tr.sep-r td { border-top: 3px solid #ff5043; }
     </div>
     <div>
         <div class="pl-card" style="margin-bottom:14px">
-            <h2 id="pl-next-title">Prochain round</h2>
+            <h2><span id="pl-next-title">Prochain round</span>
+                <button class="pl-sort" id="pl-sort" title="Changer l'ordre d'affichage des matchs"></button></h2>
             <div id="pl-next"></div>
         </div>
         <div class="pl-card">
@@ -162,7 +168,7 @@ tr.sep-r td { border-top: 3px solid #ff5043; }
 var ACTION = <?= json_encode($base . 'action.php') ?>;
 
 /* ── Préférences ─────────────────────────────────────────────────────────── */
-var DEFAULTS = { q: 4, qlabel: 'demi-finales', r: 0, refresh: 10, alt: false };
+var DEFAULTS = { q: 4, qlabel: 'demi-finales', r: 0, refresh: 10, alt: false, sortTarget: false };
 var prefs = DEFAULTS;
 try { prefs = Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem('poules_prefs') || '{}')); }
 catch (e) {}
@@ -401,16 +407,26 @@ function render() {
     // round en cours / prochain — trié par enjeu décroissant
     var nextBox = document.getElementById('pl-next');
     var title = document.getElementById('pl-next-title');
+    var sortBtn = document.getElementById('pl-sort');
     if (ev.currentRound) {
         var cur = ev.matches.filter(function (m) { return m.r === ev.currentRound; });
         var anyLive = cur.some(function (m) { return m.state === 'live'; });
         title.textContent = (anyLive ? 'Round en cours' : 'Prochain round') +
-            ' — matchs classés par enjeu';
+            (prefs.sortTarget ? ' — par ordre de cibles' : ' — matchs classés par enjeu');
+        sortBtn.style.display = '';
+        sortBtn.textContent = prefs.sortTarget ? '⇄ Trier par enjeu' : '⇄ Trier par cible';
         var rendered = cur.map(function (m) { return { m: m, r: matchHtml(a, m, true) }; });
-        rendered.sort(function (x, y) { return y.r.imp - x.r.imp; });
+        if (prefs.sortTarget) {
+            rendered.sort(function (x, y) {
+                return (parseInt(x.m.tg, 10) || 0) - (parseInt(y.m.tg, 10) || 0);
+            });
+        } else {
+            rendered.sort(function (x, y) { return y.r.imp - x.r.imp; });
+        }
         nextBox.innerHTML = rendered.map(function (x) { return x.r.html; }).join('') ||
             '<div class="pl-empty">Aucun match.</div>';
     } else {
+        sortBtn.style.display = 'none';
         title.textContent = 'Round en cours';
         nextBox.innerHTML = '<div class="pl-empty">Tous les matchs de poule sont terminés.</div>';
     }
@@ -458,6 +474,10 @@ function arm() {
 /* ── Réglages ────────────────────────────────────────────────────────────── */
 var panel = document.getElementById('pl-prefs');
 document.getElementById('pl-gear').onclick = function () { panel.classList.toggle('open'); };
+document.getElementById('pl-sort').onclick = function () {
+    prefs.sortTarget = !prefs.sortTarget;
+    savePrefs(); render();
+};
 function bindPref(id, key, isNum, isBool) {
     var el = document.getElementById(id);
     if (isBool) el.checked = !!prefs[key]; else el.value = prefs[key];

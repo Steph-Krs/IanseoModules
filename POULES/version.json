@@ -1,7 +1,7 @@
 {
-    "version": "1.0.3",
+    "version": "1.0.4",
     "date": "2026-07-18",
-    "notes": "Affichage des matchs selon le mode de l'épreuve : points de sets si épreuve en sets (sans cumul de flèches), score de points si épreuve en cumul. Départages : sommes des tie-breaks natifs ianseo (suivent le système configuré), en-têtes de colonnes adaptés.",
+    "notes": "Round en cours : bouton de bascule rapide entre tri par enjeu et tri par ordre de cibles (choix mémorisé).",
     "files": [
         "menu.php",
         "index.php",
