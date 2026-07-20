@@ -1,0 +1,11 @@
+{
+    "version": "1.0.0",
+    "date": "2026-07-21",
+    "notes": "Bibliothèque commune aux modules Custom (mise à jour, désinstallation, rendu de la page de MaJ). Synchronisée automatiquement à chaque mise à jour d'un module.",
+    "files": [
+        "update-lib.php",
+        "update-ui.php",
+        "uninstall.php",
+        "version.json"
+    ]
+}

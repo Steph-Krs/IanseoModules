@@ -1,7 +1,7 @@
 {
-  "version": "1.0.16",
-  "date": "2026-07-18",
-  "notes": "Désinstallation depuis la page Mises à jour : zone repliée « Désinstaller le module » menant à un désinstallateur commun, qui archive le module en ZIP avant de supprimer ses fichiers. Option décochée par défaut pour supprimer aussi les données en base (TNM_BsoConfig, TNM_BsoVolee — scores des Big Shoot Off) ; confirmation par saisie du nom du module. Sécurité : la page Mises à jour exigeait seulement AclRoot, insuffisant avec un module de comptes (tout organisateur connecté y accédait) — elle exige désormais aussi la vue Administrateur serveur.",
+  "version": "1.0.18",
+  "date": "2026-07-21",
+  "notes": "Page de mise à jour mutualisée (rendu commun _shared/update-ui.php) : comportement et présentation identiques à tous les modules. La mise à jour synchronise aussi la bibliothèque commune _shared. Nouveau bloc replié « Autres modules du dépôt » pour lister et installer les autres modules depuis ianseo. Désinstallation inchangée (sauvegarde ZIP, option décochée pour supprimer TNM_BsoConfig, TNM_BsoVolee). Sécurité menu : l'entrée « Mise à jour module » est masquée aux comptes non administrateurs quand le module de comptes AUTH est actif (la page était déjà protégée) ; sans AUTH, comportement inchangé.",
   "files": [
     "admin/update.php",
     "bso-action.php",

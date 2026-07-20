@@ -112,40 +112,17 @@ Relancer `install.sh` réinstalle proprement (idempotent : votre `module.json` l
 
 ## Désinstallation d'un module
 
-Même principe : **une seule commande**, interactive. Le script liste les **modules installés**,
-demande le(s)quel(s) supprimer, **crée une sauvegarde**, puis supprime les fichiers.
+La désinstallation se fait **depuis ianseo**, sans ligne de commande, réservée à
+l'**administrateur** : page d'administration du module → **Mise à jour** → zone repliée
+**« Désinstaller le module »**.
 
-**Mac / Linux :**
+Déroulé et garde-fous :
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Steph-Krs/IanseoModules/main/uninstall.sh | bash
-```
+- Confirmation par **saisie du nom du module**.
+- **Sauvegarde ZIP** créée sur le serveur **avant** toute suppression (chemin affiché à la fin).
+- Seuls les dossiers contenant un `module.json` sont concernés ; `_shared/` n'est jamais supprimé.
+- Si le module crée des tables, une case **décochée par défaut** propose de les supprimer aussi
+  (sinon elles sont conservées et une réinstallation retrouve les données).
 
-**Windows (PowerShell) :**
-
-```powershell
-irm https://raw.githubusercontent.com/Steph-Krs/IanseoModules/main/uninstall.ps1 | iex
-```
-
-Garde-fous :
-
-- Seuls les dossiers contenant un `module.json` sont proposés. Vos autres dossiers de `Custom/`
-  (modules maison comme `PlanFinales/`, fichiers de ianseo) ne peuvent pas être supprimés par erreur.
-- Une **sauvegarde horodatée** (`ianseo-modules-backup-*.tar.gz` / `.zip`) est créée dans votre
-  dossier personnel **avant** toute suppression ; la commande de restauration est affichée à la fin.
-- La suppression exige une **confirmation explicite** (taper `oui` en toutes lettres).
-- `_shared/` n'est proposé à la suppression que s'il ne reste plus aucun module qui l'utilise.
-
-> ⚠️ **Les tables de base de données ne sont pas supprimées** (ex. `TNM_*`, `GUIDE_*`). Vos
-> données de compétition sont donc conservées et une réinstallation les retrouve. Pour les
-> supprimer définitivement, passez par phpMyAdmin (`DROP TABLE`) après sauvegarde de la base.
-
-Variantes non interactives :
-
-```bash
-IANSEO_ASSUME_YES=1 ./uninstall.sh GUIDE /var/www/ianseo/Modules/Custom
-```
-
-```powershell
-$IanseoModule='GUIDE'; $IanseoAssumeYes=$true; irm https://raw.githubusercontent.com/Steph-Krs/IanseoModules/main/uninstall.ps1 | iex
-```
+> Avec le module de comptes **AUTH** actif, cette page — comme la mise à jour et l'installation
+> d'autres modules — n'est **visible et accessible qu'à l'administrateur du serveur**.

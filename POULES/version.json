@@ -1,7 +1,7 @@
 {
-    "version": "1.0.5",
-    "date": "2026-07-18",
-    "notes": "Projections affinées par le départage : bornes d'écart de sets par match (+1 à +6), calendrier réel des matchs restants (énumération des scénarios entre prétendants), et prise en compte des matchs en direct (une issue déjà certaine compte immédiatement, les sets acquis resserrent les bornes). Détecte les éliminations/qualifications que les seuls points de match ne montrent pas.",
+    "version": "1.0.7",
+    "date": "2026-07-21",
+    "notes": "Page de mise à jour mutualisée (rendu commun _shared/update-ui.php) : comportement et présentation identiques à tous les modules. La mise à jour synchronise aussi la bibliothèque commune _shared. Nouveau bloc replié « Autres modules du dépôt » pour lister et installer les autres modules directement depuis ianseo. Sécurité menu : l'entrée « Mise à jour module » est masquée aux comptes non administrateurs quand le module de comptes AUTH est actif ; sans AUTH, comportement inchangé.",
     "files": [
         "menu.php",
         "index.php",

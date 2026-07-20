@@ -15,7 +15,11 @@ if (!empty($on) && (subFeatureAcl($acl, AclRobin, '') >= AclReadOnly) && !empty(
         if (!isset($ret['MODS']['POULES']))
             $ret['MODS']['POULES'][] = 'Poules — Enjeux & classement live';
         $ret['MODS']['POULES'][] = 'Vue commentateur' . '|' . $CFG->ROOT_DIR . 'Modules/Custom/POULES/index.php';
-        if (subFeatureAcl($acl, AclRoot, '') >= AclReadWrite) {
+        // Réservé à l'administrateur. Avec AUTH actif, authCheckACL accorde AclRoot à tout
+        // organisateur connecté hors compétition → exiger en plus la vue Administrateur serveur
+        // (AUTH_ROOT). Sans AUTH ($_SESSION['AUTH_User'] absent), comportement ianseo classique.
+        if (subFeatureAcl($acl, AclRoot, '') >= AclReadWrite
+            && (empty($_SESSION['AUTH_User']) || !empty($_SESSION['AUTH_ROOT']))) {
             $ret['MODS']['POULES'][] = 'Mise à jour module' . '|' . $CFG->ROOT_DIR . 'Modules/Custom/POULES/admin/update.php';
         }
     }

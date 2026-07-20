@@ -20,7 +20,11 @@ if (!empty($on) && (subFeatureAcl($acl, AclQualification, '') > AclReadOnly)) {
 
     $ret['MODS']['TNM'][] = 'Configuration' . '|' . $CFG->ROOT_DIR . 'Modules/Custom/TNM/config.php';
 
-    if (subFeatureAcl($acl, AclRoot, '') >= AclReadWrite) {
+    // Réservé à l'administrateur. Avec AUTH actif, authCheckACL accorde AclRoot à tout
+    // organisateur connecté hors compétition → exiger en plus la vue Administrateur serveur
+    // (AUTH_ROOT). Sans AUTH ($_SESSION['AUTH_User'] absent), comportement ianseo classique.
+    if (subFeatureAcl($acl, AclRoot, '') >= AclReadWrite
+        && (empty($_SESSION['AUTH_User']) || !empty($_SESSION['AUTH_ROOT']))) {
         $ret['MODS']['TNM'][] = 'Mise à jour module' . '|' . $CFG->ROOT_DIR . 'Modules/Custom/TNM/admin/update.php';
     }
 

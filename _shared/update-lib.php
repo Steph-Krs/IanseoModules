@@ -253,3 +253,119 @@ function upd_drop_tables($tables) {
     }
     return $done;
 }
+
+/* ============ Bibliothèque partagée _shared/ & catalogue du dépôt ============ */
+
+// URL raw à la RACINE du dépôt (sans le github_path du module), pour atteindre
+// _shared/ et les autres modules qui sont frères du module courant.
+function upd_raw_root($cfg) {
+    $repo = upd_parse_repo($cfg['github_url'] ?? '');
+    if (!$repo) return '';
+    $branch = $cfg['github_branch'] ?: 'main';
+    return "https://raw.githubusercontent.com/{$repo['owner']}/{$repo['repo']}/$branch";
+}
+
+// version.json local de _shared (ce fichier vit dans _shared/). Array ou null.
+function upd_local_shared_version() {
+    $f = __DIR__ . '/version.json';
+    if (!is_file($f)) return null;
+    $d = json_decode(file_get_contents($f), true);
+    return is_array($d) ? $d : null;
+}
+
+// version.json distant de _shared. Array (avec 'version','files') ou ['_error'=>...].
+function upd_remote_shared_version($cfg) {
+    $root = upd_raw_root($cfg);
+    if (!$root) return ['_error' => 'URL GitHub invalide dans module.json'];
+    $raw = upd_gh_raw("$root/_shared/version.json", $cfg['github_token'] ?? '');
+    if ($raw === false || $raw === '') return ['_error' => 'Impossible de lire _shared/version.json distant'];
+    $d = json_decode($raw, true);
+    if (!is_array($d) || empty($d['version'])) return ['_error' => '_shared/version.json distant invalide'];
+    return $d;
+}
+
+// Synchronise les fichiers de _shared/ depuis le dépôt vers ce dossier.
+// Appelé à chaque mise à jour de module → la lib partagée (dont ce fichier et
+// uninstall.php) reste alignée sans avoir à relancer install.sh.
+// Retourne ['ok'=>N,'fail'=>[...], 'version'=>X] ou ['_error'=>...].
+function upd_sync_shared($cfg) {
+    $remote = upd_remote_shared_version($cfg);
+    if (isset($remote['_error'])) return $remote;
+    $files = (!empty($remote['files']) && is_array($remote['files'])) ? $remote['files'] : [];
+    $root  = upd_raw_root($cfg);
+    $token = $cfg['github_token'] ?? '';
+    $ok = 0; $fail = [];
+    foreach ($files as $rel) {
+        if (!is_string($rel) || $rel === '' || strpos($rel, '..') !== false || $rel[0] === '/') { $fail[] = (string)$rel; continue; }
+        $content = upd_gh_raw("$root/_shared/$rel", $token);
+        if ($content !== false && strlen($content) > 0) {
+            $dest = __DIR__ . '/' . $rel;
+            $dir  = dirname($dest);
+            if (!is_dir($dir)) mkdir($dir, 0755, true);
+            file_put_contents($dest, $content);
+            $ok++;
+        } else {
+            $fail[] = $rel;
+        }
+    }
+    return ['ok' => $ok, 'fail' => $fail, 'version' => $remote['version']];
+}
+
+// Liste des modules présents dans le dépôt (dossiers racine contenant un
+// module.json). Un seul appel API (arbre git récursif). Array de noms triés,
+// ou ['_error'=>...].
+function upd_remote_modules($cfg) {
+    $repo = upd_parse_repo($cfg['github_url'] ?? '');
+    if (!$repo) return ['_error' => 'URL GitHub invalide dans module.json'];
+    $branch = $cfg['github_branch'] ?: 'main';
+    $token  = $cfg['github_token'] ?? '';
+    $api = "https://api.github.com/repos/{$repo['owner']}/{$repo['repo']}/git/trees/"
+         . rawurlencode($branch) . "?recursive=1";
+    $tree = upd_gh_fetch($api, $token);
+    if (isset($tree['_error'])) return $tree;
+    if (empty($tree['tree']) || !is_array($tree['tree'])) return ['_error' => 'Arborescence GitHub illisible'];
+    $mods = [];
+    foreach ($tree['tree'] as $node) {
+        if (($node['type'] ?? '') !== 'blob') continue;
+        if (preg_match('#^([A-Za-z0-9._-]+)/module\.json$#', $node['path'] ?? '', $m)) {
+            if ($m[1][0] === '_' || $m[1][0] === '.') continue;
+            $mods[] = $m[1];
+        }
+    }
+    $mods = array_values(array_unique($mods));
+    sort($mods);
+    return $mods;
+}
+
+// Valide un nom de module (sans exiger qu'il soit déjà installé), pour les
+// installations depuis le dépôt. basename + liste blanche + rejet octet nul.
+function upd_valid_module_name($name) {
+    $name = (string)$name;
+    if (strpos($name, "\0") !== false) return false;
+    if ($name === '' || $name[0] === '_' || $name[0] === '.') return false;
+    return (bool)preg_match('/^[A-Za-z0-9._-]+$/', $name);
+}
+
+// Installe un autre module du même dépôt dans Custom/. Récupère son version.json,
+// télécharge ses files[], écrit son module.json (config locale, hors files[]) si
+// absent, et resynchronise _shared/. Retourne ['version','ok','fail','shared'] ou
+// ['_error'=>...]. L'appelant doit d'abord vérifier que $name est dans le dépôt.
+function upd_install_module($cfg, $name) {
+    if (!upd_valid_module_name($name)) return ['_error' => 'Nom de module invalide'];
+    $tcfg = $cfg;
+    $tcfg['github_path'] = $name;                 // les modules sont à la racine du dépôt
+    $remote = upd_remote_version($tcfg);
+    if (isset($remote['_error'])) return ['_error' => $remote['_error']];
+    $files = (!empty($remote['files']) && is_array($remote['files'])) ? $remote['files'] : [];
+    if (!$files) return ['_error' => 'version.json distant sans liste de fichiers'];
+
+    $dest = upd_custom_dir() . '/' . $name;
+    if (!is_dir($dest)) mkdir($dest, 0755, true);
+    if (!is_file($dest . '/module.json')) {       // ne jamais écraser une config locale existante
+        $mj = upd_gh_raw(upd_raw_base($tcfg) . '/module.json', $cfg['github_token'] ?? '');
+        if ($mj !== false && strlen($mj) > 0) file_put_contents($dest . '/module.json', $mj);
+    }
+    $res    = upd_sync_files($tcfg, $dest, $files);
+    $shared = upd_sync_shared($cfg);
+    return ['version' => $remote['version'], 'ok' => $res['ok'], 'fail' => $res['fail'], 'shared' => $shared];
+}

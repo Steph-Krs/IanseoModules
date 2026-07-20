@@ -1,7 +1,7 @@
 {
-    "version": "0.3.1",
-    "date": "2026-07-18",
-    "notes": "Désinstallation depuis la page Mises à jour : zone repliée « Désinstaller le module » menant à un désinstallateur commun, qui archive le module en ZIP avant de supprimer ses fichiers. Option décochée par défaut pour supprimer aussi les données en base (GUIDE_Progress, GUIDE_Visits, GUIDE_Prefs — progression, visites et préférences des comptes) ; confirmation par saisie du nom du module. Le désinstallateur vit dans _shared/ et non dans le module : un script qui supprime son propre dossier échoue sous Windows.",
+    "version": "0.3.2",
+    "date": "2026-07-21",
+    "notes": "Page de mise à jour alignée sur le rendu commun (_shared/update-ui.php) tout en gardant la gestion des formations : la mise à jour du module synchronise désormais la bibliothèque commune _shared, l'état de _shared apparaît dans « Vérifier », et un bloc replié « Autres modules du dépôt » permet d'installer les autres modules directement depuis ianseo. Désinstallation inchangée (sauvegarde ZIP, option décochée pour supprimer GUIDE_Progress, GUIDE_Visits, GUIDE_Prefs).",
     "files": [
         "menu.php",
         "index.php",

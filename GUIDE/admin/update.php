@@ -1,7 +1,7 @@
 <?php
 define('HTDOCS', dirname(dirname(dirname(dirname(dirname(__FILE__))))));
 require_once(HTDOCS . '/config.php');
-require_once dirname(dirname(__DIR__)) . '/_shared/update-lib.php';
+require_once dirname(dirname(__DIR__)) . '/_shared/update-ui.php'; // rendu commun + blocs partagés
 require_once dirname(__DIR__) . '/lib/guide-lib.inc.php'; // guide_ensure_schema (schéma v3 partagé)
 
 guide_check_admin();
@@ -32,11 +32,15 @@ $cfg      = upd_load_config($MODULE_DIR);
 $messages = [];
 $action   = $_POST['action'] ?? '';
 
+// Installation d'un autre module du dépôt (traité avant la liste « autres modules »).
+upd_install_handle($cfg, $messages);
+
 $localVer    = upd_local_version($MODULE_DIR);
 $localModVer = $localVer['version'] ?? null;
 
 $checkResults      = null;
 $moduleCheckResult = null;
+$sharedCheck       = null;
 
 /* ---- Actions POST ---- */
 
@@ -174,8 +178,25 @@ if ($action === 'update-module') {
         } else {
             $messages[] = ['err', "{$result['ok']} fichier(s) OK. Échec : " . implode(', ', $result['fail'])];
         }
+        // Bibliothèque commune _shared, alignée dans la foulée.
+        $sh = upd_sync_shared($cfg);
+        if (isset($sh['_error']))      $messages[] = ['err', 'Bibliothèque commune _shared : ' . $sh['_error']];
+        elseif (!empty($sh['fail']))   $messages[] = ['err', 'Bibliothèque commune _shared : échec ' . implode(', ', $sh['fail'])];
+        elseif ($sh['ok'])             $messages[] = ['ok', "Bibliothèque commune _shared synchronisée (v{$sh['version']}, {$sh['ok']} fichier(s))."];
     }
 }
+
+// État de la bibliothèque commune + catalogue des autres modules du dépôt.
+if ($action === 'check' || $action === 'update-module') {
+    $rs = upd_remote_shared_version($cfg);
+    if (!isset($rs['_error'])) {
+        $ls  = upd_local_shared_version();
+        $lsv = $ls['version'] ?? null;
+        $sharedCheck = ['local' => $lsv, 'remote' => $rs['version'],
+            'update' => ($lsv === null || version_compare($rs['version'], $lsv, '>'))];
+    }
+}
+$othersState = upd_others_state($cfg);
 
 /* ---- Recalcul allUpToDate ---- */
 
@@ -185,48 +206,14 @@ $allUpToDate = false;
 if ($checkResults !== null) {
     $hasFormationUpdates = !empty(array_filter($checkResults, function ($r) { return $r['status'] !== 'ok'; }));
     $hasModuleUpdate     = $moduleCheckResult && $moduleCheckResult['update'];
-    $allUpToDate         = !$hasFormationUpdates && !$hasModuleUpdate && !empty($checkResults);
+    $hasSharedUpdate     = $sharedCheck && $sharedCheck['update'];
+    $allUpToDate         = !$hasFormationUpdates && !$hasModuleUpdate && !$hasSharedUpdate && !empty($checkResults);
 }
 
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 
-<style>
-.upd-section { max-width: 860px; margin-bottom: 32px; }
-.upd-section h2 { color: #0254a8; font-size: 16px; margin: 0 0 12px; padding-bottom: 6px; border-bottom: 2px solid #dde6f5; }
-.upd-btn { padding: 8px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; }
-.upd-btn-check  { background: #f0f4ff; color: #0254a8; border: 1px solid #b0c4e8; }
-.upd-btn-apply  { background: #1a8a4a; color: #fff; }
-.upd-btn-module { background: #082c7c; color: #fff; }
-.upd-btn-danger { background: #c0392b; color: #fff; }
-.upd-btn + .upd-btn { margin-left: 8px; }
-.upd-msg { padding: 8px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
-.upd-msg-ok  { background: #e8faf0; border-left: 3px solid #1a8a4a; color: #1a5a33; }
-.upd-msg-err { background: #fde8e8; border-left: 3px solid #c0392b; color: #8a1a1a; }
-.upd-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.upd-table th { background: #0254a8; color: #fff; padding: 8px 12px; text-align: left; font-weight: 600; }
-.upd-table td { padding: 8px 12px; border-bottom: 1px solid #eef0f8; }
-.upd-table tr:hover td { background: #f7f9ff; }
-.upd-badge { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 700; }
-.upd-ok     { background: #d4f0de; color: #1a7a3a; }
-.upd-new    { background: #e8f0ff; color: #0254a8; }
-.upd-update { background: #fff0d4; color: #7a4a00; }
-.upd-hint { font-size: 12px; color: #888; margin-top: 6px; }
-.upd-source { font-size: 13px; color: #555; background: #f7f9ff; border: 1px solid #dde2f5; border-radius: 6px; padding: 10px 14px; display: inline-block; line-height: 1.8; }
-.upd-source b { color: #082c7c; }
-.upd-notes { font-size: 12px; color: #555; background: #fffbea; border-left: 3px solid #f5a623; padding: 6px 10px; border-radius: 0 6px 6px 0; margin-top: 6px; }
-details.upd-force > summary {
-  cursor: pointer; list-style: none;
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 8px 18px; border-radius: 6px;
-  border: 1px solid #c8d4ec; background: #f0f4ff;
-  color: #0254a8; font-size: 13px; font-weight: 600; user-select: none;
-}
-details.upd-force > summary::-webkit-details-marker { display: none; }
-details.upd-force > summary::before { content: '▶'; font-size: 10px; display: inline-block; transition: transform .15s; }
-details.upd-force[open] > summary::before { transform: rotate(90deg); }
-details.upd-force .upd-force-body { margin-top: 16px; }
-</style>
+<?= upd_ui_styles() ?>
 
 <h1>Guide FFTA — Mises à jour</h1>
 <p><a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/">← Retour à l'administration</a></p>
@@ -314,6 +301,7 @@ details.upd-force .upd-force-body { margin-top: 16px; }
         <p class="upd-notes"><?= htmlspecialchars($moduleCheckResult['notes']) ?></p>
       <?php endif; ?>
     <?php endif; ?>
+    <?= upd_ui_shared_status($sharedCheck) ?>
   <?php endif; ?>
 </div>
 
@@ -366,19 +354,10 @@ details.upd-force .upd-force-body { margin-top: 16px; }
 </div>
 <?php endif; ?>
 
+<!-- === AUTRES MODULES DU DÉPÔT === -->
+<?= upd_ui_others_block($cfg, $othersState, 'GUIDE') ?>
+
 <!-- === ZONE DE DANGER === -->
-<div class="upd-section">
-  <details class="upd-force">
-    <summary style="border-color:#e8b4ae;background:#fdf0ef;color:#c0392b">Désinstaller le module</summary>
-    <div class="upd-force-body">
-      <p class="upd-hint" style="margin-top:0">
-        Supprime les fichiers du module. Une sauvegarde est créée avant suppression ;
-        la suppression des données en base reste optionnelle.
-      </p>
-      <a class="upd-btn upd-btn-danger" style="text-decoration:none;display:inline-block"
-         href="<?= $CFG->ROOT_DIR ?>Modules/Custom/_shared/uninstall.php?module=GUIDE">🗑 Désinstaller GUIDE…</a>
-    </div>
-  </details>
-</div>
+<?= upd_ui_danger_zone($MODULE_DIR) ?>
 
 <?php include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php'); ?>

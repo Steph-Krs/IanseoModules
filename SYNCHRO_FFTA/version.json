@@ -1,7 +1,7 @@
 {
-    "version": "0.6.1",
-    "date": "2026-07-18",
-    "notes": "Entrée « Synchro FFTA › Mise à jour module » ajoutée au menu Modules : la page de mise à jour existait mais n'était atteignable que par URL directe, faute d'entrée de menu. Désinstallation depuis cette page : zone repliée « Désinstaller le module » menant au désinstallateur commun (_shared/uninstall.php), qui archive le module en ZIP avant de supprimer ses fichiers. Le module ne crée aucune table : aucune donnée n'est perdue. Sécurité : la page de mise à jour exigeait seulement AclRoot, insuffisant avec un module de comptes (tout organisateur connecté y accédait) — elle exige désormais aussi la vue Administrateur serveur.",
+    "version": "0.6.2",
+    "date": "2026-07-21",
+    "notes": "Page de mise à jour mutualisée (rendu commun _shared/update-ui.php) : comportement et présentation identiques à tous les modules. La mise à jour synchronise aussi la bibliothèque commune _shared. Nouveau bloc replié « Autres modules du dépôt » pour lister et installer les autres modules depuis ianseo. Le module ne crée aucune table : la désinstallation ne perd aucune donnée.",
     "files": [
         "menu.php",
         "index.php",
