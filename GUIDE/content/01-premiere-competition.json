@@ -6,7 +6,7 @@
     "steps": [
         {
             "id": "bienvenue",
-            "title": "Bienvenue dans le Guide FFTA !",
+            "title": "Bienvenue dans le Guide interactif !",
             "content": "<p>Ce guide interactif vous accompagne pas à pas pour créer et gérer votre première compétition avec ianseo.<\/p><p><b>Au programme :<\/b><\/p><ul><li>Créer et configurer la compétition<\/li><li>Importer les licenciés et inscrire les participants<\/li><li>Gérer les scores le jour J<\/li><li>Exporter les résultats vers l'extranet FFTA<\/li><\/ul><p>Si une compétition est déjà ouverte, fermez-la d'abord via&nbsp;<b>Compétition &gt; Fermer la compétition<\/b>.<\/p><p>Cliquez sur <b>Suivant<\/b> pour commencer.<\/p>",
             "page": "*",
             "triggers": [

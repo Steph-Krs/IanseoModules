@@ -1,4 +1,4 @@
-/* Guide FFTA — moteur de tutoriel v3 */
+/* Guide interactif — moteur de tutoriel v3 */
 (function () {
   'use strict';
 
@@ -1677,7 +1677,7 @@
     formation = null;
     var wrap = document.createElement('div');
     var p = document.createElement('p');
-    p.textContent = 'Contenus du Guide FFTA liés à cette page :';
+    p.textContent = 'Contenus du Guide interactif liés à cette page :';
     wrap.appendChild(p);
     var icons = { formation: '🎓', checklist: '🧰', faq: '🛟' };
     _ctxItems.forEach(function (it) {

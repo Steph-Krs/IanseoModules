@@ -442,7 +442,7 @@ details.ge-extra .ge-hint { font-weight: 400; }
     <!-- Panneau guide éditable -->
     <div class="ge-panel">
       <div class="ge-panel-header">
-        <span class="ge-panel-header-title">Guide FFTA</span>
+        <span class="ge-panel-header-title">Guide interactif</span>
         <span class="ge-panel-header-hint">éditeur</span>
       </div>
       <div class="ge-panel-fname" id="pv-fname"></div>

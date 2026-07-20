@@ -59,7 +59,7 @@ function guide_json_template($type) {
                     'formation' => null,
                 ],
                 'sol-autre' => [
-                    'solution' => '<p>Consultez le manuel ianseo ou contactez le support FFTA.</p>',
+                    'solution' => '<p>Consultez le manuel ianseo.</p>',
                 ],
             ],
         ];
@@ -113,7 +113,7 @@ if (!empty($_POST['json_raw'])) {
     $raw = '';
 }
 
-$PAGE_TITLE = 'Guide FFTA — Éditeur JSON';
+$PAGE_TITLE = 'Guide interactif — Éditeur JSON';
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 

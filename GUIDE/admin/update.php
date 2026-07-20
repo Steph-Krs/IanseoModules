@@ -6,7 +6,7 @@ require_once dirname(__DIR__) . '/lib/guide-lib.inc.php'; // guide_ensure_schema
 
 guide_check_admin();
 
-$PAGE_TITLE = 'Guide FFTA — Mises à jour';
+$PAGE_TITLE = 'Guide interactif — Mises à jour';
 $MODULE_DIR = dirname(__DIR__);
 
 /* ---- Helpers formations (GUIDE-spécifique) ---- */
@@ -215,7 +215,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 <?= upd_ui_styles() ?>
 
-<h1>Guide FFTA — Mises à jour</h1>
+<h1>Guide interactif — Mises à jour</h1>
 <p><a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/">← Retour à l'administration</a></p>
 
 <?php foreach ($messages as [$type, $text]): ?>

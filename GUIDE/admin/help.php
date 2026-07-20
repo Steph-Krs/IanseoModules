@@ -5,7 +5,7 @@ require_once(dirname(__DIR__) . '/lib/guide-lib.inc.php');
 
 guide_check_admin();
 
-$PAGE_TITLE = 'Guide FFTA — Aide à la création';
+$PAGE_TITLE = 'Guide interactif — Aide à la création';
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 
@@ -28,7 +28,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .help-toc a:hover { text-decoration: underline; }
 </style>
 
-<h1>Guide FFTA — Comment créer une formation</h1>
+<h1>Guide interactif — Comment créer une formation</h1>
 <p><a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/">← Retour à l'administration</a></p>
 
 <div class="help-wrap">

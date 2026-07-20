@@ -1,13 +1,13 @@
 <?php
 /**
- * Guide FFTA — menu.php
+ * Guide interactif — menu.php
  * Inclus sur TOUTES les pages par get_which_menu() dans Common/Menu.php.
  */
 
 require_once(dirname(__FILE__) . '/lib/guide-lib.inc.php');
 
 /* ---- Menu Modules ---- */
-$ret['MODS']['GUIDE'][] = 'Guide FFTA';
+$ret['MODS']['GUIDE'][] = 'Guide interactif';
 $ret['MODS']['GUIDE'][] = 'Formations disponibles|' . $CFG->ROOT_DIR . 'Modules/Custom/GUIDE/';
 // Avec un module de comptes, l'entrée Administration est réservée à la vue
 // Administrateur serveur (authCheckACL accorde AclRoot à tout connecté)
@@ -36,7 +36,7 @@ window.GUIDE_CTX  = <?= guide_current_user() !== '' ? (int)guide_pref_ctx() : 'n
 <div id="guide-panel" style="display:none">
   <div id="guide-panel-header">
     <button id="guide-panel-toggle-side" title="Déplacer">←</button>
-    <span id="guide-panel-header-title">Guide FFTA</span>
+    <span id="guide-panel-header-title">Guide interactif</span>
     <span id="guide-panel-header-btns">
       <button id="guide-panel-min"   title="Réduire">▁</button>
       <button id="guide-panel-max"   title="Agrandir">▢</button>
@@ -68,7 +68,7 @@ window.GUIDE_CTX  = <?= guide_current_user() !== '' ? (int)guide_pref_ctx() : 'n
   </div>
 </div>
 
-<button id="guide-fab" style="display:none">🎯 Guide FFTA</button>
+<button id="guide-fab" style="display:none">🎯 Guide interactif</button>
 
 <?php
 /* Bannière "Apprendre" : page d'accueil ianseo + AUCUNE compétition visible (nouvel utilisateur).
@@ -84,7 +84,7 @@ if ($_gNoTour):
     <span class="glb-emoji">🎯</span>
     <span class="glb-txt">
       <b>Apprendre à utiliser ianseo</b>
-      <span>Formations interactives pas-à-pas, QCM et défis — Guide FFTA</span>
+      <span>Formations interactives pas-à-pas, QCM et défis — Guide interactif</span>
     </span>
     <span class="glb-arrow">→</span>
   </a>

@@ -1,13 +1,14 @@
 {
-    "version": "0.3.2",
+    "version": "0.3.3",
     "date": "2026-07-21",
-    "notes": "Page de mise à jour alignée sur le rendu commun (_shared/update-ui.php) tout en gardant la gestion des formations : la mise à jour du module synchronise désormais la bibliothèque commune _shared, l'état de _shared apparaît dans « Vérifier », et un bloc replié « Autres modules du dépôt » permet d'installer les autres modules directement depuis ianseo. Désinstallation inchangée (sauvegarde ZIP, option décochée pour supprimer GUIDE_Progress, GUIDE_Visits, GUIDE_Prefs).",
+    "notes": "Nom d'affichage neutralisé : « Guide FFTA » devient « Guide interactif » (le module a été développé indépendamment). Les références FFTA fonctionnelles des formations (export, extranet, licences, résultats) sont conservées. README au format commun ajouté au manifeste. La charte graphique (couleurs) est inchangée.",
     "files": [
         "menu.php",
         "index.php",
         "guide-api.php",
         "conditions.json",
         "version.json",
+        "README_GUIDE.md",
         "lib/guide-lib.inc.php",
         "admin/index.php",
         "admin/edit.php",

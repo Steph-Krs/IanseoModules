@@ -1,12 +1,13 @@
 {
-    "version": "1.0.7",
+    "version": "1.0.8",
     "date": "2026-07-21",
-    "notes": "Page de mise à jour mutualisée (rendu commun _shared/update-ui.php) : comportement et présentation identiques à tous les modules. La mise à jour synchronise aussi la bibliothèque commune _shared. Nouveau bloc replié « Autres modules du dépôt » pour lister et installer les autres modules directement depuis ianseo. Sécurité menu : l'entrée « Mise à jour module » est masquée aux comptes non administrateurs quand le module de comptes AUTH est actif ; sans AUTH, comportement inchangé.",
+    "notes": "README au format commun ajouté au manifeste. Module lecture seule, sans table.",
     "files": [
         "menu.php",
         "index.php",
         "action.php",
         "admin/update.php",
+        "README_POULES.md",
         "version.json"
     ]
 }

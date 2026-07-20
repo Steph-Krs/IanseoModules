@@ -1,7 +1,7 @@
 {
-    "version": "0.6.2",
+    "version": "0.6.3",
     "date": "2026-07-21",
-    "notes": "Page de mise à jour mutualisée (rendu commun _shared/update-ui.php) : comportement et présentation identiques à tous les modules. La mise à jour synchronise aussi la bibliothèque commune _shared. Nouveau bloc replié « Autres modules du dépôt » pour lister et installer les autres modules depuis ianseo. Le module ne crée aucune table : la désinstallation ne perd aucune donnée.",
+    "notes": "README au format commun ajouté au manifeste.",
     "files": [
         "menu.php",
         "index.php",
@@ -16,6 +16,7 @@
         "licences-inject.php",
         "licences-sync.php",
         "admin/update.php",
+        "README_SYNCHRO_FFTA.md",
         "version.json"
     ]
 }

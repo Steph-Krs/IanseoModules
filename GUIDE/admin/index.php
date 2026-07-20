@@ -47,7 +47,7 @@ usort($formations, function ($a, $b) {
 });
 $typeLabels = ['formation' => '🎓 Formation', 'checklist' => '🧰 Checklist', 'faq' => '🛟 FAQ'];
 
-$PAGE_TITLE = 'Guide FFTA — Administration';
+$PAGE_TITLE = 'Guide interactif — Administration';
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 
@@ -65,7 +65,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .gadm-meta { color: #888; font-size: 12px; }
 </style>
 
-<h1>Guide FFTA — Administration des formations</h1>
+<h1>Guide interactif — Administration des formations</h1>
 
 <p>
   <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/edit.php">

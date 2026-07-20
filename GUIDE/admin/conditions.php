@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
 }
 
 $conditions = guide_load_conditions();
-$PAGE_TITLE = 'Guide FFTA — Conditions';
+$PAGE_TITLE = 'Guide interactif — Conditions';
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 
@@ -85,7 +85,7 @@ details.gc-raw summary { cursor: pointer; font-size: 12px; color: #666; padding:
 #gc-raw-ta { width: 100%; height: 260px; font-family: monospace; font-size: 12px; border: 1px solid #c8d4ec; border-radius: 6px; padding: 10px; box-sizing: border-box; }
 </style>
 
-<h1>Guide FFTA — Constructeur de conditions</h1>
+<h1>Guide interactif — Constructeur de conditions</h1>
 <p><a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/">← Retour à l'administration</a></p>
 
 <div class="gc-wrap">

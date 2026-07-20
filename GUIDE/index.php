@@ -3,7 +3,7 @@ define('HTDOCS', dirname(dirname(dirname(dirname(__FILE__)))));
 require_once(HTDOCS . '/config.php');
 require_once(__DIR__ . '/lib/guide-lib.inc.php');
 
-$PAGE_TITLE = 'Guide FFTA';
+$PAGE_TITLE = 'Guide interactif';
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 /* Contenus triés par order (lib) */
@@ -117,10 +117,10 @@ foreach ($formations as $f) {
 .gd-settings label { cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
 </style>
 
-<h1>Guide FFTA</h1>
+<h1>Guide interactif</h1>
 
 <div class="guide-intro">
-  Bienvenue dans le Guide interactif FFTA pour ianseo.<br>
+  Bienvenue dans le Guide interactif pour ianseo.<br>
   Chaque formation propose jusqu'à trois activités : le <b>guide pas-à-pas</b>, un <b>QCM</b> et un
   <b>défi</b> à réaliser sans aide. Réussissez-les toutes pour décrocher la <b>cible d'or</b> 🎯.
 </div>

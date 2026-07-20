@@ -1,6 +1,6 @@
 <?php
 /**
- * Guide FFTA — API AJAX v3
+ * Guide interactif — API AJAX v3
  * GET ?f={id}               → JSON d'une formation
  * POST ?action=start        → démarre/réinitialise la progression
  * POST ?action=update       → met à jour la progression
