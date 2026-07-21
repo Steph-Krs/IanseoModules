@@ -13,15 +13,33 @@ require_once __DIR__ . '/update-lib.php';
 
 upd_admin_guard();
 
+// Téléchargement à usage unique de la sauvegarde (modules "uninstall_backup") :
+// on l'envoie puis on la supprime → rien ne persiste sur le serveur.
+if (isset($_GET['download'])) {
+    $dl = $_SESSION['upd_backup_dl'] ?? null;
+    if (is_array($dl) && hash_equals((string)$dl['token'], (string)$_GET['download']) && is_file($dl['file'])) {
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . basename($dl['file']) . '"');
+        header('Content-Length: ' . filesize($dl['file']));
+        header('X-Content-Type-Options: nosniff');
+        readfile($dl['file']);
+        @unlink($dl['file']);
+        unset($_SESSION['upd_backup_dl']);
+        exit;
+    }
+    unset($_SESSION['upd_backup_dl']); // jeton invalide/expiré
+}
+
 $modules = upd_list_modules();
 $dir     = upd_valid_module($_REQUEST['module'] ?? '');
 $name    = $dir ? basename($dir) : '';
 $tables  = $dir ? upd_module_tables($dir) : [];
 $warning = $dir ? upd_uninstall_warning($dir) : '';
+$wantBackup = $dir ? upd_uninstall_backup($dir) : false;
 
 $messages      = [];
 $done          = false;
-$backupFile    = null;
+$downloadToken = null;
 $droppedTables = [];
 
 if (empty($_SESSION['upd_uninstall_token'])) {
@@ -40,18 +58,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'unins
     } elseif ($confirm !== $name) {
         $messages[] = ['err', 'Le nom saisi ne correspond pas à « ' . $name .' ». Rien n\'a été supprimé.'];
     } else {
-        // Sauvegarde d'abord : pas de suppression sans filet.
-        $backup = upd_backup_module($dir, $name);
-        if (isset($backup['_error'])) {
-            $messages[] = ['err', 'Sauvegarde impossible (' . $backup['_error'] . '). Désinstallation annulée.'];
+        upd_purge_old_backups();                 // pas d'accumulation d'archives résiduelles
+
+        $backupPath = null;
+        $backupErr  = null;
+        if ($wantBackup) {                       // seuls les modules sensibles gardent un filet
+            $backup = upd_backup_module($dir, $name);
+            if (isset($backup['_error'])) $backupErr = $backup['_error'];
+            else                          $backupPath = $backup['file'];
+        }
+
+        if ($backupErr !== null) {
+            $messages[] = ['err', 'Sauvegarde impossible (' . $backupErr . '). Désinstallation annulée.'];
         } else {
-            $backupFile = $backup['file'];
             if ($dropDb && $tables) $droppedTables = upd_drop_tables($tables);
             if (upd_rrmdir($dir)) {
                 $done = true;
                 unset($_SESSION['upd_uninstall_token']);
+                if ($backupPath) {               // sauvegarde à usage unique : lien de téléchargement
+                    $downloadToken = bin2hex(random_bytes(16));
+                    $_SESSION['upd_backup_dl'] = ['file' => $backupPath, 'token' => $downloadToken];
+                }
             } else {
                 $messages[] = ['err', 'Suppression des fichiers impossible (droits insuffisants sur le dossier ?).'];
+                if ($backupPath && is_file($backupPath)) @unlink($backupPath); // ne rien laisser traîner
             }
         }
     }
@@ -92,8 +122,18 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     <div class="uns-msg uns-msg-ok">
       Le module <b><?= htmlspecialchars($name) ?></b> a été désinstallé.
     </div>
-    <p style="font-size:13px">Sauvegarde conservée sur le serveur :</p>
-    <p class="uns-path"><?= htmlspecialchars($backupFile) ?></p>
+    <?php if ($downloadToken): ?>
+      <p style="font-size:13px">Une sauvegarde des fichiers a été préparée. Téléchargez-la maintenant —
+        <b>elle est supprimée du serveur dès le téléchargement</b> :</p>
+      <p style="margin:10px 0">
+        <a class="uns-btn" style="background:#0254a8;color:#fff;text-decoration:none;display:inline-block"
+           href="?download=<?= urlencode($downloadToken) ?>">&#11015; Télécharger la sauvegarde (.zip)</a>
+      </p>
+      <p class="uns-hint" style="margin-top:0">Si vous ne la téléchargez pas, elle sera purgée automatiquement du dossier temporaire.</p>
+    <?php else: ?>
+      <p style="font-size:13px">Aucune sauvegarde conservée : les fichiers restent récupérables depuis le
+        dépôt GitHub, et une réinstallation les restaure.</p>
+    <?php endif; ?>
     <?php if ($droppedTables): ?>
       <p style="font-size:13px;margin-top:14px">Tables supprimées : <b><?= htmlspecialchars(implode(', ', $droppedTables)) ?></b></p>
     <?php elseif ($tables): ?>
@@ -130,8 +170,10 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
       <p style="font-size:13px;margin:0 0 10px">Cette action va :</p>
       <ul class="uns-list">
-        <li>créer une <b>sauvegarde</b> du module (archive ZIP sur le serveur) ;</li>
-        <li>supprimer définitivement le dossier <code>Modules/Custom/<?= htmlspecialchars($name) ?>/</code>.</li>
+        <?php if ($wantBackup): ?>
+          <li>préparer une <b>sauvegarde téléchargeable</b> des fichiers (proposée juste après, puis supprimée du serveur) ;</li>
+        <?php endif; ?>
+        <li>supprimer définitivement le dossier <code>Modules/Custom/<?= htmlspecialchars($name) ?>/</code><?php if (!$wantBackup): ?> (fichiers récupérables depuis le dépôt GitHub)<?php endif; ?>.</li>
       </ul>
 
       <p class="uns-hint" style="margin-top:-6px">

@@ -83,7 +83,9 @@ l'**administrateur** : page d'administration du module → **Mise à jour** → 
 Déroulé et garde-fous :
 
 - Confirmation par **saisie du nom du module**.
-- **Sauvegarde ZIP** créée sur le serveur **avant** toute suppression (chemin affiché à la fin).
+- **Pas de sauvegarde par défaut** : les fichiers restent récupérables depuis GitHub (une
+  réinstallation les restaure). Un module sensible peut proposer une **sauvegarde ZIP
+  téléchargeable**, supprimée du serveur dès le téléchargement.
 - Seuls les dossiers contenant un `module.json` sont concernés ; `_shared/` n'est jamais supprimé.
 - Si le module crée des tables, une case **décochée par défaut** propose de les supprimer aussi
   (sinon elles sont conservées et une réinstallation retrouve les données).

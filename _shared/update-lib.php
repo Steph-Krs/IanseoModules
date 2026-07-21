@@ -194,6 +194,25 @@ function upd_uninstall_warning($module_dir) {
     return is_string($w) ? $w : '';
 }
 
+// Le module demande-t-il une sauvegarde AVANT désinstallation ? (version.json
+// "uninstall_backup": true). Par défaut : aucune sauvegarde — les fichiers
+// restent récupérables depuis le dépôt GitHub, et la sauvegarde ne ferait que
+// dupliquer d'éventuels secrets (config locale) dans le dossier temporaire.
+function upd_uninstall_backup($module_dir) {
+    $v = upd_local_version($module_dir);
+    return is_array($v) && !empty($v['uninstall_backup']);
+}
+
+// Purge les archives de désinstallation résiduelles de plus de $max_age secondes
+// (défaut 24 h) dans le dossier temporaire système — évite toute accumulation.
+function upd_purge_old_backups($max_age = 86400) {
+    clearstatcache();
+    $dir = rtrim(sys_get_temp_dir(), '/\\');
+    foreach (glob($dir . DIRECTORY_SEPARATOR . 'ianseo-*.zip') ?: [] as $f) {
+        if (is_file($f) && (time() - filemtime($f)) > $max_age) @unlink($f);
+    }
+}
+
 // Archive le module dans le dossier temporaire système (hors racine web :
 // une sauvegarde déposée dans Custom/ serait téléchargeable par n'importe qui).
 // Retourne ['file' => chemin] ou ['_error' => message].

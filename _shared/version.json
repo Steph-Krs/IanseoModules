@@ -1,7 +1,7 @@
 {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "date": "2026-07-21",
-    "notes": "Bibliothèque commune aux modules Custom (mise à jour, désinstallation, rendu de la page de MaJ). Synchronisée automatiquement à chaque mise à jour d'un module.",
+    "notes": "Désinstallation : plus de sauvegarde ZIP par défaut (les fichiers sont récupérables depuis GitHub, et une archive dans le dossier temporaire dupliquait d'éventuels secrets). Un module peut demander une sauvegarde via version.json \"uninstall_backup\": true — elle est alors proposée en téléchargement à usage unique et supprimée du serveur dès le téléchargement. Purge automatique des archives résiduelles.",
     "files": [
         "update-lib.php",
         "update-ui.php",

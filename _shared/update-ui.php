@@ -183,7 +183,12 @@ function upd_ui_danger_zone($module_dir) {
         <div class="upd-warn"><b>&#9888;</b> <?= nl2br(htmlspecialchars($warning)) ?></div>
       <?php endif; ?>
       <p class="upd-hint" style="margin-top:0">
-        Supprime les fichiers du module. Une sauvegarde est créée avant suppression.
+        Supprime les fichiers du module.
+        <?php if (upd_uninstall_backup($module_dir)): ?>
+          Une sauvegarde téléchargeable est proposée juste après (rien n'est conservé sur le serveur).
+        <?php else: ?>
+          Les fichiers restent récupérables depuis le dépôt GitHub (une réinstallation les restaure).
+        <?php endif; ?>
         <?php if ($tables): ?>
           La suppression des données en base (<?= htmlspecialchars(implode(', ', $tables)) ?>)
           est proposée séparément, <b>décochée par défaut</b>.
