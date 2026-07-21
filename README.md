@@ -19,6 +19,8 @@ Modules pour le projet I@nseo :
   atteignable par équipe, détection des matchs décisifs. Lecture seule.
 - [Passerelle extranet FFTA](SYNCHRO_FFTA/README_SYNCHRO_FFTA.md) — Dépôt des résultats (fichier
   TXT) et création d'une compétition ianseo depuis une épreuve de l'extranet FFTA.
+- [Export liste](EXPORT_LISTE/README_EXPORT_LISTE.md) — Export CSV des participants au format de
+  l'import par liste (10 colonnes), enrichi du N° d'agrément et du nom du club. Lecture seule.
 
 ## Installation automatique (Mac / Linux)
 

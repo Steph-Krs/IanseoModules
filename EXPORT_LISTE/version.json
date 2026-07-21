@@ -1,0 +1,12 @@
+{
+    "version": "1.0.0",
+    "date": "2026-07-21",
+    "notes": "Export de la liste des participants au format d'import par liste (10 colonnes) + N° d'agrément et nom du club. Module lecture seule, sans table.",
+    "files": [
+        "menu.php",
+        "index.php",
+        "admin/update.php",
+        "README_EXPORT_LISTE.md",
+        "version.json"
+    ]
+}
