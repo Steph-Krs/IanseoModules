@@ -1,7 +1,7 @@
 <?php
 // =============================================================================
 // PdfBsoPlanning.php — Planning du BSO (volée 1) par épreuve
-// Custom/TNM — FFTA Trophée National des Mixtes
+// Custom/TNM — Trophée National des Mixtes
 // =============================================================================
 define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');

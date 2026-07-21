@@ -1,7 +1,7 @@
 {
-  "version": "1.0.18",
+  "version": "1.0.19",
   "date": "2026-07-21",
-  "notes": "Page de mise à jour mutualisée (rendu commun _shared/update-ui.php) : comportement et présentation identiques à tous les modules. La mise à jour synchronise aussi la bibliothèque commune _shared. Nouveau bloc replié « Autres modules du dépôt » pour lister et installer les autres modules depuis ianseo. Désinstallation inchangée (sauvegarde ZIP, option décochée pour supprimer TNM_BsoConfig, TNM_BsoVolee). Sécurité menu : l'entrée « Mise à jour module » est masquée aux comptes non administrateurs quand le module de comptes AUTH est actif (la page était déjà protégée) ; sans AUTH, comportement inchangé.",
+  "notes": "README au format commun et ajouté au manifeste.",
   "files": [
     "admin/update.php",
     "bso-action.php",
@@ -11,6 +11,7 @@
     "ImportQualScores.php",
     "index.php",
     "menu.php",
+    "README_TNM.md",
     "PdfBsoPlanning.php",
     "PdfFop.php",
     "PdfTargetAssign.php",

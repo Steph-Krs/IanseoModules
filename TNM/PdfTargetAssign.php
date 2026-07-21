@@ -1,7 +1,7 @@
 <?php
 // =============================================================================
 // PdfTargetAssign.php — Impression « Affectation des cibles »
-// Custom/TNM — FFTA Trophée National des Mixtes
+// Custom/TNM — Trophée National des Mixtes
 //
 // Pour une (épreuve × tour × match) donnée : liste toutes les équipes avec leur
 // cible de départ et leur poule, appariées par rencontre. 1 page par match.
