@@ -1,0 +1,32 @@
+/* Écran 4 — Import des arrêtés. Complète rep.css, même portée (#rep). */
+
+#rep .imp-drop{display:block;box-sizing:border-box;width:100%;border:2px dashed var(--bleu-clair);
+     border-radius:6px;background:var(--bleu-fond);padding:16px;text-align:center;color:var(--gris);
+     cursor:pointer;margin-bottom:9px}
+#rep .imp-drop:hover,#rep .imp-drop.over{border-color:var(--bleu);background:#e4f0ff}
+#rep .imp-drop input{display:none}
+#rep .imp-drop b{color:var(--bleu-fonce)}
+#rep .imp-row-fichier{display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px solid var(--bord);
+     border-radius:5px;background:#fff;margin-bottom:5px;font-size:11px;flex-wrap:wrap}
+#rep .imp-row-fichier b{color:var(--bleu-fonce)}
+#rep .imp-row-fichier .sep{flex:1}
+#rep .imp-badge{display:inline-block;border-radius:4px;padding:1px 6px;font:700 9.5px/1.5 Verdana,Arial,sans-serif}
+#rep .imp-badge.archer{background:var(--bleu-fond);color:var(--bleu-fonce);border:1px solid var(--bleu-clair)}
+#rep .imp-badge.coach{background:var(--vx-bg);color:var(--vx-tx);border:1px solid var(--vx-bd)}
+#rep tr.imp-conflit td{background:var(--vx-bg)!important}
+#rep tr.imp-incomplet td{background:#f3f3f3}
+#rep tr.imp-dispo td{background:#eef1f5;color:var(--gris2)}
+#rep .imp-candidats{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+#rep .imp-cand{border:1px solid var(--vx-bd);background:#fff;color:var(--vx-tx);border-radius:4px;
+     padding:1px 6px;font-size:10px;cursor:pointer}
+#rep .imp-cand:hover{background:var(--vx-tx);color:#fff}
+#rep .imp-cand.sel{background:var(--vx-tx);color:#fff;font-weight:700}
+#rep .imp-devine{color:var(--orange);cursor:help}
+#rep .imp-motif{color:var(--gris2);font-size:10px}
+#rep th.imp-th{cursor:pointer;user-select:none}
+#rep th.imp-th:hover{background:var(--bleu-fond)}
+#rep .imp-opt{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--gris);cursor:pointer}
+#rep table.g td.lft.nom{white-space:nowrap}
+#rep .imp-clsligne{display:flex;align-items:center;gap:8px;padding:4px 6px;border-bottom:1px solid var(--bord);font-size:11px}
+#rep .imp-clsligne:last-child{border-bottom:0}
+#rep .imp-clsligne .sep{flex:1}

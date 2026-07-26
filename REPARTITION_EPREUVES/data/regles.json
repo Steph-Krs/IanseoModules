@@ -1,0 +1,54 @@
+{
+    "version": 1,
+    "note": "Catalogue des réglages du moteur de placement. Ajouter une valeur ici la rend disponible dans l'interface ; l'implémenter reste à faire dans lib/moteur.php pour les sources. Les deux sens n'ont que deux valeurs et n'évolueront pas. Depuis 1.8.0, la priorité cible/lettre se règle par glisser-déposer (colonne « Répartition ») et le serpentin est une option indépendante (colonne « Options ») — il n'y a donc plus de catalogue « parcours » séparé.",
+    "sources": [
+        {
+            "id": 0,
+            "libelle": "Classement national",
+            "aide": "Les archers sont pris un à un dans l'ordre du classement national. Ceux qui n'y figurent pas sont placés à la fin."
+        },
+        {
+            "id": 1,
+            "libelle": "Classement national par club",
+            "aide": "Les clubs sont pris dans l'ordre de leur meilleur classé. Chaque club garde une seule lettre : tous ses archers tirent sur cette lettre, sur des cibles adjacentes."
+        },
+        {
+            "id": 2,
+            "libelle": "Par ordre de club manuel",
+            "aide": "Comme le classement national par club, mais l'ordre des clubs est défini à la main sur la page « Ordre des clubs ». Chaque club garde une seule lettre."
+        },
+        {
+            "id": 3,
+            "libelle": "Classement de l'arrêté (individuel)",
+            "aide": "Les archers sont pris un à un dans l'ordre du classement dérivé de l'arrêté (page Import des arrêtés), pas le classement national."
+        },
+        {
+            "id": 4,
+            "libelle": "Par club selon l'arrêté individuel",
+            "aide": "Comme le classement national par club, mais les clubs sont triés par leur meilleur classé au classement d'arrêté individuel."
+        },
+        {
+            "id": 5,
+            "libelle": "Par club selon l'arrêté équipe",
+            "aide": "Les clubs sont pris dans l'ordre du classement d'équipe de l'arrêté (dépôt d'équipes de clubs). Chaque club garde une seule lettre."
+        },
+        {
+            "id": 6,
+            "libelle": "Par club selon l'arrêté double mixte",
+            "aide": "Les clubs sont pris dans l'ordre du classement de double mixte de l'arrêté. Chaque club garde une seule lettre."
+        },
+        {
+            "id": 7,
+            "libelle": "Ordre alphabétique",
+            "aide": "Aucun classement n'est consulté : les archers sont pris par ordre alphabétique. Choix explicite plutôt qu'un repli silencieux quand aucun classement n'est disponible."
+        }
+    ],
+    "sens": [
+        { "id": 0, "libelle": "Croissant" },
+        { "id": 1, "libelle": "Décroissant" }
+    ],
+    "reglement": {
+        "max_meme_club_par_cible": 2,
+        "texte": "La participation d'archers licenciés dans un autre club est obligatoire à chaque départ (pas plus de 2 archers d'un même club sur une même cible quel que soit le rythme de tir)."
+    }
+}

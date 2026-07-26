@@ -21,6 +21,10 @@ Modules pour le projet I@nseo :
   TXT) et création d'une compétition ianseo depuis une épreuve de l'extranet FFTA.
 - [Export liste](EXPORT_LISTE/README_EXPORT_LISTE.md) — Export CSV des participants au format de
   l'import par liste (10 colonnes), enrichi du N° d'agrément et du nom du club. Lecture seule.
+- [Répartition des épreuves](REPARTITION_EPREUVES/README_REPARTITION_EPREUVES.md) — Attribution
+  des cibles en masse pour les grandes compétitions : téléchargement des classements nationaux,
+  plan des départs par blocs d'épreuve, règles de placement (classement, ordre des clubs, serpentin)
+  et contrôles avant affectation.
 
 ## Installation automatique (Mac / Linux)
 

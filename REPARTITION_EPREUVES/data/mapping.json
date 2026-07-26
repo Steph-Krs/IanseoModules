@@ -1,0 +1,4519 @@
+{
+    "version": 2,
+    "note": "Correspondances epreuve ianseo (Division|Classe) -> classement national FFTA. 'sets' est indexe par Tournament.ToTypeSubRule : deux competitions du meme set partagent leurs correspondances, on ne les saisit qu'une fois. 'disciplines' est le repli generique livre avec le module. Les valeurs arme/categorie/niveau sont EXACTEMENT celles des colonnes de la liste de l'extranet, pas celles des libelles (en Campagne le Bare Bow y est 'Arc Nu' et le Longbow 'Arc Droit').",
+    "sets": {
+        "SetFRChampionship": {
+            "discipline": "C",
+            "epreuves": {
+                "CL|S1F": {
+                    "arme": "Arc Classique",
+                    "categorie": "S1",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "CL|S1H": {
+                    "arme": "Arc Classique",
+                    "categorie": "S1",
+                    "sexe": "H",
+                    "niveau": ""
+                }
+            }
+        },
+        "SetFRChampionshipJun": {
+            "epreuves": {
+                "U13FCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "U13",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "U13HCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "U13",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "U15FCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "U15",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "U15HCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "U15",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "U18FCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "U18",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "U18HCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "U18",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "U21FCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "U21",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "U21FCO": {
+                    "discipline": "TI",
+                    "arme": "Arc à Poulies",
+                    "categorie": "U18-U21",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "U21HCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "U21",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "U21HCO": {
+                    "discipline": "TI",
+                    "arme": "Arc à Poulies",
+                    "categorie": "U18-U21",
+                    "sexe": "H",
+                    "niveau": ""
+                }
+            }
+        },
+        "SetFRCoupeFrance": {
+            "epreuves": {
+                "NFBB": {
+                    "discipline": "TN",
+                    "arme": "Arc Nu",
+                    "categorie": "U21-S1-S2-S3",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "NHBB": {
+                    "discipline": "TN",
+                    "arme": "Arc Nu",
+                    "categorie": "U21-S1-S2-S3",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "NS1FCL": {
+                    "discipline": "TN",
+                    "arme": "Arc Classique",
+                    "categorie": "S1",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "NS1FCO": {
+                    "discipline": "TN",
+                    "arme": "Arc à Poulies",
+                    "categorie": "S1",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "NS1HCL": {
+                    "discipline": "TN",
+                    "arme": "Arc Classique",
+                    "categorie": "S1",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "NS1HCO": {
+                    "discipline": "TN",
+                    "arme": "Arc à Poulies",
+                    "categorie": "S1",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "NS2FCL": {
+                    "discipline": "TN",
+                    "arme": "Arc Classique",
+                    "categorie": "S2",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "NS2FCO": {
+                    "discipline": "TN",
+                    "arme": "Arc à Poulies",
+                    "categorie": "S2",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "NS2HCL": {
+                    "discipline": "TN",
+                    "arme": "Arc Classique",
+                    "categorie": "S2",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "NS2HCO": {
+                    "discipline": "TN",
+                    "arme": "Arc à Poulies",
+                    "categorie": "S2",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "NS3FCL": {
+                    "discipline": "TN",
+                    "arme": "Arc Classique",
+                    "categorie": "S3",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "NS3FCO": {
+                    "discipline": "TN",
+                    "arme": "Arc à Poulies",
+                    "categorie": "S3",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "NS3HCL": {
+                    "discipline": "TN",
+                    "arme": "Arc Classique",
+                    "categorie": "S3",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "NS3HCO": {
+                    "discipline": "TN",
+                    "arme": "Arc à Poulies",
+                    "categorie": "S3",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "S1FCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "S1",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "S1FCO": {
+                    "discipline": "TI",
+                    "arme": "Arc à Poulies",
+                    "categorie": "S1",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "S1HCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "S1",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "S1HCO": {
+                    "discipline": "TI",
+                    "arme": "Arc à Poulies",
+                    "categorie": "S1",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "S2FCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "S2",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "S2FCO": {
+                    "discipline": "TI",
+                    "arme": "Arc à Poulies",
+                    "categorie": "S2",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "S2HCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "S2",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "S2HCO": {
+                    "discipline": "TI",
+                    "arme": "Arc à Poulies",
+                    "categorie": "S2",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "S3FCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "S3",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "S3FCO": {
+                    "discipline": "TI",
+                    "arme": "Arc à Poulies",
+                    "categorie": "S3",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "S3HCL": {
+                    "discipline": "TI",
+                    "arme": "Arc Classique",
+                    "categorie": "S3",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "S3HCO": {
+                    "discipline": "TI",
+                    "arme": "Arc à Poulies",
+                    "categorie": "S3",
+                    "sexe": "H",
+                    "niveau": ""
+                }
+            }
+        },
+        "SetFRTAE-Valides": {
+            "discipline": "TI",
+            "epreuves": {
+                "SFCL": {
+                    "arme": "Arc Classique",
+                    "categorie": "Scratch",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "SFCO": {
+                    "arme": "Arc à Poulies",
+                    "categorie": "Scratch",
+                    "sexe": "F",
+                    "niveau": ""
+                },
+                "SHCL": {
+                    "arme": "Arc Classique",
+                    "categorie": "Scratch",
+                    "sexe": "H",
+                    "niveau": ""
+                },
+                "SHCO": {
+                    "arme": "Arc à Poulies",
+                    "categorie": "Scratch",
+                    "sexe": "H",
+                    "niveau": ""
+                }
+            }
+        }
+    },
+    "disciplines": {
+        "S": {
+            "BB|S1F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S1H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|S2F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S2H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|S3F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S3H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U13F": {
+                "arme": "Arc Nu",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U13H": {
+                "arme": "Arc Nu",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U15F": {
+                "arme": "Arc Nu",
+                "categorie": "U15-U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U15H": {
+                "arme": "Arc Nu",
+                "categorie": "U15-U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U18F": {
+                "arme": "Arc Nu",
+                "categorie": "U15-U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U18H": {
+                "arme": "Arc Nu",
+                "categorie": "U15-U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U21F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U21H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U11F": {
+                "arme": "Arc Classique",
+                "categorie": "U11",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U11H": {
+                "arme": "Arc Classique",
+                "categorie": "U11",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U21",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U21",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U13F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U13H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U15F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U15H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U18F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18-U21",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U18H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18-U21",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18-U21",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18-U21",
+                "sexe": "H",
+                "niveau": ""
+            }
+        },
+        "TI": {
+            "CL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U11F": {
+                "arme": "Arc Classique",
+                "categorie": "U11",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U11H": {
+                "arme": "Arc Classique",
+                "categorie": "U11",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U21",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U21",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U13F": {
+                "arme": "Arc à Poulies",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U13H": {
+                "arme": "Arc à Poulies",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U15F": {
+                "arme": "Arc à Poulies",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U15H": {
+                "arme": "Arc à Poulies",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U18F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18-U21",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U18H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18-U21",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18-U21",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18-U21",
+                "sexe": "H",
+                "niveau": ""
+            }
+        },
+        "TN": {
+            "BB|S1F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S1H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|S2F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S2H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|S3F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S3H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U15F": {
+                "arme": "Arc Nu",
+                "categorie": "U15-U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U15H": {
+                "arme": "Arc Nu",
+                "categorie": "U15-U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U18F": {
+                "arme": "Arc Nu",
+                "categorie": "U15-U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U18H": {
+                "arme": "Arc Nu",
+                "categorie": "U15-U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U21F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U21H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U21",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U21",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U13F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U13H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U15F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U15H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U18F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18-U21",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U18H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18-U21",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18-U21",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18-U21",
+                "sexe": "H",
+                "niveau": ""
+            }
+        },
+        "C": {
+            "AD|S1F": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|S1H": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|S2F": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|S2H": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|S3F": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|S3H": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|U13F": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|U13H": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|U15F": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|U15H": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|U18F": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|U18H": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|U21F": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|U21H": {
+                "arme": "Arc Droit",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|S1F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S1H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|S2F": {
+                "arme": "Arc Nu",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S2H": {
+                "arme": "Arc Nu",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|S3F": {
+                "arme": "Arc Nu",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S3H": {
+                "arme": "Arc Nu",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U15F": {
+                "arme": "Arc Nu",
+                "categorie": "U15-U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U15H": {
+                "arme": "Arc Nu",
+                "categorie": "U15-U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U18F": {
+                "arme": "Arc Nu",
+                "categorie": "U15-U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U18H": {
+                "arme": "Arc Nu",
+                "categorie": "U15-U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U21F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U21H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U21",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U21",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U13F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U13H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U15F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U15H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U18F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U18H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21",
+                "sexe": "H",
+                "niveau": ""
+            }
+        },
+        "D3": {
+            "AC|S1F": {
+                "arme": "Arc Chasse",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AC|S1H": {
+                "arme": "Arc Chasse",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AC|S2F": {
+                "arme": "Arc Chasse",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AC|S2H": {
+                "arme": "Arc Chasse",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AC|S3F": {
+                "arme": "Arc Chasse",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AC|S3H": {
+                "arme": "Arc Chasse",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AC|U21F": {
+                "arme": "Arc Chasse",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AC|U21H": {
+                "arme": "Arc Chasse",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|S1F": {
+                "arme": "Arc Droit",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|S1H": {
+                "arme": "Arc Droit",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|S2F": {
+                "arme": "Arc Droit",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|S2H": {
+                "arme": "Arc Droit",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|S3F": {
+                "arme": "Arc Droit",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|S3H": {
+                "arme": "Arc Droit",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|U21F": {
+                "arme": "Arc Droit",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|U21H": {
+                "arme": "Arc Droit",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|S1F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S1H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|S2F": {
+                "arme": "Arc Nu",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S2H": {
+                "arme": "Arc Nu",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|S3F": {
+                "arme": "Arc Nu",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S3H": {
+                "arme": "Arc Nu",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U13F": {
+                "arme": "Arc Nu",
+                "categorie": "U13",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U13H": {
+                "arme": "Arc Nu",
+                "categorie": "U13",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U15F": {
+                "arme": "Arc Nu",
+                "categorie": "U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U15H": {
+                "arme": "Arc Nu",
+                "categorie": "U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U18F": {
+                "arme": "Arc Nu",
+                "categorie": "U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U18H": {
+                "arme": "Arc Nu",
+                "categorie": "U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U21F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U21H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S1F": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S1H": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S2F": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S2H": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S3F": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S3H": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U13F": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U13H": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U15F": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U15H": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U18F": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U18H": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U21F": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U21H": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "Scratch",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|S1F": {
+                "arme": "Arc Libre",
+                "categorie": "S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|S1H": {
+                "arme": "Arc Libre",
+                "categorie": "S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|S2F": {
+                "arme": "Arc Libre",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|S2H": {
+                "arme": "Arc Libre",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|S3F": {
+                "arme": "Arc Libre",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|S3H": {
+                "arme": "Arc Libre",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|U13F": {
+                "arme": "Arc Libre",
+                "categorie": "U13-U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|U13H": {
+                "arme": "Arc Libre",
+                "categorie": "U13-U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|U15F": {
+                "arme": "Arc Libre",
+                "categorie": "U13-U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|U15H": {
+                "arme": "Arc Libre",
+                "categorie": "U13-U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|U18F": {
+                "arme": "Arc Libre",
+                "categorie": "U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|U18H": {
+                "arme": "Arc Libre",
+                "categorie": "U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|U21F": {
+                "arme": "Arc Libre",
+                "categorie": "U21",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|U21H": {
+                "arme": "Arc Libre",
+                "categorie": "U21",
+                "sexe": "H",
+                "niveau": ""
+            }
+        },
+        "N": {
+            "AC|S1F": {
+                "arme": "Arc Chasse",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AC|S1H": {
+                "arme": "Arc Chasse",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AC|S2F": {
+                "arme": "Arc Chasse",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AC|S2H": {
+                "arme": "Arc Chasse",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AC|S3F": {
+                "arme": "Arc Chasse",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AC|S3H": {
+                "arme": "Arc Chasse",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AC|U21F": {
+                "arme": "Arc Chasse",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AC|U21H": {
+                "arme": "Arc Chasse",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|S1F": {
+                "arme": "Arc Droit",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|S1H": {
+                "arme": "Arc Droit",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|S2F": {
+                "arme": "Arc Droit",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|S2H": {
+                "arme": "Arc Droit",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|S3F": {
+                "arme": "Arc Droit",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|S3H": {
+                "arme": "Arc Droit",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "AD|U21F": {
+                "arme": "Arc Droit",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "AD|U21H": {
+                "arme": "Arc Droit",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|S1F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S1H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|S2F": {
+                "arme": "Arc Nu",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S2H": {
+                "arme": "Arc Nu",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|S3F": {
+                "arme": "Arc Nu",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|S3H": {
+                "arme": "Arc Nu",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U13F": {
+                "arme": "Arc Nu",
+                "categorie": "U13",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U13H": {
+                "arme": "Arc Nu",
+                "categorie": "U13",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U15F": {
+                "arme": "Arc Nu",
+                "categorie": "U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U15H": {
+                "arme": "Arc Nu",
+                "categorie": "U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U18F": {
+                "arme": "Arc Nu",
+                "categorie": "U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U18H": {
+                "arme": "Arc Nu",
+                "categorie": "U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "BB|U21F": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "BB|U21H": {
+                "arme": "Arc Nu",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S1F": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S1H": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S2F": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "S2-S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S2H": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "S2-S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|S3F": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "S2-S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|S3H": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "S2-S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "CO|U21F": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "CO|U21H": {
+                "arme": "Arc à Poulies nu",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|S1F": {
+                "arme": "Arc Libre",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|S1H": {
+                "arme": "Arc Libre",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|S2F": {
+                "arme": "Arc Libre",
+                "categorie": "S2",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|S2H": {
+                "arme": "Arc Libre",
+                "categorie": "S2",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|S3F": {
+                "arme": "Arc Libre",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|S3H": {
+                "arme": "Arc Libre",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|U13F": {
+                "arme": "Arc Libre",
+                "categorie": "U13-U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|U13H": {
+                "arme": "Arc Libre",
+                "categorie": "U13-U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|U15F": {
+                "arme": "Arc Libre",
+                "categorie": "U13-U15",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|U15H": {
+                "arme": "Arc Libre",
+                "categorie": "U13-U15",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|U18F": {
+                "arme": "Arc Libre",
+                "categorie": "U18",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|U18H": {
+                "arme": "Arc Libre",
+                "categorie": "U18",
+                "sexe": "H",
+                "niveau": ""
+            },
+            "TL|U21F": {
+                "arme": "Arc Libre",
+                "categorie": "U21-S1",
+                "sexe": "F",
+                "niveau": ""
+            },
+            "TL|U21H": {
+                "arme": "Arc Libre",
+                "categorie": "U21-S1",
+                "sexe": "H",
+                "niveau": ""
+            }
+        },
+        "I": {
+            "CHCL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U13F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U13H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U15F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U15H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U18F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U18H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CRCL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U13F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U13H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U15F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U15H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U18F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U18H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "FECL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "HLCL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U13F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U13H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U15F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U15H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U18F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U18H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HV1|S1F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|S1H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|S2F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|S2H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|S3F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|S3H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U21F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U21H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV2|S1F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|S1H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|S2F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|S2H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|S3F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|S3H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U21F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U21H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "OPCL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCL|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCL|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCL|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCL|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCL|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCL|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCO|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCO|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCO|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCO|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCO|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCO|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "SU1|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU2|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "W1|S1F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|S1H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|S2F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|S2H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|S3F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|S3H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U21F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U21H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            }
+        },
+        "H": {
+            "CHCL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U13F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U13H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U15F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U15H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U18F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U18H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CHCO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CHALLENGE"
+            },
+            "CRCL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U13F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U13H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U15F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U15H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U18F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U18H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "CRCO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "CRITERIUM"
+            },
+            "FECL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "FEDERAL"
+            },
+            "FECO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "FEDERAL"
+            },
+            "HLCL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U13F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U13H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U15F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U15H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U18F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U18H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HLCO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV LIBRE"
+            },
+            "HV1|S1F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|S1H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|S2F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|S2H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|S3F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|S3H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U21F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV1|U21H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV1"
+            },
+            "HV2|S1F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|S1H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|S2F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|S2H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|S3F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|S3H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U21F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "HV2|U21H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "HV2-3"
+            },
+            "OPCL|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCL|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCL|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCL|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCL|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "S3",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCL|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "S3",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCL|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCL|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCL|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCL|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCL|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCL|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCL|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCL|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U21-S1-S2",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCO|S1F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCO|S1H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCO|S2F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCO|S2H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCO|S3F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCO|S3H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "OPCO|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCO|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCO|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCO|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCO|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCO|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18",
+                "sexe": "X",
+                "niveau": "OPEN"
+            },
+            "OPCO|U21F": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "F",
+                "niveau": "OPEN"
+            },
+            "OPCO|U21H": {
+                "arme": "Arc à Poulies",
+                "categorie": "U21-S1-S2-S3",
+                "sexe": "H",
+                "niveau": "OPEN"
+            },
+            "SU1|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU1|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 1"
+            },
+            "SU2|S1F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|S1H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|S2F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|S2H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|S3F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|S3H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U13F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U13H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U15F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U15H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U18F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U18H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U21F": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "SU2|U21H": {
+                "arme": "Arc Classique",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "SUPPORT 2"
+            },
+            "W1|S1F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|S1H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|S2F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|S2H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|S3F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|S3H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U13F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U13H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U15F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U15H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U18F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U18H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U21F": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            },
+            "W1|U21H": {
+                "arme": "Toutes Armes",
+                "categorie": "U13-U15-U18-U21-S1-S2-S3",
+                "sexe": "X",
+                "niveau": "W1"
+            }
+        },
+        "B": []
+    }
+}
