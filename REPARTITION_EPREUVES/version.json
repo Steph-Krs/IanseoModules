@@ -1,7 +1,7 @@
 {
-    "version": "0.1.0",
+    "version": "0.2.0",
     "date": "2026-07-26",
-    "notes": "Module ianseo pour attribuer en masse les cibles d'un championnat de tir à l'arc (des centaines d'archers, plusieurs départs) — là où l'outil natif ianseo ne place qu'un archer à la fois. Récupère les classements officiels FFTA (national ou d'arrêté), importe les inscriptions et doubles mixtes depuis les fichiers d'arrêté Exalto, puis construit le plan des départs par blocs (une épreuve sur une plage cibles × lettres) : ordre de remplissage, brassage des clubs sur une cible, rééquilibrage des cibles sous-remplies, tout avant d'écrire dans ianseo. Écrit uniquement dans son propre périmètre (Qualifications, Entries) avec relecture systématique de vérification.",
+    "notes": "Enrichissement des classements téléchargés, pour un usage par d'autres modules : les 3 scores comptant pour le classement (S1/S2/S3, REP_Rangs.CrS1/CrS2/CrS3, CrS3=0 pour les disciplines à 2 scores) en plus de la moyenne déjà chargée, et la préinscription au Championnat de France (REP_Rangs.CrPreinscrit) en plus de la place de qualification déjà chargée (CrQuota). Les classements déjà en base doivent être retéléchargés (bouton « Actualiser ») pour bénéficier de ces données, la migration de schéma n'ajoutant/ne renommant que des colonnes. Écran « Classements nationaux » : nouveau bouton ↻ en bas à droite de la matrice pour resynchroniser en un clic tous les classements de la discipline et de la saison affichées (au lieu de case par case), par lots de 60 pour rester dans la limite de l'action de téléchargement.",
     "files": [
         "menu.php",
         "classements.php",

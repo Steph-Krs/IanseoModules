@@ -170,12 +170,15 @@ function rendre(){
   });
 
   h += '<tr class="tot"><td class="lft">Colonne</td>';
+  var tousLot = {};
   etat.armes.forEach(function(arme){
     var l = {};
-    Object.keys(plan[arme].debuts).forEach(function(i){ ids(plan[arme].debuts[i].cell).forEach(function(x){ l[x] = 1; }); });
+    Object.keys(plan[arme].debuts).forEach(function(i){ ids(plan[arme].debuts[i].cell).forEach(function(x){ l[x] = 1; tousLot[x] = 1; }); });
     h += '<td><button class="mini" data-ids="'+Object.keys(l).join(",")+'" title="Actualiser l\'arme" aria-label="Actualiser">&#8635;</button></td>';
   });
-  h += '<td></td></tr></tbody></table>';
+  h += '<td><button class="mini mini-tout" data-tout title="Tout actualiser — '
+     + Object.keys(tousLot).length + ' classement(s) de cette discipline, saison ' + annee
+     + '" aria-label="Tout actualiser la discipline">&#8635;</button></td></tr></tbody></table>';
   $("#rep-matrice").innerHTML = h;
   $("#rep-total").textContent = etat.total + " classements publiés cette saison";
 }
@@ -193,6 +196,54 @@ function charger(){
       $("#rep-msg").className = "msg";
     })
     .catch(function(e){ occupe = false; msg("Erreur réseau : "+e, true); });
+}
+
+// Tous les identifiants FFTA de la matrice actuelle (toutes armes, catégories,
+// sexes confondus, dédupliqués) — pour le bouton « Tout actualiser ».
+function tousIds(){
+  if(!etat || etat.vide) return [];
+  var l = {};
+  etat.armes.forEach(function(arme){
+    var col = etat.grille[arme] || {};
+    Object.keys(col).forEach(function(cat){
+      SEXES.forEach(function(s){ var x = col[cat].sexes[s]; if(x) l[x.ffta] = 1; });
+    });
+  });
+  return Object.keys(l);
+}
+
+// Découpe en lots de 60 (limite de l'action 'telecharger', ajax/classements.php)
+// et les poste l'un après l'autre — une discipline peut publier plus de 60
+// classements (para, TAE…), un seul appel ne suffirait pas toujours.
+function toutActualiser(){
+  if(occupe) return;
+  var ids = tousIds();
+  if(!ids.length){ msg("Aucun classement à actualiser pour cette discipline.", true); return; }
+  if(!window.confirm("Actualiser les "+ids.length+" classement(s) de cette discipline pour la saison "+annee+" ?")) return;
+
+  var lots = [];
+  for(var i = 0; i < ids.length; i += 60) lots.push(ids.slice(i, i + 60));
+
+  occupe = true;
+  var charges = 0, archers = 0, erreurs = [];
+  function suite(n){
+    if(n >= lots.length){
+      occupe = false;
+      var t = charges+" classement(s) chargé(s), "+archers+" archers enregistrés.";
+      if(erreurs.length) { msg(t+" Incidents : "+erreurs.join(" · "), true); } else { msg(t, false); }
+      charger();
+      return;
+    }
+    attente("Synchronisation générale — lot "+(n+1)+"/"+lots.length+" ("+ids.length+" classement(s) au total)");
+    poste("ajax/classements.php", {action:"telecharger", annee:annee, discipline:disc, ids:lots[n].join(",")})
+      .then(function(r){
+        charges += r.charges||0; archers += r.archers||0;
+        if(r.err) erreurs.push(r.err);
+        suite(n+1);
+      })
+      .catch(function(e){ erreurs.push(String(e)); suite(n+1); });
+  }
+  suite(0);
 }
 
 function telecharger(ids){
@@ -254,6 +305,7 @@ document.getElementById("rep-disc").addEventListener("click", function(e){
 document.getElementById("rep-matrice").addEventListener("click", function(e){
   var del = e.target.closest("[data-del]");
   if(del){ supprimer(del.dataset.del.split(",").filter(Boolean)); return; }
+  if(e.target.closest("[data-tout]")){ toutActualiser(); return; }
   var b = e.target.closest("[data-ids]");
   if(b){ telecharger(b.dataset.ids.split(",").filter(Boolean)); }
 });

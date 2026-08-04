@@ -63,6 +63,10 @@
 #rep .mini{border:1px solid var(--bord);background:#f7f7f7;border-radius:4px;width:20px;height:20px;
      line-height:1;cursor:pointer;color:var(--bleu);font-size:11px;padding:0}
 #rep .mini:hover{background:var(--bleu);color:#fff;border-color:var(--bleu-fonce)}
+/* Bouton de synchro générale (coin inférieur droit de la matrice des classements) :
+   même famille que .mini, mais rempli pour le distinguer des actualisations ciblées. */
+#rep .mini-tout{background:var(--bleu);color:#fff;border-color:var(--bleu-fonce);width:24px;height:24px;font-size:13px}
+#rep .mini-tout:hover{background:var(--bleu-fonce)}
 #rep .segs{display:flex;gap:0;margin-bottom:9px;flex-wrap:wrap}
 #rep .seg{font:400 11px Verdana,Arial,sans-serif;border:1px solid var(--bord);background:#fff;color:var(--gris);
      padding:5px 11px;cursor:pointer;margin-left:-1px}

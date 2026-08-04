@@ -9,7 +9,7 @@
  * Voir rep_coll() ci-dessous, utilisé partout où c'est le cas.
  */
 
-if (!defined('REP_SCHEMA_VERSION')) define('REP_SCHEMA_VERSION', 13);
+if (!defined('REP_SCHEMA_VERSION')) define('REP_SCHEMA_VERSION', 16);
 
 /** Suffixe de collation à coller derrière une colonne REP_ jointe à du ianseo. */
 function rep_coll()
@@ -267,6 +267,38 @@ function rep_schema()
     // eux-mêmes, plus simple à faire évoluer sans nouvelle migration à chaque
     // champ (voir rep_bloc_defaut_lire()/rep_bloc_defaut_ecrire(), lib/mapping.php).
     rep_colonne('REP_Config', 'RcBlocDefaut', "TEXT NULL AFTER RcSet");
+
+    // Migration v14 (réécrite par la v15 ci-dessous, voir son commentaire) : a
+    // brièvement ajouté une colonne CrMeilleur, remplacée avant toute publication
+    // par CrS1/CrS2/CrS3 — ne rien ajouter ici, la v15 s'en charge (y compris pour
+    // une install qui n'aurait jamais eu CrMeilleur).
+
+    // Migration v15 : les 3 scores comptant pour le classement (S1/S2/S3 de
+    // l'extranet FFTA, triés décroissant — S3 vaut 0 pour les disciplines qui
+    // n'en comptent que 2, ex. Para extérieur), pas seulement le meilleur —
+    // demandé par l'utilisateur, les 3 seront utiles à un autre module. Si
+    // CrMeilleur existe déjà (installation qui a tourné avec l'éphémère v14
+    // ci-dessus), elle est renommée en CrS1 plutôt que dupliquée — même valeur,
+    // nom aligné sur la terminologie FFTA (voir rep_ffta_classement(), lib/ffta.php).
+    // Rename fait une seule fois (gaté sur la présence de CrMeilleur, jamais
+    // recréée depuis) pour rester idempotent d'une session à l'autre.
+    $rsRen = safe_r_sql("SELECT COUNT(*) AS n FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'REP_Rangs' AND COLUMN_NAME = 'CrMeilleur'");
+    $rRen  = $rsRen ? safe_fetch($rsRen) : null;
+    if ($rRen && intval($rRen->n) > 0) {
+        safe_w_sql("ALTER TABLE REP_Rangs CHANGE COLUMN CrMeilleur CrS1 SMALLINT NOT NULL DEFAULT 0");
+    }
+    rep_colonne('REP_Rangs', 'CrS1', "SMALLINT NOT NULL DEFAULT 0 AFTER CrMoyenne");   // install neuve : jamais eu CrMeilleur
+    rep_colonne('REP_Rangs', 'CrS2', "SMALLINT NOT NULL DEFAULT 0 AFTER CrS1");
+    rep_colonne('REP_Rangs', 'CrS3', "SMALLINT NOT NULL DEFAULT 0 AFTER CrS2");
+
+    // Migration v16 : préinscription au Championnat de France (icône « Pré-inscrit »
+    // du classement — sans texte, seule la cellule HTML brute la révèle, voir
+    // rep_cellules_brutes()/rep_ffta_classement()). CrQuota (déjà en base depuis la
+    // toute première version, colonne « Quota » = la place de qualification demandée
+    // par l'utilisateur) couvrait déjà la moitié du besoin ; seule la préinscription
+    // manquait.
+    rep_colonne('REP_Rangs', 'CrPreinscrit', "TINYINT NOT NULL DEFAULT 0 AFTER CrQuota");
 
     $_SESSION[$flag] = true;
 }

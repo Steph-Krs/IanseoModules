@@ -134,6 +134,19 @@ function rep_cellules($tr)
     return $out;
 }
 
+/**
+ * Idem, mais SANS strip_tags : sert à repérer une information qui n'existe que
+ * dans une image/icône (ex. « Pré-inscrit » du classement, une coche sans texte).
+ */
+function rep_cellules_brutes($tr)
+{
+    $out = [];
+    if (preg_match_all('#<t[dh][^>]*>(.*?)</t[dh]>#si', $tr, $m)) {
+        foreach ($m[1] as $c) $out[] = $c;
+    }
+    return $out;
+}
+
 /** « Homme » → H, « Femme » → F, « Mixte » → X. */
 function rep_sexe_code($txt)
 {
@@ -337,7 +350,13 @@ function rep_ffta_id_pour($dist, $cle)
 /**
  * Lecture d'un classement : liste ordonnée des archers.
  * Retourne ['ok','err','titre','archers'=>[ ['rang','licence','nom','categorie',
- *           'clubcode','clubnom','moyenne','quota'], … ]]
+ *           'clubcode','clubnom','moyenne','s1','s2','s3','quota','preinscrit'], … ]]
+ * s1/s2/s3 : les scores comptant pour le classement, triés décroissant (s1 = le
+ * meilleur) — s3 vaut 0 pour les disciplines qui n'en comptent que 2 (ex. Para
+ * extérieur). quota : place de qualification au Championnat de France (0 = aucune).
+ * preinscrit : 1 si l'archer s'est pré-inscrit au Championnat de France (« Hors
+ * quota » y compte aussi comme pré-inscrit — seule l'icône est lue, la nuance
+ * reste visible via `quota`).
  */
 function rep_ffta_classement($fftaId)
 {
@@ -374,10 +393,35 @@ function rep_ffta_classement($fftaId)
             $rang  = ($li >= 1 && ctype_digit($c[$li - 1])) ? intval($c[$li - 1]) : count($archers) + 1;
             $quota = ($li >= 2 && ctype_digit($c[$li - 2])) ? intval($c[$li - 2]) : 0;
 
-            $moy = 0;
-            for ($k = count($c) - 1; $k > $ci + 1; $k--) {
-                if (ctype_digit($c[$k])) { $moy = intval($c[$k]); break; }
+            // Préinscription au Championnat de France : une icône (check.png, titre
+            // « Pré-inscrit » [- Hors quota]), SANS texte une fois strip_tags passé —
+            // seule la cellule BRUTE (avant nettoyage) le révèle. Toujours 3 cellules
+            // avant la licence (Inscr., Quota, Rang), quelle que soit la discipline
+            // (vérifié : présent même quand la colonne « Cat » disparaît, qui elle est
+            // APRÈS la licence). « Hors quota » (pré-inscrit au-delà du quota) compte
+            // ici comme pré-inscrit — seul un OUI/NON est demandé, la nuance reste
+            // visible via `quota` (0 = pas de place de qualification propre).
+            $preinscrit = 0;
+            if ($li >= 3) {
+                $brut = rep_cellules_brutes($tr);
+                if (isset($brut[$li - 3]) && stripos($brut[$li - 3], 'check.png') !== false) $preinscrit = 1;
             }
+
+            // Colonnes de score : « S1 S2 [S3] Moy. » (2 ou 3 colonnes de score selon
+            // la discipline — ex. 3 en Classique/Poulies/Campagne/3D/Nature/Para 18m,
+            // 2 seulement en Para extérieur), toujours triées décroissant, juste après
+            // le club, puis « Préinscrire » (non numérique) en dernier. On prend donc
+            // TOUTES les cellules numériques après le club dans l'ordre : la dernière
+            // est Moy., les précédentes sont S1..Sn (2 ou 3 selon discipline) — robuste
+            // au nombre exact de colonnes de score sans le supposer fixe.
+            $scores = [];
+            for ($k = $ci + 2; $k < count($c); $k++) {
+                if (ctype_digit($c[$k])) $scores[] = intval($c[$k]);
+            }
+            $moy = $scores ? array_pop($scores) : 0;   // dernière valeur numérique
+            $s1  = $scores[0] ?? 0;
+            $s2  = $scores[1] ?? 0;
+            $s3  = $scores[2] ?? 0;   // absent (0) pour les disciplines à 2 scores (ex. Para extérieur)
 
             $archers[] = [
                 'rang'      => $rang,
@@ -387,7 +431,11 @@ function rep_ffta_classement($fftaId)
                 'clubcode'  => $c[$ci],
                 'clubnom'   => $c[$ci + 1],
                 'moyenne'   => $moy,
+                's1'        => $s1,
+                's2'        => $s2,
+                's3'        => $s3,
                 'quota'     => $quota,
+                'preinscrit' => $preinscrit,
             ];
         }
     }
@@ -439,16 +487,20 @@ function rep_ffta_enregistrer($annee, $discipline, $meta)
         $vus[$rang] = true;
         $vals[] = "($ccId, $rang, " . StrSafe_DB($a['licence']) . ", " . StrSafe_DB($a['nom']) . ", "
                 . StrSafe_DB($a['categorie']) . ", " . StrSafe_DB($a['clubcode']) . ", "
-                . StrSafe_DB($a['clubnom']) . ", " . intval($a['moyenne']) . ", " . intval($a['quota']) . ")";
+                . StrSafe_DB($a['clubnom']) . ", " . intval($a['moyenne']) . ", " . intval($a['s1'] ?? 0)
+                . ", " . intval($a['s2'] ?? 0) . ", " . intval($a['s3'] ?? 0) . ", " . intval($a['quota'])
+                . ", " . intval($a['preinscrit'] ?? 0) . ")";
         if (count($vals) >= 200) {
             safe_w_sql("INSERT INTO REP_Rangs (CrClassement, CrRang, CrLicence, CrNom, CrCategorie,
-                        CrClubCode, CrClubNom, CrMoyenne, CrQuota) VALUES " . implode(',', $vals));
+                        CrClubCode, CrClubNom, CrMoyenne, CrS1, CrS2, CrS3, CrQuota, CrPreinscrit) VALUES "
+                        . implode(',', $vals));
             $vals = [];
         }
     }
     if ($vals) {
         safe_w_sql("INSERT INTO REP_Rangs (CrClassement, CrRang, CrLicence, CrNom, CrCategorie,
-                    CrClubCode, CrClubNom, CrMoyenne, CrQuota) VALUES " . implode(',', $vals));
+                    CrClubCode, CrClubNom, CrMoyenne, CrS1, CrS2, CrS3, CrQuota, CrPreinscrit) VALUES "
+                    . implode(',', $vals));
     }
 
     return ['ok' => true, 'err' => '', 'nb' => count($vus)];

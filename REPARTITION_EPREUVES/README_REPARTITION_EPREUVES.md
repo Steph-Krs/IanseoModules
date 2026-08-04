@@ -89,7 +89,7 @@ qu'après les contrôles, et une relecture vérifie que l'état obtenu est bien 
 | Table | Contenu |
 |---|---|
 | `REP_Classements` | un classement national téléchargé |
-| `REP_Rangs` | une ligne de classement = un archer (licence, club, moyenne) |
+| `REP_Rangs` | une ligne de classement = un archer (licence, club, S1/S2/S3, moyenne, quota, préinscription) |
 | `REP_Blocs` | le plan de départ tel qu'il est dessiné |
 | `REP_Config` | saison et discipline retenues pour la compétition |
 | `REP_OrdreClub` | ordre manuel des clubs, par épreuve |
