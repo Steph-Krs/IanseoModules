@@ -69,7 +69,14 @@ function rep_schema()
     // (elle sépare le TAE international du TAE national).
     rep_colonne('REP_Classements', 'CcNiveau',   "VARCHAR(16) NOT NULL DEFAULT '' AFTER CcCategorie");
     rep_colonne('REP_Classements', 'CcDistance', "VARCHAR(24) NOT NULL DEFAULT '' AFTER CcNiveau");
-    rep_colonne('REP_Config',      'RcSet',      "VARCHAR(40) NOT NULL DEFAULT '' AFTER RcDiscipline");
+    // RcSet (REP_Config) déplacé après la création de REP_Config, voir plus bas : cet
+    // appel ALTER TABLE sur une table pas encore créée était sans effet visible sur
+    // une installation existante (REP_Config déjà là depuis une version antérieure),
+    // mais faisait échouer rep_schema() en PLEIN MILIEU sur une installation NEUVE
+    // (Error 1146, avant même d'atteindre le CREATE TABLE REP_Config) — bug réel
+    // signalé par l'utilisateur (« Seule la page de MaJ est acccessible » après
+    // installation sur une nouvelle machine), jamais vu sur cette base de dev qui
+    // avait déjà REP_Config depuis longtemps.
 
     // Une ligne de classement = un archer.
     safe_w_sql("CREATE TABLE IF NOT EXISTS REP_Rangs (
@@ -135,6 +142,10 @@ function rep_schema()
         RcDiscipline VARCHAR(2) NOT NULL DEFAULT '',
         RcUpdated    DATETIME   NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    // Migration depuis la version 1 (déplacée ici depuis juste après la création de
+    // REP_Classements — voir le commentaire plus haut) : set FFTA mémorisé par
+    // compétition.
+    rep_colonne('REP_Config', 'RcSet', "VARCHAR(40) NOT NULL DEFAULT '' AFTER RcDiscipline");
 
     // Ordre manuel des clubs, par compétition et par ÉPREUVE (source « Par ordre de
     // club manuel »). OoClub = numéro de club (Countries.CoCode), OoEvent = Events.EvCode.

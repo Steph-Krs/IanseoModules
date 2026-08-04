@@ -1,7 +1,7 @@
 {
-    "version": "0.2.0",
-    "date": "2026-07-26",
-    "notes": "Enrichissement des classements téléchargés, pour un usage par d'autres modules : les 3 scores comptant pour le classement (S1/S2/S3, REP_Rangs.CrS1/CrS2/CrS3, CrS3=0 pour les disciplines à 2 scores) en plus de la moyenne déjà chargée, et la préinscription au Championnat de France (REP_Rangs.CrPreinscrit) en plus de la place de qualification déjà chargée (CrQuota). Les classements déjà en base doivent être retéléchargés (bouton « Actualiser ») pour bénéficier de ces données, la migration de schéma n'ajoutant/ne renommant que des colonnes. Écran « Classements nationaux » : nouveau bouton ↻ en bas à droite de la matrice pour resynchroniser en un clic tous les classements de la discipline et de la saison affichées (au lieu de case par case), par lots de 60 pour rester dans la limite de l'action de téléchargement.",
+    "version": "0.2.1",
+    "date": "2026-08-04",
+    "notes": "Correctif critique d'installation : sur une base neuve (jamais eu ce module), rep_schema() échouait immédiatement avec « Table 'REP_Config' doesn't exist » et seule la page de mise à jour restait accessible — une migration ajoutait une colonne à REP_Config avant même que la table soit créée, ce qui passait inaperçu sur une mise à jour (table déjà là) mais bloquait toute installation neuve. Corrigé en réordonnant la migration après la création de la table. Versions précédentes (0.2.0) : ajout des 3 scores du classement (S1/S2/S3) et de la préinscription au Championnat de France dans les classements téléchargés (en plus de la moyenne et de la place de qualification déjà chargées), plus un bouton de synchronisation générale par discipline/saison sur l'écran des classements.",
     "files": [
         "menu.php",
         "classements.php",
