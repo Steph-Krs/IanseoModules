@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Pronostics">
+  <rect width="512" height="512" fill="#01367c"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#f0f4ff" stroke-width="26"/>
+  <circle cx="256" cy="256" r="98"  fill="none" stroke="#f0f4ff" stroke-width="26"/>
+  <circle cx="256" cy="256" r="46"  fill="#ff5043"/>
+  <path d="M300 212 L392 120" stroke="#f0f4ff" stroke-width="22" stroke-linecap="round"/>
+  <path d="M366 96 L416 106 L406 156 Z" fill="#f0f4ff"/>
+</svg>

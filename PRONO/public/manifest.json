@@ -1,0 +1,13 @@
+{
+    "name": "Pronostics de la compétition",
+    "short_name": "Pronostics",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#f7f8fa",
+    "theme_color": "#01367c",
+    "icons": [
+        { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    ]
+}
