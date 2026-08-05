@@ -268,8 +268,22 @@ input:focus{outline:2px solid var(--doux);border-color:var(--bleu)}
              autocomplete="new-password">
       <button class="btn" id="acctsb">Enregistrer le mot de passe</button>
     </div>
+    <div class="sub" style="margin-top:12px">Qui peut voir mes pronostics ?</div>
+    <div class="seg" id="acctpriv">
+      <button data-v="PUBLIC" aria-pressed="false">Tout le monde</button>
+      <button data-v="GROUPS" aria-pressed="false">Mes groupes</button>
+      <button data-v="PRIVATE" aria-pressed="false">Personne</button>
+    </div>
     <button class="btn ghost" id="acctc">Fermer</button>
     <button class="btn" id="acctl" style="background:#c0392b;margin-top:8px">Se déconnecter</button>
+  </div>
+</div>
+
+<div class="veil" id="playerv" hidden>
+  <div class="card">
+    <h2 id="playern"></h2>
+    <div id="playerbody"></div>
+    <button class="btn ghost" id="playerc">Fermer</button>
   </div>
 </div>
 
@@ -287,10 +301,14 @@ let busy = false;       // un pronostic est en cours d'envoi
 
 const expanded = new Set();
 let fam = 'all';
+let groupsOpen = false;   // repliée par défaut, comme les sections par épreuve
 
-let closed = new Set();
-try { closed = new Set(JSON.parse(localStorage.getItem('prono_closed') || '[]')); } catch (e) {}
-const saveClosed = () => { try { localStorage.setItem('prono_closed', JSON.stringify([...closed])); } catch (e) {} };
+// Repliées par défaut (clé différente de l'ancienne « prono_closed » à sémantique
+// inverse : sans ça, les épreuves qu'un joueur avait explicitement repliées avant ce
+// changement se retrouveraient dépliées, et inversement, un jour où l'autre).
+let opened = new Set();
+try { opened = new Set(JSON.parse(localStorage.getItem('prono_opened') || '[]')); } catch (e) {}
+const saveOpened = () => { try { localStorage.setItem('prono_opened', JSON.stringify([...opened])); } catch (e) {} };
 
 const FAM = {
   MATCH_WINNER: 'duels', EVENT_WINNER: 'titres',
@@ -357,6 +375,15 @@ function myPick(marketId) {
 
 function renderMarkets() {
   const box = $('#mklist');
+
+  // Ne pas reconstruire la liste tant qu'un menu déroulant y est ouvert (les 3
+  // sélecteurs du tiercé) : reconstruire le DOM referme le menu natif du navigateur
+  // en pleine sélection, ce qui rend le tiercé injouable si un rafraîchissement
+  // périodique (toutes les 10 s) tombe au mauvais moment. Le prochain passage, une
+  // fois le sélecteur relâché, rattrape l'affichage.
+  const active = document.activeElement;
+  if (active && active.tagName === 'SELECT' && box.contains(active)) return;
+
   box.textContent = '';
 
   if (!S.open) {
@@ -397,7 +424,7 @@ function renderMarkets() {
     if (single) { items.forEach(m => box.appendChild(renderMarket(m))); continue; }
 
     const d = el('details', 'sec');
-    d.open = !closed.has(code);
+    d.open = opened.has(code);
     const sm = el('summary');
     sm.appendChild(el('span', 'arw', '▶'));
     sm.appendChild(el('span', '', name));
@@ -407,8 +434,8 @@ function renderMarkets() {
     items.forEach(m => body.appendChild(renderMarket(m)));
     d.appendChild(body);
     d.addEventListener('toggle', () => {
-      d.open ? closed.delete(code) : closed.add(code);
-      saveClosed();
+      d.open ? opened.add(code) : opened.delete(code);
+      saveOpened();
     });
     box.appendChild(d);
   }
@@ -451,9 +478,13 @@ function renderMarket(m) {
   else if (/en cours/.test(m.sub || '')) h.appendChild(el('span', 'badge b-live', 'en direct'));
   card.appendChild(h);
 
-  const sub = el('div', 'sub');
-  sub.textContent = (TYPE_LABEL[m.type] || '') + (m.sub ? ' · ' + m.sub : '');
-  card.appendChild(sub);
+  // Le rappel « Tiercé : 1er, 2e, 3e · Qui finit... » n'a d'intérêt qu'avant de
+  // poser un pronostic ; une fois posé, place au pronostic lui-même.
+  if (!(m.type === 'QUAL_TIERCE' && mine)) {
+    const sub = el('div', 'sub');
+    sub.textContent = (TYPE_LABEL[m.type] || '') + (m.sub ? ' · ' + m.sub : '');
+    card.appendChild(sub);
+  }
 
   // Tiercé et fourchettes de qualification : structure propre, pas le schéma
   // vainqueur/score des duels.
@@ -604,42 +635,63 @@ function renderQualBand(m, mine, frozen) {
 
 /**
  * Tiercé de qualification : 3 choix (1er / 2e / 3e), un seul pronostic posé d'un
- * coup — comme aux courses hippiques. Définitif dès qu'il est posé (marché au long
- * cours, comme le vainqueur d'épreuve) : une fois `mine` renseigné, plus rien à
- * choisir, juste un rappel de ce qui a été pronostiqué.
+ * coup — comme aux courses hippiques. Modifiable tant que le marché reste ouvert (il
+ * se verrouille à la dernière volée de qualification) : les 3 menus restent affichés,
+ * pré-remplis avec le pronostic déjà posé s'il y en a un.
  */
 const tierceState = new Map();   // marché → [id choisi 1er, 2e, 3e] en cours de saisie
+
+/** Formule de Harville (voir prono_harville_triple() côté serveur, lib/model.php). */
+function harvilleTriple(winProb, a, b, c) {
+  const p = id => winProb.get(id) || 0;
+  const chain = (x, y, z) => {
+    const px = p(x), dx = 1 - px;
+    if (dx <= 1e-9) return 0;
+    const py = p(y), dy = dx - py;
+    if (dy <= 1e-9) return 0;
+    return px * (py / dx) * (p(z) / dy);
+  };
+  const order = chain(a, b, c);
+  const anyOrder = order + chain(a, c, b) + chain(b, a, c) + chain(b, c, a) + chain(c, a, b) + chain(c, b, a);
+  return { order, anyOrder };
+}
+
+/**
+ * Estimation en direct des points d'un trio précis, pendant la saisie — même formule
+ * que prono_points()/prono_tierce_points_from() côté serveur (lib/engine.php), à
+ * partir des probabilités de victoire déjà connues du client (S.cap/S.base/S.scoring,
+ * `prob` de chaque sélection R1) : pas d'aller-retour réseau à chaque menu changé.
+ */
+function tiercePreview(winProb, a, b, c) {
+  const cap = S.cap || 25, base = S.base || 10;
+  const p = harvilleTriple(winProb, a, b, c);
+  if (S.scoring === 'FLAT') {
+    const order = Math.max(1, Math.round(base * 4.0));
+    return { order, any: Math.max(1, Math.round(order / 3)) };
+  }
+  return {
+    order: Math.max(1, Math.round(base * Math.min(p.order > 0 ? 1 / p.order : cap, cap))),
+    any:   Math.max(1, Math.round(base * Math.min(p.anyOrder > 0 ? 1 / p.anyOrder : cap, cap))),
+  };
+}
 
 function renderTierce(m, mine, frozen) {
   const frag = document.createDocumentFragment();
 
-  if (mine) {
-    const box = el('div', 'sel mine');
-    box.style.cssText = 'display:block;flex-direction:column;align-items:stretch;gap:4px';
-    box.appendChild(el('div', 'nm', 'Ton tiercé : ' + mine.pick));
-    box.appendChild(el('div', 'pts', '+' + mine.pts + ' pts si l\'ordre est exact, moins si le trio est bon dans le désordre'));
-    frag.appendChild(box);
-    return frag;
-  }
   if (frozen) {
-    frag.appendChild(el('div', 'hintline', 'Ce tiercé est fermé.'));
+    frag.appendChild(el('div', 'sel mine', mine ? ('Ton tiercé : ' + mine.pick) : 'Ce tiercé est fermé.'));
     return frag;
-  }
-
-  // Étendue de points sur CETTE épreuve : un tiercé sûr (les favoris dans l'ordre
-  // attendu) rapporte le moins, un tiercé risqué (les plus gros outsiders) rapporte
-  // le plus — de quoi choisir sa stratégie avant même de nommer ses 3 archers.
-  if (m.tierce) {
-    const range = el('div', 'hintline');
-    range.style.cssText = 'margin-bottom:8px';
-    range.textContent = 'Dans l\'ordre : de +' + m.tierce.orderMin + ' (tiercé sûr) à +'
-      + m.tierce.orderMax + ' pts (tiercé risqué) · dans le désordre : de +'
-      + m.tierce.anyMin + ' à +' + m.tierce.anyMax + ' pts.';
-    frag.appendChild(range);
   }
 
   const byGrp = g => m.sels.filter(s => s.grp === g);
-  const picks = tierceState.get(m.id) || [null, null, null];
+
+  // Pré-rempli avec le pronostic déjà posé (modifiable) ; conservé pendant la saisie
+  // pour ne pas perdre la sélection en cours à chaque rafraîchissement périodique.
+  let picks = tierceState.get(m.id);
+  if (!picks) {
+    picks = mine ? [mine.sel, mine.sel2, mine.sel3].map(v => v ? String(v) : null) : [null, null, null];
+    tierceState.set(m.id, picks);
+  }
 
   const row = (label, list, idx) => {
     const wrap = el('div');
@@ -673,16 +725,29 @@ function renderTierce(m, mine, frozen) {
   const [p1, p2, p3] = picks;
   const allPicked = p1 && p2 && p3;
   const distinct  = allPicked && p1 !== p2 && p1 !== p3 && p2 !== p3;
+  const findAth   = (grp, id) => { const s = byGrp(grp).find(x => String(x.id) === String(id)); return s ? s.ath : null; };
+  const same = distinct && mine && +mine.sel === +p1 && +mine.sel2 === +p2 && +mine.sel3 === +p3;
 
   const act = el('div', 'stepact');
   if (allPicked && !distinct) {
     act.appendChild(el('div', 'hintline', 'Les 3 noms doivent être différents.'));
+  } else if (distinct) {
+    const winProb = new Map();
+    byGrp('R1').forEach(s => winProb.set(s.ath, s.prob));
+    const est = tiercePreview(winProb, findAth('R1', p1), findAth('R2', p2), findAth('R3', p3));
+    act.appendChild(el('div', 'hintline',
+      'Estimation pour ce trio : +' + est.order + ' pts dans l\'ordre exact, +' + est.any + ' pts dans le désordre.'));
   }
-  const go = el('button', 'btn small', 'Valider le tiercé');
-  go.disabled = !distinct;
-  if (distinct) go.onclick = () => predictTierce(m, p1, p2, p3);
+
+  const go = el('button', 'btn small', mine ? 'Modifier le tiercé' : 'Valider le tiercé');
+  go.disabled = !distinct || same;
+  if (distinct && !same) go.onclick = () => predictTierce(m, p1, p2, p3);
   act.appendChild(go);
   frag.appendChild(act);
+
+  if (mine) {
+    frag.appendChild(el('div', 'hintline', 'Ton tiercé actuel : ' + mine.pick + '. Tu peux encore changer d\'avis.'));
+  }
 
   return frag;
 }
@@ -694,7 +759,10 @@ async function predictTierce(m, s1, s2, s3) {
   try {
     const r = await call('predict3', { s1, s2, s3 });
     tierceState.delete(m.id);
-    toast('Tiercé enregistré : ' + r.pick.label + ' (+' + r.pick.pts + ' pts si l\'ordre est exact)');
+    if (!r.same) {
+      toast((r.changed ? 'Tiercé modifié : ' : 'Tiercé enregistré : ')
+            + r.pick.label + ' (+' + r.pick.pts + ' pts si l\'ordre est exact)');
+    }
     await refresh();
   } catch (e) {
     toast(e.message, 3400);
@@ -839,13 +907,44 @@ function renderMine() {
   });
 }
 
-let boardTab = 'day';   // 'day' = cette compétition, 'season' = classement général
+let boardTab   = 'day';       // 'day' = cette compétition, 'season' = classement général
+let boardScope = 'general';   // 'general' ou l'id (chaîne) d'un groupe rejoint
+
+/** Classement général ou celui d'un groupe, selon boardScope — même forme dans les 2 cas. */
+function boardScopeData() {
+  if (boardScope !== 'general') {
+    const g = (S.groups || []).find(x => String(x.id) === boardScope);
+    if (g) return { board: g.board, season: g.season };
+  }
+  return { board: S.board || [], season: S.season || [] };
+}
 
 function renderBoard() {
   const box = $('#p-bd');
   box.textContent = '';
 
-  const season = S.season || [];
+  const groups = S.groups || [];
+  if (groups.length) {
+    const scopeSel = document.createElement('select');
+    scopeSel.style.cssText = 'width:100%;padding:9px;border:1px solid var(--doux);border-radius:6px;'
+      + 'font:inherit;background:#fff;color:var(--texte);margin-bottom:8px';
+    const optGen = el('option', '', 'Classement général');
+    optGen.value = 'general';
+    scopeSel.appendChild(optGen);
+    groups.forEach(g => {
+      const o = el('option', '', g.name);
+      o.value = String(g.id);
+      scopeSel.appendChild(o);
+    });
+    scopeSel.value = boardScope;
+    scopeSel.onchange = () => { boardScope = scopeSel.value; renderBoard(); };
+    box.appendChild(scopeSel);
+  } else {
+    boardScope = 'general';
+  }
+
+  const scope  = boardScopeData();
+  const season = scope.season;
   if (season.length) {
     const seg = el('div', 'seg');
     [['day', 'Cette compétition'], ['season', 'Saison']].forEach(([k, lbl]) => {
@@ -859,50 +958,141 @@ function renderBoard() {
     boardTab = 'day';
   }
 
-  const rows = boardTab === 'season' ? season : (S.board || []);
-  if (!rows.length) { box.appendChild(el('div', 'empty', 'Personne n\'a encore pronostiqué.')); return; }
+  const rows = boardTab === 'season' ? season : scope.board;
+  if (!rows.length) {
+    box.appendChild(el('div', 'empty', 'Personne n\'a encore pronostiqué.'));
+  } else {
+    if (boardTab === 'season') {
+      box.appendChild(el('div', 'hintline',
+        'Total des points sur toutes les compétitions retenues pour la saison.'));
+    } else if (!S.inseason) {
+      box.appendChild(el('div', 'hintline',
+        'Cette compétition ne compte pas pour le classement de la saison.'));
+    }
 
-  if (boardTab === 'season') {
-    box.appendChild(el('div', 'hintline',
-      'Total des points sur toutes les compétitions retenues pour la saison.'));
-  } else if (!S.inseason) {
-    box.appendChild(el('div', 'hintline',
-      'Cette compétition ne compte pas pour le classement de la saison.'));
-  }
+    const t = el('table');
+    const hr = el('tr');
+    const cols = boardTab === 'season'
+      ? ['#', 'Joueur', 'Compét.', 'Justes', 'Points']
+      : ['#', 'Joueur', 'Justes', 'Points'];
+    cols.forEach((x, i) => hr.appendChild(el('th', i > 1 ? 'n' : '', x)));
+    t.appendChild(el('thead')).appendChild(hr);
 
-  const t = el('table');
-  const hr = el('tr');
-  const cols = boardTab === 'season'
-    ? ['#', 'Joueur', 'Compét.', 'Justes', 'Points']
-    : ['#', 'Joueur', 'Justes', 'Points'];
-  cols.forEach((x, i) => hr.appendChild(el('th', i > 1 ? 'n' : '', x)));
-  t.appendChild(el('thead')).appendChild(hr);
-
-  const tb = el('tbody');
-  rows.forEach((r, i) => {
-    const tr = el('tr', me && r.PaUsNick === me.nick ? 'me' : '');
-    tr.appendChild(el('td', '', String(i + 1)));
-    tr.appendChild(el('td', '', r.PaUsNick));
-    if (boardTab === 'season') tr.appendChild(el('td', 'n', String(r.PaUsEvents)));
-    tr.appendChild(el('td', 'n', r.PaUsWon + '/' + r.PaUsBets));
-    tr.appendChild(el('td', 'n', String(r.PaUsPoints)));
-    tb.appendChild(tr);
-  });
-  t.appendChild(tb);
-  box.appendChild(t);
-
-  if ((S.recent || []).length) {
-    box.appendChild(el('div', 'sec'));
-    box.appendChild(el('div', 'sub', 'Derniers résultats'));
-    S.recent.forEach(r => {
-      const d = el('div', 'bet');
-      const col = el('div', 'col');
-      col.appendChild(el('div', 't', r.PaSeLabel));
-      col.appendChild(el('div', 'd', r.PaMkLabel));
-      d.appendChild(col);
-      box.appendChild(d);
+    const tb = el('tbody');
+    rows.forEach((r, i) => {
+      const tr = el('tr', me && r.PaUsNick === me.nick ? 'me' : '');
+      tr.appendChild(el('td', '', String(i + 1)));
+      const nameCell = el('td');
+      const nameBtn = el('button', '', r.PaUsNick);
+      nameBtn.style.cssText = 'background:none;border:none;padding:0;font:inherit;'
+        + 'color:var(--bleu);text-decoration:underline;cursor:pointer';
+      nameBtn.onclick = () => openPlayerBets(r.PaUsNick);
+      nameCell.appendChild(nameBtn);
+      tr.appendChild(nameCell);
+      if (boardTab === 'season') tr.appendChild(el('td', 'n', String(r.PaUsEvents)));
+      tr.appendChild(el('td', 'n', r.PaUsWon + '/' + r.PaUsBets));
+      tr.appendChild(el('td', 'n', String(r.PaUsPoints)));
+      tb.appendChild(tr);
     });
+    t.appendChild(tb);
+    box.appendChild(t);
+
+    if (boardScope === 'general' && (S.recent || []).length) {
+      box.appendChild(el('div', 'sec'));
+      box.appendChild(el('div', 'sub', 'Derniers résultats'));
+      S.recent.forEach(r => {
+        const d = el('div', 'bet');
+        const col = el('div', 'col');
+        col.appendChild(el('div', 't', r.PaSeLabel));
+        col.appendChild(el('div', 'd', r.PaMkLabel));
+        d.appendChild(col);
+        box.appendChild(d);
+      });
+    }
   }
+
+  box.appendChild(renderMyGroups());
+}
+
+/** Créer/rejoindre/quitter un groupe — classement parallèle à celui de tout le plateau. */
+function renderMyGroups() {
+  const d = el('details', 'sec');
+  d.open = groupsOpen;
+  const sm = el('summary');
+  sm.appendChild(el('span', 'arw', '▶'));
+  sm.appendChild(el('span', '', 'Mes groupes'));
+  d.appendChild(sm);
+  d.addEventListener('toggle', () => { groupsOpen = d.open; });
+
+  const body = el('div', 'body');
+  if (!me) {
+    body.appendChild(el('div', 'hintline', 'Choisis un pseudo pour créer ou rejoindre un groupe.'));
+    d.appendChild(body);
+    return d;
+  }
+
+  const groups = S.groups || [];
+  if (groups.length) {
+    groups.forEach(g => {
+      const row = el('div', 'bet');
+      const col = el('div', 'col');
+      col.appendChild(el('div', 't', g.name + (g.isOwner ? ' (propriétaire)' : '')));
+      col.appendChild(el('div', 'd', g.members + ' membre' + (g.members > 1 ? 's' : '')));
+      row.appendChild(col);
+      const btn = el('button', 'btn small', g.isOwner ? 'Supprimer' : 'Quitter');
+      btn.style.cssText = 'width:auto;flex-shrink:0;padding:8px 12px;background:#c0392b;color:#fff';
+      btn.onclick = async () => {
+        const verb = g.isOwner ? 'Supprimer' : 'Quitter';
+        if (!confirm(verb + ' le groupe « ' + g.name + ' » ?')) return;
+        try {
+          await call(g.isOwner ? 'group_delete' : 'group_leave', { gid: g.id });
+          if (boardScope === String(g.id)) boardScope = 'general';
+          await refresh();
+        } catch (e) { toast(e.message, 3400); }
+      };
+      row.appendChild(btn);
+      body.appendChild(row);
+    });
+  } else {
+    body.appendChild(el('div', 'hintline', 'Tu ne fais partie d\'aucun groupe pour l\'instant.'));
+  }
+
+  body.appendChild(el('div', 'sub', 'Créer un groupe'));
+  const cn = document.createElement('input');
+  cn.type = 'text'; cn.placeholder = 'Nom du groupe'; cn.maxLength = 40;
+  const cp = document.createElement('input');
+  cp.type = 'password'; cp.placeholder = 'Mot de passe'; cp.maxLength = 72;
+  const ce = el('div', 'err'); ce.hidden = true;
+  const cb = el('button', 'btn small', 'Créer');
+  cb.onclick = async () => {
+    ce.hidden = true;
+    try {
+      await call('group_create', { name: cn.value, pass: cp.value });
+      toast('Groupe créé.');
+      await refresh();
+    } catch (e) { ce.textContent = e.message; ce.hidden = false; }
+  };
+  [cn, cp, ce, cb].forEach(x => body.appendChild(x));
+
+  body.appendChild(el('div', 'sub', 'Rejoindre un groupe'));
+  const jn = document.createElement('input');
+  jn.type = 'text'; jn.placeholder = 'Nom du groupe'; jn.maxLength = 40;
+  const jp = document.createElement('input');
+  jp.type = 'password'; jp.placeholder = 'Mot de passe'; jp.maxLength = 72;
+  const je = el('div', 'err'); je.hidden = true;
+  const jb = el('button', 'btn small', 'Rejoindre');
+  jb.onclick = async () => {
+    je.hidden = true;
+    try {
+      await call('group_join', { name: jn.value, pass: jp.value });
+      toast('Groupe rejoint.');
+      await refresh();
+    } catch (e) { je.textContent = e.message; je.hidden = false; }
+  };
+  [jn, jp, je, jb].forEach(x => body.appendChild(x));
+
+  d.appendChild(body);
+  return d;
 }
 
 function render() {
@@ -977,10 +1167,54 @@ $('#purse').onclick = () => {
   $('#acctne').hidden   = true;
   $('#acctnick').value  = me.nick;
   $('#acctold').value = ''; $('#acctnew').value = '';
+  document.querySelectorAll('#acctpriv button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.v === (me.privacy || 'PUBLIC'))));
   $('#acctv').hidden = false;
 };
 $('#acctt').onclick = () => { $('#acctpw').hidden = !$('#acctpw').hidden; };
 $('#acctc').onclick = () => { $('#acctv').hidden = true; };
+
+document.querySelectorAll('#acctpriv button').forEach(b => {
+  b.onclick = async () => {
+    try {
+      const r = await call('set_privacy', { level: b.dataset.v });
+      me = r.me;
+      document.querySelectorAll('#acctpriv button').forEach(x =>
+        x.setAttribute('aria-pressed', String(x === b)));
+    } catch (e) { toast(e.message, 3400); }
+  };
+});
+
+$('#playerc').onclick = () => { $('#playerv').hidden = true; };
+
+async function openPlayerBets(nick) {
+  $('#playern').textContent = nick;
+  const body = $('#playerbody');
+  body.textContent = '';
+  $('#playerv').hidden = false;
+  try {
+    const j = await call('player_bets', { nick });
+    body.textContent = '';
+    if (!j.bets.length) { body.appendChild(el('div', 'empty', 'Aucun pronostic pour cette compétition.')); return; }
+    j.bets.forEach(b => {
+      const d = el('div', 'bet ' + b.status);
+      const col = el('div', 'col');
+      col.appendChild(el('div', 't', b.pick));
+      col.appendChild(el('div', 'd', b.label));
+      col.appendChild(el('div', 'd', b.sub));
+      d.appendChild(col);
+      d.appendChild(el('span', 'r',
+        b.status === 'PENDING' ? '+' + b.pts + ' ?'
+      : b.status === 'WON'     ? '+' + b.pts + ' pts'
+      : b.status === 'VOID'    ? 'annulé'
+      : '0 pt'));
+      body.appendChild(d);
+    });
+  } catch (e) {
+    body.textContent = '';
+    body.appendChild(el('div', 'hintline', e.message));
+  }
+}
 
 $('#acctnb').onclick = async () => {
   const nick = $('#acctnick').value.trim();

@@ -9,6 +9,7 @@
  */
 require_once __DIR__ . '/markets.php';
 require_once __DIR__ . '/schema.php';
+require_once __DIR__ . '/groups.php';
 
 const PRONO_POLL_THROTTLE = 4;     // secondes entre deux passages effectifs
 const PRONO_POOL_SCALE    = 25.0;  // nombre de pronostics à partir duquel la foule pèse autant que le modèle
@@ -31,14 +32,19 @@ function prono_points_cap(array $cfg): float
  * Oui pour les duels : leur marché se ferme dès la première volée, donc changer d'avis
  * avant le début du match n'apporte aucune information.
  *
- * Non pour les marchés « au long cours » (vainqueur d'épreuve, qualifications) : ils
- * restent ouverts pendant que la compétition se joue. Autoriser le changement
- * reviendrait à laisser attendre l'élimination de son favori pour se reporter sur le
- * suivant — le jeu n'aurait plus d'intérêt.
+ * Oui pour le tiercé de qualification : contrairement au vainqueur d'épreuve, son
+ * marché se verrouille tôt (dernière volée de qualification, `PRONO_QUAL_LOCK_ARROWS`)
+ * — changer d'avis avant ce verrouillage n'a pas plus de sens que pour un duel, on ne
+ * peut pas « attendre de voir » un résultat encore inconnu.
+ *
+ * Non pour les autres marchés « au long cours » (vainqueur d'épreuve, score du 1er
+ * qualifié/du cut) : ils restent ouverts pendant que la compétition se joue. Autoriser
+ * le changement reviendrait à laisser attendre l'élimination de son favori pour se
+ * reporter sur le suivant — le jeu n'aurait plus d'intérêt.
  */
 function prono_changeable(string $type): bool
 {
-    return $type === 'MATCH_WINNER';
+    return $type === 'MATCH_WINNER' || $type === 'QUAL_TIERCE';
 }
 
 /**
@@ -516,6 +522,10 @@ function prono_delete_user(int $uid, int $tid = 0): void
     $db = prono_db();
     $db->beginTransaction();
     try {
+        // Un compte supprimé « quitte » aussi ses groupes (transfert de propriété au
+        // membre restant le mieux classé, ou suppression du groupe s'il n'en reste
+        // aucun) — avant les DELETE ci-dessous, pendant que le compte existe encore.
+        prono_group_user_removed($uid);
         prono_q('DELETE FROM PRONO_Tokens WHERE PaTkUser = ?', [$uid]);
         prono_q('DELETE FROM PRONO_Bets   WHERE PaBeUser = ?', [$uid]);
         prono_q('DELETE FROM PRONO_Scores WHERE PaScUser = ?', [$uid]);
@@ -727,34 +737,6 @@ function prono_build_snapshot(int $tid, array $cfg): array
         ];
     }
 
-    // Étendue de points du tiercé : le trio le plus probable (les 3 favoris dans
-    // l'ordre attendu — un tiercé « sûr ») rapporte le moins, le trio le moins
-    // probable (les 3 plus gros outsiders — un tiercé « risqué ») rapporte le plus.
-    // Affiché côté public pour que le joueur choisisse sa stratégie avant de nommer
-    // ses 3 archers, sans avoir à deviner l'écart entre un pari prudent et un pari
-    // audacieux sur CETTE épreuve précise.
-    foreach ($markets as $mid => &$mk) {
-        if ($mk['type'] !== 'QUAL_TIERCE') continue;
-
-        $winProb = [];
-        foreach ($mk['sels'] as $s) if ($s['grp'] === 'R1') $winProb[$s['ath']] = $s['prob'];
-        if (count($winProb) < 3) continue;
-
-        arsort($winProb);
-        $ids  = array_keys($winProb);
-        $fav  = array_slice($ids, 0, 3);    // favoris, dans l'ordre attendu : le plus sûr
-        $long = array_slice($ids, -3);      // les 3 plus gros outsiders : le plus risqué
-
-        $pFav  = prono_tierce_points_from($winProb, $fav[0], $fav[1], $fav[2], $cfg);
-        $pLong = prono_tierce_points_from($winProb, $long[0], $long[1], $long[2], $cfg);
-
-        $mk['tierce'] = [
-            'orderMin' => $pFav['order'],  'orderMax' => $pLong['order'],
-            'anyMin'   => $pFav['any'],    'anyMax'   => $pLong['any'],
-        ];
-    }
-    unset($mk);
-
     $recent = prono_all(
         "SELECT m.PaMkLabel, m.PaMkSubLabel, s.PaSeLabel
          FROM PRONO_Markets m
@@ -803,6 +785,11 @@ function prono_build_snapshot(int $tid, array $cfg): array
         'left'     => isset($cfg['PaCfLeft']) && $cfg['PaCfLeft'] !== null
                         ? (int) $cfg['PaCfLeft'] : null,
         'base'    => (int) $cfg['PaCfPointsBase'],
+        // Servent au client à estimer en direct les points d'un tiercé pendant la
+        // saisie (avant validation), avec exactement la même formule que
+        // prono_points()/prono_tierce_points_from() — pas une approximation.
+        'cap'     => prono_points_cap($cfg),
+        'scoring' => (string) ($cfg['PaCfScoring'] ?? 'ODDS'),
         'events'  => $events,
         'markets' => array_values($markets),
         'recent'  => $recent,

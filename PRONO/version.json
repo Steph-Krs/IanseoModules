@@ -1,7 +1,7 @@
 {
-    "version": "1.0.0",
-    "date": "2026-08-04",
-    "notes": "Introduction du module PRONO pour gérer les pronostics sportifs et les classements des joueurs.",
+    "version": "1.2.0",
+    "date": "2026-08-05",
+    "notes": "Ajout des groupes : chaque joueur peut créer un groupe (nom + mot de passe), en rejoindre plusieurs, avec un classement propre par groupe (compétition et saison). Confidentialité des pronostics à 3 niveaux (public, mes groupes seulement, personne), et possibilité de consulter les pronostics d'un participant depuis un classement si sa confidentialité le permet. Nouvelle page d'administration « Groupes & joueurs » (qui reprend aussi la gestion des comptes joueurs, déplacée depuis la console).",
     "files": [
         "menu.php",
         "index.php",
@@ -9,12 +9,14 @@
         "admin/qrcode.php",
         "admin/quickclose.php",
         "admin/markets.php",
+        "admin/groups.php",
         "lib/db.php",
         "lib/schema.php",
         "lib/model.php",
         "lib/data.php",
         "lib/markets.php",
         "lib/engine.php",
+        "lib/groups.php",
         "lib/calibrate.php",
         "lib/.htaccess",
         "data/.htaccess",
@@ -38,7 +40,9 @@
         "PRONO_Markets",
         "PRONO_Tokens",
         "PRONO_Users",
-        "PRONO_Config"
+        "PRONO_Config",
+        "PRONO_Groups",
+        "PRONO_GroupMembers"
     ],
     "uninstall_warning": "La désinstallation supprime les pronostics et les classements des joueurs. Le vhost Apache dédié et le tunnel Cloudflare, eux, ont été créés à la main : il faut les retirer séparément."
 }

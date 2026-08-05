@@ -270,6 +270,13 @@ function prono_migrate(): void
         $db->exec('ALTER TABLE PRONO_Users DROP COLUMN PaUsToken');
     }
 
+    // Confidentialité des pronostics (v1.2) : PUBLIC (comportement d'avant ce
+    // réglage, rien ne change par défaut), GROUPS (visible seulement par les groupes
+    // du joueur) ou PRIVATE (personne).
+    if (!in_array('PaUsPrivacy', $ucols, true)) {
+        $db->exec("ALTER TABLE PRONO_Users ADD COLUMN PaUsPrivacy VARCHAR(10) NOT NULL DEFAULT 'PUBLIC'");
+    }
+
     // Passage du système de mise (v1.x) au système de points : plus de solde de départ
     // ni de mise, on pronostique et on marque. Les pronostics déjà réglés sont convertis
     // pour que le classement reste cohérent.
@@ -405,6 +412,27 @@ function prono_migrate(): void
             if (in_array($col, $ucols3, true)) $db->exec("ALTER TABLE PRONO_Users DROP COLUMN $col");
         }
     }
+
+    // Groupes de joueurs (v1.2) : classements parallèles à l'intérieur d'un cercle
+    // (club, famille...). Rejoindre un groupe se fait par nom + mot de passe, comme
+    // un compte joueur — PgPass est donc une empreinte bcrypt, jamais le mot de passe
+    // en clair (voir prono_group_join(), lib/groups.php).
+    $opt = 'ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+    $db->exec("CREATE TABLE IF NOT EXISTS PRONO_Groups (
+        PgId       INT AUTO_INCREMENT PRIMARY KEY,
+        PgName     VARCHAR(40)  NOT NULL,
+        PgPass     VARCHAR(255) NOT NULL,
+        PgOwner    INT          NOT NULL,
+        PgCreated  DATETIME     NOT NULL,
+        UNIQUE KEY uq_name (PgName)
+    ) $opt");
+    $db->exec("CREATE TABLE IF NOT EXISTS PRONO_GroupMembers (
+        PgmGroup   INT      NOT NULL,
+        PgmUser    INT      NOT NULL,
+        PgmJoined  DATETIME NOT NULL,
+        PRIMARY KEY (PgmGroup, PgmUser),
+        KEY idx_user (PgmUser)
+    ) $opt");
 
     // Jetons orphelins : un identifiant d'auto-incrément peut être réattribué après
     // suppression d'un joueur, ce qui rendrait un vieux jeton valable sur un compte

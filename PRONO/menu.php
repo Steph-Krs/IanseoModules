@@ -20,6 +20,7 @@ if (!empty($on) && !empty($_SESSION['TourId']) && (subFeatureAcl($acl, AclQualif
         if (subFeatureAcl($acl, AclQualification, '') >= AclReadWrite) {
             $ret['MODS']['PRONO'][] = 'Console' . '|' . $CFG->ROOT_DIR . 'Modules/Custom/PRONO/index.php';
             $ret['MODS']['PRONO'][] = 'Types & grille' . '|' . $CFG->ROOT_DIR . 'Modules/Custom/PRONO/admin/markets.php';
+            $ret['MODS']['PRONO'][] = 'Groupes & joueurs' . '|' . $CFG->ROOT_DIR . 'Modules/Custom/PRONO/admin/groups.php';
         }
         $ret['MODS']['PRONO'][] = 'Écran de salle' . '|' . $CFG->ROOT_DIR . 'Modules/Custom/PRONO/screen.php';
 

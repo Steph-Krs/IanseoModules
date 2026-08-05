@@ -167,7 +167,7 @@ estimation. Ces deux marchés nécessitent donc REPARTITION_EPREUVES et un rappr
 à jour ; sans classement national, ils n'apparaissent simplement pas (le tiercé, lui,
 reste toujours disponible).
 
-### Deux classements
+### Deux classements — et des classements de groupe
 
 Le **classement de la compétition** ne compte que les points du jour. Le **classement
 de la saison** additionne toutes les compétitions retenues — un onglet bascule de l'un
@@ -179,6 +179,39 @@ ni à son classement propre : c'est ce qui permet d'écarter un essai.
 
 Réimporter une compétition ne change rien : les points restent attachés à elle, comme
 les pronostics.
+
+En plus du classement général, un joueur peut créer un **groupe** — club, famille,
+bande de copains — avec un nom et un mot de passe. Le classement bascule alors sur ce
+groupe (compétition et saison) exactement comme le classement général, mais limité à
+ses membres.
+
+- **Créer** un groupe demande juste un nom (3-40 caractères) et un mot de passe (4
+  caractères minimum) : le créateur en devient le propriétaire et premier membre.
+- **Rejoindre** un groupe se fait dans un formulaire dédié : nom + mot de passe, comme
+  une connexion. Aucune liste de groupes existants n'est affichée — seul le bon
+  couple nom/mot de passe fait entrer, un mauvais renvoie un message générique (même
+  principe anti-tâtonnement que la connexion d'un compte).
+- Un joueur peut appartenir à **plusieurs groupes** en même temps.
+- **Seul le créateur** (ou un administrateur, depuis la console) peut supprimer un
+  groupe ; n'importe quel membre peut le quitter à tout moment.
+- Si le créateur quitte le groupe ou supprime son compte, la propriété passe
+  automatiquement au membre restant ayant le plus de **points de saison** ; si
+  personne ne reste, le groupe disparaît avec lui.
+
+### Confidentialité et consultation des pronostics
+
+Chaque joueur choisit, depuis sa fiche de compte, qui peut voir ses pronostics :
+
+- **Public** (par défaut) — visible par tous, depuis le classement général comme
+  depuis un classement de groupe.
+- **Mes groupes seulement** — visible uniquement par les joueurs qui partagent au
+  moins un groupe avec lui.
+- **Personne** — ses pronostics restent privés ; seul son score reste visible dans les
+  classements.
+
+Depuis n'importe quel classement, un appui sur le pseudo d'un participant affiche ses
+pronostics de la compétition en cours, si sa confidentialité le permet — sinon un
+message l'indique clairement, sans rien dévoiler.
 
 ### Comptes joueurs
 
@@ -300,17 +333,19 @@ déjà.
 
 ## Base de données
 
-Sept tables, toutes préfixées `PRONO_` (`utf8mb4_unicode_ci`) :
+Neuf tables, toutes préfixées `PRONO_` (`utf8mb4_unicode_ci`) :
 
 | Table | Rôle |
 |---|---|
 | `PRONO_Config` | réglages par compétition (ouverture, barème, points de base, marchés actifs, affiche) |
-| `PRONO_Users` | joueurs : pseudo, empreinte du mot de passe — comptes globaux au serveur |
+| `PRONO_Users` | joueurs : pseudo, empreinte du mot de passe, niveau de confidentialité — comptes globaux au serveur |
 | `PRONO_Scores` | points par (joueur, compétition) — le classement de saison en fait la somme |
 | `PRONO_Tokens` | sessions ouvertes, une ligne par appareil connecté |
 | `PRONO_Markets` | marchés : type, libellé, statut (`OPEN`/`LOCKED`/`SETTLED`) |
 | `PRONO_Selections` | issues d'un marché : probabilité, difficulté, nombre de pronostics |
 | `PRONO_Bets` | pronostics : issue(s) choisie(s), **points figés**, statut. Le tiercé porte 3 issues (1er/2e/3e) sur la même ligne. |
+| `PRONO_Groups` | groupes de joueurs : nom, mot de passe (empreinte bcrypt), propriétaire |
+| `PRONO_GroupMembers` | appartenance aux groupes (un joueur peut en rejoindre plusieurs) |
 
 Aucune écriture dans les tables ianseo : le module est en lecture seule côté sportif
 (et en lecture seule, optionnelle, des tables `REP_*` de REPARTITION_EPREUVES s'il est
@@ -321,6 +356,8 @@ installé).
 | Page | Qui |
 |---|---|
 | `index.php` — console | organisateur (`AclQualification` / écriture) |
+| `admin/markets.php` — types & grille | organisateur (`AclQualification` / écriture) |
+| `admin/groups.php` — groupes & joueurs | organisateur (`AclQualification` / écriture) |
 | `admin/qrcode.php` — affiche à imprimer | organisateur (`AclQualification` / écriture) |
 | `screen.php` — écran de salle | `AclQualification` / lecture |
 | `admin/calibrate.php` | organisateur (`AclQualification` / écriture) |

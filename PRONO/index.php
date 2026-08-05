@@ -90,16 +90,6 @@ try {
             }
         }
 
-        if ($do === 'deluser') {
-            $uid = (int) ($_POST['uid'] ?? 0);
-            $who = (string) prono_val('SELECT PaUsNick FROM PRONO_Users WHERE PaUsId = ?', [$uid], '');
-            if ($who !== '') {
-                prono_delete_user($uid, $tid);
-                prono_poll($tid, true);
-                $msg = 'Compte « ' . $who .' » supprimé, avec ses pronostics.';
-            }
-        }
-
         if ($do === 'refresh') {
             $r = prono_poll($tid, true);
             $msg = 'Recalcul effectué : ' . json_encode($r, JSON_UNESCAPED_UNICODE);
@@ -370,50 +360,14 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     </p>
   </form>
 
-  <?php
-    $players = prono_all('SELECT u.PaUsId, u.PaUsNick, u.PaUsSeen,
-                                 IFNULL(s.PaScPoints,0) PaUsPoints, IFNULL(s.PaScBets,0) PaUsBets,
-                                 IFNULL(s.PaScWon,0) PaUsWon
-                          FROM PRONO_Scores s INNER JOIN PRONO_Users u ON u.PaUsId = s.PaScUser
-                          WHERE s.PaScTournament = ?
-                          ORDER BY s.PaScPoints DESC, u.PaUsNick', [$tid]);
-  ?>
-  <?php if ($players): ?>
-  <details style="border-color:#d2d4d6;margin-top:14px">
-    <summary style="background:#f0f4ff;color:#01367c">Joueurs (<?= count($players) ?>)</summary>
-    <div class="body">
-      <div class="hint" style="margin:0 0 8px">Supprimer un compte efface aussi ses
-        pronostics et ses points. Les valeurs affichées aux autres joueurs sont
-        recalculées dans la foulée.</div>
-      <table style="border-collapse:collapse;width:100%;max-width:720px">
-        <tr style="background:#f0f4ff">
-          <th style="text-align:left;padding:6px 8px;font-size:11.5px;text-transform:uppercase">Pseudo</th>
-          <th style="text-align:right;padding:6px 8px;font-size:11.5px;text-transform:uppercase">Points</th>
-          <th style="text-align:right;padding:6px 8px;font-size:11.5px;text-transform:uppercase">Justes</th>
-          <th style="text-align:right;padding:6px 8px;font-size:11.5px;text-transform:uppercase">Vu le</th>
-          <th></th>
-        </tr>
-        <?php foreach ($players as $pl): ?>
-          <tr style="border-bottom:1px solid #eceef0">
-            <td style="padding:6px 8px;font-size:13.5px"><?= htmlspecialchars($pl['PaUsNick']) ?></td>
-            <td style="padding:6px 8px;text-align:right;font-weight:700"><?= (int) $pl['PaUsPoints'] ?></td>
-            <td style="padding:6px 8px;text-align:right"><?= (int) $pl['PaUsWon'] ?>/<?= (int) $pl['PaUsBets'] ?></td>
-            <td style="padding:6px 8px;text-align:right;color:#7d8183;font-size:12.5px">
-              <?= htmlspecialchars(substr((string) $pl['PaUsSeen'], 5, 11)) ?></td>
-            <td style="padding:6px 8px;text-align:right">
-              <form method="post" style="display:inline"
-                    onsubmit="return confirm('Supprimer définitivement le compte « <?= htmlspecialchars(addslashes($pl['PaUsNick'])) ?> » et ses <?= (int) $pl['PaUsBets'] ?> pronostic(s) ?')">
-                <input type="hidden" name="do" value="deluser">
-                <input type="hidden" name="uid" value="<?= (int) $pl['PaUsId'] ?>">
-                <button class="btn dgr" style="padding:4px 10px;font-size:12.5px">Supprimer</button>
-              </form>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-      </table>
-    </div>
-  </details>
-  <?php endif; ?>
+  <div class="box" style="margin-top:14px">
+    <h2 style="margin-bottom:8px">Groupes &amp; joueurs</h2>
+    <p style="margin:0 0 10px;font-size:13.5px">Groupes créés par les joueurs (classements
+      parallèles) et gestion des comptes — sur une page à part, comme la grille des
+      pronostics.</p>
+    <a class="btn" style="text-decoration:none;display:inline-block" href="<?= $root ?>admin/groups.php">
+      Ouvrir groupes &amp; joueurs →</a>
+  </div>
 
   <details>
     <summary>Remettre les pronostics à zéro</summary>

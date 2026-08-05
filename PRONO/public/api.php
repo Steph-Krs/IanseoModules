@@ -98,7 +98,8 @@ function prono_user_payload(?array $u): ?array
         'won'    => (int) $u['PaUsWon'],
         // Comptes créés avant les mots de passe : la session en cours reste valable,
         // mais il faut en définir un pour pouvoir se reconnecter ailleurs.
-        'nopass' => $u['PaUsPass'] === '',
+        'nopass'  => $u['PaUsPass'] === '',
+        'privacy' => $u['PaUsPrivacy'] ?? 'PUBLIC',
     ];
 }
 
@@ -130,8 +131,23 @@ try {
             $snap['left']     = ($cfg['PaCfLeft'] ?? null) !== null ? (int) $cfg['PaCfLeft'] : null;
             $snap['me']       = prono_user_payload($user);
             if ($user) {
+                // Propre au visiteur, calculé ici plutôt que dans le snapshot partagé
+                // (prono_build_snapshot()) — même principe que mybets ci-dessous.
+                $snap['groups'] = [];
+                foreach (prono_user_groups((int) $user['PaUsId']) as $g) {
+                    $gid = (int) $g['id'];
+                    $snap['groups'][] = [
+                        'id'      => $gid,
+                        'name'    => $g['name'],
+                        'isOwner' => (bool) $g['isOwner'],
+                        'members' => (int) $g['members'],
+                        'board'   => prono_group_board($gid, $tid),
+                        'season'  => prono_group_season($gid),
+                    ];
+                }
                 $snap['mybets'] = prono_all(
                     'SELECT b.PaBeId id, b.PaBeMarket mk, b.PaBeSelection sel,
+                            b.PaBeSelection2 sel2, b.PaBeSelection3 sel3,
                             b.PaBePoints pts, b.PaBeStatus status,
                             m.PaMkLabel label, m.PaMkSubLabel sub,
                             -- Un tiercé porte 3 sélections : on assemble « 1er, 2e, 3e »
@@ -328,8 +344,11 @@ try {
         }
 
         // ── Tiercé de qualification : un seul pronostic, 3 noms (1er/2e/3e), comme
-        //    aux courses hippiques. Jamais changeable une fois posé (marché « au
-        //    long cours », comme le vainqueur d'épreuve).
+        //    aux courses hippiques. Modifiable tant que le marché reste OPEN (il se
+        //    verrouille dès la dernière volée de qualification — prono_changeable()) :
+        //    contrairement au vainqueur d'épreuve, on ne peut pas « attendre de voir »
+        //    un résultat encore inconnu, changer d'avis avant le verrouillage n'a donc
+        //    pas plus de sens à interdire que pour un duel.
         case 'predict3': {
             if (!$user) prono_fail('Choisis d\'abord un pseudo.', 401);
             if (empty($cfg['PaCfBetsOpen'])) {
@@ -380,26 +399,38 @@ try {
             $db = prono_db();
             $db->beginTransaction();
             try {
-                $old = prono_one('SELECT PaBeId, PaBeStatus FROM PRONO_Bets
-                                  WHERE PaBeUser = ? AND PaBeMarket = ? FOR UPDATE',
+                $old = prono_one('SELECT PaBeId, PaBeSelection, PaBeSelection2, PaBeSelection3, PaBeStatus
+                                  FROM PRONO_Bets WHERE PaBeUser = ? AND PaBeMarket = ? FOR UPDATE',
                     [$user['PaUsId'], $mid]);
 
                 if ($old && $old['PaBeStatus'] !== 'PENDING') {
                     $db->rollBack();
                     prono_fail('Ce tiercé est déjà réglé.');
                 }
-                if ($old) {
+                if ($old && (int) $old['PaBeSelection'] === $s1 && (int) $old['PaBeSelection2'] === $s2
+                          && (int) $old['PaBeSelection3'] === $s3) {
                     $db->rollBack();
-                    prono_fail('Ton tiercé est définitif sur cette épreuve : il reste ouvert '
-                             . 'pendant la compétition, on ne peut pas le changer en cours de route.');
+                    prono_out(['ok' => true, 'me' => prono_user_payload($user), 'same' => true]);
                 }
 
-                prono_q('INSERT INTO PRONO_Bets (PaBeUser, PaBeMarket, PaBeSelection, PaBeSelection2,
-                            PaBeSelection3, PaBeOdds, PaBePoints, PaBePartial, PaBePlaced)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
-                    [$user['PaUsId'], $mid, $s1, $s2, $s3, $odds, $pts['order'], $pts['any']]);
-                prono_q('INSERT INTO PRONO_Scores (PaScUser, PaScTournament, PaScBets) VALUES (?, ?, 1)
-                         ON DUPLICATE KEY UPDATE PaScBets = PaScBets + 1', [$user['PaUsId'], $tid]);
+                if ($old) {
+                    // Changement d'avis : on retire les 3 votes précédents avant de poser les nouveaux.
+                    foreach ([$old['PaBeSelection'], $old['PaBeSelection2'], $old['PaBeSelection3']] as $prevSid) {
+                        prono_q('UPDATE PRONO_Selections SET PaSePool = GREATEST(0, PaSePool - 1)
+                                 WHERE PaSeId = ?', [(int) $prevSid]);
+                    }
+                    prono_q('UPDATE PRONO_Bets SET PaBeSelection = ?, PaBeSelection2 = ?, PaBeSelection3 = ?,
+                                PaBeOdds = ?, PaBePoints = ?, PaBePartial = ?, PaBePlaced = NOW()
+                             WHERE PaBeId = ?',
+                        [$s1, $s2, $s3, $odds, $pts['order'], $pts['any'], (int) $old['PaBeId']]);
+                } else {
+                    prono_q('INSERT INTO PRONO_Bets (PaBeUser, PaBeMarket, PaBeSelection, PaBeSelection2,
+                                PaBeSelection3, PaBeOdds, PaBePoints, PaBePartial, PaBePlaced)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+                        [$user['PaUsId'], $mid, $s1, $s2, $s3, $odds, $pts['order'], $pts['any']]);
+                    prono_q('INSERT INTO PRONO_Scores (PaScUser, PaScTournament, PaScBets) VALUES (?, ?, 1)
+                             ON DUPLICATE KEY UPDATE PaScBets = PaScBets + 1', [$user['PaUsId'], $tid]);
+                }
                 foreach ([$s1, $s2, $s3] as $sid) {
                     prono_q('UPDATE PRONO_Selections SET PaSePool = PaSePool + 1 WHERE PaSeId = ?', [$sid]);
                 }
@@ -413,10 +444,100 @@ try {
             prono_poll($tid, true);
 
             prono_out([
-                'ok'   => true,
-                'me'   => prono_user_payload(prono_reload_user((int) $user['PaUsId'], $tid)),
-                'pick' => ['label' => $byId[$s1]['PaSeLabel'] ?? '', 'pts' => $pts['order']],
+                'ok'      => true,
+                'me'      => prono_user_payload(prono_reload_user((int) $user['PaUsId'], $tid)),
+                'changed' => (bool) $old,
+                'pick'    => ['label' => $byId[$s1]['PaSeLabel'] ?? '', 'pts' => $pts['order']],
             ]);
+        }
+
+        // ── Groupes : classements parallèles à l'intérieur d'un cercle de joueurs.
+        //    Rejoindre ne révèle jamais si un nom de groupe existe (prono_group_join(),
+        //    lib/groups.php) ; créer/supprimer peuvent être précis (rien à cacher côté
+        //    créateur/propriétaire).
+        case 'group_create': {
+            if (!$user) prono_fail('Choisis d\'abord un pseudo.', 401);
+            try {
+                $g = prono_group_create((int) $user['PaUsId'],
+                    (string) ($_POST['name'] ?? ''), (string) ($_POST['pass'] ?? ''));
+            } catch (RuntimeException $e) {
+                prono_fail($e->getMessage());
+            }
+            prono_out(['ok' => true, 'group' => $g]);
+        }
+
+        case 'group_join': {
+            if (!$user) prono_fail('Choisis d\'abord un pseudo.', 401);
+            try {
+                $g = prono_group_join((int) $user['PaUsId'],
+                    (string) ($_POST['name'] ?? ''), (string) ($_POST['pass'] ?? ''));
+            } catch (RuntimeException $e) {
+                prono_fail($e->getMessage());
+            }
+            prono_out(['ok' => true, 'group' => $g]);
+        }
+
+        case 'group_leave': {
+            if (!$user) prono_fail('Choisis d\'abord un pseudo.', 401);
+            prono_group_leave((int) $user['PaUsId'], (int) ($_POST['gid'] ?? 0));
+            prono_out(['ok' => true]);
+        }
+
+        // Un joueur ne peut supprimer que ses propres groupes (isAdmin=false) ; la
+        // suppression par un administrateur ianseo se fait depuis admin/groups.php,
+        // qui appelle prono_group_delete() directement (pas cette action publique).
+        case 'group_delete': {
+            if (!$user) prono_fail('Choisis d\'abord un pseudo.', 401);
+            try {
+                prono_group_delete((int) ($_POST['gid'] ?? 0), (int) $user['PaUsId'], false);
+            } catch (RuntimeException $e) {
+                prono_fail($e->getMessage());
+            }
+            prono_out(['ok' => true]);
+        }
+
+        // ── Confidentialité des pronostics : public à tous, visible seulement par
+        //    mes groupes, ou personne.
+        case 'set_privacy': {
+            if (!$user) prono_fail('Choisis d\'abord un pseudo.', 401);
+            $level = (string) ($_POST['level'] ?? '');
+            if (!in_array($level, ['PUBLIC', 'GROUPS', 'PRIVATE'], true)) {
+                prono_fail('Réglage de confidentialité invalide.');
+            }
+            prono_q('UPDATE PRONO_Users SET PaUsPrivacy = ? WHERE PaUsId = ?', [$level, $user['PaUsId']]);
+            prono_out(['ok' => true, 'me' => prono_user_payload(
+                prono_reload_user((int) $user['PaUsId'], $tid))]);
+        }
+
+        // ── Pronostics d'un autre joueur (clic sur un pseudo dans un classement) :
+        //    accessible même anonyme si ce joueur est PUBLIC, jamais sans compte si
+        //    ses pronostics ne sont visibles que par ses groupes (impossible de
+        //    vérifier une appartenance sans savoir qui regarde).
+        case 'player_bets': {
+            $nick = trim((string) ($_GET['nick'] ?? $_POST['nick'] ?? ''));
+            $target = prono_one('SELECT PaUsId, PaUsPrivacy FROM PRONO_Users WHERE PaUsNick = ?', [$nick]);
+            if (!$target) prono_fail('Joueur inconnu.', 404);
+
+            $viewerUid = $user ? (int) $user['PaUsId'] : 0;
+            if (!prono_can_view_bets($viewerUid, (int) $target['PaUsId'])) {
+                prono_fail($target['PaUsPrivacy'] === 'PRIVATE'
+                    ? 'Ce joueur garde ses pronostics privés.'
+                    : 'Ce joueur ne partage ses pronostics qu\'avec ses groupes.', 403);
+            }
+
+            $bets = prono_all(
+                'SELECT m.PaMkLabel label, m.PaMkSubLabel sub, b.PaBePoints pts, b.PaBeStatus status,
+                        CASE WHEN s2.PaSeId IS NULL THEN s.PaSeLabel
+                             ELSE CONCAT(s.PaSeLabel, \', \', s2.PaSeLabel, \', \', s3.PaSeLabel) END AS pick
+                 FROM PRONO_Bets b
+                 INNER JOIN PRONO_Markets m ON m.PaMkId = b.PaBeMarket
+                 INNER JOIN PRONO_Selections s  ON s.PaSeId = b.PaBeSelection
+                 LEFT  JOIN PRONO_Selections s2 ON s2.PaSeId = b.PaBeSelection2
+                 LEFT  JOIN PRONO_Selections s3 ON s3.PaSeId = b.PaBeSelection3
+                 WHERE b.PaBeUser = ? AND m.PaMkTournament = ?
+                 ORDER BY b.PaBeId DESC LIMIT 60', [(int) $target['PaUsId'], $tid]);
+
+            prono_out(['ok' => true, 'nick' => $nick, 'bets' => $bets]);
         }
 
         default:
