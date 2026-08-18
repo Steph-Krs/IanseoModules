@@ -16,12 +16,19 @@
 require_once(__DIR__ . '/ExtranetClient.php');
 require_once(__DIR__ . '/DirigeantClient.php');
 
-/** Bases visées. En phase d'essai, l'extranet pointe la préproduction. */
+/**
+ * Bases visées par espace.
+ * 'ext' = extranet en PRODUCTION : utilisé par la création de compétition, qui ne fait
+ *         que LIRE le calendrier fédéral (aucune écriture sur l'extranet).
+ *         ⚠ Le dépôt des résultats TXT reste sur la préproduction : il a sa propre base
+ *         ($ITXT_BASE dans ajax.php) et n'utilise pas cette fonction.
+ * 'dir' = Espace Dirigeant (production).
+ */
 function sfa_base(string $space): string
 {
     return $space === 'dir'
         ? DirigeantClient::BASE_PROD
-        : ExtranetClient::BASE_PPROD;
+        : ExtranetClient::BASE_PROD;
 }
 
 /** Clés de convention (publiées par AUTH ou par nous) selon l'espace. */

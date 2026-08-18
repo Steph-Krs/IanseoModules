@@ -95,10 +95,12 @@ class DirigeantClient
         curl_setopt($ch, CURLOPT_HTTPGET, true);
         $page = curl_exec($ch);
         if (!$page || curl_errno($ch)) {
-            $e = curl_error($ch);
+            $errno = curl_errno($ch);
+            $e     = curl_error($ch);
             curl_close($ch);
 
-            return ['ok' => false, 'msg' => 'Espace Dirigeant injoignable : ' . $e];
+            return ['ok' => false, 'msg' => ExtranetClient::netMessage($errno, $e, $this->base),
+                    'offline' => ExtranetClient::isOffline($errno)];
         }
 
         $csrf = null;
@@ -158,7 +160,8 @@ class DirigeantClient
         $body   = curl_exec($ch);
         $code   = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $effUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-        $err    = curl_errno($ch) ? curl_error($ch) : '';
+        $errno  = curl_errno($ch);
+        $err    = $errno ? curl_error($ch) : '';
         curl_close($ch);
 
         // redirigé vers le login = session expirée
@@ -166,7 +169,10 @@ class DirigeantClient
             return ['ok' => false, 'code' => $code, 'body' => '', 'error' => 'Session expirée', 'relogin' => true];
         }
         if ($err || $body === false || $code !== 200) {
-            return ['ok' => false, 'code' => $code, 'body' => '', 'error' => $err ?: ('HTTP ' . $code), 'relogin' => false];
+            return ['ok' => false, 'code' => $code, 'body' => '',
+                    'error'   => $err ? ExtranetClient::netMessage($errno, $err, $this->base) : ('HTTP ' . $code),
+                    'offline' => ExtranetClient::isOffline($errno),
+                    'relogin' => false];
         }
 
         return ['ok' => true, 'code' => $code, 'body' => (string) $body, 'error' => '', 'relogin' => false];

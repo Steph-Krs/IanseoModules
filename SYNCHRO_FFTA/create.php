@@ -27,7 +27,7 @@ if ($sfaAuthOn && empty($_SESSION['AUTH_ROOT']) && !possibleFeature(AclRoot, Acl
 
 $AJAX = $CFG->ROOT_DIR . 'Modules/Custom/SYNCHRO_FFTA/ajax-create.php';
 $RUN  = $CFG->ROOT_DIR . 'Modules/Custom/SYNCHRO_FFTA/create-run.php';
-$BASE = ExtranetClient::BASE_PPROD;
+$BASE = ExtranetClient::BASE_PROD;   // création : lecture du calendrier fédéral en production
 
 // ── Types et sous-règles français réels (pour les menus déroulants) ──────────
 $fr = sfa_fr_sets();
@@ -65,6 +65,14 @@ if (file_exists($CFG->DOCUMENT_PATH . 'Api/index.php') && function_exists('Avail
     foreach (AvailableApis() as $Api) {
         @include($CFG->DOCUMENT_PATH . 'Api/' . $Api . '/ConfigOptions.php');
     }
+}
+// Serveur fédéral en ligne (module de comptes actif) : les modes ISK pro/live
+// déclenchent un trigger qui RÉVOQUE la licence ianseo → on ne propose que « aucun »
+// et « lite ». Décision autonome (aucune dépendance au module AUTH) via $CFG->USERAUTH.
+// Un mode interdit enregistré malgré tout est rebasculé sur lite à l'ouverture de la
+// compétition (aut_isk_enforce, menu.php d'AUTH).
+if (!empty($CFG->USERAUTH)) {
+    unset($IskType['ng-pro'], $IskType['ng-live']);
 }
 $ISK_CONFIG_URL = $CFG->ROOT_DIR . 'Tournament/index-getIskConfig.php';
 
@@ -125,6 +133,18 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
                       border-radius:8px; border:0; padding:1px 4px; background:#eef4fb; color:#01367c; }
     #sfa-bar a { color:#a7d6ff; text-decoration:none; margin-left:10px; cursor:pointer; }
     #sfa-bar a:hover { color:#fff; text-decoration:underline; }
+
+    /* Indicateur de chargement — 3 points qui rebondissent (repli en fondu si animation réduite) */
+    #sfa .sfa-dots { display:inline-flex; gap:6px; vertical-align:middle; margin-left:4px; }
+    #sfa .sfa-dots i { width:8px; height:8px; border-radius:50%; background:var(--bleu); opacity:.4;
+        animation:sfaBounce 1s ease-in-out infinite; }
+    #sfa .sfa-dots i:nth-child(2){ animation-delay:.16s; }
+    #sfa .sfa-dots i:nth-child(3){ animation-delay:.32s; }
+    @keyframes sfaBounce { 0%,80%,100%{ transform:translateY(0); opacity:.4; } 40%{ transform:translateY(-7px); opacity:1; } }
+    @keyframes sfaFade   { 0%,100%{ opacity:.3; } 50%{ opacity:1; } }
+    @media (prefers-reduced-motion: reduce) {
+        #sfa .sfa-dots i { animation-name:sfaFade; }   /* fondu, sans saut : reste visible */
+    }
 </style>
 
 <div id="sfa-bar">🔗 Extranet FFTA
@@ -134,15 +154,23 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 <div id="sfa">
   <div class="banner">
-    <b>Mode essai — préproduction</b> (<?= htmlspecialchars($BASE) ?>).
-    La compétition est créée avec le code ianseo, puis vous arrivez directement sur la saisie des participants.
+    <b>Calendrier fédéral</b> (<?= htmlspecialchars($BASE) ?>) — lecture seule : rien n'est modifié
+    sur l'extranet. La compétition est créée dans ianseo, puis vous arrivez sur la saisie des participants.
   </div>
 
   <?php if (!empty($_GET['err'])): ?>
     <div class="warn" style="margin-bottom:16px"><b>Création non effectuée :</b> <?= htmlspecialchars($_GET['err']) ?></div>
   <?php endif; ?>
 
-  <div class="card login" id="auth">
+  <!-- Affiché tant que la session extranet n'est pas vérifiée : évite de faire croire
+       à l'utilisateur qu'il doit se reconnecter alors qu'un cookie valide existe. -->
+  <div class="card login" id="checking">
+    <h3>Extranet FFTA</h3>
+    <div><p class="muted" style="margin:0">Vérification de la session en cours
+      <span class="sfa-dots"><i></i><i></i><i></i></span></p></div>
+  </div>
+
+  <div class="card login" id="auth" style="display:none">
     <h3>Connexion à l'extranet FFTA</h3>
     <div>
       <p class="muted" style="margin-top:0">Identifiants FFTA (Espace Dirigeant / extranet, mêmes codes).
@@ -299,6 +327,10 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     }
     function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
     function msg(id,t,e){ var x=$(id); x.className=e?'err':'muted'; x.textContent=t||''; }
+    // Chargement animé (3 points) : texte + points qui rebondissent.
+    function dots(t){ return (t ? esc(t)+' ' : '') + '<span class="sfa-dots"><i></i><i></i><i></i></span>'; }
+    function loadCard(t){ return '<p class="muted">' + dots(t) + '</p>'; }
+    function msgLoad(id,t){ var x=$(id); x.className='muted'; x.innerHTML=dots(t); }
 
     function placeBar() {
         var bar=$('sfa-bar'), top=4;
@@ -331,7 +363,35 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         search();
     }
 
-    post('status').then(function(r){ if(r.ok&&r.logged) connected(r.roles, r.shared); });
+    /** Fin de vérification : on masque le « Vérification… » et on montre la bonne chose. */
+    function doneChecking(showLogin) {
+        $('checking').style.display = 'none';
+        $('auth').style.display = showLogin ? '' : 'none';
+    }
+
+    post('status').then(function(r){
+        if (r.ok && r.logged) { doneChecking(false); connected(r.roles, r.shared); return; }
+        // Hors ligne : le dire clairement plutôt que de présenter un formulaire de connexion
+        // qui échouera et ferait croire à un problème d'identifiants.
+        if (r.ok && r.offline) { doneChecking(false); offlineNotice(r.msg); return; }
+        doneChecking(true);   // pas de session valide → formulaire
+    }).catch(function () { doneChecking(true); });
+
+    /** Bandeau « pas de connexion » en tête de page, formulaire masqué. */
+    function offlineNotice(msg) {
+        $('checking').style.display = 'none';
+        $('auth').style.display = 'none';
+        $('list-card').style.display = 'none';
+        $('review').style.display = 'none';
+        var box = document.createElement('div');
+        box.className = 'warn';
+        box.style.cssText = 'border-left-color:#cc3333;background:#fdecea;margin-bottom:16px';
+        box.innerHTML = '<b>Pas de connexion à Internet.</b><br>'
+            + esc(msg || 'Cette étape nécessite une connexion pour lire le calendrier fédéral.')
+            + '<br><button type="button" class="primary" style="margin-top:8px" '
+            + 'onclick="location.reload()">Réessayer</button>';
+        $('sfa').insertBefore(box, $('sfa').firstChild);
+    }
 
     // « i » MFA : déplie/replie l'explication
     var mfaI = $('mfa-i');
@@ -343,7 +403,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     $('btn-login').addEventListener('click', function(){
         var u=$('u').value.trim(), p=$('p').value, o=$('o').value.trim();
         if(!u||!p){ msg('m1','Identifiant et mot de passe requis.',true); return; }
-        msg('m1','Connexion…');
+        msgLoad('m1','Connexion');
         // Ouvre extranet + Espace Dirigeant (r.ok = extranet, requis pour la création).
         post('login',{sfa_user:u, sfa_pass:p, sfa_otp:o}).then(function(r){
             $('p').value=''; $('o').value='';
@@ -370,7 +430,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     var lastEvents = [];
 
     function search() {
-        $('list').innerHTML='<p class="muted">Recherche…</p>';
+        $('list').innerHTML=loadCard('Recherche');
         $('review').style.display='none';
         post('list',{sfa_from:$('from').value, sfa_to:$('to').value}).then(function(r){
             if(!r.ok){ $('list').innerHTML='<p class="err">'+esc(r.msg)+'</p>'; return; }
@@ -458,7 +518,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     function loadEvent(id) {
         $('review').style.display='';
         $('review').scrollIntoView({behavior:'smooth', block:'start'});   // amène l'utilisateur au bloc création
-        $('prop-note').innerHTML='<p class="muted">Chargement…</p>';
+        $('prop-note').innerHTML=loadCard('Chargement de l\'épreuve');
         // Tag « Valide + Para » de la ligne : ligne regroupée ou tag dans les caractéristiques.
         var ev = lastEvents.filter(function(e){ return String(e.id)===String(id); })[0] || {};
         var vp = ev.para || /valide\s*\+\s*para/i.test(ev.carac||'');

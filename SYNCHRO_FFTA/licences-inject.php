@@ -48,6 +48,15 @@ register_shutdown_function(function () use ($__sfa_endpoint) {
     $injection = <<<INJECT
 
 <!-- ── SYNCHRO_FFTA — synchro licenciés (Espace Dirigeant) ─────────────── -->
+<style>
+  #ffta-dots{display:inline-flex;gap:5px;vertical-align:middle;margin-left:4px}
+  #ffta-dots i{width:7px;height:7px;border-radius:50%;background:#0254a8;opacity:.4;
+    animation:fftaBounce 1s ease-in-out infinite}
+  #ffta-dots i:nth-child(2){animation-delay:.16s} #ffta-dots i:nth-child(3){animation-delay:.32s}
+  @keyframes fftaBounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-6px);opacity:1}}
+  @keyframes fftaFade{0%,100%{opacity:.3}50%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){#ffta-dots i{animation-name:fftaFade}}
+</style>
 <div id="ffta-modal"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
             z-index:99999;align-items:center;justify-content:center">
@@ -167,7 +176,8 @@ register_shutdown_function(function () use ($__sfa_endpoint) {
         clearClose();
         form.insertAdjacentElement('afterend', result);
         result.style.display = 'block';
-        result.innerHTML = '<span style="color:#666"><i>⏳ Connexion à l\'Espace Dirigeant FFTA…</i></span>';
+        result.innerHTML = '<span style="color:#666">Connexion à l\'Espace Dirigeant FFTA'
+            + '<span id="ffta-dots"><i></i><i></i><i></i></span></span>';
 
         var body = new URLSearchParams({
             ffta_action   : 'sync',

@@ -1,0 +1,42 @@
+/* Documents imprimables : feuille de marque et reçus. */
+
+#bk.bk-doc { max-width: 900px; margin: 0 auto; padding: 20px 18px 40px; background: #fff; }
+#bk.bk-doc .bk-noprint { margin: 0 0 18px; font-size: 13px; }
+#bk.bk-doc .bk-noprint .bk-btn { margin-top: 0; padding: 7px 14px; font-size: 13px; }
+
+#bk .bk-doc-head { border-bottom: 2px solid #0254a8; padding-bottom: 10px; margin-bottom: 16px; }
+#bk .bk-doc-head h1 { margin: 0 0 6px; font-size: 20px; color: #01367c; }
+#bk .bk-doc-comp { margin: 0; font-size: 14px; color: #20263d; }
+#bk .bk-doc-date { margin: 6px 0 0; font-size: 12px; color: #7d8183; }
+
+#bk .bk-doc-id { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 13px; }
+#bk .bk-doc-id th, #bk .bk-doc-id td { border: 1px solid #d2d4d6; padding: 6px 10px; text-align: left; }
+#bk .bk-doc-id th { background: #f0f4ff; color: #01367c; width: 15%; font-weight: 600; }
+
+#bk .bk-doc-dist { margin-bottom: 18px; page-break-inside: avoid; }
+#bk .bk-doc-dist h2 { margin: 0 0 6px; font-size: 14px; color: #0254a8; }
+
+#bk .bk-doc-grid { width: 100%; border-collapse: collapse; font-size: 13px; }
+#bk .bk-doc-grid th, #bk .bk-doc-grid td { border: 1px solid #20263d; padding: 7px 6px; text-align: center; }
+#bk .bk-doc-grid th { background: #f0f4ff; color: #01367c; font-weight: 600; }
+#bk .bk-doc-grid td { height: 26px; }
+#bk .bk-doc-n { background: #f7f7f7; font-weight: 600; width: 46px; }
+#bk .bk-doc-tot td { background: #f0f4ff; font-weight: 600; }
+#bk .bk-doc-lines th, #bk .bk-doc-lines td { text-align: left; }
+#bk .bk-doc-num { text-align: right !important; white-space: nowrap; }
+
+#bk .bk-doc-sign { width: 100%; border-collapse: collapse; margin-top: 22px; font-size: 13px; }
+#bk .bk-doc-sign th, #bk .bk-doc-sign td { border: 1px solid #20263d; padding: 6px 8px; text-align: center; }
+#bk .bk-doc-sign th { background: #f0f4ff; color: #01367c; }
+#bk .bk-doc-box { height: 54px; }
+
+#bk .bk-doc-foot { margin-top: 18px; font-size: 11px; color: #7d8183; }
+
+@media print {
+    body { background: #fff; }
+    #bk.bk-doc { max-width: none; padding: 0; }
+    .bk-noprint { display: none !important; }
+    #bk .bk-doc-grid th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #bk .bk-doc-id th, #bk .bk-doc-sign th, #bk .bk-doc-tot td { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @page { margin: 12mm; }
+}

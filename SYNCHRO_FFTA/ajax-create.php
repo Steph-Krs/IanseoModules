@@ -1,10 +1,15 @@
-<?php
+﻿<?php
 /**
  * SYNCHRO_FFTA — endpoints AJAX du flux « création depuis l'extranet ».
  * Fonctionne SANS compétition ouverte. Ne crée rien lui-même : la création
  * réelle est faite par le formulaire natif de ianseo (Tournament/index.php),
  * ce endpoint ne fait que lister, lire et proposer.
  */
+// Avant tout chargement : toute sortie parasite (warning/notice, BOM) émise avant le JSON
+// fausserait le Content-Length calculé par JsonOut (strlen du JSON seul) → réponse
+// tronquée côté navigateur. On capture donc dès la première ligne, et on jette avant d'émettre.
+ob_start();
+
 define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
 require_once(__DIR__ . '/ExtranetClient.php');
@@ -19,11 +24,17 @@ CheckTourSession(false);
 $sfaAuthOn = !empty($CFG->USERAUTH) && !empty($_SESSION['AUTH_ENABLE']);
 if ($sfaAuthOn && empty($_SESSION['AUTH_ROOT']) && !possibleFeature(AclRoot, AclReadWrite)) {
     http_response_code(403);
-    JsonOut(['ok' => false, 'msg' => 'Droit de création requis.']);
+    sfa_json(['ok' => false, 'msg' => 'Droit de création requis.']);
 }
 
-$SFA_BASE = ExtranetClient::BASE_PPROD;
-$action   = $_POST['sfa_action'] ?? '';
+// La base extranet vient de sfa_base('ext') (session.php) — production pour la création.
+$action = $_POST['sfa_action'] ?? '';
+
+/** Sortie JSON propre : on jette d'abord tout ce qui aurait pu être émis. */
+function sfa_json($data) {
+    while (ob_get_level()) { ob_end_clean(); }
+    JsonOut($data);
+}
 
 /** Toutes les dates jj/mm/aaaa d'un texte, triées. */
 function sfa_dates(string $s): array
@@ -66,17 +77,21 @@ switch ($action) {
     case 'status':
         $f = sfa_any_cookie('ext');
         if (!$f) {
-            JsonOut(['ok' => true, 'logged' => false]);
+            sfa_json(['ok' => true, 'logged' => false]);
         }
         $shared = sfa_is_shared('ext');
         $res    = (new ExtranetClient($f, sfa_base('ext')))->session();
         if (!$res['ok']) {
+            // Hors ligne : la session n'est pas morte, on garde le cookie et on le signale.
+            if (!empty($res['offline'])) {
+                sfa_json(['ok' => true, 'logged' => false, 'offline' => true, 'msg' => $res['msg'] ?? '']);
+            }
             if (!$shared) {
                 sfa_own_cookie_destroy('ext');
             }
-            JsonOut(['ok' => true, 'logged' => false]);
+            sfa_json(['ok' => true, 'logged' => false]);
         }
-        JsonOut(['ok' => true, 'logged' => true, 'roles' => $res['roles'], 'shared' => $shared]);
+        sfa_json(['ok' => true, 'logged' => true, 'roles' => $res['roles'], 'shared' => $shared]);
         break;
 
     case 'login':
@@ -89,17 +104,17 @@ switch ($action) {
         $res = sfa_login($user, $pass, $otp, ['ext', 'dir']);
         $out = $res['ext'];
         $out['dir'] = ['ok' => !empty($res['dir']['ok']), 'msg' => $res['dir']['msg'] ?? ''];
-        JsonOut($out);
+        sfa_json($out);
         break;
 
     case 'role':
         $client = sfa_client('ext');
-        JsonOut($client->switchRole($_POST['sfa_role'] ?? ''));
+        sfa_json($client->switchRole($_POST['sfa_role'] ?? ''));
         break;
 
     case 'logout':
         sfa_logout();   // nos deux cookies ; ne touche jamais ceux d'AUTH
-        JsonOut(['ok' => true]);
+        sfa_json(['ok' => true]);
         break;
 
     case 'list':
@@ -112,14 +127,14 @@ switch ($action) {
         if (!empty($res['ok'])) {
             $res['events'] = ExtranetClient::groupPara($res['events']);   // fusionne les lignes Valide+Para
         }
-        JsonOut($res);
+        sfa_json($res);
         break;
 
     case 'event':
         $client = sfa_client('ext');
         $res    = $client->event($_POST['sfa_id'] ?? '');
         if (!$res['ok']) {
-            JsonOut($res);
+            sfa_json($res);
         }
 
         $d       = $res['details'];
@@ -149,7 +164,7 @@ switch ($action) {
             $validePara
         );
 
-        JsonOut([
+        sfa_json([
             'ok'       => true,
             'details'  => $d,
             'proposal' => $prop,
@@ -170,5 +185,5 @@ switch ($action) {
 
     default:
         http_response_code(400);
-        JsonOut(['ok' => false, 'msg' => 'Action inconnue.']);
+        sfa_json(['ok' => false, 'msg' => 'Action inconnue.']);
 }

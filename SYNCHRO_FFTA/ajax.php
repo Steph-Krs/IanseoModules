@@ -1,9 +1,14 @@
-<?php
+﻿<?php
 /**
  * Endpoint AJAX du module SYNCHRO_FFTA — flux « dépôt ».
  * Une action par étape de l'assistant. Aucun dépôt n'est effectué ici :
  * la chaîne s'arrête volontairement à l'affichage du cadre de dépôt.
  */
+// Avant tout chargement : toute sortie parasite (warning/notice, BOM) émise avant le JSON
+// fausserait le Content-Length calculé par JsonOut (strlen du JSON seul) → réponse
+// tronquée côté navigateur. On capture donc dès la première ligne, et on jette avant d'émettre.
+ob_start();
+
 define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
 require_once(__DIR__ . '/ExtranetClient.php');
@@ -15,6 +20,12 @@ checkFullACL(AclCompetition, 'cExport', AclReadOnly);
 $ITXT_BASE = ExtranetClient::BASE_PPROD;
 
 $action = $_POST['itxt_action'] ?? '';
+
+/** Sortie JSON propre : on jette d'abord tout ce qui aurait pu être émis. */
+function itxt_json($data) {
+    while (ob_get_level()) { ob_end_clean(); }
+    JsonOut($data);
+}
 
 /** Cookie jar de la session extranet, créé à la connexion et détruit à la déconnexion. */
 function itxt_cookie_file(bool $create = false): ?string
@@ -65,7 +76,7 @@ function itxt_client(string $base): ExtranetClient
 {
     $f = itxt_any_cookie($base);
     if (!$f) {
-        JsonOut(['ok' => false, 'msg' => 'Aucune session extranet — connecte-toi d\'abord.', 'relogin' => true]);
+        itxt_json(['ok' => false, 'msg' => 'Aucune session extranet — connecte-toi d\'abord.', 'relogin' => true]);
     }
 
     return new ExtranetClient($f, $base);
@@ -126,6 +137,122 @@ function itxt_discipline_label(string $code): string
     return $labels[$code] ?? '';
 }
 
+/** La compétition ianseo comporte-t-elle des catégories para ? */
+function itxt_has_para(stdClass $t): bool
+{
+    if (stripos((string) $t->ToTypeSubRule, 'Para') !== false) {
+        return true;   // sous-règle Valide+Para (SetFRTAE-Para, SetFrSelectifPara…)
+    }
+    $q = safe_r_sql('SELECT 1 FROM Divisions
+        WHERE DivTournament=' . intval($_SESSION['TourId']) . ' AND DivIsPara=1 LIMIT 1');
+
+    return safe_num_rows($q) > 0;
+}
+
+/**
+ * Disciplines extranet acceptables pour cette compétition. Une compétition Valide+Para
+ * concerne DEUX épreuves extranet (valides + para) — l'extranet ne filtre que sur une
+ * discipline, donc au-delà d'une, on élargit et on filtre côté module.
+ * @return string[] ex. ['T','H'] (TAE valide+para) ou ['T'] (valides seul)
+ */
+function itxt_disciplines(stdClass $t): array
+{
+    $base = itxt_discipline($t);
+    if ($base === '') {
+        return [];
+    }
+    $set  = [$base];
+    $para = ['T' => 'H', 'S' => 'I'];   // contrepartie para (extérieur / 18m)
+    if (isset($para[$base]) && itxt_has_para($t)) {
+        $set[] = $para[$base];
+    }
+
+    return $set;
+}
+
+/**
+ * Génère le TXT résultats en appelant l'export OFFICIEL (Modules/Sets/FR/exports/index.php),
+ * jamais en le réimplémentant. Requête HTTP interne portant la session ianseo courante ;
+ * l'export renvoie un octet-stream quand le fichier est produit (sinon le formulaire HTML).
+ *
+ * @param string $lev  S = Sélectif (valides), SP = Sélectif Para. Ne JAMAIS utiliser N
+ *                     (Championnat de France) : sans filtre, interdit dans ce module.
+ * @return array|null ['content'=>string, 'filename'=>string] (nom officiel A+Discipline+Agrément.txt
+ *                     lu dans l'en-tête Content-Disposition de l'export), ou null si échec
+ */
+function itxt_generate_txt(string $lev): ?array
+{
+    global $CFG;
+
+    $sid  = session_id();
+    $name = session_name();
+    session_write_close();   // libère le verrou : la requête interne partage la même session
+
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $url    = $scheme . '://' . $host . $CFG->ROOT_DIR
+            . 'Modules/Sets/FR/exports/index.php?lev=' . urlencode($lev);
+
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL            => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HEADER         => true,   // on lit l'en-tête pour le nom de fichier officiel
+        CURLOPT_COOKIE         => $name . '=' . $sid,   // même session ianseo
+        CURLOPT_TIMEOUT        => 120,
+        CURLOPT_SSL_VERIFYPEER => false,   // requête vers soi-même (certif local possible)
+        CURLOPT_SSL_VERIFYHOST => false,
+    ]);
+    $resp   = curl_exec($ch);
+    $code   = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $ctype  = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+    $hsize  = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+    curl_close($ch);
+
+    @session_start();   // réouvre la session pour la suite du script
+
+    // TXT généré = octet-stream ; sinon (lev invalide, pas de données) = page HTML.
+    if ($code !== 200 || stripos($ctype, 'octet-stream') === false || $resp === false) {
+        return null;
+    }
+
+    $headers = substr($resp, 0, $hsize);
+    $body    = substr($resp, $hsize);
+
+    // Nom de fichier OFFICIEL généré par l'export (A + Discipline + Agrément + .txt).
+    $filename = 'export.txt';
+    if (preg_match('/filename\*?=(?:UTF-8\'\')?"?([^"\r\n;]+)"?/i', $headers, $m)) {
+        $filename = trim($m[1]);
+    }
+
+    return ['content' => $body, 'filename' => $filename];
+}
+
+/**
+ * Nombre d'inscrits par côté (valides / para) dans la compétition ianseo.
+ * Sert à décider où déposer : côté para → épreuve para, côté valides → épreuve valides.
+ */
+function itxt_side_counts(): array
+{
+    // Seules les divisions « athlète » (DivAthlete='1') sont des participants ;
+    // les autres (équipes, divisions techniques) ne se déposent pas.
+    $q = safe_r_sql('SELECT DivIsPara AS p, COUNT(*) AS n FROM Entries
+        INNER JOIN Divisions ON DivId=EnDivision AND DivTournament=EnTournament
+        WHERE EnTournament=' . intval($_SESSION['TourId']) . " AND DivAthlete='1'
+        GROUP BY DivIsPara");
+
+    $out = ['valides' => 0, 'para' => 0];
+    while ($r = safe_fetch($q)) {
+        if ((int) $r->p === 1) {
+            $out['para'] = (int) $r->n;
+        } else {
+            $out['valides'] = (int) $r->n;
+        }
+    }
+
+    return $out;
+}
+
 /** Score de ressemblance entre une ligne extranet et la compétition ianseo. */
 function itxt_score(array $ev, stdClass $t): int
 {
@@ -168,19 +295,23 @@ switch ($action) {
         $shared = $own ? null : itxt_shared_cookie($ITXT_BASE);
         $f      = $own ?? $shared;
         if (!$f) {
-            JsonOut(['ok' => true, 'logged' => false]);
+            itxt_json(['ok' => true, 'logged' => false]);
         }
 
         $client = new ExtranetClient($f, $ITXT_BASE);
         $res    = $client->session();
         if (!$res['ok']) {
+            // Hors ligne : la session n'est pas morte, on garde le cookie et on le dit.
+            if (!empty($res['offline'])) {
+                itxt_json(['ok' => true, 'logged' => false, 'offline' => true, 'msg' => $res['msg'] ?? '']);
+            }
             if ($own) {
                 itxt_cookie_destroy();   // le cookie d'AUTH ne nous appartient pas : on n'y touche pas
             }
-            JsonOut(['ok' => true, 'logged' => false]);
+            itxt_json(['ok' => true, 'logged' => false]);
         }
 
-        JsonOut([
+        itxt_json([
             'ok'     => true,
             'logged' => true,
             'roles'  => $res['roles'],
@@ -202,11 +333,11 @@ switch ($action) {
 
         if (!$res['ok']) {
             itxt_cookie_destroy();
-            JsonOut($res);
+            itxt_json($res);
         }
 
         $t = itxt_tournament();
-        JsonOut([
+        itxt_json([
             'ok'    => true,
             'base'  => $ITXT_BASE,
             'roles' => $res['roles'],
@@ -222,7 +353,7 @@ switch ($action) {
 
     case 'role':
         $client = itxt_client($ITXT_BASE);
-        JsonOut($client->switchRole($_POST['itxt_role'] ?? ''));
+        itxt_json($client->switchRole($_POST['itxt_role'] ?? ''));
         break;
 
     case 'list':
@@ -232,24 +363,47 @@ switch ($action) {
         $from = itxt_date_fr($_POST['itxt_from'] ?? '', $t->ToWhenFrom);
         $to   = itxt_date_fr($_POST['itxt_to']   ?? '', $t->ToWhenTo);
 
-        $disc  = itxt_discipline($t);
-        $fDisc = !empty($_POST['itxt_f_disc']) && $disc !== '';
-        $fOrg  = !empty($_POST['itxt_f_org'])  && $t->ToCommitee !== '';
+        $discSet = itxt_disciplines($t);
+        $fDisc   = !empty($_POST['itxt_f_disc']) && !empty($discSet);
+        $fOrg    = !empty($_POST['itxt_f_org'])  && $t->ToCommitee !== '';
 
-        $res = $client->listEvents($from, $to, $fDisc ? $disc : 'all');
+        // L'extranet ne filtre que sur UNE discipline. Un seul code → filtre extranet ;
+        // plusieurs (Valide+Para) → on demande tout puis on filtre au jeu côté module.
+        $extDisc = ($fDisc && count($discSet) === 1) ? $discSet[0] : 'all';
+
+        $res = $client->listEvents($from, $to, $extDisc);
         if (!$res['ok']) {
-            JsonOut($res);
+            itxt_json($res);
         }
 
         $res['total'] = count($res['events']);
+
+        // Filtre discipline côté module quand le jeu compte plusieurs disciplines.
+        if ($fDisc && count($discSet) > 1) {
+            $labels = array_map('itxt_discipline_label', $discSet);
+            $res['events'] = array_values(array_filter($res['events'], function ($ev) use ($labels) {
+                $carac = ltrim($ev['carac']);
+                foreach ($labels as $lab) {
+                    if ($lab !== '' && stripos($carac, $lab) === 0) {   // discipline en tête des caractéristiques
+                        return true;
+                    }
+                }
+                return false;
+            }));
+        }
+
         if ($fOrg) {
             $res['events'] = array_values(array_filter($res['events'], function ($ev) use ($t) {
                 return strpos($ev['organisateur'], $t->ToCommitee) !== false;
             }));
         }
 
+        // Regroupe la ligne valides et la ligne para d'une même compétition (para_id).
+        $res['events'] = ExtranetClient::groupPara($res['events']);
+
+        $discLabels = implode(' + ', array_filter(array_map('itxt_discipline_label', $discSet)));
         $res['filters'] = [
-            'discipline'  => ['code' => $disc, 'label' => itxt_discipline_label($disc), 'on' => $fDisc],
+            'discipline'  => ['code' => implode('+', $discSet), 'label' => $discLabels, 'on' => $fDisc],
             'agrement'    => ['code' => $t->ToCommitee, 'on' => $fOrg],
         ];
 
@@ -264,7 +418,7 @@ switch ($action) {
 
         $res['suggested'] = ($best >= 0 && $res['events'][$best]['score'] >= 60)
             ? $res['events'][$best]['id'] : null;
-        JsonOut($res);
+        itxt_json($res);
         break;
 
     case 'event':
@@ -284,17 +438,65 @@ switch ($action) {
                 'date'      => ['ianseo' => date('d/m/Y', strtotime($t->ToWhenFrom)), 'extranet' => $res['details']['Date'] ?? ''],
                 'lieu'      => ['ianseo' => $t->ToWhere, 'extranet' => $res['details']['Lieu'] ?? ''],
             ];
+            $res['counts'] = itxt_side_counts();   // archers valides / para
         }
 
-        JsonOut($res);
+        itxt_json($res);
+        break;
+
+    case 'deposit':
+        $client = itxt_client($ITXT_BASE);
+        $email  = trim($_POST['itxt_email'] ?? '');
+        $vVid   = trim($_POST['itxt_valides_vid'] ?? '');    // épreuve extranet valides
+        $pVid   = trim($_POST['itxt_para_vid'] ?? '');       // épreuve extranet para
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            itxt_json(['ok' => false, 'msg' => 'Adresse e-mail invalide.']);
+        }
+
+        $counts  = itxt_side_counts();
+        $reports = [];
+
+        // Le nom du fichier (A + Discipline + Agrément + .txt) vient de l'export lui-même :
+        // c'est ce que l'extranet vérifie. On ne le fabrique jamais à la main.
+        // Valides = 'S' (Sélectif) ; para = 'SP'. Jamais 'N' (Championnat de France, sans filtre).
+
+        if ($counts['valides'] > 0) {
+            if ($vVid === '') {
+                $reports['valides'] = ['ok' => false, 'msg' => 'Archers valides présents, mais épreuve valides introuvable sur l\'extranet.'];
+            } else {
+                $g = itxt_generate_txt('S');
+                $reports['valides'] = (!$g || $g['content'] === '')
+                    ? ['ok' => false, 'msg' => 'Export valides vide (aucun résultat ?).']
+                    : $client->deposit($vVid, $email, $g['content'], $g['filename']);
+            }
+        }
+
+        if ($counts['para'] > 0) {
+            if ($pVid === '') {
+                $reports['para'] = ['ok' => false, 'msg' => 'Épreuve para absente de l\'extranet : la compétition '
+                    . 'n\'a probablement pas été déclarée « Valide + Para » au calendrier fédéral. Corrigez la '
+                    . 'déclaration sur l\'extranet pour déposer les résultats para.'];
+            } else {
+                $g = itxt_generate_txt('SP');
+                $reports['para'] = (!$g || $g['content'] === '')
+                    ? ['ok' => false, 'msg' => 'Export para vide (aucun résultat ?).']
+                    : $client->deposit($pVid, $email, $g['content'], $g['filename']);
+            }
+        }
+
+        if (empty($reports)) {
+            itxt_json(['ok' => false, 'msg' => 'Aucun archer à déposer dans cette compétition.']);
+        }
+        itxt_json(['ok' => true, 'reports' => $reports]);
         break;
 
     case 'logout':
         itxt_cookie_destroy();
-        JsonOut(['ok' => true]);
+        itxt_json(['ok' => true]);
         break;
 
     default:
         http_response_code(400);
-        JsonOut(['ok' => false, 'msg' => 'Action inconnue.']);
+        itxt_json(['ok' => false, 'msg' => 'Action inconnue.']);
 }

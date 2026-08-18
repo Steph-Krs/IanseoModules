@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Client HTTP de l'extranet FFTA (gsportive / intégration TXT).
  *
@@ -23,6 +23,43 @@ class ExtranetClient
     public function base(): string
     {
         return $this->base;
+    }
+
+    /**
+     * Codes cURL qui traduisent une absence de connexion / un serveur injoignable :
+     * 5 proxy introuvable, 6 DNS, 7 connexion refusée, 28 délai dépassé, 35 échec TLS.
+     * (valeurs numériques : les noms de constantes varient selon les versions de PHP)
+     */
+    public static function isOffline(int $errno): bool
+    {
+        return in_array($errno, [5, 6, 7, 28, 35], true);
+    }
+
+    /**
+     * Message clair à partir d'une erreur réseau : distingue explicitement l'absence de
+     * connexion Internet d'un problème d'identifiants ou d'un calendrier vide.
+     */
+    public static function netMessage(int $errno, string $err, string $base): string
+    {
+        if (self::isOffline($errno)) {
+            return 'Cette étape nécessite une connexion à Internet, et ' . $base . ' est injoignable. '
+                 . 'Vérifiez votre connexion réseau puis réessayez. '
+                 . 'Il ne s\'agit ni d\'un problème d\'identifiants, ni d\'un calendrier vide.';
+        }
+
+        return 'Erreur réseau : ' . $err;
+    }
+
+    /** Erreur réseau d'une requête, en message utilisateur + drapeau hors ligne. */
+    private function netFail(array $r): array
+    {
+        $errno = (int) ($r['errno'] ?? 0);
+
+        return [
+            'ok'      => false,
+            'msg'     => self::netMessage($errno, (string) ($r['error'] ?? ''), $this->base),
+            'offline' => self::isOffline($errno),
+        ];
     }
 
     /**
@@ -59,6 +96,7 @@ class ExtranetClient
             'url'   => (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL),
             'body'  => $body === false ? '' : $body,
             'error' => curl_errno($ch) ? curl_error($ch) : '',
+            'errno' => curl_errno($ch),
         ];
         curl_close($ch);
 
@@ -115,7 +153,7 @@ class ExtranetClient
         // Récupération du cookie de session avant de poster (comportement navigateur)
         $home = $this->request('/');
         if ($home['error']) {
-            return ['ok' => false, 'msg' => 'Erreur réseau : ' . $home['error']];
+            return $this->netFail($home);
         }
 
         $r = $this->request('/', [
@@ -124,7 +162,7 @@ class ExtranetClient
         ]);
 
         if ($r['error']) {
-            return ['ok' => false, 'msg' => 'Erreur réseau : ' . $r['error']];
+            return $this->netFail($r);
         }
         if (self::isLoginPage($r['body'])) {
             return ['ok' => false, 'msg' => 'Identifiants refusés par l\'extranet.'];
@@ -157,8 +195,13 @@ class ExtranetClient
     {
         $r = $this->request('/gsportive/resultats-integrationtxt.html');
 
-        if ($r['error'] || self::isLoginPage($r['body']) || $r['code'] !== 200) {
-            return ['ok' => false];
+        // Hors ligne : ce n'est PAS une session expirée — il faut le dire distinctement,
+        // sinon l'utilisateur croit à un problème d'identifiants.
+        if ($r['error']) {
+            return $this->netFail($r) + ['roles' => []];
+        }
+        if (self::isLoginPage($r['body']) || $r['code'] !== 200) {
+            return ['ok' => false, 'offline' => false];
         }
 
         return ['ok' => true, 'roles' => $this->parseRoles($r['body'])];
@@ -174,7 +217,7 @@ class ExtranetClient
         ]);
 
         if ($r['error']) {
-            return ['ok' => false, 'msg' => 'Erreur réseau : ' . $r['error']];
+            return $this->netFail($r);
         }
         if (self::isLoginPage($r['body'])) {
             return ['ok' => false, 'msg' => 'Session extranet expirée.'];
@@ -197,7 +240,7 @@ class ExtranetClient
     {
         $page = $this->request('/gsportive/resultats-integrationtxt.html');
         if ($page['error']) {
-            return ['ok' => false, 'msg' => 'Erreur réseau : ' . $page['error']];
+            return $this->netFail($page);
         }
         if (self::isLoginPage($page['body'])) {
             return ['ok' => false, 'msg' => 'Session extranet expirée — reconnecte-toi.'];
@@ -224,7 +267,7 @@ class ExtranetClient
         $r = $this->request('/gsportive/resultats-integrationtxt.html', $fields);
 
         if ($r['error']) {
-            return ['ok' => false, 'msg' => 'Erreur réseau : ' . $r['error']];
+            return $this->netFail($r);
         }
         if (self::isLoginPage($r['body'])) {
             return ['ok' => false, 'msg' => 'Session extranet expirée — reconnecte-toi.'];
@@ -329,7 +372,7 @@ class ExtranetClient
         $r = $this->request('/gsportive/resultats-integrationtxt/epreuve-' . rawurlencode($id) . '.html');
 
         if ($r['error']) {
-            return ['ok' => false, 'msg' => 'Erreur réseau : ' . $r['error']];
+            return $this->netFail($r);
         }
         if (self::isLoginPage($r['body'])) {
             return ['ok' => false, 'msg' => 'Session extranet expirée — reconnecte-toi.'];
@@ -416,7 +459,7 @@ class ExtranetClient
         $r = $this->request('/actions/outils/AjaxInsertTxt.php', ['act' => 'file', 'vId' => $vId]);
 
         if ($r['error']) {
-            return ['ok' => false, 'msg' => 'Erreur réseau : ' . $r['error']];
+            return $this->netFail($r);
         }
         if (self::isLoginPage($r['body']) || trim($r['body']) === '') {
             return ['ok' => false, 'msg' => 'Cadre de dépôt non renvoyé (session expirée ?).'];
@@ -436,5 +479,110 @@ class ExtranetClient
             'descr'    => $desc ? self::txt($desc) : '',
             'endpoint' => $this->base . '/actions/outils/EprvGetFile.php',
         ];
+    }
+
+    // ── Étape 6 : dépôt réel du fichier TXT ──────────────────────────────────
+
+    /**
+     * Dépose le fichier résultats sur l'extranet (formulaire insertTxt → EprvGetFile.php).
+     * @return array ['ok'=>bool, 'report'=>html, 'msg'=>?, 'relogin'=>?]
+     */
+    public function deposit(string $vId, string $email, string $txtContent, string $filename = 'resultats.txt'): array
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'sfa_dep_');
+        file_put_contents($tmp, $txtContent);
+
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL            => $this->base . '/actions/outils/EprvGetFile.php',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_COOKIEJAR      => $this->cookieFile,
+            CURLOPT_COOKIEFILE     => $this->cookieFile,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; ianseo/synchro-ffta)',
+            CURLOPT_TIMEOUT        => 90,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => [
+                'EprvId'  => $vId,
+                'email'   => $email,
+                'submit'  => 'Ok',
+                'txtfile' => new CURLFile($tmp, 'text/plain', $filename),
+            ],
+        ]);
+        $body   = curl_exec($ch);
+        $errno  = curl_errno($ch);
+        $err    = $errno ? curl_error($ch) : '';
+        $effUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+        curl_close($ch);
+        @unlink($tmp);
+
+        if ($err || $body === false) {
+            return ['ok' => false, 'msg' => self::netMessage($errno, $err, $this->base),
+                    'offline' => self::isOffline($errno)];
+        }
+        if (self::isLoginPage((string) $body) || strpos($effUrl, '/login') !== false) {
+            return ['ok' => false, 'msg' => 'Session extranet expirée — reconnecte-toi.', 'relogin' => true];
+        }
+
+        $clean = $this->cleanReport((string) $body);
+
+        return ['ok' => true, 'report' => $clean['html'], 'ko' => $clean['ko']];
+    }
+
+    /**
+     * Nettoie le rapport HTML de l'extranet : retire les scripts, DÉPLIE le détail des KO
+     * (bloc #affKO, normalement masqué et ouvert par un bouton JS inopérant hors extranet),
+     * retire ce bouton (#btnaffKO), absolutise les liens. Détecte la présence de KO.
+     * @return array ['html'=>string, 'ko'=>bool]
+     */
+    private function cleanReport(string $html): array
+    {
+        $xp  = $this->dom($html);
+        $doc = $xp->document;
+
+        foreach (iterator_to_array($xp->query('//script')) as $s) {
+            $s->parentNode->removeChild($s);
+        }
+        // Bouton « Détail » (toggle JS) inutile ici → on le retire.
+        foreach (iterator_to_array($xp->query('//*[@id="btnaffKO"]')) as $b) {
+            $b->parentNode->removeChild($b);
+        }
+
+        $ko = false;
+        // Détail des KO : normalement caché (display:none), on l'affiche.
+        foreach ($xp->query('//*[@id="affKO"]') as $d) {
+            $d->setAttribute('style', preg_replace('/display\s*:\s*none;?/i', '', $d->getAttribute('style')));
+            if (trim($d->textContent) !== '') {
+                $ko = true;
+            }
+        }
+
+        // Nombre de KO > 0 dans le texte, en secours.
+        $text = $doc->textContent ?? '';
+        if (preg_match('/(\d+)\s*(?:ligne[s]?\s*)?KO\b/i', $text, $m) && (int) $m[1] > 0) {
+            $ko = true;
+        }
+        if (preg_match('/\bKO\b\s*[:=]?\s*(\d+)/i', $text, $m) && (int) $m[1] > 0) {
+            $ko = true;
+        }
+
+        // Reconstruit le fragment (contenu du body).
+        $out  = '';
+        $bodyN = $doc->getElementsByTagName('body')->item(0);
+        if ($bodyN) {
+            foreach ($bodyN->childNodes as $c) {
+                $out .= $doc->saveHTML($c);
+            }
+        } else {
+            $out = $doc->saveHTML();
+        }
+
+        $out = preg_replace('#(href|src)=(["\'])/(?!/)#i', '$1=$2' . $this->base . '/', $out);
+        $out = preg_replace('#(href|src)=(["\'])\./#i', '$1=$2' . $this->base . '/', $out);
+
+        return ['html' => trim($out), 'ko' => $ko];
     }
 }

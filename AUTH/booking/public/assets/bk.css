@@ -1,0 +1,444 @@
+/* Espace licencié — palette FFTA (voir CHARTE_GRAPHIQUE.md).
+   Portée limitée à #bk : cette face publique est autonome (pas d'habillage ianseo). */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+    font: 14px/1.5 "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #20263d;
+    background: #f0f4ff;
+}
+
+#bk a { color: #0254a8; }
+#bk a:hover { color: #01367c; }
+
+/* ---- Carte centrée (connexion, création de compte) ---- */
+
+#bk.bk-card { display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 24px 16px; }
+#bk.bk-card .bk-main { width: 100%; max-width: 420px; }
+
+#bk .bk-card {
+    background: #fff; border: 1px solid #d2d4d6; border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08); padding: 28px 26px;
+}
+#bk .bk-card h1 { margin: 0 0 6px; font-size: 21px; color: #01367c; }
+#bk .bk-sub { margin: 0 0 20px; color: #4c4e50; font-size: 13px; }
+
+#bk label { display: block; margin: 14px 0 4px; font-weight: 600; font-size: 13px; }
+#bk .bk-opt { font-weight: 400; color: #7d8183; }
+#bk input[type=text], #bk input[type=password], #bk input[type=email], #bk input[type=date] {
+    width: 100%; padding: 9px 11px; font-size: 15px;
+    border: 1px solid #d2d4d6; border-radius: 6px; background: #fff; color: #20263d;
+}
+#bk input:focus { outline: none; border-color: #0254a8; box-shadow: 0 0 0 3px #a7d6ff; }
+#bk .bk-hint { margin: 5px 0 0; font-size: 12px; color: #7d8183; }
+#bk .bk-otp[hidden] { display: none; }
+#bk .bk-otp {
+    margin-top: 16px; padding: 12px 14px 14px;
+    background: #f0f4ff; border: 1px solid #a7d6ff; border-radius: 6px;
+}
+#bk .bk-otp label { margin-top: 0; }
+
+#bk .bk-btn {
+    display: inline-block; margin-top: 22px; padding: 10px 18px; font-size: 15px;
+    border: 1px solid #d2d4d6; border-radius: 6px; background: #f7f7f7;
+    color: #20263d; cursor: pointer; text-align: center;
+}
+#bk .bk-btn-primary { width: 100%; background: #0254a8; border-color: #0254a8; color: #fff; font-weight: 600; }
+/* Le texte reste blanc au survol : #bk a:hover (bleu foncé) le rendait invisible sur le fond foncé. */
+#bk .bk-btn-primary:hover { background: #01367c; border-color: #01367c; color: #fff; }
+#bk a.bk-btn:hover { color: #20263d; }
+#bk a.bk-btn-primary:hover { color: #fff; }
+
+#bk .bk-alt { margin: 18px 0 0; text-align: center; font-size: 13px; color: #4c4e50; }
+
+/* ---- Messages ---- */
+
+#bk .bk-msg { margin: 0 0 16px; padding: 10px 12px; border-radius: 6px; font-size: 13px; }
+#bk .bk-msg-err { background: #ffd6db; border: 1px solid #bb7575; color: #a80000; }
+#bk .bk-msg-ok  { background: #d2f4cd; border: 1px solid #75ae77; color: #04ac0b; }
+
+/* ---- Espace connecté ---- */
+
+#bk .bk-top {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    gap: 8px; padding: 10px 18px; background: #01367c; color: #fff;
+}
+#bk .bk-brand { font-weight: 600; font-size: 15px; color: #fff; text-decoration: none; }
+#bk .bk-brand:hover { color: #fff; }   /* sinon #bk a:hover le rend invisible sur l'en-tête foncé */
+#bk .bk-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
+#bk .bk-nav a { color: #a7d6ff; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+#bk .bk-nav a:hover { color: #fff; }
+#bk .bk-nav-ic { display: block; flex: 0 0 auto; }
+#bk .bk-who { color: #fff; opacity: .85; }
+
+@media (max-width:640px){
+  #bk .bk-top { padding: 9px 10px; }
+  #bk .bk-brand { display: none; }   /* le picto « home » de la nav suffit */
+  #bk .bk-nav { flex: 1 1 auto; justify-content: space-between; gap: 0; }
+  #bk .bk-nav-lab { display: none; }        /* icônes seules : la barre tient en largeur */
+  #bk .bk-who { display: none; }            /* le nom déborde sur petit écran */
+  #bk .bk-nav a { padding: 7px; }           /* cible tactile confortable */
+  #bk .bk-nav-ic { width: 21px; height: 21px; }
+}
+
+#bk .bk-main { padding: 20px 18px 40px; }
+#bk.bk-page h1 { margin: 0 0 20px; font-size: 22px; color: #01367c; }
+
+#bk .bk-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+#bk .bk-block {
+    background: #fff; border: 1px solid #d2d4d6; border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08); padding: 16px 18px;
+}
+#bk .bk-block h2 { margin: 0 0 12px; font-size: 15px; color: #0254a8; }
+#bk .bk-empty { margin: 0; color: #7d8183; font-style: italic; font-size: 13px; }
+
+#bk .bk-dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 13px; }
+#bk .bk-dl dt { color: #7d8183; }
+#bk .bk-dl dd { margin: 0; }
+/* ---- Calendrier ---- */
+
+#bk .bk-filters {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 0 0 18px;
+    background: #fff; border: 1px solid #d2d4d6; border-radius: 6px; padding: 12px 14px;
+}
+#bk .bk-filters label { display: flex; flex-direction: column; gap: 3px; margin: 0;
+    font-size: 12px; font-weight: 600; color: #7d8183; }
+#bk .bk-filters input, #bk .bk-filters select {
+    padding: 7px 9px; font-size: 14px; font-weight: 400; color: #20263d;
+    border: 1px solid #d2d4d6; border-radius: 6px; background: #fff;
+}
+#bk .bk-filters .bk-btn { margin-top: 0; padding: 8px 16px; }
+#bk .bk-clear { font-size: 12px; padding-bottom: 9px; }
+
+#bk .bk-list { display: flex; flex-direction: column; gap: 12px; }
+#bk .bk-item {
+    display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: flex-start;
+    background: #fff; border: 1px solid #d2d4d6; border-left: 4px solid #0254a8;
+    border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, .08); padding: 14px 16px;
+}
+#bk .bk-item-off { border-left-color: #cb8137; }
+#bk .bk-item-main { flex: 1 1 320px; min-width: 0; }
+#bk .bk-item h2 { margin: 0 0 6px; font-size: 16px; color: #01367c; }
+#bk .bk-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 4px;
+    font-size: 13px; color: #4c4e50; }
+#bk .bk-org { margin: 0; font-size: 12px; color: #7d8183; }
+
+#bk .bk-gauges { list-style: none; margin: 10px 0 0; padding: 0;
+    display: flex; flex-wrap: wrap; gap: 6px 18px; }
+#bk .bk-gauges li { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+#bk .bk-g-lab { color: #7d8183; }
+#bk .bk-g-num { color: #4c4e50; }
+#bk .bk-gauge { display: inline-block; width: 92px; height: 8px; background: #e9ecef;
+    border-radius: 4px; overflow: hidden; }
+#bk .bk-gauge i { display: block; height: 100%; background: #0254a8; }
+#bk .bk-gauge-full i { background: #ff5043; }
+
+#bk .bk-item-act { flex: 0 0 auto; text-align: right; max-width: 260px; }
+#bk .bk-item-act .bk-btn { margin-top: 0; }
+#bk .bk-btn[disabled] { opacity: .5; cursor: not-allowed; }
+#bk .bk-blocked { margin: 0; font-size: 13px; color: #cb8137; }
+#bk .bk-fee { margin: 6px 0 0; font-size: 13px; font-weight: 600; color: #01367c; }
+#bk .bk-due { margin: 0 0 6px; font-size: 13px; color: #01367c; }
+#bk .bk-due-wait { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 12px;
+    background: #fdf0e6; border: 1px solid #cb8137; color: #8a5a26; }
+#bk .bk-payinfo { margin: 10px 0 0; padding: 9px 12px; font-size: 13px; border-radius: 6px;
+    background: #f7faff; border: 1px solid #a7d6ff; }
+#bk .bk-payinfo b { color: #01367c; }
+#bk .bk-payinfo ul { margin: 5px 0 0; padding-left: 18px; }
+#bk .bk-payinfo li { margin: 2px 0; }
+#bk .bk-confirm { margin: 0 0 16px; padding: 12px 16px; border-radius: 8px;
+    background: #d2f4cd; border: 1px solid #75ae77; color: #20263d; }
+#bk .bk-confirm p { margin: 0 0 4px; }
+#bk .bk-confirm-h { font-weight: 600; color: #01367c; margin-top: 8px; }
+#bk .bk-confirm ul { margin: 4px 0 0; padding-left: 18px; }
+#bk .bk-confirm li { margin: 2px 0; }
+#bk .bk-reg-filters { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center;
+    margin: 0 0 14px; padding: 10px 12px; background: #fff; border: 1px solid #d2d4d6; border-radius: 8px; }
+#bk .bk-rf-status { display: flex; gap: 6px; }
+#bk .bk-rf-btn { padding: 6px 12px; border: 1px solid #d2d4d6; border-radius: 16px; background: #f0f4ff;
+    color: #20263d; font-size: 13px; cursor: pointer; }
+#bk .bk-rf-btn.on { background: #0254a8; border-color: #0254a8; color: #fff; }
+#bk .bk-rf-disc { font-size: 13px; font-weight: 600; color: #7d8183; display: flex; align-items: center; gap: 8px; }
+#bk .bk-rf-disc select { width: auto; padding: 6px 8px; font-size: 14px; }
+
+/* ---- Inscription / mes inscriptions ---- */
+
+#bk .bk-back { margin: 0 0 10px; font-size: 13px; }
+#bk textarea {
+    width: 100%; padding: 9px 11px; font-size: 14px; font-family: inherit;
+    border: 1px solid #d2d4d6; border-radius: 6px; background: #fff; color: #20263d;
+}
+#bk textarea:focus { outline: none; border-color: #0254a8; box-shadow: 0 0 0 3px #a7d6ff; }
+#bk select {
+    width: 100%; padding: 9px 11px; font-size: 15px;
+    border: 1px solid #d2d4d6; border-radius: 6px; background: #fff; color: #20263d;
+}
+#bk select:focus { outline: none; border-color: #0254a8; box-shadow: 0 0 0 3px #a7d6ff; }
+#bk .bk-block h2 + label { margin-top: 4px; }
+
+#bk .bk-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+#bk .bk-tag {
+    display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 12px;
+    background: #f0f4ff; border: 1px solid #a7d6ff; color: #01367c;
+}
+#bk .bk-tag-on { background: #d2f4cd; border-color: #75ae77; color: #04ac0b; }
+#bk .bk-btn-danger { background: #fff; border-color: #ff5043; color: #c0392b; }
+#bk .bk-btn-danger:hover { background: #ffd6db; }
+#bk .bk-item-act form { margin: 8px 0 0; }
+#bk .bk-item-act p { margin: 8px 0 0; }
+#bk .bk-mini { list-style: none; margin: 0 0 10px; padding: 0; font-size: 13px; }
+#bk .bk-mini li { padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
+#bk .bk-mini li:last-child { border-bottom: 0; }
+#bk a.bk-btn { text-decoration: none; display: inline-block; }
+
+#bk .bk-wishes {
+    margin: 18px 0 0; padding: 12px 14px 14px;
+    border: 1px solid #a7d6ff; border-radius: 6px; background: #f7faff;
+}
+#bk .bk-wishes legend { padding: 0 6px; font-size: 13px; font-weight: 600; color: #01367c; }
+#bk .bk-wishes label:first-of-type { margin-top: 0; }
+#bk .bk-note {
+    margin: 14px 0 0; padding: 10px 12px; font-size: 13px;
+    background: #fdf0e6; border: 1px solid #cb8137; border-radius: 6px; color: #8a5a26;
+}
+#bk .bk-fixed { margin: 2px 0 0; font-size: 14px; }
+#bk .bk-catinfo { margin: 6px 0 0; padding: 8px 11px; font-size: 13px; border-radius: 6px;
+    background: #f0f4ff; border: 1px solid #a7d6ff; color: #01367c; }
+
+/* ==== Inscription de groupe (register-comp.php + registrations.php) ==== */
+#bk .bk-group-switch { margin-top: 12px; border-top: 1px dashed #d2d4d6; padding-top: 10px; }
+#bk .bk-group-switch > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: #0254a8;
+    list-style: none; padding: 4px 0; }
+#bk .bk-group-switch > summary::-webkit-details-marker { display: none; }
+#bk .bk-group-switch > summary::before { content: "＋ "; }
+#bk .bk-group-switch[open] > summary::before { content: "－ "; }
+#bk .bk-group-body { margin-top: 8px; }
+#bk .bk-group-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+#bk .bk-group-form label { display: block; width: 100%; margin: 0 0 2px; font-size: 13px; font-weight: 600; color: #01367c; }
+#bk .bk-group-form input[type=text] { flex: 1; min-width: 160px; margin: 0; }
+#bk .bk-group-form .bk-btn { margin-top: 0; }
+
+#bk .bk-authored { margin-top: 6px; }
+#bk .bk-authored-list { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+#bk .bk-authored-list h3 { margin: 0 0 4px; font-size: 15px; color: #20263d; }
+
+/* ==== Onglets « Mes inscriptions » / « Mon club » ==== */
+#bk .bk-tabs { display: flex; gap: 4px; border-bottom: 2px solid #d2e3f5; margin: 4px 0 16px; }
+#bk .bk-tab { font: inherit; font-size: 14px; font-weight: 600; padding: 9px 16px; cursor: pointer;
+  border: 0; background: transparent; color: #5b6470; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+#bk .bk-tab:hover { color: #0254a8; }
+#bk .bk-tab.on { color: #01367c; border-bottom-color: #0254a8; }
+#bk .bk-tab-count { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px;
+  background: #0254a8; color: #fff; font-size: 11px; line-height: 18px; text-align: center; vertical-align: 1px; }
+
+/* Titre de compétition avec pictogramme de discipline */
+#bk .bk-item-h { display: flex; align-items: center; gap: 8px; }
+#bk .bk-item-ic { display: inline-flex; color: #0254a8; flex: 0 0 auto; }
+#bk .bk-item-ic .bk-disc-img { display: block; }
+
+/* ==== Page « Documents de la compétition » ==== */
+#bk .bk-doclist { display: flex; flex-direction: column; gap: 10px; max-width: 520px; }
+#bk .bk-doc { display: flex; align-items: center; gap: 12px; text-decoration: none;
+  background: #fff; border: 1px solid #d8dde3; border-radius: 10px; padding: 14px 16px;
+  color: #20263d; box-shadow: 0 1px 3px rgba(0,0,0,.05); transition: border-color .1s, box-shadow .1s; }
+#bk .bk-doc:hover { border-color: #0254a8; box-shadow: 0 2px 8px rgba(2,84,168,.12); }
+#bk .bk-doc-ic { font-size: 22px; flex: 0 0 auto; }
+#bk .bk-doc-lab { font-weight: 600; font-size: 15px; }
+#bk .bk-doc-ext { font-weight: 400; font-size: 12px; color: #7d8183; margin-left: 4px; }
+
+/* Tag « en attente de validation » + choix de paiement en lumière */
+#bk .bk-tag-wait { background: #fdf0e6; border-color: #cb8137; color: #cb8137; }
+#bk .bk-pay-chosen { background: #eef6ff; border-radius: 6px; padding: 2px 6px; margin-left: -6px; }
+#bk .bk-pay-badge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 5px;
+  background: #0254a8; color: #fff; font-size: 12px; font-weight: 600; }
+
+#bk .bk-inline { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+#bk .bk-inline select { width: auto; min-width: 96px; padding: 6px 8px; font-size: 13px; }
+#bk .bk-inline .bk-btn { margin-top: 0; padding: 7px 14px; font-size: 13px; }
+
+#bk .bk-code {
+    display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 5px;
+    background: #f0f4ff; border: 1px solid #a7d6ff; font-size: 11px; color: #01367c;
+}
+
+/* ==== Calendrier en grille (calendar.php) ==== */
+#bk .bk-cal-filters { display:flex; flex-wrap:wrap; gap:14px 20px; align-items:center;
+    margin:0 0 14px; padding:12px 14px; background:#fff; border:1px solid #d2d4d6; border-radius:8px; }
+#bk .bk-cal-disc { display:flex; flex-wrap:wrap; gap:8px; }
+#bk .bk-dchip { display:inline-flex; align-items:center; gap:6px; text-decoration:none;
+    padding:6px 11px; border:1px solid #d2d4d6; border-radius:20px; background:#f0f4ff;
+    color:#20263d; font-size:13px; line-height:1; }
+#bk .bk-dchip svg { display:block; }
+#bk .bk-dchip:hover { border-color:#0254a8; color:#01367c; }
+#bk .bk-dchip.on { background:#0254a8; border-color:#0254a8; color:#fff; }
+#bk .bk-cal-region { margin:0; font-weight:600; font-size:13px; display:flex; align-items:center; gap:8px; }
+#bk .bk-cal-region select { padding:7px 9px; border:1px solid #d2d4d6; border-radius:6px;
+    background:#fff; color:#20263d; font-size:14px; max-width:260px; }
+#bk .bk-cal-nav { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 10px; }
+#bk .bk-cal-title { font-size:17px; color:#01367c; text-align:center; flex:1; line-height:1.05; }
+#bk .bk-cal-year { display:block; font-size:11px; font-weight:400; color:#7d8183; }
+
+#bk .bk-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; min-width:680px; }
+#bk .bk-cal-dow { text-align:center; font-weight:700; font-size:12px; color:#4c4e50; padding:2px 0; }
+#bk .bk-cal-cell { min-height:92px; background:#fff; border:1px solid #e2e6ee; border-radius:7px;
+    padding:4px; overflow:hidden; }
+#bk .bk-cal-empty { background:transparent; border:0; }
+#bk .bk-cal-we { background:#f7f9ff; }
+#bk .bk-cal-today { border-color:#0254a8; box-shadow:0 0 0 1px #0254a8 inset; }
+#bk .bk-cal-num { font-size:12px; color:#7d8183; text-align:right; padding:0 3px 2px; }
+#bk .bk-cal-comp { display:flex; align-items:center; gap:5px; text-decoration:none; color:#20263d;
+    background:#eaf2ff; border:1px solid #c8ddf7; border-radius:5px; padding:3px 5px; margin-bottom:3px;
+    font-size:12px; line-height:1.15; }
+#bk .bk-cal-comp:hover { background:#0254a8; border-color:#0254a8; color:#fff; }
+#bk .bk-cal-comp .bk-cal-ic { display:inline-flex; align-items:center; color:#0254a8; flex:0 0 auto; }
+#bk .bk-cal-comp:hover .bk-cal-ic { color:#fff; }
+#bk .bk-cal-comp .bk-cal-loc { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#bk .bk-cal-comp.bk-cal-in { border-color:#1a8a3f; }
+#bk .bk-cal-comp.bk-cal-in::after { content:"✓"; color:#1a8a3f; font-weight:700; margin-left:auto; }
+#bk .bk-cal-comp:hover.bk-cal-in::after { color:#fff; }
+
+/* ==== Détail d'une compétition (competition.php) ==== */
+#bk .bk-back { margin:0 0 12px; font-size:13px; }
+#bk .bk-detail { background:#fff; border:1px solid #d2d4d6; border-radius:8px; padding:20px 22px; }
+#bk .bk-detail-head { display:flex; gap:16px; align-items:flex-start; }
+#bk .bk-detail-ic { color:#0254a8; flex:0 0 auto; display:inline-flex; }
+#bk .bk-detail h1 { margin:0 0 4px; font-size:22px; color:#01367c; }
+#bk .bk-detail-sub { margin:0; display:flex; flex-wrap:wrap; gap:4px 14px; color:#4c4e50; font-size:13px; }
+#bk .bk-org { margin:4px 0 0; color:#7d8183; font-size:13px; }
+#bk .bk-detail h2 { font-size:15px; color:#01367c; margin:18px 0 8px; }
+#bk .bk-dep-list { list-style:none; margin:0; padding:0; }
+#bk .bk-dep { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;
+    padding:9px 12px; border:1px solid #e2e6ee; border-radius:7px; margin-bottom:6px; }
+#bk .bk-dep-full { opacity:.6; }
+#bk .bk-dep-main { display:flex; flex-direction:column; gap:1px; }
+#bk .bk-dep-dt { font-size:12px; color:#7d8183; }
+#bk .bk-dep-gauge { display:flex; align-items:center; gap:8px; }
+#bk .bk-dep-num { font-size:12px; color:#4c4e50; min-width:64px; text-align:right; }
+#bk .bk-detail-act { margin-top:18px; display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+#bk .bk-fee { margin:0 8px 0 0; font-weight:700; color:#01367c; }
+
+@media (max-width:640px){
+  /* Grille compacte : la semaine tient en largeur, tuiles réduites aux pictos. */
+  #bk .bk-cal-grid { min-width:0; gap:3px; }
+  #bk .bk-cal-cell { min-height:54px; padding:2px; }
+  #bk .bk-cal-num { font-size:10px; padding:0 2px 1px; }
+  #bk .bk-cal-comp { justify-content:center; gap:0; padding:3px 2px; margin-bottom:2px; }
+  #bk .bk-cal-comp .bk-cal-loc { display:none; }
+  #bk .bk-cal-comp.bk-cal-in::after { margin-left:2px; font-size:11px; }
+  #bk .bk-cal-dow { font-size:10px; }
+  #bk .bk-cal-nav .bk-btn { padding:8px 10px; font-size:12px; }
+  #bk .bk-cal-title { font-size:14px; }
+  #bk .bk-cal-region select { max-width:100%; }
+}
+
+#bk .bk-disc-img { object-fit: contain; vertical-align: middle; }
+
+#bk .bk-disc-frame { display:inline-flex; align-items:center; justify-content:center;
+    border:1.5px solid currentColor; border-radius:2px; padding:1px; line-height:0; box-sizing:border-box; }
+
+/* ==== Preview d'une compétition (modal / bottom-sheet, calendar.php) ==== */
+body.bk-modal-open { overflow:hidden; }
+#bk-preview.bk-modal { position:fixed; inset:0; z-index:100000;
+    display:flex; align-items:center; justify-content:center; }
+#bk-preview[hidden] { display:none; }
+#bk-preview .bk-modal-backdrop { position:absolute; inset:0; background:rgba(2,26,64,.45); }
+#bk-preview .bk-modal-sheet { position:relative; background:#fff; border-radius:10px;
+    width:min(560px,94vw); max-height:90vh; overflow:auto;
+    box-shadow:0 12px 40px rgba(0,0,0,.3); -webkit-overflow-scrolling:touch; }
+#bk-preview .bk-modal-body { padding:20px 22px 24px; }
+#bk-preview .bk-modal-body .bk-detail { border:0; box-shadow:none; padding:0; }
+#bk-preview .bk-modal-x { position:absolute; top:8px; right:10px; z-index:2;
+    width:34px; height:34px; border:0; border-radius:50%; background:#f0f4ff; color:#01367c;
+    font-size:22px; line-height:1; cursor:pointer; }
+#bk-preview .bk-modal-x:hover { background:#dbe7ff; }
+#bk-preview .bk-modal-hint { position:sticky; bottom:0; left:0; right:0; height:40px; margin-top:-40px;
+    pointer-events:none; display:flex; align-items:flex-end; justify-content:center;
+    background:linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,.97) 70%);
+    opacity:0; transition:opacity .15s; }
+#bk-preview .bk-modal-hint span { font-size:12px; font-weight:600; color:#0254a8;
+    background:#eaf1fb; padding:2px 12px; border-radius:9px 9px 0 0; }
+#bk-preview .bk-modal-sheet.bk-can-scroll .bk-modal-hint { opacity:1; }
+@media (max-width:640px){
+  #bk-preview.bk-modal { align-items:flex-end; }
+  #bk-preview .bk-modal-sheet { width:100%; max-height:88vh; border-radius:14px 14px 0 0;
+      animation:bk-sheet-up .18s ease-out; }
+  @keyframes bk-sheet-up { from { transform:translateY(100%); } to { transform:translateY(0); } }
+}
+
+/* ==== Mes inscriptions : regroupement par compétition ==== */
+#bk .bk-reg-list { margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+#bk .bk-reg { padding:9px 11px; border:1px solid #e2e6ee; border-radius:7px; background:#fafbfe; }
+#bk .bk-reg .bk-tags { margin-top:0; }
+#bk .bk-reg .bk-org { margin-top:6px; }
+#bk .bk-reg-act { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+#bk .bk-reg-act .bk-btn { margin-top:0; padding:6px 12px; font-size:13px; }
+#bk .bk-reg-act form { margin:0; }
+
+/* ==== Cartes de compétition dépliables (Mes inscriptions / Mon club) ==== */
+#bk .bk-item.bk-collapsible .bk-item-h { cursor:pointer; }
+#bk .bk-item.bk-collapsible .bk-item-main { flex-basis:100%; }
+#bk .bk-item-toggle { margin-left:auto; flex:0 0 auto; color:#0254a8; font-size:13px;
+    line-height:1; transition:transform .15s; user-select:none; }
+#bk .bk-item.bk-open .bk-item-toggle { transform:rotate(180deg); }
+#bk .bk-item.bk-collapsible:not(.bk-open) .bk-reg-list,
+#bk .bk-item.bk-collapsible:not(.bk-open) .bk-payinfo,
+#bk .bk-item.bk-collapsible:not(.bk-open) .bk-item-act { display:none; }
+
+/* ==== Mobile : empilement en colonne + cibles tactiles ==== */
+@media (max-width:640px){
+  #bk .bk-item { flex-direction:column; }
+  #bk .bk-item-act { max-width:none; width:100%; text-align:left; }
+  #bk .bk-item-act .bk-btn { display:block; width:100%; }
+  #bk .bk-item-act form { width:100%; }
+  #bk .bk-item-act form .bk-btn { width:100%; }
+  #bk .bk-reg-act .bk-btn, #bk .bk-reg-act button { width:100%; }
+  #bk .bk-reg-act form { width:100%; }
+  #bk .bk-detail { padding:16px; }
+  #bk .bk-detail-act { flex-direction:column; align-items:stretch; }
+  #bk .bk-detail-act .bk-btn { width:100%; text-align:center; }
+}
+
+/* ==== Détail du tarif (register-comp.php) ==== */
+#bk .bk-price { margin:16px 0 0; padding:12px 14px; border:1px solid #a7d6ff;
+    border-radius:8px; background:#f7faff; }
+#bk .bk-price h3 { margin:0 0 8px; font-size:14px; color:#01367c; }
+#bk .bk-price-t { width:100%; border-collapse:collapse; font-size:13px; }
+#bk .bk-price-t td { padding:3px 0; }
+#bk .bk-price-num { text-align:right; white-space:nowrap; }
+#bk .bk-price-tot { margin:8px 0 0; padding-top:8px; font-size:15px; color:#01367c;
+    border-top:1px solid #cfe0f5; }
+#bk .bk-price-tot b { font-size:18px; }
+
+/* ==== Boutique (shop.php) ==== */
+#bk .bk-shop-sec h2 { margin:0 0 10px; }
+#bk .bk-shop-item { padding:10px 0; border-top:1px solid #eef0f5; }
+#bk .bk-shop-item:first-of-type { border-top:0; padding-top:0; }
+#bk .bk-shop-h { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+#bk .bk-shop-name { font-weight:600; color:#20263d; }
+#bk .bk-shop-price { font-weight:700; color:#01367c; white-space:nowrap; }
+#bk .bk-shop-opt { margin:8px 0 2px; font-size:12px; color:#7d8183; }
+#bk .bk-shop-line { display:flex; align-items:center; gap:10px; margin:6px 0; }
+#bk .bk-shop-vname { flex:1 1 auto; font-size:14px; }
+#bk .bk-shop-stock { flex:0 0 auto; margin-left:auto; font-size:12px; color:#7d8183; min-width:78px; text-align:right; }
+#bk .bk-shop-q { flex:0 0 auto; width:64px; padding:7px 8px; font-size:15px;
+    border:1px solid #d2d4d6; border-radius:6px; text-align:center; }
+#bk .bk-shop-q:disabled { background:#f2f3f5; color:#9aa0a6; }
+#bk .bk-shop-err { margin:2px 0 0; font-size:12px; color:#c0392b; }
+#bk .bk-shop-bar { position:sticky; bottom:0; display:flex; justify-content:space-between;
+    align-items:center; flex-wrap:wrap; gap:12px; margin-top:16px; padding:12px 14px;
+    background:#f0f4ff; border:1px solid #a7d6ff; border-radius:8px; }
+#bk .bk-shop-bar b { font-size:18px; color:#01367c; }
+#bk .bk-shop-bar .bk-btn { margin-top:0; width:auto; }
+@media (max-width:640px){
+  #bk .bk-shop-bar .bk-btn { width:100%; }
+}
+#bk .bk-doc-mut { color:#7d8183; }
+#bk .bk-doc-grand { margin:12px 0 0; text-align:right; font-size:16px; color:#01367c; }
+#bk .bk-doc-grand b { font-size:19px; }
+/* Reçu sur mobile : le tableau défile dans son cadre au lieu de déborder la page. */
+#bk .bk-doc-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+#bk .bk-doc-scroll table { min-width:520px; }
+@media print { #bk .bk-doc-scroll { overflow:visible; } #bk .bk-doc-scroll table { min-width:0; } }

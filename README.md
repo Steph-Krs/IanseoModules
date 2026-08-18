@@ -19,8 +19,21 @@ Modules pour le projet I@nseo :
   atteignable par équipe, détection des matchs décisifs. Lecture seule.
 - [Passerelle extranet FFTA](SYNCHRO_FFTA/README_SYNCHRO_FFTA.md) — Dépôt des résultats (fichier
   TXT) et création d'une compétition ianseo depuis une épreuve de l'extranet FFTA.
+- [Pronostics en direct](PRONO/README_PRONO.md) — Jeu de pronostics à points (aucune mise, aucun
+  argent) sur les qualifications et les éliminatoires, individuelles comme par équipes : cotes
+  calculées flèche par flèche depuis les qualifications (et depuis le classement national FFTA si
+  le module REPARTITION_EPREUVES est installé) et mises à jour volée après volée, face publique
+  installable pour téléphone, écran de salle.
 - [Export liste](EXPORT_LISTE/README_EXPORT_LISTE.md) — Export CSV des participants au format de
   l'import par liste (10 colonnes), enrichi du N° d'agrément et du nom du club. Lecture seule.
+- [Multi-comptes & inscriptions en ligne](AUTH/README_AUTH.md) — Transforme un serveur ianseo
+  hébergé en ligne en **serveur fédéral multi-organisateurs** (chaque structure ne voit que ses
+  compétitions, partage contrôlé, connexion centralisée, 2FA, journal) **avec inscriptions en
+  ligne** : les licenciés se connectent avec leurs identifiants fédéraux (aucun mot de passe
+  stocké), consultent le calendrier des compétitions ouvertes et s'inscrivent eux-mêmes.
+  Attribution automatique des cibles (règles fédérales, dont cohabitation des blasons), inscription
+  groupée par un camarade de club, suivi des paiements, boutique, mandat et feuilles de marque.
+  Inclut le sous-module `booking/` (ex-« Inscriptions en ligne »).
 - [Répartition des épreuves](REPARTITION_EPREUVES/README_REPARTITION_EPREUVES.md) — Attribution
   des cibles en masse pour les grandes compétitions : téléchargement des classements nationaux,
   plan des départs par blocs d'épreuve, règles de placement (classement, ordre des clubs, serpentin)

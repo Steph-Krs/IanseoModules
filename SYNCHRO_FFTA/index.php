@@ -90,6 +90,18 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
                        border-radius:8px; border:0; padding:1px 4px; background:#eef4fb; color:#01367c; }
     #itxt-bar a { color:#a7d6ff; text-decoration:none; margin-left:10px; cursor:pointer; }
     #itxt-bar a:hover { color:#fff; text-decoration:underline; }
+
+    /* Indicateur de chargement — 3 points qui rebondissent (repli en fondu si animation réduite) */
+    #itxt .sfa-dots { display:inline-flex; gap:6px; vertical-align:middle; margin-left:4px; }
+    #itxt .sfa-dots i { width:8px; height:8px; border-radius:50%; background:var(--bleu); opacity:.4;
+        animation:sfaBounce 1s ease-in-out infinite; }
+    #itxt .sfa-dots i:nth-child(2){ animation-delay:.16s; }
+    #itxt .sfa-dots i:nth-child(3){ animation-delay:.32s; }
+    @keyframes sfaBounce { 0%,80%,100%{ transform:translateY(0); opacity:.4; } 40%{ transform:translateY(-7px); opacity:1; } }
+    @keyframes sfaFade   { 0%,100%{ opacity:.3; } 50%{ opacity:1; } }
+    @media (prefers-reduced-motion: reduce) {
+        #itxt .sfa-dots i { animation-name:sfaFade; }
+    }
 </style>
 
 <div id="itxt-bar">🔗 Extranet FFTA
@@ -101,10 +113,19 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
   <div class="banner">
     <b>Mode essai — préproduction</b> (<?= htmlspecialchars($BASE) ?>).
-    Le dépôt est désactivé : rien n'est envoyé à l'extranet.
+    Le dépôt est <b>actif sur cette préproduction</b> : le fichier TXT (produit par l'export FFTA de ianseo)
+    est réellement envoyé à l'extranet de test après confirmation.
   </div>
 
-  <div class="card login" id="auth">
+  <!-- Affiché tant que la session extranet n'est pas vérifiée : évite de faire croire
+       à l'utilisateur qu'il doit se reconnecter alors qu'un cookie valide existe. -->
+  <div class="card login" id="checking">
+    <h3>Extranet FFTA</h3>
+    <div><p class="muted" style="margin:0">Vérification de la session en cours
+      <span class="sfa-dots"><i></i><i></i><i></i></span></p></div>
+  </div>
+
+  <div class="card login" id="auth" style="display:none">
     <h3>Connexion à l'extranet FFTA</h3>
     <div>
       <p class="muted" style="margin-top:0">Identifiants de l'Espace Dirigeant, sans MFA.
@@ -192,6 +213,11 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         return d.innerHTML;
     }
 
+    // Chargement animé (3 points) : texte + points qui rebondissent.
+    function dots(t) { return (t ? esc(t) + ' ' : '') + '<span class="sfa-dots"><i></i><i></i><i></i></span>'; }
+    function loadCard(t) { return '<p class="muted">' + dots(t) + '</p>'; }
+    function msgLoad(id, t) { var x = $(id); x.className = 'muted'; x.innerHTML = dots(t); }
+
     /** Empilement des barres flottantes : on se place sous celles déjà présentes. */
     function placeBar() {
         var bar = $('itxt-bar'), top = 4;
@@ -233,15 +259,39 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     }
 
     // Session extranet déjà ouverte (mot de passe saisi plus tôt dans cette session ianseo) ?
+    /** Fin de vérification : on masque le « Vérification… » et on montre la bonne chose. */
+    function doneChecking(showLogin) {
+        $('checking').style.display = 'none';
+        $('auth').style.display = showLogin ? '' : 'none';
+    }
+
     post('status').then(function (r) {
-        if (r.ok && r.logged) { connected(r.roles, r.shared); }
-    });
+        if (r.ok && r.logged) { doneChecking(false); connected(r.roles, r.shared); return; }
+        // Hors ligne : le dire clairement plutôt que d'afficher un formulaire de connexion
+        // qui échouera et ferait croire à un problème d'identifiants.
+        if (r.ok && r.offline) { doneChecking(false); offlineNotice(r.msg); return; }
+        doneChecking(true);   // pas de session valide → formulaire
+    }).catch(function () { doneChecking(true); });
+
+    /** Bandeau « pas de connexion » en tête de page, formulaire masqué. */
+    function offlineNotice(msg) {
+        $('checking').style.display = 'none';
+        $('auth').style.display = 'none';
+        var box = document.createElement('div');
+        box.className = 'warn';
+        box.style.cssText = 'border-left-color:#cc3333;background:#fdecea;margin-bottom:16px';
+        box.innerHTML = '<b>Pas de connexion à Internet.</b><br>'
+            + esc(msg || 'Le dépôt des résultats nécessite une connexion à l\'extranet FFTA.')
+            + '<br><button type="button" class="primary" style="margin-top:8px" '
+            + 'onclick="location.reload()">Réessayer</button>';
+        $('itxt').insertBefore(box, $('itxt').firstChild);
+    }
 
     $('btn-login').addEventListener('click', function () {
         var u = $('u').value.trim(), p = $('p').value;
         if (!u || !p) { msg('m1', 'Identifiant et mot de passe requis.', true); return; }
 
-        msg('m1', 'Connexion…');
+        msgLoad('m1', 'Connexion');
         post('login', {itxt_user: u, itxt_pass: p}).then(function (r) {
             $('p').value = '';
             if (!r.ok) { msg('m1', r.msg, true); return; }
@@ -272,9 +322,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     // ── Recherche de l'épreuve ──────────────────────────────────────────────
     function search() {
         $('event-box').innerHTML = '<div class="card"><h3>Épreuve sur l\'extranet</h3>'
-            + '<div><p class="muted">Recherche en cours…</p></div></div>';
+            + '<div>' + loadCard('Recherche en cours') + '</div></div>';
         $('deposit').innerHTML = '';
-        msg('m3', 'Recherche…');
+        msgLoad('m3', 'Recherche');
 
         post('list', {
             itxt_from:   $('from').value.trim(),
@@ -285,6 +335,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             $('manual').style.display = '';
             if (!r.ok) { fail(r.msg); msg('m3', '', false); return; }
 
+            lastEvents = r.events || [];
             msg('m3', r.events.length + ' épreuve(s).');
             renderList(r.events, r.suggested, r.filters, r.total);
 
@@ -318,6 +369,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         return '<p class="muted">' + n + '</p>';
     }
 
+    var lastEvents = [];
+
     function renderList(events, suggested, filters, total) {
         var box = $('list');
         if (!events.length) {
@@ -334,9 +387,10 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             Object.keys(ev.pills).forEach(function (k) {
                 pills += '<span class="pill ' + ev.pills[k] + '">' + esc(k) + '</span> ';
             });
+            var para = ev.para ? ' <span class="pill" title="Valide + Para : para regroupé">＋ Para</span>' : '';
             h += '<tr data-id="' + esc(ev.id) + '"' + (ev.id === suggested ? ' class="best"' : '') + '>'
                + '<td>' + (pills || esc(ev.etat)) + '</td><td>' + esc(ev.dates) + '</td>'
-               + '<td>' + esc(ev.nom) + '</td><td>' + esc(ev.lieu) + '</td>'
+               + '<td>' + esc(ev.nom) + para + '</td><td>' + esc(ev.lieu) + '</td>'
                + '<td>' + esc(ev.organisateur) + '</td><td>' + esc(ev.carac) + '</td></tr>';
         });
         box.innerHTML = h + '</tbody></table>';
@@ -352,6 +406,13 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
     // ── Épreuve retenue + cadre de dépôt ────────────────────────────────────
     function loadEvent(id) {
+        var ev = lastEvents.filter(function (e) { return String(e.id) === String(id); })[0] || {id: id, carac: ''};
+        // Épreuve para si sa discipline (en tête des caractéristiques) commence par « Para ».
+        // Une compétition Valide+Para est regroupée : la ligne valides porte para_id.
+        var isParaRow  = /^\s*para/i.test(ev.carac || '');
+        var validesVid = isParaRow ? '' : String(ev.id);
+        var paraVid    = isParaRow ? String(ev.id) : (ev.para_id ? String(ev.para_id) : '');
+
         post('event', {itxt_id: id}).then(function (r) {
             if (!r.ok) { fail(r.msg); return; }
 
@@ -371,23 +432,111 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             }
             $('event-box').innerHTML = h + '</div></div>';
 
-            if (r.can_insert && r.insert && r.insert.ok) {
-                $('deposit').innerHTML = '<div class="card"><h3>Dépôt du fichier TXT</h3><div>'
-                    + '<p class="muted">' + esc(r.insert.descr) + '</p>'
-                    + '<p><label for="mail">Adresse e-mail du déposant</label><br>'
-                    + '<input type="email" id="mail" style="width:340px" value="' + esc(r.insert.email) + '"></p>'
-                    + '<p><button type="button" class="primary" disabled>Déposer le fichier TXT</button>'
-                    + ' <span class="muted">Désactivé en phase d\'essai — le TXT sera produit par l\'export FFTA de ianseo.</span></p>'
-                    + '<p class="muted">Épreuve n° ' + esc(r.insert.eprv_id) + ' · cadre de dépôt reçu de l\'extranet.</p>'
-                    + '</div></div>';
-            } else if (!r.can_insert) {
-                $('deposit').innerHTML = '<div class="card"><h3>Dépôt du fichier TXT</h3><div>'
-                    + '<p class="err">L\'extranet ne propose pas de dépôt sur cette épreuve '
-                    + '(annulée, bloquée, ou sans remontée de scores).</p></div></div>';
-            } else {
-                $('deposit').innerHTML = '';
-            }
+            renderDeposit(r, validesVid, paraVid);
         });
+    }
+
+    // Cadre de dépôt : dépose côté valides et/ou para selon où sont les archers dans ianseo.
+    function renderDeposit(r, validesVid, paraVid) {
+        var c = r.counts || {valides: 0, para: 0};
+        var email = (r.insert && r.insert.email) ? r.insert.email : '';
+
+        if (c.valides === 0 && c.para === 0) {
+            $('deposit').innerHTML = '<div class="card"><h3>Dépôt du fichier TXT</h3><div>'
+                + '<p class="err">Aucun archer inscrit dans cette compétition ianseo — rien à déposer.</p>'
+                + '</div></div>';
+            return;
+        }
+
+        var warn = '', h = '<div class="card"><h3>Dépôt du fichier TXT</h3><div>';
+        h += '<p><b>À déposer :</b></p><ul style="margin:4px 0 10px">';
+        if (c.valides > 0) {
+            h += '<li>' + c.valides + ' archer(s) <b>valides</b> → '
+               + (validesVid ? 'épreuve valides' : '<span class="err">épreuve valides absente</span>') + '</li>';
+            if (!validesVid) {
+                warn += '<p class="warn">Des archers valides sont présents mais l\'épreuve valides n\'apparaît pas '
+                     + 'sur l\'extranet.</p>';
+            }
+        }
+        if (c.para > 0) {
+            h += '<li>' + c.para + ' archer(s) <b>para</b> → '
+               + (paraVid ? 'épreuve para' : '<span class="err">épreuve para absente</span>') + '</li>';
+            if (!paraVid) {
+                warn += '<p class="warn"><b>L\'épreuve para n\'apparaît pas sur l\'extranet.</b> '
+                     + 'La compétition n\'a probablement pas été déclarée « Valide + Para » au calendrier fédéral. '
+                     + 'Corrigez la déclaration sur l\'extranet pour pouvoir y déposer les résultats para.</p>';
+            }
+        }
+        h += '</ul>' + warn;
+
+        h += '<p><label for="mail">Adresse e-mail du déposant</label><br>'
+           + '<input type="email" id="mail" style="width:340px" value="' + esc(email) + '"></p>';
+
+        var canDeposit = (c.valides > 0 && validesVid) || (c.para > 0 && paraVid);
+        h += '<p><button type="button" class="primary" id="btn-deposit"' + (canDeposit ? '' : ' disabled') + '>'
+           + 'Déposer sur l\'extranet</button> '
+           + '<span class="muted">TXT produit par l\'export FFTA de ianseo.</span></p>'
+           + '<div id="dep-report"></div></div></div>';
+
+        $('deposit').innerHTML = h;
+
+        var btn = $('btn-deposit');
+        if (btn) btn.addEventListener('click', function () {
+            var mail = ($('mail').value || '').trim();
+            if (!mail) { $('dep-report').innerHTML = '<p class="err">Adresse e-mail requise.</p>'; return; }
+            var sides = [];
+            if (c.valides > 0 && validesVid) sides.push('valides');
+            if (c.para > 0 && paraVid) sides.push('para');
+            if (!confirm('Déposer les résultats (' + sides.join(' + ') + ') sur l\'extranet (préproduction) ?')) return;
+
+            btn.disabled = true;
+            $('dep-report').innerHTML = loadCard('Génération du TXT et dépôt en cours');
+            post('deposit', {
+                itxt_email: mail,
+                itxt_valides_vid: validesVid,
+                itxt_para_vid: paraVid
+            }).then(function (d) {
+                btn.disabled = false;
+                if (!d.ok) { $('dep-report').innerHTML = '<p class="err">' + esc(d.msg) + '</p>'; return; }
+                showReports(d.reports || {});
+            }).catch(function (e) {
+                btn.disabled = false;
+                $('dep-report').innerHTML = '<p class="err">Erreur : ' + esc(e.message) + '</p>';
+            });
+        });
+    }
+
+    function showReports(reports) {
+        var h = '', anyKo = false;
+        ['valides', 'para'].forEach(function (side) {
+            var rep = reports[side];
+            if (!rep) return;
+
+            var ko = rep.ok && rep.ko;
+            if (ko) anyKo = true;
+
+            var head = !rep.ok ? '<span class="pill ko">Échec</span>'
+                     : ko      ? '<span class="pill ko">Lignes rejetées (KO)</span>'
+                               : '<span class="pill ok">Déposé sans erreur</span>';
+
+            h += '<div class="card" style="margin-top:10px' + (ko ? ';border:2px solid #cc3333' : '')
+               + '"><h3' + (ko ? ' style="background:#cc3333"' : '') + '>Rapport — ' + side + '</h3><div>';
+            h += '<p>' + head + '</p>';
+            if (ko) {
+                h += '<p class="warn" style="border-left-color:#cc3333;background:#fdecea">'
+                   + '<b>Des lignes ont été refusées.</b> Corrigez ces erreurs dans ianseo puis redéposez : '
+                   + 'tant qu\'elles ne sont pas corrigées, les archers concernés ne sont pas pris en compte '
+                   + 'et risquent d\'être pénalisés.</p>';
+            }
+            h += rep.ok ? (rep.report || '') : ('<p class="err">' + esc(rep.msg || 'Échec du dépôt.') + '</p>');
+            h += '</div></div>';
+        });
+
+        if (anyKo) {
+            h = '<div class="warn" style="border-left-color:#cc3333;background:#fdecea;font-weight:bold">'
+              + '⚠ Le dépôt contient des lignes en erreur (KO) — voir le détail ci-dessous.</div>' + h;
+        }
+        $('dep-report').innerHTML = h || '<p class="muted">Aucun rapport.</p>';
     }
 
     /**
