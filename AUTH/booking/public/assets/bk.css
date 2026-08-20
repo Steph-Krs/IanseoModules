@@ -281,14 +281,28 @@ body {
 #bk .bk-cal-title { font-size:17px; color:#01367c; text-align:center; flex:1; line-height:1.05; }
 #bk .bk-cal-year { display:block; font-size:11px; font-weight:400; color:#7d8183; }
 
-#bk .bk-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; min-width:680px; }
+/* Grille de CASES (date en haut à droite) + calque de BARRES superposé (axe Z) :
+   une compétition multi-jours = une barre qui s'étend de sa 1re à sa dernière case.
+   Chaque ligne est complète (lundi→dimanche) ; les jours des mois voisins sont
+   affichés en semi-transparence (une compét à cheval sur 2 mois reste lisible).
+   La hauteur des cases s'adapte au nombre de pistes de la semaine (--lanes). */
+#bk .bk-cal-month { min-width:680px; }
 #bk .bk-cal-dow { text-align:center; font-weight:700; font-size:12px; color:#4c4e50; padding:2px 0; }
-#bk .bk-cal-cell { min-height:92px; background:#fff; border:1px solid #e2e6ee; border-radius:7px;
-    padding:4px; overflow:hidden; }
-#bk .bk-cal-empty { background:transparent; border:0; }
-#bk .bk-cal-we { background:#f7f9ff; }
-#bk .bk-cal-today { border-color:#0254a8; box-shadow:0 0 0 1px #0254a8 inset; }
-#bk .bk-cal-num { font-size:12px; color:#7d8183; text-align:right; padding:0 3px 2px; }
+#bk .bk-cal-dows { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:4px; }
+#bk .bk-cal-week { position:relative; margin-bottom:6px; }
+#bk .bk-cal-cells { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+#bk .bk-cal-cell { position:relative; min-height:max(58px, calc(26px + var(--lanes,0) * 24px));
+    background:#fff; border:1px solid #e2e6ee; border-radius:7px; }
+#bk .bk-cal-cell.bk-cal-we { background:#f7f9ff; }
+#bk .bk-cal-cell.bk-cal-other { opacity:.42; }
+#bk .bk-cal-cell.bk-cal-today { border-color:#0254a8; box-shadow:0 0 0 1px #0254a8 inset; }
+#bk .bk-cal-num { position:absolute; top:3px; right:6px; font-size:12px; color:#7d8183; }
+#bk .bk-cal-cell.bk-cal-today .bk-cal-num { background:#0254a8; color:#fff; border-radius:9px; padding:0 6px; }
+#bk .bk-cal-overlay { position:absolute; inset:0; display:grid; grid-template-columns:repeat(7,1fr);
+    grid-auto-rows:21px; gap:3px 6px; padding:24px 0 3px; pointer-events:none; }
+#bk .bk-cal-bar { pointer-events:auto; align-self:start; min-width:0; margin-bottom:0; overflow:hidden; }
+#bk .bk-cal-contl { border-top-left-radius:1px; border-bottom-left-radius:1px; }   /* la compét continue AVANT */
+#bk .bk-cal-contr { border-top-right-radius:1px; border-bottom-right-radius:1px; } /* … et/ou APRÈS ce segment */
 #bk .bk-cal-comp { display:flex; align-items:center; gap:5px; text-decoration:none; color:#20263d;
     background:#eaf2ff; border:1px solid #c8ddf7; border-radius:5px; padding:3px 5px; margin-bottom:3px;
     font-size:12px; line-height:1.15; }
@@ -321,12 +335,16 @@ body {
 #bk .bk-fee { margin:0 8px 0 0; font-weight:700; color:#01367c; }
 
 @media (max-width:640px){
-  /* Grille compacte : la semaine tient en largeur, tuiles réduites aux pictos. */
-  #bk .bk-cal-grid { min-width:0; gap:3px; }
-  #bk .bk-cal-cell { min-height:54px; padding:2px; }
-  #bk .bk-cal-num { font-size:10px; padding:0 2px 1px; }
-  #bk .bk-cal-comp { justify-content:center; gap:0; padding:3px 2px; margin-bottom:2px; }
-  #bk .bk-cal-comp .bk-cal-loc { display:none; }
+  /* Grille compacte : la semaine tient en largeur. Les barres multi-jours GARDENT
+     leur libellé (elles s'étendent) ; les compétitions d'un seul jour se réduisent au picto. */
+  #bk .bk-cal-month { min-width:0; }
+  #bk .bk-cal-dows, #bk .bk-cal-cells { gap:3px; }
+  #bk .bk-cal-cell { min-height:max(46px, calc(20px + var(--lanes,0) * 20px)); }
+  #bk .bk-cal-num { font-size:10px; top:2px; right:3px; }
+  #bk .bk-cal-overlay { grid-auto-rows:18px; gap:2px 3px; padding:18px 0 2px; }
+  #bk .bk-cal-bar { padding:2px 3px; gap:3px; }
+  #bk .bk-cal-single { justify-content:center; gap:0; }
+  #bk .bk-cal-single .bk-cal-loc { display:none; }
   #bk .bk-cal-comp.bk-cal-in::after { margin-left:2px; font-size:11px; }
   #bk .bk-cal-dow { font-size:10px; }
   #bk .bk-cal-nav .bk-btn { padding:8px 10px; font-size:12px; }

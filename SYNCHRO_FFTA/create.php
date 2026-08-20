@@ -217,7 +217,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
       <input type="hidden" name="d_Rule" value="FR">
       <input type="hidden" name="d_ToNameShort" id="f-short">
       <input type="hidden" name="d_ToIocCode" value="">
-      <input type="hidden" name="d_ToVenue" value="">
+      <!-- La ville de l'extranet va dans « Ville » (ToVenue) : c'est ce champ que l'export FFTA
+           lit pour « lieu du concours » du TXT. « Lieu » (ToWhere) reste au choix de l'organisateur. -->
+      <input type="hidden" name="d_ToWhere" value="">
       <input type="hidden" name="d_ToCountry" value="FRA">
       <input type="hidden" name="d_ToTimeZone" id="f-tz">
       <input type="hidden" name="xx_ToCurrency" value="<?= htmlspecialchars($def['cur']) ?>">
@@ -284,8 +286,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         <label for="f-comdescr">Structure</label>
         <input type="text" name="d_ToComDescr" id="f-comdescr" class="full">
 
-        <label for="f-where">Lieu</label>
-        <input type="text" name="d_ToWhere" id="f-where" class="full">
+        <label for="f-where">Ville</label>
+        <input type="text" name="d_ToVenue" id="f-where" class="full">
 
         <label>Dates</label>
         <span id="f-dates-text" class="muted"></span>

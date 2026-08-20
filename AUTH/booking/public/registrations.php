@@ -92,6 +92,12 @@ bk_head('Mes inscriptions');
 <?php endif; ?>
 
 <div class="bk-tabpanel" data-panel="mine">
+<?php if ($regs): ?>
+  <p style="margin:0 0 12px">
+    <a class="bk-btn" href="<?= bk_e(bk_public_url('calendar-ics.php')) ?>">📅 Ajouter à mon agenda</a>
+    <span class="bk-hint">Fichier .ics à importer dans l'agenda de votre téléphone.</span>
+  </p>
+<?php endif; ?>
 <?php if (!$regs && $authored): ?>
   <p class="bk-empty">Vous n'avez aucune inscription personnelle. Vos inscriptions pour d'autres
      licenciés sont dans l'onglet « Mon club ».</p>

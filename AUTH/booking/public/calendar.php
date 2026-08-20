@@ -86,7 +86,19 @@ foreach ($comps as $c) {
     }
 }
 $moisAffiche = 0;
-foreach ($byDay as $l) $moisAffiche += count($l);   // compte (tuiles, doublons multi-jours possibles)
+foreach ($byDay as $l) $moisAffiche += count($l);   // >0 = au moins une compétition ce mois-ci
+
+// Rendu en GRILLE DE CASES + barres superposées : une compétition multi-jours
+// s'étend de sa 1re à sa dernière case. Chaque ligne est complète (lundi→dimanche) :
+// les jours des mois voisins sont affichés (semi-transparents) pour compléter la ligne.
+// cellDate : date Y-m-d à la position 0-based de la grille (arithmétique de dates,
+// robuste au changement d'heure — jamais d'ajout de 86400 s).
+$totalCells = $leading + $daysInMonth;
+$weeks = (int) ceil($totalCells / 7);
+$cellDate = function ($pos) use ($ym, $leading) {
+    $off = $pos - $leading;
+    return date('Y-m-d', strtotime("$ym-01 " . ($off >= 0 ? '+' : '') . $off . ' days'));
+};
 
 /** Conserve les filtres en changeant un paramètre. */
 function bk_cal_url($over = array())
@@ -146,25 +158,70 @@ bk_head('Compétitions');
   <?php if (!$moisAffiche): ?>
     <p class="bk-hint">Rien ce mois-ci pour ces filtres — utilisez les flèches pour naviguer.</p>
   <?php endif; ?>
-  <div class="bk-cal-grid">
-    <?php foreach (array('Lun','Mar','Mer','Jeu','Ven','Sam','Dim') as $j): ?>
-      <div class="bk-cal-dow"><?= $j ?></div>
-    <?php endforeach; ?>
-    <?php for ($i = 0; $i < $leading; $i++): ?><div class="bk-cal-cell bk-cal-empty"></div><?php endfor; ?>
-    <?php for ($d = 1; $d <= $daysInMonth; $d++):
-        $day = sprintf('%s-%02d', $ym, $d);
-        $wend = in_array((int) date('N', strtotime($day)), array(6, 7)); ?>
-      <div class="bk-cal-cell<?= $wend ? ' bk-cal-we' : '' ?><?= $day === $today ? ' bk-cal-today' : '' ?>">
-        <div class="bk-cal-num"><?= $d ?></div>
-        <?php foreach ($byDay[$d] ?? array() as $c):
-            $dd = bk_comp_discipline($c->ToType, $c->ToTypeSubRule, $c->ToTypeName); ?>
-          <a class="bk-cal-comp<?= isset($deja[intval($c->ToId)]) ? ' bk-cal-in' : '' ?>"
-             href="<?= bk_e(bk_public_url('competition.php?t=' . intval($c->ToId))) ?>"
-             title="<?= bk_e($c->ToName . ' — ' . $c->ToWhere) ?>">
-            <span class="bk-cal-ic"><?= bk_disc_icon($dd['key'], 16) ?><?= $dd['para'] ? bk_disc_icon_para(12) : '' ?></span>
-            <span class="bk-cal-loc"><?= bk_e($c->ToWhere ?: $c->ToName) ?></span>
-          </a>
-        <?php endforeach; ?>
+  <div class="bk-cal-month">
+    <div class="bk-cal-dows">
+      <?php foreach (array('Lun','Mar','Mer','Jeu','Ven','Sam','Dim') as $j): ?>
+        <div class="bk-cal-dow"><?= $j ?></div>
+      <?php endforeach; ?>
+    </div>
+    <?php for ($w = 0; $w < $weeks; $w++):
+        // Dates des 7 colonnes de la semaine (mois voisins compris).
+        $colDate = array();
+        for ($col = 1; $col <= 7; $col++) $colDate[$col] = $cellDate($w * 7 + ($col - 1));
+        // Segments de compétition présents dans cette semaine (bornés à ses 7 cases).
+        $segs = array();
+        foreach ($comps as $c) {
+            $from = substr($c->ToWhenFrom, 0, 10);
+            $to   = substr($c->ToWhenTo, 0, 10);
+            $sc = null; $ec = null;
+            for ($col = 1; $col <= 7; $col++) {
+                $d = $colDate[$col];
+                if ($d >= $from && $d <= $to) { if ($sc === null) $sc = $col; $ec = $col; }
+            }
+            if ($sc === null) continue;
+            $segs[] = array('c' => $c, 'sc' => $sc, 'len' => $ec - $sc + 1,
+                'contl' => ($from < $colDate[$sc]), 'contr' => ($to > $colDate[$ec]));
+        }
+        // Pistes (empilage sans chevauchement de colonnes) : détermine la hauteur des cases.
+        usort($segs, function ($a, $b) { return $a['sc'] - $b['sc']; });
+        $lanes = array();
+        foreach ($segs as &$sg) {
+            $end = $sg['sc'] + $sg['len'] - 1; $put = null;
+            foreach ($lanes as $li => $occ) {
+                $ok = true;
+                foreach ($occ as $r) if (!($sg['sc'] > $r[1] || $end < $r[0])) { $ok = false; break; }
+                if ($ok) { $put = $li; break; }
+            }
+            if ($put === null) { $put = count($lanes); $lanes[$put] = array(); }
+            $lanes[$put][] = array($sg['sc'], $end); $sg['lane'] = $put;
+        }
+        unset($sg);
+        $laneCount = count($lanes); ?>
+      <div class="bk-cal-week" style="--lanes:<?= intval($laneCount) ?>">
+        <div class="bk-cal-cells">
+          <?php for ($col = 1; $col <= 7; $col++):
+              $d = $colDate[$col];
+              $inMonth = (substr($d, 0, 7) === $ym);
+              $we = in_array((int) date('N', strtotime($d)), array(6, 7));
+              $cls = ($inMonth ? '' : ' bk-cal-other') . ($d === $today ? ' bk-cal-today' : ($we ? ' bk-cal-we' : '')); ?>
+            <div class="bk-cal-cell<?= $cls ?>"><span class="bk-cal-num"><?= (int) substr($d, 8, 2) ?></span></div>
+          <?php endfor; ?>
+        </div>
+        <?php if ($segs): ?>
+        <div class="bk-cal-overlay">
+          <?php foreach ($segs as $sg): $c = $sg['c'];
+              $dd  = bk_comp_discipline($c->ToType, $c->ToTypeSubRule, $c->ToTypeName);
+              $lab = $sg['len'] > 1 ? $c->ToName : ($c->ToWhere ?: $c->ToName); ?>
+            <a class="bk-cal-comp bk-cal-bar<?= $sg['len'] === 1 ? ' bk-cal-single' : '' ?><?= isset($deja[intval($c->ToId)]) ? ' bk-cal-in' : '' ?><?= $sg['contl'] ? ' bk-cal-contl' : '' ?><?= $sg['contr'] ? ' bk-cal-contr' : '' ?>"
+               style="grid-column: <?= intval($sg['sc']) ?> / span <?= intval($sg['len']) ?>; grid-row: <?= intval($sg['lane']) + 1 ?>"
+               href="<?= bk_e(bk_public_url('competition.php?t=' . intval($c->ToId))) ?>"
+               title="<?= bk_e($c->ToName . ' — ' . $c->ToWhere) ?>">
+              <span class="bk-cal-ic"><?= bk_disc_icon($dd['key'], 16) ?><?= $dd['para'] ? bk_disc_icon_para(12) : '' ?></span>
+              <span class="bk-cal-loc"><?= bk_e($lab) ?></span>
+            </a>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
       </div>
     <?php endfor; ?>
   </div>

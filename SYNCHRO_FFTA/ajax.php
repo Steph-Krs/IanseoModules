@@ -16,8 +16,8 @@ require_once(__DIR__ . '/ExtranetClient.php');
 CheckTourSession(true);
 checkFullACL(AclCompetition, 'cExport', AclReadOnly);
 
-// Serveur cible — préproduction tant que la navigation n'est pas validée.
-$ITXT_BASE = ExtranetClient::BASE_PPROD;
+// Serveur cible — production : le dépôt est validé et testé en conditions réelles.
+$ITXT_BASE = ExtranetClient::BASE_PROD;
 
 $action = $_POST['itxt_action'] ?? '';
 
@@ -85,11 +85,16 @@ function itxt_client(string $base): ExtranetClient
 /** Compétition ianseo courante : sert au pré-remplissage et au rapprochement. */
 function itxt_tournament(): stdClass
 {
-    $q = safe_r_sql('SELECT ToName, ToCommitee, ToComDescr, ToWhere, ToWhenFrom, ToWhenTo,
+    $q = safe_r_sql('SELECT ToName, ToCommitee, ToComDescr, ToWhere, ToVenue, ToWhenFrom, ToWhenTo,
         ToCategory, ToTypeSubRule
         FROM Tournament WHERE ToId=' . intval($_SESSION['TourId']));
 
-    return safe_fetch($q);
+    $t = safe_fetch($q);
+    // La ville de la compétition vit dans « Ville » (ToVenue) — ce que l'export FFTA utilise —
+    // ou, pour une compétition créée à la main, dans « Lieu » (ToWhere). On expose la bonne.
+    $t->City = ($t->ToVenue !== '') ? $t->ToVenue : $t->ToWhere;
+
+    return $t;
 }
 
 /** Date d'un <input type="date"> (AAAA-MM-JJ) → format attendu par l'extranet (JJ/MM/AAAA). */
@@ -275,7 +280,7 @@ function itxt_score(array $ev, stdClass $t): int
         $score += 40;
     }
 
-    foreach ([[$t->ToWhere, $ev['lieu'], 25], [$t->ToName, $ev['nom'], 20]] as [$a, $b, $w]) {
+    foreach ([[$t->City, $ev['lieu'], 25], [$t->ToName, $ev['nom'], 20]] as [$a, $b, $w]) {
         if ($a === '' || $b === '') {
             continue;
         }
@@ -343,7 +348,7 @@ switch ($action) {
             'roles' => $res['roles'],
             'tour'  => [
                 'nom'       => $t->ToName,
-                'lieu'      => $t->ToWhere,
+                'lieu'      => $t->City,
                 'club'      => $t->ToCommitee . ' — ' . $t->ToComDescr,
                 'du'        => date('d/m/Y', strtotime($t->ToWhenFrom)),
                 'au'        => date('d/m/Y', strtotime($t->ToWhenTo)),
@@ -436,7 +441,7 @@ switch ($action) {
             $res['compare'] = [
                 'agrement'  => ['ianseo' => $t->ToCommitee, 'extranet' => $res['details']['Structure Organisatrice'] ?? ''],
                 'date'      => ['ianseo' => date('d/m/Y', strtotime($t->ToWhenFrom)), 'extranet' => $res['details']['Date'] ?? ''],
-                'lieu'      => ['ianseo' => $t->ToWhere, 'extranet' => $res['details']['Lieu'] ?? ''],
+                'lieu'      => ['ianseo' => $t->City, 'extranet' => $res['details']['Lieu'] ?? ''],
             ];
             $res['counts'] = itxt_side_counts();   // archers valides / para
         }

@@ -12,12 +12,15 @@ require_once(__DIR__ . '/ExtranetClient.php');
 CheckTourSession(true);
 checkFullACL(AclCompetition, 'cExport', AclReadOnly);
 
-$q    = safe_r_sql('SELECT ToName, ToCommitee, ToComDescr, ToWhere, ToWhenFrom, ToWhenTo
+$q    = safe_r_sql('SELECT ToName, ToCommitee, ToComDescr, ToWhere, ToVenue, ToWhenFrom, ToWhenTo
     FROM Tournament WHERE ToId=' . intval($_SESSION['TourId']));
 $TOUR = safe_fetch($q);
+// Ville de la compétition : « Ville » (ToVenue, utilisée par l'export FFTA) ou, à défaut,
+// « Lieu » (ToWhere) pour une compétition saisie à la main.
+$TOUR->City = ($TOUR->ToVenue !== '') ? $TOUR->ToVenue : $TOUR->ToWhere;
 
 $AJAX = $CFG->ROOT_DIR . 'Modules/Custom/SYNCHRO_FFTA/ajax.php';
-$BASE = ExtranetClient::BASE_PPROD;
+$BASE = ExtranetClient::BASE_PROD;   // dépôt validé : extranet de production
 
 $PAGE_TITLE = 'Intégration TXT — Extranet FFTA';
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
@@ -112,9 +115,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 <div id="itxt">
 
   <div class="banner">
-    <b>Mode essai — préproduction</b> (<?= htmlspecialchars($BASE) ?>).
-    Le dépôt est <b>actif sur cette préproduction</b> : le fichier TXT (produit par l'export FFTA de ianseo)
-    est réellement envoyé à l'extranet de test après confirmation.
+    <b>Extranet FFTA</b> (<?= htmlspecialchars($BASE) ?>).
+    Le fichier TXT (produit par l'export FFTA de ianseo) est <b>réellement déposé</b> sur l'extranet
+    après confirmation.
   </div>
 
   <!-- Affiché tant que la session extranet n'est pas vérifiée : évite de faire croire
@@ -143,7 +146,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
       <div>
         <dl class="kv">
           <dt>Nom</dt><dd><?= htmlspecialchars($TOUR->ToName) ?></dd>
-          <dt>Lieu</dt><dd><?= htmlspecialchars($TOUR->ToWhere) ?></dd>
+          <dt>Ville</dt><dd><?= htmlspecialchars($TOUR->City) ?></dd>
           <dt>Organisateur</dt><dd><?= htmlspecialchars($TOUR->ToCommitee . ' — ' . $TOUR->ToComDescr) ?></dd>
           <dt>Dates</dt><dd><?= date('d/m/Y', strtotime($TOUR->ToWhenFrom)) ?>
             au <?= date('d/m/Y', strtotime($TOUR->ToWhenTo)) ?></dd>
@@ -487,7 +490,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             var sides = [];
             if (c.valides > 0 && validesVid) sides.push('valides');
             if (c.para > 0 && paraVid) sides.push('para');
-            if (!confirm('Déposer les résultats (' + sides.join(' + ') + ') sur l\'extranet (préproduction) ?')) return;
+            if (!confirm('Déposer les résultats (' + sides.join(' + ') + ') sur l\'extranet FFTA ?')) return;
 
             btn.disabled = true;
             $('dep-report').innerHTML = loadCard('Génération du TXT et dépôt en cours');

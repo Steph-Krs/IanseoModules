@@ -27,7 +27,7 @@ Modules pour le projet I@nseo :
 - [Export liste](EXPORT_LISTE/README_EXPORT_LISTE.md) — Export CSV des participants au format de
   l'import par liste (10 colonnes), enrichi du N° d'agrément et du nom du club. Lecture seule.
 - [Multi-comptes & inscriptions en ligne](AUTH/README_AUTH.md) — Transforme un serveur ianseo
-  hébergé en ligne en **serveur fédéral multi-organisateurs** (chaque structure ne voit que ses
+  hébergé en ligne en **serveur partagé multi-organisateurs** (chaque structure ne voit que ses
   compétitions, partage contrôlé, connexion centralisée, 2FA, journal) **avec inscriptions en
   ligne** : les licenciés se connectent avec leurs identifiants fédéraux (aucun mot de passe
   stocké), consultent le calendrier des compétitions ouvertes et s'inscrivent eux-mêmes.

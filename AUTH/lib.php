@@ -873,7 +873,7 @@ function aut_flash_get() {
 /**
  * Politique ISK d'un SERVEUR EN LIGNE : seuls « aucun ISK » et « ISK-NG lite » sont
  * autorisés. Les modes ng-pro et ng-live déclenchent (côté ianseo) un trigger qui
- * RÉVOQUE la licence du serveur — inacceptable sur un serveur fédéral en ligne. Ces
+ * RÉVOQUE la licence du serveur — inacceptable sur un serveur partagé en ligne. Ces
  * deux fonctions constituent la source de vérité, réutilisée par l'UI (menu.php,
  * SYNCHRO_FFTA) et l'application (rebascule vers lite).
  */

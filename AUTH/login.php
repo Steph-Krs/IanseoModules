@@ -1,6 +1,6 @@
 <?php
 /**
- * Page de connexion UNIFIÉE (serveur fédéral) — point d'entrée unique, traité
+ * Page de connexion UNIFIÉE (serveur partagé) — point d'entrée unique, traité
  * ENTIÈREMENT sur place (pas de délégation) : les deux flux sont ici.
  *
  *   • Organisateur → Espace Dirigeant FFTA (dirigeant.ffta.fr) — handlers
@@ -133,6 +133,8 @@ body { margin:0; font-family:Verdana,Arial,sans-serif; background:#eef2f6;
 @media (max-width:420px){ .card { padding:22px 18px; } }
 h1 { font-size:18px; margin:0 0 2px; color:#1a4f8b; }
 .sub { font-size:11px; color:#667; margin-bottom:16px; }
+.relay-note { font-size:11px; color:#7a6a3a; background:#fdf7e6; border:1px solid #eadfb8;
+    border-radius:6px; padding:7px 9px; margin:0 0 14px; line-height:1.45; }
 .tabs { display:flex; gap:8px; margin-bottom:16px; }
 .tab { flex:1; text-align:center; padding:9px 6px; border:1px solid #c9d4df; border-radius:6px;
        background:#f4f7fa; color:#334; font-size:13px; cursor:pointer; text-decoration:none; }
@@ -164,7 +166,7 @@ button[disabled] { opacity:.9; cursor:progress; }
 </head>
 <body>
 <div class="card">
-    <h1>ianseo — Serveur fédéral</h1>
+    <h1>ianseo — Serveur partagé</h1>
 
     <?php if ($stage === 'totp') { /* étape 2FA serveur (compte administrateur) */ ?>
     <div class="sub">Double authentification — compte administrateur.</div>
@@ -182,6 +184,8 @@ button[disabled] { opacity:.9; cursor:progress; }
 
     <?php } else { ?>
     <div class="sub">Connectez-vous avec vos identifiants fédéraux.</div>
+    <p class="relay-note">Vos identifiants transitent par ce serveur le temps de la connexion — ils
+       ne sont ni conservés ni enregistrés. Connectez-vous uniquement si vous avez confiance en ce serveur.</p>
 
     <?php if ($hasOrganiser && $hasCompetitor) { ?>
     <div class="tabs">

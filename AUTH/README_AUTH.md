@@ -10,6 +10,20 @@ s'inscrivent eux-mêmes** aux compétitions ouvertes depuis leur propre espace.
 
 > Ce README volontairement **ne détaille pas** le fonctionnement interne ni les mécanismes de sécurité.
 
+## ⚠️ À savoir avant de déployer — sécurité des comptes utilisés
+
+Il n'existe pas encore de **SSO officiel** (OAuth / OpenID Connect) fourni par la fédération.
+La connexion fonctionne donc par **relais de crédentiels** : à chaque login, l'identifiant et le
+mot de passe de l'utilisateur **transitent par CE serveur** pour être vérifiés auprès des espaces
+en ligne (dirigeant / licencié). Le mot de passe n'est **jamais stocké ni journalisé**, mais il
+passe par la mémoire du serveur le temps de la requête.
+
+**Conséquence, tant qu'un vrai SSO n'est pas en place : la sécurité des comptes des utilisateurs
+dépend directement de la sécurité ET de la fiabilité de ce serveur (et de son exploitant).** Les
+utilisateurs en sont informés sur la page de connexion. C'est pourquoi le déploiement doit suivre
+le durcissement décrit dans `SERVEUR.md`, et pourquoi un vrai OIDC reste à demander au prestataire
+des espaces en ligne (le module est prêt à basculer le jour venu).
+
 ## Fonctionnalités
 
 ### Côté organisateur (multi-comptes)

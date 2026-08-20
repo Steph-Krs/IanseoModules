@@ -658,3 +658,36 @@ function bk_session_start($s)
     }
     return '';
 }
+
+/**
+ * Format et durée ESTIMÉE d'un départ, lus dans DistanceInformation (volées × flèches
+ * par distance de qualification). Retour : ['ends'=>int, 'fmt'=>'10×3 + 10×3', 'min'=>int].
+ * Estimation (ianseo ne stocke pas de durée) : ~4 min/volée de ≤3 flèches, ~6 min sinon,
+ * + 15 min d'échauffement. 'min'=0 si le format n'est pas renseigné.
+ */
+function bk_session_format($tourId, $sessionOrder)
+{
+    $rs = safe_r_sql("SELECT DiEnds, DiArrows FROM DistanceInformation
+        WHERE DiTournament = " . intval($tourId) . " AND DiSession = " . intval($sessionOrder) . "
+          AND DiType = 'Q' ORDER BY DiDistance");
+    $ends = 0; $min = 0; $fmt = array();
+    while ($r = safe_fetch($rs)) {
+        $e = intval($r->DiEnds); $a = intval($r->DiArrows);
+        if ($e <= 0 || $a <= 0) continue;
+        $ends += $e; $fmt[] = $e . '×' . $a;
+        $min  += $e * ($a <= 3 ? 4 : 6);
+    }
+    if ($min) $min += 15;
+    return array('ends' => $ends, 'fmt' => implode(' + ', $fmt), 'min' => $min);
+}
+
+/** Durée en 'Xh', 'XhYY' ou 'Z min' (français). '' si 0. */
+function bk_dur_hm($min)
+{
+    $min = intval($min);
+    if ($min <= 0) return '';
+    $h = intdiv($min, 60); $m = $min % 60;
+    if ($h && $m) return $h . 'h' . str_pad($m, 2, '0', STR_PAD_LEFT);
+    if ($h) return $h . 'h';
+    return $m . ' min';
+}
