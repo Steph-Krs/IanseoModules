@@ -582,6 +582,26 @@ function bk_piquet_svg($color = '#0254a8', $size = 22)
          . '</svg>';
 }
 
+/** Couleur para FFTA (contour des pastilles para). */
+function bk_color_para() { return '#A0006D'; }
+
+/**
+ * Couleur FFTA d'une discipline (charte : voir CHARTE_GRAPHIQUE.md). $official=false
+ * (compétition non officielle) → anthracite. Le para est un CONTOUR ajouté par-dessus
+ * (bk_color_para), pas une couleur de remplissage.
+ */
+function bk_disc_color($key, $official = true)
+{
+    if (!$official) return '#37414a';                     // anthracite — non officielle
+    switch ($key) {
+        case 'ext': case 'salle':                 return '#3E62FF';   // cibles (TAE + 18 m)
+        case 'campagne': case '3d': case 'nature': return '#157A32';   // parcours (Campagne/3D/Nature)
+        case 'beursault':                          return '#D04A0B';   // traditionnel (Beursault)
+        case 'run':                                return '#0F857C';   // run archery
+        default:                                   return '#37414a';   // inconnu → anthracite
+    }
+}
+
 /** Couleur (hex) d'un piquet d'après son nom (« Piquet Rouge/Bleu/Blanc/Rose »). */
 function bk_peg_color($name)
 {
@@ -660,25 +680,24 @@ function bk_session_start($s)
 }
 
 /**
- * Format et durée ESTIMÉE d'un départ, lus dans DistanceInformation (volées × flèches
- * par distance de qualification). Retour : ['ends'=>int, 'fmt'=>'10×3 + 10×3', 'min'=>int].
- * Estimation (ianseo ne stocke pas de durée) : ~4 min/volée de ≤3 flèches, ~6 min sinon,
- * + 15 min d'échauffement. 'min'=0 si le format n'est pas renseigné.
+ * Format et durée d'un départ, lus dans DistanceInformation. La durée est la valeur
+ * RÉELLE saisie par l'organisateur (DistanceInformation.DiDuration, en minutes, portée
+ * par la distance 1 mais représentant tout le départ — voir Scheduler / ManSessions).
+ * JAMAIS estimée : 'min'=0 si elle n'est pas renseignée. 'fmt' = volées×flèches (info).
+ * Retour : ['ends'=>int, 'fmt'=>'10×3 + 10×3', 'min'=>int].
  */
 function bk_session_format($tourId, $sessionOrder)
 {
-    $rs = safe_r_sql("SELECT DiEnds, DiArrows FROM DistanceInformation
+    $rs = safe_r_sql("SELECT DiDistance, DiEnds, DiArrows, DiDuration FROM DistanceInformation
         WHERE DiTournament = " . intval($tourId) . " AND DiSession = " . intval($sessionOrder) . "
           AND DiType = 'Q' ORDER BY DiDistance");
-    $ends = 0; $min = 0; $fmt = array();
+    $ends = 0; $fmt = array(); $min = 0;
     while ($r = safe_fetch($rs)) {
         $e = intval($r->DiEnds); $a = intval($r->DiArrows);
-        if ($e <= 0 || $a <= 0) continue;
-        $ends += $e; $fmt[] = $e . '×' . $a;
-        $min  += $e * ($a <= 3 ? 4 : 6);
+        if ($e > 0 && $a > 0) { $ends += $e; $fmt[] = $e . '×' . $a; }
+        if (intval($r->DiDistance) === 1) $min = intval($r->DiDuration);   // durée globale du départ
     }
-    if ($min) $min += 15;
-    return array('ends' => $ends, 'fmt' => implode(' + ', $fmt), 'min' => $min);
+    return array('ends' => $ends, 'fmt' => implode(' + ', $fmt), 'min' => max(0, $min));
 }
 
 /** Durée en 'Xh', 'XhYY' ou 'Z min' (français). '' si 0. */

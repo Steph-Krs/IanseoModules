@@ -326,6 +326,14 @@ bk_head('Inscription');
   <?php endif; ?>
 </div>
 
+<?php if (intval($lue->LueStatus) === 9): /* licence sans pratique : pas d'inscription pour ce sujet */ ?>
+<div class="bk-block" style="margin-top:14px">
+  <h2><?= $groupMode ? bk_e(trim($lue->LueFamilyName . ' ' . $lue->LueName)) : 'Votre inscription' ?></h2>
+  <p class="bk-blocked"><?= $groupMode
+      ? "Cette licence est « <b>sans pratique</b> » : ce licencié ne peut pas être inscrit à une compétition."
+      : "Votre licence est « <b>sans pratique</b> » (dirigeant) : vous ne pouvez pas vous inscrire à une compétition. Vous pouvez en revanche <b>inscrire les licenciés de votre club</b> à l'aide de « Inscrire un licencié de mon club » ci-dessus." ?></p>
+</div>
+<?php else: ?>
 <form method="post" class="bk-block" style="margin-top:14px" id="bkreg">
   <?= bk_csrf_field() ?>
   <input type="hidden" name="t" value="<?= intval($tourId) ?>">
@@ -507,6 +515,7 @@ bk_head('Inscription');
   <button type="submit" class="bk-btn bk-btn-primary" <?= (!$classes || !$libres) ? 'disabled' : '' ?>>
     <?= $groupMode ? 'Confirmer son inscription' : 'Confirmer mon inscription' ?></button>
 </form>
+<?php endif; /* fin licence sans pratique */ ?>
 
 <?php if ($showPrice): ?>
 <script>

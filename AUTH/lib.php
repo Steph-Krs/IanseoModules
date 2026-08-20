@@ -72,7 +72,7 @@ function aut_ensure_schema() {
     static $done = false;
     if ($done) return;
     $done = true;
-    if (!empty($_SESSION['_aut_schema_v7'])) return;
+    if (!empty($_SESSION['_aut_schema_v8'])) return;
 
     $q = safe_r_sql("SHOW TABLES LIKE 'AUT_Users'");
     if (!safe_fetch($q)) {
@@ -215,6 +215,7 @@ function aut_ensure_schema() {
         TkBody     TEXT NULL,
         TkExpected TEXT NULL,
         TkPage     VARCHAR(255) NOT NULL DEFAULT '',
+        TkTour     VARCHAR(160) NOT NULL DEFAULT '',
         TkStatus   VARCHAR(12)  NOT NULL DEFAULT 'new',
         TkResponse TEXT NULL,
         TkScore    SMALLINT     NOT NULL DEFAULT 0,
@@ -231,8 +232,15 @@ function aut_ensure_schema() {
             ADD COLUMN TkResponse TEXT NULL AFTER TkStatus,
             ADD KEY TkWhoIdx (TkChannel, TkUser)");
     }
+    // v8 : compétition concernée par le ticket (libellé « Nom (Code) »), renseignée à la
+    // création si une compétition est sélectionnée (organisateur : compétition ouverte ;
+    // archer : la fiche d'où il vient). Vide sinon. Non modifiable ensuite.
+    $q = safe_r_sql("SHOW COLUMNS FROM AUT_Tickets LIKE 'TkTour'");
+    if (!safe_fetch($q)) {
+        safe_w_sql("ALTER TABLE AUT_Tickets ADD COLUMN TkTour VARCHAR(160) NOT NULL DEFAULT '' AFTER TkPage");
+    }
 
-    $_SESSION['_aut_schema_v7'] = true;
+    $_SESSION['_aut_schema_v8'] = true;
 }
 
 /* ------------------------------------------------------------------ */
@@ -299,13 +307,14 @@ function aut_ticket_score($title, $body, $expected, $page) {
     return max(0, min(100, $s));
 }
 
-/** Dépose un ticket. $channel : 'org' (organisateur) ou 'archer' (compétiteur). */
-function aut_ticket_add($kind, $title, $body, $expected, $page, $user, $role, $channel = 'org') {
+/** Dépose un ticket. $channel : 'org' (organisateur) ou 'archer' (compétiteur).
+ *  $tour : libellé de la compétition concernée (« Nom (Code) »), vide si aucune. */
+function aut_ticket_add($kind, $title, $body, $expected, $page, $user, $role, $channel = 'org', $tour = '') {
     aut_ensure_schema();
     $kind = array_key_exists($kind, aut_ticket_kinds()) ? $kind : 'bug';
     $channel = ($channel === 'archer') ? 'archer' : 'org';
     $score = aut_ticket_score($title, $body, $expected, $page);
-    safe_w_sql("INSERT INTO AUT_Tickets (TkUser, TkRole, TkChannel, TkKind, TkTitle, TkBody, TkExpected, TkPage, TkScore)
+    safe_w_sql("INSERT INTO AUT_Tickets (TkUser, TkRole, TkChannel, TkKind, TkTitle, TkBody, TkExpected, TkPage, TkTour, TkScore)
         VALUES (" . StrSafe_DB(substr((string) $user, 0, 64)) . ","
         . StrSafe_DB(substr((string) $role, 0, 48)) . ","
         . StrSafe_DB($channel) . ","
@@ -314,6 +323,7 @@ function aut_ticket_add($kind, $title, $body, $expected, $page, $user, $role, $c
         . StrSafe_DB(substr((string) $body, 0, 5000)) . ","
         . StrSafe_DB(substr((string) $expected, 0, 5000)) . ","
         . StrSafe_DB(substr((string) $page, 0, 255)) . ","
+        . StrSafe_DB(substr((string) $tour, 0, 160)) . ","
         . intval($score) . ")");
     aut_log('TICKET_NEW', $user);
 }
@@ -541,6 +551,27 @@ function aut_totp_verify($secretB32, $code, $minSlot, &$usedSlot) {
         }
     }
     return false;
+}
+
+/**
+ * DIAGNOSTIC (jamais une acceptation). Un code TOTP correct rejeté vient presque
+ * toujours d'une HORLOGE SERVEUR déréglée : le code du téléphone est calculé à
+ * l'heure réelle, le serveur à son heure à lui. Après un échec, on cherche dans
+ * une large fenêtre (±$maxSlots pas de 30 s) le décalage auquel le code AURAIT
+ * correspondu, pour transformer un « code incorrect » énigmatique en diagnostic
+ * clair (« horloge décalée de ~N min, synchronisez le NTP »). Retourne l'écart en
+ * SECONDES (slot trouvé − slot courant), ou null. N'accepte JAMAIS : la
+ * vérification reste aut_totp_verify (fenêtre ±1). ±120 pas = ±1 h.
+ */
+function aut_totp_skew($secretB32, $code, $maxSlots = 120) {
+    $code = preg_replace('/\D/', '', (string)$code);
+    if (strlen($code) != 6 || (string)$secretB32 === '') return null;
+    $slot = (int)floor(time() / 30);
+    for ($d = -$maxSlots; $d <= $maxSlots; $d++) {
+        if (abs($d) <= 1) continue;   // la fenêtre normale a déjà tranché
+        if (hash_equals(aut_totp_code($secretB32, $slot + $d), $code)) return $d * 30;
+    }
+    return null;
 }
 
 function aut_totp_uri($username, $secret) {
@@ -1221,12 +1252,27 @@ function aut_handle_org_totp(&$err, &$stage) {
     }
     $u = aut_get_user($username);
     $usedSlot = 0;
-    if ($u && $u->AuActive && aut_totp_verify($u->AuTotpSecret, $_POST['code'] ?? '', intval($u->AuTotpLastSlot), $usedSlot)) {
+    $code = $_POST['code'] ?? '';
+    if ($u && $u->AuActive && aut_totp_verify($u->AuTotpSecret, $code, intval($u->AuTotpLastSlot), $usedSlot)) {
         safe_w_sql("UPDATE AUT_Users SET AuTotpLastSlot=$usedSlot WHERE AuId={$u->AuId}");
         aut_finish_login($u);
     }
-    aut_log('TOTP_FAIL', $username);
-    $err = 'Code incorrect.';
+    // Échec : est-ce un mauvais code, ou une horloge serveur déréglée ? Si le code
+    // correspond à un slot très éloigné, c'est l'horloge — on le DIT (au lieu d'un
+    // « code incorrect » incompréhensible) et on NE compte PAS cet échec dans
+    // l'anti-bruteforce (TOTP_SKEW, hors du filtre LOGIN_FAIL/TOTP_FAIL) : un code
+    // juste rejeté par un décalage d'horloge ne doit pas verrouiller l'admin.
+    $skew = ($u && $u->AuActive) ? aut_totp_skew($u->AuTotpSecret, $code) : null;
+    if ($skew !== null) {
+        aut_log('TOTP_SKEW', $username);
+        $mins = round(abs($skew) / 60);
+        $err = "Code refusé : l'horloge de CE serveur est décalée d'environ {$mins} min par rapport à "
+             . "l'heure réelle (le code de votre application est basé sur l'heure). Synchronisez l'heure "
+             . "du serveur (NTP) puis réessayez — votre code est bon.";
+    } else {
+        aut_log('TOTP_FAIL', $username);
+        $err = 'Code incorrect.';
+    }
     $stage = 'totp';
 }
 

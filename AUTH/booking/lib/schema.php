@@ -13,7 +13,7 @@
  * installation neuve et interrompt toute la fonction (safe_w_sql lève).
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 16);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 18);
 
 /** Suffixe de collation à coller derrière une colonne BK_ jointe à du ianseo. */
 function bk_coll()
@@ -57,6 +57,12 @@ function bk_schema()
         BaCreated    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY BaLicenceIdx (BaLicence)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // v18 : id Exalto (« personne_id ») lu sur la page d'accueil de l'espace licencié à la
+    // connexion — nécessaire pour l'URL de l'attestation de licence (…/pdf/p/{id}/{saison}).
+    // Ce N'EST PAS le numéro de licence (il diffère). Simple identifiant interne FFTA, pas
+    // un secret ; jamais mis en dur dans le code (capté dynamiquement par archer).
+    bk_colonne('BK_Archers', 'BaExaltoId', "VARCHAR(16) NOT NULL DEFAULT '' AFTER BaLicence");
 
     // Sessions à jetons : seul le HACHÉ est stocké (un dump de session PHP ne
     // donne aucun secret réutilisable). Même principe que AUT_Sessions.
@@ -181,6 +187,13 @@ function bk_schema()
         SET o.BcCode = t.ToCode
         WHERE o.BcCode = ''");
     if ($newCode) safe_w_sql("ALTER TABLE BK_Competitions ADD KEY BcCodeIdx (BcCode)");
+
+    // v17 : coordonnées de la compétition pour la CARTE (géocodées une fois depuis la
+    // ville ToVenue via la Base Adresse Nationale, puis mises en cache). BcGeoSrc = la
+    // valeur géocodée (ville) → re-géocode si elle change. NULL = pas encore géocodé.
+    bk_colonne('BK_Competitions', 'BcLat',    "DECIMAL(9,6) NULL AFTER BcAdvancedBackup");
+    bk_colonne('BK_Competitions', 'BcLng',    "DECIMAL(9,6) NULL AFTER BcLat");
+    bk_colonne('BK_Competitions', 'BcGeoSrc', "VARCHAR(160) NULL AFTER BcLng");
 
     // Une inscription = une ligne Entries de ianseo + cette ligne de traçage
     // (qui a inscrit, quand, avec quelles demandes spéciales). Entries n'a

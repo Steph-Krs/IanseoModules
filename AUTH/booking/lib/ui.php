@@ -39,6 +39,7 @@ function bk_nav_icon($name)
         'out'  => '<path d="M15 4.5h4.5v15H15"/><path d="M10 8l-4 4 4 4"/><path d="M6 12h9"/>',
         'flag' => '<path d="M5 21V4M5 4h11l-2 3.5L16 11H5"/>',
         'stat' => '<path d="M4 20V4M4 20h16"/><path d="M8 20v-5M13 20v-9M18 20v-3"/>',
+        'map'  => '<path d="M12 21s-6-5.3-6-10a6 6 0 1112 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>',
     );
     $inner = $p[$name] ?? '';
     return '<svg class="bk-nav-ic" width="17" height="17" viewBox="0 0 24 24" fill="none"'
@@ -66,6 +67,7 @@ function bk_head($title, $layout = 'page')
       <nav class="bk-nav">
         <a href="<?= bk_e(bk_public_url()) ?>" title="Mon espace"><?= bk_nav_icon('home') ?><span class="bk-nav-lab">Mon espace</span></a>
         <a href="<?= bk_e(bk_public_url('calendar.php')) ?>" title="Calendrier"><?= bk_nav_icon('cal') ?><span class="bk-nav-lab">Calendrier</span></a>
+        <a href="<?= bk_e(bk_public_url('map.php')) ?>" title="Carte"><?= bk_nav_icon('map') ?><span class="bk-nav-lab">Carte</span></a>
         <a href="<?= bk_e(bk_public_url('registrations.php')) ?>" title="Mes inscriptions"><?= bk_nav_icon('list') ?><span class="bk-nav-lab">Mes inscriptions</span></a>
         <a href="<?= bk_e(bk_public_url('stats.php')) ?>" title="Mes statistiques"><?= bk_nav_icon('stat') ?><span class="bk-nav-lab">Statistiques</span></a>
         <?php if (bk_is_manager()): ?>

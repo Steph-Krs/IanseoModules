@@ -67,6 +67,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                     if ($a && $a->BaActive) {
                         session_regenerate_id(true);
                         bk_session_open($a);
+                        // Conserve le cookie de session monespace + l'id Exalto (attestation de
+                        // licence) — même geste que la login.php unifiée. Sans ça, le relais
+                        // d'attestation n'a pas de cookie et retombe sur le lien direct.
+                        bk_ffta_espace_store($res['cookies'] ?? '', $res['exaltoId'] ?? '', $a->BaId);
                         bk_log('LOGIN_OK', $licence);
                         bk_redirect('index.php');
                     }

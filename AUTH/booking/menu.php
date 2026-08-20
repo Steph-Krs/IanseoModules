@@ -20,6 +20,8 @@ $bkEntries = array();
 // les participants, pas seulement à l'administrateur du serveur.
 if (!empty($on) && isset($acl)) {
     if (subFeatureAcl($acl, AclParticipants, 'pEntries') >= AclReadWrite) {
+        $bkEntries[] = "Paramètres d'activation|"
+            . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php';
         $bkEntries[] = 'Boutique|'
             . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/shop.php';
         $bkEntries[] = 'Sommes dues|'

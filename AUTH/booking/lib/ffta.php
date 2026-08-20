@@ -52,6 +52,189 @@ function bk_local_config()
 }
 
 /* ------------------------------------------------------------------ */
+/* Session espace licencié conservée (attestation de licence)           */
+/*                                                                      */
+/* Même principe que AUTH pour extranet/dirigeant (convention FFTA_* du  */
+/* CLAUDE.md racine) : on garde le COOKIE de session monespace ouvert au  */
+/* login (jamais le mot de passe) dans un fichier 0600 dérivé du jeton    */
+/* BK, détruit au logout. Il sert à relayer côté serveur le PDF de        */
+/* l'attestation sans redemander les identifiants ; s'il a expiré, on     */
+/* bascule sur un lien direct (l'archer se connecte à son espace).        */
+/* ------------------------------------------------------------------ */
+
+/** Saison FFTA (1er sept → 31 août, désignée par l'année de fin). En août → année courante. */
+function bk_ffta_season()
+{
+    $y = (int) date('Y');
+    return ((int) date('n') >= 9) ? $y + 1 : $y;
+}
+
+/** Chemin du cookie jar monespace, dérivé du jeton de session BK (0600). Vide si pas de session. */
+function bk_ffta_cookie_path()
+{
+    $token = (string) ($_SESSION['BK_Token'] ?? '');
+    if ($token === '' || strlen($token) !== 64) return '';
+    return sys_get_temp_dir() . '/ffta_esp_' . hash('sha256', 'espace|' . $token) . '.ck';
+}
+
+/** Publie la convention FFTA_ESPACE_* (cookie + base) si le fichier existe. */
+function bk_ffta_espace_publish()
+{
+    $path = bk_ffta_cookie_path();
+    if ($path !== '' && file_exists($path)) {
+        $_SESSION['FFTA_ESPACE_COOKIE'] = $path;
+        $_SESSION['FFTA_ESPACE_BASE']   = bk_ffta_base();
+    } else {
+        unset($_SESSION['FFTA_ESPACE_COOKIE'], $_SESSION['FFTA_ESPACE_BASE']);
+    }
+}
+
+/**
+ * Écrit le cookie de session monespace (contenu renvoyé par bk_ffta_login) dans
+ * le fichier définitif, et mémorise l'id Exalto de l'archer. Appelé APRÈS
+ * bk_session_open (le chemin dérive du jeton BK). Le fichier temporaire de login,
+ * lui, est nettoyé normalement à la fin de la requête — aucun résidu.
+ */
+function bk_ffta_espace_store($cookies, $exaltoId, $archerId)
+{
+    $path = bk_ffta_cookie_path();
+    $len  = strlen((string) $cookies);
+    if ($path !== '' && (string) $cookies !== '') {
+        $w = @file_put_contents($path, (string) $cookies, LOCK_EX);
+        @chmod($path, 0600);
+        bk_ffta_espace_publish();
+        bk_ffta_debug('espace_store: cookie ECRIT (' . var_export($w, true) . ' o) len=' . $len
+            . ' exists=' . (file_exists($path) ? '1' : '0'));
+    } else {
+        bk_ffta_debug('espace_store: NON ECRIT path=' . ($path !== '' ? 'ok' : 'VIDE(BK_Token?)') . ' cookies_len=' . $len);
+    }
+    $exalto = preg_replace('/\D/', '', (string) $exaltoId);
+    bk_ffta_debug('espace_store: exaltoId=' . ($exalto !== '' ? $exalto : 'VIDE') . ' archer=' . intval($archerId));
+    if ($exalto !== '' && intval($archerId) > 0) {
+        safe_w_sql("UPDATE BK_Archers SET BaExaltoId = " . StrSafe_DB($exalto) . " WHERE BaId = " . intval($archerId));
+    }
+}
+
+/** Déconnexion : détruit le cookie monespace conservé. */
+function bk_ffta_espace_forget()
+{
+    $path = bk_ffta_cookie_path();
+    if ($path !== '' && file_exists($path)) @unlink($path);
+    unset($_SESSION['FFTA_ESPACE_COOKIE'], $_SESSION['FFTA_ESPACE_BASE']);
+}
+
+/** URL de l'attestation de licence PDF (…/pdf/p/{idExalto}/{saison}). Vide si id manquant. */
+function bk_ffta_attestation_url($exaltoId, $season = null)
+{
+    $exaltoId = preg_replace('/\D/', '', (string) $exaltoId);
+    if ($exaltoId === '') return '';
+    if ($season === null) $season = bk_ffta_season();
+    return bk_ffta_base() . '/licences/attestations/pdf/p/' . $exaltoId . '/' . intval($season);
+}
+
+/**
+ * Charge dans un handle curl les cookies conservés (une ligne Netscape par cookie, telles
+ * que rendues par CURLINFO_COOKIELIST). On N'UTILISE PAS CURLOPT_COOKIEFILE (lecture de
+ * fichier) : la même build curl qui ne sait pas ÉCRIRE le jar peut aussi mal le relire.
+ * Le moteur de cookies est activé (COOKIEFILE='') puis alimenté cookie par cookie. Retourne
+ * le nombre de cookies chargés.
+ */
+function bk_ffta_cookie_load($ch, $path)
+{
+    $blob = ($path !== '' && is_file($path)) ? (string) @file_get_contents($path) : '';
+    if (trim($blob) === '') return 0;
+    curl_setopt($ch, CURLOPT_COOKIEFILE, '');   // active le moteur, sans fichier
+    $n = 0;
+    foreach (explode("\n", $blob) as $line) {
+        $line = rtrim($line, "\r");
+        if (trim($line) === '') continue;
+        curl_setopt($ch, CURLOPT_COOKIELIST, $line);   // gère aussi le préfixe #HttpOnly_
+        $n++;
+    }
+    return $n;
+}
+
+/**
+ * Récupère un PDF de l'espace licencié via le cookie de session CONSERVÉ (chargé dans le
+ * moteur, jamais réécrit → la session stockée n'est pas modifiée).
+ * Retour : ['pdf'=>octets] si un vrai PDF revient, sinon ['expired'=>true] (cookie absent,
+ * session expirée, ou page HTML de connexion renvoyée).
+ */
+function bk_ffta_fetch_pdf($url)
+{
+    $path = bk_ffta_cookie_path();
+    if ($path === '' || !is_file($path) || !function_exists('curl_init') || (string) $url === '') {
+        bk_ffta_debug('fetch_pdf: pas de relais — cookie_path=' . ($path !== '' ? 'ok' : 'VIDE')
+            . ' cookie_exists=' . (($path !== '' && is_file($path)) ? '1' : '0') . ' url=' . ($url !== '' ? 'ok' : 'VIDE'));
+        return array('expired' => true);
+    }
+    $ch = curl_init($url);
+    curl_setopt_array($ch, array(
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; ianseo-booking)',
+        CURLOPT_TIMEOUT        => 25,
+        CURLOPT_CONNECTTIMEOUT => 8,
+    ));
+    $nck = bk_ffta_cookie_load($ch, $path);
+    if ($nck === 0) { curl_close($ch); bk_ffta_debug('fetch_pdf: 0 cookie chargé'); return array('expired' => true); }
+    $body  = curl_exec($ch);
+    $code  = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $ctype = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+    $eff   = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+    curl_close($ch);
+    $isPdf = ($body !== false && $code === 200)
+        && ((stripos($ctype, 'pdf') !== false) || (substr((string) $body, 0, 4) === '%PDF'));
+    bk_ffta_debug('fetch_pdf: cookies=' . $nck . ' http=' . $code . ' ctype=' . $ctype . ' url_finale=' . $eff
+        . ' taille=' . (is_string($body) ? strlen($body) : 'false') . ' => ' . ($isPdf ? 'PDF OK' : 'PAS un PDF (repli)'));
+    return $isPdf ? array('pdf' => $body) : array('expired' => true);
+}
+
+/**
+ * Résout l'id Exalto À LA DEMANDE via le cookie conservé (GET /licences, lecture seule).
+ * Sert quand l'id n'a pas été capté au login (compte connecté avant la fonctionnalité, ou
+ * charte déjà acceptée) mais que la session monespace est encore valide. Vide si échec.
+ */
+function bk_ffta_resolve_exalto()
+{
+    $path = bk_ffta_cookie_path();
+    if ($path === '' || !is_file($path) || !function_exists('curl_init')) return '';
+    $ch = curl_init(bk_ffta_base() . '/licences');
+    curl_setopt_array($ch, array(
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; ianseo-booking)',
+        CURLOPT_TIMEOUT        => 20,
+        CURLOPT_CONNECTTIMEOUT => 8,
+    ));
+    $nck = bk_ffta_cookie_load($ch, $path);
+    $body = ($nck > 0) ? curl_exec($ch) : '';
+    bk_ffta_debug('resolve_exalto: cookies=' . $nck . ' http=' . curl_getinfo($ch, CURLINFO_HTTP_CODE));
+    curl_close($ch);
+    return bk_ffta_extract_exalto((string) $body);
+}
+
+/**
+ * Id Exalto d'une page de l'espace licencié. Deux sources, par fiabilité décroissante :
+ *  1) le LIEN D'ATTESTATION lui-même (…/attestations/pdf/p/{id}/{saison}) — présent en
+ *     permanence sur l'onglet « Mes licences », c'est la source de référence ;
+ *  2) le script « const personne_id = '…' » du bandeau d'acceptation de la charte — présent
+ *     seulement tant que la charte n'est pas acceptée (repli, disparaît ensuite).
+ * Vide si aucune ne répond.
+ */
+function bk_ffta_extract_exalto($html)
+{
+    $html = (string) $html;
+    if (preg_match('#/attestations/pdf/p/(\d{2,12})/#', $html, $m)) return $m[1];
+    if (preg_match('/personne_id\s*=\s*[\'"](\d{2,12})[\'"]/', $html, $m)) return $m[1];
+    return '';
+}
+
+/* ------------------------------------------------------------------ */
 /* Débogage (désactivé par défaut)                                     */
 /* ------------------------------------------------------------------ */
 
@@ -245,6 +428,28 @@ function bk_ffta_login($identifiant, $password, $otp = '')
         }
     }
 
+    // id Exalto (pour l'attestation de licence) — seulement sur le chemin de succès
+    // (licence résolue). D'abord sur la page connectée ; si absent (charte déjà acceptée),
+    // une requête sur l'onglet « Mes licences » où le lien d'attestation figure toujours.
+    $exalto = '';
+    $cookies = '';
+    if (count($found) === 1) {
+        $exalto = bk_ffta_extract_exalto($page);
+        if ($exalto === '') {
+            curl_setopt_array($ch, array(CURLOPT_URL => $base . '/licences', CURLOPT_HTTPGET => true, CURLOPT_POST => false));
+            $lp = curl_exec($ch);
+            bk_ffta_debug('GET /licences http=' . curl_getinfo($ch, CURLINFO_HTTP_CODE) . ' (résolution id Exalto)');
+            $exalto = bk_ffta_extract_exalto((string) $lp);
+        }
+        // Cookies de session via le MOTEUR de curl (CURLINFO_COOKIELIST), un par ligne.
+        // ⚠️ L'écriture du cookie-jar en FICHIER est cassée sur curl 8.x Windows (jar à 0 o) ;
+        // le moteur, lui, rend bien les cookies — dont ffta_session (HttpOnly). C'est ce
+        // qui rend le relais d'attestation possible malgré ce bug de build.
+        $cl = curl_getinfo($ch, CURLINFO_COOKIELIST);
+        $cookies = is_array($cl) ? implode("\n", $cl) : '';
+        bk_ffta_debug('cookies capturés (moteur) : ' . (is_array($cl) ? count($cl) : 0) . ' entrée(s)');
+    }
+
     curl_close($ch);
 
     if (!$found) {
@@ -264,7 +469,10 @@ function bk_ffta_login($identifiant, $password, $otp = '')
 
     $lic = $found[0];
     bk_ffta_debug('=> licence résolue : ' . $lic);
-    return array('ok' => true, 'licence' => $lic, 'displayName' => bk_ffta_extract_name($page));
+    // Le cookie de session (pour l'attestation) et l'id Exalto ont été captés ci-dessus,
+    // sur le chemin de succès. Le mot de passe, lui, n'a jamais été conservé.
+    return array('ok' => true, 'licence' => $lic, 'displayName' => bk_ffta_extract_name($page),
+        'exaltoId' => $exalto, 'cookies' => $cookies);
 }
 
 /**

@@ -27,6 +27,20 @@ if ($page === '' && !empty($_SERVER['HTTP_REFERER'])) {
 
 $lic = $archer->BaLicence;
 
+// Compétition concernée : l'id vient du champ caché (POST), de ?t=, ou de la fiche d'où
+// l'archer arrive (referer ?t=). On résout le NOM en base (id → « Nom (Code) ») : le libellé
+// n'est donc jamais dicté par le client, seulement un id d'où le nom réel est relu.
+$tourId = intval($_POST['tour_id'] ?? $_GET['t'] ?? 0);
+if ($tourId <= 0 && !empty($_SERVER['HTTP_REFERER'])) {
+    parse_str((string) parse_url($_SERVER['HTTP_REFERER'], PHP_URL_QUERY), $rq);
+    if (!empty($rq['t'])) $tourId = intval($rq['t']);
+}
+$tourLabel = '';
+if ($tourId > 0) {
+    $tr = safe_fetch(safe_r_sql("SELECT ToName, ToCode FROM Tournament WHERE ToId = " . $tourId));
+    if ($tr) { $tc = trim((string) $tr->ToCode); $tourLabel = trim((string) $tr->ToName) . ($tc !== '' ? ' (' . $tc . ')' : ''); }
+}
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $tid = intval($_POST['tid'] ?? 0);
     if (!bk_csrf_check()) {
@@ -41,7 +55,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         }
     } else {
         aut_ticket_add($kind, $title, $body, $expected, $page, $lic,
-            trim($archer->BaFamilyName . ' ' . $archer->BaName), 'archer');
+            trim($archer->BaFamilyName . ' ' . $archer->BaName), 'archer', $tourLabel);
         bk_redirect('tickets.php?ok=new');
     }
 }
@@ -58,6 +72,7 @@ if ($editId > 0 && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     if (aut_ticket_editable($et, $lic, 'archer')) {
         $kind = $et->TkKind; $title = $et->TkTitle; $body = (string) $et->TkBody;
         $expected = (string) $et->TkExpected; $page = (string) $et->TkPage;
+        $tourLabel = (string) $et->TkTour;   // compétition figée du ticket en édition
     } else {
         $editId = 0;
     }
@@ -145,6 +160,12 @@ bk_head('Signaler');
   <label for="tk-page">Page ou écran concerné <span class="bk-hint" style="font-weight:400">(facultatif)</span></label>
   <input type="text" id="tk-page" name="page" maxlength="255" value="<?= bk_e($page) ?>" placeholder="ex. calendrier, inscription, boutique…">
 
+  <?php if (!$editId && $tourId > 0): ?><input type="hidden" name="tour_id" value="<?= intval($tourId) ?>"><?php endif; ?>
+  <?php if ($tourLabel !== ''): ?>
+    <label>Compétition concernée</label>
+    <p class="bk-hint" style="margin:0;font-size:14px;color:#20263d">🏆 <?= bk_e($tourLabel) ?></p>
+  <?php endif; ?>
+
   <button type="submit" class="bk-btn bk-btn-primary"><?= $editId ? 'Mettre à jour le ticket' : 'Envoyer le ticket' ?></button>
 </form>
 
@@ -165,6 +186,9 @@ bk_head('Signaler');
         <span class="bktk-mt-status bktk-s-<?= bk_e($t->TkStatus) ?>"><?= bk_e($st) ?></span>
       </div>
       <div class="bktk-mt-title"><?= bk_e($t->TkTitle) ?></div>
+      <?php if (trim((string) ($t->TkTour ?? '')) !== ''): ?>
+        <div class="bk-hint" style="margin-top:2px">🏆 <?= bk_e($t->TkTour) ?></div>
+      <?php endif; ?>
       <?php if (trim((string) $t->TkResponse) !== ''): ?>
         <div class="bktk-mt-resp"><b>Réponse :</b> <?= nl2br(bk_e($t->TkResponse)) ?></div>
       <?php endif; ?>

@@ -18,6 +18,14 @@ if (empty($_SESSION['AUTH_User'])
 }
 aut_ensure_schema();
 
+// Compétition concernée : celle que l'organisateur a ouverte, s'il y en a une (« Nom (Code) »).
+$openTour = '';
+$openTid = intval($_SESSION['TourId'] ?? 0);
+if ($openTid > 0) {
+    $tr = safe_fetch(safe_r_sql("SELECT ToName, ToCode FROM Tournament WHERE ToId = " . $openTid));
+    if ($tr) { $c = trim((string) $tr->ToCode); $openTour = trim((string) $tr->ToName) . ($c !== '' ? ' (' . $c . ')' : ''); }
+}
+
 $ok  = '';
 $err = '';
 $editId   = intval($_GET['edit'] ?? 0);
@@ -58,7 +66,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $editId = 0;
         }
     } else {                // nouveau dépôt
-        aut_ticket_add($kind, $title, $body, $expected, $page, $user, $role, 'org');
+        aut_ticket_add($kind, $title, $body, $expected, $page, $user, $role, 'org', $openTour);
         CD_redirect($CFG->ROOT_DIR . 'Modules/Custom/AUTH/tickets.php?ok=new'); die();
     }
 }
@@ -79,6 +87,8 @@ if ($editId > 0 && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
         $editId = 0;   // pas (ou plus) modifiable
     }
 }
+// Libellé affiché : la compétition figée du ticket en édition, sinon celle ouverte maintenant.
+$tourLabel = ($editId > 0 && isset($et) && $et) ? (string) $et->TkTour : $openTour;
 
 $mine = aut_ticket_my($user, 'org');
 
@@ -189,6 +199,12 @@ include('Common/Templates/head.php');
   <input type="text" id="tk-page" name="page" maxlength="255" value="<?= htmlspecialchars($page) ?>"
          placeholder="ex. Inscriptions en ligne, calendrier…">
 
+  <?php if ($tourLabel !== ''): ?>
+    <label>Compétition concernée</label>
+    <p class="aut-hint" style="margin:0;font-size:14px;color:#20263d"><?= htmlspecialchars($tourLabel) ?>
+      <span class="aut-hint">(compétition ouverte au moment du signalement)</span></p>
+  <?php endif; ?>
+
   <button type="submit" class="aut-btn"><?= $editId ? 'Mettre à jour le ticket' : 'Envoyer le ticket' ?></button>
 </form>
 
@@ -209,6 +225,9 @@ include('Common/Templates/head.php');
         <span class="aut-mt-status aut-s-<?= htmlspecialchars($t->TkStatus) ?>"><?= htmlspecialchars($st) ?></span>
       </div>
       <div class="aut-mt-title"><?= htmlspecialchars($t->TkTitle) ?></div>
+      <?php if (trim((string) ($t->TkTour ?? '')) !== ''): ?>
+        <div class="aut-hint" style="margin-top:2px">🏆 <?= htmlspecialchars($t->TkTour) ?></div>
+      <?php endif; ?>
       <?php if (trim((string) $t->TkResponse) !== ''): ?>
         <div class="aut-mt-resp"><b>Réponse :</b> <?= nl2br(htmlspecialchars($t->TkResponse)) ?></div>
       <?php endif; ?>

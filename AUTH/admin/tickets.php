@@ -147,6 +147,7 @@ include('Common/Templates/head.php');
           . ' (' . $t->TkUser . ($t->TkRole ? ' — ' . $t->TkRole : '') . ")\n"
           . 'Statut : ' . $stLab . ' · Précision ' . intval($t->TkScore) . '/100 · '
           . date('d/m/Y H:i', strtotime($t->TkCreated)) . "\n"
+          . (trim((string) ($t->TkTour ?? '')) !== '' ? 'Compétition : ' . $t->TkTour . "\n" : '')
           . ($t->TkPage ? 'Page : ' . $t->TkPage . "\n" : '')
           . "\n" . $bodyLab . " :\n" . trim((string) $t->TkBody) . "\n"
           . (trim((string) $t->TkExpected) !== ''
@@ -168,6 +169,10 @@ include('Common/Templates/head.php');
     <?php endif; ?>
     <?php if (trim((string) $t->TkExpected) !== ''): ?>
       <div class="tk-field"><b><?= $expLab ?></b><div><?= htmlspecialchars($t->TkExpected) ?></div></div>
+    <?php endif; ?>
+
+    <?php if (trim((string) ($t->TkTour ?? '')) !== ''): ?>
+      <p class="tk-meta">🏆 Compétition : <b><?= htmlspecialchars($t->TkTour) ?></b></p>
     <?php endif; ?>
 
     <p class="tk-meta">

@@ -179,7 +179,7 @@ function bk_authored_registrations($archerId, $selfLicence)
                 e.EnFirstName, e.EnName, e.EnCode, e.EnDivision, e.EnClass,
                 q.QuSession, q.QuTarget, q.QuLetter,
                 d.DivDescription, c.ClDescription,
-                t.ToName, t.ToWhere, t.ToWhenFrom, t.ToWhenTo,
+                t.ToName, t.ToWhere, t.ToVenue, t.ToWhenFrom, t.ToWhenTo,
                 t.ToType, t.ToTypeName, t.ToTypeSubRule,
                 o.BcShowAssignment, o.BcAllowScoresheet, " . bk_comp_calc_sql('o') . "
         FROM BK_Registrations r
@@ -240,6 +240,14 @@ function bk_reg_blocked($tourId, $cfg, $licence, $clubCode, $division, $class, $
     // Une compétition terminée n'est plus inscriptible, même si la fenêtre
     // d'inscription a été laissée ouverte au-delà de sa date.
     if (bk_comp_finished($tourId)) return "Cette compétition est terminée : les inscriptions ne sont plus possibles.";
+
+    // Licence « sans pratique » (LueStatus = 9, ex. dirigeant/trésorier) : ne peut PAS
+    // s'inscrire à une compétition (mais peut en inscrire d'autres — c'est l'AUTEUR, pas
+    // le SUJET, qui inscrit ; ici $lue = le sujet). Vaut pour l'auto-inscription comme
+    // pour une inscription de camarade dont le sujet serait sans pratique.
+    if ($lue && intval($lue->LueStatus) === 9) {
+        return "Cette licence est « sans pratique » : elle ne permet pas de s'inscrire à une compétition.";
+    }
 
     $geo = bk_comp_archer_blocked($cfg, $clubCode);
     if ($geo !== '') return $geo;
@@ -317,6 +325,12 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
     // sur une compétition terminée, quelles que soient les manipulations en amont.
     if (bk_comp_finished($tourId)) {
         return array('ok' => false, 'msg' => "Cette compétition est terminée : les inscriptions ne sont plus possibles.");
+    }
+
+    // Garde ultime « sans pratique » (LueStatus = 9) : le sujet ne peut jamais être inscrit
+    // à une compétition, quelle que soit la voie (auto-inscription ou inscription de groupe).
+    if (intval($lue->LueStatus ?? 0) === 9) {
+        return array('ok' => false, 'msg' => "Cette licence est « sans pratique » : elle ne permet pas de s'inscrire à une compétition.");
     }
 
     return bk_with_tournament($tourId, function () use ($tourId, $lue, $division, $class, $sessionOrder, $request, $by, $opts) {
@@ -551,7 +565,7 @@ function bk_my_registrations($licence)
                 e.EnDivision, e.EnClass, e.EnIndClEvent, e.EnTargetFace,
                 q.QuSession, q.QuTarget, q.QuLetter,
                 d.DivDescription, c.ClDescription,
-                t.ToName, t.ToWhere, t.ToWhenFrom, t.ToWhenTo,
+                t.ToName, t.ToWhere, t.ToVenue, t.ToWhenFrom, t.ToWhenTo,
                 t.ToType, t.ToTypeName, t.ToTypeSubRule,
                 o.BcShowAssignment, o.BcAllowScoresheet, o.BcFee, o.BcMandate, o.BcShowMandate, o.BcIanseoUrl,
                 o.BcShowProgram, o.BcShowParticipants, o.BcShowResults, o.BcPublishLevel,

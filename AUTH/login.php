@@ -91,6 +91,8 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor) {
                 if ($a && $a->BaActive) {
                     session_regenerate_id(true);
                     bk_session_open($a);
+                    // Conserve le cookie de session monespace + l'id Exalto (attestation de licence).
+                    bk_ffta_espace_store($res['cookies'] ?? '', $res['exaltoId'] ?? '', $a->BaId);
                     bk_log('LOGIN_OK', $licence);
                     CD_redirect($root . 'Modules/Custom/AUTH/booking/public/index.php');
                     die();

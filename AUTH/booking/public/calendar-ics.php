@@ -30,15 +30,17 @@ $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' :
 $base   = $scheme . '://' . $host;
 $stamp  = gmdate('Ymd\THis\Z');
 
-// Compétitions de l'archer, dédoublonnées par compétition (plusieurs départs = 1 événement).
-$seen = array();
-$events = array();
+// Regroupe par compétition en conservant les DÉPARTS de l'archer (une compétition = un
+// événement journée, avec le détail de ses départs dans la description).
+$byComp = array();
 foreach (bk_my_registrations($archer->BaLicence) as $r) {
     $tid = intval($r->BrTournament);
-    if (isset($seen[$tid])) continue;
-    $seen[$tid] = true;
-    $events[] = $r;
+    if (!isset($byComp[$tid])) $byComp[$tid] = array('c' => $r, 'ses' => array());
+    $so = intval($r->QuSession);
+    if ($so > 0) $byComp[$tid]['ses'][$so] = true;
 }
+
+$labels = bk_disc_labels();
 
 $L = array();
 $L[] = 'BEGIN:VCALENDAR';
@@ -47,7 +49,8 @@ $L[] = 'PRODID:-//ianseo//Inscriptions en ligne//FR';
 $L[] = 'CALSCALE:GREGORIAN';
 $L[] = 'METHOD:PUBLISH';
 $L[] = 'X-WR-CALNAME:Mes compétitions';
-foreach ($events as $r) {
+foreach ($byComp as $tid => $g) {
+    $r = $g['c'];
     $from = substr((string) $r->ToWhenFrom, 0, 10);
     $to   = substr((string) $r->ToWhenTo, 0, 10);
     if ($from === '' || strpos($from, '0000') === 0) continue;   // date invalide → on saute
@@ -55,19 +58,44 @@ foreach ($events as $r) {
     $dtStart = str_replace('-', '', $from);
     $dtEnd   = date('Ymd', strtotime($to . ' +1 day'));           // DTEND exclusif (journée entière)
 
-    $dd  = bk_comp_discipline($r->ToType, $r->ToTypeSubRule ?? '', $r->ToTypeName ?? '');
-    $labels = bk_disc_labels();
+    $dd   = bk_comp_discipline($r->ToType, $r->ToTypeSubRule ?? '', $r->ToTypeName ?? '');
     $disc = $labels[$dd['key']] ?? '';
-    $url  = $base . bk_public_url('competition.php?t=' . intval($r->BrTournament));
-    $desc = trim(($disc !== '' ? $disc . ' — ' : '') . 'Voir la fiche : ' . $url);
+    $url  = $base . bk_public_url('competition.php?t=' . $tid);
+
+    // Lieu = lieu précis (ToWhere : gymnase/stade) + ville (ToVenue).
+    $loc   = trim((string) $r->ToWhere);
+    $venue = trim((string) ($r->ToVenue ?? ''));
+    if ($venue !== '' && stripos($loc, $venue) === false) $loc = ($loc !== '' ? $loc . ', ' : '') . $venue;
+
+    // Départs de l'archer : nom, heure de début, durée estimée.
+    $byOrder = array();
+    foreach (bk_comp_sessions($tid) as $s) $byOrder[intval($s->SesOrder)] = $s;
+    $orders = array_keys($g['ses']); sort($orders);
+    $depLines = array();
+    foreach ($orders as $so) {
+        $s = $byOrder[$so] ?? null;
+        $name = ($s && trim((string) $s->SesName) !== '') ? ' « ' . trim($s->SesName) . ' »' : '';
+        $hh = '';
+        if ($s) { $hm = substr(bk_session_start($s), 11, 5); if ($hm !== '' && $hm !== '00:00') $hh = ' à ' . str_replace(':', 'h', $hm); }
+        $dur = bk_dur_hm(bk_session_format($tid, $so)['min']);
+        $line = 'Départ ' . $so . $name . $hh;
+        if ($dur !== '') $line .= ' — durée ' . $dur;
+        $depLines[] = '• ' . $line;
+    }
+
+    // DESCRIPTION : vraies nouvelles lignes, échappées ensuite en \n par bk_ics_esc.
+    $desc = '';
+    if ($disc !== '') $desc .= $disc . "\n";
+    if ($depLines) $desc .= "Vos départs :\n" . implode("\n", $depLines) . "\n";
+    $desc .= 'Fiche : ' . $url;
 
     $L[] = 'BEGIN:VEVENT';
-    $L[] = 'UID:bk-' . intval($r->BrTournament) . '@' . $host;
+    $L[] = 'UID:bk-' . $tid . '@' . $host;
     $L[] = 'DTSTAMP:' . $stamp;
     $L[] = 'DTSTART;VALUE=DATE:' . $dtStart;
     $L[] = 'DTEND;VALUE=DATE:' . $dtEnd;
     $L[] = 'SUMMARY:' . bk_ics_esc($r->ToName);
-    if (trim((string) $r->ToWhere) !== '') $L[] = 'LOCATION:' . bk_ics_esc($r->ToWhere);
+    if ($loc !== '') $L[] = 'LOCATION:' . bk_ics_esc($loc);
     $L[] = 'DESCRIPTION:' . bk_ics_esc($desc);
     $L[] = 'URL:' . bk_ics_esc($url);
     $L[] = 'TRANSP:TRANSPARENT';
