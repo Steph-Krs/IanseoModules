@@ -76,6 +76,15 @@ $tz      = trim($_POST['d_ToTimeZone'] ?? '+01:00');
 $fromDate = sprintf('%04d-%02d-%02d', $fromY, $fromM, $fromD);
 $toDate   = sprintf('%04d-%02d-%02d', $toY, $toM, $toD);
 
+// « Lieu » (ToWhere) ne doit JAMAIS être vide : une compétition sans lieu devient
+// inaccessible aux utilisateurs (listes, booking…). Si l'organisateur n'a pas précisé
+// de lieu exact (gymnase/stade), on reprend la ville — jamais de champ vide en base.
+$venue = trim($_POST['d_ToVenue'] ?? '');
+$where = trim($_POST['d_ToWhere'] ?? '');
+if ($where === '') {
+    $where = $venue;
+}
+
 $Insert = "INSERT INTO Tournament SET "
     . "ToType="        . StrSafe_DB($toType)
     . ", ToCode="      . StrSafe_DB($code)
@@ -84,7 +93,7 @@ $Insert = "INSERT INTO Tournament SET "
     . ", ToIocCode="   . StrSafe_DB(trim($_POST['d_ToIocCode'] ?? ''))
     . ", ToCommitee="  . StrSafe_DB(trim($_POST['d_ToCommitee'] ?? ''))
     . ", ToComDescr="  . StrSafe_DB(trim($_POST['d_ToComDescr'] ?? ''))
-    . ", ToWhere="     . StrSafe_DB(trim($_POST['d_ToWhere'] ?? ''))
+    . ", ToWhere="     . StrSafe_DB($where)
     . ", ToTimeZone="  . StrSafe_DB($tz)
     . ", ToWhenFrom="  . StrSafe_DB($fromDate)
     . ", ToWhenTo="    . StrSafe_DB($toDate)
@@ -97,7 +106,7 @@ $Insert = "INSERT INTO Tournament SET "
     . ", ToTypeSubRule=" . StrSafe_DB($subCode)
     . ", ToLocRule="   . StrSafe_DB('FR')
     . ", ToIsORIS="    . StrSafe_DB('')
-    . ", ToVenue="     . StrSafe_DB(trim($_POST['d_ToVenue'] ?? ''))
+    . ", ToVenue="     . StrSafe_DB($venue)
     . ", ToCountry="   . StrSafe_DB(trim($_POST['d_ToCountry'] ?? 'FRA'));
 
 safe_w_sql($Insert);
@@ -152,7 +161,14 @@ if (in_array($iskMode, ['ng-lite', 'ng-pro', 'ng-live'], true)) {
     Set_Tournament_Option('UseApi', $apiType[$iskMode], false, $tid);
 }
 
-// ── Ouverture propre (TourOn natif) puis saisie des participants ─────────────
+// ── Ouverture propre (TourOn natif) puis étape suivante ──────────────────────
+// Avec BOOKING (inscriptions en ligne), l'étape suivante est la mise en ligne des
+// inscriptions (les archers s'inscrivent eux-mêmes) plutôt que la saisie manuelle
+// des participants — voir create.php pour le bouton adapté en conséquence.
+$nextPage = sfa_booking_present()
+    ? 'Modules/Custom/AUTH/booking/admin/competition.php'
+    : 'Partecipants/index.php';
+
 CD_redirect($CFG->ROOT_DIR . 'Common/TourOn.php?ToId=' . $tid
-    . '&BackTo=' . $CFG->ROOT_DIR . 'Partecipants/index.php');
+    . '&BackTo=' . $CFG->ROOT_DIR . $nextPage);
 exit;

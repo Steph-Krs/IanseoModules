@@ -29,6 +29,10 @@ $AJAX = $CFG->ROOT_DIR . 'Modules/Custom/SYNCHRO_FFTA/ajax-create.php';
 $RUN  = $CFG->ROOT_DIR . 'Modules/Custom/SYNCHRO_FFTA/create-run.php';
 $BASE = ExtranetClient::BASE_PROD;   // création : lecture du calendrier fédéral en production
 
+// Avec BOOKING (inscriptions en ligne), l'étape suivante logique est la mise en ligne des
+// inscriptions, pas la saisie manuelle des participants — voir create-run.php pour la redirection.
+$BOOKING_ON = sfa_booking_present();
+
 // ── Types et sous-règles français réels (pour les menus déroulants) ──────────
 $fr = sfa_fr_sets();
 $typeLabels = [];
@@ -217,9 +221,6 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
       <input type="hidden" name="d_Rule" value="FR">
       <input type="hidden" name="d_ToNameShort" id="f-short">
       <input type="hidden" name="d_ToIocCode" value="">
-      <!-- La ville de l'extranet va dans « Ville » (ToVenue) : c'est ce champ que l'export FFTA
-           lit pour « lieu du concours » du TXT. « Lieu » (ToWhere) reste au choix de l'organisateur. -->
-      <input type="hidden" name="d_ToWhere" value="">
       <input type="hidden" name="d_ToCountry" value="FRA">
       <input type="hidden" name="d_ToTimeZone" id="f-tz">
       <input type="hidden" name="xx_ToCurrency" value="<?= htmlspecialchars($def['cur']) ?>">
@@ -289,6 +290,10 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         <label for="f-where">Ville</label>
         <input type="text" name="d_ToVenue" id="f-where" class="full">
 
+        <label for="f-precis">Lieu précis</label>
+        <span><input type="text" name="d_ToWhere" id="f-precis" class="full" required
+              placeholder="Nom du gymnase, du stade, de la fôret…"></span>
+
         <label>Dates</label>
         <span id="f-dates-text" class="muted"></span>
 
@@ -307,8 +312,13 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
       </div><!-- /cols2 -->
 
       <p style="margin-top:14px">
+        <?php if ($BOOKING_ON): ?>
+        <button type="submit" class="primary">Créer et gérer la visibilité sur le serveur</button>
+        <span class="muted">La compétition est créée dans ianseo, puis vous arrivez sur la page de gestion des inscriptions et de visibilité sur le serveur.</span>
+        <?php else: ?>
         <button type="submit" class="primary">Créer et saisir les participants</button>
         <span class="muted">La compétition est créée dans ianseo, puis vous arrivez sur la saisie des participants.</span>
+        <?php endif; ?>
       </p>
     </div>
   </form>
@@ -531,7 +541,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             $('f-code').value=pf.code; $('code-warn').textContent=pf.codeWarn||'';
             $('f-name').value=pf.name; $('f-short').value=(pf.name||'').slice(0,60);
             $('f-commitee').value=pf.commitee; $('f-comdescr').value=pf.comdescr;
-            $('f-where').value=pf.where;
+            $('f-where').value=pf.where; $('f-precis').value='';   // saisie libre, propre à chaque épreuve
             $('f-tz').value=pf.timezone||'';   // pays = FRA en champ caché, plus de champ visible
 
             $('f-fy').value=pf.fromY; $('f-fm').value=pf.fromM; $('f-fd').value=pf.fromD;

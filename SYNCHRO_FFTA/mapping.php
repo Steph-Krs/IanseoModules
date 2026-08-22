@@ -17,6 +17,19 @@ function sfa_project_root(): string
     return dirname(HTDOCS);
 }
 
+/**
+ * Le module BOOKING (inscriptions en ligne, fusionné dans AUTH) est-il installé et actif ?
+ * Détection par fichier — BOOKING vit sous Modules/Custom/AUTH/, hors du balayage de
+ * module_exists() (réservé à Modules/*). Aucun require : juste savoir s'il est là.
+ */
+function sfa_booking_present(): bool
+{
+    global $CFG;
+
+    return !empty($CFG->USERAUTH)
+        && is_file($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/booking/admin/competition.php');
+}
+
 /** Enlève les accents, met en majuscules, compacte les espaces. */
 function sfa_normalize(string $s): string
 {
