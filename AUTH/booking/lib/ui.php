@@ -157,10 +157,17 @@ function bk_redirect($page)
     exit;
 }
 
-/** Exige un licencié connecté ; redirige vers la connexion sinon. */
+/** Exige un licencié connecté ; redirige vers la connexion sinon. Puis garde CGU. */
 function bk_require_archer()
 {
     $a = bk_current_archer();
     if (!$a) bk_redirect('login.php');
+    // Garde CGU : acceptation obligatoire (horodatée, versionnée), sauf sur la page
+    // d'acceptation elle-même (anti-boucle). legal-lib.php vit dans le module AUTH parent.
+    if (basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) !== 'legal-accept.php') {
+        require_once dirname(__DIR__, 2) . '/legal-lib.php';
+        // Seulement si l'exploitant a configuré ses infos légales (voir garde organisateur).
+        if (aut_legal_configured() && !aut_legal_archer_ok($a)) bk_redirect('legal-accept.php');
+    }
     return $a;
 }

@@ -5,6 +5,7 @@
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+require_once(dirname(__DIR__) . '/legal-lib.php');   // acceptation CGU (colonnes + version)
 require_once('Common/Fun_FormatText.inc.php');
 
 checkFullACL(AclRoot, '', AclReadWrite);
@@ -15,6 +16,13 @@ if (!empty($_SESSION['AUTH_ENABLE']) && empty($_SESSION['AUTH_ROOT'])) {
 }
 
 aut_ensure_schema();
+aut_legal_ensure_schema();   // colonnes AuCguVer/AuCguAt
+
+// Le module d'inscriptions (booking) est-il installé ? → onglet « Archers » (comptes BK_Archers).
+$hasArchers = (bool) safe_fetch(safe_r_sql("SELECT 1 FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Archers'"));
+// Onglet actif (les formulaires archers portent tab=archers → on y reste après une action).
+$activeTab = (($_REQUEST['tab'] ?? '') === 'archers' && $hasArchers) ? 'archers' : 'org';
 
 $msgOk = '';
 $msgErr = '';
@@ -130,6 +138,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $msgOk = 'Compte <b>' . htmlspecialchars($u->AuUsername) . '</b> supprimé.';
             }
         }
+
+        // ---- Actions sur les comptes ARCHER (BK_Archers) ----
+        if ($hasArchers && strpos($action, 'archer_') === 0 && $id) {
+            $r = safe_fetch(safe_r_sql("SELECT BaId, BaLicence FROM BK_Archers WHERE BaId=$id"));
+            if (!$r) {
+                $msgErr = 'Compte archer introuvable.';
+            } else {
+                $lic = htmlspecialchars($r->BaLicence);
+                if ($action == 'archer_save') {
+                    $active = !empty($_POST['active']) ? 1 : 0;
+                    safe_w_sql("UPDATE BK_Archers SET BaActive=$active WHERE BaId=$id");
+                    if (!$active) safe_w_sql("DELETE FROM BK_Sessions WHERE BsArcher=$id");   // désactivation → déconnexion
+                    aut_log('ARCHER_SAVE', $r->BaLicence);
+                    $msgOk = "Compte archer <b>$lic</b> mis à jour" . ($active ? '.' : ' (désactivé, sessions déconnectées).');
+                } elseif ($action == 'archer_killsessions') {
+                    safe_w_sql("DELETE FROM BK_Sessions WHERE BsArcher=$id");
+                    aut_log('ARCHER_SESSIONS', $r->BaLicence);
+                    $msgOk = "Sessions de l'archer <b>$lic</b> déconnectées.";
+                } elseif ($action == 'archer_resetcgu') {
+                    safe_w_sql("UPDATE BK_Archers SET BaCguVer='', BaCguAt=NULL WHERE BaId=$id");
+                    aut_log('ARCHER_CGU_RESET', $r->BaLicence);
+                    $msgOk = "Acceptation des CGU de <b>$lic</b> réinitialisée (re-demandée à sa prochaine connexion).";
+                } elseif ($action == 'archer_delete') {
+                    safe_w_sql("DELETE FROM BK_Sessions WHERE BsArcher=$id");
+                    safe_w_sql("DELETE FROM BK_Archers WHERE BaId=$id");
+                    aut_log('ARCHER_DELETE', $r->BaLicence);
+                    $msgOk = "Compte archer <b>$lic</b> supprimé (il sera recréé automatiquement à sa prochaine connexion).";
+                }
+            }
+        }
     }
 }
 
@@ -146,23 +184,48 @@ $logs = array();
 $q = safe_r_sql("SELECT * FROM AUT_Log ORDER BY AlId DESC LIMIT 30");
 while ($r = safe_fetch($q)) $logs[] = $r;
 
+// Comptes ARCHER (si le module d'inscriptions est installé).
+$archers = array();
+$arcSess = array();
+if ($hasArchers) {
+    $q = safe_r_sql("SELECT * FROM BK_Archers ORDER BY BaFamilyName, BaName, BaLicence");
+    while ($r = safe_fetch($q)) $archers[] = $r;
+    $q = safe_r_sql("SELECT BsArcher, COUNT(*) AS n FROM BK_Sessions
+        WHERE BsLastSeen > DATE_SUB(NOW(), INTERVAL 12 HOUR) GROUP BY BsArcher");
+    while ($r = safe_fetch($q)) $arcSess[intval($r->BsArcher)] = intval($r->n);
+}
+
 $roles = aut_roles();
-$PAGE_TITLE = 'Multi-comptes — Utilisateurs';
+$PAGE_TITLE = 'Comptes du serveur';
 include('Common/Templates/head.php');
 ?>
-<table class="Tabella">
-<tr><th class="Title" colspan="10">Utilisateurs du serveur</th></tr>
+<style>
+#aut-tabs { display:flex; gap:8px; margin:6px 0 14px; }
+#aut-tabs button { padding:9px 18px; border:1px solid #c9d4df; border-radius:6px 6px 0 0;
+    background:#eef2f6; color:#334; font-size:14px; cursor:pointer; }
+#aut-tabs button.on { background:#1a4f8b; color:#fff; border-color:#1a4f8b; font-weight:600; }
+.aut-pane { display:none; }
+.aut-pane.on { display:block; }
+.aut-banner { padding:10px 14px; border-radius:6px; margin:0 0 14px; font-size:14px; }
+.aut-banner.ok  { background:#e8f4e8; color:#1a5c1a; border:1px solid #9ccf9c; }
+.aut-banner.err { background:#fde8e8; color:#8b1a1a; border:1px solid #e0a0a0; }
+.aut-banner.pwd { background:#fff6df; color:#6b5a1a; border:1px solid #e6d18a; }
+</style>
 <?php
-if ($msgOk)  echo '<tr><td colspan="10" class="Center" style="background:#e8f4e8; color:#1a5c1a;">' . $msgOk . '</td></tr>';
-if ($msgErr) echo '<tr><td colspan="10" class="Center" style="background:#fde8e8; color:#8b1a1a;">' . $msgErr . '</td></tr>';
-if ($tmpPwd) {
-    echo '<tr><td colspan="10" class="Center" style="background:#fff6df; color:#6b5a1a; font-size:14px;">'
-        . 'Mot de passe temporaire (affiché une seule fois, à transmettre à l\'utilisateur) : '
-        . '<b style="font-family:monospace; font-size:16px;">' . htmlspecialchars($tmpPwd) . '</b><br>'
-        . '<small>Il devra le changer à sa première connexion.</small></td></tr>';
-}
+if ($msgOk)  echo '<div class="aut-banner ok">' . $msgOk . '</div>';
+if ($msgErr) echo '<div class="aut-banner err">' . $msgErr . '</div>';
+if ($tmpPwd) echo '<div class="aut-banner pwd">Mot de passe temporaire (affiché une seule fois, à transmettre à l\'utilisateur) : '
+    . '<b style="font-family:monospace; font-size:16px;">' . htmlspecialchars($tmpPwd) . '</b> — il devra le changer à sa première connexion.</div>';
 ?>
-<tr><td colspan="10" style="font-size:11px;">
+<div id="aut-tabs">
+  <button type="button" data-pane="org">🏹 Organisateurs (<?php echo count($users); ?>)</button>
+  <?php if ($hasArchers) echo '<button type="button" data-pane="archers">🎯 Archers (' . count($archers) . ')</button>'; ?>
+</div>
+
+<div class="aut-pane" id="pane-org">
+<table class="Tabella">
+<tr><th class="Title" colspan="11">Organisateurs</th></tr>
+<tr><td colspan="11" style="font-size:11px;">
     <b>Périmètre</b> : club = n° d'agrément complet (ex. <code>0760171</code> = ligue 07, dept 60, club 171),
     CD = 2 chiffres du département (ex. <code>60</code>), CR = 2 chiffres de la ligue (ex. <code>07</code>),
     FFTA / Administrateur = vide. Un motif avec <code>%</code>/<code>_</code> est accepté pour les cas atypiques.
@@ -182,6 +245,7 @@ if ($tmpPwd) {
     <th class="Title">2FA</th>
     <th class="Title">Sessions</th>
     <th class="Title">Dernière connexion</th>
+    <th class="Title">CGU</th>
     <th class="Title">Actions</th>
 </tr>
 <?php foreach ($users as $u) { $isSso = ($u->AuPassword === ''); ?>
@@ -214,6 +278,17 @@ if ($tmpPwd) {
         <?php } ?>
     </td>
     <td class="Center"><?php echo $u->AuLastLogin ?: '—'; ?></td>
+    <td class="Center" style="white-space:nowrap; font-size:11px;">
+        <?php if (!empty($u->AuCguAt)) {
+            $cguCur = ((string) ($u->AuCguVer ?? '') === (string) aut_legal_version());
+            echo '<span style="color:' . ($cguCur ? '#1a5c1a' : '#8a6d1a') . '" title="Version acceptée : '
+               . htmlspecialchars($u->AuCguVer) . '">v' . htmlspecialchars($u->AuCguVer) . '<br>'
+               . htmlspecialchars(date('d/m/Y H:i', strtotime($u->AuCguAt))) . '</span>';
+            if (!$cguCur) echo '<br><small style="color:#8a6d1a">(à re-accepter)</small>';
+        } else {
+            echo '<span style="color:#a0006d">non acceptées</span>';
+        } ?>
+    </td>
     <td class="Center" style="white-space:nowrap;">
         <button form="f<?php echo $u->AuId; ?>" type="submit">Enregistrer</button>
         <?php if (!$isSso) { ?>
@@ -225,9 +300,9 @@ if ($tmpPwd) {
     </td>
 </tr>
 <?php } ?>
-<?php if (!count($users)) echo '<tr><td colspan="10" class="Center">Aucun compte — créez d\'abord un compte ADMIN ci-dessous.</td></tr>'; ?>
+<?php if (!count($users)) echo '<tr><td colspan="11" class="Center">Aucun compte — créez d\'abord un compte ADMIN ci-dessous.</td></tr>'; ?>
 
-<tr><th class="Title" colspan="10">Créer un compte</th></tr>
+<tr><th class="Title" colspan="11">Créer un compte</th></tr>
 <tr>
     <td><input form="fnew" type="text" name="username" size="14" placeholder="identifiant"></td>
     <td><input form="fnew" type="text" name="name" size="16" placeholder="Nom / club"></td>
@@ -236,7 +311,7 @@ if ($tmpPwd) {
         <?php foreach ($roles as $k => $lbl) echo '<option value="' . $k . '">' . $lbl . '</option>'; ?>
     </select></td>
     <td><input form="fnew" type="text" name="scope" size="8" placeholder="périmètre"></td>
-    <td colspan="4" style="font-size:10px;">Le mot de passe temporaire sera généré et affiché après création.</td>
+    <td colspan="5" style="font-size:10px;">Le mot de passe temporaire sera généré et affiché après création.</td>
     <td class="Center">
         <form method="post" action="" id="fnew"><?php echo aut_csrf_field(); ?><input type="hidden" name="action" value="create"></form>
         <button form="fnew" type="submit">Créer</button>
@@ -253,5 +328,86 @@ if ($tmpPwd) {
 } ?>
 <?php if (!count($logs)) echo '<tr><td colspan="4" class="Center">Aucun événement.</td></tr>'; ?>
 </table>
+</div><!-- pane-org -->
+
+<?php if ($hasArchers): ?>
+<div class="aut-pane" id="pane-archers">
+<table class="Tabella">
+<tr><th class="Title" colspan="9">Archers (comptes licenciés)</th></tr>
+<tr><td colspan="9" style="font-size:11px;">
+    Comptes créés automatiquement à la première connexion d'un licencié (via ses identifiants de l'espace licencié).
+    Le <b>nom, prénom et club</b> proviennent du fichier fédéral (réalignés à chaque connexion) et ne sont pas modifiables ici.
+    <b>Désactiver</b> bloque l'accès ; <b>Supprimer</b> retire le compte (recréé automatiquement à la prochaine connexion,
+    sans historique d'acceptation des CGU).
+</td></tr>
+<tr>
+    <th class="Title">Licence</th>
+    <th class="Title">Nom</th>
+    <th class="Title">Club</th>
+    <th class="Title">Email</th>
+    <th class="Title">Actif</th>
+    <th class="Title">Sessions</th>
+    <th class="Title">Dernière connexion</th>
+    <th class="Title">CGU</th>
+    <th class="Title">Actions</th>
+</tr>
+<?php foreach ($archers as $a): $aid = intval($a->BaId); $alic = htmlspecialchars($a->BaLicence); ?>
+<tr>
+    <td><b><?= $alic ?></b>
+        <form method="post" action="" id="a<?= $aid ?>">
+            <?= aut_csrf_field() ?>
+            <input type="hidden" name="tab" value="archers">
+            <input type="hidden" name="id" value="<?= $aid ?>">
+        </form>
+    </td>
+    <td><?= htmlspecialchars(trim($a->BaFamilyName . ' ' . $a->BaName)) ?: '—' ?></td>
+    <td><?= htmlspecialchars($a->BaClubCode) ?: '—' ?></td>
+    <td><?= htmlspecialchars($a->BaEmail) ?: '—' ?></td>
+    <td class="Center"><input form="a<?= $aid ?>" type="checkbox" name="active"<?= $a->BaActive ? ' checked' : '' ?>></td>
+    <td class="Center" style="white-space:nowrap;"><?= $arcSess[$aid] ?? 0 ?>
+        <?php if (!empty($arcSess[$aid])): ?>
+        <button form="a<?= $aid ?>" type="submit" name="action" value="archer_killsessions"
+            onclick="return confirm('Déconnecter toutes les sessions de <?= $alic ?> ?');">Déco.</button>
+        <?php endif; ?>
+    </td>
+    <td class="Center"><?= $a->BaLastLogin ?: '—' ?></td>
+    <td class="Center" style="white-space:nowrap; font-size:11px;">
+        <?php if (!empty($a->BaCguAt)) {
+            $aCur = ((string) ($a->BaCguVer ?? '') === (string) aut_legal_version());
+            echo '<span style="color:' . ($aCur ? '#1a5c1a' : '#8a6d1a') . '">v' . htmlspecialchars($a->BaCguVer) . '<br>'
+               . htmlspecialchars(date('d/m/Y H:i', strtotime($a->BaCguAt))) . '</span>';
+            if (!$aCur) echo '<br><small style="color:#8a6d1a">(à re-accepter)</small>';
+            echo '<br><button form="a' . $aid . '" type="submit" name="action" value="archer_resetcgu"'
+               . ' onclick="return confirm(\'Réinitialiser l’acceptation des CGU de ' . $alic . ' ?\');">RàZ</button>';
+        } else {
+            echo '<span style="color:#a0006d">non</span>';
+        } ?>
+    </td>
+    <td class="Center" style="white-space:nowrap;">
+        <button form="a<?= $aid ?>" type="submit" name="action" value="archer_save">Enregistrer</button>
+        <button form="a<?= $aid ?>" type="submit" name="action" value="archer_delete"
+            onclick="return confirm('Supprimer le compte archer <?= $alic ?> ? (recréé à sa prochaine connexion)');">Supprimer</button>
+    </td>
+</tr>
+<?php endforeach; ?>
+<?php if (!count($archers)) echo '<tr><td colspan="9" class="Center">Aucun archer ne s\'est encore connecté.</td></tr>'; ?>
+</table>
+</div><!-- pane-archers -->
+<?php endif; ?>
+
+<script>
+(function () {
+  var active = <?= json_encode($activeTab) ?>;
+  var tabs = [].slice.call(document.querySelectorAll('#aut-tabs button'));
+  function show(p) {
+    if (!document.getElementById('pane-' + p)) p = 'org';
+    [].forEach.call(document.querySelectorAll('.aut-pane'), function (x) { x.classList.toggle('on', x.id === 'pane-' + p); });
+    tabs.forEach(function (t) { t.classList.toggle('on', t.getAttribute('data-pane') === p); });
+    try { history.replaceState(null, '', location.pathname + '?tab=' + p); } catch (e) {}
+  }
+  tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.getAttribute('data-pane')); }); });
+  show(active);
+})();
+</script>
 <?php
 include('Common/Templates/tail.php');

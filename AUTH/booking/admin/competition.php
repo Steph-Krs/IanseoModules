@@ -37,6 +37,25 @@ $adoptReport = bk_adopt_check($TOUR);
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
         $err = 'Session expirée — rechargez la page et réessayez.';
+    } elseif (isset($_POST['copy_from'])) {
+        // « Copier depuis… » : reprendre la configuration d'une autre compétition accessible.
+        $srcId = bk_copy_is_admin()
+            ? bk_copy_resolve($_POST['copy_src_text'] ?? '', $TOUR)
+            : intval($_POST['copy_src'] ?? 0);
+        // Non-admin : la source doit être ré-vérifiée accessible (la liste affichée ne fait pas foi).
+        if (!bk_copy_is_admin() && $srcId > 0) {
+            $chk = safe_fetch(safe_r_sql("SELECT t.ToId FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament
+                WHERE t.ToId = $srcId AND t.ToId <> $TOUR AND " . bk_copy_access_where('t')));
+            if (!$chk) $srcId = 0;
+        }
+        if ($srcId <= 0) {
+            $err = 'Compétition source introuvable ou non accessible.';
+        } elseif (bk_comp_copy_from($TOUR, $srcId)) {
+            header('Location: ' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php?copied=1');
+            exit;
+        } else {
+            $err = "La copie a échoué : la compétition source n'a pas de configuration d'inscription en ligne.";
+        }
     } elseif (isset($_POST['set_level'])) {
         // Barre à 3 niveaux : applique la transition (snapshot / auto / restore) puis
         // recharge la page (PRG) pour afficher l'UI du niveau choisi.
@@ -121,9 +140,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     }
 }
 
+if (isset($_GET['copied'])) $msg = 'Configuration reprise depuis l\'autre compétition. Vérifiez les dates et les contraintes du terrain.';
+
 $cfg      = bk_comp_config($TOUR);
 $sessions = bk_comp_sessions($TOUR);
 $level    = intval($cfg->BcPublishLevel ?? 1);          // barre à 3 niveaux
+$copyAdmin  = bk_copy_is_admin();
+$copySources = $copyAdmin ? array() : bk_copy_sources($TOUR);
 $isDrom   = bk_is_dromtom(bk_org_agrement($TOUR));       // règles de placement modifiables
 $rules    = ($level >= 2) ? bk_rules_check($TOUR, $cfg) : array();
 $publicUrl = (empty($_SERVER['HTTPS']) ? 'http' : 'https') . '://'
@@ -251,6 +274,17 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #bkadm .bk-lvl-d { display:block; margin-top:5px; font-size:12px; color:#5b6470; line-height:1.35; }
 #bkadm .bk-shortcuts { display:flex; flex-wrap:wrap; gap:8px; }
 #bkadm .bk-shortcuts .bk-btn { text-decoration:none; }
+#bkadm .bk-sec-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+#bkadm .bk-sec-head h2 { margin:0; }
+#bkadm .bk-copy { font-size:13px; }
+#bkadm .bk-copy > summary { cursor:pointer; color:#0254a8; font-weight:600; list-style:none;
+    padding:5px 11px; border:1px solid #a7d6ff; border-radius:6px; background:#f0f4ff; white-space:nowrap; }
+#bkadm .bk-copy > summary::-webkit-details-marker { display:none; }
+#bkadm .bk-copy[open] > summary { background:#0254a8; color:#fff; border-color:#0254a8; }
+#bkadm .bk-copy-body { margin-top:8px; padding:10px 12px; border:1px solid #d2d4d6; border-radius:8px;
+    background:#fafbfc; width:min(420px, 90vw); }
+#bkadm .bk-copy-body select, #bkadm .bk-copy-body input[type=text] { max-width:100%; width:100%; }
+#bkadm .bk-copy-body .bk-btn { margin-top:8px; }
 </style>
 
 <div id="bkadm">
@@ -292,13 +326,43 @@ if ($openConf):
 <?php endif; ?>
 
 <div class="bk-sec">
-  <h2>Publication</h2>
+  <div class="bk-sec-head">
+    <h2>Publication</h2>
+    <details class="bk-copy">
+      <summary>📋 Copier depuis…</summary>
+      <div class="bk-copy-body">
+        <p class="bk-hint" style="margin:0 0 8px">Reprendre la configuration d'une <b>autre compétition</b> :
+          niveau de publication, inscriptions, visibilité, tarif, mandat, boutique et contraintes du terrain.
+          Les <b>dates</b> gardent le même décalage par rapport à la date de début. Les logos et le lien
+          ianseo.net ne sont pas copiés. <b>Les réglages actuels seront remplacés.</b></p>
+        <form method="post" onsubmit="return confirm('Copier toute la configuration de la compétition source ? Les réglages actuels (inscriptions, tarif, mandat, boutique, contraintes du terrain) seront REMPLACÉS.');">
+          <?= bk_csrf_field() ?>
+          <?php if ($copyAdmin): ?>
+            <label class="bk-f"><span>Code (ou identifiant) de la compétition source</span>
+              <input type="text" name="copy_src_text" placeholder="ex. F26CF3D" autocomplete="off" required></label>
+            <button type="submit" name="copy_from" value="1" class="bk-btn">Copier la configuration</button>
+          <?php elseif (!$copySources): ?>
+            <p class="bk-hint" style="margin:0">Aucune autre compétition configurée n'est accessible pour l'instant.</p>
+          <?php else: ?>
+            <label class="bk-f"><span>Compétition source</span>
+              <select name="copy_src" required>
+                <option value="">— choisir —</option>
+                <?php foreach ($copySources as $s): ?>
+                  <option value="<?= intval($s->ToId) ?>"><?= bk_e($s->ToName . ' (' . $s->ToCode . ') — ' . bk_date_fr($s->ToWhenFrom)) ?></option>
+                <?php endforeach; ?>
+              </select></label>
+            <button type="submit" name="copy_from" value="1" class="bk-btn">Copier la configuration</button>
+          <?php endif; ?>
+        </form>
+      </div>
+    </details>
+  </div>
   <p class="bk-hint" style="margin-top:0">Choisissez le niveau de publication de la compétition.</p>
   <div class="bk-levels">
     <?php
     $lvls = array(
       1 => array('Aucune publication', 'Visible par vous seul. Rien côté archer.'),
-      2 => array('Publication simple', 'Tout est publié automatiquement (inscriptions, mandat, documents). Il ne reste que le plan du terrain et la boutique.'),
+      2 => array('Publication simple', "Tout est publié automatiquement (inscriptions, mandat, documents). Il ne reste que le tarif d'inscription à préciser et, si besoin, les contraintes d'affectation du terrain et la boutique."),
       3 => array('Avancé', 'Réglage détaillé de chaque paramètre.'),
     );
     foreach ($lvls as $n => $info): ?>
@@ -325,8 +389,8 @@ if ($openConf):
 <?php if ($level == 2): ?>
   <div class="bk-sec">
     <h2>À finaliser</h2>
-    <p class="bk-hint" style="margin-top:0">Tout est déjà publié automatiquement. Indiquez le tarif
-       d'inscription, puis configurez le terrain et, si besoin, la boutique :</p>
+    <p class="bk-hint" style="margin-top:0">Tout est déjà publié automatiquement. Les inscriptions sont ouvertes. Indiquez le tarif
+       d'inscription puis, si besoin, configurez les contraintes d'affectation du terrain et la boutique :</p>
     <form method="post" class="bk-row" style="margin:0 0 14px">
       <?= bk_csrf_field() ?>
       <label class="bk-f"><span>Tarif d'inscription (€)</span>
@@ -336,7 +400,7 @@ if ($openConf):
     <p class="bk-hint" style="margin:0 0 6px">Tarif unique appliqué à chaque inscription. La modulation
        fine (par catégorie, départ, provenance…) reste disponible en mode « Avancé ».</p>
     <p class="bk-shortcuts">
-      <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/field.php">Plan du terrain →</a>
+      <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/field.php">Contraintes d'affectation du terrain →</a>
       <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/shop.php">Boutique →</a>
       <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/dues.php">Sommes dues →</a>
     </p>
@@ -590,7 +654,7 @@ if ($openConf):
   <?php endif; ?>
   <p style="margin:10px 0 0">
     <a class="bk-btn" style="text-decoration:none;display:inline-block"
-       href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/field.php">Plan du terrain →</a>
+       href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/field.php">Contraintes d'affectation du terrain →</a>
     <span class="bk-hint" style="display:block;margin-top:6px">Déclarez les distances et les
       blasons que chaque cible peut recevoir : l'attribution automatique s'y conformera.</span>
   </p>

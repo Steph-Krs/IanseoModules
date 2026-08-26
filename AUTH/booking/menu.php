@@ -30,7 +30,7 @@ if (!empty($on) && isset($acl)) {
             . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/mandate.php';
     }
     if (subFeatureAcl($acl, AclParticipants, 'pTarget') >= AclReadWrite) {
-        $bkEntries[] = 'Plan du terrain|'
+        $bkEntries[] = "Contraintes d'affectation du terrain|"
             . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/field.php';
         $bkEntries[] = 'Attribution des cibles|'
             . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/targets.php';

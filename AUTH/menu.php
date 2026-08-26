@@ -28,6 +28,7 @@ if ($_aut_logged || $_aut_admin) {
 if ($_aut_admin) {
     $ret['MODS']['AUTH'][] = 'Utilisateurs|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/';
     $ret['MODS']['AUTH'][] = 'Tickets|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/tickets.php';
+    $ret['MODS']['AUTH'][] = 'Mentions légales & CGU|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/legal.php';
     $ret['MODS']['AUTH'][] = 'Déploiement|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/deploy.php';
     $ret['MODS']['AUTH'][] = 'Mise à jour module|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/update.php';
 }

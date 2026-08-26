@@ -1293,6 +1293,13 @@ function aut_is_auth_script() {
     return stripos(aut_script_rel(), '/Modules/Authentication/') === 0;
 }
 
+/** Pages légales (consultation + acceptation) : exemptes de la garde CGU (anti-boucle). */
+function aut_is_legal_script() {
+    $s = aut_script_rel();
+    return stripos($s, '/Modules/Custom/AUTH/legal.php') === 0
+        || stripos($s, '/Modules/Custom/AUTH/legal-accept.php') === 0;
+}
+
 /**
  * Scripts touchant TOUT le serveur (toute la base) → administrateur uniquement.
  * Filet de sécurité central : certaines de ces pages du cœur ianseo ne
@@ -1391,6 +1398,24 @@ function aut_request_bootstrap() {
                 if ($u->AuRole == AUT_ROLE_ADMIN && !$u->AuTotpEnabled) {
                     CD_redirect($CFG->ROOT_DIR . 'Modules/Authentication/Setup2FA.php');
                     die();
+                }
+                // CGU : acceptation obligatoire (bloquant tant que non accepté pour la version
+                // courante) — SEULEMENT si l'exploitant a renseigné ses infos légales (sinon on ne
+                // force pas l'acceptation d'un texte à trous, et l'admin peut atteindre admin/legal.php).
+                // Cache en session pour éviter une requête par page. Pages légales exemptes.
+                if (!aut_is_legal_script()) {
+                    require_once __DIR__ . '/legal-lib.php';
+                    if (aut_legal_configured()) {
+                        $cguVer = aut_legal_version();
+                        if (($_SESSION['AUTH_CGU_OK'] ?? '') !== $cguVer) {
+                            if (aut_legal_org_ok($u->AuUsername)) {
+                                $_SESSION['AUTH_CGU_OK'] = $cguVer;
+                            } else {
+                                CD_redirect($CFG->ROOT_DIR . 'Modules/Custom/AUTH/legal-accept.php');
+                                die();
+                            }
+                        }
+                    }
                 }
             }
             return;

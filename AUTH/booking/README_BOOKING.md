@@ -22,8 +22,8 @@ quelques clics. Pensé pour les serveurs ianseo accessibles en ligne.
   compétition.
 - 🙋 **Souhaits pris en compte automatiquement** : position sur la cible et « sur la même cible
   que » (parmi les archers de son club déjà inscrits). Le placement se recalcule à chaque
-  inscription pour satisfaire le maximum de demandes, sans jamais enfreindre le règlement ni le
-  plan du terrain.
+  inscription pour satisfaire le maximum de demandes, sans jamais enfreindre le règlement ni les
+  contraintes d'affectation du terrain.
 - ➕ **Plusieurs départs possibles** : avec la même arme, seule la première inscription compte
   pour les épreuves, les suivantes sont des tirs supplémentaires ; une arme différente ouvre sa
   propre épreuve.
@@ -40,13 +40,14 @@ Tout se trouve dans le menu **Modules › Inscriptions en ligne**, compétition 
 - ⚙️ **Ouvrir / configurer les inscriptions** : période d'ouverture, restriction aux archers
   d'un département ou d'une région avec **ouverture différée à tous**, tarif, et ce que les
   archers ont le droit de voir.
-- 🏹 **Plan du terrain** : éditeur graphique des possibilités de chaque cible, départ par
+- 🏹 **Contraintes d'affectation du terrain** : éditeur graphique des possibilités de chaque cible, départ par
   départ. Chaque cible est une **boîte verticale** sur un axe de distances partagé : on y règle
   la distance mini, maxi et par défaut en glissant les poignées. Les blasons autorisés se
   glissent depuis la palette. Sélection multiple au clic-glissé pour traiter une rangée d'un
   coup, copie d'un départ à l'autre, et curseur de taille pour afficher 50 à 70 cibles d'un
-  seul coup d'œil. Une cible sans réglage accepte tout.
-- 🎯 **Attribution des cibles** : placement automatique respectant le plan du terrain, avec
+  seul coup d'œil. Une cible sans réglage accepte tout. (« Plan du terrain » désigne le plan de
+  cibles visuel du module DragDropTarget.)
+- 🎯 **Attribution des cibles** : placement automatique respectant les contraintes d'affectation du terrain, avec
   brassage des clubs, plan des cibles, et **contrôle du règlement** — archers d'un même club par
   cible, clubs différents par départ, doublons sur un même départ, archers non placés.
 - 🏛️ **Gestionnaires de club** : un licencié désigné peut inscrire les archers de son club (ou

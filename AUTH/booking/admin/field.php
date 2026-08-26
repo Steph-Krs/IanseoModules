@@ -1,6 +1,7 @@
 <?php
 /**
- * admin/field.php — plan du terrain : capacités de chaque cible.
+ * admin/field.php — contraintes d'affectation du terrain : capacités de chaque cible.
+ * (« Plan du terrain » désigne le plan de cibles visuel du module DragDropTarget.)
  *
  * Édition graphique : palette de distances et de blasons à glisser sur les
  * cibles, sélection multiple pour appliquer d'un coup. Enregistrement en AJAX
@@ -66,13 +67,13 @@ $boot = array(
     'sessions' => array_map(function ($s) { return intval($s->SesOrder); }, $sessions),
 );
 
-$PAGE_TITLE = 'Plan du terrain';
+$PAGE_TITLE = "Contraintes d'affectation du terrain";
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <link rel="stylesheet" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/assets/field.css?v=<?= bk_e(bk_version()) ?>">
 
 <div id="bkfield">
-<h1>Plan du terrain</h1>
+<h1>Contraintes d'affectation du terrain</h1>
 <p class="bkf-back"><a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/competition.php">← Inscriptions en ligne</a>
    &nbsp;·&nbsp; <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/targets.php">Attribution des cibles →</a></p>
 

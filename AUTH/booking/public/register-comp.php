@@ -462,7 +462,7 @@ bk_head('Inscription');
         <?php endforeach; ?>
       </select>
       <p class="bk-hint">Uniquement des archers de votre club déjà inscrits. Le souhait n'est
-         retenu que s'il reste compatible avec le règlement et le plan du terrain.</p>
+         retenu que s'il reste compatible avec le règlement et les contraintes d'affectation du terrain.</p>
     <?php else: ?>
       <p class="bk-fixed bk-hint">Aucun archer de votre club n'est encore inscrit.</p>
       <input type="hidden" name="with" value="">
@@ -478,7 +478,7 @@ bk_head('Inscription');
 
     <?php if ($cfg->BcWishLetter || $cfg->BcWishWith): ?>
     <p class="bk-hint">Les souhaits de placement sont pris en compte automatiquement, dans la
-       limite du règlement et du plan du terrain.</p>
+       limite du règlement et des contraintes d'affectation du terrain.</p>
     <?php endif; ?>
   </fieldset>
   <?php endif; ?>

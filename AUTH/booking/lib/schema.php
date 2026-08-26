@@ -13,7 +13,7 @@
  * installation neuve et interrompt toute la fonction (safe_w_sql lève).
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 18);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 19);
 
 /** Suffixe de collation à coller derrière une colonne BK_ jointe à du ianseo. */
 function bk_coll()
@@ -63,6 +63,11 @@ function bk_schema()
     // Ce N'EST PAS le numéro de licence (il diffère). Simple identifiant interne FFTA, pas
     // un secret ; jamais mis en dur dans le code (capté dynamiquement par archer).
     bk_colonne('BK_Archers', 'BaExaltoId', "VARCHAR(16) NOT NULL DEFAULT '' AFTER BaLicence");
+
+    // v19 : acceptation des CGU horodatée + versionnée (BaCguVer = version acceptée ;
+    // BaCguAt = date/heure). Re-demandée si la version des CGU change (legal-lib.php).
+    bk_colonne('BK_Archers', 'BaCguVer', "VARCHAR(16) NOT NULL DEFAULT '' AFTER BaExaltoId");
+    bk_colonne('BK_Archers', 'BaCguAt',  "DATETIME NULL AFTER BaCguVer");
 
     // Sessions à jetons : seul le HACHÉ est stocké (un dump de session PHP ne
     // donne aucun secret réutilisable). Même principe que AUT_Sessions.

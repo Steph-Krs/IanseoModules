@@ -16,6 +16,7 @@ $SKIP_AUTH = 1;
 define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
 require_once($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/lib.php');
+require_once($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/legal-lib.php');
 
 $root = $CFG->ROOT_DIR;
 aut_ensure_schema();
@@ -127,14 +128,21 @@ $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };
 <meta name="robots" content="noindex, nofollow">
 <title>ianseo — Connexion</title>
 <style>
-body { margin:0; font-family:Verdana,Arial,sans-serif; background:#eef2f6;
-       display:flex; flex-direction:column; align-items:center; justify-content:center;
-       min-height:100vh; padding:16px 12px; box-sizing:border-box; }
-.card { background:#fff; border:1px solid #c9d4df; border-radius:8px; padding:28px 32px;
-        box-shadow:0 4px 16px rgba(0,0,0,.08); width:370px; max-width:100%; box-sizing:border-box; }
+* { box-sizing:border-box; }
+body { margin:0; font-family:Verdana,Arial,sans-serif; color:#20263d;
+       background:linear-gradient(160deg,#eaf1fb 0%,#eef2f6 55%,#e7eef6 100%);
+       min-height:100vh; display:flex; flex-direction:column; }
+.page { flex:1; display:flex; align-items:center; justify-content:center; padding:28px 14px; }
+.landing { display:flex; flex-direction:row-reverse; align-items:center; justify-content:center;
+    gap:34px; flex-wrap:wrap; width:100%; max-width:940px; }
+
+/* Colonne connexion (carte) */
+.auth-col { flex:0 0 auto; }
+.card { background:#fff; border:1px solid #c9d4df; border-radius:10px; padding:26px 30px;
+        box-shadow:0 8px 26px rgba(20,60,120,.12); width:372px; max-width:100%; }
 @media (max-width:420px){ .card { padding:22px 18px; } }
-h1 { font-size:18px; margin:0 0 2px; color:#1a4f8b; }
-.sub { font-size:11px; color:#667; margin-bottom:16px; }
+h1 { font-size:19px; margin:0 0 2px; color:#1a4f8b; }
+.sub { font-size:11px; color:#667; margin-bottom:14px; }
 .relay-note { font-size:11px; color:#7a6a3a; background:#fdf7e6; border:1px solid #eadfb8;
     border-radius:6px; padding:7px 9px; margin:0 0 14px; line-height:1.45; }
 .tabs { display:flex; gap:8px; margin-bottom:16px; }
@@ -143,7 +151,7 @@ h1 { font-size:18px; margin:0 0 2px; color:#1a4f8b; }
 .tab .ic { display:block; font-size:20px; margin-bottom:2px; }
 .tab.active { background:#1a4f8b; color:#fff; border-color:#1a4f8b; }
 label { display:block; font-size:12px; margin:12px 0 4px; color:#334; }
-input[type=text], input[type=password] { width:100%; box-sizing:border-box; padding:8px;
+input[type=text], input[type=password] { width:100%; padding:8px;
         border:1px solid #b6c2cf; border-radius:4px; font-size:14px; }
 button { margin-top:18px; width:100%; padding:9px; background:#1a4f8b; color:#fff;
         border:0; border-radius:4px; font-size:14px; cursor:pointer; }
@@ -154,19 +162,47 @@ button[disabled] { opacity:.9; cursor:progress; }
         border-radius:4px; font-size:12px; margin-bottom:8px; }
 .foot { margin-top:14px; font-size:11px; text-align:center; color:#667; }
 .foot a { color:#1a4f8b; }
-.credits { max-width:420px; margin:16px auto 0; text-align:center; font-size:11px;
-    color:#8a92a0; line-height:1.55; }
-.credits b { color:#66707e; font-weight:600; }
-.credits a { color:#1a4f8b; text-decoration:none; }
 .pane { display:none; } .pane.active { display:block; }
+
+/* Colonne argumentaire (landing) */
+.pitch-col { flex:1 1 320px; max-width:440px; }
+.pitch-brand { font-size:13px; color:#1a4f8b; font-weight:700; letter-spacing:.3px; margin:0 0 4px; }
+.pitch { display:none; }
+.pitch.active { display:block; }
+.pitch h2 { font-size:23px; color:#01367c; margin:0 0 14px; line-height:1.25; }
+.pitch ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:11px; }
+.pitch li { display:flex; gap:11px; font-size:14px; line-height:1.45; color:#33404f; }
+.pitch li .pi { flex:0 0 auto; font-size:18px; line-height:1.2; }
+.pitch .pt { margin:16px 0 0; font-size:12.5px; color:#5b6470; }
+
+/* Pied de page légal */
+.site-foot { text-align:center; padding:16px 14px 26px; font-size:11px; color:#8a92a0; line-height:1.7; }
+.site-foot .legal a { color:#1a4f8b; text-decoration:none; margin:0 7px; white-space:nowrap; }
+.site-foot .legal a:hover { text-decoration:underline; }
+.site-foot .credits { max-width:560px; margin:8px auto 0; }
+.site-foot .credits b { color:#66707e; font-weight:600; }
+.site-foot .credits a { color:#1a4f8b; text-decoration:none; }
+
 #dots { display:inline-flex; gap:5px; vertical-align:middle; margin-left:7px; }
 #dots i { width:7px; height:7px; border-radius:50%; background:#fff; opacity:.5;
     animation:bnc 1s ease-in-out infinite; }
 #dots i:nth-child(2){ animation-delay:.16s; } #dots i:nth-child(3){ animation-delay:.32s; }
 @keyframes bnc { 0%,80%,100%{ transform:translateY(0); opacity:.5; } 40%{ transform:translateY(-5px); opacity:1; } }
+@media (max-width:760px){
+    .landing { flex-direction:column; gap:22px; align-items:center; }
+    /* .card a une largeur fixe (372px) qui, via flex:0 0 auto, débordait l'écran mobile.
+       On repasse les colonnes en 100% capé → plus de débordement, centrage propre. */
+    .auth-col { width:100%; max-width:372px; }
+    .card { width:100%; }
+    .pitch-col { width:100%; max-width:440px; flex-basis:auto; }
+    .pitch h2 { font-size:20px; }
+}
 </style>
 </head>
 <body>
+<div class="page">
+<div class="landing">
+<div class="auth-col">
 <div class="card">
     <h1>ianseo — Serveur partagé</h1>
 
@@ -244,12 +280,53 @@ button[disabled] { opacity:.9; cursor:progress; }
     </div>
     <?php } ?>
     <?php } ?>
+</div><!-- card -->
+</div><!-- auth-col -->
+
+<div class="pitch-col">
+    <p class="pitch-brand">SERVEUR PARTAGÉ</p>
+    <?php if ($hasOrganiser) { ?>
+    <div class="pitch<?= $active === 'org' ? ' active' : '' ?>" id="pitch-org">
+        <h2>Gérez vos compétitions en ligne, sans rien installer.</h2>
+        <ul>
+            <li><span class="pi">🗂️</span><span>Inscriptions, plan du terrain, mandat, feuilles de marque, sommes dues — <b>tout au même endroit</b>.</span></li>
+            <li><span class="pi">🚀</span><span><b>Aucune installation</b>, aucune mise à jour, aucune maintenance à votre charge.</span></li>
+            <li><span class="pi">🔄</span><span>Base fédérale des licenciés <b>tenue à jour automatiquement</b>.</span></li>
+            <li><span class="pi">🛡️</span><span><b>Sauvegardes et sécurité</b> assurées par le serveur.</span></li>
+        </ul>
+        <p class="pt">Connectez-vous avec vos identifiants de l'Espace Dirigeant FFTA.</p>
+    </div>
+    <?php } ?>
+    <?php if ($hasCompetitor) { ?>
+    <div class="pitch<?= $active === 'comp' ? ' active' : '' ?>" id="pitch-comp">
+        <h2>Inscrivez-vous aux compétitions en quelques clics.</h2>
+        <ul>
+            <li><span class="pi">🎯</span><span>Inscription en ligne avec vos <b>identifiants fédéraux</b>.</span></li>
+            <li><span class="pi">🗺️</span><span><b>Calendrier et carte</b> des compétitions ouvertes près de chez vous.</span></li>
+            <li><span class="pi">📄</span><span>Vos documents : <b>feuille de marque, reçu, attestation de licence</b>.</span></li>
+            <li><span class="pi">📊</span><span>Suivi de vos <b>inscriptions et statistiques</b>.</span></li>
+        </ul>
+        <p class="pt">Connectez-vous avec vos identifiants de l'Espace Licencié FFTA.</p>
+    </div>
+    <?php } ?>
 </div>
-<div class="credits">
-    Le calcul et la publication des <b>résultats</b> reposent sur le logiciel
-    <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a>.
-    La gestion des <b>comptes</b>, des <b>inscriptions</b> et du <b>calendrier</b> est un développement indépendant.
-</div>
+</div><!-- landing -->
+</div><!-- page -->
+
+<footer class="site-foot">
+    <div class="legal">
+        <a href="<?= $e(aut_legal_url('mentions')) ?>">Mentions légales</a> ·
+        <a href="<?= $e(aut_legal_url('cgu')) ?>">CGU</a> ·
+        <a href="<?= $e(aut_legal_url('confidentialite')) ?>">Confidentialité</a> ·
+        <a href="<?= $e(aut_legal_url('cookies')) ?>">Cookies</a>
+    </div>
+    <div class="credits">
+        Le calcul et la publication des <b>résultats</b> reposent sur le logiciel
+        <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a>.
+        La gestion des <b>comptes</b>, des <b>inscriptions</b> et du <b>calendrier</b> est un développement indépendant.
+        Ce site n'utilise qu'un <b>cookie de session</b> strictement nécessaire.
+    </div>
+</footer>
 <script>
 document.querySelectorAll('.tab').forEach(function (t) {
     t.addEventListener('click', function (ev) {
@@ -257,6 +334,7 @@ document.querySelectorAll('.tab').forEach(function (t) {
         var pane = t.getAttribute('data-pane');
         document.querySelectorAll('.tab').forEach(function (x) { x.classList.toggle('active', x === t); });
         document.querySelectorAll('.pane').forEach(function (p) { p.classList.toggle('active', p.id === 'pane-' + pane); });
+        document.querySelectorAll('.pitch').forEach(function (p) { p.classList.toggle('active', p.id === 'pitch-' + pane); });
         history.replaceState(null, '', '?p=' + pane);
         var inp = document.querySelector('#pane-' + pane + ' input'); if (inp) inp.focus();
     });

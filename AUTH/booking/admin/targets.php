@@ -28,7 +28,7 @@ function bk_assign_msg($prefix, $r)
     $libres = intval($r['restants']) - intval($r['incompatibles']);
     if ($libres > 0)             $m .= ", $libres sans place (départ complet)";
     if ($r['incompatibles'] > 0) $m .= ", {$r['incompatibles']} qu'aucune cible ne peut recevoir "
-                                     . "(distance ou blason incompatible avec le plan du terrain)";
+                                     . "(distance ou blason incompatible avec les contraintes d'affectation du terrain)";
     if ($r['compromis'] > 0)     $m .= ", dont {$r['compromis']} au-delà du quota par club faute de place";
     $m .= '.';
     if (!empty($r['voeux'])) {
@@ -107,7 +107,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 <div id="bkadm">
 <h1>Attribution des cibles</h1>
 <p style="font-size:13px"><a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/competition.php">← Inscriptions en ligne</a>
-   &nbsp;·&nbsp; <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/field.php">Plan du terrain</a></p>
+   &nbsp;·&nbsp; <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/field.php">Contraintes d'affectation du terrain</a></p>
 
 <?php if ($msg): ?><div class="bk-msg bk-ok"><?= bk_e($msg) ?></div><?php endif; ?>
 <?php if ($err): ?><div class="bk-msg bk-err"><?= bk_e($err) ?></div><?php endif; ?>

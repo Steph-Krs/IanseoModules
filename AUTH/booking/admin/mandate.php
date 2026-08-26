@@ -31,15 +31,30 @@ $err  = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
         $err = 'Session expirée — rechargez la page et réessayez.';
+    } elseif (isset($_POST['set_visible'])) {
+        // Bascule visibilité par les archers (même effet que la case de « Ce que voient les
+        // archers »). Tri-état BcShowMandate : on écrit explicitement 1 ou 0. PRG (rechargement).
+        $v = (intval($_POST['set_visible']) === 1) ? 1 : 0;
+        safe_w_sql("UPDATE BK_Competitions SET BcShowMandate = $v WHERE BcTournament = $TOUR");
+        header('Location: ' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/mandate.php'
+            . ($v ? '?vis=1' : '?vis=0'));
+        exit;
     } else {
         bk_mandate_save($TOUR, bk_mandate_from_post($_POST));
         $cfg = bk_comp_config($TOUR);
         $msg = 'Mandat enregistré.';
     }
 }
+if (isset($_GET['vis'])) $msg = $_GET['vis'] === '1'
+    ? 'Le mandat est désormais visible par les archers.'
+    : 'Le mandat est désormais masqué pour les archers.';
 
 $m    = bk_mandate_get($cfg);
 $data = bk_mandate_data($TOUR);
+
+// Visibilité par les archers (tri-état BcShowMandate ; jamais visible sans mandat).
+$hasMandate     = trim((string) ($cfg->BcMandate ?? '')) !== '';
+$mandateVisible = bk_mandate_visible($cfg);
 
 /* ================================================================== */
 /* Aperçu imprimable — délègue au rendu mutualisé (lib)               */
@@ -89,6 +104,11 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #bkadm input[type=color] { width:48px; height:34px; padding:0; border:1px solid #cfd3d6; border-radius:6px; cursor:pointer; }
 #bkadm .bk-swatch { width:26px; height:26px; border-radius:6px; border:1px solid rgba(0,0,0,.15); cursor:pointer; }
 #bkadm .bk-disabled { color:#a2a6a9; }
+#bkadm .bk-vis { border-left:4px solid #cfd3d6; }
+#bkadm .bk-vis.on  { border-left-color:#1a8a3f; background:#f2fbf4; }
+#bkadm .bk-vis.off { border-left-color:#cb8137; background:#fdf7ee; }
+#bkadm .bk-vis.on  .bk-vis-state { color:#1a8a3f; }
+#bkadm .bk-vis.off .bk-vis-state { color:#c0392b; }
 </style>
 
 <div id="bkadm">
@@ -98,11 +118,32 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 <?php if ($msg): ?><div class="bk-msg bk-ok"><?= bk_e($msg) ?></div><?php endif; ?>
 <?php if ($err): ?><div class="bk-msg bk-err"><?= bk_e($err) ?></div><?php endif; ?>
 
+<div class="bk-sec bk-vis <?= $mandateVisible ? 'on' : 'off' ?>">
+  <h2 style="margin-bottom:6px">Visibilité par les archers</h2>
+  <?php if (!$hasMandate): ?>
+    <p style="margin:0;font-size:13px">Le mandat n'est pas encore enregistré. Configurez-le ci-dessous puis
+       cliquez <b>Enregistrer</b> : vous pourrez alors le rendre visible par les archers.</p>
+  <?php else: ?>
+    <p style="margin:0 0 8px;font-size:14px">
+      État actuel :
+      <b class="bk-vis-state"><?= $mandateVisible ? '👁️ visible par les archers' : '🚫 masqué (invisible pour les archers)' ?></b>
+      <span class="bk-hint" style="display:inline">— fiche compétition du calendrier + « Mes inscriptions »</span>
+    </p>
+    <form method="post" style="margin:0">
+      <?= bk_csrf_field() ?>
+      <input type="hidden" name="set_visible" value="<?= $mandateVisible ? '0' : '1' ?>">
+      <button type="submit" class="bk-btn <?= $mandateVisible ? '' : 'bk-btn-primary' ?>">
+        <?= $mandateVisible ? 'Masquer le mandat' : 'Rendre le mandat visible' ?></button>
+    </form>
+  <?php endif; ?>
+  <p class="bk-hint" style="margin-top:8px">Ce réglage est le même que la case
+     « Rendre le mandat consultable » de <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/competition.php">« Ce que voient les archers »</a>.</p>
+</div>
+
 <p style="font-size:13px; color:#4c4e50; max-width:640px">Le mandat est rempli automatiquement depuis la
 compétition (nom, dates, lieu, départs, catégories, tarifs, moyens de paiement). Choisissez un modèle et
 une couleur, cochez les sections à afficher, complétez les blocs de texte utiles, puis
-<b>Enregistrer</b>. « Aperçu / imprimer » ouvre le document prêt à imprimer (ou à enregistrer en PDF).
-La visibilité par les archers se règle dans <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/competition.php">« Ce que voient les archers »</a>.</p>
+<b>Enregistrer</b>. « Aperçu / imprimer » ouvre le document prêt à imprimer (ou à enregistrer en PDF).</p>
 
 <form method="post">
 <?= bk_csrf_field() ?>

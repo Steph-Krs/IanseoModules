@@ -117,6 +117,190 @@ function bk_comp_config($tourId)
     return $r ?: bk_comp_defaults($tourId);
 }
 
+/* ------------------------------------------------------------------ */
+/* « Copier depuis… » — reprendre la configuration d'une autre         */
+/* compétition (gain de temps sur les paramétrages complexes)          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Fragment SQL bornant les compétitions ACCESSIBLES à l'organisateur courant
+ * (sur l'alias Tournament $alias). Lit la convention de session d'AUTH (aucune
+ * dépendance dure) : hors AUTH ou administrateur serveur → tout ; sinon la liste
+ * AUTH_COMP (codes exacts ou motifs LIKE). Repli sûr : aucun accès.
+ */
+function bk_copy_access_where($alias = 't')
+{
+    if (empty($_SESSION['AUTH_ENABLE'])) return '1=1';     // localhost / mono-organisateur
+    if (!empty($_SESSION['AUTH_ROOT']))  return '1=1';     // admin serveur (UI = champ libre)
+    $comp = $_SESSION['AUTH_COMP'] ?? array();
+    if (!is_array($comp) || !$comp) return '1=0';
+    $ors = array();
+    foreach ($comp as $c) {
+        $c = (string) $c;
+        if ($c === '') continue;
+        $ors[] = (strpos($c, '%') !== false || strpos($c, '_') !== false)
+            ? "$alias.ToCode LIKE " . StrSafe_DB($c)
+            : "$alias.ToCode = " . StrSafe_DB($c);
+    }
+    return $ors ? '(' . implode(' OR ', $ors) . ')' : '1=0';
+}
+
+/** L'organisateur courant est-il administrateur serveur ? (source « Copier » = champ libre). */
+function bk_copy_is_admin()
+{
+    return !empty($_SESSION['AUTH_ENABLE']) && !empty($_SESSION['AUTH_ROOT']);
+}
+
+/** Compétitions accessibles ayant une config booking, hors la compétition courante. */
+function bk_copy_sources($currentTour)
+{
+    bk_schema();
+    $currentTour = intval($currentTour);
+    $rs = safe_r_sql("SELECT t.ToId, t.ToCode, t.ToName, t.ToWhenFrom
+        FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament
+        WHERE t.ToId <> $currentTour AND " . bk_copy_access_where('t') . "
+        ORDER BY t.ToWhenFrom DESC, t.ToName LIMIT 500");
+    $out = array();
+    while ($r = safe_fetch($rs)) $out[] = $r;
+    return $out;
+}
+
+/**
+ * Résout une saisie libre d'admin (code de compétition, ou identifiant numérique)
+ * vers un ToId accessible ayant une config booking. Retourne l'id, ou 0.
+ */
+function bk_copy_resolve($input, $currentTour)
+{
+    $input = trim((string) $input);
+    if ($input === '') return 0;
+    $currentTour = intval($currentTour);
+    $where = bk_copy_access_where('t');
+    if (ctype_digit($input)) {
+        $r = safe_fetch(safe_r_sql("SELECT t.ToId FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament
+            WHERE t.ToId = " . intval($input) . " AND t.ToId <> $currentTour AND $where"));
+        if ($r) return intval($r->ToId);
+    }
+    $r = safe_fetch(safe_r_sql("SELECT t.ToId FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament
+        WHERE t.ToCode = " . StrSafe_DB($input) . " AND t.ToId <> $currentTour AND $where
+        ORDER BY t.ToWhenFrom DESC LIMIT 1"));
+    return $r ? intval($r->ToId) : 0;
+}
+
+/**
+ * Copie la configuration booking de $srcTour vers $destTour. REMPLACE les réglages
+ * (niveau de publication, inscriptions, visibilité, tarif, mandat, boutique, contraintes
+ * du terrain). Les DATES sont conservées en DÉCALAGE par rapport à la date de début
+ * (même « ratio » temporel). Non copiés : identité (BcCode), géocodage (par lieu), et le
+ * lien ianseo.net (propre à chaque compétition). Les LOGOS ne sont pas copiés — seules les
+ * cases « quels logos » du mandat le sont. Retourne true si copié.
+ */
+function bk_comp_copy_from($destTour, $srcTour)
+{
+    bk_schema();
+    $destTour = intval($destTour); $srcTour = intval($srcTour);
+    if ($destTour <= 0 || $srcTour <= 0 || $destTour === $srcTour) return false;
+
+    $src = safe_fetch(safe_r_sql("SELECT o.BcTournament, t.ToWhenFrom AS SrcStart
+        FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament WHERE o.BcTournament = $srcTour"));
+    if (!$src) return false;                                   // la source n'a pas de config booking
+    $dst = safe_fetch(safe_r_sql("SELECT ToWhenFrom FROM Tournament WHERE ToId = $destTour"));
+    if (!$dst) return false;
+
+    safe_w_sql("INSERT IGNORE INTO BK_Competitions (BcTournament) VALUES ($destTour)");
+
+    $ss = StrSafe_DB($src->SrcStart);
+    $ds = StrSafe_DB($dst->ToWhenFrom);
+    // Décalage identique par rapport à la date de début (ex. « ouvre 30 j avant, clôt 2 j avant »).
+    $remap = function ($col) use ($ss, $ds) {
+        return "IF(s.$col IS NULL, NULL, DATE_ADD($ds, INTERVAL TIMESTAMPDIFF(SECOND, $ss, s.$col) SECOND))";
+    };
+
+    safe_w_sql("UPDATE BK_Competitions d INNER JOIN BK_Competitions s ON s.BcTournament = $srcTour SET
+        d.BcOpen = s.BcOpen, d.BcPublishLevel = s.BcPublishLevel, d.BcAdvancedBackup = s.BcAdvancedBackup,
+        d.BcOpenFrom = " . $remap('BcOpenFrom') . ", d.BcOpenTo = " . $remap('BcOpenTo') . ",
+        d.BcRestrictKind = s.BcRestrictKind, d.BcRestrictCode = s.BcRestrictCode,
+        d.BcRestrictTo = " . $remap('BcRestrictTo') . ",
+        d.BcMaxPerClubPerTarget = s.BcMaxPerClubPerTarget, d.BcMinClubsPerSession = s.BcMinClubsPerSession,
+        d.BcShowAssignment = s.BcShowAssignment, d.BcShowGauges = s.BcShowGauges, d.BcAllowScoresheet = s.BcAllowScoresheet,
+        d.BcFee = s.BcFee, d.BcWishLetter = s.BcWishLetter, d.BcWishWith = s.BcWishWith, d.BcWishFree = s.BcWishFree,
+        d.BcPricing = s.BcPricing, d.BcShopUntil = " . $remap('BcShopUntil') . ", d.BcExcludeStats = s.BcExcludeStats,
+        d.BcPayInfo = s.BcPayInfo, d.BcManualValidation = s.BcManualValidation, d.BcMandate = s.BcMandate,
+        d.BcShowMandate = s.BcShowMandate, d.BcShowProgram = s.BcShowProgram,
+        d.BcShowParticipants = s.BcShowParticipants, d.BcShowResults = s.BcShowResults
+        WHERE d.BcTournament = $destTour");
+
+    bk_comp_copy_shop($destTour, $srcTour);
+    bk_comp_copy_caps($destTour, $srcTour);
+    return true;
+}
+
+/** Copie la boutique (articles + variantes) ; REMPLACE celle de la destination (commandes effacées). */
+function bk_comp_copy_shop($destTour, $srcTour)
+{
+    $destTour = intval($destTour); $srcTour = intval($srcTour);
+    // Collecte de la source d'abord (pas d'itération imbriquée sur des result sets vivants).
+    $items = array();
+    $rs = safe_r_sql("SELECT * FROM BK_ShopItems WHERE SiTournament = $srcTour ORDER BY SiId");
+    while ($r = safe_fetch($rs)) $items[] = $r;
+    $variants = array();
+    foreach ($items as $it) {
+        $variants[(string) $it->SiId] = array();
+        $rv = safe_r_sql("SELECT * FROM BK_ShopVariants WHERE SvItem = " . intval($it->SiId) . " ORDER BY SvId");
+        while ($v = safe_fetch($rv)) $variants[(string) $it->SiId][] = $v;
+    }
+    // Boutique de destination remise à zéro (copie = boutique fraîche).
+    safe_w_sql("DELETE FROM BK_ShopOrders WHERE SoTournament = $destTour");
+    safe_w_sql("DELETE v FROM BK_ShopVariants v INNER JOIN BK_ShopItems i ON i.SiId = v.SvItem WHERE i.SiTournament = $destTour");
+    safe_w_sql("DELETE FROM BK_ShopItems WHERE SiTournament = $destTour");
+    foreach ($items as $it) {
+        safe_w_sql("INSERT INTO BK_ShopItems (SiTournament, SiSection, SiLabel, SiDescription, SiPrice, SiStock, SiMaxPerPerson, SiOptionName, SiOrder, SiActive)
+            VALUES ($destTour, " . StrSafe_DB($it->SiSection) . ", " . StrSafe_DB($it->SiLabel) . ", "
+            . StrSafe_DB($it->SiDescription) . ", " . StrSafe_DB($it->SiPrice) . ", " . intval($it->SiStock) . ", "
+            . intval($it->SiMaxPerPerson) . ", " . StrSafe_DB($it->SiOptionName) . ", " . intval($it->SiOrder) . ", " . intval($it->SiActive) . ")");
+        $newId = intval(safe_w_last_id());
+        foreach ($variants[(string) $it->SiId] as $v) {
+            safe_w_sql("INSERT INTO BK_ShopVariants (SvItem, SvLabel, SvStock, SvOrder)
+                VALUES ($newId, " . StrSafe_DB($v->SvLabel) . ", " . intval($v->SvStock) . ", " . intval($v->SvOrder) . ")");
+        }
+    }
+    return count($items);
+}
+
+/**
+ * Copie les contraintes d'affectation du terrain. Distances = mètres (portables). Les
+ * BLASONS sont re-mappés PAR NOM (TfName) : les TfId ne sont pas fiables d'une compétition
+ * à l'autre. Un blason absent de la destination est ignoré. REMPLACE les contraintes existantes.
+ */
+function bk_comp_copy_caps($destTour, $srcTour)
+{
+    $destTour = intval($destTour); $srcTour = intval($srcTour);
+    $srcName = array();                          // TfId (src) => TfName
+    $rs = safe_r_sql("SELECT TfId, TfName FROM TargetFaces WHERE TfTournament = $srcTour");
+    while ($r = safe_fetch($rs)) $srcName[(string) $r->TfId] = trim((string) $r->TfName);
+    $destByName = array();                        // TfName => TfId (dest)
+    $rs = safe_r_sql("SELECT TfId, TfName FROM TargetFaces WHERE TfTournament = $destTour");
+    while ($r = safe_fetch($rs)) { $n = trim((string) $r->TfName); if ($n !== '' && !isset($destByName[$n])) $destByName[$n] = (string) $r->TfId; }
+
+    $caps = array();
+    $rs = safe_r_sql("SELECT * FROM BK_TargetCaps WHERE BtTournament = $srcTour");
+    while ($r = safe_fetch($rs)) $caps[] = $r;
+
+    safe_w_sql("DELETE FROM BK_TargetCaps WHERE BtTournament = $destTour");
+    foreach ($caps as $c) {
+        $ids = array();
+        foreach (array_filter(explode(',', (string) $c->BtFaces), 'strlen') as $fid) {
+            $name = $srcName[(string) intval($fid)] ?? '';
+            if ($name !== '' && isset($destByName[$name])) $ids[] = $destByName[$name];
+        }
+        $faces = implode(',', array_values(array_unique($ids)));
+        safe_w_sql("INSERT INTO BK_TargetCaps (BtTournament, BtSession, BtTarget, BtDistances, BtDistDef, BtDistMin, BtDistMax, BtFaces)
+            VALUES ($destTour, " . intval($c->BtSession) . ", " . intval($c->BtTarget) . ", "
+            . StrSafe_DB($c->BtDistances) . ", " . intval($c->BtDistDef) . ", "
+            . intval($c->BtDistMin) . ", " . intval($c->BtDistMax) . ", " . StrSafe_DB($faces) . ")");
+    }
+    return count($caps);
+}
+
 /**
  * Une compétition est-elle terminée ? (date de fin < aujourd'hui). Comparaison de
  * chaînes AAAA-MM-JJ, robuste au fuseau — même approche que le calendrier/les stats.
