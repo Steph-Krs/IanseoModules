@@ -31,7 +31,19 @@ foreach (array($READ, $WRIT) as $cnx) {
     $cnx->query("SET session optimizer_search_depth = 0");
 }
 
-function safe_r_sql($q)      { global $READ; return $READ->query($q); }
+// Même contrat que ianseo : le 3e argument ($force) fait retourner false sur
+// erreur au lieu d'interrompre la page. Le banc doit le reproduire, sinon il ne
+// teste pas ce que le module rencontre réellement.
+function safe_r_sql($q, $use = false, $force = false)
+{
+    global $READ;
+    try {
+        return $READ->query($q);
+    } catch (Exception $e) {
+        if ($force) return false;
+        throw $e;
+    }
+}
 function safe_w_sql($q)      { global $WRIT; return $WRIT->query($q); }
 function safe_fetch($r)      { return $r ? $r->fetch_object() : false; }
 function safe_num_rows($r)   { return $r ? $r->num_rows : 0; }
@@ -204,6 +216,40 @@ if ($cl['rangs']) {
     t_eq(0, $doublons, 'aucune place attribuée deux fois');
     t_vrai(in_array(1, $cl['rangs'], true), 'une première place existe');
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+t_titre('menu.php : chargé partout, il ne doit RIEN pouvoir casser');
+
+// Panne réelle en production : menu.php interrogeait SELEC_Config, table créée
+// seulement à l'ouverture d'une page du module. Sur une installation neuve la
+// table n'existe pas, ianseo appelle safe_error() — « HTTP/1.0 404 » puis exit —
+// et TOUT ianseo devient inaccessible dès qu'une compétition est ouverte.
+$menu = (string) file_get_contents(__DIR__ . '/../menu.php');
+
+// 1) Aucune écriture. Un menu lit, il n'écrit pas : il est inclus sur chaque page.
+t_eq(0, preg_match('/safe_w_sql|file_put_contents|@?mkdir\s*\(|@?unlink\s*\(|@?copy\s*\(/', $menu),
+    'menu.php n\'écrit ni en base ni sur le disque');
+t_eq(0, preg_match('/selec_selfheal/', $menu),
+    'menu.php ne déclenche pas le déploiement du set');
+
+// 2) Toute lecture d'une table du module passe par $force, sinon une table
+//    absente tue la page.
+$sansForce = array();
+if (preg_match_all('/safe_r_sql\s*\((.*?)\)\s*;/is', $menu, $m)) {
+    foreach ($m[1] as $req) {
+        $plat = preg_replace('/\s+/', ' ', $req);
+        if (!preg_match('/\bSELEC_[A-Za-z0-9_]+\b/', $plat)) continue;   // table du cœur : toujours présente
+        if (!preg_match('/,\s*(false|true)\s*,\s*true\s*$/', trim($plat))) {
+            $sansForce[] = mb_substr($plat, 0, 80);
+        }
+    }
+}
+foreach ($sansForce as $x) echo "  ! $x\n";
+t_eq(array(), $sansForce, 'toute lecture d\'une table SELEC_ depuis menu.php passe $force=true');
+
+// 3) Le comportement de ianseo qui rend tout cela nécessaire, vérifié et non supposé.
+$rs = safe_r_sql("SELECT 1 FROM SELEC_TableQuiNexistePas LIMIT 1", false, true);
+t_eq(false, $rs, 'avec $force, une table absente renvoie false au lieu de tuer la page');
 
 // ═════════════════════════════════════════════════════════════════════════════
 t_titre('Bornage des écritures : aucune ne doit pouvoir déborder d\'une compétition');

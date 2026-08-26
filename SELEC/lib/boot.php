@@ -33,6 +33,17 @@ if (!function_exists('getModuleParameter')) {
 
 selec_schema();
 
+// Déploiement du set « Sélection » (Modules/Sets/, libellés, ligne TourTypes).
+// Ici et NULLE PART AILLEURS : boot.php n'est chargé que par les pages du
+// module, jamais par le reste de ianseo. Le faire depuis menu.php revenait à
+// écrire des fichiers à chaque page du site — ce qui a rendu un serveur de
+// production inaccessible. Silencieux et sans exception : le module doit rester
+// utilisable même si la racine web est en lecture seule (seul le type de
+// compétition manquera alors).
+if (function_exists('selec_selfheal_leger')) {
+    try { selec_selfheal_leger(); } catch (Exception $e) {} catch (Error $e) {}
+}
+
 $SELEC_TOUR = intval($_SESSION['TourId']);
 $SELEC_ROOT = $CFG->ROOT_DIR . 'Modules/Custom/SELEC/';
 
