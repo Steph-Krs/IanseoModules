@@ -360,9 +360,33 @@ $fauxSessions = array(
     'R|1|1|1|HCLP1'  => array('type' => 'R|1|1', 'distance' => 1, 'libelle' => 'Poule'),
 );
 
-$stQ = array('id' => 'Q1', 'type' => 'qualification', 'distances' => array(1, 2));
+$stQ = array('id' => 'Q1', 'type' => 'qualification', 'distances' => array(1, 2),
+    'structure' => array('session' => 1));
 t_eq(array('Q|1|1', 'Q|1|2'), selec_lock_cles($stQ, array(), $fauxSessions),
     'une qualification prend ses distances, pas celles du départ voisin');
+
+// Chaque départ déclarant maintenant TOUTES les séries, la série 1 existe dans
+// les départs 1 à 4 : filtrer sur la seule série ferait verrouiller Q1 dans le
+// départ d'une autre étape. Le départ fait partie de l'identité de l'étape.
+$toutesSeries = array(
+    'Q|1|1' => array('type' => 'Q', 'distance' => 1, 'libelle' => 'Départ 1'),
+    'Q|1|2' => array('type' => 'Q', 'distance' => 2, 'libelle' => 'Départ 1'),
+    'Q|2|1' => array('type' => 'Q', 'distance' => 1, 'libelle' => 'Départ 2'),
+    'Q|2|2' => array('type' => 'Q', 'distance' => 2, 'libelle' => 'Départ 2'),
+    'Q|2|3' => array('type' => 'Q', 'distance' => 3, 'libelle' => 'Départ 2'),
+    'Q|2|4' => array('type' => 'Q', 'distance' => 4, 'libelle' => 'Départ 2'),
+);
+t_eq(array('Q|1|1', 'Q|1|2'), selec_lock_cles($stQ, array(), $toutesSeries),
+    'Q1 ne verrouille QUE son départ, même si ses séries existent ailleurs');
+$stQ2 = array('id' => 'Q2', 'type' => 'qualification', 'distances' => array(3, 4),
+    'structure' => array('session' => 2));
+t_eq(array('Q|2|3', 'Q|2|4'), selec_lock_cles($stQ2, array(), $toutesSeries),
+    'Q2 verrouille ses séries dans son propre départ');
+// Étape sans départ déclaré : on retombe sur le filtre par série seule, plutôt
+// que de ne rien proposer du tout.
+$stSansSes = array('id' => 'QX', 'type' => 'qualification', 'distances' => array(3));
+t_eq(array('Q|2|3'), selec_lock_cles($stSansSes, array(), $toutesSeries),
+    'sans départ déclaré, le filtre par série reste opérant');
 
 $stT = array('id' => 'T1', 'type' => 'tournoi');
 t_eq(array('I|4|HCLT1', 'I|0|HCLT1', 'I|2|HCLT1B'),

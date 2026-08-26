@@ -64,35 +64,71 @@ function selec_structure_plan($tourId, $mode, $cats)
         $diExistantes[intval($r->DiSession)][intval($r->DiDistance)] = $r;
     }
 
+    // ── Toutes les séries dans CHAQUE départ ────────────────────────────────
+    // ISK-NG construit la clé de séquence d'un appareil avec
+    // `CONCAT(SesType, ToNumDist, SesOrder)` (Common/Lib/CommonLib.php) : le
+    // nombre de séries proposées est celui de la COMPÉTITION (8), pas celui du
+    // départ. L'appareil offre donc les séries 1 à 8 quel que soit le départ,
+    // puis toute écriture passe par
+    // `DistanceInformation … DiSession=QuSession AND DiDistance=<série>`.
+    // Ne déclarer que les 2 séries propres à l'étape rendait donc l'appli
+    // téléphone inutilisable dès le 2e départ : elle demandait la série 1, qui
+    // n'était pas rattachée au départ 2. `MaxEnds`, la liste des volées par
+    // série renvoyée à l'appareil, était elle aussi tronquée.
+    //
+    // On déclare donc TOUTES les séries du règlement dans CHAQUE départ, avec
+    // pour chacune le format de l'étape qui la possède. Les scores restent
+    // rangés par série : l'étape Q2 lit toujours ses séries 3 et 4, quel que
+    // soit le départ où elles ont été saisies.
+    $formatDist = array();          // série => [volées, flèches]
     $ordre = 0;
     $distMax = 0;
+    $etapesDist = array();
     foreach ($mode['etapes'] as $st) {
         $dists = selec_structure_distances($st);
         if (!$dists) continue;
         $ordre++;
         $struct = isset($st['structure']) ? $st['structure'] : array();
-        $volees  = intval($struct['volees']  ?? 6);
-        $fleches = intval($struct['fleches'] ?? 6);
-        $ses = intval($struct['session'] ?? $ordre);
-        foreach ($dists as $d) $distMax = max($distMax, intval($d));
+        $etapesDist[] = array(
+            'st'      => $st,
+            'ses'     => intval($struct['session'] ?? $ordre),
+            'dists'   => array_map('intval', $dists),
+            'volees'  => intval($struct['volees']  ?? 6),
+            'fleches' => intval($struct['fleches'] ?? 6),
+            'struct'  => $struct,
+        );
+        foreach ($dists as $d) {
+            $distMax = max($distMax, intval($d));
+            $formatDist[intval($d)] = array(intval($struct['volees'] ?? 6), intval($struct['fleches'] ?? 6));
+        }
+    }
+    ksort($formatDist);
+    $toutesDist = array_keys($formatDist);
 
+    foreach ($etapesDist as $e) {
+        $ses = $e['ses'];
         $etat = 'à créer';
         if (isset($sesExistantes[$ses])) {
             $etat = 'existe';
             $actuelles = array_keys(isset($diExistantes[$ses]) ? $diExistantes[$ses] : array());
             sort($actuelles);
-            $voulues = array_map('intval', $dists);
+            $voulues = $toutesDist;
             sort($voulues);
             if ($actuelles !== $voulues) $etat = 'à corriger';
         }
 
         $out['sessions'][] = array(
             'ordre'     => $ses,
-            'nom'       => isset($struct['nom']) ? $struct['nom'] : (isset($st['libelle']) ? $st['libelle'] : $st['id']),
-            'etape'     => $st['id'],
-            'distances' => array_map('intval', $dists),
-            'volees'    => $volees,
-            'fleches'   => $fleches,
+            'nom'       => isset($e['struct']['nom']) ? $e['struct']['nom']
+                          : (isset($e['st']['libelle']) ? $e['st']['libelle'] : $e['st']['id']),
+            'etape'     => $e['st']['id'],
+            // Les séries que l'étape LIT — c'est ce qui intéresse l'opérateur.
+            'distances' => $e['dists'],
+            // Celles réellement déclarées dans le départ, pour ISK-NG.
+            'toutes'    => $toutesDist,
+            'formats'   => $formatDist,
+            'volees'    => $e['volees'],
+            'fleches'   => $e['fleches'],
             'etat'      => $etat,
         );
     }
@@ -655,22 +691,31 @@ function selec_structure_appliquer($tourId, $mode, $cats, $quoi = array(), $opti
                     WHERE SesTournament=$tourId AND SesType='Q' AND SesOrder=$ses AND SesName=''");
             }
 
-            // Distances de CETTE session, et elles seules : c'est ce qui fait
-            // qu'un archer déplacé en session 2 tire les séries 3 et 4, sans
-            // toucher aux scores des séries 1 et 2 déjà enregistrés.
-            $liste = array_map('intval', $s['distances']);
-            $in = implode(',', $liste);
+            // TOUTES les séries du règlement dans CHAQUE départ, chacune avec le
+            // format de l'étape qui la possède. Voir selec_structure_plan() pour
+            // le pourquoi : sans cela, l'appli téléphone d'ISK-NG ne peut pas
+            // écrire dès le deuxième départ.
+            //
+            // Les scores ne se mélangent pas pour autant : ils restent rangés
+            // par SÉRIE (QuD1…QuD8), et chaque étape lit les siennes.
+            $formats = isset($s['formats']) ? $s['formats'] : array();
+            $liste = isset($s['toutes']) ? $s['toutes'] : array_map('intval', $s['distances']);
+            $in = implode(',', array_map('intval', $liste));
             safe_w_sql("DELETE FROM DistanceInformation
                 WHERE DiTournament=$tourId AND DiType='Q' AND DiSession=$ses"
                 . ($in ? " AND DiDistance NOT IN ($in)" : ''));
             foreach ($liste as $d) {
+                $d = intval($d);
+                $vol = isset($formats[$d][0]) ? $formats[$d][0] : intval($s['volees']);
+                $fle = isset($formats[$d][1]) ? $formats[$d][1] : intval($s['fleches']);
                 safe_w_sql("INSERT INTO DistanceInformation SET
-                    DiTournament=$tourId, DiType='Q', DiSession=$ses, DiDistance=" . intval($d) . ",
-                    DiEnds=" . intval($s['volees']) . ", DiArrows=" . intval($s['fleches']) . "
+                    DiTournament=$tourId, DiType='Q', DiSession=$ses, DiDistance=$d,
+                    DiEnds=" . intval($vol) . ", DiArrows=" . intval($fle) . "
                     ON DUPLICATE KEY UPDATE DiEnds=VALUES(DiEnds), DiArrows=VALUES(DiArrows)");
             }
             $res['faits'][] = "Session $ses → séries " . implode(', ', $liste)
-                . " (" . $s['volees'] . " volées de " . $s['fleches'] . " flèches)";
+                . " déclarées (l'étape y lit les séries " . implode(', ', (array) $s['distances'])
+                . ", " . $s['volees'] . " volées de " . $s['fleches'] . " flèches)";
         }
 
         // Ajouter des séries sans leur donner de blason les laisserait vides dans

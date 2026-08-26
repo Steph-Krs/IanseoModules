@@ -113,8 +113,21 @@ function selec_lock_cles($st, $events, $sessions)
     $dists = selec_arch_distances($st);
 
     if ($dists) {
+        // ⚠ Filtrer sur la seule série ne suffit plus : chaque départ déclare
+        // désormais TOUTES les séries (nécessaire à l'appli téléphone d'ISK-NG).
+        // La série 1 existe donc dans les départs 1 à 4, et une étape verrouillerait
+        // ses séries dans des départs qui ne sont pas les siens. Le départ de
+        // l'étape fait partie de son identité : il entre dans le filtre.
+        $ses = intval($st['structure']['session'] ?? 0);
         foreach ($sessions as $k => $s) {
-            if ($s['type'] === 'Q' && in_array($s['distance'], $dists, true)) $cles[] = $k;
+            if ($s['type'] !== 'Q') continue;
+            if (!in_array($s['distance'], $dists, true)) continue;
+            // « Q|session|distance » — on compare le départ quand l'étape en nomme un.
+            if ($ses > 0) {
+                $seg = explode('|', $k);
+                if (!isset($seg[1]) || intval($seg[1]) !== $ses) continue;
+            }
+            $cles[] = $k;
         }
         return $cles;
     }

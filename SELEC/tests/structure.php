@@ -220,14 +220,30 @@ t_eq(0, count($res['erreurs']), 'génération sans erreur');
 t_eq(4, $res['sessions'], 'quatre sessions créées');
 t_eq(17, $res['epreuves'], 'dix-sept épreuves créées');
 
-// Vérification en base : chaque session porte SES séries, et elles seules.
+// Vérification en base : CHAQUE départ déclare TOUTES les séries.
+//
+// C'est ce qu'exige l'appli téléphone d'ISK-NG : sa clé de séquence vaut
+// CONCAT(SesType, ToNumDist, SesOrder), donc elle propose les séries 1 à
+// ToNumDist quel que soit le départ, et toute écriture exige une ligne
+// DistanceInformation (départ, série). Ne déclarer que les 2 séries de l'étape
+// rendait l'appli inutilisable dès le 2e départ.
 $di = array();
 $rs = safe_r_sql("SELECT DiSession, DiDistance, DiEnds, DiArrows FROM DistanceInformation
     WHERE DiTournament=$TOUR AND DiType='Q' ORDER BY DiSession, DiDistance");
 while ($r = safe_fetch($rs)) $di[intval($r->DiSession)][] = array(intval($r->DiDistance), intval($r->DiEnds), intval($r->DiArrows));
-t_eq(array(array(1, 6, 6), array(2, 6, 6)), $di[1] ?? array(), 'session 1 en base : séries 1-2, 6 volées de 6');
-t_eq(array(array(3, 6, 6), array(4, 6, 6)), $di[2] ?? array(), 'session 2 en base : séries 3-4');
-t_eq(array(array(7, 6, 6), array(8, 6, 6)), $di[4] ?? array(), 'session 4 en base : séries 7-8');
+
+$attendu = array();
+for ($d = 1; $d <= 8; $d++) $attendu[] = array($d, 6, 6);
+foreach (array(1, 2, 3, 4) as $s) {
+    t_eq($attendu, $di[$s] ?? array(), "départ $s : les 8 séries déclarées, 6 volées de 6");
+}
+t_eq(4, count($di), 'quatre départs, et pas un de plus');
+
+// Le format vient de l'étape qui POSSÈDE la série, pas du départ où elle est
+// déclarée : ici toutes les qualifications sont en 6×6, donc uniforme.
+$rs = safe_r_sql("SELECT COUNT(*) n FROM DistanceInformation
+    WHERE DiTournament=$TOUR AND DiType='Q' AND (DiEnds<>6 OR DiArrows<>6)");
+t_eq(0, intval(safe_fetch($rs)->n), 'aucune série au mauvais format');
 
 $rs = safe_r_sql("SELECT ToNumSession FROM Tournament WHERE ToId=$TOUR");
 t_eq(4, intval(safe_fetch($rs)->ToNumSession), 'la compétition déclare 4 départs');
