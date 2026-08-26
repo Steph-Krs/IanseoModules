@@ -34,6 +34,10 @@ Modules pour le projet I@nseo :
   Attribution automatique des cibles (règles fédérales, dont cohabitation des blasons), inscription
   groupée par un camarade de club, suivi des paiements, boutique, mandat et feuilles de marque.
   Inclut le sous-module `booking/` (ex-« Inscriptions en ligne »).
+- [Sélection Équipe de France](SELEC/README_SELEC.md) — Calcul des classements d'une épreuve de
+  sélection nationale : qualifications, journées à points cumulés, tournois montante/descendante,
+  poules et duels simulés. Les règlements sont de simples fichiers de configuration ; chaque
+  classement conserve ses valeurs intermédiaires et le critère qui a départagé.
 - [Répartition des épreuves](REPARTITION_EPREUVES/README_REPARTITION_EPREUVES.md) — Attribution
   des cibles en masse pour les grandes compétitions : téléchargement des classements nationaux,
   plan des départs par blocs d'épreuve, règles de placement (classement, ordre des clubs, serpentin)

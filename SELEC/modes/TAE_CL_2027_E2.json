@@ -1,0 +1,161 @@
+{
+    "id": "TAE_CL_2027_E2",
+    "libelle": "TAE Arc Classique 2027 — Épreuve 2 (T1 2027)",
+    "version": "1.2.0",
+    "reference": "Mode de sélection TAE Classique 2027, annexe « 2ème épreuve de sélection »",
+    "effectif_tableau": 6,
+
+    "familles": {
+        "QUAL":   "Points de Qualifications",
+        "JOUR":   "Points Journaliers",
+        "TOURN6": "Points de Tournois à 6",
+        "POULE":  "Points de Tournois de Poule"
+    },
+
+    "baremes": {
+        "R6":    { "type": "rang", "points": [6, 5, 4, 3, 2, 1], "defaut": 0 },
+        "PERF6": { "type": "rang", "points": [3, 2.5, 2, 1.5, 1, 0.5], "defaut": 0 },
+        "VIC6":  {
+            "type": "valeur",
+            "commentaire": "Règlement 2027 : les points de poule sont attribués DIRECTEMENT par nombre de victoires, pas par rang. Deux archers à 3 victoires ont donc tous deux 4 points.",
+            "table": { "5": 6, "4": 5, "3": 4, "2": 3, "1": 2, "0": 1 },
+            "defaut": 0
+        }
+    },
+
+    "journees": {
+        "J1": "Journée 1 — double 2×36 flèches",
+        "J2": "Journée 2 — 2×36 flèches + tournoi à 6 + poule"
+    },
+
+    "points_ouverts": [
+        {
+            "id": "seeding_j2",
+            "titre": "Base du tableau du tournoi à 6 et de la poule",
+            "detail": "Le règlement dit « en fonction du classement provisoire » sans trancher entre le classement à l'issue de J1 seul et le cumul J1 + qualification de J2. Réglable dans les options de la compétition (option_seeding_j2 : J1 ou J1Q3). Sans incidence sur les points calculés — uniquement sur la composition des tableaux.",
+            "statut": "en attente DTN"
+        },
+        {
+            "id": "duel_a_3",
+            "titre": "Duel à 3 (2e tour du tournoi à 6)",
+            "detail": "Format inexistant dans ianseo : 3 archers ensemble, 2 points au meilleur set, 1 en cas d'égalité, premier à 6 points de sets en 5 sets maximum. Développement spécifique nécessaire — tant qu'il n'existe pas, le classement final du tournoi à 6 ne peut pas être calculé automatiquement.",
+            "statut": "développement à faire"
+        },
+        {
+            "id": "victoire_finale",
+            "titre": "Définition de « victoire finale »",
+            "detail": "3e critère de départage du classement final. Interprétation retenue par défaut dans ce module : victoire dans le match de finale d'un tableau (phase 0 de la grille ianseo), consolantes comprises. À confirmer par la DTN.",
+            "statut": "en attente DTN"
+        }
+    ],
+
+    "etapes": [
+        {
+            "id": "Q1", "type": "qualification", "journee": "J1", "famille": "QUAL",
+            "libelle": "Qualification 1 (J1)", "distances": [1, 2], "bareme": "R6",
+            "structure": { "session": 1, "nom": "Qualification 1 — J1", "volees": 6, "fleches": 6 },
+            "perimetre": "tous",
+            "departage": [
+                { "c": "x",   "quals": ["Q1"] },
+                { "c": "dix", "quals": ["Q1"] },
+                { "c": "egalite" }
+            ]
+        },
+        {
+            "id": "Q2", "type": "qualification", "journee": "J1", "famille": "QUAL",
+            "libelle": "Qualification 2 (J1)", "distances": [3, 4], "bareme": "R6",
+            "structure": { "session": 2, "nom": "Qualification 2 — J1", "volees": 6, "fleches": 6 },
+            "prepare": { "base": "Q1", "commentaire": "2e qualification de la journée : ordre de la qualification précédente." },
+            "perimetre": "tous",
+            "departage": [
+                { "c": "x",   "quals": ["Q2"] },
+                { "c": "dix", "quals": ["Q2"] },
+                { "c": "egalite" }
+            ]
+        },
+        {
+            "id": "J1", "type": "journee", "journee": "J1", "famille": "JOUR",
+            "libelle": "Classement de la journée 1", "sources": ["Q1", "Q2"], "bareme": "R6",
+            "perimetre": "tous",
+            "departage": [
+                { "c": "somme_scores", "quals": ["Q1", "Q2"] },
+                { "c": "qual_n", "n": 1, "quals": ["Q1", "Q2"] },
+                { "c": "qual_n", "n": 2, "quals": ["Q1", "Q2"] },
+                { "c": "egalite" }
+            ]
+        },
+        {
+            "id": "CUT6", "type": "coupure", "journee": "J1",
+            "libelle": "Coupure conditionnelle — 6 archers retenus",
+            "commentaire": "Sans effet si 6 archers ou moins sont présents.",
+            "sources": ["J1"], "retenus": 6, "perimetre": "tous",
+            "departage": [
+                { "c": "valeur_fleche", "quals": ["Q1", "Q2"], "etapes": [] },
+                { "c": "qual_n", "n": 1, "quals": ["Q1", "Q2"] },
+                { "c": "barrage" },
+                { "c": "egalite" }
+            ]
+        },
+
+        {
+            "id": "Q3", "type": "qualification", "journee": "J2", "famille": "QUAL",
+            "libelle": "Qualification de la journée 2", "distances": [5, 6], "bareme": "R6",
+            "structure": { "session": 3, "nom": "Qualification 3 — J2", "volees": 6, "fleches": 6 },
+            "prepare": { "base": "J1", "commentaire": "1re qualification de la journée : ordre du classement provisoire aux points journaliers." },
+            "departage": [
+                { "c": "x",   "quals": ["Q3"] },
+                { "c": "dix", "quals": ["Q3"] },
+                { "c": "egalite" }
+            ]
+        },
+        {
+            "id": "TO6", "type": "tournoi", "journee": "J2", "famille": "TOURN6",
+            "libelle": "Tournoi à 6 (J2)",
+            "commentaire": "1er tour : 1v6, 2v5, 3v4. 2e tour : duel à 3 entre les vainqueurs, duel à 3 entre les vaincus — format à développer (voir points_ouverts).",
+            "slots": ["principal", "consolante"],
+            "structure": { "effectif": 6, "volees": 5, "fleches": 3 },
+            "seeding": { "source": "@option_seeding_j2" },
+            "bareme_classement": "R6", "bareme_performance": "PERF6", "bareme": "R6",
+            "departage_performance": [{ "c": "egalite" }],
+            "departage": [{ "c": "egalite" }]
+        },
+        {
+            "id": "POULE", "type": "poule", "journee": "J2", "famille": "POULE",
+            "libelle": "Tournoi de poule (J2)",
+            "commentaire": "6 archers, 5 duels, tous contre tous.",
+            "slots": ["poule"],
+            "structure": { "effectif": 6, "rounds": 5, "volees": 5, "fleches": 3 },
+            "seeding": { "source": "@option_seeding_j2" },
+            "bareme_classement": "VIC6", "bareme_performance": "PERF6", "bareme": "R6",
+            "departage_classement": [
+                { "c": "valeur_fleche", "quals": [], "etapes": ["POULE"] },
+                { "c": "egalite" }
+            ],
+            "departage_performance": [{ "c": "egalite" }],
+            "departage": [{ "c": "egalite" }]
+        },
+        {
+            "id": "J2", "type": "journee", "journee": "J2", "famille": "JOUR",
+            "libelle": "Classement de la journée 2",
+            "sources": ["Q3", "TO6", "POULE"], "bareme": "R6",
+            "departage": [{ "c": "egalite" }]
+        },
+
+        {
+            "id": "FINAL", "type": "final", "journee": "J2",
+            "libelle": "Classement final de l'épreuve 2",
+            "sources": ["J1", "J2"], "perimetre": "tous", "qualifies": 0,
+            "fige_apres_coupure": "CUT6",
+            "departage": [
+                {
+                    "c": "valeur_fleche",
+                    "quals": ["Q1", "Q2", "Q3"],
+                    "etapes": ["TO6", "POULE"]
+                },
+                { "c": "victoires", "etapes": ["TO6", "POULE"] },
+                { "c": "victoires_finales", "etapes": ["TO6"] },
+                { "c": "egalite" }
+            ]
+        }
+    ]
+}

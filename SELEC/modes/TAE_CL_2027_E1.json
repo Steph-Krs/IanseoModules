@@ -1,0 +1,215 @@
+{
+    "id": "TAE_CL_2027_E1",
+    "libelle": "TAE Arc Classique 2027 — Épreuve 1 (Compiègne, 1-4 sept. 2026)",
+    "version": "1.3.0",
+    "reference": "Mode de sélection TAE Classique 2027, annexe « 1ère épreuve de sélection du processus 2027 et du processus 2028 »",
+    "effectif_tableau": 8,
+
+    "familles": {
+        "QUAL":  "Points de Qualifications",
+        "JOUR":  "Points Journaliers",
+        "TOURN": "Points de Tournois",
+        "SIMUL": "Points de Matchs Simulés"
+    },
+
+    "baremes": {
+        "R8":    { "type": "rang", "points": [8, 7, 6, 5, 4, 3, 2, 1], "defaut": 0 },
+        "PERF8": { "type": "rang", "points": [4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5], "defaut": 0 }
+    },
+
+    "journees": {
+        "J1": "Journée 1 — double 2×36 flèches",
+        "J2": "Journée 2 — double 2×36 flèches",
+        "J3": "Journée 3 — 4 tournois sans élimination",
+        "J4": "Journée 4 — 2 tournois + 5 matchs simulés"
+    },
+
+    "points_ouverts": [],
+
+    "etapes": [
+        {
+            "id": "Q1", "type": "qualification", "journee": "J1", "famille": "QUAL",
+            "libelle": "Qualification 1 (J1)", "distances": [1, 2], "bareme": "R8",
+            "structure": { "session": 1, "nom": "Qualification 1 — J1", "volees": 6, "fleches": 6 },
+            "perimetre": "tous",
+            "departage": [
+                { "c": "x",   "quals": ["Q1"] },
+                { "c": "dix", "quals": ["Q1"] },
+                { "c": "egalite" }
+            ]
+        },
+        {
+            "id": "Q2", "type": "qualification", "journee": "J1", "famille": "QUAL",
+            "libelle": "Qualification 2 (J1)", "distances": [3, 4], "bareme": "R8",
+            "structure": { "session": 2, "nom": "Qualification 2 — J1", "volees": 6, "fleches": 6 },
+            "prepare": { "base": "Q1", "commentaire": "2e qualification de la journée : cibles attribuées dans l'ordre de la qualification précédente." },
+            "perimetre": "tous",
+            "departage": [
+                { "c": "x",   "quals": ["Q2"] },
+                { "c": "dix", "quals": ["Q2"] },
+                { "c": "egalite" }
+            ]
+        },
+        {
+            "id": "J1", "type": "journee", "journee": "J1", "famille": "JOUR",
+            "libelle": "Classement de la journée 1", "sources": ["Q1", "Q2"], "bareme": "R8",
+            "perimetre": "tous",
+            "departage": [
+                { "c": "somme_scores", "quals": ["Q1", "Q2"] },
+                { "c": "qual_n", "n": 1, "quals": ["Q1", "Q2"] },
+                { "c": "qual_n", "n": 2, "quals": ["Q1", "Q2"] },
+                { "c": "egalite" }
+            ]
+        },
+
+        {
+            "id": "Q3", "type": "qualification", "journee": "J2", "famille": "QUAL",
+            "libelle": "Qualification 3 (J2)", "distances": [5, 6], "bareme": "R8",
+            "structure": { "session": 3, "nom": "Qualification 3 — J2", "volees": 6, "fleches": 6 },
+            "prepare": { "base": "J1", "commentaire": "1re qualification de la journée : cibles attribuées dans l'ordre du classement provisoire aux points journaliers." },
+            "perimetre": "tous",
+            "departage": [
+                { "c": "x",   "quals": ["Q3"] },
+                { "c": "dix", "quals": ["Q3"] },
+                { "c": "egalite" }
+            ]
+        },
+        {
+            "id": "Q4", "type": "qualification", "journee": "J2", "famille": "QUAL",
+            "libelle": "Qualification 4 (J2)", "distances": [7, 8], "bareme": "R8",
+            "structure": { "session": 4, "nom": "Qualification 4 — J2", "volees": 6, "fleches": 6 },
+            "prepare": { "base": "Q3", "commentaire": "2e qualification de la journée : cibles attribuées dans l'ordre de la qualification précédente." },
+            "perimetre": "tous",
+            "departage": [
+                { "c": "x",   "quals": ["Q4"] },
+                { "c": "dix", "quals": ["Q4"] },
+                { "c": "egalite" }
+            ]
+        },
+        {
+            "id": "J2", "type": "journee", "journee": "J2", "famille": "JOUR",
+            "libelle": "Classement de la journée 2", "sources": ["Q3", "Q4"], "bareme": "R8",
+            "perimetre": "tous",
+            "departage": [
+                { "c": "somme_scores", "quals": ["Q3", "Q4"] },
+                { "c": "qual_n", "n": 1, "quals": ["Q3", "Q4"] },
+                { "c": "qual_n", "n": 2, "quals": ["Q3", "Q4"] },
+                { "c": "egalite" }
+            ]
+        },
+
+        {
+            "id": "CUT8", "type": "coupure", "journee": "J2",
+            "libelle": "Classement à l'issue de J1+J2 — 8 archers retenus",
+            "sources": ["J1", "J2"], "retenus": 8, "perimetre": "tous",
+            "departage": [
+                { "c": "qual_n", "n": 1, "quals": ["Q1", "Q2", "Q3", "Q4"] },
+                { "c": "qual_n", "n": 2, "quals": ["Q1", "Q2", "Q3", "Q4"] },
+                { "c": "qual_n", "n": 3, "quals": ["Q1", "Q2", "Q3", "Q4"] },
+                { "c": "qual_n", "n": 4, "quals": ["Q1", "Q2", "Q3", "Q4"] },
+                { "c": "barrage" },
+                { "c": "egalite" }
+            ]
+        },
+
+        {
+            "id": "T1", "type": "tournoi", "journee": "J3", "famille": "TOURN",
+            "libelle": "Tournoi 1 (J3)", "slots": ["principal", "consolante"],
+            "structure": { "effectif": 8, "volees": 5, "fleches": 3 },
+            "seeding": { "source": "CUT8" },
+            "bareme_classement": "R8", "bareme_performance": "PERF8", "bareme": "R8",
+            "departage_performance": [{ "c": "egalite" }],
+            "departage": [{ "c": "egalite" }]
+        },
+        {
+            "id": "T2", "type": "tournoi", "journee": "J3", "famille": "TOURN",
+            "libelle": "Tournoi 2 (J3)", "slots": ["principal", "consolante"],
+            "structure": { "effectif": 8, "volees": 5, "fleches": 3 },
+            "seeding": { "source": "T1" },
+            "bareme_classement": "R8", "bareme_performance": "PERF8", "bareme": "R8",
+            "departage_performance": [{ "c": "egalite" }],
+            "departage": [{ "c": "egalite" }]
+        },
+        {
+            "id": "T3", "type": "tournoi", "journee": "J3", "famille": "TOURN",
+            "libelle": "Tournoi 3 (J3)", "slots": ["principal", "consolante"],
+            "structure": { "effectif": 8, "volees": 5, "fleches": 3 },
+            "seeding": { "source": "T2" },
+            "bareme_classement": "R8", "bareme_performance": "PERF8", "bareme": "R8",
+            "departage_performance": [{ "c": "egalite" }],
+            "departage": [{ "c": "egalite" }]
+        },
+        {
+            "id": "T4", "type": "tournoi", "journee": "J3", "famille": "TOURN",
+            "libelle": "Tournoi 4 (J3)", "slots": ["principal", "consolante"],
+            "structure": { "effectif": 8, "volees": 5, "fleches": 3 },
+            "seeding": { "source": "T3" },
+            "bareme_classement": "R8", "bareme_performance": "PERF8", "bareme": "R8",
+            "departage_performance": [{ "c": "egalite" }],
+            "departage": [{ "c": "egalite" }]
+        },
+        {
+            "id": "J3", "type": "journee", "journee": "J3", "famille": "JOUR",
+            "libelle": "Classement de la journée 3",
+            "sources": ["T1", "T2", "T3", "T4"], "bareme": "R8",
+            "departage": [{ "c": "egalite" }]
+        },
+
+        {
+            "id": "T5", "type": "tournoi", "journee": "J4", "famille": "TOURN",
+            "libelle": "Tournoi 5 (J4)", "slots": ["principal", "consolante"],
+            "structure": { "effectif": 8, "volees": 5, "fleches": 3 },
+            "seeding": { "source": "J3" },
+            "bareme_classement": "R8", "bareme_performance": "PERF8", "bareme": "R8",
+            "departage_performance": [{ "c": "egalite" }],
+            "departage": [{ "c": "egalite" }]
+        },
+        {
+            "id": "T6", "type": "tournoi", "journee": "J4", "famille": "TOURN",
+            "libelle": "Tournoi 6 (J4)", "slots": ["principal", "consolante"],
+            "structure": { "effectif": 8, "volees": 5, "fleches": 3 },
+            "seeding": { "source": "T5" },
+            "bareme_classement": "R8", "bareme_performance": "PERF8", "bareme": "R8",
+            "departage_performance": [{ "c": "egalite" }],
+            "departage": [{ "c": "egalite" }]
+        },
+        {
+            "id": "MS", "type": "duels_simules", "journee": "J4", "famille": "SIMUL",
+            "libelle": "5 matchs simulés (J4)",
+            "seeding": { "source": "T6" },
+            "structure": { "effectif": 8, "duels": 5, "volees": 5, "fleches": 3 },
+            "nb_duels": 5, "volees": 5, "fleches_par_volee": 3,
+            "source": { "type": "evenements", "slots": ["ds1", "ds2", "ds3", "ds4", "ds5"] },
+            "bareme": "R8",
+            "departage": [
+                { "c": "x",   "quals": ["MS"] },
+                { "c": "dix", "quals": ["MS"] },
+                { "c": "egalite" }
+            ]
+        },
+        {
+            "id": "J4", "type": "journee", "journee": "J4", "famille": "JOUR",
+            "libelle": "Classement de la journée 4",
+            "sources": ["T5", "T6", "MS"], "bareme": "R8",
+            "departage": [{ "c": "egalite" }]
+        },
+
+        {
+            "id": "FINAL", "type": "final", "journee": "J4",
+            "libelle": "Classement final de l'épreuve 1",
+            "sources": ["J1", "J2", "J3", "J4"], "perimetre": "tous", "qualifies": 0,
+            "fige_apres_coupure": "CUT8",
+            "commentaire": "Le module produit un CLASSEMENT. Le nombre d'archers retenus pour la suite du processus appartient à la DTN et n'est pas calculé ici.",
+            "departage": [
+                {
+                    "c": "valeur_fleche",
+                    "quals": ["Q1", "Q2", "Q3", "Q4"],
+                    "etapes": ["T1", "T2", "T3", "T4", "T5", "T6", "MS"]
+                },
+                { "c": "qual_n", "n": 1, "quals": ["Q1", "Q2", "Q3", "Q4"] },
+                { "c": "victoires", "etapes": ["T1", "T2", "T3", "T4", "T5", "T6"] },
+                { "c": "egalite" }
+            ]
+        }
+    ]
+}
