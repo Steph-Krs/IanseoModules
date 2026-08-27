@@ -51,6 +51,9 @@ body {
 #bk .bk-btn-primary:hover { background: #01367c; border-color: #01367c; color: #fff; }
 #bk a.bk-btn:hover { color: #20263d; }
 #bk a.bk-btn-primary:hover { color: #fff; }
+/* Rangée de boutons secondaires (raccourcis « Mon suivi ») : retour à la ligne propre. */
+#bk .bk-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+#bk .bk-actions .bk-btn { margin-top: 12px; }
 
 #bk .bk-alt { margin: 18px 0 0; text-align: center; font-size: 13px; color: #4c4e50; }
 
@@ -74,17 +77,45 @@ body {
 #bk .bk-nav-ic { display: block; flex: 0 0 auto; }
 #bk .bk-who { color: #fff; opacity: .85; }
 
+/* Barre de navigation BASSE (mobile uniquement) — style « app », translucide pour
+   laisser deviner du contenu dessous ; item central (Calendrier) plus gros et en relief. */
+#bk .bk-botnav { display: none; }
+
 @media (max-width:640px){
-  #bk .bk-top { padding: 9px 10px; }
-  #bk .bk-brand { display: none; }   /* le picto « home » de la nav suffit */
-  #bk .bk-nav { flex: 1 1 auto; justify-content: space-between; gap: 0; }
-  #bk .bk-nav-lab { display: none; }        /* icônes seules : la barre tient en largeur */
-  #bk .bk-who { display: none; }            /* le nom déborde sur petit écran */
-  #bk .bk-nav a { padding: 7px; }           /* cible tactile confortable */
-  #bk .bk-nav-ic { width: 21px; height: 21px; }
+  #bk .bk-top { display: none; }                                   /* le bandeau haut cède la place à la barre basse */
+  #bk .bk-botnav {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 99990;
+    align-items: flex-end;
+    background: rgba(255,255,255,.32); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(2,84,168,.16);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -3px 14px rgba(20,60,120,.10);
+  }
+  #bk .bk-botnav .bk-bn {
+    flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    text-decoration: none; color: #353a41; font-size: 10px; padding: 4px 2px;
+  }
+  #bk .bk-botnav .bk-bn:hover { color: #353a41; }
+  #bk .bk-botnav .bk-bn span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #bk .bk-botnav .bk-bn .bk-nav-ic { width: 23px; height: 23px; }
+  #bk .bk-botnav .bk-bn.on, #bk .bk-botnav .bk-bn.on:hover { color: #0254a8; }
+  /* Élément central : gros bouton rond bleu FFTA en relief (façon YouTube). */
+  #bk .bk-botnav .bk-bn-center .bk-bn-ic {
+    display: flex; align-items: center; justify-content: center; width: 54px; height: 54px;
+    margin: -24px auto 1px; border-radius: 50%; background: #0254a8; color: #fff;
+    border: 3px solid #fff; box-shadow: 0 5px 14px rgba(2,84,168,.42);
+  }
+  #bk .bk-botnav .bk-bn-center .bk-bn-ic .bk-nav-ic { width: 27px; height: 27px; }
+  #bk .bk-botnav .bk-bn-center.on .bk-bn-ic { background: #01367c; }
 }
 
 #bk .bk-main { padding: 20px 18px 40px; }
+/* Mobile : réserver sous le contenu la hauteur de la barre basse fixe (+ le bouton central
+   qui dépasse, + la zone sûre iOS), sinon elle masque le bas de page. Placée APRÈS la règle
+   de base pour la surcharger (même spécificité → la dernière l'emporte). */
+@media (max-width:640px){
+  #bk .bk-main { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+}
 #bk.bk-page h1 { margin: 0 0 20px; font-size: 22px; color: #01367c; }
 
 #bk .bk-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
@@ -452,6 +483,10 @@ body.bk-modal-open { overflow:hidden; }
 #bk .bk-shop-bar .bk-btn { margin-top:0; width:auto; }
 @media (max-width:640px){
   #bk .bk-shop-bar .bk-btn { width:100%; }
+  /* La barre boutique collante doit flotter AU-DESSUS de la barre de navigation basse
+     (et du bouton central en relief), sinon elle passe derrière. */
+  #bk .bk-shop-bar { bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 4px 14px rgba(20,60,120,.16); }
 }
 #bk .bk-doc-mut { color:#7d8183; }
 #bk .bk-doc-grand { margin:12px 0 0; text-align:right; font-size:16px; color:#01367c; }

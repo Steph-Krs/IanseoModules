@@ -271,6 +271,44 @@ function aut_log($event, $user = '', $ip = null) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Rétention des journaux (AUT_Log + BK_Log)                           */
+/*                                                                     */
+/* Sans purge, les journaux grossissent indéfiniment (à l'échelle      */
+/* fédérale : des millions de lignes/an) et la mention RGPD « conservés */
+/* quelques mois » serait fausse. Durée configurable, défaut 180 j.    */
+/* La sécurité (anti-bruteforce) n'utilise QUE la fenêtre 15 min → non  */
+/* affectée. Chunké (LIMIT) pour éviter une suppression massive d'un    */
+/* coup ; les exécutions répétées rattrapent le retard.                */
+/* ------------------------------------------------------------------ */
+
+/** Durée de rétention des journaux en jours (config.local.json → "log_retention_days", défaut 180). */
+function aut_log_retention_days() {
+    $d = intval(aut_local_config()['log_retention_days'] ?? 180);
+    return ($d >= 7 && $d <= 3650) ? $d : 180;   // borne : 1 semaine à 10 ans ; sinon défaut
+}
+
+/** Supprime les événements plus vieux que la rétention (AUT_Log, et BK_Log si présent). */
+function aut_log_purge() {
+    $days = aut_log_retention_days();
+    safe_w_sql("DELETE FROM AUT_Log WHERE AlWhen < DATE_SUB(NOW(), INTERVAL $days DAY) LIMIT 20000");
+    $r = safe_fetch(safe_r_sql("SELECT 1 AS x FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Log'"));
+    if ($r) safe_w_sql("DELETE FROM BK_Log WHERE BlWhen < DATE_SUB(NOW(), INTERVAL $days DAY) LIMIT 20000");
+    // Mesure d'audience : UsageSeen suit la rétention des journaux, agrégats à 25 mois.
+    require_once __DIR__ . '/stats-usage.php';
+    if (function_exists('aut_stats_purge')) aut_stats_purge();
+}
+
+/** Purge AU PLUS une fois par jour (marqueur fichier), pour ne pas la refaire à chaque requête. */
+function aut_log_purge_daily() {
+    $marker = sys_get_temp_dir() . '/aut_logpurge_' . substr(hash('sha256', __DIR__), 0, 16);
+    $today  = date('Y-m-d');
+    if (is_file($marker) && trim((string) @file_get_contents($marker)) === $today) return;
+    @file_put_contents($marker, $today);   // marque avant de purger : une seule tentative/jour même si la purge échoue
+    aut_log_purge();
+}
+
+/* ------------------------------------------------------------------ */
 /* Tickets (bugs / demandes d'évolution)                               */
 /* ------------------------------------------------------------------ */
 
@@ -1362,6 +1400,7 @@ function aut_request_bootstrap() {
     if (aut_is_localhost()) return;   // console serveur : comportement ianseo classique
 
     aut_ensure_schema();
+    aut_log_purge_daily();   // rétention des journaux (au plus 1×/jour, cf. marqueur)
 
     if (!empty($_SESSION['AUTH_User'])) {
         $u = aut_get_user($_SESSION['AUTH_User']);
@@ -1418,6 +1457,11 @@ function aut_request_bootstrap() {
                     }
                 }
             }
+            // Mesure d'audience (agrégée, sans donnée personnelle ; l'organisateur est
+            // compté par identité de compte, aucun cookie). Page réellement servie
+            // (après les gardes qui redirigent). Auto-gardée et isolée : jamais fatale.
+            require_once __DIR__ . '/stats-usage.php';
+            if (function_exists('aut_track')) aut_track('org', $u->AuId);
             return;
         }
         // jeton expiré/révoqué, compte désactivé ou supprimé

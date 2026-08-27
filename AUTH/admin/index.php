@@ -34,6 +34,47 @@ function aut_admin_count() {
     return $r ? intval($r->n) : 0;
 }
 
+/** Rend un journal (filtre par événement + recherche utilisateur + pagination « charger plus »). */
+function aut_journal_block($root, $title, $rows, $more, $events, $curEv, $curU, $off, $lim, $pEv, $pU, $pOff, $tab) {
+    $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };
+    $url = function ($ev, $u, $o) use ($root, $tab, $pEv, $pU, $pOff) {
+        $a = array('tab' => $tab);
+        if ($ev !== '') $a[$pEv] = $ev;
+        if ($u  !== '') $a[$pU]  = $u;
+        if ($o  > 0)    $a[$pOff] = $o;
+        return $root . 'index.php?' . http_build_query($a);
+    };
+    ?>
+    <h3 style="margin:22px 0 8px; color:#01367c; font-size:15px;"><?= $e($title) ?></h3>
+    <form method="get" action="<?= $e($root) ?>index.php" style="margin:0 0 10px; display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+        <input type="hidden" name="tab" value="<?= $e($tab) ?>">
+        <label style="font-size:12px; color:#4c4e50;">Événement<br>
+            <select name="<?= $e($pEv) ?>" onchange="this.form.submit()">
+                <option value="">— tous —</option>
+                <?php foreach ($events as $ev): ?><option value="<?= $e($ev) ?>"<?= $curEv === $ev ? ' selected' : '' ?>><?= $e($ev) ?></option><?php endforeach; ?>
+            </select>
+        </label>
+        <label style="font-size:12px; color:#4c4e50;">Utilisateur<br>
+            <input type="text" name="<?= $e($pU) ?>" value="<?= $e($curU) ?>" placeholder="licence / identifiant" size="18">
+        </label>
+        <button type="submit">Filtrer</button>
+        <?php if ($curEv !== '' || $curU !== '') echo '<a style="font-size:13px;" href="' . $e($url('', '', 0)) . '">Réinitialiser</a>'; ?>
+    </form>
+    <table class="Tabella">
+        <tr><th class="Title w-20">Date</th><th class="Title w-20">Utilisateur</th><th class="Title w-20">IP</th><th class="Title w-40">Événement</th></tr>
+        <?php foreach ($rows as $l): ?>
+        <tr><td><?= $e($l->w) ?></td><td><?= $e($l->u) ?></td><td><?= $e($l->ip) ?></td><td><?= $e($l->ev) ?></td></tr>
+        <?php endforeach; ?>
+        <?php if (!count($rows)) echo '<tr><td colspan="4" class="Center">Aucun événement.</td></tr>'; ?>
+    </table>
+    <div style="display:flex; gap:16px; align-items:center; margin:8px 0 0; font-size:13px;">
+        <?php if ($off > 0) echo '<a href="' . $e($url($curEv, $curU, max(0, $off - $lim))) . '">← Plus récents</a>'; ?>
+        <span style="color:#7d8183;"><?= count($rows) ? ($off + 1) . '–' . ($off + count($rows)) : '0' ?></span>
+        <?php if ($more) echo '<a href="' . $e($url($curEv, $curU, $off + $lim)) . '">Plus anciens →</a>'; ?>
+    </div>
+    <?php
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!aut_csrf_check()) {
         $msgErr = 'Session expirée : action non effectuée, réessayez.';
@@ -180,10 +221,6 @@ $q = safe_r_sql("SELECT AsnUser, COUNT(*) AS n FROM AUT_Sessions
     WHERE AsnLastSeen > DATE_SUB(NOW(), INTERVAL " . AUT_SESSION_IDLE_H . " HOUR) GROUP BY AsnUser");
 while ($r = safe_fetch($q)) $sessCount[$r->AsnUser] = intval($r->n);
 
-$logs = array();
-$q = safe_r_sql("SELECT * FROM AUT_Log ORDER BY AlId DESC LIMIT 30");
-while ($r = safe_fetch($q)) $logs[] = $r;
-
 // Comptes ARCHER (si le module d'inscriptions est installé).
 $archers = array();
 $arcSess = array();
@@ -193,6 +230,36 @@ if ($hasArchers) {
     $q = safe_r_sql("SELECT BsArcher, COUNT(*) AS n FROM BK_Sessions
         WHERE BsLastSeen > DATE_SUB(NOW(), INTERVAL 12 HOUR) GROUP BY BsArcher");
     while ($r = safe_fetch($q)) $arcSess[intval($r->BsArcher)] = intval($r->n);
+}
+
+// Journaux par public : org = AUT_Log, archer = BK_Log. Filtrables (événement + recherche) + paginés.
+$LOG_LIM = 150;
+$logFetch = function ($table, $p, $ev, $user, $off, $lim) {
+    $w = "1=1";
+    if ($ev !== '')   $w .= " AND {$p}Event = " . StrSafe_DB($ev);
+    if ($user !== '') $w .= " AND {$p}User LIKE " . StrSafe_DB('%' . str_replace(array('\\', '%', '_'), array('\\\\', '\\%', '\\_'), $user) . '%');
+    $rs = safe_r_sql("SELECT {$p}When AS w, {$p}User AS u, {$p}IP AS ip, {$p}Event AS ev
+        FROM $table WHERE $w ORDER BY {$p}Id DESC LIMIT " . (intval($lim) + 1) . " OFFSET " . intval($off));
+    $out = array(); while ($r = safe_fetch($rs)) $out[] = $r; return $out;
+};
+$logEvents = function ($table, $p) {
+    $rs = safe_r_sql("SELECT DISTINCT {$p}Event AS ev FROM $table ORDER BY {$p}Event LIMIT 200");
+    $out = array(); while ($r = safe_fetch($rs)) if ((string) $r->ev !== '') $out[] = $r->ev; return $out;
+};
+
+$oEv = trim((string) ($_GET['oev'] ?? '')); $oU = trim((string) ($_GET['ou'] ?? '')); $oOff = max(0, intval($_GET['ooff'] ?? 0));
+$orgLogs = $logFetch('AUT_Log', 'Al', $oEv, $oU, $oOff, $LOG_LIM);
+$orgMore = count($orgLogs) > $LOG_LIM; if ($orgMore) array_pop($orgLogs);
+$orgEvents = $logEvents('AUT_Log', 'Al');
+
+$hasBkLog = $hasArchers && (bool) safe_fetch(safe_r_sql("SELECT 1 AS x FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Log'"));
+$arcLogs = array(); $arcMore = false; $arcEvents = array();
+$aEv = trim((string) ($_GET['aev'] ?? '')); $aU = trim((string) ($_GET['au'] ?? '')); $aOff = max(0, intval($_GET['aoff'] ?? 0));
+if ($hasBkLog) {
+    $arcLogs = $logFetch('BK_Log', 'Bl', $aEv, $aU, $aOff, $LOG_LIM);
+    $arcMore = count($arcLogs) > $LOG_LIM; if ($arcMore) array_pop($arcLogs);
+    $arcEvents = $logEvents('BK_Log', 'Bl');
 }
 
 $roles = aut_roles();
@@ -218,11 +285,11 @@ if ($tmpPwd) echo '<div class="aut-banner pwd">Mot de passe temporaire (affiché
     . '<b style="font-family:monospace; font-size:16px;">' . htmlspecialchars($tmpPwd) . '</b> — il devra le changer à sa première connexion.</div>';
 ?>
 <div id="aut-tabs">
-  <button type="button" data-pane="org">🏹 Organisateurs (<?php echo count($users); ?>)</button>
-  <?php if ($hasArchers) echo '<button type="button" data-pane="archers">🎯 Archers (' . count($archers) . ')</button>'; ?>
+  <button type="button" data-pane="org" class="<?php echo $activeTab === 'org' ? 'on' : ''; ?>">🏹 Organisateurs (<?php echo count($users); ?>)</button>
+  <?php if ($hasArchers) echo '<button type="button" data-pane="archers" class="' . ($activeTab === 'archers' ? 'on' : '') . '">🎯 Archers (' . count($archers) . ')</button>'; ?>
 </div>
 
-<div class="aut-pane" id="pane-org">
+<div class="aut-pane<?php echo $activeTab === 'org' ? ' on' : ''; ?>" id="pane-org">
 <table class="Tabella">
 <tr><th class="Title" colspan="11">Organisateurs</th></tr>
 <tr><td colspan="11" style="font-size:11px;">
@@ -319,19 +386,12 @@ if ($tmpPwd) echo '<div class="aut-banner pwd">Mot de passe temporaire (affiché
 </tr>
 </table>
 
-<table class="Tabella">
-<tr><th class="Title" colspan="4">Journal (30 derniers événements)</th></tr>
-<tr><th class="Title w-20">Date</th><th class="Title w-20">Utilisateur</th><th class="Title w-20">IP</th><th class="Title w-40">Événement</th></tr>
-<?php foreach ($logs as $l) {
-    echo '<tr><td>' . $l->AlWhen . '</td><td>' . htmlspecialchars($l->AlUser) . '</td><td>'
-        . htmlspecialchars($l->AlIP) . '</td><td>' . htmlspecialchars($l->AlEvent) . '</td></tr>';
-} ?>
-<?php if (!count($logs)) echo '<tr><td colspan="4" class="Center">Aucun événement.</td></tr>'; ?>
-</table>
+<?php aut_journal_block($CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/', 'Journal — organisateurs',
+    $orgLogs, $orgMore, $orgEvents, $oEv, $oU, $oOff, $LOG_LIM, 'oev', 'ou', 'ooff', 'org'); ?>
 </div><!-- pane-org -->
 
 <?php if ($hasArchers): ?>
-<div class="aut-pane" id="pane-archers">
+<div class="aut-pane<?php echo $activeTab === 'archers' ? ' on' : ''; ?>" id="pane-archers">
 <table class="Tabella">
 <tr><th class="Title" colspan="9">Archers (comptes licenciés)</th></tr>
 <tr><td colspan="9" style="font-size:11px;">
@@ -392,6 +452,8 @@ if ($tmpPwd) echo '<div class="aut-banner pwd">Mot de passe temporaire (affiché
 <?php endforeach; ?>
 <?php if (!count($archers)) echo '<tr><td colspan="9" class="Center">Aucun archer ne s\'est encore connecté.</td></tr>'; ?>
 </table>
+<?php if ($hasBkLog) aut_journal_block($CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/', 'Journal — archers',
+    $arcLogs, $arcMore, $arcEvents, $aEv, $aU, $aOff, $LOG_LIM, 'aev', 'au', 'aoff', 'archers'); ?>
 </div><!-- pane-archers -->
 <?php endif; ?>
 

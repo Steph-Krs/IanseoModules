@@ -72,5 +72,17 @@ bk_head('Mon espace');
       <p class="bk-empty">Aucune compétition n'est ouverte aux inscriptions pour le moment.</p>
     <?php endif; ?>
   </section>
+
+  <section class="bk-block">
+    <h2>Mon suivi</h2>
+    <p class="bk-hint">Vos performances au fil des compétitions<?= bk_is_manager() ? ', et la gestion de votre club' : '' ?>.</p>
+    <p class="bk-actions">
+      <a class="bk-btn" href="<?= bk_e(bk_public_url('stats.php')) ?>">📊 Mes statistiques</a>
+      <a class="bk-btn" href="<?= bk_e(bk_public_url('registrations.php')) ?>">🗒️ Mes inscriptions</a>
+      <?php if (bk_is_manager()): ?>
+        <a class="bk-btn" href="<?= bk_e(bk_public_url('club.php')) ?>">👥 Mon club</a>
+      <?php endif; ?>
+    </p>
+  </section>
 </div>
 <?php bk_foot(); ?>

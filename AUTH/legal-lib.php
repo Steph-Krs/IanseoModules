@@ -285,17 +285,26 @@ function aut_legal_gen_confid($op)
 
 function aut_legal_gen_cookies($op)
 {
-    $h  = '<p>Ce service utilise le strict minimum de cookies nécessaires à son fonctionnement. <b>Aucun cookie de '
-        . 'pistage, de mesure d\'audience ou de publicité n\'est utilisé</b>, et aucune donnée n\'est partagée avec des tiers '
-        . 'à ces fins.</p>';
+    $h  = '<p>Ce service utilise le strict minimum de cookies. <b>Aucun cookie publicitaire, de profilage '
+        . 'ou de suivi entre sites n\'est déposé</b>, et aucune donnée n\'est partagée avec des tiers à des '
+        . 'fins commerciales.</p>';
     $h .= '<h2>Cookies utilisés</h2><ul>'
-        . '<li><b>Cookie de session</b> (strictement nécessaire) : il permet de vous garder connecté le temps de votre '
-        . 'visite. Il ne contient pas d\'information personnelle exploitable (seulement un identifiant de session) et expire '
-        . 'à la fin de la session.</li>'
+        . '<li><b>Cookie de session</b> (strictement nécessaire) : il vous garde connecté le temps de votre '
+        . 'visite. Il ne contient qu\'un identifiant de session, aucune information personnelle exploitable, '
+        . 'et expire à la fin de la session.</li>'
+        . '<li><b>Cookie de mesure d\'audience</b> (nommé <code>aud</code>) : déposé uniquement pour les '
+        . 'visiteurs <b>non connectés</b> de la page d\'accueil, afin de mesurer la fréquentation du service '
+        . '(nombre de visiteurs, pages consultées). C\'est un identifiant aléatoire, propre à ce seul site '
+        . '(aucun suivi entre sites), d\'une durée de vie maximale de 13 mois. Les statistiques produites sont '
+        . 'strictement <b>anonymes et agrégées</b> : aucune adresse IP n\'est conservée, aucun profil individuel '
+        . 'n\'est constitué. Les utilisateurs connectés ne reçoivent pas ce cookie (ils sont comptés, de façon '
+        . 'anonyme, à partir de leur compte).</li>'
         . '</ul>';
-    $h .= '<p>Les cookies strictement nécessaires ne requièrent pas votre consentement préalable (article 82 de la loi '
-        . '« Informatique et Libertés »). Vous pouvez configurer votre navigateur pour les refuser, mais le service ne '
-        . 'pourrait alors plus vous maintenir connecté.</p>';
+    $h .= '<p>Ces cookies sont dispensés de consentement préalable (article 82 de la loi « Informatique et '
+        . 'Libertés ») : le cookie de session au titre des cookies strictement nécessaires, et le cookie de '
+        . 'mesure d\'audience au titre de l\'exemption prévue par la CNIL pour les outils de mesure d\'audience '
+        . 'limités à la seule mesure du service. Vous pouvez configurer votre navigateur pour les refuser ; le '
+        . 'service ne pourrait alors plus vous maintenir connecté.</p>';
     $h .= aut_legal_disclaimer_html($op);
     return $h;
 }

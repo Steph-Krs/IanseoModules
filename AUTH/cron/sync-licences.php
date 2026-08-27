@@ -99,6 +99,10 @@ while ($t = safe_fetch($q)) {
 }
 
 aut_log('LICSYNC_OK', 'cron', 'cli');
+
+// Rétention des journaux (job quotidien canonique). Le bootstrap le fait aussi au plus 1×/jour.
+if (function_exists('aut_log_purge')) { aut_log_purge(); lic_log('Journaux purgés (rétention).'); }
+
 lic_log('Synchronisation terminée.');
 flock($lock, LOCK_UN);
 exit(0);

@@ -45,6 +45,11 @@ if (!$hasOrganiser && $hasCompetitor) $active = 'comp';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
+// Mesure d'audience de la page d'accueil (visiteur anonyme → cookie de mesure exempté ;
+// self-gardée sur les GET de page, isolée, jamais fatale). Doit précéder toute sortie HTML.
+require_once(__DIR__ . '/stats-usage.php');
+if (function_exists('aut_track')) aut_track('public');
+
 /* ---- POST organisateur ---- */
 if ($method === 'POST' && ($_POST['role'] ?? '') === 'org' && $hasOrganiser) {
     $active = 'org';

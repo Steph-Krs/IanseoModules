@@ -79,6 +79,17 @@ function bk_head($title, $layout = 'page')
       </nav>
     <?php endif; ?>
   </header>
+  <?php if ($archer):
+    $bkCur = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+    $bkOn  = function ($f) use ($bkCur) { return $bkCur === $f ? ' on' : ''; }; ?>
+  <nav class="bk-botnav" aria-label="Navigation">
+    <a class="bk-bn<?= $bkOn('index.php') ?>" href="<?= bk_e(bk_public_url()) ?>"><?= bk_nav_icon('home') ?><span>Espace</span></a>
+    <a class="bk-bn<?= $bkOn('map.php') ?>" href="<?= bk_e(bk_public_url('map.php')) ?>"><?= bk_nav_icon('map') ?><span>Carte</span></a>
+    <a class="bk-bn bk-bn-center<?= $bkOn('calendar.php') ?>" href="<?= bk_e(bk_public_url('calendar.php')) ?>"><span class="bk-bn-ic"><?= bk_nav_icon('cal') ?></span><span>Calendrier</span></a>
+    <a class="bk-bn<?= $bkOn('tickets.php') ?>" href="<?= bk_e(bk_public_url('tickets.php')) ?>"><?= bk_nav_icon('flag') ?><span>Signaler</span></a>
+    <a class="bk-bn" href="<?= bk_e(bk_public_url('logout.php')) ?>"><?= bk_nav_icon('out') ?><span>Quitter</span></a>
+  </nav>
+  <?php endif; ?>
 <?php endif; ?>
   <main class="bk-main">
 <?php
@@ -169,5 +180,9 @@ function bk_require_archer()
         // Seulement si l'exploitant a configuré ses infos légales (voir garde organisateur).
         if (aut_legal_configured() && !aut_legal_archer_ok($a)) bk_redirect('legal-accept.php');
     }
+    // Mesure d'audience (agrégée) — l'archer est compté par identité, sans cookie.
+    // stats-usage.php vit dans le module AUTH parent (fusion) ; auto-gardée et isolée.
+    require_once dirname(__DIR__, 2) . '/stats-usage.php';
+    if (function_exists('aut_track')) aut_track('archer', $a->BaId);
     return $a;
 }
