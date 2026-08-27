@@ -199,6 +199,13 @@ function aut_ensure_schema() {
             ADD COLUMN AsnScope VARCHAR(16) NOT NULL DEFAULT '' AFTER AsnRole");
     }
 
+    // v… : observation « depuis un autre compte » (impersonation) — persistée par
+    // session pour survivre à CreateTourSession (voir aut_imp_*). JSON ou NULL.
+    $q = safe_r_sql("SHOW COLUMNS FROM AUT_Sessions LIKE 'AsnImp'");
+    if (!safe_fetch($q)) {
+        safe_w_sql("ALTER TABLE AUT_Sessions ADD COLUMN AsnImp TEXT NULL DEFAULT NULL AFTER AsnScope");
+    }
+
     // v6 : tickets (bugs / demandes d'évolution) déposés par les organisateurs,
     // triés par l'administrateur du serveur. TkScore = indice de précision calculé
     // au dépôt (favorise les demandes bien décrites).
@@ -970,6 +977,15 @@ function aut_isk_enforce($tourId = 0) {
     if (in_array($mode, aut_isk_blocked_modes(), true)) {
         setModuleParameter('ISK-NG', 'Mode', 'ng-lite', $tourId);
         aut_log('ISK_DOWNGRADE', 'tour=' . $tourId . ' from=' . $mode);
+        // Informer l'organisateur (le filet était muet) : « 2e message si détecté »
+        // à l'import d'une compétition configurée en ISK Pro/Live. Ne pas écraser un
+        // flash déjà en attente (ex. refus d'import — cas sans compétition ouverte).
+        if (($_SESSION['AUT_Flash'] ?? '') === '') {
+            aut_flash_set('⚠️ Cette compétition utilisait la saisie <b>ISK '
+                . ($mode === 'ng-pro' ? 'Pro' : 'Live') . '</b>, non prise en charge sur ce '
+                . 'serveur partagé (elle en révoquerait la licence). Elle a été ramenée en '
+                . '<b>ISK Lite</b> ; adaptez la saisie si besoin depuis la page de la compétition.');
+        }
         return true;
     }
     return false;
@@ -1013,6 +1029,15 @@ function aut_guard_tournament_save($role) {
     if (!empty($_SESSION['AUTH_ROOT'])) return;
     if (strcasecmp(aut_script_rel(), '/Tournament/index.php') !== 0) return;
     if (($_REQUEST['Command'] ?? '') !== 'SAVE') return;
+
+    // Vue « depuis un autre compte » (lecture seule) : aucun enregistrement de
+    // compétition, quelles que soient les vérifications propres du cœur.
+    if (!empty($_SESSION['AUTH_RO'])) {
+        aut_log('SAVE_BLOCK', ($_SESSION['AUTH_User'] ?? '') . ' RO');
+        aut_flash_set('Vue en lecture seule — enregistrement impossible.');
+        CD_redirect($CFG->ROOT_DIR . 'Tournament/index.php' . (isset($_REQUEST['New']) ? '?New=' : ''));
+        die();
+    }
 
     // même normalisation du code que le cœur
     $newCode = preg_replace('/[^0-9a-z._-]+/sim', '_', $_REQUEST['d_ToCode'] ?? '');
@@ -1106,8 +1131,81 @@ function aut_session_clear() {
     foreach (array('AUTH_User', 'AUTH_Pwd', 'AUTH_ROOT', 'AUTH_ROLE', 'AUTH_SCOPE', 'AUTH_SSO', 'AUTH_VIEWS') as $k) {
         unset($_SESSION[$k]);
     }
+    unset($_SESSION['AUTH_IMPERSONATE'], $_SESSION['AUTH_RO']);   // fin de session = fin d'observation
     $_SESSION['AUTH_ENABLE'] = 1;
     $_SESSION['AUTH_COMP']   = array();
+}
+
+/* ------------------------------------------------------------------ */
+/* Vue « depuis un autre compte » (impersonation) — ADMIN, LECTURE     */
+/* SEULE. Ouverte UNIQUEMENT par la page admin (admin/impersonate.php, */
+/* gardée AclRoot + AUTH_ROOT). CANONIQUE EN BASE (AUT_Sessions.AsnImp) */
+/* car CreateTourSession vide la session à chaque ouverture de         */
+/* compétition (seuls AUTH_User/AUTH_Pwd survivent) : un simple drapeau */
+/* de session METTRAIT FIN à l'observation en laissant l'admin en       */
+/* lecture-ÉCRITURE sur la compétition d'un tiers. La session ne porte  */
+/* qu'un MIROIR (AUTH_IMPERSONATE), reconstruit à chaque requête par le  */
+/* bootstrap depuis la ligne de session — l'espace archer (qui ne lit   */
+/* que la session, sans dépendre d'AUTH) s'appuie dessus. La lecture    */
+/* seule organisateur est IMPOSÉE PAR LE CŒUR via AUTH_RO (plafond ACL, */
+/* dist/BlockFunction.php), jamais seulement masquée.                  */
+/* ------------------------------------------------------------------ */
+function aut_imp_get() {
+    $i = $_SESSION['AUTH_IMPERSONATE'] ?? null;
+    return is_array($i) ? $i : null;
+}
+
+/** Reconstruit le miroir de session depuis la ligne de session ($s->AsnImp). */
+function aut_imp_load($s) {
+    $raw = is_object($s) ? (string) ($s->AsnImp ?? '') : '';
+    $i = $raw !== '' ? json_decode($raw, true) : null;
+    if (is_array($i) && isset($i['type'])) $_SESSION['AUTH_IMPERSONATE'] = $i;
+    else unset($_SESSION['AUTH_IMPERSONATE'], $_SESSION['AUTH_RO']);
+}
+
+/** Ouvre une observation : persiste en base (survit à CreateTourSession) + miroir. */
+function aut_imp_store(array $imp) {
+    $h = aut_current_token_hash();
+    if ($h !== '') {
+        safe_w_sql("UPDATE AUT_Sessions SET AsnImp=" . StrSafe_DB(json_encode($imp))
+            . " WHERE AsnTokenHash='" . $h . "'");
+    }
+    $_SESSION['AUTH_IMPERSONATE'] = $imp;
+}
+
+/** Ferme l'observation : base + miroir + plafond ACL. */
+function aut_imp_forget() {
+    $h = aut_current_token_hash();
+    if ($h !== '') safe_w_sql("UPDATE AUT_Sessions SET AsnImp=NULL WHERE AsnTokenHash='" . $h . "'");
+    unset($_SESSION['AUTH_IMPERSONATE'], $_SESSION['AUTH_RO']);
+}
+
+/**
+ * Applique l'impersonation ORGANISATEUR sur la session courante, APRÈS
+ * aut_session_apply (qui a posé la vue admin). L'admin voit alors le compte
+ * cible en LECTURE SEULE : rôle/scope/AUTH_COMP de la cible, AUTH_ROOT retiré,
+ * AUTH_RO posé (plafond ACL). Gardes : n'agit que si l'admin l'est TOUJOURS et
+ * que la cible existe et n'est PAS admin ; sinon ferme l'observation.
+ */
+function aut_imp_apply_org($u) {
+    $i = aut_imp_get();
+    if (!$i || ($i['type'] ?? '') !== 'org') return;
+    if ($u->AuRole != AUT_ROLE_ADMIN) {              // l'observateur n'est plus admin → on coupe
+        aut_log('IMPERSONATE_REVOKE', $u->AuUsername);
+        aut_imp_forget();
+        return;
+    }
+    $t = aut_get_user((string) ($i['user'] ?? ''));
+    if (!$t || $t->AuRole == AUT_ROLE_ADMIN) {       // cible disparue ou devenue admin → on coupe
+        aut_imp_forget();
+        return;
+    }
+    $_SESSION['AUTH_ROLE']  = $t->AuRole;
+    $_SESSION['AUTH_SCOPE'] = $t->AuScope;
+    $_SESSION['AUTH_COMP']  = aut_compute_comp($t->AuRole, $t->AuScope);
+    unset($_SESSION['AUTH_ROOT']);                   // pas de root dans la vue observée
+    $_SESSION['AUTH_RO']    = 1;                      // plafond lecture seule (BlockFunction)
+    $_SESSION['AUTH_VIEWS'] = array();               // masque le sélecteur de vue pendant l'observation
 }
 
 /** Un code de compétition correspond-il aux droits de la session ? */
@@ -1256,12 +1354,13 @@ function aut_handle_org_login(&$err, &$stage) {
             } elseif (!count(aut_user_views($u))) {
                 aut_log('LOGIN_FAIL', $username);
                 $err = $ssoErr ?: 'Aucune de vos structures FFTA ne donne accès à ce serveur (rôle Gestionnaire requis).';
-            } elseif ($u->AuRole == AUT_ROLE_ADMIN && $u->AuTotpEnabled) {
+            } elseif ($u->AuTotpEnabled) {
+                // 2FA (obligatoire ADMIN, optionnelle pour les autres) : étape code.
                 $_SESSION['AUT_2FA_User'] = $u->AuUsername;
                 $_SESSION['AUT_2FA_Time'] = time();
                 $stage = 'totp';
             } else {
-                aut_finish_login($u, 'SSO_OK');   // admin sans TOTP → Setup2FA via bootstrap
+                aut_finish_login($u, 'SSO_OK');   // admin sans TOTP → Setup2FA forcé via bootstrap
             }
         } else {
             aut_log('LOGIN_FAIL', $username);
@@ -1406,6 +1505,7 @@ function aut_request_bootstrap() {
         $u = aut_get_user($_SESSION['AUTH_User']);
         $s = ($u && $u->AuActive) ? aut_session_validate($u) : null;
         if ($s) {
+            aut_imp_load($s);   // miroir d'observation (canonique en base, survit à CreateTourSession)
             $_SESSION['AUTH_SSO'] = ($u->AuPassword === '') ? 1 : 0;
             // vue courante = celle de la session (bascule à la volée via
             // switch-view.php) ; repli sur le rôle de base du compte
@@ -1421,6 +1521,7 @@ function aut_request_bootstrap() {
                 aut_adopt_current($u, $role, $scope);   // compétition tout juste créée (TourId posé par le cœur)
             }
             aut_session_apply($u, $role, $scope);
+            aut_imp_apply_org($u);               // vue « depuis un autre compte » (admin, lecture seule)
             aut_guard_tournament_save($role);    // barrière anti-écrasement (celle du cœur est contournable)
             // pages serveur (mise à jour / réparation) : administrateur uniquement
             if (empty($_SESSION['AUTH_ROOT']) && aut_is_admin_only_script()) {
@@ -1461,7 +1562,7 @@ function aut_request_bootstrap() {
             // compté par identité de compte, aucun cookie). Page réellement servie
             // (après les gardes qui redirigent). Auto-gardée et isolée : jamais fatale.
             require_once __DIR__ . '/stats-usage.php';
-            if (function_exists('aut_track')) aut_track('org', $u->AuId);
+            if (!aut_imp_get() && function_exists('aut_track')) aut_track('org', $u->AuId);   // pas de compteur pendant l'observation
             return;
         }
         // jeton expiré/révoqué, compte désactivé ou supprimé

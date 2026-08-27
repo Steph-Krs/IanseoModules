@@ -23,3 +23,12 @@ require_once dirname(__DIR__) . '/lib/archer.php';
 require_once dirname(__DIR__) . '/lib/ui.php';
 
 bk_schema();
+
+// Vue « depuis un autre compte » (admin serveur, LECTURE SEULE) : point de garde
+// unique pour tout l'espace licencié. Toute requête POST (donc toute écriture,
+// la règle du module étant « CSRF sur tout POST ») est refusée tant que l'admin
+// observe l'espace d'un tiers.
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
+    && function_exists('bk_impersonating') && bk_impersonating()) {
+    bk_impersonation_block();
+}

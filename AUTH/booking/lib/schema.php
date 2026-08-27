@@ -69,6 +69,13 @@ function bk_schema()
     bk_colonne('BK_Archers', 'BaCguVer', "VARCHAR(16) NOT NULL DEFAULT '' AFTER BaExaltoId");
     bk_colonne('BK_Archers', 'BaCguAt',  "DATETIME NULL AFTER BaCguVer");
 
+    // 2FA (TOTP) OPTIONNELLE, activable par le licencié depuis son espace (jamais
+    // imposée). Même régime que AUT_Users (copie autonome, voir lib/totp.php).
+    // RàZ possible par l'administrateur (perte de téléphone) via la page Comptes.
+    bk_colonne('BK_Archers', 'BaTotpSecret',   "VARCHAR(64) NOT NULL DEFAULT '' AFTER BaActive");
+    bk_colonne('BK_Archers', 'BaTotpEnabled',  "TINYINT NOT NULL DEFAULT 0 AFTER BaTotpSecret");
+    bk_colonne('BK_Archers', 'BaTotpLastSlot', "BIGINT NOT NULL DEFAULT 0 AFTER BaTotpEnabled");
+
     // Sessions à jetons : seul le HACHÉ est stocké (un dump de session PHP ne
     // donne aucun secret réutilisable). Même principe que AUT_Sessions.
     safe_w_sql("CREATE TABLE IF NOT EXISTS BK_Sessions (

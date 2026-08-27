@@ -11,13 +11,22 @@
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
 require_once dirname(__DIR__) . '/lib/mandate.php';
+require_once dirname(__DIR__) . '/lib/registration.php';   // bk_reg_existing (visuel partageable)
 
 $tourId = intval($_GET['t'] ?? 0);
 $type   = strtoupper((string) ($_GET['type'] ?? ''));
 if (!$tourId || !in_array($type, array('L', 'R', 'B'), true)) { http_response_code(404); exit; }
 
 $cfg = bk_comp_config($tourId);
-if (!bk_mandate_visible($cfg)) { http_response_code(404); exit; }
+// Autorisé si le mandat est publié, OU si l'archer connecté est INSCRIT à cette
+// compétition (visuel partageable « J'y serai ») — il ne voit alors que les logos
+// de SA compétition, jamais ceux d'une compétition où il ne figure pas.
+$ok = bk_mandate_visible($cfg);
+if (!$ok) {
+    $a = bk_current_archer();
+    if ($a && bk_reg_existing($tourId, $a->BaLicence)) $ok = true;
+}
+if (!$ok) { http_response_code(404); exit; }
 
 $row = safe_fetch(safe_r_sql("SELECT ToImg$type AS Img FROM Tournament WHERE ToId = $tourId"));
 $content = $row ? (string) $row->Img : '';

@@ -194,11 +194,38 @@ function bk_sessions_revoke($archerId, $exceptTokenHash = null)
  * être désactivé ou la session révoquée entre deux requêtes) et rafraîchit
  * BsLastSeen au plus une fois par minute.
  */
+/**
+ * Vue « depuis un autre compte » côté ARCHER (admin serveur, LECTURE SEULE).
+ * Lit le MIROIR de session posé par AUTH (convention de session — aucun appel
+ * ni require d'AUTH, conformément à l'indépendance des modules) : ce drapeau
+ * n'est écrit que par la page admin (admin/impersonate.php), et on exige que
+ * l'observateur (AUTH_User) en soit toujours l'auteur. Renvoie le drapeau ou null.
+ */
+function bk_impersonating()
+{
+    $i = $_SESSION['AUTH_IMPERSONATE'] ?? null;
+    if (!is_array($i) || ($i['type'] ?? '') !== 'archer') return null;
+    $by = (string) ($i['by'] ?? '');
+    if ($by === '' || $by !== (string) ($_SESSION['AUTH_User'] ?? '')) return null;
+    return $i;
+}
+
 function bk_current_archer()
 {
     static $cache = false;
     if ($cache !== false) return $cache;
     $cache = null;
+
+    // Observation admin : renvoie l'archer cible chargé par son id, sans passer
+    // par BK_Sessions. Les écritures sont bloquées en amont (public/boot.php).
+    $imp = bk_impersonating();
+    if ($imp) {
+        bk_schema();
+        $q = safe_r_sql("SELECT a.* FROM BK_Archers a WHERE a.BaId=" . intval($imp['archer']), false, true);
+        $r = $q ? safe_fetch($q) : null;
+        if ($r) { $r->BK_IMP = 1; $cache = $r; }
+        return $cache;
+    }
 
     $hash = bk_current_token_hash();
     if ($hash === '') return null;

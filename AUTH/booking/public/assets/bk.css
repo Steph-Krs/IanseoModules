@@ -63,6 +63,24 @@ body {
 #bk .bk-msg-err { background: #ffd6db; border: 1px solid #bb7575; color: #a80000; }
 #bk .bk-msg-ok  { background: #d2f4cd; border: 1px solid #75ae77; color: #04ac0b; }
 
+/* ---- Vue « depuis un autre compte » (admin, lecture seule) ---- */
+#bk .bk-imp { position: sticky; top: 0; z-index: 60; background: #5b2a86; color: #fff;
+    font-size: 13px; text-align: center; padding: 8px 14px; }
+#bk .bk-imp b { font-weight: 700; }
+#bk .bk-imp .bk-imp-x { color: #fff; margin-left: 12px; background: rgba(255, 255, 255, .2);
+    padding: 2px 10px; border-radius: 10px; text-decoration: none; font-weight: 700; }
+
+/* ---- Visuel partageable (share.php) — rendu canvas côté navigateur ---- */
+#bk .bk-share { max-width: 640px; margin: 0 auto; text-align: center; }
+#bk .bk-share-h { margin: 0 0 4px; }
+#bk .bk-share-formats { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 14px 0; }
+#bk .bk-fmt.on { background: #0254a8; color: #fff; border-color: #0254a8; }
+#bk .bk-share-canvas-wrap { display: flex; justify-content: center; }
+#bk #bk-share-c { max-width: 100%; height: auto; border-radius: 10px; background: #fff;
+    box-shadow: 0 6px 22px rgba(20, 60, 120, .18); }
+#bk .bk-share-act { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 16px 0 6px; }
+#bk .bk-confirm-share { margin: 10px 0 4px; }
+
 /* ---- Espace connecté ---- */
 
 #bk .bk-top {

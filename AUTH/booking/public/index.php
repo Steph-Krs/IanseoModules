@@ -35,7 +35,10 @@ bk_head('Mon espace');
       <dt>Club</dt><dd><?= bk_e($clubName ?: '—') ?>
         <?= $club ? '<span class="bk-code">' . bk_e($club) . '</span>' : '' ?></dd>
     </dl>
-    <p><a class="bk-btn" href="<?= bk_e(bk_public_url('licence.php')) ?>" target="_blank" rel="noopener">📄 Mon attestation de licence</a></p>
+    <p class="bk-actions">
+      <a class="bk-btn" href="<?= bk_e(bk_public_url('licence.php')) ?>" target="_blank" rel="noopener">📄 Mon attestation de licence</a>
+      <a class="bk-btn" href="<?= bk_e(bk_public_url('security.php')) ?>"><?= !empty($archer->BaTotpEnabled) ? '🔒 Sécurité (2FA active)' : '🔒 Sécurité' ?></a>
+    </p>
   </section>
 
   <section class="bk-block">

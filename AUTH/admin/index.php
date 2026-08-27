@@ -201,6 +201,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     safe_w_sql("UPDATE BK_Archers SET BaCguVer='', BaCguAt=NULL WHERE BaId=$id");
                     aut_log('ARCHER_CGU_RESET', $r->BaLicence);
                     $msgOk = "Acceptation des CGU de <b>$lic</b> réinitialisée (re-demandée à sa prochaine connexion).";
+                } elseif ($action == 'archer_reset2fa') {
+                    // Récupération perte de téléphone : retire la 2FA + déconnecte (l'archer
+                    // pourra se reconnecter sans code, puis la réactiver s'il le souhaite).
+                    safe_w_sql("UPDATE BK_Archers SET BaTotpSecret='', BaTotpEnabled=0, BaTotpLastSlot=0 WHERE BaId=$id");
+                    safe_w_sql("DELETE FROM BK_Sessions WHERE BsArcher=$id");
+                    aut_log('ARCHER_TOTP_RESET', $r->BaLicence);
+                    $msgOk = "2FA de l'archer <b>$lic</b> réinitialisée (sessions déconnectées).";
                 } elseif ($action == 'archer_delete') {
                     safe_w_sql("DELETE FROM BK_Sessions WHERE BsArcher=$id");
                     safe_w_sql("DELETE FROM BK_Archers WHERE BaId=$id");
@@ -364,6 +371,14 @@ if ($tmpPwd) echo '<div class="aut-banner pwd">Mot de passe temporaire (affiché
         <?php } ?>
         <button form="f<?php echo $u->AuId; ?>" type="submit" name="action" value="delete"
             onclick="return confirm('Supprimer définitivement <?php echo htmlspecialchars($u->AuUsername); ?> ?');">Supprimer</button>
+        <?php if ($u->AuRole != 'ADMIN') { ?>
+        <form method="post" action="<?php echo $CFG->ROOT_DIR; ?>Modules/Custom/AUTH/admin/impersonate.php" style="display:inline;">
+            <?php echo aut_csrf_field(); ?>
+            <input type="hidden" name="type" value="org">
+            <input type="hidden" name="user" value="<?php echo htmlspecialchars($u->AuUsername); ?>">
+            <button type="submit" title="Voir ses compétitions en lecture seule">👁 Voir</button>
+        </form>
+        <?php } ?>
     </td>
 </tr>
 <?php } ?>
@@ -447,6 +462,17 @@ if ($tmpPwd) echo '<div class="aut-banner pwd">Mot de passe temporaire (affiché
         <button form="a<?= $aid ?>" type="submit" name="action" value="archer_save">Enregistrer</button>
         <button form="a<?= $aid ?>" type="submit" name="action" value="archer_delete"
             onclick="return confirm('Supprimer le compte archer <?= $alic ?> ? (recréé à sa prochaine connexion)');">Supprimer</button>
+        <form method="post" action="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/admin/impersonate.php" style="display:inline;">
+            <?= aut_csrf_field() ?>
+            <input type="hidden" name="type" value="archer">
+            <input type="hidden" name="licence" value="<?= $alic ?>">
+            <button type="submit" title="Voir son espace licencié en lecture seule">👁 Voir</button>
+        </form>
+        <?php if (!empty($a->BaTotpEnabled)): ?>
+        <button form="a<?= $aid ?>" type="submit" name="action" value="archer_reset2fa"
+            title="Réinitialiser la 2FA (perte de téléphone)"
+            onclick="return confirm('Réinitialiser la 2FA de <?= $alic ?> ? (il pourra se reconnecter sans code)');">🔒 RàZ 2FA</button>
+        <?php endif; ?>
     </td>
 </tr>
 <?php endforeach; ?>

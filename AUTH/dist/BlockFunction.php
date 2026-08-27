@@ -22,7 +22,9 @@ function isAuthEnabled($ToCode = '') {
 function authActualACL($authEnabled, &$acl) {
     if (!$authEnabled) return;
     if (!empty($_SESSION['AUTH_User']) && !empty($_SESSION['AUTH_ENABLE'])) {
-        foreach ($acl as $k => $v) $acl[$k] = AclReadWrite;
+        // Vue « depuis un autre compte » (AUTH_RO) : plafond LECTURE SEULE.
+        $grant = empty($_SESSION['AUTH_RO']) ? AclReadWrite : AclReadOnly;
+        foreach ($acl as $k => $v) $acl[$k] = $grant;
     }
 }
 
@@ -35,12 +37,15 @@ function authCheckACL($authEnabled, $checkCompAcl, $feature, $subFeature, $level
     if (!$authEnabled) return null;
     if (empty($_SESSION['AUTH_User']) || empty($_SESSION['AUTH_ENABLE'])) return false;
     if (!empty($_SESSION['AUTH_ROOT'])) return AclReadWrite;
+    // Vue « depuis un autre compte » (AUTH_RO) : tout octroi est plafonné à la
+    // LECTURE SEULE → le cœur refuse lui-même toute écriture (défense unique).
+    $grant = empty($_SESSION['AUTH_RO']) ? AclReadWrite : AclReadOnly;
     // Opérations serveur (feature AclRoot SANS compétition = mises à jour DB,
     // réglages globaux) : réservées à l'administrateur, jamais accordées à un
     // simple organisateur, même si la page cœur ne le vérifie pas elle-même.
     if (empty($toCode) && in_array(AclRoot, (array)$feature, true)) return false;
-    if (empty($toCode)) return AclReadWrite;   // pages hors compétition (choix, langue…)
-    if (aut_code_allowed($toCode)) return AclReadWrite;
+    if (empty($toCode)) return $grant;   // pages hors compétition (choix, langue…)
+    if (aut_code_allowed($toCode)) return $grant;
     if (stripos(aut_script_rel(), '/Tournament/TournamentImport.php') === 0) {
         // import d'une sauvegarde dont le code appartient à une compétition
         // d'un autre club : expliquer le refus (affiché par menu.php)
@@ -71,6 +76,7 @@ function subFeatureAcl($acl, $feature, $subfeature = '') {
 function possibleFeature($feature, $level, $toCode = null) {
     if (empty($_SESSION['AUTH_User']) || empty($_SESSION['AUTH_ENABLE'])) return false;
     if (!empty($_SESSION['AUTH_ROOT'])) return true;
+    if (!empty($_SESSION['AUTH_RO'])) return false;   // observation lecture seule : ni création ni import
     $role = $_SESSION['AUTH_ROLE'] ?? '';
     if (!in_array($role, array('CLUB', 'CD', 'CR', 'FED'))) return false;
     if (is_null($toCode)) return true;

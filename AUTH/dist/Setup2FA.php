@@ -27,15 +27,35 @@ if (!$u) {
 }
 
 $isSso = ($u->AuPassword === '');   // compte provisionné via l'espace dirigeant
+$isAdmin = ($u->AuRole == AUT_ROLE_ADMIN);
 $err = '';
 $done = false;
-$mandatory = ($u->AuRole == AUT_ROLE_ADMIN && !$u->AuTotpEnabled);
+$off  = false;
+$mandatory = ($isAdmin && !$u->AuTotpEnabled);   // ADMIN sans 2FA : obligatoire
 
-/* La 2FA de notre serveur ne concerne que les administrateurs : les autres
-   comptes sont sécurisés par l'espace dirigeant FFTA (ou leur mot de passe). */
-$allowed = ($u->AuRole == AUT_ROLE_ADMIN);
+/* La 2FA est activable par TOUS les comptes (option de sécurité) ; elle reste
+   OBLIGATOIRE et non désactivable pour les administrateurs. */
+$allowed = true;
 
-if ($allowed && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['confirm'])) {
+/* Désactivation (comptes NON-admin uniquement) : confirmée par un code valide. */
+if (!$isAdmin && $u->AuTotpEnabled && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['disable'])) {
+    $usedSlot = 0;
+    if (aut_too_many_failures($u->AuUsername)) {
+        aut_log('LOGIN_BLOCK', $u->AuUsername);
+        $err = 'Trop de tentatives. Réessayez dans 15 minutes.';
+    } elseif (!aut_totp_verify($u->AuTotpSecret, $_POST['code'] ?? '', intval($u->AuTotpLastSlot), $usedSlot)) {
+        aut_log('TOTP_FAIL', $u->AuUsername);
+        $err = 'Code incorrect — la 2FA reste active.';
+    } else {
+        safe_w_sql("UPDATE AUT_Users SET AuTotpSecret='', AuTotpEnabled=0, AuTotpLastSlot=0 WHERE AuId={$u->AuId}");
+        aut_sessions_revoke($u->AuId, aut_current_token_hash());   // révoque les autres sessions
+        aut_log('TOTP_DISABLE', $u->AuUsername);
+        $u->AuTotpEnabled = 0;
+        $off = true;
+    }
+}
+
+if ($allowed && !$off && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['confirm'])) {
     // secret provisoire en session tant que non confirmé par un code valide
     $secret = $_SESSION['AUT_2FA_NewSecret'] ?? '';
     $usedSlot = 0;
@@ -73,7 +93,7 @@ if ($allowed && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['confirm'])
 }
 
 // (re)génère un secret provisoire pour l'affichage
-if ($allowed && !$done && (empty($_SESSION['AUT_2FA_NewSecret']) || isset($_POST['regen']))) {
+if ($allowed && !$done && !$off && (empty($_SESSION['AUT_2FA_NewSecret']) || isset($_POST['regen']))) {
     $_SESSION['AUT_2FA_NewSecret'] = aut_totp_new_secret();
 }
 $secret = $_SESSION['AUT_2FA_NewSecret'] ?? '';
@@ -120,22 +140,29 @@ details { margin-top:8px; font-size:11px; }
 <body>
 <div class="card">
     <h1>Double authentification (2FA)</h1>
-    <div class="sub">Compte : <b><?php echo htmlspecialchars($u->AuUsername); ?></b>
-        <?php if ($u->AuTotpEnabled) echo ' — 2FA déjà active (reconfiguration)'; ?></div>
+    <div class="sub">Compte : <b><?php echo htmlspecialchars($u->AuUsername); ?></b></div>
 
-    <?php if (!$allowed) { ?>
-    <div class="warn">La double authentification de ce serveur concerne les comptes
-        <b>administrateur</b>. Votre compte est sécurisé par vos identifiants de l'Espace Dirigeant FFTA :
-        rien à configurer ici.</div>
-    <div class="links"><a href="<?php echo $CFG->ROOT_DIR; ?>">Accéder à ianseo</a>
-        — <a href="<?php echo $CFG->ROOT_DIR; ?>Modules/Authentication/LogOut.php">Se déconnecter</a></div>
-    <?php } else { ?>
-        <?php if ($mandatory) echo '<div class="warn">La 2FA est <b>obligatoire</b> pour les comptes administrateur. Configurez-la pour continuer.</div>'; ?>
-        <?php if ($err)  echo '<div class="err">' . $err . '</div>'; ?>
-        <?php if ($done) { ?>
-        <div class="ok">2FA activée. Un code sera demandé à chaque connexion.
-            <a href="<?php echo $CFG->ROOT_DIR; ?>">Accéder à ianseo</a></div>
-        <?php } else { ?>
+    <?php if (!$isAdmin) echo '<div class="sub">Fonction <b>facultative</b> : une fois activée, un code de votre application sera demandé à chaque connexion, en plus de votre '
+        . ($isSso ? 'connexion Espace Dirigeant' : 'mot de passe') . '.</div>'; ?>
+    <?php if ($mandatory) echo '<div class="warn">La 2FA est <b>obligatoire</b> pour les comptes administrateur. Configurez-la pour continuer.</div>'; ?>
+    <?php if ($err)  echo '<div class="err">' . $err . '</div>'; ?>
+    <?php if ($done) echo '<div class="ok">2FA activée. Un code sera demandé à chaque connexion. <a href="' . $CFG->ROOT_DIR . '">Accéder à ianseo</a></div>'; ?>
+    <?php if ($off)  echo '<div class="ok">2FA désactivée. <a href="' . $CFG->ROOT_DIR . '">Accéder à ianseo</a></div>'; ?>
+
+    <?php if (!$done && !$off) {
+        $reconf = !empty($u->AuTotpEnabled); ?>
+        <?php if ($reconf) { ?>
+        <div class="ok">🔒 Double authentification <b>active</b> sur ce compte.</div>
+        <?php if (!$isAdmin) { ?>
+        <form method="post" action="">
+            <label for="dcode">Pour la désactiver, saisissez un code de votre application</label>
+            <input type="text" id="dcode" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code">
+            <button type="submit" name="disable" value="1" style="background:#a33;">Désactiver la 2FA</button>
+        </form>
+        <?php } ?>
+        <details style="margin-top:10px"><summary>Changer d'appareil (reconfigurer)</summary>
+        <?php } ?>
+
         <ol>
             <li>Installez une application d'authentification (Google&nbsp;Authenticator, Microsoft&nbsp;Authenticator, FreeOTP, Aegis…).</li>
             <li><b>Scannez ce QR code</b> avec l'application :</li>
@@ -160,14 +187,14 @@ details { margin-top:8px; font-size:11px; }
             <label for="password">Confirmez avec votre mot de passe</label>
             <input type="password" id="password" name="password" autocomplete="current-password">
             <?php } ?>
-            <button type="submit" name="confirm" value="1">Activer la 2FA</button>
+            <button type="submit" name="confirm" value="1"><?php echo $reconf ? 'Reconfigurer la 2FA' : 'Activer la 2FA'; ?></button>
         </form>
         <form method="post" action="">
             <button type="submit" name="regen" value="1" style="background:#889;">Générer une nouvelle clé</button>
         </form>
-        <?php } ?>
-        <div class="links"><a href="<?php echo $CFG->ROOT_DIR; ?>Modules/Authentication/LogOut.php">Se déconnecter</a></div>
+        <?php if ($reconf) echo '</details>'; ?>
     <?php } ?>
+    <div class="links"><a href="<?php echo $CFG->ROOT_DIR; ?>Modules/Authentication/LogOut.php">Se déconnecter</a></div>
 </div>
 </body>
 </html>

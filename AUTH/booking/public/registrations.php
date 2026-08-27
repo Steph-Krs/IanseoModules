@@ -77,6 +77,9 @@ bk_head('Mes inscriptions');
 <?php elseif ($ok): ?>
   <?= bk_msg('ok', $ok) ?>
 <?php endif; ?>
+<?php if (!empty($_GET['ok']) && $okTour > 0): ?>
+  <p class="bk-confirm-share"><a class="bk-btn bk-btn-primary" href="<?= bk_e(bk_public_url('share.php?t=' . $okTour)) ?>">📣 Partager ma participation sur les réseaux</a></p>
+<?php endif; ?>
 <?= $err ? bk_msg('err', $err) : '' ?>
 
 <?php if (!$regs && !$authored): ?>
@@ -230,6 +233,7 @@ bk_head('Mes inscriptions');
         <?php if (bk_docs_list($c, $t)): ?>
           <p><a class="bk-btn" href="<?= bk_e(bk_public_url('documents.php?t=' . $t)) ?>">📄 Documents</a></p>
         <?php endif; ?>
+        <p><a class="bk-btn" href="<?= bk_e(bk_public_url('share.php?t=' . $t)) ?>">📣 Partager ma participation</a></p>
         <?php if (!empty($c->BcIsOpen)): ?>
           <p><a class="bk-btn" href="<?= bk_e(bk_public_url('register-comp.php?t=' . $t)) ?>">Ajouter une inscription</a></p>
         <?php else: ?>

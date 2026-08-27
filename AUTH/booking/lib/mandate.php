@@ -36,6 +36,23 @@ function bk_mandate_templates()
     );
 }
 
+/**
+ * Modèles du VISUEL PARTAGEABLE (share.php), distincts de ceux du mandat mais
+ * pilotés par la MÊME couleur (identité commune). clé => libellé. Le rendu réel
+ * (canvas) vit dans share.php — pour ajouter/modifier un modèle : ajouter une
+ * clé ici ET son cas de dessin dans le switch de share.php.
+ */
+function bk_share_templates()
+{
+    return array(
+        'bandeau' => 'Bandeau — bande colorée en haut, fond clair',
+        'degrade' => 'Dégradé — fond plein dégradé, texte clair',
+        'encadre' => 'Encadré — fond clair, large bordure colorée',
+        'moitie'  => 'Deux tons — haut coloré, bas clair',
+        'epure'   => 'Épuré — fond blanc, filets fins',
+    );
+}
+
 /** Blocs de texte libres proposés (clé => libellé). Un bloc vide n'est pas affiché. */
 function bk_mandate_sections()
 {
@@ -75,11 +92,12 @@ function bk_mandate_get($cfg)
     $show = array();
     foreach (bk_mandate_auto_sections() as $k => $_l) $show[$k] = 1;
     $d = array(
-        'template' => 'sobre',
-        'color'    => '#0254a8',                       // bleu FFTA par défaut
-        'logos'    => array('L' => 1, 'R' => 1, 'B' => 1),
-        'show'     => $show,
-        'blocks'   => array(),                         // clé de section => texte libre
+        'template'       => 'sobre',
+        'share_template' => 'bandeau',                  // modèle du visuel partageable (share.php)
+        'color'          => '#0254a8',                  // bleu FFTA par défaut (commun mandat + visuel)
+        'logos'          => array('L' => 1, 'R' => 1, 'B' => 1),
+        'show'           => $show,
+        'blocks'         => array(),                    // clé de section => texte libre
     );
     $raw = is_object($cfg) ? ($cfg->BcMandate ?? null) : (is_array($cfg) ? ($cfg['BcMandate'] ?? null) : null);
     if ($raw) {
@@ -87,6 +105,9 @@ function bk_mandate_get($cfg)
         if (is_array($j)) {
             if (!empty($j['template']) && array_key_exists($j['template'], bk_mandate_templates())) {
                 $d['template'] = $j['template'];
+            }
+            if (!empty($j['share_template']) && array_key_exists($j['share_template'], bk_share_templates())) {
+                $d['share_template'] = $j['share_template'];
             }
             if (!empty($j['color']) && preg_match('/^#[0-9a-fA-F]{6}$/', (string) $j['color'])) {
                 $d['color'] = strtolower($j['color']);
@@ -114,6 +135,9 @@ function bk_mandate_from_post($post)
     $tpl = (string) ($post['template'] ?? 'sobre');
     if (!array_key_exists($tpl, bk_mandate_templates())) $tpl = 'sobre';
 
+    $stpl = (string) ($post['share_template'] ?? 'bandeau');
+    if (!array_key_exists($stpl, bk_share_templates())) $stpl = 'bandeau';
+
     $color = strtolower((string) ($post['color'] ?? '#0254a8'));
     if (!preg_match('/^#[0-9a-fA-F]{6}$/', $color)) $color = '#0254a8';
 
@@ -128,7 +152,8 @@ function bk_mandate_from_post($post)
         $t = trim((string) ($post['block_' . $sk] ?? ''));
         if ($t !== '') $blocks[$sk] = mb_substr($t, 0, 4000);
     }
-    return array('template' => $tpl, 'color' => $color, 'logos' => $logos, 'show' => $show, 'blocks' => $blocks);
+    return array('template' => $tpl, 'share_template' => $stpl, 'color' => $color,
+                 'logos' => $logos, 'show' => $show, 'blocks' => $blocks);
 }
 
 /** Enregistre la config du mandat (JSON dans BcMandate). Préserve le reste de la ligne. */

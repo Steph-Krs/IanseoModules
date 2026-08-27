@@ -29,6 +29,7 @@ if ($hasCompetitor) {
     require_once($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/booking/lib/schema.php');
     require_once($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/booking/lib/archer.php');
     require_once($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/booking/lib/ffta.php');
+    require_once($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/booking/lib/totp.php');   // 2FA licencié (optionnelle)
     bk_schema();
     $compEnabled = bk_ffta_enabled();
     if (bk_current_archer()) { CD_redirect($root . 'Modules/Custom/AUTH/booking/public/index.php'); die(); }
@@ -36,6 +37,7 @@ if ($hasCompetitor) {
 
 $errO = $errC = '';
 $stage = 'password';        // organisateur : 'password' ou 'totp'
+$stageC = 'password';       // compétiteur : 'password' ou 'totp' (2FA locale du licencié)
 $needOtpC = false;          // compétiteur : code MFA demandé
 // Par défaut, l'onglet COMPÉTITEUR (la grande majorité des visiteurs sont des
 // licenciés). L'organisateur reste accessible via ?p=org ou l'onglet.
@@ -64,7 +66,53 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'org' && $hasOrganiser) {
 }
 
 /* ---- POST compétiteur ---- */
-if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor) {
+if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor
+        && ($_POST['stage'] ?? '') === 'totp') {
+    /* Étape 2 : code 2FA locale du licencié. Les identifiants FFTA ont déjà été
+       validés à l'étape 1 ; on n'a plus qu'à vérifier le code TOTP du serveur, en
+       reprenant les cookies FFTA mis en attente (le code MFA FFTA étant à usage
+       unique, on ne relance pas la connexion fédérale). */
+    $active = 'comp';
+    $stageC = 'totp';
+    $pend = $_SESSION['BK_2FA'] ?? null;
+    if (!aut_csrf_check()) {
+        $errC = 'Session expirée — réessayez.';
+    } elseif (!is_array($pend) || (time() - intval($pend['time'] ?? 0)) > 300) {
+        unset($_SESSION['BK_2FA']);
+        $stageC = 'password';
+        $errC = 'Délai dépassé, reconnectez-vous.';
+    } elseif (bk_too_many(array('LOGIN_FAIL', 'TOTP_FAIL'), BK_MAX_LOGIN_FAIL, (string) $pend['licence'])) {
+        bk_log('LOGIN_BLOCK', (string) $pend['licence']);
+        $errC = 'Trop de tentatives. Réessayez dans quelques minutes.';
+    } else {
+        $a = bk_get_archer(intval($pend['archer']));
+        $usedSlot = 0;
+        $code = (string) ($_POST['code'] ?? '');
+        if ($a && $a->BaActive && $a->BaTotpEnabled
+                && bk_totp_verify($a->BaTotpSecret, $code, intval($a->BaTotpLastSlot), $usedSlot)) {
+            safe_w_sql("UPDATE BK_Archers SET BaTotpLastSlot=$usedSlot WHERE BaId={$a->BaId}");
+            unset($_SESSION['BK_2FA']);
+            session_regenerate_id(true);
+            bk_session_open($a);
+            bk_ffta_espace_store((string) $pend['cookies'], (string) $pend['exalto'], $a->BaId);
+            bk_log('LOGIN_OK', $a->BaLicence);
+            CD_redirect($root . 'Modules/Custom/AUTH/booking/public/index.php');
+            die();
+        }
+        // Échec : horloge serveur déréglée (diagnostic, jamais une acceptation) ou code faux.
+        $skew = ($a && $a->BaTotpEnabled) ? bk_totp_skew($a->BaTotpSecret, $code) : null;
+        if ($skew !== null) {
+            bk_log('TOTP_SKEW', (string) $pend['licence']);
+            $mins = round(abs($skew) / 60);
+            $errC = "Code refusé : l'horloge de ce serveur est décalée d'environ {$mins} min "
+                  . "(le code de votre application est basé sur l'heure réelle). Signalez-le à "
+                  . "l'organisateur — votre code est bon.";
+        } else {
+            bk_log('TOTP_FAIL', (string) $pend['licence']);
+            $errC = 'Code incorrect.';
+        }
+    }
+} elseif ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor) {
     $active = 'comp';
     $ident = trim((string) ($_POST['identifiant'] ?? ''));
     $pwd   = (string) ($_POST['password'] ?? '');
@@ -94,7 +142,18 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor) {
             } else {
                 $id = bk_provision_archer($lue);
                 $a = $id ? bk_get_archer($id) : null;
-                if ($a && $a->BaActive) {
+                if ($a && $a->BaActive && !empty($a->BaTotpEnabled)) {
+                    // 2FA locale activée : on met en attente les cookies FFTA (déjà captés)
+                    // et on demande le code avant d'ouvrir la session. cf. branche 'totp'.
+                    $_SESSION['BK_2FA'] = array(
+                        'archer'  => intval($a->BaId),
+                        'licence' => $licence,
+                        'cookies' => (string) ($res['cookies'] ?? ''),
+                        'exalto'  => (string) ($res['exaltoId'] ?? ''),
+                        'time'    => time(),
+                    );
+                    $stageC = 'totp';
+                } elseif ($a && $a->BaActive) {
                     session_regenerate_id(true);
                     bk_session_open($a);
                     // Conserve le cookie de session monespace + l'id Exalto (attestation de licence).
@@ -102,9 +161,10 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor) {
                     bk_log('LOGIN_OK', $licence);
                     CD_redirect($root . 'Modules/Custom/AUTH/booking/public/index.php');
                     die();
+                } else {
+                    $errC = $a ? "Votre compte a été désactivé sur ce serveur." : "La création du compte a échoué.";
+                    if ($a) bk_log('LOGIN_DISABLED', $licence);
                 }
-                $errC = $a ? "Votre compte a été désactivé sur ce serveur." : "La création du compte a échoué.";
-                if ($a) bk_log('LOGIN_DISABLED', $licence);
             }
         } elseif (($res['err'] ?? '') === 'MFA_NEEDED') {
             $needOtpC = true;                     // pas un échec d'identifiants : non compté
@@ -220,6 +280,20 @@ button[disabled] { opacity:.9; cursor:progress; }
         <input type="hidden" name="stage" value="totp">
         <label for="t-code">Code de votre application d'authentification</label>
         <input type="text" id="t-code" name="code" inputmode="numeric" pattern="[0-9]{6}"
+               maxlength="6" autocomplete="one-time-code" autofocus>
+        <button type="submit">Valider</button>
+    </form>
+    <div class="foot"><a href="login.php">Annuler</a></div>
+
+    <?php } elseif ($stageC === 'totp') { /* étape 2FA locale du licencié */ ?>
+    <div class="sub">Double authentification — espace licencié.</div>
+    <?php if ($errC) echo '<div class="err">' . $e($errC) . '</div>'; ?>
+    <form method="post" action="login.php">
+        <?= $csrf ?>
+        <input type="hidden" name="role" value="comp">
+        <input type="hidden" name="stage" value="totp">
+        <label for="c-code">Code de votre application d'authentification</label>
+        <input type="text" id="c-code" name="code" inputmode="numeric" pattern="[0-9]{6}"
                maxlength="6" autocomplete="one-time-code" autofocus>
         <button type="submit">Valider</button>
     </form>

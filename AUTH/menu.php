@@ -43,6 +43,21 @@ $GLOBALS['_aut_bar_done'] = true;
    ou page cœur). Filet serveur ; l'UI masque aussi le choix (ci-dessous + SYNCHRO_FFTA). */
 if ($_aut_on) aut_isk_enforce();
 
+/* ---- Vue « depuis un autre compte » (impersonation) : bandeau permanent bien
+       visible tant que l'admin observe un compte, avec sortie en un clic. ---- */
+if ($_aut_on && ($_aut_imp = aut_imp_get())) {
+    $_aut_impx = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/impersonate.php?exit=1&aut_csrf='
+        . rawurlencode(aut_csrf_token());
+    echo '<style>#aut-imp{position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:99998;'
+        . 'background:#5b2a86;color:#fff;font:12px Verdana,Arial,sans-serif;padding:5px 14px;'
+        . 'border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.3);opacity:.96;}'
+        . '#aut-imp a{color:#fff;font-weight:bold;margin-left:12px;background:rgba(255,255,255,.2);'
+        . 'padding:1px 10px;border-radius:10px;text-decoration:none;}</style>'
+        . '<div id="aut-imp">👁 Vue administrateur — <b>' . htmlspecialchars((string) ($_aut_imp['label'] ?? ''))
+        . '</b> — LECTURE SEULE<a href="' . htmlspecialchars($_aut_impx) . '">Quitter</a></div>';
+    unset($_aut_imp, $_aut_impx);
+}
+
 if ($_aut_logged) {
     $_aut_r = $CFG->ROOT_DIR;
     $_aut_views = $_SESSION['AUTH_VIEWS'] ?? array();
@@ -87,7 +102,7 @@ if ($_aut_logged) {
     <a href="<?php echo $_aut_r; ?>Modules/Custom/AUTH/">Partage</a>
     <a href="<?php echo $_aut_r; ?>Modules/Custom/AUTH/tickets.php" title="Signaler un bug / proposer une évolution">Signaler</a>
     <?php if ($_aut_root) { ?><a href="<?php echo $_aut_r; ?>Modules/Custom/AUTH/admin/">Comptes</a><?php } ?>
-    <?php if ($_aut_root) { ?><a href="<?php echo $_aut_r; ?>Modules/Authentication/Setup2FA.php">2FA</a><?php } ?>
+    <?php if (!aut_imp_get()) { ?><a href="<?php echo $_aut_r; ?>Modules/Authentication/Setup2FA.php" title="Double authentification (facultative, sauf administrateur)">2FA</a><?php } ?>
     <?php if (empty($_SESSION['AUTH_SSO'])) { ?><a href="<?php echo $_aut_r; ?>Modules/Authentication/ChangePassword.php">Mot de passe</a><?php } ?>
     <a href="<?php echo $_aut_r; ?>Modules/Authentication/LogOut.php">Déconnexion</a>
 </div>
@@ -196,6 +211,30 @@ document.addEventListener('DOMContentLoaded', function () {
         sel.value = lite ? 'ng-lite' : '';
         sel.dispatchEvent(new Event('change', { bubbles: true }));
     }
+});
+</script>
+    <?php
+}
+
+/* ---- Page d'import d'une compétition (cœur ianseo, non modifiable) : avertir que le
+       fonctionnement n'est pas garanti pour une compétition configurée hors de ce serveur.
+       Le cas ISK Pro/Live est signalé APRÈS import (flash de aut_isk_enforce, « si détecté »). ---- */
+if ($_aut_on && strcasecmp(aut_script_rel(), '/Tournament/TournamentImport.php') === 0) {
+    ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.querySelector('form[enctype="multipart/form-data"]');
+    if (!form) return;
+    var box = document.createElement('div');
+    box.style.cssText = 'max-width:640px; margin:14px auto; text-align:left; background:#fff8e1;'
+        + ' border:1px solid #e0a800; border-radius:6px; padding:12px 16px; color:#5b4300;'
+        + ' font:13px Verdana,Arial,sans-serif; line-height:1.5;';
+    box.innerHTML = "<b>⚠️ Import d'une compétition — aucune garantie de "
+        + "fonctionnement.</b><br>Une compétition préparée sur un autre serveur ou "
+        + "une autre version de ianseo (paramètres de terrain, blasons, modules ou extensions "
+        + "absents ici) peut ne pas se comporter comme prévu sur ce serveur partagé. "
+        + "Vérifiez sa configuration après l'import.";
+    form.parentNode.insertBefore(box, form);
 });
 </script>
     <?php

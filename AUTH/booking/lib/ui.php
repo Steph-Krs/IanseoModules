@@ -60,6 +60,11 @@ function bk_head($title, $layout = 'page')
 </head>
 <body>
 <div id="bk" class="bk-<?= bk_e($layout) ?>">
+<?php if (function_exists('bk_impersonating') && ($bkImp = bk_impersonating())): ?>
+  <div class="bk-imp">👁 Vue administrateur — <b><?= bk_e((string) ($bkImp['label'] ?? '')) ?></b> — LECTURE SEULE
+    <a class="bk-imp-x" href="<?= bk_e($GLOBALS['CFG']->ROOT_DIR . 'Modules/Custom/AUTH/admin/impersonate.php?exit=1&aut_csrf=' . rawurlencode((string) ($_SESSION['AUT_CSRF'] ?? ''))) ?>">Quitter</a>
+  </div>
+<?php endif; ?>
 <?php if ($layout === 'page'): ?>
   <header class="bk-top">
     <a class="bk-brand" href="<?= bk_e(bk_public_url()) ?>">Inscriptions en ligne</a>
@@ -168,6 +173,26 @@ function bk_redirect($page)
     exit;
 }
 
+/**
+ * Vue « depuis un autre compte » (admin, lecture seule) : refuse toute écriture.
+ * Appelée par public/boot.php sur toute requête POST pendant une observation.
+ * Rend un message autonome et termine — aucune donnée n'est modifiée.
+ */
+function bk_impersonation_block()
+{
+    header('HTTP/1.1 403 Forbidden');
+    $imp  = function_exists('bk_impersonating') ? bk_impersonating() : null;
+    $back = htmlspecialchars((string) ($_SERVER['HTTP_REFERER'] ?? bk_public_url()), ENT_QUOTES, 'UTF-8');
+    bk_head('Lecture seule', 'card');
+    echo '<div class="bk-msg bk-msg-err" style="text-align:center">'
+       . '👁 <b>Vue administrateur — lecture seule.</b><br>'
+       . 'Vous consultez l\'espace de <b>' . bk_e((string) ($imp['label'] ?? 'ce licencié'))
+       . '</b> : aucune modification n\'est possible depuis cette vue.'
+       . '<br><br><a class="bk-btn" href="' . $back . '">← Retour</a></div>';
+    bk_foot();
+    exit;
+}
+
 /** Exige un licencié connecté ; redirige vers la connexion sinon. Puis garde CGU. */
 function bk_require_archer()
 {
@@ -175,7 +200,10 @@ function bk_require_archer()
     if (!$a) bk_redirect('login.php');
     // Garde CGU : acceptation obligatoire (horodatée, versionnée), sauf sur la page
     // d'acceptation elle-même (anti-boucle). legal-lib.php vit dans le module AUTH parent.
-    if (basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) !== 'legal-accept.php') {
+    // Ignorée en observation admin : l'admin ne peut rien accepter au nom du licencié
+    // (POST bloqué) — sans quoi il serait coincé sur legal-accept.php.
+    if (empty($a->BK_IMP)
+        && basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) !== 'legal-accept.php') {
         require_once dirname(__DIR__, 2) . '/legal-lib.php';
         // Seulement si l'exploitant a configuré ses infos légales (voir garde organisateur).
         if (aut_legal_configured() && !aut_legal_archer_ok($a)) bk_redirect('legal-accept.php');
@@ -183,6 +211,6 @@ function bk_require_archer()
     // Mesure d'audience (agrégée) — l'archer est compté par identité, sans cookie.
     // stats-usage.php vit dans le module AUTH parent (fusion) ; auto-gardée et isolée.
     require_once dirname(__DIR__, 2) . '/stats-usage.php';
-    if (function_exists('aut_track')) aut_track('archer', $a->BaId);
+    if (empty($a->BK_IMP) && function_exists('aut_track')) aut_track('archer', $a->BaId);   // pas de compteur pendant l'observation
     return $a;
 }

@@ -100,6 +100,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     display:inline-block; }
 #bkadm .bk-btn-primary { background:#0254a8; border-color:#0254a8; color:#fff; font-weight:600; }
 #bkadm .bk-cols { display:flex; flex-wrap:wrap; gap:6px 24px; }
+#bkadm .bk-two { display:flex; flex-wrap:wrap; gap:2px 28px; }
+#bkadm .bk-two > div { flex:1 1 240px; min-width:0; }
 #bkadm .bk-color-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 #bkadm input[type=color] { width:48px; height:34px; padding:0; border:1px solid #cfd3d6; border-radius:6px; cursor:pointer; }
 #bkadm .bk-swatch { width:26px; height:26px; border-radius:6px; border:1px solid rgba(0,0,0,.15); cursor:pointer; }
@@ -149,15 +151,29 @@ une couleur, cochez les sections à afficher, complétez les blocs de texte util
 <?= bk_csrf_field() ?>
 
 <div class="bk-sec">
-  <h2>Modèle et couleur</h2>
-  <label for="template">Modèle</label>
-  <select id="template" name="template">
-    <?php foreach (bk_mandate_templates() as $k => $lab): ?>
-      <option value="<?= bk_e($k) ?>" <?= $m['template'] === $k ? 'selected' : '' ?>><?= bk_e($lab) ?></option>
-    <?php endforeach; ?>
-  </select>
+  <h2>Modèles et couleur</h2>
+  <div class="bk-two">
+    <div>
+      <label for="template">Modèle du mandat</label>
+      <select id="template" name="template">
+        <?php foreach (bk_mandate_templates() as $k => $lab): ?>
+          <option value="<?= bk_e($k) ?>" <?= $m['template'] === $k ? 'selected' : '' ?>><?= bk_e($lab) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <p class="bk-hint">Mise en page du document imprimable.</p>
+    </div>
+    <div>
+      <label for="share_template">Modèle du visuel de partage</label>
+      <select id="share_template" name="share_template">
+        <?php foreach (bk_share_templates() as $k => $lab): ?>
+          <option value="<?= bk_e($k) ?>" <?= $m['share_template'] === $k ? 'selected' : '' ?>><?= bk_e($lab) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <p class="bk-hint">Image « J'y serai » que les inscrits partagent sur les réseaux.</p>
+    </div>
+  </div>
 
-  <label for="color">Couleur principale</label>
+  <label for="color">Couleur principale (commune au mandat et au visuel)</label>
   <div class="bk-color-row">
     <input type="color" id="color" name="color" value="<?= bk_e($m['color']) ?>">
     <input type="text" id="colorhex" value="<?= bk_e($m['color']) ?>" maxlength="7"
