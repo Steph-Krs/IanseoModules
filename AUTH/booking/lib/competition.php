@@ -83,6 +83,7 @@ function bk_comp_defaults($tourId)
         'BcFee' => '0.00', 'BcPricing' => null, 'BcShopUntil' => null, 'BcExcludeStats' => 0,
         'BcPayInfo' => null, 'BcManualValidation' => 0, 'BcMandate' => null, 'BcShowMandate' => null,
         'BcIanseoUrl' => null, 'BcShowProgram' => 0, 'BcShowParticipants' => 0, 'BcShowResults' => 0,
+        'BcShowDossard' => 0,
         'BcPublishLevel' => 1, 'BcAdvancedBackup' => null,
         'BcIsOpen' => 0, 'BcAllOpen' => 1,
     );
@@ -103,7 +104,7 @@ function bk_comp_advanced_cols()
         'BcMaxPerClubPerTarget', 'BcMinClubsPerSession', 'BcShowAssignment', 'BcShowGauges', 'BcAllowScoresheet',
         'BcWishLetter', 'BcWishWith', 'BcWishFree', 'BcPricing', 'BcManualValidation',
         'BcShowMandate', 'BcMandate', 'BcIanseoUrl', 'BcShowProgram', 'BcShowParticipants', 'BcShowResults',
-        'BcPayInfo', 'BcShopUntil');
+        'BcShowDossard', 'BcPayInfo', 'BcShopUntil');
 }
 
 /** Configuration d'une compétition (défauts si jamais enregistrée). */
@@ -226,7 +227,8 @@ function bk_comp_copy_from($destTour, $srcTour)
         d.BcPricing = s.BcPricing, d.BcShopUntil = " . $remap('BcShopUntil') . ", d.BcExcludeStats = s.BcExcludeStats,
         d.BcPayInfo = s.BcPayInfo, d.BcManualValidation = s.BcManualValidation, d.BcMandate = s.BcMandate,
         d.BcShowMandate = s.BcShowMandate, d.BcShowProgram = s.BcShowProgram,
-        d.BcShowParticipants = s.BcShowParticipants, d.BcShowResults = s.BcShowResults
+        d.BcShowParticipants = s.BcShowParticipants, d.BcShowResults = s.BcShowResults,
+        d.BcShowDossard = s.BcShowDossard
         WHERE d.BcTournament = $destTour");
 
     bk_comp_copy_shop($destTour, $srcTour);
@@ -366,7 +368,8 @@ function bk_comp_save($tourId, $in)
     if (array_key_exists('docs_present', $in)) {
         $set .= ", BcShowProgram = "      . (empty($in['show_program']) ? 0 : 1)
               . ", BcShowParticipants = " . (empty($in['show_participants']) ? 0 : 1)
-              . ", BcShowResults = "      . (empty($in['show_results']) ? 0 : 1);
+              . ", BcShowResults = "      . (empty($in['show_results']) ? 0 : 1)
+              . ", BcShowDossard = "      . (empty($in['show_dossard']) ? 0 : 1);
     }
 
     // Tarification avancée : JSON déjà normalisé par l'appelant, ou NULL (tarif plat).
@@ -436,7 +439,7 @@ function bk_comp_apply_auto($tourId)
         . ", BcManualValidation = 0"
         . ", BcMaxPerClubPerTarget = 2, BcMinClubsPerSession = 3"
         . ", BcShowGauges = 1, BcShowAssignment = 1, BcAllowScoresheet = 1"
-        . ", BcShowMandate = 1, BcShowProgram = 1, BcShowParticipants = 1, BcShowResults = 1"
+        . ", BcShowMandate = 1, BcShowProgram = 1, BcShowParticipants = 1, BcShowResults = 1, BcShowDossard = 1"
         . ", BcWishLetter = 1, BcWishWith = 0, BcWishFree = 0"
         . ", BcPricing = NULL, BcExcludeStats = 0";
     safe_w_sql("UPDATE BK_Competitions SET $set WHERE BcTournament = $tourId");

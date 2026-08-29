@@ -123,7 +123,7 @@ if (!$embed): bk_head($c->ToName); ?>
     <?php else: ?>
       <a class="bk-btn bk-btn-primary" href="<?= bk_e(bk_public_url('register-comp.php?t=' . $tourId)) ?>">Inscriptions</a>
     <?php endif; ?>
-    <?php if (bk_docs_list($c, $tourId)): ?>
+    <?php if (bk_docs_list($c, $tourId) || (bk_dossard_available($c, $tourId) && $dejaN > 0)): ?>
       <a class="bk-btn" href="<?= bk_e(bk_public_url('documents.php?t=' . $tourId)) ?>">📄 Documents de la compétition</a>
     <?php endif; ?>
   </div>

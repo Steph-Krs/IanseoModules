@@ -469,6 +469,130 @@ function bk_doc_relay($tourId, $code, $spec)
     exit;
 }
 
+/* ------------------------------------------------------------------ */
+/* Dossard (badge Qualification) — impression PAR ARCHER               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Numéro du gabarit de dossard à utiliser : le PREMIER badge « Qualification »
+ * (plus petit IcNumber) de la compétition — « le premier de la liste » (= 0 sur la
+ * 185). null s'il n'y a aucun gabarit Q (rien à imprimer).
+ */
+function bk_dossard_card($tourId)
+{
+    $r = safe_fetch(safe_r_sql("SELECT MIN(IcNumber) AS n FROM IdCards
+        WHERE IcTournament = " . intval($tourId) . " AND IcType = 'Q'"));
+    return ($r && $r->n !== null) ? intval($r->n) : null;
+}
+
+/** Le dossard est-il proposé aux archers ? (opt-in ; ON d'office au niveau 2, comme le mandat). */
+function bk_dossard_visible($cfg)
+{
+    $lvl = intval(is_object($cfg) ? ($cfg->BcPublishLevel ?? 0) : (is_array($cfg) ? ($cfg['BcPublishLevel'] ?? 0) : 0));
+    if ($lvl == 2) return true;
+    $flag = is_object($cfg) ? ($cfg->BcShowDossard ?? 0) : (is_array($cfg) ? ($cfg['BcShowDossard'] ?? 0) : 0);
+    return intval($flag) === 1;
+}
+
+/** Y a-t-il un dossard imprimable sur cette compétition ? (option activée ET gabarit Q présent). */
+function bk_dossard_available($cfg, $tourId)
+{
+    return bk_dossard_visible($cfg) && bk_dossard_card($tourId) !== null;
+}
+
+/**
+ * Inscriptions dont l'archer peut imprimer le dossard sur CETTE compétition : la
+ * sienne (BrLicence = sa licence) OU celles qu'il a lui-même créées (BrArcher = lui,
+ * inscription d'un camarade de son club). Une ligne par inscription (départ).
+ */
+function bk_dossard_entries($tourId, $archer)
+{
+    $tourId = intval($tourId);
+    $lic  = StrSafe_DB($archer->BaLicence);
+    $baid = intval($archer->BaId);
+    $rs = safe_r_sql("SELECT r.BrEnId, r.BrLicence, e.EnFirstName, e.EnName,
+            q.QuSession, q.QuTarget, q.QuLetter, d.DivDescription, cl.ClDescription
+        FROM BK_Registrations r
+        INNER JOIN Entries e        ON e.EnId = r.BrEnId
+        INNER JOIN Qualifications q ON q.QuId = e.EnId
+        LEFT  JOIN Divisions d      ON d.DivTournament = $tourId AND d.DivId = e.EnDivision
+        LEFT  JOIN Classes cl       ON cl.ClTournament = $tourId AND cl.ClId = e.EnClass
+        WHERE r.BrTournament = $tourId AND (r.BrLicence = $lic OR r.BrArcher = $baid)
+        ORDER BY (r.BrLicence = $lic) DESC, e.EnFirstName, e.EnName, q.QuSession");
+    $out = array();
+    while ($r = safe_fetch($rs)) $out[] = $r;
+    return $out;
+}
+
+/**
+ * L'archer a-t-il le droit d'imprimer le dossard de cette inscription (EnId) ?
+ * Retourne la ligne (BrTournament) si oui, null sinon. Défense contre un ?enid forgé.
+ */
+function bk_dossard_can($enId, $archer)
+{
+    $enId = intval($enId);
+    $lic  = StrSafe_DB($archer->BaLicence);
+    $baid = intval($archer->BaId);
+    return safe_fetch(safe_r_sql("SELECT r.BrTournament, r.BrLicence FROM BK_Registrations r
+        WHERE r.BrEnId = $enId AND (r.BrLicence = $lic OR r.BrArcher = $baid)")) ?: null;
+}
+
+/**
+ * Relais BORNÉ vers le générateur de badge du cœur (Accreditation/CardCustom.php),
+ * ciblant une ou PLUSIEURS inscriptions (Entries[] = liste d'EnId) avec le gabarit
+ * Qualification $card. CardCustom.php remplit lui-même les emplacements de chaque A4
+ * (« compléter les pages »). Même contexte élevé/borné que bk_doc_relay.
+ */
+function bk_doc_relay_bib($tourId, $code, $enIds, $card)
+{
+    $enIds = array_values(array_map('intval', (array) $enIds));
+    bk_doc_relay($tourId, $code, array(
+        'script' => 'Accreditation/CardCustom.php',
+        'params' => array(
+            'CardType'   => 'Q',
+            'CardNumber' => intval($card),
+            'Entries'    => $enIds,   // filtre EnId in (...) dans CommonCard.php
+        ),
+    ));
+}
+
+/**
+ * Ordre de remplissage des emplacements du dossard : GAUCHE→DROITE puis HAUT→BAS.
+ *
+ * CardCustom.php remplit les emplacements dans l'ordre des offsets du gabarit
+ * (Badges[0] = premier OffsetX × premier OffsetY). Certains gabarits ont un OffsetX
+ * « à l'envers » (ex. la 185 : « 105;0 » → première case en haut à DROITE), si bien
+ * qu'un dossard seul tombe en haut à droite. On TRIE les offsets en ordre croissant :
+ * les positions restent identiques (une page pleine est inchangée), seul l'ORDRE de
+ * remplissage devient naturel → un dossard seul se place en haut à gauche, plusieurs
+ * remplissent depuis le haut-gauche. Idempotent (ne réécrit que si nécessaire).
+ */
+function bk_dossard_normalize_layout($tourId, $card)
+{
+    $tourId = intval($tourId);
+    $card   = intval($card);
+    $r = safe_fetch(safe_r_sql("SELECT IcSettings FROM IdCards
+        WHERE IcTournament = $tourId AND IcType = 'Q' AND IcNumber = $card"));
+    if (!$r || (string) $r->IcSettings === '') return;
+    $o = @unserialize((string) $r->IcSettings);
+    if (!is_array($o) || !isset($o['OffsetX'], $o['OffsetY'])) return;
+
+    $sortAxis = function ($csv) {
+        $vals = array_values(array_filter(array_map('trim', explode(';', (string) $csv)),
+            function ($v) { return $v !== ''; }));
+        usort($vals, function ($a, $b) { return ((float) $a) <=> ((float) $b); });
+        return implode(';', $vals);
+    };
+    $nx = $sortAxis($o['OffsetX']);
+    $ny = $sortAxis($o['OffsetY']);
+    if ($nx === (string) $o['OffsetX'] && $ny === (string) $o['OffsetY']) return;   // déjà naturel
+
+    $o['OffsetX'] = $nx;
+    $o['OffsetY'] = $ny;
+    safe_w_sql("UPDATE IdCards SET IcSettings = " . StrSafe_DB(serialize($o))
+        . " WHERE IcTournament = $tourId AND IcType = 'Q' AND IcNumber = $card");
+}
+
 /**
  * Rend le document HTML AUTONOME du mandat (doctype → /html) et l'imprime.
  * Mutualisé entre l'aperçu organisateur (admin) et la vue publique (archer) :

@@ -230,7 +230,7 @@ bk_head('Mes inscriptions');
         <?php if (bk_shop_has_items($t)): ?>
           <p><a class="bk-btn" href="<?= bk_e(bk_public_url('shop.php?t=' . $t)) ?>">Boutique</a></p>
         <?php endif; ?>
-        <?php if (bk_docs_list($c, $t)): ?>
+        <?php if (bk_docs_list($c, $t) || bk_dossard_available($c, $t)): ?>
           <p><a class="bk-btn" href="<?= bk_e(bk_public_url('documents.php?t=' . $t)) ?>">📄 Documents</a></p>
         <?php endif; ?>
         <p><a class="bk-btn" href="<?= bk_e(bk_public_url('share.php?t=' . $t)) ?>">📣 Partager ma participation</a></p>

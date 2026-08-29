@@ -171,6 +171,11 @@ function bk_schema()
     bk_colonne('BK_Competitions', 'BcShowParticipants', "TINYINT NOT NULL DEFAULT 0 AFTER BcShowProgram");
     bk_colonne('BK_Competitions', 'BcShowResults',      "TINYINT NOT NULL DEFAULT 0 AFTER BcShowParticipants");
 
+    // Dossard : impression du dossard (badge Qualification) par l'archer, depuis la
+    // page Documents. Opt-in comme les autres documents, mais servi PAR ARCHER (chaque
+    // archer n'imprime que son dossard + ceux qu'il a inscrits). ON par défaut au niveau 2.
+    bk_colonne('BK_Competitions', 'BcShowDossard',      "TINYINT NOT NULL DEFAULT 0 AFTER BcShowResults");
+
     // v15 : niveau de publication (barre à 3 niveaux — refonte ergonomique).
     // 1 = aucune publication (privé orga) ; 2 = publication simple (tout auto) ;
     // 3 = avancé (tout réglable). Défaut 1 (rien publié sans action explicite).

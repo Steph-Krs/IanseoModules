@@ -1350,10 +1350,13 @@ function aut_handle_org_login(&$err, &$stage) {
             $u = aut_sso_sync($username, $structures, $syncErr);
             if (!$u) {
                 aut_log('LOGIN_FAIL', $username);
-                $err = $syncErr;
+                // Aucune structure exploitable : le diagnostic PRÉCIS vient de
+                // aut_ffta_verify (rôle insuffisant, avec les rôles réellement
+                // portés) — bien plus utile que le message générique du provisioning.
+                $err = (!count($structures) && $ssoErr !== '') ? $ssoErr : $syncErr;
             } elseif (!count(aut_user_views($u))) {
                 aut_log('LOGIN_FAIL', $username);
-                $err = $ssoErr ?: 'Aucune de vos structures FFTA ne donne accès à ce serveur (rôle Gestionnaire requis).';
+                $err = $ssoErr ?: aut_ffta_no_structure_reason(array());
             } elseif ($u->AuTotpEnabled) {
                 // 2FA (obligatoire ADMIN, optionnelle pour les autres) : étape code.
                 $_SESSION['AUT_2FA_User'] = $u->AuUsername;
@@ -1801,16 +1804,62 @@ function aut_ffta_parse_structures($html) {
     }
     foreach ($blocks as $b) {
         $s = array('id' => intval($b[1]), 'code' => '', 'name' => '', 'roles' => '');
-        if (preg_match('#<span class="badge[^"]*"[^>]*>\s*([0-9]+)\s*</span>\s*([^<]+)#', $b[0], $m)) {
+        // ⚠️ Le badge n'est PAS toujours numérique : les comités RÉGIONAUX portent
+        // « CR07 » (et non « 0700000 »). Un motif [0-9]+ faisait échouer tout le
+        // preg_match → code ET nom vides → la structure était SILENCIEUSEMENT écartée
+        // plus bas, si bien qu'aucun comité régional ne pouvait obtenir d'accès (bug
+        // réel : un compte Gestionnaire Sportif de ligue ne voyait pas sa vue CR).
+        // aut_ffta_map_structure sait déjà traiter « CR07 » (il n'en garde que les
+        // chiffres) : c'est bien la LECTURE qu'il fallait élargir.
+        if (preg_match('#<span class="badge[^"]*"[^>]*>\s*([^<]+?)\s*</span>\s*([^<]+)#', $b[0], $m)) {
             $s['code'] = trim($m[1]);
-            $s['name'] = trim($m[2]);
+            // Extraction par regex sur le HTML brut : une apostrophe dans le nom arrive
+            // encodée en entité (« Tir à l&#039;Arc ») — jamais décodée sans ceci, elle
+            // ressort telle quelle jusque dans la barre (#aut-bar affichait « &#039; »
+            // au lieu de l'apostrophe, bug réel signalé et vérifié).
+            $s['name'] = html_entity_decode(trim($m[2]), ENT_QUOTES, 'UTF-8');
         }
         if (preg_match('#<span class="ml-3[^"]*">\s*(.*?)\s*</span>#s', $b[0], $m)) {
-            $s['roles'] = trim(preg_replace('/\s+/', ' ', strip_tags($m[1])));
+            $s['roles'] = html_entity_decode(trim(preg_replace('/\s+/', ' ', strip_tags($m[1]))), ENT_QUOTES, 'UTF-8');
         }
         if ($s['code'] !== '' || $s['name'] !== '') $out[] = $s;
     }
     return $out;
+}
+
+/* Rôles espace dirigeant EXIGÉS pour gérer des compétitions ici : les rôles
+ * SPORTIFS, « Gestionnaire Sportif » ou « Administrateur Sportif ».
+ *
+ * ⚠️ Le qualificatif « Sportif » est OBLIGATOIRE dans le motif. L'ancien motif
+ * « Gestionnaire|Administrateur » cherchait une sous-chaîne et laissait donc passer
+ * « Gestionnaire CLUB », « Administrateur » seul, etc. Ici « Consultant Club »,
+ * « Gestionnaire Club » et tous les autres rôles sont refusés, avec un message
+ * explicite. Surcharge : config.local.json → "sso": {"required_role_regex": "...",
+ * "required_role_label": "..."} (le label n'est qu'un texte d'affichage). */
+define('AUT_FFTA_ROLE_REGEX', '(Gestionnaire|Administrateur)\s+Sportif');
+define('AUT_FFTA_ROLE_LABEL', '« Gestionnaire Sportif » ou « Administrateur Sportif »');
+
+function aut_ffta_role_regex() {
+    $cfg = aut_local_config()['sso'] ?? array();
+    return (string) ($cfg['required_role_regex'] ?? AUT_FFTA_ROLE_REGEX);
+}
+
+function aut_ffta_role_label() {
+    $cfg = aut_local_config()['sso'] ?? array();
+    return (string) ($cfg['required_role_label'] ?? AUT_FFTA_ROLE_LABEL);
+}
+
+/**
+ * Le libellé de rôles d'une structure donne-t-il le droit de gérer ? Source unique
+ * de vérité (utilisée par le mapping ET par le message de refus). Les espaces
+ * insécables de la page FFTA sont normalisés : « Gestionnaire<nbsp>Sportif » doit
+ * matcher comme une espace ordinaire.
+ */
+function aut_ffta_role_ok($roles) {
+    $required = aut_ffta_role_regex();
+    if ($required === '') return true;                       // filtre désactivé (config)
+    $roles = str_replace(array("\xC2\xA0", "\xE2\x80\xAF"), ' ', (string) $roles);
+    return (bool) preg_match('/' . str_replace('/', '\/', $required) . '/iu', $roles);
 }
 
 /**
@@ -1820,13 +1869,10 @@ function aut_ffta_parse_structures($html) {
  *  - « Comité Départemental »  → CD, scope = 2 premiers chiffres (60000 → 60)
  *  - « Comité Régional »       → CR, scope = 2 premiers chiffres
  *  - sinon badge ≥ 5 chiffres  → CLUB, scope = agrément complet
- * Le rôle de la personne doit correspondre à sso.required_role_regex
- * (défaut : Gestionnaire ou Administrateur).
+ * La personne doit en outre porter le rôle exigé (aut_ffta_role_ok).
  */
 function aut_ffta_map_structure($st) {
-    $cfg = aut_local_config()['sso'] ?? array();
-    $required = $cfg['required_role_regex'] ?? 'Gestionnaire|Administrateur';
-    if ($required !== '' && !preg_match('/' . str_replace('/', '\/', $required) . '/iu', $st['roles'])) {
+    if (!aut_ffta_role_ok($st['roles'])) {
         return null;
     }
     $hay = $st['roles'] . ' ' . $st['name'];
@@ -1891,11 +1937,38 @@ function aut_ffta_verify($username, $password, $otp, &$structures, &$error, &$co
     // authentification RÉUSSIE même sans structure exploitable : l'appelant
     // décide (un compte ADMIN garde sa vue admin ; un simple compte est refusé)
     if (!count($structures)) {
-        $error = count($raw)
-            ? 'Aucune de vos structures FFTA ne donne accès à ce serveur (rôle Gestionnaire requis).'
-            : 'Connexion FFTA réussie mais structures introuvables (page espace dirigeant modifiée ?).';
+        $error = aut_ffta_no_structure_reason($raw);
     }
     return true;
+}
+
+/**
+ * Message de refus quand aucune structure n'est exploitable. On distingue le cas
+ * COURANT — la personne a bien des structures, mais avec un rôle insuffisant
+ * (Consultant Club, Gestionnaire Club…) — d'un type de structure non géré ou d'une
+ * page illisible : sans cette distinction, l'utilisateur ne sait pas quoi demander.
+ * Les libellés viennent de la page FFTA ; ils sont échappés à l'affichage (login.php).
+ */
+function aut_ffta_no_structure_reason($raw) {
+    if (!count($raw)) {
+        return 'Connexion FFTA réussie mais structures introuvables (page espace dirigeant modifiée ?).';
+    }
+    $bad = array();
+    foreach ($raw as $st) {
+        if (aut_ffta_role_ok($st['roles'] ?? '')) continue;   // rôle OK → c'est le TYPE qui n'est pas géré
+        $name  = trim((string) ($st['name'] ?? '')) ?: trim((string) ($st['code'] ?? ''));
+        $roles = trim((string) ($st['roles'] ?? ''));
+        $bad[] = $name . ($roles !== '' ? ' — ' . $roles : '');
+    }
+    if (!count($bad)) {
+        return 'Aucune de vos structures FFTA n\'est gérée par ce serveur '
+             . '(club, comité départemental, comité régional ou fédération).';
+    }
+    return 'La gestion des compétitions sur ce serveur est réservée aux rôles sportifs de '
+         . 'l\'espace dirigeant : ' . aut_ffta_role_label() . '. '
+         . 'Votre compte ne les porte sur aucune structure : '
+         . implode(' ; ', array_slice($bad, 0, 4)) . (count($bad) > 4 ? ' …' : '') . '. '
+         . 'Demandez à l\'administrateur de votre structure de vous attribuer l\'un de ces rôles.';
 }
 
 /**
@@ -1934,7 +2007,12 @@ function aut_sso_sync($username, $structures, &$error) {
         }
         safe_w_sql("UPDATE AUT_Users SET $set WHERE AuId={$u->AuId}");
     } else {
-        if (!$best) { $error = 'Aucune de vos structures FFTA ne donne accès à ce serveur (rôle Gestionnaire requis).'; return null; }
+        if (!$best) {
+            $error = 'La gestion des compétitions sur ce serveur est réservée aux rôles sportifs de '
+                   . 'l\'espace dirigeant : ' . aut_ffta_role_label()
+                   . '. Aucune de vos structures ne vous les attribue.';
+            return null;
+        }
         safe_w_sql("INSERT INTO AUT_Users (AuUsername, AuPassword, AuRole, AuScope, AuMustChangePwd, AuName, AuStructs)
             VALUES (" . StrSafe_DB($username) . ", '', " . StrSafe_DB($best['role']) . ","
             . StrSafe_DB($best['scope']) . ", 0, 'SSO espace dirigeant', " . StrSafe_DB($json) . ")");

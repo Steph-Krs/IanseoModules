@@ -127,6 +127,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 'show_program'      => !empty($_POST['show_program']),
                 'show_participants' => !empty($_POST['show_participants']),
                 'show_results'      => !empty($_POST['show_results']),
+                'show_dossard'      => !empty($_POST['show_dossard']),
             );
             // Visibilité du mandat : n'écrire la valeur que si la case était présente
             // (elle ne l'est que lorsqu'un mandat existe) — préserve le tri-état.
@@ -508,6 +509,12 @@ if ($openConf):
   <label class="bk-chk"><input type="checkbox" name="show_results" value="1" <?= !empty($cfg->BcShowResults) ? 'checked' : '' ?>>
     Résultats — les boutons apparaissent selon l'avancement : Qualifications (dès les premiers scores),
     Duels individuels et Matchs par équipe (dès les grilles générées)</label>
+  <?php $dossardCard = bk_dossard_card($TOUR); ?>
+  <label class="bk-chk"><input type="checkbox" name="show_dossard" value="1" <?= !empty($cfg->BcShowDossard) ? 'checked' : '' ?>>
+    Dossard — chaque archer imprime <b>son</b> dossard (et ceux qu'il a inscrits) depuis la page Documents.
+    Utilise le premier gabarit « Dossard (Qualification) » de la compétition
+    (<a href="<?= $CFG->ROOT_DIR ?>Accreditation/IdCards.php?CardType=Q" target="_blank" rel="noopener">Accréditation › Dossards</a>).
+    <?php if ($dossardCard === null): ?><span class="bk-hint" style="color:#a86b00">Aucun gabarit de dossard n'existe encore : le bouton n'apparaîtra qu'une fois un dossard créé.</span><?php endif; ?></label>
 
   <h3 class="bk-h3">Souhaits proposés à l'inscription</h3>
   <p class="bk-hint">Choisissez ce que l'archer peut demander. Par défaut, seule la position sur la cible.</p>

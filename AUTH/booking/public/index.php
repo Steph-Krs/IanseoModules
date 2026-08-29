@@ -87,5 +87,42 @@ bk_head('Mon espace');
       <?php endif; ?>
     </p>
   </section>
+
+  <section class="bk-block" id="bk-news" style="display:none">
+    <h2>Actualités</h2>
+    <p class="bk-hint" style="margin-top:0">Les dernières nouvelles de la fédération.</p>
+    <ul class="bk-news-list" id="bk-news-list"></ul>
+    <p><a class="bk-btn" href="https://www.ffta.fr/actualites" target="_blank" rel="noopener">Toutes les actualités ↗</a></p>
+  </section>
 </div>
+<script>
+/* Actualités FFTA : chargées en asynchrone (aucun appel réseau au rendu de la page).
+   Titres injectés via textContent (jamais de HTML du flux). La section reste masquée
+   si le flux est indisponible. */
+(function () {
+  fetch(<?= json_encode(bk_public_url('news.php')) ?>, { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d || !d.items || !d.items.length) return;
+      var ul = document.getElementById('bk-news-list');
+      d.items.forEach(function (it) {
+        if (!it.link || !/^https?:\/\//i.test(it.link)) return;
+        var li = document.createElement('li');
+        var a = document.createElement('a');
+        a.href = it.link; a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = it.title || it.link;
+        li.appendChild(a);
+        if (it.date) {
+          var s = document.createElement('span');
+          s.className = 'bk-news-date';
+          s.textContent = it.date;
+          li.appendChild(s);
+        }
+        ul.appendChild(li);
+      });
+      document.getElementById('bk-news').style.display = '';
+    })
+    .catch(function () {});
+})();
+</script>
 <?php bk_foot(); ?>
