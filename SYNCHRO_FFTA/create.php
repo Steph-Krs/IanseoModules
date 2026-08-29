@@ -80,6 +80,12 @@ if (!empty($CFG->USERAUTH)) {
 }
 $ISK_CONFIG_URL = $CFG->ROOT_DIR . 'Tournament/index-getIskConfig.php';
 
+// Valeur par défaut proposée pour le champ « URL serveur » d'ISK-NG (Lite/Pro) : ce serveur
+// ianseo lui-même — c'est presque toujours la bonne valeur (l'appli mobile interroge ce
+// même serveur). L'organisateur peut la changer.
+$iskScheme  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$ISK_DEFAULT_URL = $iskScheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $CFG->ROOT_DIR;
+
 $PAGE_TITLE = 'Créer une compétition depuis l\'extranet FFTA';
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
@@ -200,6 +206,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   <div class="card" id="list-card" style="display:none">
     <h3>Vos épreuves sur l'extranet</h3>
     <div>
+      <p id="role-active" class="muted"></p>
       <p>
         <label for="from">Du</label>
         <input type="date" id="from">
@@ -211,6 +218,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
       <p class="muted">
         <label style="font-weight:400"><input type="checkbox" id="hide-past" checked> Masquer les épreuves passées</label>
       </p>
+      <div id="list-diag"></div>
       <div id="list"></div>
     </div>
   </div>
@@ -329,6 +337,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     'use strict';
     var AJAX   = '<?= addslashes($AJAX) ?>';
     var SUBMAP = <?= json_encode($subMap, JSON_UNESCAPED_UNICODE) ?>;
+    var AUTH_ON = <?= $sfaAuthOn ? 'true' : 'false' ?>;   // AUTH présent : #sfa-bar masquée, rôle auto
     var $ = function (id) { return document.getElementById(id); };
 
     function post(action, data) {
@@ -360,18 +369,29 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         $('to').value   = iso(new Date(t.getFullYear(), t.getMonth()+1, 0));
     })();
 
+    /**
+     * Si AUTH est présent, SA barre (#aut-bar) porte déjà le changement de rôle — la nôtre
+     * reste masquée et le rôle extranet a été aligné automatiquement côté serveur (voir
+     * ajax-create.php), sans UI ici.
+     */
     function connected(roles, shared) {
         $('auth').style.display='none';
         $('list-card').style.display='';
-        $('sfa-bar').style.display='block';
-        $('bar-logout').style.display = shared ? 'none' : '';
-        placeBar();
-        if ((roles||[]).length>1) {
-            var sel=$('bar-role'); sel.innerHTML='';
-            roles.forEach(function(r){ var o=document.createElement('option');
-                o.value=r.value; o.textContent=r.label; o.selected=r.selected; sel.appendChild(o); });
-            sel.style.display='inline-block';
+        if (!AUTH_ON) {
+            $('sfa-bar').style.display='block';
+            $('bar-logout').style.display = shared ? 'none' : '';
+            placeBar();
+            if ((roles||[]).length>1) {
+                var sel=$('bar-role'); sel.innerHTML='';
+                roles.forEach(function(r){ var o=document.createElement('option');
+                    o.value=r.value; o.textContent=r.label; o.selected=r.selected; sel.appendChild(o); });
+                sel.style.display='inline-block';
+            }
         }
+        // Rôle extranet actuellement actif — visible même quand AUTH masque le sélecteur,
+        // pour vérifier que la correspondance automatique a choisi le bon niveau.
+        var active = (roles||[]).filter(function(r){ return r.selected; })[0];
+        $('role-active').textContent = active ? ('Rôle actif sur l\'extranet : ' + active.label) : '';
         search();
     }
 
@@ -443,12 +463,36 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
     function search() {
         $('list').innerHTML=loadCard('Recherche');
+        $('list-diag').innerHTML='';
         $('review').style.display='none';
         post('list',{sfa_from:$('from').value, sfa_to:$('to').value}).then(function(r){
             if(!r.ok){ $('list').innerHTML='<p class="err">'+esc(r.msg)+'</p>'; return; }
             lastEvents = r.events||[];
+            showListDiag(r.diag);
             renderList(lastEvents);
         }).catch(function(e){ $('list').innerHTML='<p class="err">Erreur : '+esc(e.message)+'</p>'; });
+    }
+
+    /**
+     * Diagnostic visible : niveau (search[Pers]) effectivement utilisé par l'extranet, et
+     * comparaison entre le nombre d'épreuves qu'il ANNONCE (« Résultats : N ») et le nombre
+     * que le module a su reconnaître. Si les deux divergent franchement, la cause n'est pas
+     * un problème de rôle/niveau mais un tableau de structure différente à ce niveau — ce
+     * diagnostic le montre directement, sans avoir à ouvrir les outils du navigateur.
+     */
+    function showListDiag(d) {
+        if (!d) { return; }
+        var mismatch = d.raw_total !== null && d.raw_total > 0 && d.parsed === 0;
+        var levels = {FED:'Fédération', LIG:'Comité Régional', DEP:'Département', CLU:'Club'};
+        var lvl = levels[d.pers] || d.pers || '—';
+        var h = '<p class="muted">Niveau utilisé sur l\'extranet : <b>' + esc(lvl) + '</b>'
+              + (d.raw_total !== null ? ' · ' + d.raw_total + ' épreuve(s) annoncée(s)' : '') + '.</p>';
+        if (mismatch) {
+            h = '<p class="warn">⚠ L\'extranet annonce <b>' + d.raw_total + '</b> épreuve(s) à ce niveau, '
+              + 'mais aucune n\'a pu être lue par le module (structure de tableau inattendue à ce niveau). '
+              + 'Niveau utilisé : <b>' + esc(lvl) + '</b>. Signale ce cas, ce n\'est pas normal.</p>' + h;
+        }
+        $('list-diag').innerHTML = h;
     }
 
     /** Date de fin (la plus tardive) d'une épreuve, ou null. */
@@ -515,6 +559,27 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     // donc ils suivent les mises à jour de ianseo. On expose ChangeIskConfig en global car
     // le <select> l'appelle via onchange (comme la page native).
     var IskResetAlert = 'Changer de système effacera la configuration ISK précédente.';
+    var ISK_DEFAULT_URL = '<?= addslashes($ISK_DEFAULT_URL) ?>';
+
+    /**
+     * Pré-remplit les champs ISK natifs juste chargés (vides pour une compétition qui n'existe
+     * pas encore) avec des valeurs sûres, pour éviter à l'organisateur de les chercher :
+     *  - URL serveur = ce serveur ianseo lui-même (cas quasi systématique) ;
+     *  - Code de sécurité = un code à 4 chiffres tiré au hasard ;
+     *  - QR-code obligatoire = Oui (n'existe qu'en mode Lite).
+     * N'écrase jamais une valeur déjà présente (rechargement du fragment après un changement).
+     */
+    function iskPrefillDefaults() {
+        var url = $('IskConfig').querySelector('input[name="Module[ISK-NG][ServerUrl]"]');
+        if (url && !url.value) { url.value = ISK_DEFAULT_URL; }
+
+        var pin = $('IskConfig').querySelector('input[name="Module[ISK-NG][ServerUrlPin]"]');
+        if (pin && !pin.value) { pin.value = String(Math.floor(Math.random() * 10000)).padStart(4, '0'); }
+
+        var qr = $('IskConfig').querySelector('select[name="Module[ISK-NG][ForceQRCodeScanning]"]');
+        if (qr) { qr.value = '1'; }
+    }
+
     window.ChangeIskConfig = function(){
         var sel = $('IskSelect'); if(!sel) return;
         var m = $('ISK-Messages');
@@ -523,7 +588,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         } else if(m){ m.innerHTML=''; }
         fetch('<?= addslashes($ISK_CONFIG_URL) ?>?api='+encodeURIComponent(sel.value), {credentials:'same-origin'})
             .then(function(r){ return r.json(); })
-            .then(function(d){ $('IskConfig').innerHTML = d.html || ''; })
+            .then(function(d){ $('IskConfig').innerHTML = d.html || ''; iskPrefillDefaults(); })
             .catch(function(){ /* pas d'ISK disponible : on ignore */ });
     };
 

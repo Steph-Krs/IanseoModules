@@ -1,21 +1,24 @@
 {
-    "version": "0.9.2",
-    "date": "2026-07-22",
-    "notes": "Champ Lieu précis (ToWhere) rendu obligatoire à la création — évite qu'une compétition se retrouve sans lieu (inaccessible aux utilisateurs). Le repli serveur qui reprenait la Ville si vide reste en place en filet de sécurité. Si le module BOOKING (inscriptions en ligne) est présent et actif, la création redirige vers sa page de mise en ligne au lieu de la saisie des participants, et le bouton de création s'adapte en conséquence (« Créer et mettre en ligne »).",
+    "version": "0.9.10",
+    "date": "2026-08-29",
+    "notes": "Préremplissage à la création : les images par défaut (ToLeft/ToRight/ToBottom, assets/) sont maintenant cherchées par nom quelle que soit leur extension, et EXCLUES de la synchronisation (comme module.json) pour qu'un administrateur puisse les remplacer sur son serveur sans qu'une mise à jour du module ne les écrase. Si l'appel au logo du club (extranet) échoue, repli sur assets/ToRight.*. Ajout du footer ToImgB (assets/ToBottom.*), prérempli comme ToImgL. Testé fonctionnel (retour utilisateur).",
     "files": [
         "menu.php",
         "index.php",
         "create.php",
         "create-run.php",
+        "create-finish.php",
         "ajax.php",
         "ajax-create.php",
         "ExtranetClient.php",
         "DirigeantClient.php",
         "session.php",
         "mapping.php",
+        "MAPPING_TYPES_COMPETITION.md",
         "licences-inject.php",
         "licences-sync.php",
         "admin/update.php",
+        "assets/Dossard-A6-2027.ianseo",
         "README_SYNCHRO_FFTA.md",
         "version.json"
     ]

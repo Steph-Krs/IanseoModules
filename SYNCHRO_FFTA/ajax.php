@@ -82,6 +82,134 @@ function itxt_client(string $base): ExtranetClient
     return new ExtranetClient($f, $base);
 }
 
+// ── Rôle extranet aligné sur la vue AUTH (aucune UI de sélection quand AUTH est présent) ─
+// Même principe que session.php (flux création) — dupliqué ici car ce flux garde encore
+// ses propres helpers de cookie (itxt_*), non migrés sur session.php.
+
+/** AUTH (module de comptes) est-il actif pour cette session ? */
+function itxt_auth_present(): bool
+{
+    global $CFG;
+
+    return !empty($CFG->USERAUTH) && !empty($_SESSION['AUTH_ENABLE']);
+}
+
+/** Enlève les accents, met en majuscules, compacte les espaces (copie de sfa_normalize). */
+function itxt_normalize(string $s): string
+{
+    $s = strtr($s, [
+        'À'=>'A','Â'=>'A','Ä'=>'A','Á'=>'A','Ã'=>'A','Å'=>'A','Ç'=>'C',
+        'È'=>'E','É'=>'E','Ê'=>'E','Ë'=>'E','Î'=>'I','Ï'=>'I','Í'=>'I','Ì'=>'I',
+        'Ô'=>'O','Ö'=>'O','Ó'=>'O','Ò'=>'O','Õ'=>'O','Ù'=>'U','Û'=>'U','Ü'=>'U','Ú'=>'U',
+        'à'=>'A','â'=>'A','ä'=>'A','á'=>'A','ç'=>'C','è'=>'E','é'=>'E','ê'=>'E','ë'=>'E',
+        'î'=>'I','ï'=>'I','ô'=>'O','ö'=>'O','ù'=>'U','û'=>'U','ü'=>'U',
+    ]);
+    $s = mb_strtoupper($s, 'UTF-8');
+
+    return trim(preg_replace('/\s+/u', ' ', $s));
+}
+
+/**
+ * Nom de la structure AUTH actuellement active, tel que connu depuis dirigeant.ffta.fr
+ * (AUTH_VIEWS — même source de noms que l'extranet). Voir sfa_auth_view_name (session.php).
+ */
+function itxt_auth_view_name(): string
+{
+    $role  = $_SESSION['AUTH_ROLE']  ?? '';
+    $scope = (string) ($_SESSION['AUTH_SCOPE'] ?? '');
+    foreach (($_SESSION['AUTH_VIEWS'] ?? []) as $v) {
+        if (($v['role'] ?? '') === $role && (string) ($v['scope'] ?? '') === $scope) {
+            return trim(preg_replace('/\s*\([^)]*\)\s*$/', '', (string) ($v['label'] ?? '')));
+        }
+    }
+
+    return '';
+}
+
+/**
+ * Valeur de rôle extranet (chxMxDrx) correspondant à la vue AUTH courante (AUTH_ROLE), ou
+ * null si AUTH absent ou aucune correspondance. CLUB : pas de code d'agrément dans le
+ * libellé extranet — un compte peut gérer PLUSIEURS clubs (cas réel vérifié : « Club
+ * Fédération » est une structure administrative bien réelle, pas un leurre à écarter
+ * systématiquement) → on départage alors par le NOM de la structure AUTH active
+ * (itxt_auth_view_name), le seul signal fiable pour cela. Voir sfa_auth_matching_role
+ * (session.php) pour la version jumelle du flux création.
+ */
+function itxt_auth_matching_role(array $roles): ?string
+{
+    $authRole = $_SESSION['AUTH_ROLE'] ?? '';
+    $pattern  = [
+        'FED'   => '/F[ée]d[ée]ration/iu',
+        'ADMIN' => '/F[ée]d[ée]ration/iu',
+        'CR'    => '/R[ée]gional|Ligue/iu',
+        'CD'    => '/D[ée]partement(al)?/iu',
+        'CLUB'  => '/Club/iu',
+    ][$authRole] ?? null;
+
+    if ($pattern === null) {
+        return null;
+    }
+
+    $candidates = [];
+    foreach ($roles as $r) {
+        if (stripos($r['label'], 'informations personnelles') !== false) {
+            continue;   // gestion de compte, pas un niveau organisationnel
+        }
+        if (preg_match($pattern, $r['label'])) {
+            $candidates[] = $r;
+        }
+    }
+
+    if (!$candidates) {
+        return null;
+    }
+    if (count($candidates) === 1) {
+        return $candidates[0]['value'];
+    }
+
+    $name = itxt_normalize(itxt_auth_view_name());
+    if ($name !== '') {
+        foreach ($candidates as $c) {
+            if (strpos(itxt_normalize($c['label']), $name) !== false) {
+                return $c['value'];
+            }
+        }
+    }
+
+    return $candidates[0]['value'];
+}
+
+/**
+ * Si AUTH est présent, aligne le rôle extranet sur sa vue courante (bascule silencieuse,
+ * sans UI) et retourne les rôles à jour. Sinon, ou sans correspondance, retourne les rôles
+ * reçus tels quels — le sélecteur manuel de la page reste alors la seule voie.
+ */
+function itxt_sync_role_with_auth(ExtranetClient $client, array $roles): array
+{
+    if (!itxt_auth_present()) {
+        return $roles;
+    }
+    $target = itxt_auth_matching_role($roles);
+    if ($target === null) {
+        return $roles;
+    }
+
+    $current = null;
+    foreach ($roles as $r) {
+        if (!empty($r['selected'])) {
+            $current = $r['value'];
+            break;
+        }
+    }
+    if ($current === $target) {
+        return $roles;
+    }
+
+    $sw = $client->switchRole($target);
+
+    return !empty($sw['ok']) ? $sw['roles'] : $roles;
+}
+
 /** Compétition ianseo courante : sert au pré-remplissage et au rapprochement. */
 function itxt_tournament(): stdClass
 {
@@ -316,10 +444,12 @@ switch ($action) {
             itxt_json(['ok' => true, 'logged' => false]);
         }
 
+        // AUTH présent : le rôle extranet suit sa vue, sans sélecteur manuel (index.php).
+        $roles = itxt_sync_role_with_auth($client, $res['roles']);
         itxt_json([
             'ok'     => true,
             'logged' => true,
-            'roles'  => $res['roles'],
+            'roles'  => $roles,
             'shared' => $shared !== null,   // session ouverte par la connexion ianseo (AUTH)
         ]);
         break;
@@ -341,11 +471,14 @@ switch ($action) {
             itxt_json($res);
         }
 
+        // AUTH présent : le rôle extranet suit sa vue, sans sélecteur manuel (index.php).
+        $roles = itxt_sync_role_with_auth($client, $res['roles']);
+
         $t = itxt_tournament();
         itxt_json([
             'ok'    => true,
             'base'  => $ITXT_BASE,
-            'roles' => $res['roles'],
+            'roles' => $roles,
             'tour'  => [
                 'nom'       => $t->ToName,
                 'lieu'      => $t->City,

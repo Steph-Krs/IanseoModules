@@ -80,7 +80,8 @@ switch ($action) {
             sfa_json(['ok' => true, 'logged' => false]);
         }
         $shared = sfa_is_shared('ext');
-        $res    = (new ExtranetClient($f, sfa_base('ext')))->session();
+        $client = new ExtranetClient($f, sfa_base('ext'));
+        $res    = $client->session();
         if (!$res['ok']) {
             // Hors ligne : la session n'est pas morte, on garde le cookie et on le signale.
             if (!empty($res['offline'])) {
@@ -91,7 +92,9 @@ switch ($action) {
             }
             sfa_json(['ok' => true, 'logged' => false]);
         }
-        sfa_json(['ok' => true, 'logged' => true, 'roles' => $res['roles'], 'shared' => $shared]);
+        // AUTH présent : le rôle extranet suit sa vue, sans sélecteur manuel (create.php).
+        $roles = sfa_sync_role_with_auth($client, $res['roles']);
+        sfa_json(['ok' => true, 'logged' => true, 'roles' => $roles, 'shared' => $shared]);
         break;
 
     case 'login':
@@ -103,6 +106,11 @@ switch ($action) {
         // l'extranet : son résultat pilote l'écran ; le statut dirigeant est joint.
         $res = sfa_login($user, $pass, $otp, ['ext', 'dir']);
         $out = $res['ext'];
+        if (!empty($out['ok'])) {
+            // AUTH présent : le rôle extranet suit sa vue, sans sélecteur manuel (create.php).
+            $extClient    = new ExtranetClient(sfa_own_cookie('ext'), sfa_base('ext'));
+            $out['roles'] = sfa_sync_role_with_auth($extClient, $out['roles'] ?? []);
+        }
         $out['dir'] = ['ok' => !empty($res['dir']['ok']), 'msg' => $res['dir']['msg'] ?? ''];
         sfa_json($out);
         break;

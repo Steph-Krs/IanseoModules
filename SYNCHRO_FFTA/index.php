@@ -22,6 +22,11 @@ $TOUR->City = ($TOUR->ToVenue !== '') ? $TOUR->ToVenue : $TOUR->ToWhere;
 $AJAX = $CFG->ROOT_DIR . 'Modules/Custom/SYNCHRO_FFTA/ajax.php';
 $BASE = ExtranetClient::BASE_PROD;   // dépôt validé : extranet de production
 
+// AUTH (module de comptes) actif : sa barre (#aut-bar) prend la main sur les changements
+// de rôle — la nôtre (#itxt-bar) ne doit ni apparaître ni proposer de sélecteur de rôle.
+// Le rôle extranet est alors aligné automatiquement sur la vue AUTH (voir ajax.php).
+$AUTH_ON = !empty($CFG->USERAUTH) && !empty($_SESSION['AUTH_ENABLE']);
+
 $PAGE_TITLE = 'Intégration TXT — Extranet FFTA';
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
@@ -193,6 +198,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 (function () {
     'use strict';
     var AJAX = '<?= addslashes($AJAX) ?>';
+    var AUTH_ON = <?= $AUTH_ON ? 'true' : 'false' ?>;   // AUTH présent : #itxt-bar masquée, rôle auto
     var $ = function (id) { return document.getElementById(id); };
 
     function post(action, data) {
@@ -235,28 +241,35 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
     // ── Connexion ───────────────────────────────────────────────────────────
 
-    /** Passe la page en état « connecté » : bloc de connexion masqué, barre affichée. */
+    /**
+     * Passe la page en état « connecté » : bloc de connexion masqué. Si AUTH est présent,
+     * SA barre (#aut-bar) porte déjà le changement de rôle — la nôtre reste masquée et le
+     * rôle extranet a été aligné automatiquement côté serveur (voir ajax.php), sans UI ici.
+     */
     function connected(roles, shared) {
         $('auth').style.display = 'none';
-        $('itxt-bar').style.display = 'block';  // 'block' explicite : la règle CSS porte display:none
-        placeBar();
 
-        // Session ouverte par la connexion ianseo (module AUTH) : elle ne nous
-        // appartient pas, la fermer ici n'aurait aucun sens.
-        $('bar-logout').style.display = shared ? 'none' : '';
+        if (!AUTH_ON) {
+            $('itxt-bar').style.display = 'block';  // 'block' explicite : la règle CSS porte display:none
+            placeBar();
 
-        roles = roles || [];
-        if (roles.length > 1) {
-            var sel = $('bar-role');
-            sel.innerHTML = '';
-            roles.forEach(function (role) {
-                var o = document.createElement('option');
-                o.value = role.value;
-                o.textContent = role.label;
-                o.selected = role.selected;
-                sel.appendChild(o);
-            });
-            sel.style.display = 'inline-block';
+            // Session ouverte par la connexion ianseo (module AUTH) : elle ne nous
+            // appartient pas, la fermer ici n'aurait aucun sens.
+            $('bar-logout').style.display = shared ? 'none' : '';
+
+            roles = roles || [];
+            if (roles.length > 1) {
+                var sel = $('bar-role');
+                sel.innerHTML = '';
+                roles.forEach(function (role) {
+                    var o = document.createElement('option');
+                    o.value = role.value;
+                    o.textContent = role.label;
+                    o.selected = role.selected;
+                    sel.appendChild(o);
+                });
+                sel.style.display = 'inline-block';
+            }
         }
         search();
     }

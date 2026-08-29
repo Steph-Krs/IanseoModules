@@ -188,6 +188,45 @@ class ExtranetClient
     }
 
     /**
+     * Niveau (search[Pers]) correspondant au libellé du rôle chxMxDrx actuellement actif,
+     * ou null si indéterminable (ex. « Mes informations personnelles »).
+     *
+     * Nécessaire car le présélectionné de search[Pers] sur la page liste est COLLANT à la
+     * dernière recherche du compte, PAS au rôle actif : basculer de rôle (chxMxDrx) ne le
+     * met pas à jour tout seul — vérifié : après bascule Département → Fédération, la page
+     * continuait d'afficher « Département » comme avant, et la recherche à ce niveau erroné
+     * ne renvoyait plus aucun résultat. On déduit donc le niveau du rôle actif lui-même,
+     * qu'on connaît de façon fiable, plutôt que de faire confiance à ce présélectionné.
+     */
+    private static function persForRole(array $roles): ?string
+    {
+        foreach ($roles as $r) {
+            if (empty($r['selected'])) {
+                continue;
+            }
+            if (stripos($r['label'], 'informations personnelles') !== false) {
+                return null;
+            }
+            if (preg_match('/F[ée]d[ée]ration/iu', $r['label'])) {
+                return 'FED';
+            }
+            if (preg_match('/R[ée]gional|Ligue/iu', $r['label'])) {
+                return 'LIG';
+            }
+            if (preg_match('/D[ée]partement(al)?/iu', $r['label'])) {
+                return 'DEP';
+            }
+            if (preg_match('/Club/iu', $r['label'])) {
+                return 'CLU';
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
+    /**
      * La session extranet portée par le cookie est-elle encore ouverte ?
      * Une seule requête : si l'extranet nous rend la page de login, elle est morte.
      */
@@ -233,8 +272,9 @@ class ExtranetClient
      * @param string $dateTo      jj/mm/aaaa
      * @param string $discipline  code extranet (T, S, C, 3, B…) ou 'all'
      *
-     * Le niveau (search[Pers]) n'est pas choisi ici : on reprend celui que l'extranet
-     * présélectionne selon les droits du compte.
+     * Le niveau (search[Pers]) est déduit du rôle chxMxDrx actuellement actif (voir
+     * persForRole()) — PAS du présélectionné de la page, qui reste collé à la dernière
+     * recherche du compte et ne suit pas un changement de rôle.
      */
     public function listEvents(string $dateFrom, string $dateTo, string $discipline = 'all'): array
     {
@@ -258,7 +298,10 @@ class ExtranetClient
             'StartGen'                => 'Filtrer',
         ];
 
-        $pers = $this->selectedOption($page['body'], 'search[Pers]');
+        // Priorité au niveau déduit du rôle actif (fiable) ; repli sur le présélectionné de
+        // la page si jamais aucun rôle n'était marqué actif (compte à rôle unique, etc.).
+        $pers = self::persForRole($this->parseRoles($page['body']))
+            ?? $this->selectedOption($page['body'], 'search[Pers]');
         if ($pers !== null) {
             $fields['search[Pers]']    = $pers;
             $fields['search[oldPers]'] = '';
@@ -274,13 +317,28 @@ class ExtranetClient
         }
 
         $xp     = $this->dom($r['body']);
-        $events = [];
+
+        // Diagnostic : le nombre annoncé par l'extranet (« Résultats : N ») sert de témoin
+        // indépendant du parsing des lignes — si N > 0 mais qu'aucune ligne n'est reconnue,
+        // c'est que la structure du tableau diffère à ce niveau (colonnes en plus/en moins),
+        // pas un problème de niveau/rôle.
+        $rawTotal = null;
+        foreach ($xp->query('//h5[contains(@class,"mxgt")]') as $h5) {
+            if (preg_match('/R[ée]sultats\s*:\s*(\d+)/u', self::txt($h5), $m)) {
+                $rawTotal = (int) $m[1];
+                break;
+            }
+        }
+
+        $events    = [];
+        $skippedCols = 0;
         foreach ($xp->query('//tr[@data-href]') as $tr) {
             if (!preg_match('#epreuve-(\d+)\.html#', $tr->getAttribute('data-href'), $m)) {
                 continue;
             }
             $tds = $xp->query('./td', $tr);
             if ($tds->length < 6) {
+                $skippedCols++;
                 continue;
             }
 
@@ -305,7 +363,16 @@ class ExtranetClient
             ];
         }
 
-        return ['ok' => true, 'events' => $events];
+        return [
+            'ok'     => true,
+            'events' => $events,
+            'diag'   => [
+                'pers'      => $pers,           // niveau (search[Pers]) effectivement utilisé
+                'raw_total' => $rawTotal,        // « Résultats : N » annoncé par l'extranet
+                'parsed'    => count($events),   // lignes que NOUS avons su reconnaître
+                'skipped'   => $skippedCols,      // lignes vues mais avec un nombre de colonnes inattendu
+            ],
+        ];
     }
 
     /**

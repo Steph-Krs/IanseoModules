@@ -161,14 +161,10 @@ if (in_array($iskMode, ['ng-lite', 'ng-pro', 'ng-live'], true)) {
     Set_Tournament_Option('UseApi', $apiType[$iskMode], false, $tid);
 }
 
-// ── Ouverture propre (TourOn natif) puis étape suivante ──────────────────────
-// Avec BOOKING (inscriptions en ligne), l'étape suivante est la mise en ligne des
-// inscriptions (les archers s'inscrivent eux-mêmes) plutôt que la saisie manuelle
-// des participants — voir create.php pour le bouton adapté en conséquence.
-$nextPage = sfa_booking_present()
-    ? 'Modules/Custom/AUTH/booking/admin/competition.php'
-    : 'Partecipants/index.php';
-
+// ── Ouverture propre (TourOn natif) puis préremplissage (logos + dossard) ────
+// create-finish.php calcule lui-même l'étape suivante (BOOKING ou saisie manuelle) une fois
+// son préremplissage terminé — il ne peut pas se faire ICI : CheckTourSession(true) n'est
+// vraie qu'une fois CreateTourSession() passée dans TourOn.php.
 CD_redirect($CFG->ROOT_DIR . 'Common/TourOn.php?ToId=' . $tid
-    . '&BackTo=' . $CFG->ROOT_DIR . $nextPage);
+    . '&BackTo=' . $CFG->ROOT_DIR . 'Modules/Custom/SYNCHRO_FFTA/create-finish.php');
 exit;

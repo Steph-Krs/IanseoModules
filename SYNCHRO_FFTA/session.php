@@ -15,14 +15,14 @@
  */
 require_once(__DIR__ . '/ExtranetClient.php');
 require_once(__DIR__ . '/DirigeantClient.php');
+require_once(__DIR__ . '/mapping.php');   // sfa_normalize(), utilisé par sfa_auth_matching_role()
 
 /**
- * Bases visées par espace.
- * 'ext' = extranet en PRODUCTION : utilisé par la création de compétition, qui ne fait
- *         que LIRE le calendrier fédéral (aucune écriture sur l'extranet).
- *         ⚠ Le dépôt des résultats TXT reste sur la préproduction : il a sa propre base
- *         ($ITXT_BASE dans ajax.php) et n'utilise pas cette fonction.
- * 'dir' = Espace Dirigeant (production).
+ * Bases visées par espace. Toutes deux en PRODUCTION (fonctionnement validé) :
+ * 'ext' = extranet — création de compétition (lecture du calendrier fédéral) ET dépôt des
+ *         résultats TXT (ce dernier via sa propre base $ITXT_BASE dans ajax.php, qui
+ *         n'utilise pas cette fonction — deux calculs séparés, à garder synchronisés).
+ * 'dir' = Espace Dirigeant.
  */
 function sfa_base(string $space): string
 {
@@ -157,6 +157,129 @@ function sfa_logout(): void
 {
     sfa_own_cookie_destroy('ext');
     sfa_own_cookie_destroy('dir');
+}
+
+// ── Rôle extranet aligné sur la vue AUTH (aucune UI de sélection quand AUTH est présent) ─
+
+/**
+ * AUTH (module de comptes) est-il actif pour cette session ? Même condition que la garde
+ * de création (create.php/ajax-create.php) : installé (USERAUTH) ET son bootstrap a tourné
+ * (AUTH_ENABLE), donc AUTH_ROLE/AUTH_SCOPE sont disponibles en session.
+ */
+function sfa_auth_present(): bool
+{
+    global $CFG;
+
+    return !empty($CFG->USERAUTH) && !empty($_SESSION['AUTH_ENABLE']);
+}
+
+/**
+ * Nom de la structure AUTH actuellement active (rôle + périmètre), tel que connu depuis
+ * dirigeant.ffta.fr (AUTH_VIEWS, publié par aut_session_apply — même source de noms que
+ * l'extranet, les deux étant opérés par la FFTA). Le label de AUTH est « Nom (code) » pour
+ * CD/CR/CLUB (aut_ffta_map_structure) — on retire le suffixe entre parenthèses.
+ * Retourne '' si indéterminable (AUTH absent, pas de vue correspondante).
+ */
+function sfa_auth_view_name(): string
+{
+    $role  = $_SESSION['AUTH_ROLE']  ?? '';
+    $scope = (string) ($_SESSION['AUTH_SCOPE'] ?? '');
+    foreach (($_SESSION['AUTH_VIEWS'] ?? []) as $v) {
+        if (($v['role'] ?? '') === $role && (string) ($v['scope'] ?? '') === $scope) {
+            return trim(preg_replace('/\s*\([^)]*\)\s*$/', '', (string) ($v['label'] ?? '')));
+        }
+    }
+
+    return '';
+}
+
+/**
+ * Valeur de rôle extranet (chxMxDrx) correspondant à la vue AUTH courante (AUTH_ROLE), ou
+ * null si AUTH absent ou aucune correspondance trouvée dans les rôles disponibles.
+ *
+ * Les libellés extranet portent le NIVEAU (Fédération/Département/Régional/Club) mais pas
+ * de code d'agrément. Pour un niveau qui n'a qu'un seul candidat, ça suffit. Pour CLUB, un
+ * compte peut gérer PLUSIEURS clubs à la fois (cas réel vérifié : un compte peut être à la
+ * fois « Gestionnaire Club Club Fédération » — une structure administrative bien réelle,
+ * pas un leurre à écarter systématiquement — ET gestionnaire d'un club d'archers) : on
+ * départage alors par le NOM de la structure AUTH active (sfa_auth_view_name), le seul
+ * signal fiable puisque l'extranet ne donne aucun code d'agrément dans ses libellés.
+ */
+function sfa_auth_matching_role(array $roles): ?string
+{
+    $authRole = $_SESSION['AUTH_ROLE'] ?? '';
+    $pattern  = [
+        'FED'   => '/F[ée]d[ée]ration/iu',   // vue Administrateur : le plus proche est Fédération
+        'ADMIN' => '/F[ée]d[ée]ration/iu',
+        'CR'    => '/R[ée]gional|Ligue/iu',
+        'CD'    => '/D[ée]partement(al)?/iu',
+        'CLUB'  => '/Club/iu',
+    ][$authRole] ?? null;
+
+    if ($pattern === null) {
+        return null;
+    }
+
+    $candidates = [];
+    foreach ($roles as $r) {
+        // « Mes informations personnelles » : gestion de compte, pas un niveau organisationnel.
+        if (stripos($r['label'], 'informations personnelles') !== false) {
+            continue;
+        }
+        if (preg_match($pattern, $r['label'])) {
+            $candidates[] = $r;
+        }
+    }
+
+    if (!$candidates) {
+        return null;
+    }
+    if (count($candidates) === 1) {
+        return $candidates[0]['value'];
+    }
+
+    // Plusieurs candidats au même niveau (typiquement CLUB) : on départage par le nom.
+    $name = sfa_normalize(sfa_auth_view_name());
+    if ($name !== '') {
+        foreach ($candidates as $c) {
+            if (strpos(sfa_normalize($c['label']), $name) !== false) {
+                return $c['value'];
+            }
+        }
+    }
+
+    return $candidates[0]['value'];   // repli : premier trouvé si le nom ne permet pas de trancher
+}
+
+/**
+ * Si AUTH est présent, aligne le rôle extranet sur sa vue courante (bascule silencieuse,
+ * sans UI) et retourne les rôles à jour. Sans AUTH, ou sans correspondance, retourne les
+ * rôles reçus tels quels — le sélecteur manuel de la page reste alors la seule voie.
+ */
+function sfa_sync_role_with_auth(ExtranetClient $client, array $roles): array
+{
+    if (!sfa_auth_present()) {
+        return $roles;
+    }
+    $target = sfa_auth_matching_role($roles);
+    if ($target === null) {
+        return $roles;
+    }
+
+    $current = null;
+    foreach ($roles as $r) {
+        if (!empty($r['selected'])) {
+            $current = $r['value'];
+            break;
+        }
+    }
+    if ($current === $target) {
+        return $roles;
+    }
+
+    $sw = $client->switchRole($target);
+
+    return !empty($sw['ok']) ? $sw['roles'] : $roles;
 }
 
 /**

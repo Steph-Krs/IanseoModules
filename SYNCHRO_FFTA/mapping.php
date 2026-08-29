@@ -3,19 +3,13 @@
  * SYNCHRO_FFTA — moteur de correspondance des types de compétition.
  *
  * Propose un type ianseo (ToType + sous-règle) à partir d'une épreuve de l'extranet,
- * d'après le fichier éditable MAPPING_TYPES_COMPETITION.md (racine du projet) et les
- * règles françaises réelles de ianseo (Modules/Sets/FR/sets.php).
+ * d'après le fichier éditable MAPPING_TYPES_COMPETITION.md (embarqué dans le module — voir
+ * sfa_mapping_file_path()) et les règles françaises réelles de ianseo (Modules/Sets/FR/sets.php).
  *
  * La proposition n'est jamais imposée : create.php la présélectionne dans un menu que
  * l'organisateur peut corriger. En cas de doute, on renvoie « non créable » plutôt que
  * de deviner.
  */
-
-/** Racine du projet (au-dessus de htdocs), où vivent les fichiers de référence. */
-function sfa_project_root(): string
-{
-    return dirname(HTDOCS);
-}
 
 /**
  * Le module BOOKING (inscriptions en ligne, fusionné dans AUTH) est-il installé et actif ?
@@ -124,6 +118,17 @@ function sfa_md_rows(array $lines): array
     return $rows;
 }
 
+/**
+ * Chemin du fichier de correspondance. Embarqué DANS le module (pas à la racine du projet) et
+ * inscrit dans version.json → files[] : une mise à jour du module (admin/update.php) le
+ * resynchronise depuis GitHub sur tous les serveurs — pousser une correction sur le dépôt suffit
+ * à la propager partout, sans copie manuelle serveur par serveur.
+ */
+function sfa_mapping_file_path(): string
+{
+    return __DIR__ . '/MAPPING_TYPES_COMPETITION.md';
+}
+
 /** Sections du fichier de mapping (par en-tête ##/###). */
 function sfa_mapping_sections(): array
 {
@@ -132,7 +137,7 @@ function sfa_mapping_sections(): array
         return $cache;
     }
 
-    $file = sfa_project_root() . '/MAPPING_TYPES_COMPETITION.md';
+    $file = sfa_mapping_file_path();
     $cache = [];
     if (!is_readable($file)) {
         return $cache;
@@ -245,7 +250,13 @@ function sfa_propose(string $disciplineText, string $formatText, string $typeEpr
         }
     }
     if ($disc === '') {
-        return $none + ['why' => 'Discipline extranet non reconnue.'];
+        $why = is_readable(sfa_mapping_file_path())
+            ? 'Discipline extranet non reconnue.'
+            : 'Fichier de correspondance introuvable sur ce serveur (' . sfa_mapping_file_path()
+              . ') — mettez à jour le module SYNCHRO_FFTA (admin/update.php) pour le récupérer '
+              . 'depuis GitHub.';
+
+        return $none + ['why' => $why];
     }
 
     // 2) Meilleure ligne §3 pour cette discipline (format + individuel/équipe).
