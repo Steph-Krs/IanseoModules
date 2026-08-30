@@ -308,6 +308,16 @@ function bk_reg_club_id($tourId, $code, $name)
         safe_w_sql("UPDATE Countries SET CoName = " . StrSafe_DB(AdjustCaseTitle($name))
             . " WHERE CoId = $coId AND CoTournament = $tourId");
     }
+
+    // Logo du club : dès qu'un club entre dans une compétition, on pose son logo
+    // (drapeau ianseo) depuis le cache mutualisé, pour que les impressions du cœur
+    // l'aient tout de suite sans attendre le cron nocturne. Purement LOCAL (aucun
+    // accès réseau), et totalement isolé : ne peut jamais faire échouer l'inscription.
+    $lg = dirname(__DIR__, 2) . '/logos-lib.php';
+    if (is_file($lg)) {
+        require_once $lg;
+        if (function_exists('aut_logos_ensure_club')) aut_logos_ensure_club($tourId, $code);
+    }
     return $coId;
 }
 

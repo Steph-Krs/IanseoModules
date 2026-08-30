@@ -22,7 +22,10 @@ function bk_news_url()
         $u = 'https://www.ffta.fr/rss.xml';
         $f = dirname(__DIR__) . '/config.local.json';   // même fichier que le reste du module
         if (is_file($f)) {
-            $c = json_decode((string) @file_get_contents($f), true);
+            $raw = (string) @file_get_contents($f);
+            // BOM UTF-8 d'un éditeur Windows : json_decode échouerait en silence.
+            if (substr($raw, 0, 3) === "\xEF\xBB\xBF") $raw = substr($raw, 3);
+            $c = json_decode($raw, true);
             $cu = is_array($c) ? (string) ($c['news']['url'] ?? '') : '';
             if (preg_match('#^https?://#i', $cu)) $u = $cu;
         }

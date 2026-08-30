@@ -58,10 +58,23 @@ function aut_local_config() {
         $cfg = array();
         $f = aut_module_dir() . '/config.local.json';
         if (is_file($f)) {
-            $cfg = json_decode(file_get_contents($f), true) ?: array();
+            $cfg = json_decode(aut_json_strip_bom(file_get_contents($f)), true) ?: array();
         }
     }
     return $cfg;
+}
+
+/**
+ * Retire un BOM UTF-8 en tête de JSON. Sans cela, un fichier enregistré par un
+ * éditeur Windows (Bloc-notes, PowerShell `Set-Content -Encoding utf8`…) fait
+ * échouer json_decode et TOUTE la configuration locale est silencieusement ignorée
+ * — y compris les identifiants du cron, avec un message trompeur du type
+ * « identifiants absents ». Piège rencontré pour de vrai, jamais évident à
+ * diagnostiquer : le fichier paraît parfaitement valide à l'œil.
+ */
+function aut_json_strip_bom($s) {
+    $s = (string) $s;
+    return (substr($s, 0, 3) === "\xEF\xBB\xBF") ? substr($s, 3) : $s;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1483,8 +1496,57 @@ function aut_is_admin_only_script() {
  * ianseo à chaque ouverture/fermeture de compétition (CreateTourSession) —
  * seuls AUTH_User / AUTH_Pwd survivent, d'où le recalcul systématique.
  */
+/**
+ * Saisie MANUELLE d'un participant (Partecipants/PopEdit.php…) : dès qu'un
+ * organisateur enregistre un archer, poser le logo de son club depuis le cache
+ * mutualisé — exactement ce que fait déjà l'inscription en ligne
+ * (bk_reg_club_id → aut_logos_ensure_club). Sans cela, ce cas n'était couvert
+ * que par la passe nocturne du cron.
+ *
+ * ⚠️ Pourquoi ici et pas dans PopEdit.php : ce fichier appartient au CŒUR, toute
+ * retouche serait effacée à la prochaine mise à jour de ianseo. Le bootstrap est
+ * exécuté sur chaque requête, il suffit d'y reconnaître l'enregistrement.
+ *
+ * Le travail est DIFFÉRÉ à la fin de la requête (register_shutdown_function) :
+ * au moment du bootstrap, l'archer n'est pas encore enregistré. Purement LOCAL
+ * (lecture du cache + écriture d'un fichier), jamais de réseau, et isolé — ne
+ * peut pas perturber la saisie. Un club encore absent du cache est rattrapé par
+ * le cron suivant (qui balaie aussi les clubs des compétitions, pas seulement le
+ * fichier fédéral).
+ */
+function aut_logos_hook_entry_save() {
+    if (stripos(aut_script_rel(), '/Partecipants/') !== 0) return;
+    $cmd = strtoupper((string) ($_REQUEST['Command'] ?? ''));
+    if ($cmd !== 'SAVE' && $cmd !== 'SAVE_CONTINUE') return;
+
+    // Codes club saisis dans le formulaire (principal + 2 secondaires éventuels),
+    // normalisés comme le fait le cœur juste avant d'écrire dans Countries.
+    $codes = array();
+    foreach (array('', '2', '3') as $v) {
+        $c = trim((string) ($_REQUEST['d_c_CoCode' . $v . '_'] ?? ''));
+        if ($c !== '') $codes[] = mb_convert_case($c, MB_CASE_UPPER, 'UTF-8');
+    }
+    $tid = intval($_SESSION['TourId'] ?? 0);
+    if (!$codes || $tid <= 0) return;
+
+    register_shutdown_function(function () use ($tid, $codes) {
+        try {
+            require_once __DIR__ . '/logos-lib.php';
+            if (!function_exists('aut_logos_ensure_club')) return;
+            foreach (array_unique($codes) as $c) aut_logos_ensure_club($tid, $c);
+        } catch (\Throwable $e) {
+            // la pose d'un logo ne doit jamais remonter à l'utilisateur
+        }
+    });
+}
+
 function aut_request_bootstrap() {
     global $CFG;
+
+    // Saisie manuelle d'un participant → logo de son club (voir la fonction).
+    // Placé AVANT le retour anticipé « localhost » : la console serveur saisit
+    // elle aussi des participants, et ses compétitions méritent leurs logos.
+    aut_logos_hook_entry_save();
 
     // Soin de session : à la création d'une compétition, le cœur pose
     // $_SESSION['TourId'] SANS TourCode (Tournament/index.php) → warnings

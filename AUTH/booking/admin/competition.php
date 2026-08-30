@@ -421,7 +421,7 @@ if ($openConf):
       <input type="datetime-local" name="to" value="<?= bk_e(bk_dtval($cfg->BcOpenTo)) ?>"></label>
   </div>
   <p class="bk-hint">Sans date, l'inscription est ouverte dès maintenant et ne se referme pas d'elle-même.
-     État actuel : <b><?= $cfg->BcIsOpen ? 'inscriptions ouvertes' : 'hors période' ?></b>.</p>
+     État actuel : <b style="color: crimson;"><?= $cfg->BcIsOpen ? 'inscriptions ouvertes' : 'hors période' ?></b>.</p>
 </div>
 
 <div class="bk-sec">
