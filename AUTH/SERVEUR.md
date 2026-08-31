@@ -151,17 +151,17 @@ passer `On`. C'est la principale compensation du risque « code du cœur ».
 
 ```apache
 <VirtualHost *:80>
-    ServerName ianseo.ffta.fr
-    Redirect permanent / https://ianseo.ffta.fr/
+    ServerName VOTRE-DOMAINE
+    Redirect permanent / https://VOTRE-DOMAINE/
 </VirtualHost>
 
 <VirtualHost *:443>
-    ServerName ianseo.ffta.fr
+    ServerName VOTRE-DOMAINE
     DocumentRoot /var/www/ianseo
 
     SSLEngine on
-    SSLCertificateFile    /etc/letsencrypt/live/ianseo.ffta.fr/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/ianseo.ffta.fr/privkey.pem
+    SSLCertificateFile    /etc/letsencrypt/live/VOTRE-DOMAINE/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/VOTRE-DOMAINE/privkey.pem
     # TLS moderne (Mozilla "intermediate")
     SSLProtocol -all +TLSv1.2 +TLSv1.3
     SSLHonorCipherOrder off
@@ -207,7 +207,7 @@ passer `On`. C'est la principale compensation du risque « code du cœur ».
     Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
 </VirtualHost>
 ```
-Certificat : `certbot --apache -d ianseo.ffta.fr` (renouvellement auto).
+Certificat : `certbot --apache -d VOTRE-DOMAINE` (renouvellement auto).
 Si PHP-FPM : remplacer `php_admin_flag engine off` par un
 `<FilesMatch \.php$> SetHandler none </FilesMatch>` équivalent.
 
@@ -272,10 +272,10 @@ y donne accès. Compensations obligatoires :
 set -e
 F=/var/backups/ianseo-$(date +%F).sql.gz.gpg
 mysqldump --single-transaction ianseo | gzip \
-  | gpg --batch --yes -r backup@ffta.fr -e -o "$F"
+  | gpg --batch --yes -r ADRESSE-CLE-GPG -e -o "$F"
 find /var/backups -name 'ianseo-*.gpg' -mtime +30 -delete
 # copie hors serveur (stockage FFTA) :
-rsync -a /var/backups/ backup@stockage.ffta.fr:/backups/ianseo/
+rsync -a /var/backups/ COMPTE@STOCKAGE-DISTANT:/backups/ianseo/
 ```
 + `Common/config.inc.php`, `Modules/Custom/`, `TourData/`.
 **Tester une restauration** au moins une fois avant l'ouverture, puis
@@ -293,6 +293,116 @@ périodiquement. La clé GPG privée n'est PAS sur le serveur.
 - Sous-traitance hébergeur (OVH…) : vérifier le DPA.
 
 ## 8. Installation pas à pas
+
+> **Gabarits fournis** : tous les fichiers à installer **hors** du module
+> (scripts d'exploitation, vhosts Apache, cron, sudoers, logrotate, fail2ban)
+> sont versionnés dans **`Modules/Custom/AUTH/serveur/`**, avec leur destination
+> et leurs droits — voir `serveur/README.md`. Recopiez-les plutôt que de les
+> retaper : c'est là que se glissent les erreurs de configuration.
+
+### 8.0 Depuis une Debian neuve — séquence complète
+
+Toutes les commandes, dans l'ordre. Remplacez `VOTRE-DOMAINE` par votre nom
+d'hôte. Rien ici ne contient de secret : les identifiants ne sont saisis qu'à
+l'étape 7, dans un fichier en `chmod 600`.
+
+```bash
+# ── 1. Système de base ────────────────────────────────────────────────
+sudo apt update && sudo apt full-upgrade -y
+sudo timedatectl set-timezone Europe/Paris     # sinon les horaires des logs et
+                                               # des crons prêtent à confusion
+sudo apt install -y apache2 mariadb-server php php-mysql php-gd php-curl \
+                    php-mbstring php-zip php-xml unzip curl \
+                    cron rsyslog fail2ban certbot python3-certbot-apache \
+                    libapache2-mod-security2
+sudo systemctl enable --now cron fail2ban      # « cron » manque sur certaines
+                                               # images minimales
+sudo mysql_secure_installation
+
+# ── 2. Base de données ────────────────────────────────────────────────
+sudo mysql -e "CREATE DATABASE ianseo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo mysql -e "CREATE USER 'ianseo'@'localhost' IDENTIFIED BY 'MOT-DE-PASSE-FORT';"
+sudo mysql -e "GRANT ALL PRIVILEGES ON ianseo.* TO 'ianseo'@'localhost'; FLUSH PRIVILEGES;"
+
+# ── 3. Code ianseo ────────────────────────────────────────────────────
+cd /tmp && curl -LO https://www.ianseo.net/Release/ianseo.zip
+sudo mkdir -p /var/www/ianseo && sudo unzip -q ianseo.zip -d /var/www/ianseo
+sudo chown -R www-data:www-data /var/www/ianseo        # temporaire, pour installer
+
+# ── 4. Apache + TLS ───────────────────────────────────────────────────
+sudo a2enmod ssl rewrite headers
+sudo a2dissite 000-default
+# (les vhosts sont posés à l'étape 6 ; certbot a besoin du port 80 ouvert)
+sudo certbot --apache -d VOTRE-DOMAINE
+
+# ── 5. ianseo : installation initiale ─────────────────────────────────
+# Ouvrir https://VOTRE-DOMAINE/Install/ et suivre l'assistant (base « ianseo »,
+# utilisateur « ianseo »). Créer une compétition de test, vérifier que tout
+# fonctionne AVANT d'ajouter la couche multi-comptes.
+
+# ── 6. Fichiers système (gabarits du module) ──────────────────────────
+# Voir serveur/README.md pour le détail ; adapter VOTRE-DOMAINE dans les vhosts.
+cd /var/www/ianseo/Modules/Custom/AUTH/serveur   # (après l'étape 7 si le module
+                                                 #  n'est pas encore déployé)
+sudo install -m 0750 -o root -g root bin/ianseo-*              /usr/local/bin/
+sudo mkdir -p /var/www/maintenance
+sudo install -m 0644 -o root -g root apache/maintenance.html   /var/www/maintenance/index.html
+sudo install -m 0644 -o root -g root apache/ianseo*.conf       /etc/apache2/sites-available/
+sudo install -m 0440 -o root -g root sudoers/ianseo-maintenance /etc/sudoers.d/
+sudo visudo -c                                   # DOIT afficher « parsed OK »
+sudo install -m 0644 -o root -g root logrotate/ianseo          /etc/logrotate.d/
+sudo install -m 0644 -o root -g root fail2ban/filter-ianseo-auth.conf /etc/fail2ban/filter.d/ianseo-auth.conf
+sudo install -m 0644 -o root -g root fail2ban/jail-ianseo.conf        /etc/fail2ban/jail.d/ianseo.conf
+sudo touch /var/log/ianseo-maintenance.log /var/log/ianseo-auth.log
+sudo chown www-data:adm /var/log/ianseo-*.log && sudo chmod 0640 /var/log/ianseo-*.log
+sudo systemctl restart fail2ban
+sudo apache2ctl configtest && sudo systemctl reload apache2
+
+# ── 7. Module AUTH ────────────────────────────────────────────────────
+# Copier Modules/Custom/AUTH/ et Modules/Custom/_shared/ dans /var/www/ianseo/
+sudo chown -R www-data:www-data /var/www/ianseo/Modules/Custom
+# Configuration locale (secrets) — chmod 600, JAMAIS lisible par le web :
+sudo -u www-data nano /var/www/ianseo/Modules/Custom/AUTH/config.local.json
+sudo chmod 600 /var/www/ianseo/Modules/Custom/AUTH/config.local.json
+```
+
+`config.local.json` — modèle (⚠️ **UTF-8 sans BOM** : un BOM ferait échouer la
+lecture JSON et **toute** la configuration serait ignorée en silence) :
+
+```json
+{
+  "log_file": "/var/log/ianseo-auth.log",
+  "licsync":  { "username": "COMPTE-DE-SERVICE", "password": "…", "otp": "" },
+  "maintenance": {
+    "on":     "sudo /usr/local/bin/ianseo-maintenance-on",
+    "off":    "sudo /usr/local/bin/ianseo-maintenance-off",
+    "unlock": "",
+    "lock":   "",
+    "steps":  { "core": false, "modules": true, "licences": true, "logos": true },
+    "notice": { "at": "03:15", "lead_minutes": 15 }
+  }
+}
+```
+
+```bash
+# ── 8. Comptes, déploiement, verrouillage ─────────────────────────────
+# a) https://VOTRE-DOMAINE/Modules/Custom/AUTH/admin/ → créer le compte ADMIN
+# b) admin/deploy.php → « Déployer les fichiers » puis « Activer l'authentification »
+# c) Se reconnecter : changement de mot de passe forcé, puis 2FA obligatoire
+sudo ianseo-lock                                  # état normal : cœur en lecture seule
+sudo -u www-data test -w /var/www/ianseo/TV/Photos && echo "TV OK"
+
+# ── 9. Essai à blanc de la maintenance, PUIS activation du cron ───────
+sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php --dry-run
+sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php --only=none
+# (le site doit répondre 503 pendant l'exécution, puis revenir)
+sudo install -m 0644 -o root -g root \
+     /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-nightly /etc/cron.d/
+```
+
+**Le lendemain**, vérifier : `tail -n 40 /var/log/ianseo-maintenance.log`.
+
+### 8.1 Rappel des étapes fonctionnelles
 
 1. **ianseo** : ZIP officiel + `https://serveur/Install/`, test mono-utilisateur.
    Pendant toute cette phase : htdigest Apache actif sur tout le site.
@@ -414,10 +524,20 @@ pas de création de comptes ni de gestion de mots de passe côté serveur ianseo
   OpenID Connect (le module pourra basculer) ; en attendant, si la page de
   login FFTA change de structure, le SSO s'arrête proprement (message
   d'erreur explicite) et les comptes locaux continuent de fonctionner.
-- Configuration (`Modules/Custom/AUTH/config.local.json`) :
+- **Qui peut se connecter comme organisateur** : un compte espace dirigeant valide ne
+  suffit pas — il faut porter un rôle **SPORTIF** (« Gestionnaire Sportif » ou
+  « Administrateur Sportif ») sur au moins une structure (club, CD, CR, fédération).
+  « Consultant Club », « Gestionnaire Club », « Administrateur » seul et les autres
+  rôles sont refusés, avec un message nommant les rôles à demander.
+- Configuration (`Modules/Custom/AUTH/config.local.json`) — défaut si absent :
   ```json
-  { "sso": { "enabled": true, "required_role_regex": "Gestionnaire|Administrateur" } }
+  { "sso": { "enabled": true,
+             "required_role_regex": "(Gestionnaire|Administrateur)\\s+Sportif",
+             "required_role_label": "« Gestionnaire Sportif » ou « Administrateur Sportif »" } }
   ```
+  Pour élargir (p. ex. admettre aussi les administrateurs de structure sans
+  qualificatif sportif) : ajouter `|Administrateur` au motif et ajuster le label,
+  qui n'est qu'un texte d'affichage dans le message de refus.
 - **En cas de souci de connexion SSO un jour** (la FFTA change sa page de
   login/MFA) : activer la trace en créant le fichier vide
   `Modules/Custom/AUTH/ffta-debug.on`, reproduire l'erreur, lire
@@ -481,6 +601,115 @@ La base licenciés est maintenue par le serveur, pas par les organisateurs :
 
 `config.local.json` n'est jamais synchronisé par les mises à jour du module
 (hors manifeste) : les secrets restent locaux au serveur.
+
+### Tout en un : la fenêtre de maintenance nocturne
+
+`cron/maintenance.php` enchaîne toutes les opérations, chacune après la précédente,
+et **remplace à lui seul** les lignes crontab des synchros :
+
+```
+15 3 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php >> /var/log/ianseo-maintenance.log 2>&1
+```
+
+Déroulé : maintenance ON → déverrouillage → **MàJ du cœur ianseo** → **MàJ des modules
+Custom** → redéploiement AUTH → **synchro licences** → **synchro logos** →
+verrouillage → maintenance OFF.
+
+- **La maintenance est toujours coupée**, même si une étape échoue, si le script est
+  interrompu ou s'il meurt sur une erreur fatale (gestionnaire de fin de script posé
+  avant toute action + signaux SIGINT/SIGTERM/SIGHUP). Sans cela, le serveur resterait
+  bloqué en page 503. *(Un `kill -9` reste hors de portée : dans ce cas, lancer
+  `ianseo-maintenance-off` à la main.)*
+- Chaque étape est **indépendante** : l'échec de l'une n'empêche ni les suivantes ni la
+  sortie de maintenance. Bilan en fin de log, code de sortie 1 et `MAINT_PARTIAL` au
+  journal si quelque chose a échoué.
+- Les commandes système sont **configurables**, et une commande vide fait simplement
+  sauter l'étape (le script est donc inoffensif hors serveur de production) :
+
+```json
+{ "maintenance": {
+    "on":     "sudo /usr/local/bin/ianseo-maintenance-on",
+    "off":    "sudo /usr/local/bin/ianseo-maintenance-off",
+    "unlock": "sudo /usr/local/bin/ianseo-unlock",
+    "lock":   "sudo /usr/local/bin/ianseo-lock",
+    "steps":  { "core": false, "modules": true, "licences": true, "logos": true },
+    "notice": { "at": "03:15", "lead_minutes": 15 }
+} }
+```
+
+- **`notice` — avertissement préalable aux utilisateurs.** Pendant les
+  `lead_minutes` qui précèdent l'heure `at`, un bandeau permanent s'affiche sur
+  **toutes** les pages (espace organisateur *et* espace licencié) : « Maintenance
+  programmée à 03:15 (dans N minutes) — le serveur sera indisponible quelques
+  minutes. Terminez et enregistrez votre saisie. » Le décompte se met à jour à
+  chaque page. Personne ne se retrouve devant une 503 sans prévenir.
+  Sans la clé `at`, **aucun message** n'est affiché (silencieux par défaut).
+  ⚠️ `at` doit correspondre à l'heure réelle du cron : les deux ne se déduisent
+  pas l'un de l'autre. Heure locale (`timezone`, défaut `Europe/Paris`) — ianseo
+  forçant PHP en UTC, un réglage naïf annoncerait l'horaire avec 2 h d'écart.
+
+  `www-data` doit pouvoir lancer ces quatre commandes sans mot de passe (`sudoers`,
+  `NOPASSWD`, limité à ces chemins).
+- Options : `--dry-run` (affiche le plan sans rien faire — à lancer en premier),
+  `--core` / `--no-core`, `--only=modules,licences,logos`.
+
+#### Mise à jour du cœur ianseo, sans navigateur
+
+`cron/update-core.php` fait ce que fait `/Update/` : cette page n'est qu'une interface
+AJAX, le travail réel vit dans `Update/UpdateIanseo.php`, **qui ne porte aucun contrôle
+d'accès** (l'ACL est dans `index-action.php`). Il est donc exécutable en CLI — ce qui
+**lève le blocage** de l'automatisation : passer par HTTP aurait imposé de scripter une
+connexion ADMIN + code TOTP, donc de stocker le secret 2FA en clair. Les migrations de
+base sont appliquées au passage.
+
+> ⚠️ **Désactivée par défaut** (`steps.core: false`). Elle réécrit des fichiers du cœur
+> et migre la base **sans retour arrière possible**. Ne l'activer qu'avec une sauvegarde
+> automatique de la base et des fichiers, et après un essai en `--dry-run`. Elle exige
+> aussi que `unlock`/`lock` soient configurés.
+
+> ⚠️ **Piège vérifié** : un **BOM UTF-8** en tête de `config.local.json` (Bloc-notes,
+> `Set-Content -Encoding utf8`…) faisait échouer la lecture JSON et **toute** la
+> configuration était ignorée en silence — avec un message trompeur « identifiants
+> absents ». Le BOM est désormais retiré automatiquement, mais mieux vaut enregistrer ce
+> fichier en **UTF-8 sans BOM**.
+
+### Logos de club (drapeaux) — second cron, sans compte de service
+
+Sans cela, chaque organisateur doit passer par « Participants › Charger table de
+correspondance » et cocher **Drapeaux** pour SA compétition, sinon ses impressions
+(dossards, badges, listes) sortent sans logo. Le cron ci-dessous supprime cette
+étape pour tout le monde.
+
+```
+15 4 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/sync-logos.php >> /var/log/ianseo-logosync.log 2>&1
+```
+
+- **Aucun identifiant requis** : l'endpoint FFTA des logos est public.
+  À placer **après** la synchro des licences (elle fournit la liste des clubs).
+- Deux étapes : téléchargement dans le cache global `AUT_ClubLogos` (~1600 clubs,
+  ~7 min, une connexion réutilisée), puis **propagation locale** vers toutes les
+  compétitions non terminées (table `Flags` + fichiers `TV/Photos/`). Une panne
+  réseau n'empêche pas la propagation de ce qui est déjà en cache.
+- Volume : compter ~50 Mo pour le cache, plus les fichiers par compétition.
+- Options utiles : `--propagate-only` (aucun réseau), `--full` (tout retélécharger),
+  `--limit=N` (mise au point). Trace `LOGOSYNC_OK/FAIL` dans le journal du module.
+- Réglages facultatifs : `{ "logos": { "enabled": true, "delay_ms": 120,
+  "refresh_days": 0, "timeout": 15 } }`. L'URL est reprise de ianseo
+  (`LookUpPaths.LupFlagsPath`) — rien à saisir.
+- **Logo modifié par un club** : l'endpoint FFTA ne renvoie ni `Last-Modified` ni `ETag`,
+  donc aucune requête conditionnelle n'est possible — il faut télécharger pour comparer.
+  D'où `refresh_days: 0` par défaut : **tout est retéléchargé chaque nuit**, mais un logo
+  n'est réécrit que s'il a *vraiment* changé (comparaison d'empreinte md5, en cache puis
+  sur le fichier posé). Un changement se répercute donc tout seul sur les compétitions non
+  terminées. ⚠️ Ne **pas** régler `refresh_days: 1` avec un cron quotidien : un club repris
+  quelques minutes après le début de la passe précédente serait jugé « frais » et sauté une
+  nuit sur deux. Utiliser `0` (défaut), ou `2` et plus si l'on veut économiser la bande
+  passante en acceptant un délai de détection.
+- Le logo est posé **immédiatement**, sans attendre le cron, dans les deux cas :
+  inscription **en ligne** (à la confirmation) et saisie **manuelle** par l'organisateur
+  (`Partecipants/PopEdit.php`). Dans les deux cas c'est une simple copie locale depuis le
+  cache — aucun accès réseau. Un club encore absent du cache (club tout neuf) est rattrapé
+  au passage suivant du cron, qui balaie aussi les clubs des compétitions.
 
 ## 13. Opérations à l'échelle du serveur (mise à jour / réparation)
 

@@ -222,7 +222,7 @@ function aut_logos_sync_tournament($tourId)
     aut_logos_schema();
     global $CFG;
     $tourId = intval($tourId);
-    $res = array('ecrits' => 0, 'deja' => 0, 'absents' => 0);
+    $res = array('ecrits' => 0, 'deja' => 0, 'absents' => 0, 'echecs' => 0);
 
     $t = safe_fetch(safe_r_sql("SELECT ToCode FROM Tournament WHERE ToId = $tourId"));
     if (!$t) return $res;
@@ -265,7 +265,11 @@ function aut_logos_sync_tournament($tourId)
             . ", $set, FlSVG = '', FlContAssoc = '' ON DUPLICATE KEY UPDATE $set");
 
         if (is_file($file) && md5_file($file) === md5($jpg)) { $res['deja']++; continue; }
+        // Un échec d'écriture doit se VOIR : sur un serveur durci, TV/Photos peut être
+        // en lecture seule pour le serveur web, et les logos ne seraient alors jamais
+        // posés — sans le moindre message si l'on se contentait de ne pas compter.
         if (@file_put_contents($file, $jpg) !== false) $res['ecrits']++;
+        else $res['echecs']++;
     }
     return $res;
 }

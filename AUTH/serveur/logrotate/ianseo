@@ -1,0 +1,32 @@
+# /etc/logrotate.d/ianseo — rotation des journaux du module.
+#
+#   sudo install -m 0644 -o root -g root ianseo /etc/logrotate.d/ianseo
+#   sudo logrotate -d /etc/logrotate.d/ianseo    # -d = simulation, rien n'est écrit
+#
+# Sans rotation, /var/log/ianseo-maintenance.log grossit indéfiniment (la synchro
+# des logos écrit ~1600 lignes par nuit) et ianseo-auth.log encore plus vite.
+
+/var/log/ianseo-maintenance.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 www-data adm
+}
+
+# Journal d'authentification lu par fail2ban.
+# ⚠️ « copytruncate » et non « create » : le module garde le fichier ouvert en
+# append ; un simple renommage le ferait écrire dans le fichier tourné, et
+# fail2ban ne verrait plus rien passer.
+/var/log/ianseo-auth.log {
+    weekly
+    rotate 12
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    create 0640 www-data adm
+}

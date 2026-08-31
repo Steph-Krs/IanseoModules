@@ -110,6 +110,20 @@ if ($_aut_logged) {
     unset($_aut_r, $_aut_views, $_aut_curRole, $_aut_curScope, $_aut_curIdx, $_aut_i, $_aut_v);
 }
 
+/* ---- Maintenance imminente : bandeau pour TOUT LE MONDE (pas seulement les
+       admins), pendant les minutes qui précèdent la fenêtre nocturne. Voir
+       aut_maintenance_notice() — silencieux tant que rien n'est programmé. ---- */
+if ($_aut_on && function_exists('aut_maintenance_notice')
+        && ($_aut_mnt = aut_maintenance_notice()) !== '') {
+    echo '<div id="aut-mnt" style="position:fixed; top:0; left:0; right:0; z-index:99999;'
+        . ' background:#8a4b00; color:#fff; font:13px Verdana,Arial,sans-serif; text-align:center;'
+        . ' padding:7px 34px 7px 12px; box-shadow:0 2px 6px rgba(0,0,0,.3);">'
+        . '⏳ ' . htmlspecialchars($_aut_mnt)
+        . '<span onclick="document.getElementById(\'aut-mnt\').remove()" style="position:absolute;'
+        . ' top:5px; right:12px; cursor:pointer; font-weight:bold;">✕</span></div>';
+    unset($_aut_mnt);
+}
+
 /* ---- Message flash (ex. refus d'import) — affiché une fois ---- */
 if ($_aut_on) {
     $_aut_flash = aut_flash_get();

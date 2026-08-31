@@ -1,0 +1,24 @@
+# /etc/sudoers.d/ianseo-maintenance — droits minimaux du compte web.
+#
+# Installation OBLIGATOIREMENT vérifiée (une erreur de syntaxe dans sudoers peut
+# rendre sudo inutilisable sur toute la machine) :
+#   sudo install -m 0440 -o root -g root ianseo-maintenance /etc/sudoers.d/ianseo-maintenance
+#   sudo visudo -c        # doit afficher « parsed OK »
+#
+# Permet au cron de maintenance (exécuté sous www-data) de basculer la page de
+# maintenance. Rien d'autre : chaque commande est nommée par son chemin ABSOLU,
+# sans joker, et sans argument libre.
+
+www-data ALL=(root) NOPASSWD: /usr/local/bin/ianseo-maintenance-on, /usr/local/bin/ianseo-maintenance-off
+
+# ---------------------------------------------------------------------------
+# NE PAS décommenter les deux lignes suivantes sans y avoir réfléchi.
+#
+# Elles ne servent QU'À la mise à jour automatique du cœur ianseo (désactivée
+# par défaut : config.local.json → maintenance.steps.core = false). Or accorder
+# « ianseo-unlock » à www-data revient à lui donner le pouvoir de rendre TOUT
+# l'arbre ianseo inscriptible : une faille du serveur web permettrait alors de
+# réécrire le code du cœur, ce qui annule précisément la protection apportée par
+# ianseo-lock. Tant que la MàJ du cœur reste manuelle, ne pas les accorder.
+#
+# www-data ALL=(root) NOPASSWD: /usr/local/bin/ianseo-unlock, /usr/local/bin/ianseo-lock

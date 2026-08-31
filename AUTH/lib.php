@@ -77,6 +77,69 @@ function aut_json_strip_bom($s) {
     return (substr($s, 0, 3) === "\xEF\xBB\xBF") ? substr($s, 3) : $s;
 }
 
+/**
+ * Horodatage des journaux de cron, à l'heure LOCALE du serveur.
+ *
+ * ianseo force PHP en UTC (config.php). Sans ceci, les lignes de nos scripts
+ * s'affichent avec 1 à 2 h de décalage par rapport à celles des scripts système
+ * (ianseo-maintenance-off…) DANS LE MÊME FICHIER de log — confusion d'horaires
+ * déjà rencontrée sur le serveur de test. Surcharge : config.local.json → "timezone".
+ */
+function aut_log_time($fmt = 'Y-m-d H:i:s') {
+    static $tz = null;
+    if ($tz === null) {
+        $name = (string) (aut_local_config()['timezone'] ?? 'Europe/Paris');
+        try { $tz = new DateTimeZone($name); } catch (\Throwable $e) { $tz = new DateTimeZone('UTC'); }
+    }
+    $d = new DateTime('now', $tz);
+    return $d->format($fmt);
+}
+
+/**
+ * Message d'avertissement AVANT la fenêtre de maintenance nocturne, à afficher
+ * en permanence pendant les N minutes qui la précèdent — pour qu'un utilisateur
+ * en train de s'inscrire ou de saisir ne se retrouve pas devant une page 503
+ * sans prévenir. Retourne '' hors de cette plage (donc quasiment toujours).
+ *
+ * L'horaire n'est PAS déduit de la crontab (trop fragile) : il est déclaré dans
+ * config.local.json → "maintenance": {"notice": {"at": "03:15", "lead_minutes": 15}}.
+ * Sans « at », la fonction ne fait rien : aucun message intempestif par défaut.
+ *
+ * Heure LOCALE obligatoire : ianseo force PHP en UTC, un calcul naïf annoncerait
+ * la maintenance avec 1 à 2 h de décalage.
+ */
+function aut_maintenance_notice() {
+    static $msg = null;
+    if ($msg !== null) return $msg;
+    $msg = '';
+
+    $c = aut_local_config()['maintenance']['notice'] ?? array();
+    $at = trim((string) ($c['at'] ?? ''));
+    if (!preg_match('/^([01]?\d|2[0-3]):([0-5]\d)$/', $at, $m)) return $msg;
+
+    $lead = max(1, intval($c['lead_minutes'] ?? 15));
+    try {
+        $tz  = new DateTimeZone((string) (aut_local_config()['timezone'] ?? 'Europe/Paris'));
+        $now = new DateTime('now', $tz);
+        $deb = new DateTime('now', $tz);
+        $deb->setTime(intval($m[1]), intval($m[2]), 0);
+        // Heure déjà passée aujourd'hui → la prochaine occurrence est demain. Pendant
+        // la maintenance elle-même, Apache sert la page 503 : rien à annoncer ici.
+        if ($deb <= $now) $deb->modify('+1 day');
+        $reste = (int) ceil(($deb->getTimestamp() - $now->getTimestamp()) / 60);
+        if ($reste > $lead) return $msg;
+    } catch (\Throwable $e) {
+        return $msg;
+    }
+
+    $duree = trim((string) ($c['duration'] ?? 'quelques minutes'));
+    $msg = 'Maintenance programmée à ' . $at
+         . ($reste > 1 ? ' (dans ' . $reste . ' minutes)' : ' (imminente)')
+         . ' — le serveur sera indisponible ' . $duree
+         . '. Terminez et enregistrez votre saisie.';
+    return $msg;
+}
+
 /* ------------------------------------------------------------------ */
 /* Schéma DB                                                           */
 /* ------------------------------------------------------------------ */

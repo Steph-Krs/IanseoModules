@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+
+    <title>Maintenance en cours</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Rafraîchissement automatique de la page toutes les 30 secondes -->
+    <meta http-equiv="refresh" content="999999">
+
+    <style>
+        :root {
+            --blue: #0254a8;
+            --blue-dark: #01367c;
+            --blue-light: #a7d6ff;
+            --background: #f0f4ff;
+            --text: #20263d;
+            --secondary: #4c4e50;
+            --border: #d2d4d6;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+            margin: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+
+            font-family: Arial, Helvetica, sans-serif;
+            color: var(--text);
+
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(167, 214, 255, 0.65),
+                    transparent 35%
+                ),
+                radial-gradient(
+                    circle at bottom right,
+                    rgba(2, 84, 168, 0.10),
+                    transparent 40%
+                ),
+                var(--background);
+        }
+
+        /*
+         * Carte principale
+         */
+        .maintenance-card {
+            position: relative;
+
+            width: 100%;
+            max-width: 620px;
+            padding: 48px 40px 36px;
+
+            text-align: center;
+
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.10);
+
+            overflow: hidden;
+        }
+
+        /*
+         * Bandeau bleu supérieur
+         */
+        .maintenance-card::before {
+            content: "";
+
+            position: absolute;
+            top: 0;
+            left: 0;
+
+            width: 100%;
+            height: 6px;
+
+            background: var(--blue);
+        }
+
+        /*
+         * Cible
+         */
+        .target {
+            position: relative;
+
+            width: 112px;
+            height: 112px;
+            margin: 0 auto 28px;
+
+            border-radius: 50%;
+
+            background:
+                radial-gradient(
+                    circle,
+                    var(--blue) 0 12%,
+                    var(--white) 13% 27%,
+                    var(--blue) 28% 43%,
+                    var(--white) 44% 58%,
+                    var(--blue-light) 59% 73%,
+                    var(--white) 74% 100%
+                );
+
+            border: 1px solid var(--border);
+
+            box-shadow:
+                0 4px 14px rgba(2, 84, 168, 0.14);
+        }
+
+        /*
+         * Flèche centrée sur la cible
+         */
+        .arrow {
+            position: absolute;
+
+            /* Décalée de 55px (44px de demi-hauteur + 11px de décalage de la pointe)
+               pour que la pointe de la flèche tombe exactement au centre de la cible */
+            top: calc(0% + 10px);
+            left: 0%;
+
+            width: 6px;
+            height: 88px;
+
+            background: var(--text);
+
+            border-radius: 4px;
+
+            transform: rotate(90deg);
+            transform-origin: center;
+
+            animation: arrowVibration 2.8s ease-in-out infinite;
+        }
+
+        /*
+         * Pointe de la flèche
+         */
+        .arrow::before {
+            content: "";
+
+            position: absolute;
+
+            top: -11px;
+            left: 50%;
+
+            width: 0;
+            height: 0;
+
+            transform: translateX(-50%);
+
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 18px solid var(--text);
+        }
+
+        /*
+         * Empennage stylisé
+         */
+        .arrow::after {
+            content: "";
+
+            position: absolute;
+
+            bottom: -8px;
+            left: 50%;
+
+            width: 22px;
+            height: 14px;
+
+            transform: translateX(-50%);
+
+            border-top: 6px solid var(--blue);
+            border-radius: 50%;
+        }
+
+        @keyframes arrowVibration {
+            0%,
+            100% {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+
+            50% {
+                transform: translate(-50%, -50%) rotate(2deg);
+            }
+        }
+
+        /*
+         * Titre
+         */
+        h1 {
+            margin: 0 0 14px;
+
+            color: var(--blue-dark);
+
+            font-size: clamp(28px, 5vw, 40px);
+            line-height: 1.15;
+        }
+
+        /*
+         * Message principal
+         */
+        .message {
+            margin: 0;
+
+            color: var(--secondary);
+
+            font-size: 17px;
+            line-height: 1.6;
+        }
+
+        /*
+         * Bloc d'attente
+         */
+        .waiting {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+
+            margin-top: 32px;
+            padding: 12px 20px;
+
+            color: var(--blue-dark);
+            font-size: 14px;
+            font-weight: 600;
+
+            background: var(--background);
+            border: 1px solid var(--blue-light);
+            border-radius: 6px;
+        }
+
+        /*
+         * Trois points animés
+         */
+        .dots {
+            display: inline-flex;
+            gap: 6px;
+        }
+
+        .dots i {
+            display: block;
+
+            width: 8px;
+            height: 8px;
+
+            background: var(--blue);
+
+            border-radius: 50%;
+            opacity: 0.4;
+
+            animation: dotBounce 1s ease-in-out infinite;
+        }
+
+        .dots i:nth-child(2) {
+            animation-delay: 0.16s;
+        }
+
+        .dots i:nth-child(3) {
+            animation-delay: 0.32s;
+        }
+
+        @keyframes dotBounce {
+            0%,
+            80%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+
+            40% {
+                transform: translateY(-7px);
+                opacity: 1;
+            }
+        }
+
+        /*
+         * Changement en douceur du message d'attente
+         */
+        #status-message {
+            transition: opacity 0.3s ease;
+        }
+
+        #status-message.fade-out {
+            opacity: 0;
+        }
+
+        /*
+         * Informations en bas de la carte
+         */
+        .footer-info {
+            margin-top: 30px;
+            padding-top: 22px;
+
+            color: var(--secondary);
+
+            font-size: 13px;
+            line-height: 1.5;
+
+            border-top: 1px solid var(--border);
+        }
+
+        .refresh-info {
+            margin-top: 8px;
+
+            color: var(--blue);
+            font-weight: 600;
+        }
+
+        /*
+         * Mode réduction des animations
+         */
+        @media (prefers-reduced-motion: reduce) {
+            .arrow {
+                animation: none;
+            }
+
+            .dots i {
+                animation-name: dotFade;
+            }
+
+            #status-message {
+                transition: none;
+            }
+        }
+
+        @keyframes dotFade {
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* ==========================================================
+         * Scène d'archer (amélioration progressive du visuel statique)
+         * ========================================================== */
+        .archery-scene {
+            width: 100%;
+            margin: 0 auto 28px;
+
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .archery-scene svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .flying-arrow-svg {
+            transform-origin: 0 0;
+            transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+
+        .flying-arrow-svg.fade-out-shot,
+        .impact-mark-svg.fade-out-shot {
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+
+        /*
+         * Adaptation mobile
+         */
+        @media (max-width: 520px) {
+            body {
+                padding: 16px;
+            }
+
+            .maintenance-card {
+                padding: 38px 24px 28px;
+            }
+
+            .target {
+                transform: scale(0.88);
+                margin-bottom: 20px;
+            }
+
+            .message {
+                font-size: 16px;
+            }
+
+            .waiting {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="maintenance-card">
+
+        <!-- Cible et flèche statiques : repli si JS désactivé ou animations réduites -->
+        <div class="target" id="staticTarget" aria-hidden="true">
+            <div class="arrow"></div>
+        </div>
+
+        <!-- Scène d'archer animée : activée en JS quand les animations sont autorisées -->
+        <div class="archery-scene" id="archeryScene" aria-hidden="true" hidden>
+            <svg id="archerySvg" viewBox="0 0 600 170" xmlns="http://www.w3.org/2000/svg">
+                <line x1="0" y1="150.5" x2="600" y2="150.5" stroke="var(--border)" stroke-width="1"></line>
+                <g id="miniTargetGroup"></g>
+                <g id="archerGroup"></g>
+                <g id="shotsLayer"></g>
+            </svg>
+        </div>
+
+        <h1>Maintenance en cours</h1>
+
+        <p class="message">
+            Le serveur IANSEO est actuellement en cours de mise à jour.
+            <br>
+            Il sera de nouveau disponible dans quelques instants.
+        </p>
+
+        <!-- Message d'attente animé -->
+        <div class="waiting" aria-live="polite">
+            <span id="status-message">Préparation du serveur</span>
+
+            <span class="dots" aria-hidden="true">
+                <i></i>
+                <i></i>
+                <i></i>
+            </span>
+        </div>
+
+        <!-- Information sur le rafraîchissement -->
+        <div class="footer-info">
+            Vous n'avez rien à faire : la page se mettra à jour automatiquement.
+
+            <div class="refresh-info">
+                Nouvelle vérification dans moins de 30 secondes
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        /*
+         * Messages affichés successivement pendant la maintenance.
+         * Les messages alternent entre informations techniques
+         * et références à l'univers du tir à l'arc.
+         */
+        const messages = [
+            "Préparation du serveur",
+            "Vérification des services",
+            "Mise à jour en cours",
+            "Installation des dernières améliorations",
+            "Vérification de la base de données",
+            "Synchronisation des services",
+            "Préparation des compétitions",
+            "Installation des mises à jour",
+            "Vérification des résultats",
+            "Mise en place des cibles",
+            "Réglage des viseurs",
+            "Contrôle de la tension des arcs",
+            "Comptage des flèches",
+            "Recherche des flèches perdues",
+            "Préparation de la ligne de tir",
+            "Les archers s'échauffent",
+            "Les arbitres prennent position",
+            "Préparation des pas de tir",
+            "Vérification des blasons",
+            "Les cibles sont presque prêtes",
+            "Vérification des inscriptions",
+            "Mise à jour des compétitions",
+            "Préparation des classements",
+            "Vérification des scores",
+            "Synchronisation des résultats",
+            "Derniers réglages en cours",
+            "Encore quelques flèches à tirer",
+            "On vérifie que tout est dans le jaune",
+            "La dernière volée est en cours",
+            "Les résultats sont presque prêts",
+            "On s'assure que tout est sur la bonne cible",
+            "Retour progressif sur la ligne de tir",
+            "Plus que quelques réglages",
+            "Le serveur reprend son souffle",
+            "Presque prêt...",
+            "Merci de votre patience"
+        ];
+
+        const statusMessage = document.getElementById("status-message");
+        let currentMessage = 0;
+
+        /*
+         * Changement du message toutes les 5 secondes.
+         */
+        setInterval(function () {
+            statusMessage.classList.add("fade-out");
+
+            setTimeout(function () {
+                currentMessage =
+                    (currentMessage + 1) % messages.length;
+
+                statusMessage.textContent =
+                    messages[currentMessage];
+
+                statusMessage.classList.remove("fade-out");
+            }, 300);
+
+        }, 5000);
+    </script>
+
+    <script>
+        /*
+         * Scène d'archer : remplace la cible statique par une petite
+         * animation où un archer détaillé, positionné aléatoirement,
+         * tire une volée de 3 flèches vers des points aléatoires de
+         * la cible, placée à droite (l'archer tire donc vers la droite).
+         *
+         * Respecte prefers-reduced-motion : si l'utilisateur préfère
+         * moins d'animations, on garde la cible/flèche statique (déjà
+         * positionnée correctement) et on n'active pas la scène.
+         */
+        (function () {
+            var prefersReducedMotion =
+                window.matchMedia &&
+                window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+            if (prefersReducedMotion) {
+                return;
+            }
+
+            var staticTarget = document.getElementById("staticTarget");
+            var scene = document.getElementById("archeryScene");
+            var svgNS = "http://www.w3.org/2000/svg";
+            var svg = document.getElementById("archerySvg");
+            var miniTargetGroup = document.getElementById("miniTargetGroup");
+            var archerGroup = document.getElementById("archerGroup");
+            var shotsLayer = document.getElementById("shotsLayer");
+
+            if (!scene || !svg || !miniTargetGroup || !archerGroup || !shotsLayer) {
+                return;
+            }
+
+            // Bascule du repli statique vers la scène animée.
+            staticTarget.style.display = "none";
+            scene.hidden = false;
+
+            /* ----- Constantes de la scène (unités SVG) ----- */
+            var GROUND_Y = 150;
+            var TARGET_X = 528;
+            var TARGET_CENTER_Y = 78;
+            var TARGET_OUTER_R = 46;
+
+            var ARCHER_X_MIN = 30;
+            var ARCHER_X_MAX = 340;
+            var ARCHER_SCALE = 0.5;
+
+            // Points de repère de l'archer, en coordonnées locales
+            // (avant mise à l'échelle et mise en miroir).
+            var GRIP_LOCAL = { x: -80, y: -150 };
+            var DRAWN_HAND_LOCAL = { x: 34, y: -150 };
+            var ARROW_VISUAL_LEN = 125;
+
+            var STROKE = "#1c2233";
+
+            function randomBetween(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            /* ----- Cible ----- */
+            function buildTarget() {
+                var rings = [
+                    { r: TARGET_OUTER_R, fill: "var(--white)" },
+                    { r: TARGET_OUTER_R * 0.8, fill: "var(--blue)" },
+                    { r: TARGET_OUTER_R * 0.6, fill: "var(--white)" },
+                    { r: TARGET_OUTER_R * 0.4, fill: "var(--blue-light)" },
+                    { r: TARGET_OUTER_R * 0.2, fill: "var(--blue-dark)" }
+                ];
+
+                var html = "";
+                rings.forEach(function (ring) {
+                    html +=
+                        '<circle cx="' + TARGET_X + '" cy="' + TARGET_CENTER_Y + '" r="' + ring.r +
+                        '" fill="' + ring.fill + '" stroke="var(--border)" stroke-width="1"></circle>';
+                });
+
+                miniTargetGroup.innerHTML = html;
+            }
+
+            /*
+             * Archer détaillé, à pleine détente, flèche encochée.
+             * Dessiné en position "de base" (tirant vers la gauche) puis
+             * mis en miroir horizontalement pour tirer vers la droite.
+             */
+            function archerTemplateSVG() {
+                var hand = DRAWN_HAND_LOCAL;
+                var dx = GRIP_LOCAL.x - hand.x;
+                var dy = GRIP_LOCAL.y - hand.y;
+                var len = Math.hypot(dx, dy) || 1;
+                var ux = dx / len, uy = dy / len;
+
+                var tailX = hand.x - ux * 12;
+                var tailY = hand.y - uy * 12;
+                var tipX = hand.x + ux * ARROW_VISUAL_LEN;
+                var tipY = hand.y + uy * ARROW_VISUAL_LEN;
+
+                return ''
+                    // jambe arrière
+                    + '<path d="M 4,-78 L 24,-38 L 32,4" fill="none" stroke="' + STROKE + '" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>'
+                    // jambe avant
+                    + '<path d="M 4,-78 L -16,-40 L -22,4" fill="none" stroke="' + STROKE + '" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>'
+                    // arc
+                    + '<path d="M -70,-220 Q -100,-175 ' + GRIP_LOCAL.x + ',' + GRIP_LOCAL.y + ' Q -100,-125 -70,-80" fill="none" stroke="' + STROKE + '" stroke-width="7" stroke-linecap="round"/>'
+                    // torse
+                    + '<path d="M -4,-150 L 4,-78" fill="none" stroke="' + STROKE + '" stroke-width="21" stroke-linecap="round"/>'
+                    // bras avant (tient l'arc)
+                    + '<path d="M -8,-146 L ' + GRIP_LOCAL.x + ',' + GRIP_LOCAL.y + '" fill="none" stroke="' + STROKE + '" stroke-width="13" stroke-linecap="round"/>'
+                    // bras arrière (arme la corde)
+                    + '<path d="M 0,-142 L ' + hand.x + ',' + hand.y + '" fill="none" stroke="' + STROKE + '" stroke-width="13" stroke-linecap="round"/>'
+                    // corde tendue
+                    + '<path d="M -70,-220 L ' + hand.x + ',' + hand.y + ' L -70,-80" fill="none" stroke="#d7d7d7" stroke-width="2.4"/>'
+                    // flèche encochée
+                    + '<line x1="' + tailX + '" y1="' + tailY + '" x2="' + tipX + '" y2="' + tipY + '" stroke="#5a3b23" stroke-width="3.2" stroke-linecap="round"/>'
+                    + '<polygon points="' + tipX + ',' + tipY + ' ' +
+                        (tipX - uy * 6 - ux * 12) + ',' + (tipY + ux * 6 - uy * 12) + ' ' +
+                        (tipX + uy * 6 - ux * 12) + ',' + (tipY - ux * 6 - uy * 12) +
+                        '" fill="' + STROKE + '"/>'
+                    // tête
+                    + '<circle cx="-4" cy="-168" r="17" stroke="' + STROKE + '" stroke-width="6"/>';
+            }
+
+            function buildArcher() {
+                archerGroup.innerHTML = archerTemplateSVG();
+            }
+
+            /*
+             * Convertit un point exprimé dans le repère local de l'archer
+             * (avant mise à l'échelle / miroir) en coordonnées de la scène,
+             * en tenant compte de la position aléatoire de l'archer.
+             */
+            function localToScene(archerX, point) {
+                return {
+                    x: archerX - point.x * ARCHER_SCALE,
+                    y: GROUND_Y + point.y * ARCHER_SCALE
+                };
+            }
+
+            var state = { archerX: 80 };
+
+            function repositionArcher() {
+                state.archerX = randomBetween(ARCHER_X_MIN, ARCHER_X_MAX);
+                archerGroup.setAttribute(
+                    "transform",
+                    "translate(" + state.archerX + "," + GROUND_Y + ") scale(" + (-ARCHER_SCALE) + "," + ARCHER_SCALE + ")"
+                );
+            }
+
+            /*
+             * Choisit un point aléatoire à l'intérieur de la cible
+             * (distribution uniforme sur le disque).
+             */
+            function randomTargetPoint() {
+                var maxRadius = TARGET_OUTER_R * 0.82;
+                var angle = randomBetween(0, Math.PI * 2);
+                var radius = Math.sqrt(Math.random()) * maxRadius;
+
+                return {
+                    x: TARGET_X + Math.cos(angle) * radius,
+                    y: TARGET_CENTER_Y + Math.sin(angle) * radius
+                };
+            }
+
+            function shootOneArrow() {
+                var start = localToScene(state.archerX, GRIP_LOCAL);
+                var end = randomTargetPoint();
+
+                var dx = end.x - start.x;
+                var dy = end.y - start.y;
+                var angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
+                var fullDistance = Math.hypot(dx, dy);
+                var arrowVisualLength = 24;
+                var travelDistance = Math.max(0, fullDistance - arrowVisualLength);
+
+                var arrowEl = document.createElementNS(svgNS, "g");
+                arrowEl.setAttribute("class", "flying-arrow-svg");
+                arrowEl.innerHTML =
+                    '<line x1="0" y1="0" x2="18" y2="0" stroke="' + STROKE + '" stroke-width="3" stroke-linecap="round"/>' +
+                    '<polygon points="24,0 14,-4 14,4" fill="' + STROKE + '"/>' +
+                    '<polygon points="0,0 -8,-4 -8,4" fill="var(--blue)"/>';
+
+                arrowEl.style.transform =
+                    "translate(" + start.x + "px," + start.y + "px) rotate(" + angleDeg + "deg) translateX(0px)";
+                shotsLayer.appendChild(arrowEl);
+
+                // Laisse le navigateur peindre l'état initial avant de
+                // déclencher la transition vers le point d'impact.
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        arrowEl.style.transform =
+                            "translate(" + start.x + "px," + start.y + "px) rotate(" + angleDeg + "deg) translateX(" + travelDistance + "px)";
+                    });
+                });
+
+                arrowEl.addEventListener(
+                    "transitionend",
+                    function () {
+                        var impact = document.createElementNS(svgNS, "circle");
+                        impact.setAttribute("class", "impact-mark-svg");
+                        impact.setAttribute("cx", end.x);
+                        impact.setAttribute("cy", end.y);
+                        impact.setAttribute("r", "4.5");
+                        impact.setAttribute("fill", "var(--blue-dark)");
+                        impact.setAttribute("stroke", "var(--white)");
+                        impact.setAttribute("stroke-width", "1.2");
+                        shotsLayer.appendChild(impact);
+                    },
+                    { once: true }
+                );
+            }
+
+            function clearShots(callback) {
+                var shots = shotsLayer.querySelectorAll(".flying-arrow-svg, .impact-mark-svg");
+
+                if (!shots.length) {
+                    callback();
+                    return;
+                }
+
+                shots.forEach(function (el) {
+                    el.classList.add("fade-out-shot");
+                });
+
+                setTimeout(function () {
+                    shotsLayer.innerHTML = "";
+                    callback();
+                }, 350);
+            }
+
+            /*
+             * Une volée = 3 flèches tirées depuis une même position
+             * d'archer, puis nettoyage et nouvelle position pour la
+             * volée suivante.
+             */
+            function runVolley() {
+                repositionArcher();
+
+                var arrowsShot = 0;
+                var shotInterval = setInterval(function () {
+                    shootOneArrow();
+                    arrowsShot += 1;
+
+                    if (arrowsShot >= 3) {
+                        clearInterval(shotInterval);
+
+                        setTimeout(function () {
+                            clearShots(function () {
+                                setTimeout(runVolley, 500);
+                            });
+                        }, 1400);
+                    }
+                }, 850);
+            }
+
+            buildTarget();
+            buildArcher();
+            runVolley();
+        })();
+    </script>
+
+</body>
+</html>
