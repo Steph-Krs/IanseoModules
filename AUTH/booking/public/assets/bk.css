@@ -63,6 +63,10 @@ body {
 #bk .bk-msg-err { background: #ffd6db; border: 1px solid #bb7575; color: #a80000; }
 #bk .bk-msg-ok  { background: #d2f4cd; border: 1px solid #75ae77; color: #04ac0b; }
 
+/* ---- Maintenance imminente (bandeau d'avertissement) ---- */
+#bk .bk-maint { position: sticky; top: 0; z-index: 70; background: #8a4b00; color: #fff;
+    font-size: 13px; text-align: center; padding: 8px 14px; line-height: 1.4; }
+
 /* ---- Vue « depuis un autre compte » (admin, lecture seule) ---- */
 #bk .bk-imp { position: sticky; top: 0; z-index: 60; background: #5b2a86; color: #fff;
     font-size: 13px; text-align: center; padding: 8px 14px; }

@@ -55,7 +55,9 @@ require_once(dirname(__DIR__) . '/lib.php');
 ini_set('memory_limit', '512M');
 
 $T0 = microtime(true);
-function mt_log($msg) { echo '[' . date('Y-m-d H:i:s') . '] ' . $msg . "\n"; }
+// Heure LOCALE : ianseo force PHP en UTC, et ce journal est relu à côté des lignes
+// des scripts système (heure locale). Voir aut_log_time().
+function mt_log($msg) { echo '[' . aut_log_time() . '] ' . $msg . "\n"; }
 function mt_step($t)  { mt_log(''); mt_log('=== ' . $t . ' ==='); }
 
 /* ------------------------------------------------------------------ */
@@ -143,7 +145,16 @@ function mt_php($script, $args = '') {
     if ($dryRun) { mt_log('  [dry-run] ' . $cmd); return true; }
     $out = array(); $rc = 0;
     exec($cmd . ' 2>&1', $out, $rc);
-    foreach ($out as $l) mt_log('  | ' . $l);
+    // Les avertissements « libpng warning: iCCP … » viennent de la bibliothèque C
+    // (profils ICC légèrement malformés dans les logos), sont totalement inoffensifs
+    // et peuvent représenter des dizaines de lignes par nuit : on les compte au lieu
+    // de les recopier, pour que le journal reste lisible. Tout le reste est conservé.
+    $bruit = 0;
+    foreach ($out as $l) {
+        if (stripos(ltrim($l), 'libpng warning:') === 0) { $bruit++; continue; }
+        mt_log('  | ' . $l);
+    }
+    if ($bruit) mt_log("  | ($bruit avertissement(s) libpng ignoré(s) — profils ICC des logos, sans conséquence)");
     return $rc === 0;
 }
 

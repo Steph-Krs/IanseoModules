@@ -48,7 +48,8 @@ require_once(dirname(__DIR__) . '/logos-lib.php');
 ini_set('memory_limit', '512M');
 @set_time_limit(0);
 
-function lg_log($msg) { echo '[' . date('Y-m-d H:i:s') . '] ' . $msg . "\n"; }
+// Heure LOCALE (ianseo force PHP en UTC) — voir aut_log_time().
+function lg_log($msg) { echo '[' . aut_log_time() . '] ' . $msg . "\n"; }
 function lg_fail($msg) {
     lg_log('ERREUR : ' . $msg);
     aut_log('LOGOSYNC_FAIL', 'cron', 'cli');
@@ -140,14 +141,27 @@ if (!$propagateOnly) {
 /* ================================================================= */
 $tours = aut_logos_active_tournaments();
 lg_log(count($tours) . ' compétition(s) non terminée(s) à alimenter.');
-$tot = array('ecrits' => 0, 'deja' => 0, 'absents' => 0);
+$tot = array('ecrits' => 0, 'deja' => 0, 'absents' => 0, 'echecs' => 0);
+$dirPhotos = $CFG->DOCUMENT_PATH . 'TV/Photos';
+if (!is_writable($dirPhotos)) {
+    lg_log('ATTENTION : ' . $dirPhotos . ' n\'est PAS accessible en écriture par ce compte — '
+        . 'les logos ne pourront pas être posés (ianseo en a lui aussi besoin : drapeaux, '
+        . 'photos, badges, fichier d\'état des mises à jour).');
+}
 foreach ($tours as $tid) {
     $r = aut_logos_sync_tournament($tid);
-    foreach ($r as $k => $v) $tot[$k] += $v;
+    foreach ($r as $k => $v) $tot[$k] = ($tot[$k] ?? 0) + $v;
     if ($r['ecrits']) lg_log("  compétition $tid : {$r['ecrits']} logo(s) posé(s).");
+    if ($r['echecs']) lg_log("  compétition $tid : {$r['echecs']} ÉCHEC(S) d'écriture.");
 }
 lg_log("Propagation terminée : {$tot['ecrits']} fichier(s) écrit(s), {$tot['deja']} déjà à jour, "
-    . "{$tot['absents']} club(s) sans logo en cache.");
+    . "{$tot['absents']} club(s) sans logo en cache"
+    . ($tot['echecs'] ? ", {$tot['echecs']} ÉCHEC(S) d'écriture (permissions de TV/Photos ?)" : '') . '.');
+if ($tot['echecs']) {
+    aut_log('LOGOSYNC_FAIL', 'cron', 'cli');
+    lg_log('Terminé AVEC DES ÉCHECS.');
+    exit(1);
+}
 
 $st = aut_logos_stats();
 lg_log('Cache : ' . $st['avec'] . ' logos / ' . $st['total'] . ' clubs connus ('

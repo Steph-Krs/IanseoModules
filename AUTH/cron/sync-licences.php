@@ -32,7 +32,8 @@ require_once('Common/Lib/Fun_DateTime.inc.php');
 ini_set('memory_limit', '512M');
 
 function lic_log($msg) {
-    echo '[' . date('Y-m-d H:i:s') . '] ' . $msg . "\n";
+    // Heure LOCALE (ianseo force PHP en UTC) — voir aut_log_time().
+    echo '[' . aut_log_time() . '] ' . $msg . "\n";
 }
 
 function lic_fail($msg) {

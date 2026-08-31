@@ -60,6 +60,15 @@ function bk_head($title, $layout = 'page')
 </head>
 <body>
 <div id="bk" class="bk-<?= bk_e($layout) ?>">
+<?php
+// Maintenance imminente : même avertissement que côté organisateur, pour que
+// personne ne perde une inscription en cours. Fonction du module AUTH parent,
+// appelée SI elle existe (les deux modules restent indépendants) ; elle renvoie
+// une chaîne vide tant qu'aucune fenêtre n'est programmée ou proche.
+$bkMnt = function_exists('aut_maintenance_notice') ? aut_maintenance_notice() : '';
+if ($bkMnt !== ''): ?>
+  <div class="bk-maint">⏳ <?= bk_e($bkMnt) ?></div>
+<?php endif; ?>
 <?php if (function_exists('bk_impersonating') && ($bkImp = bk_impersonating())): ?>
   <div class="bk-imp">👁 Vue administrateur — <b><?= bk_e((string) ($bkImp['label'] ?? '')) ?></b> — LECTURE SEULE
     <a class="bk-imp-x" href="<?= bk_e($GLOBALS['CFG']->ROOT_DIR . 'Modules/Custom/AUTH/admin/impersonate.php?exit=1&aut_csrf=' . rawurlencode((string) ($_SESSION['AUT_CSRF'] ?? ''))) ?>">Quitter</a>
