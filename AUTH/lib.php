@@ -1418,8 +1418,10 @@ function aut_handle_org_login(&$err, &$stage) {
         /* SSO Espace Dirigeant : relais + synchro des structures */
         $structures = array();
         $ssoErr = '';
+        $ssoCode = '';
         $dirCookie = null;
-        if (aut_ffta_verify($username, $password, $otp, $structures, $ssoErr, $dirCookie)) {
+        if (aut_ffta_verify($username, $password, $otp, $structures, $ssoErr, $dirCookie, $ssoCode)) {
+            aut_ffta_outage_clear('dirigeant');   // l'espace répond : le bandeau n'a plus lieu d'être
             aut_dirigeant_stash($dirCookie);      // cookie session dirigeant réutilisable (synchro)
             aut_extranet_open($username, $password); // 2e auth extranet, échec silencieux
             $syncErr = '';
@@ -1442,7 +1444,16 @@ function aut_handle_org_login(&$err, &$stage) {
                 aut_finish_login($u, 'SSO_OK');   // admin sans TOTP → Setup2FA forcé via bootstrap
             }
         } else {
-            aut_log('LOGIN_FAIL', $username);
+            // Panne/maintenance FFTA, coupure réseau, page fédérale modifiée, code MFA
+            // non saisi : ce ne sont PAS des tentatives d'intrusion. Les compter
+            // bloquerait l'utilisateur 15 min de plus, EN PLUS de la panne — et le
+            // ferait chercher l'erreur de son côté. Seul BAD_CREDENTIALS compte.
+            if (in_array($ssoCode, array('OUTAGE', 'NETWORK', 'NO_CSRF', 'MFA_NEEDED'), true)) {
+                aut_log($ssoCode === 'MFA_NEEDED' ? 'SSO_MFA_STEP' : 'SSO_UNAVAILABLE', $username);
+                if ($ssoCode !== 'MFA_NEEDED') aut_ffta_outage_note('dirigeant', $ssoErr);
+            } else {
+                aut_log('LOGIN_FAIL', $username);
+            }
             $err = $ssoErr;
         }
     } else {
@@ -1719,7 +1730,9 @@ function aut_request_bootstrap() {
 /* Les structures rattachées (menu select-structure) donnent le rôle.  */
 /* ------------------------------------------------------------------ */
 
-define('AUT_FFTA_BASE', 'https://dirigeant.ffta.fr');
+// Surchargeable en la définissant AVANT le chargement de lib.php (préprod, tests
+// hors ligne du diagnostic d'indisponibilité). Valeur de production par défaut.
+if (!defined('AUT_FFTA_BASE')) define('AUT_FFTA_BASE', 'https://dirigeant.ffta.fr');
 
 function aut_sso_enabled() {
     $sso = aut_local_config()['sso'] ?? array();
@@ -1765,14 +1778,128 @@ function aut_ffta_debug_page($html) {
     return implode('  ', $info);
 }
 
+/* ---- Indisponibilité de l'espace FFTA (maintenance, panne) ----------- *
+ * Panne réelle (sept. 2026) : pendant une maintenance de la FFTA, le POST de
+ * connexion revient en erreur SANS quitter /auth/login. Or l'échec
+ * d'identifiants se détecte précisément par « l'URL finale contient /login » →
+ * tout le monde recevait « Identifiants espace dirigeant incorrects (ou MFA
+ * requise et non renseignée) ». Message doublement trompeur : l'utilisateur
+ * ressaisit son mot de passe en se croyant fautif, et l'anti-bourrage finit par
+ * le bloquer 15 min EN PLUS de la panne. On établit donc l'indisponibilité
+ * AVANT de conclure au refus.                                           */
+
+/** Minuscules + accents repliés : les marqueurs se cherchent en ASCII. */
+function aut_ffta_fold($s) {
+    $s = mb_strtolower((string) $s, 'UTF-8');
+    return strtr($s, array('é'=>'e','è'=>'e','ê'=>'e','ë'=>'e','à'=>'a','â'=>'a','ä'=>'a',
+                           'î'=>'i','ï'=>'i','ô'=>'o','ö'=>'o','ù'=>'u','û'=>'u','ü'=>'u','ç'=>'c'));
+}
+
+/** La page porte-t-elle un formulaire de connexion exploitable ? */
+function aut_ffta_is_login_page($html) {
+    return (bool) preg_match('/(name|id)=["\']password["\']|type=["\']password["\']/i', (string) $html);
+}
+
+/**
+ * La réponse FFTA est-elle exploitable ? Retourne '' si oui, sinon un message
+ * affichable. $attendu='login' : on attendait le formulaire de connexion — une
+ * page qui n'en est pas un est alors, elle aussi, un signe d'indisponibilité.
+ * ⚠ À n'appeler QUE sur une page dont on sait qu'elle n'est pas une page
+ * connectée : « maintenance » peut parfaitement figurer dans le menu d'une page
+ * saine, et un faux positif refuserait une connexion valide.
+ */
+function aut_ffta_outage($ch, $html, $attendu = '', $espace = "L'espace dirigeant de la FFTA") {
+    $code = intval(curl_getinfo($ch, CURLINFO_HTTP_CODE));
+
+    // 5xx = panne/maintenance côté fédération ; 429 = débit limité ; 408 = délai.
+    if ($code >= 500 || $code == 429 || $code == 408) return aut_ffta_outage_msg($espace, $code);
+
+    if (!aut_ffta_is_login_page($html)) {
+        $t = aut_ffta_fold($html);
+        foreach (array(
+            'be right back',                      // page 503 par défaut de Laravel
+            'service unavailable', 'temporarily unavailable', 'web server is down',
+            'en maintenance', 'maintenance en cours', 'maintenance planifiee',
+            'momentanement indisponible', 'temporairement indisponible',
+            'site indisponible', 'service indisponible',
+        ) as $m) {
+            if (strpos($t, $m) !== false) return aut_ffta_outage_msg($espace, $code);
+        }
+        if ($attendu === 'login') return aut_ffta_outage_msg($espace, $code, true);
+    }
+    return '';
+}
+
+/** Message d'indisponibilité — dit explicitement que l'utilisateur n'y est pour rien. */
+function aut_ffta_outage_msg($espace, $code, $inattendu = false) {
+    $fin = "Vos identifiants n'ont pas pu être vérifiés : ce n'est pas une erreur de votre part. "
+         . 'Réessayez dans quelques minutes.';
+    if ($inattendu) {
+        return $espace . " n'a pas renvoyé sa page de connexion habituelle (maintenance en cours, "
+             . 'ou page fédérale modifiée). ' . $fin;
+    }
+    if ($code == 429) {
+        return $espace . ' limite actuellement le nombre de connexions (réponse HTTP 429). ' . $fin;
+    }
+    if ($code >= 400) {
+        return $espace . ' ' . ($code == 503 ? 'est en maintenance' : 'est momentanément indisponible')
+             . ' (réponse HTTP ' . $code . '). ' . $fin;
+    }
+    // Détection par le CONTENU (le site répond 200 mais sert sa page de maintenance) :
+    // afficher « HTTP 200 » ici embrouillerait plus qu'il n'aiderait.
+    return $espace . " affiche une page d'indisponibilité (maintenance en cours). " . $fin;
+}
+
+/* ---- Mémo d'indisponibilité (bandeau de la page de connexion) -------- *
+ * Un seul utilisateur essuie l'échec ; les suivants doivent être prévenus AVANT
+ * de saisir leurs identifiants. Mémo volontairement hors du dossier du module
+ * (jamais servi par Apache) et hors base (aucune requête ajoutée sur la page de
+ * connexion). Illisible ou non écrivable, tout continue de fonctionner.   */
+define('AUT_OUTAGE_TTL', 600);
+
+function aut_ffta_outage_file() {
+    return rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'ianseo-ffta-outage.json';
+}
+
+function aut_ffta_outage_all() {
+    $raw = @file_get_contents(aut_ffta_outage_file());
+    $a = $raw ? json_decode(aut_json_strip_bom($raw), true) : null;
+    return is_array($a) ? $a : array();
+}
+
+function aut_ffta_outage_note($space, $msg) {
+    $all = aut_ffta_outage_all();
+    $all[$space] = array('at' => time(), 'msg' => (string) $msg);
+    @file_put_contents(aut_ffta_outage_file(), json_encode($all, JSON_UNESCAPED_UNICODE), LOCK_EX);
+}
+
+function aut_ffta_outage_clear($space) {
+    $all = aut_ffta_outage_all();
+    if (!isset($all[$space])) return;
+    unset($all[$space]);
+    @file_put_contents(aut_ffta_outage_file(), json_encode($all, JSON_UNESCAPED_UNICODE), LOCK_EX);
+}
+
+/** Mémo encore frais pour cet espace ('dirigeant' / 'licencie'), ou null. */
+function aut_ffta_outage_recent($space) {
+    $m = aut_ffta_outage_all()[$space] ?? null;
+    if (!is_array($m) || (time() - intval($m['at'] ?? 0)) > AUT_OUTAGE_TTL) return null;
+    return $m;
+}
+
 /**
  * Connexion à l'espace dirigeant (flux repris de l'intégration FR existante :
  * GET login → _token CSRF Laravel → POST identifiants → échec si l'URL finale
  * contient /login). Retourne un handle curl connecté + le HTML de la page
  * d'atterrissage via $landing, ou null ($error renseigné).
+ *
+ * $errCode qualifie l'échec pour l'appelant : NETWORK, OUTAGE, NO_CSRF,
+ * BAD_CREDENTIALS, MFA_NEEDED, MFA_BAD_CODE. Seul BAD_CREDENTIALS est une
+ * tentative à compter dans l'anti-bourrage.
  */
-function aut_ffta_curl_login($username, $password, $otp, &$landing, &$error, &$cookieFileOut = null) {
+function aut_ffta_curl_login($username, $password, $otp, &$landing, &$error, &$cookieFileOut = null, &$errCode = null) {
     $error = '';
+    $errCode = '';
     $landing = '';
     $cookieFile = tempnam(sys_get_temp_dir(), 'aut_ck_');
     @chmod($cookieFile, 0600);
@@ -1801,7 +1928,16 @@ function aut_ffta_curl_login($username, $password, $otp, &$landing, &$error, &$c
     aut_ffta_debug('GET /auth/login http=' . curl_getinfo($ch, CURLINFO_HTTP_CODE)
         . ' url=' . curl_getinfo($ch, CURLINFO_EFFECTIVE_URL) . ' ' . aut_ffta_debug_page($loginPage));
     if (!$loginPage || curl_errno($ch)) {
-        $error = 'Espace dirigeant injoignable (' . curl_error($ch) . ')';
+        $error = 'Espace dirigeant injoignable (' . curl_error($ch) . ') — '
+               . 'réseau ou site fédéral hors service. Réessayez dans quelques minutes.';
+        $errCode = 'NETWORK';
+        curl_close($ch);
+        return null;
+    }
+    if (($out = aut_ffta_outage($ch, $loginPage, 'login')) !== '') {
+        aut_ffta_debug('=> indisponibilité détectée sur GET /auth/login');
+        $error = $out;
+        $errCode = 'OUTAGE';
         curl_close($ch);
         return null;
     }
@@ -1817,6 +1953,7 @@ function aut_ffta_curl_login($username, $password, $otp, &$landing, &$error, &$c
     aut_ffta_debug('CSRF ' . ($csrf ? 'trouvé' : 'INTROUVABLE'));
     if (!$csrf) {
         $error = 'Token CSRF introuvable (page de connexion FFTA modifiée ?)';
+        $errCode = 'NO_CSRF';
         curl_close($ch);
         return null;
     }
@@ -1834,26 +1971,66 @@ function aut_ffta_curl_login($username, $password, $otp, &$landing, &$error, &$c
     aut_ffta_debug('POST /auth/login http=' . curl_getinfo($ch, CURLINFO_HTTP_CODE)
         . ' url=' . $effUrl . ' ' . aut_ffta_debug_page($landing));
 
-    if (strpos($effUrl, '/login') !== false) {
-        $error = 'Identifiants espace dirigeant incorrects (ou MFA requise et non renseignée).';
+    // Réponse interrompue : sans ce contrôle, l'URL finale reste /auth/login et
+    // la coupure serait annoncée comme un refus d'identifiants.
+    if ($landing === false || curl_errno($ch)) {
+        $error = "La connexion à l'espace dirigeant a été interrompue (" . curl_error($ch)
+               . '). Réessayez dans quelques minutes.';
+        $errCode = 'NETWORK';
+        curl_close($ch);
+        return null;
+    }
+    $connecte = (strpos($landing, '/auth/select-structure/') !== false);
+    if (!$connecte && ($out = aut_ffta_outage($ch, $landing)) !== '') {
+        aut_ffta_debug('=> indisponibilité détectée sur POST /auth/login');
+        $error = $out;
+        $errCode = 'OUTAGE';
+        curl_close($ch);
+        return null;
+    }
+
+    // $connecte d'abord : marqueur POSITIF (menu select-structure). L'heuristique
+    // d'URL seule prendrait pour un échec une page d'accueil servie SANS
+    // redirection depuis /auth/login.
+    if (!$connecte && strpos($effUrl, '/login') !== false) {
+        // Retour sur /login SANS formulaire de connexion : Laravel réaffiche le
+        // formulaire quand le mot de passe est refusé — autre chose, ce n'est pas
+        // un refus d'identifiants (page d'erreur, portail captif, maintenance).
+        if (!aut_ffta_is_login_page($landing)) {
+            $error = aut_ffta_outage_msg("L'espace dirigeant de la FFTA",
+                intval(curl_getinfo($ch, CURLINFO_HTTP_CODE)), true);
+            $errCode = 'OUTAGE';
+        } else {
+            $error = 'Identifiants espace dirigeant incorrects (ou MFA requise et non renseignée).';
+            $errCode = 'BAD_CREDENTIALS';
+        }
         curl_close($ch);
         return null;
     }
     // Page intermédiaire MFA à 2 étapes (Laravel Fortify : /auth/two-factor-challenge)
-    if (strpos($landing, '/auth/select-structure/') === false
+    if (!$connecte
         && preg_match('/(two[-_]?factor|deux.?[ée]tapes|double.?authentification|authenticator|otp|2fa)/i', $landing)) {
         aut_ffta_debug('=> page de défi MFA détectée');
         if ($otp === '') {
             $error = 'MFA_NEEDED';        // le code n'a pas été saisi
+            $errCode = 'MFA_NEEDED';
             curl_close($ch);
             return null;
         }
         $landing = aut_ffta_mfa_second_step($ch, $landing, $otp);
+        $connecte = (strpos($landing, '/auth/select-structure/') !== false);
+        if (!$connecte && ($out = aut_ffta_outage($ch, $landing)) !== '') {
+            aut_ffta_debug('=> indisponibilité détectée après la 2e étape MFA');
+            $error = $out;
+            $errCode = 'OUTAGE';
+            curl_close($ch);
+            return null;
+        }
         // encore la page de défi = code refusé/expiré ; sinon connecté
-        if (strpos($landing, '/auth/select-structure/') === false
-            && preg_match('/two[-_]?factor|deux.?[ée]tapes/i', $landing)) {
+        if (!$connecte && preg_match('/two[-_]?factor|deux.?[ée]tapes/i', $landing)) {
             aut_ffta_debug('=> code MFA refusé (toujours la page de défi)');
             $error = 'MFA_BAD_CODE';
+            $errCode = 'MFA_BAD_CODE';
             curl_close($ch);
             return null;
         }
@@ -2027,11 +2204,12 @@ function aut_ffta_map_structure($st) {
  * Valide les identifiants sur l'espace dirigeant et retourne les structures
  * ianseo exploitables. true = OK ($structures remplie), false = refus/erreur.
  */
-function aut_ffta_verify($username, $password, $otp, &$structures, &$error, &$cookieFileOut = null) {
+function aut_ffta_verify($username, $password, $otp, &$structures, &$error, &$cookieFileOut = null, &$errCode = null) {
     $structures = array();
     $landing = '';
     $error = '';
-    $ch = aut_ffta_curl_login($username, $password, $otp, $landing, $error, $cookieFileOut);
+    $errCode = '';
+    $ch = aut_ffta_curl_login($username, $password, $otp, $landing, $error, $cookieFileOut, $errCode);
     if (!$ch) {
         // messages MFA lisibles pour l'utilisateur
         if ($error === 'MFA_NEEDED') {
@@ -2063,6 +2241,7 @@ function aut_ffta_verify($username, $password, $otp, &$structures, &$error, &$co
     // décide (un compte ADMIN garde sa vue admin ; un simple compte est refusé)
     if (!count($structures)) {
         $error = aut_ffta_no_structure_reason($raw);
+        $errCode = 'NO_STRUCTURE';
     }
     return true;
 }

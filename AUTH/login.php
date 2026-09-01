@@ -131,6 +131,7 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor
         $res = bk_ffta_login($ident, $pwd, $otp);
         $pwd = null;                              // le mot de passe ne survit pas à l'appel
         if (!empty($res['ok'])) {
+            aut_ffta_outage_clear('licencie');    // l'espace répond : le bandeau n'a plus lieu d'être
             $licence = $res['licence'];           // vient de la FFTA, jamais de la saisie
             $lue = bk_lookup_licence($licence);
             if (!$lue) {
@@ -171,8 +172,13 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor
             $errC = $res['msg'];
         } else {
             if (($res['err'] ?? '') === 'MFA_BAD_CODE') $needOtpC = true;
+            // Maintenance FFTA : rien n'a pu être vérifié → on prévient les visiteurs
+            // suivants AVANT qu'ils ne saisissent leurs identifiants.
+            if (in_array($res['err'] ?? '', array('UNAVAILABLE', 'NETWORK'), true)) {
+                aut_ffta_outage_note('licencie', (string) ($res['msg'] ?? ''));
+            }
             // réseau / page FFTA / lecture licence : pas une tentative frauduleuse → non compté
-            if (!in_array($res['err'] ?? '', array('NETWORK', 'NO_CSRF', 'NO_LICENCE', 'AMBIGUOUS_LICENCE'), true)) {
+            if (!in_array($res['err'] ?? '', array('NETWORK', 'UNAVAILABLE', 'NO_CSRF', 'NO_LICENCE', 'AMBIGUOUS_LICENCE'), true)) {
                 bk_log('LOGIN_FAIL', $ident);
             } else {
                 bk_log('READ_' . ($res['err'] ?? 'ERR'), $ident);
@@ -184,6 +190,16 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor
 
 $csrf = aut_csrf_field();
 $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };
+
+/* Bandeau « la FFTA était indisponible il y a peu » : le premier visiteur essuie
+   l'échec, les suivants sont prévenus AVANT de saisir leurs identifiants (et de
+   croire qu'ils se trompent de mot de passe). Mémo effacé dès qu'une connexion
+   au même espace réussit. */
+$warnBox = function ($o) use ($e) {
+    $min = max(1, (int) round((time() - intval($o['at'] ?? 0)) / 60));
+    return '<div class="warn">⚠ ' . $e($o['msg'] ?? '')
+         . ' <span class="when">(constaté il y a ' . $min . ' min)</span></div>';
+};
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -225,6 +241,9 @@ button[disabled] { opacity:.9; cursor:progress; }
 .optional { font-size:10px; color:#889; }
 .err  { background:#fde8e8; border:1px solid #e8b4b4; color:#8b1a1a; padding:8px;
         border-radius:4px; font-size:12px; margin-bottom:8px; }
+.warn { background:#fdf4e3; border:1px solid #e8cf9a; color:#7a5b12; padding:8px;
+        border-radius:4px; font-size:12px; margin-bottom:8px; line-height:1.45; }
+.warn .when { color:#9a8154; }
 .foot { margin-top:14px; font-size:11px; text-align:center; color:#667; }
 .foot a { color:#1a4f8b; }
 .pane { display:none; } .pane.active { display:block; }
@@ -314,7 +333,8 @@ button[disabled] { opacity:.9; cursor:progress; }
     <?php if ($hasOrganiser) { ?>
     <div class="pane<?= $active === 'org' ? ' active' : '' ?>" id="pane-org">
         <div class="sub">Espace <b>Dirigeant</b> FFTA — clubs, comités, fédération.</div>
-        <?php if ($errO) echo '<div class="err">' . $e($errO) . '</div>'; ?>
+        <?php if ($errO) echo '<div class="err">' . $e($errO) . '</div>';
+              elseif ($o = aut_ffta_outage_recent('dirigeant')) echo $warnBox($o); ?>
         <form method="post" action="login.php">
             <?= $csrf ?>
             <input type="hidden" name="role" value="org">
@@ -339,7 +359,8 @@ button[disabled] { opacity:.9; cursor:progress; }
         <?php if (!$compEnabled) { ?>
             <div class="err">La connexion des compétiteurs est désactivée sur ce serveur.</div>
         <?php } else { ?>
-        <?php if ($errC) echo '<div class="err">' . $e($errC) . '</div>'; ?>
+        <?php if ($errC) echo '<div class="err">' . $e($errC) . '</div>';
+              elseif ($o = aut_ffta_outage_recent('licencie')) echo $warnBox($o); ?>
         <form method="post" action="login.php">
             <?= $csrf ?>
             <input type="hidden" name="role" value="comp">

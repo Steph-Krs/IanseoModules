@@ -1,7 +1,7 @@
 {
-  "version": "1.1.0",
-  "date": "2026-08-31",
-  "notes": "Notice d'installation du serveur + gabarits + gestion de maintenance pour MaJ automatique quotidienne (ianseo, module, licences, logos clubs). Logos clubs automatiques lors des inscriptions.",
+  "version": "1.1.1",
+  "date": "2026-09-01",
+  "notes": "Connexion : une maintenance ou une panne de la FFTA n'est plus annoncée comme « identifiants incorrects » (détection par code HTTP, contenu de la page et absence de formulaire), n'est plus comptée dans l'anti-bourrage, et un bandeau prévient les visiteurs suivants. Vaut pour l'espace dirigeant et l'espace licencié ; la synchro des licences reporte au lieu d'échouer.",
   "files": [
     "menu.php",
     "lib.php",
