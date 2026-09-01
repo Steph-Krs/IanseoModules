@@ -26,9 +26,25 @@ function rep_coll()
  * déjà) — sert à gater une migration de DONNÉES qui ne doit s'exécuter qu'une
  * seule fois (voir migration v12) : rep_schema() tourne à chaque nouvelle
  * session, pas seulement à la toute première fois pour toute l'installation.
+ *
+ * ⚠ Ne tente RIEN si la table n'existe pas encore (retourne false). Sans ce
+ * garde-fou, un ALTER TABLE sur une table absente lève l'erreur 1146, que
+ * safe_w_sql() transforme en page d'erreur + exit : rep_schema() s'arrêtait
+ * alors EN PLEIN MILIEU, laissant le module à moitié installé et totalement
+ * inutilisable (bug réel — voir le commentaire de RcSet plus bas). L'ordre
+ * correct reste la vraie règle (chaque rep_colonne() APRÈS le CREATE TABLE de
+ * sa table) ; ceci n'est que le filet qui empêche une erreur d'ordre de tout
+ * emporter. Et il se répare seul : rep_schema() rejoue tout son corps à la
+ * session suivante, où la table existe — la colonne est alors ajoutée.
  */
 function rep_colonne($table, $colonne, $definition)
 {
+    $rsT = safe_r_sql("SELECT COUNT(*) AS n FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = " . StrSafe_DB($table));
+    $rT = $rsT ? safe_fetch($rsT) : null;
+    if (!$rT || intval($rT->n) === 0) return false;
+
     $rs = safe_r_sql("SELECT COUNT(*) AS n FROM information_schema.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE()
           AND TABLE_NAME = " . StrSafe_DB($table) . "
