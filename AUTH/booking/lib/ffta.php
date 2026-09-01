@@ -286,6 +286,76 @@ function bk_ffta_debug_page($html)
 }
 
 /* ------------------------------------------------------------------ */
+/* Indisponibilité de l'espace licencié (maintenance, panne)           */
+/* ------------------------------------------------------------------ */
+/* Même correctif que côté AUTH (aut_ffta_outage), volontairement dupliqué :
+ * cette face tourne en $SKIP_AUTH, lib.php d'AUTH n'y est pas garantie. À
+ * factoriser le jour où le socle FFTA passera dans _shared/.
+ * Sans cela, une maintenance de la FFTA renvoie l'utilisateur sur /auth/login
+ * et le module annonce « Identifiant ou mot de passe incorrect » — l'archer
+ * cherche l'erreur de son côté alors que rien n'a pu être vérifié.        */
+
+function bk_ffta_fold($s)
+{
+    $s = mb_strtolower((string) $s, 'UTF-8');
+    return strtr($s, array('é'=>'e','è'=>'e','ê'=>'e','ë'=>'e','à'=>'a','â'=>'a','ä'=>'a',
+                           'î'=>'i','ï'=>'i','ô'=>'o','ö'=>'o','ù'=>'u','û'=>'u','ü'=>'u','ç'=>'c'));
+}
+
+/** La page porte-t-elle un formulaire de connexion exploitable ? */
+function bk_ffta_is_login_page($html)
+{
+    return (bool) preg_match('/(name|id)=["\']password["\']|type=["\']password["\']/i', (string) $html);
+}
+
+/**
+ * '' si la réponse est exploitable, sinon un message affichable.
+ * ⚠ Ne jamais appeler sur une page connectée (`bk_ffta_is_connected`) : le mot
+ * « maintenance » peut figurer dans une page saine, et un faux positif
+ * refuserait une connexion valide.
+ */
+function bk_ffta_outage($ch, $html, $attendu = '')
+{
+    $espace = "L'espace licencié FFTA";
+    $code = intval(curl_getinfo($ch, CURLINFO_HTTP_CODE));
+    if ($code >= 500 || $code == 429 || $code == 408) return bk_ffta_outage_msg($espace, $code);
+
+    if (!bk_ffta_is_login_page($html)) {
+        $t = bk_ffta_fold($html);
+        foreach (array(
+            'be right back',                      // page 503 par défaut de Laravel
+            'service unavailable', 'temporarily unavailable', 'web server is down',
+            'en maintenance', 'maintenance en cours', 'maintenance planifiee',
+            'momentanement indisponible', 'temporairement indisponible',
+            'site indisponible', 'service indisponible',
+        ) as $m) {
+            if (strpos($t, $m) !== false) return bk_ffta_outage_msg($espace, $code);
+        }
+        if ($attendu === 'login') return bk_ffta_outage_msg($espace, $code, true);
+    }
+    return '';
+}
+
+function bk_ffta_outage_msg($espace, $code, $inattendu = false)
+{
+    $fin = "Vos identifiants n'ont pas pu être vérifiés : ce n'est pas une erreur de votre part. "
+         . 'Réessayez dans quelques minutes.';
+    if ($inattendu) {
+        return $espace . " n'a pas renvoyé sa page de connexion habituelle (maintenance en cours, "
+             . 'ou page fédérale modifiée). ' . $fin;
+    }
+    if ($code == 429) {
+        return $espace . ' limite actuellement le nombre de connexions (réponse HTTP 429). ' . $fin;
+    }
+    if ($code >= 400) {
+        return $espace . ' ' . ($code == 503 ? 'est en maintenance' : 'est momentanément indisponible')
+             . ' (réponse HTTP ' . $code . '). ' . $fin;
+    }
+    // Détection par le CONTENU (200 + page de maintenance) : « HTTP 200 » embrouillerait.
+    return $espace . " affiche une page d'indisponibilité (maintenance en cours). " . $fin;
+}
+
+/* ------------------------------------------------------------------ */
 /* Relais de connexion                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -298,8 +368,8 @@ function bk_ffta_debug_page($html)
  * Retour : tableau
  *   ['ok' => true, 'licence' => '0000001B', 'displayName' => 'M NOM Prenom']
  *   ['ok' => false, 'err' => <code>, 'msg' => <message affichable>]
- * Codes d'erreur : NETWORK, NO_CSRF, BAD_CREDENTIALS, MFA_NEEDED, MFA_BAD_CODE,
- * NO_LICENCE, AMBIGUOUS_LICENCE.
+ * Codes d'erreur : NETWORK, UNAVAILABLE (maintenance/panne FFTA), NO_CSRF,
+ * BAD_CREDENTIALS, MFA_NEEDED, MFA_BAD_CODE, NO_LICENCE, AMBIGUOUS_LICENCE.
  *
  * $otp : code de double authentification, vide si non demandé.
  */
@@ -343,6 +413,12 @@ function bk_ffta_login($identifiant, $password, $otp = '')
             'msg' => "L'espace licencié FFTA est momentanément injoignable. Réessayez dans quelques instants.");
     }
 
+    if (($out = bk_ffta_outage($ch, $loginPage, 'login')) !== '') {
+        curl_close($ch);
+        bk_ffta_debug('=> indisponibilité détectée sur GET /auth/login');
+        return array('ok' => false, 'err' => 'UNAVAILABLE', 'msg' => $out);
+    }
+
     $csrf = bk_ffta_csrf($loginPage);
     if (!$csrf) {
         curl_close($ch);
@@ -374,7 +450,14 @@ function bk_ffta_login($identifiant, $password, $otp = '')
     // une vraie page d'accueil de l'espace licencié). Ce marqueur POSITIF est
     // plus sûr que la seule heuristique d'URL héritée d'AUTH, qu'on garde en
     // repli au cas où la page changerait.
-    $stillOnLogin = !bk_ffta_is_connected($landing) && (strpos($effUrl, '/auth/login') !== false);
+    $connecte = bk_ffta_is_connected($landing);
+    if (!$connecte && ($out = bk_ffta_outage($ch, $landing)) !== '') {
+        curl_close($ch);
+        bk_ffta_debug('=> indisponibilité détectée sur POST /auth/login');
+        return array('ok' => false, 'err' => 'UNAVAILABLE', 'msg' => $out);
+    }
+
+    $stillOnLogin = !$connecte && (strpos($effUrl, '/auth/login') !== false);
     $isMfa = bk_ffta_is_mfa($landing, $effUrl);
 
     if ($isMfa) {
@@ -386,6 +469,11 @@ function bk_ffta_login($identifiant, $password, $otp = '')
         }
         $landing = bk_ffta_mfa_step2($ch, $landing, $otp, $base);
         $effUrl  = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+        if (!bk_ffta_is_connected($landing) && ($out = bk_ffta_outage($ch, $landing)) !== '') {
+            curl_close($ch);
+            bk_ffta_debug('=> indisponibilité détectée après la 2e étape MFA');
+            return array('ok' => false, 'err' => 'UNAVAILABLE', 'msg' => $out);
+        }
         if (bk_ffta_is_mfa($landing, $effUrl)) {
             curl_close($ch);
             bk_ffta_debug('=> code MFA refusé');
@@ -397,6 +485,16 @@ function bk_ffta_login($identifiant, $password, $otp = '')
     }
 
     if ($stillOnLogin) {
+        // Retour sur /auth/login SANS formulaire : Laravel réaffiche le formulaire
+        // quand le mot de passe est refusé — autre chose, ce n'est pas un refus
+        // d'identifiants (page d'erreur, maintenance, portail).
+        if (!bk_ffta_is_login_page($landing)) {
+            $msg = bk_ffta_outage_msg("L'espace licencié FFTA",
+                intval(curl_getinfo($ch, CURLINFO_HTTP_CODE)), true);
+            curl_close($ch);
+            bk_ffta_debug('=> retour /auth/login sans formulaire : indisponibilité probable');
+            return array('ok' => false, 'err' => 'UNAVAILABLE', 'msg' => $msg);
+        }
         curl_close($ch);
         bk_ffta_debug('=> identifiants refusés');
         return array('ok' => false, 'err' => 'BAD_CREDENTIALS',

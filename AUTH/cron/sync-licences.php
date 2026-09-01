@@ -42,6 +42,17 @@ function lic_fail($msg) {
     exit(1);
 }
 
+/**
+ * Espace dirigeant en maintenance : ce n'est PAS une panne de la synchro. Journal
+ * distinct (LICSYNC_SKIP) et sortie 0, pour ne pas déclencher d'alerte inutile —
+ * le fichier fédéral de la veille reste en base, la nuit suivante rattrapera.
+ */
+function lic_skip($msg) {
+    lic_log('REPORTÉ : ' . $msg);
+    aut_log('LICSYNC_SKIP', 'cron', 'cli');
+    exit(0);
+}
+
 /* ---- Verrou anti-double-exécution ---- */
 $lock = fopen(__DIR__ . '/.sync.lock', 'c');
 if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
@@ -61,9 +72,13 @@ if ($username === '' || $password === '') {
 lic_log('Connexion à l\'Espace Dirigeant FFTA…');
 $landing = '';
 $error = '';
-$ch = aut_ffta_curl_login($username, $password, $otp, $landing, $error);
+$errCode = '';
+$ch = aut_ffta_curl_login($username, $password, $otp, $landing, $error, $ckOut, $errCode);
 $password = '';
-if (!$ch) lic_fail($error);
+if (!$ch) {
+    if ($errCode === 'OUTAGE' || $errCode === 'NETWORK') lic_skip($error);
+    lic_fail($error);
+}
 
 lic_log('Authentifié. Téléchargement de parametres_ianseo.ffta…');
 curl_setopt_array($ch, array(
