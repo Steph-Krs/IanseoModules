@@ -19,6 +19,7 @@ require_once($CFG->DOCUMENT_PATH . 'Common/Fun_Sessions.inc.php');
 require_once($CFG->DOCUMENT_PATH . 'Common/Fun_Various.inc.php');            // calcMaxTeamPerson
 require_once($CFG->DOCUMENT_PATH . 'Common/Lib/Fun_Modules.php');            // setModuleParameter
 require_once($CFG->DOCUMENT_PATH . 'Tournament/Fun_ManSessions.inc.php');    // insertSession
+require_once($CFG->DOCUMENT_PATH . 'Scheduler/LibScheduler.php');           // InsertSched* (planning natif)
 require_once(__DIR__ . '/mapping.php');
 
 CheckTourSession(false);
@@ -50,6 +51,35 @@ if ($code === '' || strlen($code) > 8) {
 }
 if ($name === '' || $toType === 0 || $fromY === 0) {
     sfa_fail('Nom, discipline et dates sont requis.');
+}
+
+// ── Départs : validés AVANT l'INSERT ─────────────────────────────────────────
+// Tous les champs de chaque départ sont obligatoires. La vérification doit précéder la création
+// de la compétition : échouer après l'INSERT laisserait une compétition à moitié configurée.
+// Tableaux parallèles indexés par la même clé (l'index de ligne côté JS).
+$sesDays  = $_POST['sfa_ses_day']      ?? [];
+$sesTimes = $_POST['sfa_ses_time']     ?? [];
+$sesCible = $_POST['sfa_ses_cibles']   ?? [];
+$sesAth   = $_POST['sfa_ses_rythme']   ?? [];
+$sesDur   = $_POST['sfa_ses_duration'] ?? [];
+$sesTrain = $_POST['sfa_ses_training'] ?? [];
+$sesWarm  = $_POST['sfa_ses_warmends'] ?? [];
+
+if (!is_array($sesDays) || !count($sesDays)) {
+    sfa_fail('Au moins un départ est nécessaire pour créer la compétition.');
+}
+foreach ($sesDays as $i => $day) {
+    if ((int) ($sesCible[$i] ?? 0) <= 0 || (int) ($sesAth[$i] ?? 0) <= 0
+        || (int) ($sesDur[$i] ?? 0) <= 0
+        || trim((string) $day) === '' || trim((string) ($sesTimes[$i] ?? '')) === '') {
+        sfa_fail('Chaque départ doit indiquer le nombre de cibles, le nombre d\'archers par cible, '
+               . 'le jour, l\'heure et la durée.');
+    }
+    // Le nombre de volées n'est exigé que si l'entraînement est compris dans l'horaire.
+    if (!empty($sesTrain[$i]) && (int) ($sesWarm[$i] ?? 0) <= 0) {
+        sfa_fail('Indiquez le nombre de volées d\'entraînement pour chaque départ où '
+               . 'l\'entraînement est compris dans l\'horaire.');
+    }
 }
 
 // Droit de créer (et, sous AUTH, enregistrement de la revendication du code — comme la
@@ -126,16 +156,45 @@ $_SESSION['TourRealWhenTo']   = $toDate;
 GetSetupFile($tid, $toType, 'FR', $subIdx ?: 1, $subCode);
 calcMaxTeamPerson([], true, $tid);
 
-// ── Départs / cibles / rythme (si renseignés) ────────────────────────────────
-$departs = max(1, (int) ($_POST['sfa_departs'] ?? 1));
-$cibles  = (int) ($_POST['sfa_cibles'] ?? 0);
-$rythme  = (int) ($_POST['sfa_rythme'] ?? 0);   // archers/cible : 2 (AB), 3 (ABC), 4 (AB-CD)
+// ── Départs (un départ = une ligne, configuré dans create.php selon la famille de discipline
+// — voir MAPPING_TYPES_COMPETITION.md §5). Déjà validés plus haut, avant l'INSERT. ───────────
+//
+// Le planning réel d'un départ n'est PAS porté par Session mais par sa PREMIÈRE DISTANCE
+// (DistanceInformation : DiDay / DiStart / DiDuration / DiOptions) — c'est là que le Scheduler,
+// l'affichage terrain et BOOKING vont lire date, heure, durée et commentaire. Vérifié sur une
+// compétition réelle correctement configurée (ToId 181) : SesDtStart/SesDtEnd y sont vides et
+// SesName porte un vrai nom de départ (« HCL & FCO »), pas un commentaire.
+// On laisse donc SesName vide (l'organisateur le nommera s'il veut) et on écrit le planning via
+// les fonctions natives du planning (Scheduler/LibScheduler.php), jamais en SQL recopié.
+$family = sfa_session_families()[$toType] ?? '';
 
-if ($cibles > 0 && in_array($rythme, [2, 3, 4], true)) {
-    for ($i = 1; $i <= $departs; $i++) {
-        // SesType 'Q' : insertSession met à jour ToNumSession, régénère les cibles
-        // et recopie les distances du départ précédent.
-        insertSession($tid, $i, 'Q', '', null, $cibles, $rythme, 1, 0);
+$order = 0;
+foreach ($sesDays as $i => $day) {
+    $order++;
+    $day     = trim((string) $day);
+    $time    = trim((string) $sesTimes[$i]);
+    $archers = (int) $sesAth[$i];
+
+    // SesType 'Q' : insertSession met à jour ToNumSession, régénère les cibles
+    // et crée/recopie les lignes DistanceInformation du départ (nécessaires juste après).
+    insertSession($tid, $order, 'Q', '', null, (int) $sesCible[$i], $archers, 1, 0);
+
+    // Distance 1 = le départ entier (convention ianseo, cf. Scheduler et BOOKING).
+    InsertSchedDate([$order => [1 => $day]]);
+    InsertSchedTime([$order => [1 => $time]]);
+    InsertSchedDuration([$order => [1 => (int) $sesDur[$i]]]);
+
+    if (!empty($sesTrain[$i])) {
+        // « Entraînement (3 volées) suivi des qualifications en rythme AB-CD » — même forme que
+        // ce que saisissent les organisateurs (relevé sur une compétition réelle). Le libellé du
+        // rythme vient du §5.D du fichier de correspondance ; s'il est inconnu pour ce nombre
+        // d'archers, on omet la mention plutôt que d'inventer un libellé.
+        $rythme  = sfa_rythme_label($family, $archers);
+        $volees  = (int) $sesWarm[$i];
+        $comment = 'Entraînement (' . $volees . ' volée' . ($volees > 1 ? 's' : '') . ')'
+                 . ' suivi des qualifications'
+                 . ($rythme !== '' ? ' en rythme ' . $rythme : '');
+        InsertSchedComment([$order => [1 => $comment]]);
     }
 }
 

@@ -51,6 +51,14 @@ foreach ($fr['rules'] as $toType => $keyed) {
     }
 }
 
+// Configuration assistée des départs (§5 de MAPPING_TYPES_COMPETITION.md) : bornes et valeurs
+// par défaut selon la famille de discipline (TAE/18m/Campagne/3D/Beursault — le Para partage la
+// famille de son ToType, aucune détection spécifique nécessaire).
+$sesFamilies   = sfa_session_families();
+$sesRythme     = sfa_rythme_bounds();
+$sesPelotons   = sfa_pelotons_config();
+$sesDurations  = sfa_session_durations();
+
 // Défauts techniques : repris de la dernière compétition, sinon valeurs FR sûres.
 $def = ['cur' => 'EUR', 'lang' => '', 'chars' => 0, 'paper' => 0];
 $rs = safe_r_sql("SELECT ToCurrency, ToPrintLang, ToPrintChars, ToPrintPaper
@@ -117,16 +125,47 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     #sfa table.list tbody tr { cursor:pointer; }
     #sfa table.list tbody tr:hover td { background:var(--bleu-clair); }
     #sfa table.list tr.sel td { background:var(--bleu-clair); box-shadow:inset 3px 0 0 var(--bleu); }
+    #sfa table.ses { border-collapse:collapse; width:100%; font-size:12px; margin-bottom:8px; }
+    /* En-têtes sur plusieurs lignes si besoin : la table doit rester la plus étroite possible
+       pour que les 2 colonnes tiennent côte à côte sur un écran de PC. */
+    #sfa table.ses th { background:var(--bleu); color:#fff; padding:5px 6px; text-align:left; font-weight:600; }
+    #sfa table.ses td { border-bottom:1px solid #e9e9e9; padding:5px 6px; vertical-align:middle; }
+    #sfa .ses-step { display:inline-flex; align-items:center; gap:3px; white-space:nowrap; }
+    #sfa .ses-step button { width:22px; height:22px; padding:0; line-height:1; font-size:14px; font-weight:bold; }
+    #sfa .ses-step button:disabled { opacity:.35; cursor:default; }
+    #sfa .ses-num { width:46px; text-align:center; padding:4px 2px; }
+    #sfa .ses-day { width:128px; } #sfa .ses-time { width:84px; } #sfa .ses-dur { width:60px; text-align:center; }
+    #sfa .ses-bis-label { font-weight:400; display:flex; align-items:flex-start; gap:4px; margin-top:3px; line-height:1.2; }
+    #sfa .ses-warm { display:block; margin-top:3px; font-size:11px; color:var(--gris); white-space:nowrap; }
+    #sfa .ses-warmends { width:40px; }
+    #sfa .ses-del { color:var(--corail); border-color:var(--corail); background:#fff; width:26px; height:26px; padding:0; line-height:1; }
+    #sfa .ses-del:disabled { opacity:.35; cursor:default; }
     #sfa .pill { border:2px solid #aaa; background:#ddd; color:#333; border-radius:5px; padding:1px 6px; font-size:11px; font-weight:bold; }
     #sfa .pill.ok { background:#d2f4cd; border-color:#75ae77; color:#04ac0b; }
     #sfa .pill.ko { background:#ffd6db; border-color:#bb7575; color:#a80000; }
     #sfa .grid { display:grid; grid-template-columns:170px 1fr; gap:8px 12px; align-items:center; }
     #sfa .grid > label { text-align:right; }
     #sfa .grid2 { display:grid; grid-template-columns:150px 1fr; gap:8px 10px; align-items:center; }
-    #sfa .cols2 { display:flex; gap:28px; flex-wrap:wrap; }
-    /* Infos compétition à gauche, paramètres à droite — répartition 50/50 (DOM inchangé). */
-    #sfa .col-base { flex:1 1 360px; min-width:0; order:1; }
-    #sfa .col-assist { flex:1 1 360px; min-width:0; order:2; }
+    #sfa .cols2 { display:flex; gap:28px; flex-wrap:wrap; max-width:100%; }
+    /* Infos compétition à gauche, départs à droite. Les min-width font le travail tout seuls :
+       dès que les 2 colonnes ne tiennent plus côte à côte, flex-wrap les empile — jamais de barre
+       de défilement, tout reste visible. min() : la largeur mini s'efface d'elle-même si le
+       conteneur est plus étroit, donc aucun débordement possible. */
+    #sfa .col-base { flex:1 1 360px; min-width:min(340px, 100%); order:1; }
+    #sfa .col-assist { flex:1 1 700px; min-width:min(700px, 100%); order:2; }
+    /* Sous cette largeur, même empilée la table ne tient plus en colonnes : chaque départ devient
+       une petite fiche (libellé + valeur par ligne), toujours sans défilement horizontal. */
+    @media (max-width: 760px) {
+        #sfa .col-base, #sfa .col-assist { flex-basis:auto; min-width:0; width:100%; }
+        #sfa table.ses, #sfa table.ses tbody, #sfa table.ses tr, #sfa table.ses td { display:block; width:100%; }
+        #sfa table.ses thead { display:none; }
+        #sfa table.ses tr { border:1px solid var(--bord); border-radius:6px; padding:4px 8px; margin-bottom:10px; }
+        #sfa table.ses td { display:flex; justify-content:space-between; align-items:center; gap:12px;
+                            border-bottom:1px solid #f0f0f0; }
+        #sfa table.ses tr td:last-child { border-bottom:0; justify-content:flex-end; }
+        #sfa table.ses td::before { content:attr(data-label); font-weight:600; color:var(--gris); }
+        #sfa table.ses td:last-child::before { content:none; }
+    }
     #sfa .grid .full, #sfa .grid2 .full, #sfa .grid input, #sfa .grid2 input, #sfa .grid select, #sfa .grid2 select, #sfa .grid textarea { max-width:100%; box-sizing:border-box; }
     #sfa #IskConfig table { width:100%; }
     #sfa #IskConfig input[type=text], #sfa #IskConfig select { padding:5px 7px; }
@@ -247,22 +286,21 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
       <div class="cols2">
       <div class="col-assist">
-        <h4>Paramètres du concours</h4>
-        <div class="grid2">
-          <label for="a-departs">Nombre de départs</label>
-          <input type="number" id="a-departs" name="sfa_departs" min="1" max="20" value="1">
-
-          <label for="a-cibles" id="a-cibles-label">Nombre de cibles</label>
-          <input type="number" id="a-cibles" name="sfa_cibles" min="0" max="400" placeholder="défaut de la règle">
-
-          <label for="a-rythme">Rythme de tir</label>
-          <select id="a-rythme" name="sfa_rythme">
-            <option value="2">AB — 2 archers/cible</option>
-            <option value="3">ABC — 3 archers/cible</option>
-            <option value="4" selected>AB-CD — 4 archers/cible</option>
-          </select>
-        </div>
-        <p class="muted" style="margin:6px 0 0">Cibles vide = valeur par défaut de la règle choisie.</p>
+        <h4>Départs</h4>
+        <table class="ses" id="ses-table">
+          <thead><tr>
+            <th>Pelotons autorisés</th>
+            <th>Archers / cible</th>
+            <th>Jour</th>
+            <th>Heure</th>
+            <th>Durée (min)</th>
+            <th>Entraînement inclus</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="ses-body"></tbody>
+        </table>
+        <p class="muted" id="ses-hint" style="margin:6px 0">Choisissez la discipline pour configurer les départs.</p>
+        <button type="button" id="ses-add" disabled>+ Ajouter un départ</button>
 
         <?php if ($IskType): ?>
         <h4 style="margin-top:18px">Saisie par téléphone (ISK-NG)</h4>
@@ -338,6 +376,12 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     var AJAX   = '<?= addslashes($AJAX) ?>';
     var SUBMAP = <?= json_encode($subMap, JSON_UNESCAPED_UNICODE) ?>;
     var AUTH_ON = <?= $sfaAuthOn ? 'true' : 'false' ?>;   // AUTH présent : #sfa-bar masquée, rôle auto
+    // Configuration des départs par famille de discipline (MAPPING_TYPES_COMPETITION.md §5).
+    var FAMILIES  = <?= json_encode($sesFamilies, JSON_UNESCAPED_UNICODE) ?>;
+    var RYTHME    = <?= json_encode($sesRythme, JSON_UNESCAPED_UNICODE) ?>;
+    var PELOTONS  = <?= json_encode($sesPelotons, JSON_UNESCAPED_UNICODE) ?>;
+    var DURATIONS = <?= json_encode($sesDurations, JSON_UNESCAPED_UNICODE) ?>;
+    var WARM_ENDS_DEFAULT = 3;   // volées d'entraînement, valeur courante (modifiable par ligne)
     var $ = function (id) { return document.getElementById(id); };
 
     function post(action, data) {
@@ -362,11 +406,11 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         bar.style.top=top+'px';
     }
 
-    // Dates par défaut : mois en cours
+    // Dates par défaut : aujourd'hui → J+21
     (function(){
         var t=new Date(), iso=function(d){return d.toISOString().slice(0,10);};
-        $('from').value = iso(new Date(t.getFullYear(), t.getMonth(), 1));
-        $('to').value   = iso(new Date(t.getFullYear(), t.getMonth()+1, 0));
+        $('from').value = iso(new Date(t.getFullYear(), t.getMonth(), t.getDate()));
+        $('to').value   = iso(new Date(t.getFullYear(), t.getMonth(), t.getDate()+21));
     })();
 
     /**
@@ -548,18 +592,240 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             sel.appendChild(o);
         });
     }
-    // 3D (11) et Campagne (9) se tirent en pelotons ; sinon en cibles.
-    function ciblesLabel(toType){
-        var pel = (String(toType)==='11' || String(toType)==='9');
-        $('a-cibles-label').textContent = pel ? 'Nombre de pelotons' : 'Nombre de cibles';
+    // ── Départs (table par ligne, pilotée par la famille de discipline — §5 du fichier de
+    // correspondance : FAMILIES/RYTHME/PELOTONS/DURATIONS) ────────────────────────────────────
+    var sesIdx = 0;
+
+    function familyFor(toType) { return FAMILIES[toType] || null; }
+    function sesCurrentFamily() { return familyFor($('f-type').value); }
+
+    /** Jour par défaut du premier départ auto-ajouté = date de début de la compétition. */
+    function sesDefaultDay() {
+        var y = $('f-fy').value, m = $('f-fm').value, d = $('f-fd').value;
+        if (!y || !m || !d) return '';
+        var pad = function (n) { return String(n).padStart(2, '0'); };
+        return y + '-' + pad(m) + '-' + pad(d);
     }
-    $('f-type').addEventListener('change', function(){ fillSubOptions(this.value, ''); ciblesLabel(this.value); });
+
+    // Grisé (readonly) UNIQUEMENT quand la valeur ne peut vraiment pas être saisie directement
+    // (toggle « pelotons bis autorisés » = seulement 2 valeurs possibles, Beursault archers/cible
+    // = valeur fixe) — sinon champ normal et modifiable au clavier, comme le champ durée, en plus
+    // des boutons +/- qui restent disponibles pour la saisie rapide.
+    function pelotonsCellHtml(fam, val) {
+        var cfg = PELOTONS[fam];
+        if (cfg && cfg.mode === 'toggle') {
+            var checked = (val === cfg.on);
+            return '<input type="number" class="ses-num ses-pel" readonly value="' + (checked ? cfg.on : cfg.off) + '">'
+                 + '<label class="ses-bis-label"><input type="checkbox" class="ses-pel-bis"' + (checked ? ' checked' : '') + '> pelotons bis autorisés</label>';
+        }
+        var def = cfg ? cfg.default : 24;
+        var v = (val != null && !isNaN(val)) ? val : def;
+        return '<span class="ses-step">'
+             + '<button type="button" class="ses-pel-minus">−</button>'
+             + '<input type="number" class="ses-num ses-pel" required min="1" value="' + v + '">'
+             + '<button type="button" class="ses-pel-plus">+</button></span>';
+    }
+
+    function athCellHtml(fam, val) {
+        var b = RYTHME[fam];
+        if (b && b.fixed) {
+            return '<input type="number" class="ses-num ses-ath" readonly value="' + b.min + '">';
+        }
+        var min = b ? b.min : 1, max = b ? b.max : null, def = b ? b.default : 4;
+        var v = (val != null && !isNaN(val)) ? Math.min(Math.max(val, min), (max != null ? max : val)) : def;
+        return '<span class="ses-step">'
+             + '<button type="button" class="ses-ath-minus">−</button>'
+             + '<input type="number" class="ses-num ses-ath" required min="' + min + '"' + (max != null ? ' max="' + max + '"' : '') + ' value="' + v + '">'
+             + '<button type="button" class="ses-ath-plus">+</button></span>';
+    }
+
+    /** Branche les boutons +/- d'un stepper ET la saisie directe au clavier (pas de plafond si max===null). */
+    function wireStepper(scope, minusSel, plusSel, valSel, min, max, onChange) {
+        var minus = scope.querySelector(minusSel), plus = scope.querySelector(plusSel), val = scope.querySelector(valSel);
+        if (!minus || !plus || !val) return;
+        function clamp(v) {
+            v = parseInt(v, 10);
+            if (isNaN(v)) v = (min != null ? min : 0);
+            if (min != null) v = Math.max(v, min);
+            if (max != null) v = Math.min(v, max);
+            return v;
+        }
+        function refresh() {
+            var v = parseInt(val.value, 10) || 0;
+            minus.disabled = (min != null && v <= min);
+            plus.disabled = (max != null && v >= max);
+        }
+        minus.addEventListener('click', function () {
+            val.value = clamp((parseInt(val.value, 10) || 0) - 1); refresh(); if (onChange) onChange();
+        });
+        plus.addEventListener('click', function () {
+            val.value = clamp((parseInt(val.value, 10) || 0) + 1); refresh(); if (onChange) onChange();
+        });
+        // Saisie directe au clavier (champ non readonly) : reclamp au blur/validation, comme la durée.
+        val.addEventListener('change', function () {
+            val.value = clamp(val.value); refresh(); if (onChange) onChange();
+        });
+        refresh();
+    }
+
+    /** Construit/reconstruit les cellules pelotons + archers d'une ligne pour une famille donnée. */
+    function wirePelAthCell(tr, fam, pelVal, athVal) {
+        var i = tr.dataset.idx;
+        var pelTd = tr.querySelector('.ses-pel-cell'), athTd = tr.querySelector('.ses-ath-cell');
+        pelTd.innerHTML = pelotonsCellHtml(fam, pelVal);
+        athTd.innerHTML = athCellHtml(fam, athVal);
+
+        var pelInput = pelTd.querySelector('.ses-pel'); pelInput.name = 'sfa_ses_cibles[' + i + ']';
+        var athInput = athTd.querySelector('.ses-ath'); athInput.name = 'sfa_ses_rythme[' + i + ']';
+
+        var pcfg = PELOTONS[fam];
+        if (pcfg && pcfg.mode === 'toggle') {
+            pelTd.querySelector('.ses-pel-bis').addEventListener('change', function () {
+                pelInput.value = this.checked ? pcfg.on : pcfg.off;
+            });
+        } else {
+            wireStepper(pelTd, '.ses-pel-minus', '.ses-pel-plus', '.ses-pel', 1, null);
+        }
+        var b = RYTHME[fam];
+        if (!b || !b.fixed) {
+            wireStepper(athTd, '.ses-ath-minus', '.ses-ath-plus', '.ses-ath', b ? b.min : 1, b ? b.max : null,
+                function () { refreshDuration(tr); });
+        }
+    }
+
+    /** Auto-remplit la durée depuis DURATIONS[famille][archers] — jamais si l'utilisateur l'a modifiée à la main. */
+    function refreshDuration(tr) {
+        if (tr.dataset.durDirty === '1') return;
+        var fam = sesCurrentFamily();
+        var athInput = tr.querySelector('.ses-ath');
+        if (!fam || !athInput) return;
+        var mins = (DURATIONS[fam] || {})[parseInt(athInput.value, 10)];
+        if (mins != null) { tr.querySelector('.ses-dur').value = mins; }
+    }
+
+    function sesUpdateDelButtons() {
+        var rows = $('ses-body').querySelectorAll('tr');
+        rows.forEach(function (tr) { tr.querySelector('.ses-del').disabled = (rows.length <= 1); });
+    }
+
+    function removeSessionRow(tr) {
+        if ($('ses-body').querySelectorAll('tr').length <= 1) return;   // au moins 1 départ
+        tr.remove();
+        sesUpdateDelButtons();
+    }
+
+    function sesRowValues(tr) {
+        return {
+            pel: parseInt(tr.querySelector('.ses-pel').value, 10),
+            ath: parseInt(tr.querySelector('.ses-ath').value, 10),
+            day: tr.querySelector('.ses-day').value,
+            time: tr.querySelector('.ses-time').value,
+            dur: tr.querySelector('.ses-dur').value,
+            train: tr.querySelector('.ses-train').checked,
+            warm: tr.querySelector('.ses-warmends').value
+        };
+    }
+
+    /**
+     * Le nombre de volées d'entraînement n'a de sens que si l'entraînement est compris dans
+     * l'horaire du départ : le champ n'apparaît que dans ce cas. `required` est posé/retiré avec
+     * l'affichage — un champ requis mais masqué empêcherait la soumission du formulaire
+     * (le navigateur refuse de signaler un champ invalide qu'il ne peut pas atteindre).
+     */
+    function syncTrainCell(tr) {
+        var on  = tr.querySelector('.ses-train').checked;
+        var box = tr.querySelector('.ses-warm');
+        var inp = tr.querySelector('.ses-warmends');
+        box.style.display = on ? '' : 'none';
+        if (on) { inp.setAttribute('required', 'required'); }
+        else    { inp.removeAttribute('required'); }
+    }
+
+    /** Ajoute une ligne de départ. copyFrom (facultatif) = valeurs de la ligne précédente à reprendre telles quelles. */
+    function addSessionRow(copyFrom) {
+        var fam = sesCurrentFamily();
+        if (!fam) return;
+        var i = sesIdx++;
+        var tr = document.createElement('tr');
+        tr.dataset.idx = i;
+
+        var day   = copyFrom ? copyFrom.day   : sesDefaultDay();
+        var time  = copyFrom ? copyFrom.time  : '';
+        var train = copyFrom ? copyFrom.train : (fam === 'TAE' || fam === '18m');
+        var warm  = copyFrom ? copyFrom.warm  : WARM_ENDS_DEFAULT;
+        var b = RYTHME[fam];
+        var athDefault = copyFrom ? copyFrom.ath : (b ? b.default : 4);
+        var durTable = DURATIONS[fam] || {};
+        var dur = copyFrom ? copyFrom.dur : (durTable[athDefault] != null ? durTable[athDefault] : '');
+
+        // Tous les champs d'un départ sont obligatoires (required) : une compétition ne peut pas
+        // être créée avec un départ incomplet. data-label sert à l'affichage en fiches sur mobile.
+        tr.innerHTML =
+            '<td class="ses-pel-cell" data-label="Pelotons autorisés"></td>' +
+            '<td class="ses-ath-cell" data-label="Archers / cible"></td>' +
+            '<td data-label="Jour"><input type="date" class="ses-day" required name="sfa_ses_day[' + i + ']" value="' + esc(day || '') + '"></td>' +
+            '<td data-label="Heure"><input type="time" class="ses-time" required name="sfa_ses_time[' + i + ']" value="' + esc(time || '') + '"></td>' +
+            '<td data-label="Durée (min)"><input type="number" class="ses-dur" required min="1" name="sfa_ses_duration[' + i + ']" value="' + esc(dur) + '"></td>' +
+            '<td data-label="Entraînement inclus" style="text-align:center">' +
+                '<input type="hidden" name="sfa_ses_training[' + i + ']" value="0">' +
+                '<input type="checkbox" name="sfa_ses_training[' + i + ']" value="1" class="ses-train"' + (train ? ' checked' : '') + '>' +
+                '<span class="ses-warm">' +
+                    '<input type="number" class="ses-warmends" min="1" max="20" ' +
+                        'name="sfa_ses_warmends[' + i + ']" value="' + esc(warm) + '"> volées' +
+                '</span>' +
+            '</td>' +
+            '<td><button type="button" class="ses-del" title="Supprimer ce départ">✕</button></td>';
+
+        wirePelAthCell(tr, fam, copyFrom ? copyFrom.pel : null, copyFrom ? copyFrom.ath : null);
+
+        tr.querySelector('.ses-dur').addEventListener('input', function () { tr.dataset.durDirty = '1'; });
+        tr.querySelector('.ses-del').addEventListener('click', function () { removeSessionRow(tr); });
+        tr.querySelector('.ses-train').addEventListener('change', function () { syncTrainCell(tr); });
+        syncTrainCell(tr);
+
+        $('ses-body').appendChild(tr);
+        $('ses-hint').style.display = 'none';
+        sesUpdateDelButtons();
+    }
+
+    $('ses-add').addEventListener('click', function () {
+        var rows = $('ses-body').querySelectorAll('tr');
+        var last = rows[rows.length - 1];
+        addSessionRow(last ? sesRowValues(last) : null);
+    });
+
+    /** Appelé au changement de discipline : réactive/désactive « Ajouter », reclamp les lignes
+     * existantes dans les nouvelles bornes, ajoute la première ligne si la table est vide. */
+    function sesRefreshFamily() {
+        var fam = sesCurrentFamily();
+        $('ses-add').disabled = !fam;
+        if (!fam) {
+            $('ses-hint').textContent = 'Choisissez la discipline pour configurer les départs.';
+            $('ses-hint').style.display = '';
+            return;
+        }
+        var rows = Array.prototype.slice.call($('ses-body').querySelectorAll('tr'));
+        if (!rows.length) { addSessionRow(null); return; }
+        rows.forEach(function (tr) {
+            var pelInput = tr.querySelector('.ses-pel'), athInput = tr.querySelector('.ses-ath');
+            var pelVal = pelInput ? parseInt(pelInput.value, 10) : null;
+            var athVal = athInput ? parseInt(athInput.value, 10) : null;
+            wirePelAthCell(tr, fam, pelVal, athVal);
+            refreshDuration(tr);
+        });
+    }
+
+    $('f-type').addEventListener('change', function () { fillSubOptions(this.value, ''); sesRefreshFamily(); });
 
     // Bloc ISK natif : les champs du mode viennent du endpoint ianseo (index-getIskConfig.php),
     // donc ils suivent les mises à jour de ianseo. On expose ChangeIskConfig en global car
     // le <select> l'appelle via onchange (comme la page native).
     var IskResetAlert = 'Changer de système effacera la configuration ISK précédente.';
     var ISK_DEFAULT_URL = '<?= addslashes($ISK_DEFAULT_URL) ?>';
+    // Serveur fédéral (module de comptes) : URL / code de sécurité / QR-code restent préremplis
+    // et soumis, mais ne sont pas affichés — mêmes valeurs pour tout le monde. Même condition que
+    // le filtrage des modes ISK plus haut ($CFG->USERAUTH), donc aucune dépendance au module AUTH.
+    var ISK_HIDE_PREFILLED = <?= !empty($CFG->USERAUTH) ? 'true' : 'false' ?>;
 
     /**
      * Pré-remplit les champs ISK natifs juste chargés (vides pour une compétition qui n'existe
@@ -568,6 +834,11 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
      *  - Code de sécurité = un code à 4 chiffres tiré au hasard ;
      *  - QR-code obligatoire = Oui (n'existe qu'en mode Lite).
      * N'écrase jamais une valeur déjà présente (rechargement du fragment après un changement).
+     *
+     * Sur un serveur fédéral (module de comptes actif), ces 3 réglages n'ont pas à être exposés :
+     * ils sont toujours les mêmes et l'organisateur n'a rien à y changer. On les remplit puis on
+     * masque LEUR LIGNE seulement — les champs restent dans le formulaire et sont bien soumis,
+     * la construction native est inchangée.
      */
     function iskPrefillDefaults() {
         var url = $('IskConfig').querySelector('input[name="Module[ISK-NG][ServerUrl]"]');
@@ -578,6 +849,13 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
         var qr = $('IskConfig').querySelector('select[name="Module[ISK-NG][ForceQRCodeScanning]"]');
         if (qr) { qr.value = '1'; }
+
+        if (ISK_HIDE_PREFILLED) {
+            [url, pin, qr].forEach(function (el) {
+                var tr = el && el.closest('tr');
+                if (tr) { tr.style.display = 'none'; }
+            });
+        }
     }
 
     window.ChangeIskConfig = function(){
@@ -609,6 +887,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             $('f-where').value=pf.where; $('f-precis').value='';   // saisie libre, propre à chaque épreuve
             $('f-tz').value=pf.timezone||'';   // pays = FRA en champ caché, plus de champ visible
 
+            // Départs propres à chaque épreuve : on repart d'une table vide.
+            $('ses-body').innerHTML=''; sesIdx=0;
+
             $('f-fy').value=pf.fromY; $('f-fm').value=pf.fromM; $('f-fd').value=pf.fromD;
             $('f-ty').value=pf.toY;   $('f-tm').value=pf.toM;   $('f-td').value=pf.toD;
             var pad=function(n){return String(n).padStart(2,'0');};
@@ -625,7 +906,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
                 $('prop-note').innerHTML='<p class="warn">'+esc(pr.why||'Type ianseo non déterminé.')
                     +' Choisissez-le manuellement ci-dessous.</p>';
             }
-            ciblesLabel($('f-type').value);
+            sesRefreshFamily();
         });
     }
 
@@ -634,6 +915,35 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         if(($('f-code').value||'').length>8){
             e.preventDefault();
             alert('Le code compétition dépasse 8 caractères — création impossible. Signale-le à un administrateur.');
+            return;
+        }
+        // Départs : chaque ligne doit être complète (l'attribut required couvre déjà les champs,
+        // ce contrôle attrape le cas « aucun départ » et double la validation côté client).
+        var rows = $('ses-body').querySelectorAll('tr');
+        if(!rows.length){
+            e.preventDefault();
+            alert('Ajoutez au moins un départ avant de créer la compétition.');
+            return;
+        }
+        var incomplete = false, warmMissing = false;
+        rows.forEach(function(tr){
+            ['.ses-pel', '.ses-ath', '.ses-day', '.ses-time', '.ses-dur'].forEach(function(sel){
+                var el = tr.querySelector(sel);
+                if(!el || String(el.value).trim() === '') incomplete = true;
+            });
+            if(tr.querySelector('.ses-train').checked
+               && String(tr.querySelector('.ses-warmends').value).trim() === '') warmMissing = true;
+        });
+        if(incomplete){
+            e.preventDefault();
+            alert('Chaque départ doit indiquer le nombre de cibles, le nombre d\'archers par cible, '
+                + 'le jour, l\'heure et la durée.');
+            return;
+        }
+        if(warmMissing){
+            e.preventDefault();
+            alert('Indiquez le nombre de volées d\'entraînement pour chaque départ où '
+                + 'l\'entraînement est compris dans l\'horaire.');
         }
     });
 

@@ -319,3 +319,149 @@ function sfa_propose(string $disciplineText, string $formatText, string $typeEpr
         'why'       => '',
     ];
 }
+
+/**
+ * Famille de discipline par ToType, lue dans la colonne « Famille » du §2 (`### Types de
+ * compétition (ToType)`). Retour : [ToType => 'TAE'|'18m'|'Campagne'|'3D'|'Beursault'|...].
+ */
+function sfa_session_families(): array
+{
+    $out = [];
+    foreach (sfa_mapping_sections() as $title => $lines) {
+        if (strpos($title, 'TYPES DE COMPETITION') === false) {
+            continue;
+        }
+        foreach (sfa_md_rows($lines) as $r) {
+            $toType = sfa_backtick($r[0] ?? '');
+            $fam    = sfa_backtick($r[3] ?? '');
+            if (ctype_digit($toType) && $fam !== '') {
+                $out[(int) $toType] = $fam;
+            }
+        }
+        break;
+    }
+
+    return $out;
+}
+
+/**
+ * Bornes du nombre d'archers par cible/peloton (§5.A), par famille de discipline.
+ * Retour : [famille => ['min'=>int,'max'=>int,'default'=>int,'fixed'=>bool]].
+ * `fixed` (min===max) signale un champ à afficher grisé, sans choix possible (ex. Beursault).
+ */
+function sfa_rythme_bounds(): array
+{
+    $out = [];
+    foreach (sfa_mapping_sections() as $title => $lines) {
+        if (strpos($title, 'ARCHERS PAR CIBLE') === false) {
+            continue;
+        }
+        foreach (sfa_md_rows($lines) as $r) {
+            $fam = sfa_backtick($r[0] ?? '');
+            if ($fam === '' || !ctype_digit($r[1] ?? '') || !ctype_digit($r[2] ?? '') || !ctype_digit($r[3] ?? '')) {
+                continue;
+            }
+            $min = (int) $r[1];
+            $max = (int) $r[2];
+            $out[$fam] = ['min' => $min, 'max' => $max, 'default' => (int) $r[3], 'fixed' => $min === $max];
+        }
+        break;
+    }
+
+    return $out;
+}
+
+/**
+ * Configuration du nombre de pelotons autorisés (§5.B), par famille de discipline.
+ * Retour : [famille => ['mode'=>'stepper','default'=>int]]
+ *        ou [famille => ['mode'=>'toggle','off'=>int,'on'=>int]] (case « pelotons bis autorisés »).
+ */
+function sfa_pelotons_config(): array
+{
+    $out = [];
+    foreach (sfa_mapping_sections() as $title => $lines) {
+        if (strpos($title, 'PELOTONS AUTORISES') === false) {
+            continue;
+        }
+        foreach (sfa_md_rows($lines) as $r) {
+            $fam  = sfa_backtick($r[0] ?? '');
+            $mode = sfa_normalize($r[1] ?? '');
+            if ($fam === '' || $mode === '') {
+                continue;
+            }
+            if (strpos($mode, 'STEPPER') !== false) {
+                $out[$fam] = ['mode' => 'stepper', 'default' => ctype_digit($r[2] ?? '') ? (int) $r[2] : 24];
+            } elseif (strpos($mode, 'TOGGLE') !== false) {
+                $out[$fam] = [
+                    'mode' => 'toggle',
+                    'off'  => ctype_digit($r[3] ?? '') ? (int) $r[3] : 0,
+                    'on'   => ctype_digit($r[4] ?? '') ? (int) $r[4] : 0,
+                ];
+            }
+        }
+        break;
+    }
+
+    return $out;
+}
+
+/**
+ * Libellé du rythme de tir (§5.D), pour le commentaire de planning du départ.
+ * Retour : [famille => [archers => 'AB-CD']], la famille '*' valant pour toutes les disciplines.
+ */
+function sfa_rythme_labels(): array
+{
+    $out = [];
+    foreach (sfa_mapping_sections() as $title => $lines) {
+        if (strpos($title, 'LIBELLE DU RYTHME') === false) {
+            continue;
+        }
+        foreach (sfa_md_rows($lines) as $r) {
+            $fam = sfa_backtick($r[0] ?? '');
+            $lib = sfa_backtick($r[2] ?? '');
+            if ($fam !== '' && $lib !== '' && ctype_digit($r[1] ?? '')) {
+                $out[$fam][(int) $r[1]] = $lib;
+            }
+        }
+        break;
+    }
+
+    return $out;
+}
+
+/**
+ * Libellé du rythme pour une famille et un nombre d'archers/cible : la ligne de la famille prime
+ * sur la ligne générique '*'. Chaîne vide si inconnu — l'appelant omet alors la mention plutôt
+ * que d'inventer un libellé.
+ */
+function sfa_rythme_label(string $family, int $archers): string
+{
+    $all = sfa_rythme_labels();
+
+    return $all[$family][$archers] ?? $all['*'][$archers] ?? '';
+}
+
+/**
+ * Durées de départ connues (§5.C), par famille et nombre d'archers/cible.
+ * Retour : [famille => [archers => minutes]]. Table volontairement incomplète : une combinaison
+ * absente laisse le champ « Durée » libre côté formulaire, sans valeur devinée.
+ */
+function sfa_session_durations(): array
+{
+    $out = [];
+    foreach (sfa_mapping_sections() as $title => $lines) {
+        if (strpos($title, 'DUREE DU DEPART') === false) {
+            continue;
+        }
+        foreach (sfa_md_rows($lines) as $r) {
+            $fam = sfa_backtick($r[0] ?? '');
+            if ($fam === '' || !ctype_digit($r[1] ?? '') || !ctype_digit($r[2] ?? '')) {
+                continue;
+            }
+            $out[$fam][(int) $r[1]] = (int) $r[2];
+        }
+        break;
+    }
+
+    return $out;
+}

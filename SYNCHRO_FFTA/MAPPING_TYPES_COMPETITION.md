@@ -71,15 +71,23 @@ Source : `Modules/Sets/FR/sets.php` (types autorisés) + table `TourTypes` + `Co
 
 ### Types de compétition (`ToType`)
 
-| ToType | Libellé ianseo (fr) | Distances |
-|---|---|---|
-| `3` | TAE 70m/50m | 2 |
-| `6` | 2x18 m | 2 |
-| `7` | Salle 25 m | 2 |
-| `8` | Salle 18+25 m | 4 |
-| `9` | Campagne 12+12 | 1 |
-| `11` | 3D | 1 |
-| `50` | Beursault | 1 |
+La colonne **Famille** est la seule donnée machine-lisible du fichier qui ne sert pas à la
+création de la compétition elle-même, mais à la configuration assistée des départs (§5) — un seul
+champ nom-de-famille, jamais codé en dur en PHP/JS (`sfa_session_families()` dans mapping.php).
+
+| ToType | Libellé ianseo (fr) | Distances | Famille |
+|---|---|---|---|
+| `3` | TAE 70m/50m | 2 | `TAE` |
+| `6` | 2x18 m | 2 | `18m` |
+| `7` | Salle 25 m | 2 | `18m` |
+| `8` | Salle 18+25 m | 4 | `18m` |
+| `9` | Campagne 12+12 | 1 | `Campagne` |
+| `11` | 3D | 1 | `3D` |
+| `50` | Beursault | 1 | `Beursault` |
+
+> Le Para n'a pas de famille à part : c'est une sous-règle de TAE (`SetFRTAE-Para`) et de 18m
+> (`SetFrSelectifPara`, ToType 6/7/8) — il partage donc automatiquement les paramètres de départ
+> de sa famille (§5), sans détection spécifique nécessaire.
 
 ### Sous-règles disponibles par type (`ToTypeSubRule`)
 
@@ -197,3 +205,75 @@ Points sur lesquels l'extranet ne dit rien et que le module devra soit laisser v
   - ⚠️ `ToCode` est limité à **8 caractères** en base. `F` + 2 + n° d'épreuve tient si le n° fait
     ≤ 5 chiffres (les exemples relevés en font 5). Un n° à 6 chiffres déborderait → le module devra
     le détecter et refuser plutôt que tronquer (une troncature créerait un doublon de code).
+
+---
+
+## 5. Paramètres de départ par discipline
+
+Configuration assistée de la table des départs (un départ = une ligne) à la création. Ces 3
+tableaux sont lus par `sfa_rythme_bounds()`, `sfa_pelotons_config()` et `sfa_session_durations()`
+(mapping.php) — la famille (colonne du §2) fait le lien avec la discipline choisie. Comme le
+tableau §3, ils sont **à compléter** : une famille ou une combinaison absente reste simplement
+sans contrainte/auto-remplissage côté formulaire plutôt que de deviner.
+
+### A. Archers par cible/peloton (rythme de tir)
+
+`Min`=`Max` signifie un nombre fixe, sans choix possible (champ affiché grisé côté formulaire).
+
+| Famille | Min | Max | Défaut | Remarque |
+|---|---|---|---|---|
+| `TAE` | 2 | 4 | 4 | Inclut Para (même ToType) |
+| `18m` | 2 | 4 | 4 | Inclut Para (même ToType) |
+| `Campagne` | 3 | 4 | 4 | |
+| `Nature` | 3 | 5 | 4 | ianseo n'a pas encore ce ToType (§2) — prêt pour le jour où il existera |
+| `3D` | 4 | 6 | 4 | |
+| `Beursault` | 5 | 5 | 5 | Tir individuel, aucun choix — champ grisé, non modifiable |
+
+### B. Pelotons autorisés (nombre de cibles, `SesTar4Session`)
+
+Ce n'est pas une règle sportive mais une capacité de terrain : `stepper` = simple +/- sans borne
+stricte (valeur de départ = `Défaut`) ; `toggle` = case à cocher « pelotons bis autorisés »
+(décochée → `Décoché`, cochée → `Coché`), champ résultat affiché grisé, non saisissable au clavier.
+
+| Famille | Mode | Défaut | Décoché | Coché |
+|---|---|---|---|---|
+| `TAE` | stepper | 24 | | |
+| `18m` | stepper | 24 | | |
+| `Beursault` | stepper | 24 | | |
+| `Campagne` | toggle | | 24 | 48 |
+| `3D` | toggle | | 21 | 42 |
+| `Nature` | toggle | | 21 | 42 |
+
+### C. Durée du départ (minutes)
+
+Auto-remplit le champ « Durée » quand la combinaison Famille + Archers/cible est connue ; sinon le
+champ reste libre (aucune valeur devinée). Table volontairement incomplète pour l'instant.
+
+| Famille | Archers/cible | Durée (min) |
+|---|---|---|
+| `TAE` | 4 | 240 |
+| `TAE` | 3 | 165 |
+| `TAE` | 2 | 155 |
+| `18m` | 4 | 210 |
+| `3D` | 4 | 240 |
+| `Campagne` | 4 | 360 |
+| *(à compléter)* | | |
+
+### D. Libellé du rythme de tir
+
+Sert au commentaire de planning écrit sur la première distance du départ, quand l'entraînement est
+inclus : « Entraînement (N volées) suivi des qualifications en rythme **AB-CD** ».
+
+Famille `*` = valable pour toutes les disciplines ; une ligne portant une famille précise **prime**
+sur la ligne `*` de même nombre d'archers. C'est ce qui distingue les deux rythmes à 5 archers.
+Si aucune ligne ne correspond, le commentaire est écrit **sans** la mention de rythme (jamais de
+libellé inventé).
+
+| Famille | Archers/cible | Libellé |
+|---|---|---|
+| `*` | 2 | `AB` |
+| `*` | 3 | `ABC` |
+| `*` | 4 | `AB-CD` |
+| `*` | 5 | `AB-CD-E` |
+| `*` | 6 | `AB-CD-EF` |
+| `Beursault` | 5 | `A-B-C-D-E` |
