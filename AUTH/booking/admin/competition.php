@@ -28,6 +28,14 @@ $TOUR = intval($_SESSION['TourId']);
 $msg  = '';
 $err  = '';
 
+// Publication sur ianseo.net : Tournament.ToOnlineId n'est renseigné qu'au moment où les
+// codes de publication sont obtenus ET validés pour CETTE compétition (cœur ianseo,
+// Common/Lib/CommonLib.php → CheckCredentials). C'est exactement ce qui fait disparaître
+// le bloc « demander les codes » de Tournament/SetCredentials.php. Sans code, il n'existe
+// aucune fiche ianseo.net : inutile de proposer d'en coller le lien.
+$rOnline  = safe_fetch(safe_r_sql("SELECT ToOnlineId FROM Tournament WHERE ToId = $TOUR"));
+$onlineId = $rOnline ? intval($rOnline->ToOnlineId) : 0;
+
 // Persistance à travers un réimport : si cette compétition est une version plus
 // récente d'une compétition déjà suivie par booking (même ToCode, ToId différent),
 // on rapatrie automatiquement config, paiements, boutique et inscriptions. Ne fait
@@ -122,7 +130,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 'fee'         => $_POST['fee'] ?? 0,
                 'pricing'     => $pricingJson,
                 'payinfo'     => bk_payinfo_from_post($_POST['pay'] ?? array()),
-                'ianseo_url'  => $_POST['ianseo_url'] ?? '',
                 'docs_present'      => 1,
                 'show_program'      => !empty($_POST['show_program']),
                 'show_participants' => !empty($_POST['show_participants']),
@@ -134,11 +141,31 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             if (!empty($_POST['show_mandate_present'])) {
                 $save['show_mandate'] = !empty($_POST['show_mandate']);
             }
+            // Idem pour le lien ianseo.net : la case n'est présentée que si la compétition
+            // a ses codes de publication. Sans ce garde-fou, tout enregistrement fait case
+            // absente effacerait le lien. L'ADRESSE, elle, n'est jamais postée : elle est
+            // reconstruite depuis ToOnlineId par bk_comp_save().
+            if (!empty($_POST['ianseo_present'])) {
+                $save['ianseo_present'] = 1;
+                $save['show_ianseo'] = !empty($_POST['show_ianseo']);
+            }
             bk_comp_save($TOUR, $save);
             safe_w_sql("UPDATE BK_Competitions SET BcPublishLevel = 3 WHERE BcTournament = $TOUR");
             $msg = 'Configuration enregistrée.';
         }
     }
+}
+
+/* Enregistrement automatique : même POST, même validation, mais on renvoie l'état au
+   lieu de la page. Volontairement PAS JsonOut() — il pose « Access-Control-Allow-Origin: * »,
+   inutile ici (appel de même origine) sur une page d'administration. */
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && !empty($_POST['ajax'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(array(
+        'ok'  => ($err === ''),
+        'msg' => ($err !== '' ? $err : ($msg !== '' ? $msg : 'Enregistré')),
+    ), JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 if (isset($_GET['copied'])) $msg = 'Configuration reprise depuis l\'autre compétition. Vérifiez les dates et les contraintes du terrain.';
@@ -286,6 +313,16 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     background:#fafbfc; width:min(420px, 90vw); }
 #bkadm .bk-copy-body select, #bkadm .bk-copy-body input[type=text] { max-width:100%; width:100%; }
 #bkadm .bk-copy-body .bk-btn { margin-top:8px; }
+#bkadm .bk-pub-what { font-size:13px; line-height:1.5; margin:0 0 6px; padding:8px 10px;
+    background:#eef4fb; border:1px solid #cddff2; border-radius:6px; color:#123a63; }
+/* Enregistrement automatique : pastille d'état, flottante en bas à droite. */
+#bk-pill { position:fixed; right:14px; bottom:14px; z-index:60; padding:8px 13px;
+    border-radius:20px; font-size:12px; font-weight:600; border:1px solid transparent;
+    box-shadow:0 2px 10px rgba(0,0,0,.18); }
+#bk-pill.wait { background:#fdf4e3; border-color:#e8cf9a; color:#7a5b12; }
+#bk-pill.ok   { background:#eaf7ea; border-color:#bfe3bf; color:#1c6b1c; }
+#bk-pill.err  { background:#fdecea; border-color:#e8b4ae; color:#a02015; }
+#bkadm .bk-auto-note { font-size:12px; color:#5a6570; margin:10px 0 0; }
 </style>
 
 <div id="bkadm">
@@ -328,7 +365,7 @@ if ($openConf):
 
 <div class="bk-sec">
   <div class="bk-sec-head">
-    <h2>Publication</h2>
+    <h2>Ouverture des inscriptions sur ce serveur</h2>
     <details class="bk-copy">
       <summary>📋 Copier depuis…</summary>
       <div class="bk-copy-body">
@@ -358,13 +395,18 @@ if ($openConf):
       </div>
     </details>
   </div>
-  <p class="bk-hint" style="margin-top:0">Choisissez le niveau de publication de la compétition.</p>
+  <p class="bk-pub-what">Il s'agit de la <b>page d'inscription en ligne de ce serveur</b> : ce que voient
+     les archers qui se connectent ici <b>avec leur numéro de licence</b>. Eux seuls y ont accès —
+     la compétition n'est visible ni du public, ni des moteurs de recherche.</p>
+  <p class="bk-hint" style="margin-top:0">Cela <b>ne concerne pas ianseo.net</b> : rien n'y est envoyé
+     ni publié depuis cette page. L'envoi des résultats vers ianseo.net reste le menu habituel de ianseo
+     (<i>Compétition › Envoyer à ianseo.net</i>).</p>
   <div class="bk-levels">
     <?php
     $lvls = array(
-      1 => array('Aucune publication', 'Visible par vous seul. Rien côté archer.'),
-      2 => array('Publication simple', "Tout est publié automatiquement (inscriptions, mandat, documents). Il ne reste que le tarif d'inscription à préciser et, si besoin, les contraintes d'affectation du terrain et la boutique."),
-      3 => array('Avancé', 'Réglage détaillé de chaque paramètre.'),
+      1 => array('Fermée', "Vous seul la voyez. Elle n'apparaît pas dans le calendrier des archers et personne ne peut s'y inscrire."),
+      2 => array('Inscriptions ouvertes', "Les archers connectés la voient et s'inscrivent en ligne. Mandat et documents leur sont proposés automatiquement. Il ne reste que le tarif à indiquer et, si besoin, les contraintes du terrain et la boutique."),
+      3 => array('Inscriptions ouvertes — réglages détaillés', "Idem, mais vous réglez vous-même chaque paramètre : dates, restriction géographique, ce que voient les archers, tarifs, moyens de paiement."),
     );
     foreach ($lvls as $n => $info): ?>
       <form method="post" class="bk-lvl-form">
@@ -381,25 +423,28 @@ if ($openConf):
 
 <?php if ($level == 1): ?>
   <div class="bk-sec">
-    <p class="bk-hint" style="margin:0">Cette compétition n'est pas publiée : elle n'apparaît pas dans
-       le calendrier des archers et ne compte pas dans leurs statistiques. Passez en
-       <b>Publication simple</b> pour la rendre visible en un clic.</p>
+    <p class="bk-hint" style="margin:0">Les inscriptions en ligne sont fermées : cette compétition
+       n'apparaît pas dans le calendrier des archers connectés et ne compte pas dans leurs statistiques.
+       Choisissez <b>Inscriptions ouvertes</b> pour la leur rendre visible en un clic.</p>
   </div>
 <?php endif; ?>
 
 <?php if ($level == 2): ?>
   <div class="bk-sec">
     <h2>À finaliser</h2>
-    <p class="bk-hint" style="margin-top:0">Tout est déjà publié automatiquement. Les inscriptions sont ouvertes. Indiquez le tarif
-       d'inscription puis, si besoin, configurez les contraintes d'affectation du terrain et la boutique :</p>
-    <form method="post" class="bk-row" style="margin:0 0 14px">
+    <p class="bk-hint" style="margin-top:0">Les archers connectés voient la compétition et peuvent s'inscrire ;
+       mandat et documents leur sont proposés automatiquement. Indiquez le tarif d'inscription puis,
+       si besoin, configurez les contraintes d'affectation du terrain et la boutique :</p>
+    <form method="post" class="bk-row" style="margin:0 0 14px" data-autosave="1">
       <?= bk_csrf_field() ?>
+      <input type="hidden" name="save_fee" value="1">
       <label class="bk-f"><span>Tarif d'inscription (€)</span>
         <input type="text" name="fee" size="8" value="<?= bk_e(number_format((float) $cfg->BcFee, 2, ',', '')) ?>"></label>
-      <button type="submit" class="bk-btn" name="save_fee" value="1" style="align-self:flex-end">Enregistrer le tarif</button>
+      <button type="submit" class="bk-btn" data-manual-save="1" style="align-self:flex-end">Enregistrer le tarif</button>
     </form>
     <p class="bk-hint" style="margin:0 0 6px">Tarif unique appliqué à chaque inscription. La modulation
-       fine (par catégorie, départ, provenance…) reste disponible en mode « Avancé ».</p>
+       fine (par catégorie, départ, provenance…) reste disponible dans les
+       <b>réglages détaillés</b>.</p>
     <p class="bk-shortcuts">
       <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/field.php">Contraintes d'affectation du terrain →</a>
       <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/shop.php">Boutique →</a>
@@ -409,7 +454,7 @@ if ($openConf):
 <?php endif; ?>
 
 <?php if ($level == 3): ?>
-<form method="post">
+<form method="post" id="bk-cfg" data-autosave="1">
 <?= bk_csrf_field() ?>
 
 <div class="bk-sec">
@@ -492,11 +537,25 @@ if ($openConf):
   <h3 class="bk-h3">Documents de la compétition</h3>
   <p class="bk-hint">Rassemblés pour l'archer sur une page « Documents » (accessible depuis le calendrier
      et « Mes inscriptions »). Le mandat s'y ajoute automatiquement s'il est rendu visible ci-dessus.</p>
-  <label for="ianseo_url" style="font-weight:600; font-size:13px; color:#01367c">Lien vers la fiche ianseo.net (facultatif)</label>
-  <input type="url" id="ianseo_url" name="ianseo_url" placeholder="https://www.ianseo.net/..."
-         value="<?= bk_e($cfg->BcIanseoUrl ?? '') ?>" style="width:100%; max-width:520px; padding:7px 9px; border:1px solid #cfd3d6; border-radius:6px; font:inherit">
-  <p class="bk-hint">Si la compétition est publiée sur ianseo.net, collez ici l'adresse de sa fiche : un lien
-     « Fiche sur ianseo.net » sera proposé aux archers.</p>
+  <?php // L'adresse n'est plus demandée : elle se reconstruit depuis l'identifiant en ligne
+        // attribué avec les codes de publication. Il ne reste à décider que de l'afficher.
+        $ianseoUrl      = bk_ianseo_url($TOUR);
+        $ianseoUrlSaved = trim((string) ($cfg->BcIanseoUrl ?? '')); ?>
+  <?php if ($ianseoUrl !== ''): ?>
+    <input type="hidden" name="ianseo_present" value="1">
+    <label class="bk-chk"><input type="checkbox" name="show_ianseo" value="1" <?= $ianseoUrlSaved !== '' ? 'checked' : '' ?>>
+      Lien vers la <b>fiche ianseo.net</b> de la compétition (identifiant en ligne <?= $onlineId ?>) :
+      <a href="<?= bk_e($ianseoUrl) ?>" target="_blank" rel="noopener"><?= bk_e($ianseoUrl) ?></a></label>
+  <?php elseif ($ianseoUrlSaved !== ''): ?>
+    <?php // Valeur dérivée dont la source a disparu (réimport sans identifiant en ligne,
+          // ou adresse saisie à la main du temps où le champ était libre) : on l'annonce
+          // et le prochain enregistrement la retire — il n'existe plus de fiche à pointer. ?>
+    <input type="hidden" name="ianseo_present" value="1">
+    <p class="bk-hint" style="margin:6px 0 0; color:#a86b00">Un lien ianseo.net est enregistré
+       (<?= bk_e($ianseoUrlSaved) ?>) alors que cette compétition n'a pas (ou plus) de codes de
+       publication ianseo.net : il ne pointe vers aucune fiche et sera retiré au prochain
+       enregistrement de cette page.</p>
+  <?php endif; ?>
 
   <p class="bk-hint" style="margin-top:12px">Documents officiels ianseo (PDF) à proposer aux archers. Ils sont
      régénérés à la demande depuis les données de la compétition — n'affichez les résultats qu'une fois les
@@ -631,7 +690,7 @@ if ($openConf):
   <?php endforeach; ?>
 </div>
 
-<button type="submit" class="bk-btn">Enregistrer</button>
+<button type="submit" class="bk-btn" data-manual-save="1">Enregistrer</button>
 </form>
 <?php endif; // fin du mode avancé (niveau 3) ?>
 
@@ -705,9 +764,90 @@ if ($openConf):
   <p style="font-size:13px;margin:0">Communiquez cette adresse à vos licenciés :<br>
      <span class="bk-url"><?= bk_e($publicUrl) ?></span></p>
 </div>
+
+<div id="bk-pill" hidden></div>
 <?php endif; // fin niveau >= 2 ?>
 
 </div>
+
+<?php if ($level >= 2): ?>
+<script>
+/* Enregistrement automatique — le bouton « Enregistrer » disparaît quand JS est
+   disponible, et chaque modification est écrite au fil de l'eau.
+   Choix : on renvoie le formulaire ENTIER au même point d'entrée (même validation,
+   même normalisation côté serveur) plutôt que d'inventer une API par champ ; seule
+   la réponse change (JSON au lieu de la page). Sans JS, le bouton reste. */
+(function () {
+  var forms = [].slice.call(document.querySelectorAll('form[data-autosave]'));
+  if (!forms.length || !window.fetch || !window.FormData) return;
+
+  var pill = document.getElementById('bk-pill');
+  var timer = null, enCours = false, aRefaire = null, sale = false;
+
+  function etat(cls, txt) { if (!pill) return; pill.className = cls; pill.textContent = txt; pill.hidden = false; }
+  function heure() { return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
+
+  function envoyer(form) {
+    if (enCours) { aRefaire = form; return; }      // une écriture à la fois, la dernière rejouée
+    enCours = true;
+    etat('wait', '⏳ Enregistrement…');
+    var fd = new FormData(form);
+    fd.append('ajax', '1');
+    fetch(window.location.href, {
+      method: 'POST', body: fd, credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'fetch' }
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (j && j.ok) { sale = false; etat('ok', '✓ Enregistré à ' + heure()); }
+        else etat('err', '⚠ ' + ((j && j.msg) || 'Enregistrement refusé — rechargez la page.'));
+      })
+      .catch(function () { etat('err', '⚠ Enregistrement impossible (connexion ?). Vos dernières modifications ne sont pas écrites.'); })
+      .then(function () {
+        enCours = false;
+        if (aRefaire) { var f = aRefaire; aRefaire = null; envoyer(f); }
+      });
+  }
+
+  function planifier(form, delai) {
+    sale = true;
+    clearTimeout(timer);
+    timer = setTimeout(function () { envoyer(form); }, delai);
+  }
+
+  forms.forEach(function (form) {
+    // L'aperçu de tarif est bâti sur des champs SANS name (sim-*) : les manipuler ne
+    // change rien d'enregistrable, inutile de déclencher une écriture.
+    function utile(e) { return e.target && e.target.name && !e.target.disabled; }
+    // Frappe au clavier : on laisse finir la saisie. Case/liste/date : immédiat.
+    form.addEventListener('input',  function (e) { if (utile(e)) planifier(form, 900); });
+    form.addEventListener('change', function (e) { if (utile(e)) planifier(form, 150); });
+    form.addEventListener('submit', function (e) { e.preventDefault(); planifier(form, 0); });
+    form.querySelectorAll('[data-manual-save]').forEach(function (b) { b.hidden = true; });
+    // Après le formulaire, pas dedans : celui du tarif est une rangée flex.
+    var note = document.createElement('p');
+    note.className = 'bk-auto-note';
+    note.textContent = 'Vos modifications sont enregistrées automatiquement.';
+    if (form.parentNode) form.parentNode.insertBefore(note, form.nextSibling);
+  });
+
+  // Supprimer une règle de tarif retire des champs sans déclencher d'événement.
+  // (La suppression elle-même a lieu dans l'autre écouteur, synchrone : le délai
+  //  ci-dessous garantit que l'envoi part APRÈS.)
+  document.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('.bk-cat-del')) {
+      var f = document.getElementById('bk-cfg');
+      if (f) planifier(f, 200);
+    }
+  });
+
+  // Quitter la page avec une modification non écrite : on prévient.
+  window.addEventListener('beforeunload', function (e) {
+    if (sale || enCours) { e.preventDefault(); e.returnValue = ''; }
+  });
+})();
+</script>
+<?php endif; ?>
 <?php if ($level == 3): ?>
 <script>
 var bkCatN = <?= count($pricing['categories']) ?>;
@@ -725,7 +865,9 @@ document.addEventListener('click', function (e) {
 /* Aperçu du tarif en direct : lit la configuration du formulaire et applique la
    même formule que le serveur (lib/pricing.php). */
 (function () {
-  var form = document.querySelector('#bkadm form'); if (!form) return;
+  // #bk-cfg et non « #bkadm form » : le PREMIER formulaire de la page est celui de
+  // « Copier depuis… » — l'aperçu y lisait donc un tarif de base toujours vide.
+  var form = document.getElementById('bk-cfg'); if (!form) return;
   function num(v) { v = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isNaN(v) ? 0 : v; }
   function val(id) { var e = document.getElementById(id); return e ? e.value : ''; }
   function selVals(sel) { var a = []; if (!sel) return a; for (var i = 0; i < sel.options.length; i++) if (sel.options[i].selected) a.push(sel.options[i].value); return a; }

@@ -1,7 +1,7 @@
 {
-  "version": "1.1.1",
-  "date": "2026-09-01",
-  "notes": "Connexion : une maintenance ou une panne de la FFTA n'est plus annoncée comme « identifiants incorrects » (détection par code HTTP, contenu de la page et absence de formulaire), n'est plus comptée dans l'anti-bourrage, et un bandeau prévient les visiteurs suivants. Vaut pour l'espace dirigeant et l'espace licencié ; la synchro des licences reporte au lieu d'échouer.",
+  "version": "1.1.3",
+  "date": "2026-09-03",
+  "notes": "Connexion : une maintenance ou une panne de la FFTA n'est plus annoncée comme « identifiants incorrects », n'est plus comptée dans l'anti-bourrage, et un bandeau prévient les visiteurs suivants (espace dirigeant et espace licencié ; la synchro des licences reporte au lieu d'échouer). Inscriptions en ligne : page de configuration enregistrée automatiquement, vocabulaire clarifié (publication sur ce serveur, pour les licenciés connectés — sans rapport avec ianseo.net), et lien vers la fiche ianseo.net reconstruit tout seul depuis l'identifiant en ligne de la compétition — une case à cocher suffit, proposée seulement quand la compétition y est publiée et activée d'office en publication simple. Côté archer, la jauge « pour votre blason » affiche enfin des places et non des cibles.",
   "files": [
     "menu.php",
     "lib.php",

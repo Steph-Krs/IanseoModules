@@ -107,6 +107,21 @@ function bk_comp_advanced_cols()
         'BcShowDossard', 'BcPayInfo', 'BcShopUntil');
 }
 
+/**
+ * Adresse de la fiche ianseo.net d'une compétition — RECONSTRUITE, jamais saisie.
+ *
+ * `Tournament.ToOnlineId` est l'identifiant attribué par ianseo.net en même temps que
+ * les codes de publication (cœur : `CheckCredentials`) ; 0 = la compétition n'y est pas
+ * publiée, donc aucune fiche n'existe. Format relevé sur une compétition réellement
+ * publiée (F26WFT1 → toId 27215). Retourne '' s'il n'y a rien à proposer.
+ */
+function bk_ianseo_url($tourId)
+{
+    $r = safe_fetch(safe_r_sql("SELECT ToOnlineId FROM Tournament WHERE ToId = " . intval($tourId)));
+    $id = $r ? intval($r->ToOnlineId) : 0;
+    return $id > 0 ? 'https://www.ianseo.net/Details.php?toId=' . $id : '';
+}
+
 /** Configuration d'une compétition (défauts si jamais enregistrée). */
 function bk_comp_config($tourId)
 {
@@ -357,11 +372,13 @@ function bk_comp_save($tourId, $in)
     if (array_key_exists('show_mandate', $in)) {
         $set .= ", BcShowMandate = " . (empty($in['show_mandate']) ? 0 : 1);
     }
-    // Lien ianseo.net : URL http(s) seulement, sinon vidé.
-    if (array_key_exists('ianseo_url', $in)) {
-        $u = trim((string) $in['ianseo_url']);
-        if ($u !== '' && !preg_match('#^https?://#i', $u)) $u = '';
-        $set .= ", BcIanseoUrl = " . ($u === '' ? 'NULL' : StrSafe_DB(mb_substr($u, 0, 255)));
+    // Lien ianseo.net : l'organisateur ne saisit PLUS d'adresse, il décide seulement de
+    // l'afficher — la colonne est donc une valeur DÉRIVÉE, reconstruite à chaque
+    // enregistrement depuis ToOnlineId. Effet utile : une compétition réimportée sous un
+    // autre identifiant en ligne se corrige d'elle-même au premier enregistrement.
+    if (array_key_exists('ianseo_present', $in)) {
+        $u = empty($in['show_ianseo']) ? '' : bk_ianseo_url($tourId);
+        $set .= ", BcIanseoUrl = " . ($u === '' ? 'NULL' : StrSafe_DB($u));
     }
     // Documents officiels ianseo proposés aux archers (opt-in), écrits seulement
     // si l'appelant a présenté les cases (competition.php).
@@ -440,6 +457,9 @@ function bk_comp_apply_auto($tourId)
         . ", BcMaxPerClubPerTarget = 2, BcMinClubsPerSession = 3"
         . ", BcShowGauges = 1, BcShowAssignment = 1, BcAllowScoresheet = 1"
         . ", BcShowMandate = 1, BcShowProgram = 1, BcShowParticipants = 1, BcShowResults = 1, BcShowDossard = 1"
+        // Lien ianseo.net proposé d'office quand la compétition y est publiée ; sinon rien
+        // à montrer. Reconstruit, comme partout, depuis ToOnlineId.
+        . ", BcIanseoUrl = " . (($u = bk_ianseo_url($tourId)) === '' ? 'NULL' : StrSafe_DB($u))
         . ", BcWishLetter = 1, BcWishWith = 0, BcWishFree = 0"
         . ", BcPricing = NULL, BcExcludeStats = 0";
     safe_w_sql("UPDATE BK_Competitions SET $set WHERE BcTournament = $tourId");

@@ -420,8 +420,9 @@ bk_head('Inscription');
   <?php if (!$libres): ?>
     <p class="bk-blocked">Aucun départ disponible : ils sont complets (y compris pour votre blason), ou vous y êtes déjà inscrit.</p>
   <?php else: ?>
-    <p class="bk-hint">« pour votre blason » = places restantes compte tenu de votre catégorie et de votre
-       blason (cohabitation des cibles). Un départ complet pour ce blason n'est pas sélectionnable.</p>
+    <p class="bk-hint">« pour votre blason » = nombre d'archers comme vous (même catégorie, même blason)
+       que les cibles de ce départ peuvent encore accueillir. Un départ complet pour ce blason n'est pas
+       sélectionnable.</p>
   <?php endif; ?>
 
   <?php if ($dejaMoi): ?>

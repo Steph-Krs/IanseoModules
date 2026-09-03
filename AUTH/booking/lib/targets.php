@@ -402,7 +402,18 @@ function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId
     foreach (array_keys($targets) as $t) {
         if (!bk_caps_target_ok($caps, $t, $needs)) continue;
         if (isset($distCible[$t]) && $distCible[$t] !== $distKey) continue;
-        $remaining += bk_cohabit_max_add($facesCible[$t] ?? array(), $faceClass, $disc, $rhythm);
+        // ⚠️ bk_cohabit_max_add() répond « combien de plus MAINTENANT », pas « combien
+        // en tout ». Sur une cible vide en TAE, un blason plein (122) coûte tout le
+        // budget → elle renvoyait 1, alors que ce blason est ENSUITE PARTAGÉ par
+        // jusqu'à SesAth4Target archers. La jauge affichait donc le nombre de CIBLES
+        // libres et non les places (confusion signalée à l'inscription). On pose donc
+        // les archers un par un, comme le fait réellement le placement.
+        $cur = $facesCible[$t] ?? array();
+        for ($n = 0; $n < $rhythm; $n++) {
+            if (bk_cohabit_max_add($cur, $faceClass, $disc, $rhythm) < 1) break;
+            $cur[] = $faceClass;
+            $remaining++;
+        }
     }
     return $remaining;
 }
