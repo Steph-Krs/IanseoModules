@@ -372,9 +372,11 @@ function sfa_rythme_bounds(): array
 }
 
 /**
- * Configuration du nombre de pelotons autorisés (§5.B), par famille de discipline.
- * Retour : [famille => ['mode'=>'stepper','default'=>int]]
- *        ou [famille => ['mode'=>'toggle','off'=>int,'on'=>int]] (case « pelotons bis autorisés »).
+ * Configuration du nombre de cibles/pelotons autorisés (§5.B), par famille de discipline.
+ * Retour : [famille => ['mode'=>'stepper','default'=>int,'title'=>string,'unit'=>string]]
+ *        ou [famille => ['mode'=>'toggle','off'=>int,'on'=>int,'title'=>…,'unit'=>…]].
+ * 'title' = titre de la colonne (« Cibles autorisées » / « Pelotons autorisés »),
+ * 'unit'  = nom de l'unité au singulier, pour « Archers / cible » ou « Archers / peloton ».
  */
 function sfa_pelotons_config(): array
 {
@@ -389,10 +391,15 @@ function sfa_pelotons_config(): array
             if ($fam === '' || $mode === '') {
                 continue;
             }
+            $labels = [
+                'title' => sfa_backtick($r[5] ?? '') ?: 'Cibles autorisées',
+                'unit'  => sfa_backtick($r[6] ?? '') ?: 'cible',
+            ];
             if (strpos($mode, 'STEPPER') !== false) {
-                $out[$fam] = ['mode' => 'stepper', 'default' => ctype_digit($r[2] ?? '') ? (int) $r[2] : 24];
+                $out[$fam] = $labels + ['mode' => 'stepper',
+                    'default' => ctype_digit($r[2] ?? '') ? (int) $r[2] : 24];
             } elseif (strpos($mode, 'TOGGLE') !== false) {
-                $out[$fam] = [
+                $out[$fam] = $labels + [
                     'mode' => 'toggle',
                     'off'  => ctype_digit($r[3] ?? '') ? (int) $r[3] : 0,
                     'on'   => ctype_digit($r[4] ?? '') ? (int) $r[4] : 0,

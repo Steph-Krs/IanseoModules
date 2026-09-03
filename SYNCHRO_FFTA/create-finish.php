@@ -21,15 +21,48 @@ CheckTourSession(true);
 $tid = (int) $_SESSION['TourId'];
 
 /**
- * Trouve le fichier image par défaut d'un emplacement (ToLeft/ToRight/ToBottom) dans assets/,
- * quelle que soit son extension. Convention : il suffit de remplacer le fichier en conservant
- * ce nom de base pour changer l'image par défaut sur ce serveur — jamais resynchronisé par les
- * mises à jour du module (pas dans files[] de version.json, comme module.json).
+ * Trouve l'image à utiliser pour un emplacement (ToLeft / ToRight / ToBottom) dans assets/,
+ * en .jpg, .jpeg ou .png indifféremment.
+ *
+ * Deux niveaux, dans cet ordre :
+ *  1. `<nom>-local.<ext>` — surcharge propre à CE serveur. Elle n'est pas dans files[] de
+ *     version.json, donc aucune mise à jour du module ne l'écrase ni ne la supprime : c'est le
+ *     moyen pour un organisateur de mettre ses propres images sans les perdre. (Même logique et
+ *     même suffixe que les `config.local.json` des autres modules.)
+ *  2. `<nom>.<ext>` — l'image par défaut livrée avec le module, mise à jour depuis le dépôt.
+ *
+ * À chaque niveau on retient le fichier le plus RÉCEMMENT modifié : version.json fige des noms
+ * exacts, donc changer l'extension d'une image sur le dépôt (vécu : ToRight.png → ToRight.jpg)
+ * livre la nouvelle sans effacer l'ancienne sur les serveurs qui l'avaient déjà — les deux
+ * coexistent, et c'est la dernière déployée qui doit gagner.
  */
 function sfa_asset_image(string $base): ?string
 {
-    $matches = glob(__DIR__ . '/assets/' . $base . '.*');
-    return $matches ? $matches[0] : null;
+    foreach ([$base . '-local', $base] as $name) {
+        $found = [];
+        foreach (['jpg', 'jpeg', 'png', 'JPG', 'JPEG', 'PNG'] as $ext) {
+            foreach (glob(__DIR__ . '/assets/' . $name . '.' . $ext) ?: [] as $file) {
+                // Clé = chemin réel : dédoublonne sur un système de fichiers insensible à la
+                // casse (Windows), où 'jpg' et 'JPG' ramènent le même fichier. On garde la
+                // PREMIÈRE occurrence (extensions minuscules d'abord) pour ne pas retourner un
+                // chemin à la casse du motif au lieu de celle du fichier réel.
+                $key = realpath($file);
+                if (!isset($found[$key])) {
+                    $found[$key] = $file;
+                }
+            }
+        }
+        if ($found) {
+            $found = array_values($found);
+            usort($found, function ($a, $b) {
+                return filemtime($b) <=> filemtime($a);
+            });
+
+            return $found[0];
+        }
+    }
+
+    return null;
 }
 
 // ── Logos + footer ────────────────────────────────────────────────────────────

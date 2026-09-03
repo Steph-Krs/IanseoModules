@@ -229,20 +229,24 @@ sans contrainte/auto-remplissage côté formulaire plutôt que de deviner.
 | `3D` | 4 | 6 | 4 | |
 | `Beursault` | 5 | 5 | 5 | Tir individuel, aucun choix — champ grisé, non modifiable |
 
-### B. Pelotons autorisés (nombre de cibles, `SesTar4Session`)
+### B. Cibles / pelotons autorisés (`SesTar4Session`)
 
 Ce n'est pas une règle sportive mais une capacité de terrain : `stepper` = simple +/- sans borne
 stricte (valeur de départ = `Défaut`) ; `toggle` = case à cocher « pelotons bis autorisés »
 (décochée → `Décoché`, cochée → `Coché`), champ résultat affiché grisé, non saisissable au clavier.
 
-| Famille | Mode | Défaut | Décoché | Coché |
-|---|---|---|---|---|
-| `TAE` | stepper | 24 | | |
-| `18m` | stepper | 24 | | |
-| `Beursault` | stepper | 24 | | |
-| `Campagne` | toggle | | 24 | 48 |
-| `3D` | toggle | | 21 | 42 |
-| `Nature` | toggle | | 21 | 42 |
+`Titre` et `Unité` sont les libellés affichés dans la table des départs à la création : le TAE et le
+18m se tirent en **cibles**, les parcours et le Beursault en **pelotons**. `Unité` sert au titre de
+la colonne voisine (« Archers / cible » ou « Archers / peloton »).
+
+| Famille | Mode | Défaut | Décoché | Coché | Titre | Unité |
+|---|---|---|---|---|---|---|
+| `TAE` | stepper | 24 | | | `Cibles autorisées` | `cible` |
+| `18m` | stepper | 24 | | | `Cibles autorisées` | `cible` |
+| `Beursault` | stepper | 24 | | | `Pelotons autorisés` | `peloton` |
+| `Campagne` | toggle | | 24 | 48 | `Pelotons autorisés` | `peloton` |
+| `3D` | toggle | | 21 | 42 | `Pelotons autorisés` | `peloton` |
+| `Nature` | toggle | | 21 | 42 | `Pelotons autorisés` | `peloton` |
 
 ### C. Durée du départ (minutes)
 

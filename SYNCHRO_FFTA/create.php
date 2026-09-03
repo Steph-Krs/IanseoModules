@@ -289,8 +289,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         <h4>Départs</h4>
         <table class="ses" id="ses-table">
           <thead><tr>
-            <th>Pelotons autorisés</th>
-            <th>Archers / cible</th>
+            <th id="ses-th-pel">Cibles autorisées</th>
+            <th id="ses-th-ath">Archers / cible</th>
             <th>Jour</th>
             <th>Heure</th>
             <th>Durée (min)</th>
@@ -599,6 +599,26 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     function familyFor(toType) { return FAMILIES[toType] || null; }
     function sesCurrentFamily() { return familyFor($('f-type').value); }
 
+    /** Titre de la colonne 1 et unité (cible / peloton) de la famille — §5.B du fichier de mapping. */
+    function sesLabels(fam) {
+        var cfg = PELOTONS[fam] || {};
+        return { title: cfg.title || 'Cibles autorisées', unit: cfg.unit || 'cible' };
+    }
+
+    /** Le TAE et le 18m se tirent en cibles, les parcours et le Beursault en pelotons. */
+    function sesApplyLabels(fam) {
+        var l = sesLabels(fam);
+        $('ses-th-pel').textContent = l.title;
+        $('ses-th-ath').textContent = 'Archers / ' + l.unit;
+        // data-label : libellés repris en mode fiches (écran étroit)
+        $('ses-body').querySelectorAll('.ses-pel-cell').forEach(function (td) {
+            td.setAttribute('data-label', l.title);
+        });
+        $('ses-body').querySelectorAll('.ses-ath-cell').forEach(function (td) {
+            td.setAttribute('data-label', 'Archers / ' + l.unit);
+        });
+    }
+
     /** Jour par défaut du premier départ auto-ajouté = date de début de la compétition. */
     function sesDefaultDay() {
         var y = $('f-fy').value, m = $('f-fm').value, d = $('f-fd').value;
@@ -761,8 +781,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         // Tous les champs d'un départ sont obligatoires (required) : une compétition ne peut pas
         // être créée avec un départ incomplet. data-label sert à l'affichage en fiches sur mobile.
         tr.innerHTML =
-            '<td class="ses-pel-cell" data-label="Pelotons autorisés"></td>' +
-            '<td class="ses-ath-cell" data-label="Archers / cible"></td>' +
+            '<td class="ses-pel-cell"></td>' +   // data-label posé par sesApplyLabels()
+            '<td class="ses-ath-cell"></td>' +
             '<td data-label="Jour"><input type="date" class="ses-day" required name="sfa_ses_day[' + i + ']" value="' + esc(day || '') + '"></td>' +
             '<td data-label="Heure"><input type="time" class="ses-time" required name="sfa_ses_time[' + i + ']" value="' + esc(time || '') + '"></td>' +
             '<td data-label="Durée (min)"><input type="number" class="ses-dur" required min="1" name="sfa_ses_duration[' + i + ']" value="' + esc(dur) + '"></td>' +
@@ -786,6 +806,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         $('ses-body').appendChild(tr);
         $('ses-hint').style.display = 'none';
         sesUpdateDelButtons();
+        sesApplyLabels(fam);
     }
 
     $('ses-add').addEventListener('click', function () {
@@ -813,6 +834,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             wirePelAthCell(tr, fam, pelVal, athVal);
             refreshDuration(tr);
         });
+        sesApplyLabels(fam);
     }
 
     $('f-type').addEventListener('change', function () { fillSubOptions(this.value, ''); sesRefreshFamily(); });
