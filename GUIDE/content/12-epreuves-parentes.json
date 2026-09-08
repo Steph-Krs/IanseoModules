@@ -1,16 +1,47 @@
 {
-    "id": "epreuves-parentes",
+    "lang": "fr",
+    "id": "i233dj7cn2c9n8pxa5nb",
     "type": "formation",
-    "title": "Duels avec consolantes : l'épreuve parente (~15min)",
-    "description": "Faites tirer les perdants ! Configurez une compétition « montante-descendante » : les archers éliminés continuent à s'affronter dans des tableaux de classement liés à l'épreuve principale.",
-    "version": "1.0",
-    "group": "Pour aller plus loin",
+    "title": {
+        "fr": "Duels avec consolantes : l'épreuve parente (~15min)",
+        "en": "Matches with consolation rounds: the parent event (~15 min)",
+        "it": "Scontri con le consolazioni: l'evento genitore (~15 min)",
+        "de": "Duelle mit Trostrunden: die übergeordnete Begegnung (~15 Min.)",
+        "es": "Enfrentamientos con consolación: la prueba principal (~15 min)"
+    },
+    "description": {
+        "fr": "Faites tirer les perdants ! Configurez une compétition « montante-descendante » : les archers éliminés continuent à s'affronter dans des tableaux de classement liés à l'épreuve principale.",
+        "en": "Let the losers keep shooting! Set up an \"all-play\" competition: the archers knocked out carry on against each other in ranking brackets linked to the main event.",
+        "it": "Fai tirare anche i perdenti! Configura una gara «a caduta»: gli arcieri eliminati continuano ad affrontarsi in tabelloni di classifica collegati all'evento principale.",
+        "de": "Lassen Sie auch die Verlierer schiessen! Richten Sie ein Turnier ein, bei dem alle weiterschiessen: die ausgeschiedenen Schützen treten in Platzierungsbäumen gegeneinander an, die mit der Hauptbegegnung verknüpft sind.",
+        "es": "¡Haga tirar a los perdedores! Configure una competición en la que nadie para: los arqueros eliminados siguen enfrentándose en cuadros de clasificación vinculados a la prueba principal."
+    },
+    "version": "1.1",
+    "group": {
+        "fr": "Pour aller plus loin",
+        "en": "Going further",
+        "it": "Per approfondire",
+        "de": "Weiterführendes",
+        "es": "Para ir más lejos"
+    },
     "order": 12,
     "steps": [
         {
             "id": "intro",
-            "title": "Le principe de la consolante",
-            "content": "<p>Dans un tableau de duels classique, un archer éliminé en 1/8 <b>rentre chez lui</b>. Sur beaucoup de compétitions jeunes, on veut au contraire que <b>tout le monde continue à tirer</b>.</p><p>C'est la compétition dite <b>« montante-descendante »</b> : les <b>perdants</b> d'un tour basculent dans un <b>tableau de classement</b> (la consolante) pour se départager.</p><p>ianseo réalise cela avec la notion d'<b>épreuve parente</b> : on crée une <b>épreuve liée</b> qui <b>récupère les perdants</b> d'une autre épreuve.</p><p class=\"guide-tip\">💡 Prérequis : savoir configurer des duels classiques. Si ce n'est pas le cas, faites d'abord la formation <b>Configurer les duels</b>.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "title": {
+                "fr": "Le principe de la consolante",
+                "en": "The idea behind a consolation round",
+                "it": "L'idea della consolazione",
+                "de": "Der Gedanke hinter der Trostrunde",
+                "es": "La idea de la consolación"
+            },
+            "content": {
+                "fr": "<p>Dans un tableau de duels classique, un archer éliminé en 1/8 <b>rentre chez lui</b>. Sur beaucoup de compétitions jeunes, on veut au contraire que <b>tout le monde continue à tirer</b>.</p><p>C'est la compétition dite <b>« montante-descendante »</b> : les <b>perdants</b> d'un tour basculent dans un <b>tableau de classement</b> (la consolante) pour se départager.</p><p>ianseo réalise cela avec la notion d'<b>épreuve parente</b> : on crée une <b>épreuve liée</b> qui <b>récupère les perdants</b> d'une autre épreuve.</p><p class=\"guide-tip\">💡 Prérequis : savoir configurer des duels classiques. Si ce n'est pas le cas, faites d'abord la formation <b>Configurer les duels</b>.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+                "en": "<p>In an ordinary bracket, an archer knocked out in the 1/8 <b>goes home</b>. At many youth competitions you want the opposite: <b>everybody keeps shooting</b>.</p><p>That is the \"all-play\" competition: the <b>losers</b> of a round drop into a <b>ranking bracket</b> (the consolation round) to settle the places between them.</p><p>ianseo does this with the idea of a <b>parent event</b>: you create a <b>linked event</b> that <b>takes in the losers</b> of another one.</p><p class=\"guide-tip\">💡 What you need first: knowing how to set up ordinary matches. If you do not, take the course <b>Setting up the matches</b> first.</p><p>Click <b>Next</b>.</p>",
+                "it": "<p>In un tabellone classico, l'arciere eliminato agli 1/8 <b>torna a casa</b>. In molte gare giovanili si vuole invece che <b>tutti continuino a tirare</b>.</p><p>È la gara detta <b>«a caduta»</b>: i <b>perdenti</b> di un turno passano in un <b>tabellone di classifica</b> (la consolazione) per stabilire le posizioni fra loro.</p><p>ianseo lo realizza con la nozione di <b>evento genitore</b>: si crea un <b>evento collegato</b> che <b>raccoglie i perdenti</b> di un altro.</p><p class=\"guide-tip\">💡 Requisito: saper configurare degli scontri classici. Se non è il caso, fai prima il corso <b>Configurare gli scontri</b>.</p><p>Clicca su <b>Avanti</b>.</p>",
+                "de": "<p>In einem gewöhnlichen Duellbaum <b>fährt ein im Achtelfinale ausgeschiedener Schütze nach Hause</b>. Bei vielen Jugendturnieren will man das Gegenteil: <b>alle sollen weiterschiessen</b>.</p><p>Das ist das Turnier, bei dem niemand aufhört: die <b>Verlierer</b> einer Runde rutschen in einen <b>Platzierungsbaum</b> (die Trostrunde), um die Plätze unter sich auszumachen.</p><p>ianseo löst das mit dem Begriff der <b>übergeordneten Begegnung</b>: man legt eine <b>verknüpfte Begegnung</b> an, die die <b>Verlierer</b> einer anderen <b>aufnimmt</b>.</p><p class=\"guide-tip\">💡 Voraussetzung: Sie müssen gewöhnliche Duelle einrichten können. Wenn nicht, machen Sie zuerst den Kurs <b>Die Duelle einrichten</b>.</p><p>Klicken Sie auf <b>Weiter</b>.</p>",
+                "es": "<p>En un cuadro clásico, el arquero eliminado en octavos <b>se va a casa</b>. En muchas competiciones juveniles se quiere lo contrario: que <b>todo el mundo siga tirando</b>.</p><p>Es la competición en la que nadie para: los <b>perdedores</b> de una ronda pasan a un <b>cuadro de clasificación</b> (la consolación) para repartirse los puestos.</p><p>ianseo lo consigue con la noción de <b>prueba principal</b>: se crea una <b>prueba vinculada</b> que <b>recoge a los perdedores</b> de otra.</p><p class=\"guide-tip\">💡 Requisito: saber configurar enfrentamientos clásicos. Si no es el caso, haga antes el curso <b>Configurar los enfrentamientos</b>.</p><p>Haga clic en <b>Siguiente</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -18,8 +49,20 @@
         },
         {
             "id": "ouvrir",
-            "title": "Une compétition avec des duels",
-            "content": "<p>Le guide attend une <b>compétition ouverte</b> dans laquelle au moins une <b>épreuve individuelle a un premier tour de duels</b> défini.</p><p>C'est notre <b>épreuve principale</b> — celle dont nous allons récupérer les perdants.</p>",
+            "title": {
+                "fr": "Une compétition avec des duels",
+                "en": "A competition with matches",
+                "it": "Una gara con degli scontri",
+                "de": "Ein Turnier mit Duellen",
+                "es": "Una competición con enfrentamientos"
+            },
+            "content": {
+                "fr": "<p>Le guide attend une <b>compétition ouverte</b> dans laquelle au moins une <b>épreuve individuelle a un premier tour de duels</b> défini.</p><p>C'est notre <b>épreuve principale</b> — celle dont nous allons récupérer les perdants.</p>",
+                "en": "<p>The guide is waiting for an <b>open competition</b> in which at least one <b>individual event has a first phase of matches</b> defined.</p><p>That is our <b>main event</b> — the one whose losers we are going to take in.</p>",
+                "it": "<p>La guida attende una <b>gara aperta</b> in cui almeno un <b>evento individuale abbia una fase di partenza</b> di scontri definita.</p><p>È il nostro <b>evento principale</b> — quello di cui raccoglieremo i perdenti.</p>",
+                "de": "<p>Die Anleitung wartet auf ein <b>geöffnetes Turnier</b>, in dem mindestens eine <b>Einzelbegegnung eine Startphase</b> für Duelle hat.</p><p>Das ist unsere <b>Hauptbegegnung</b> — die, deren Verlierer wir aufnehmen werden.</p>",
+                "es": "<p>La guía espera una <b>competición abierta</b> en la que al menos una <b>prueba individual tenga una primera fase</b> de enfrentamientos definida.</p><p>Es nuestra <b>prueba principal</b> — aquella cuyos perdedores vamos a recoger.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -27,14 +70,26 @@
                     "condition": "tournament_open",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : ouvrez une compétition."
+                    "hint": {
+                        "fr": "En attente : ouvrez une compétition.",
+                        "en": "Waiting: open a competition.",
+                        "it": "In attesa: apri una gara.",
+                        "de": "Es wird gewartet: öffnen Sie ein Turnier.",
+                        "es": "En espera: abra una competición."
+                    }
                 },
                 {
                     "kind": "etat",
                     "condition": "has_individual_duel",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : une épreuve individuelle doit avoir un premier tour de duels."
+                    "hint": {
+                        "fr": "En attente : une épreuve individuelle doit avoir un premier tour de duels.",
+                        "en": "Waiting: an individual event must have a first phase of matches.",
+                        "it": "In attesa: un evento individuale deve avere una fase di partenza di scontri.",
+                        "de": "Es wird gewartet: eine Einzelbegegnung muss eine Startphase für Duelle haben.",
+                        "es": "En espera: una prueba individual debe tener una primera fase de enfrentamientos."
+                    }
                 }
             ],
             "optional": false,
@@ -42,8 +97,20 @@
         },
         {
             "id": "plan",
-            "title": "Le plan : une épreuve par niveau de consolante",
-            "content": "<p>Prenons l'exemple d'une épreuve principale <code>U15FCL</code> (U15 Femme Arc Classique) qui démarre en <b>1/8</b>.</p><p>Il faut créer <b>autant d'épreuves que de niveaux de consolante</b> :</p><ul><li><code>U15FCL2</code> → places <b>5 à 8</b> (les perdants des 1/4)</li><li><code>U15FCL3</code> → places <b>9 à 12</b> (les perdants des 1/8)</li><li><code>U15FCL4</code> → places <b>13 à 16</b></li></ul><p class=\"guide-tip\">⚠️ Le <b>code de l'épreuve</b> ne doit contenir que des <b>chiffres et des lettres</b> — pas de caractères spéciaux, pas d'espace.</p><p class=\"guide-tip\">💡 Nommez les épreuves liées en reprenant le code d'origine suivi d'un chiffre : la lecture des grilles en devient évidente.</p>",
+            "title": {
+                "fr": "Le plan : une épreuve par niveau de consolante",
+                "en": "The plan: one event per level of consolation",
+                "it": "Il piano: un evento per livello di consolazione",
+                "de": "Der Plan: eine Begegnung je Stufe der Trostrunde",
+                "es": "El plan: una prueba por nivel de consolación"
+            },
+            "content": {
+                "fr": "<p>Prenons l'exemple d'une épreuve principale <code>U15FCL</code> (U15 Femme Arc Classique) qui démarre en <b>1/8</b>.</p><p>Il faut créer <b>autant d'épreuves que de niveaux de consolante</b> :</p><ul><li><code>U15FCL2</code> → places <b>5 à 8</b> (les perdants des 1/4)</li><li><code>U15FCL3</code> → places <b>9 à 12</b> (les perdants des 1/8)</li><li><code>U15FCL4</code> → places <b>13 à 16</b></li></ul><p class=\"guide-tip\">⚠️ Le <b>code de l'épreuve</b> ne doit contenir que des <b>chiffres et des lettres</b> — pas de caractères spéciaux, pas d'espace.</p><p class=\"guide-tip\">💡 Nommez les épreuves liées en reprenant le code d'origine suivi d'un chiffre : la lecture des grilles en devient évidente.</p>",
+                "en": "<p>Take a main event <code>U15FCL</code> (U15 Women Recurve) starting at the <b>1/8</b>.</p><p>You need to create <b>as many events as there are levels of consolation</b>:</p><ul><li><code>U15FCL2</code> → places <b>5 to 8</b> (the losers of the 1/4)</li><li><code>U15FCL3</code> → places <b>9 to 12</b> (the losers of the 1/8)</li><li><code>U15FCL4</code> → places <b>13 to 16</b></li></ul><p class=\"guide-tip\">⚠️ The <b>event code</b> may contain only <b>digits and letters</b> — no special characters, no spaces.</p><p class=\"guide-tip\">💡 Name the linked events by taking the original code and adding a digit: the brackets then read themselves.</p>",
+                "it": "<p>Prendiamo un evento principale <code>U15FCL</code> (U15 Donne Arco Olimpico) che parte dagli <b>1/8</b>.</p><p>Bisogna creare <b>tanti eventi quanti sono i livelli di consolazione</b>:</p><ul><li><code>U15FCL2</code> → posti <b>dal 5 all'8</b> (i perdenti dei 1/4)</li><li><code>U15FCL3</code> → posti <b>dal 9 al 12</b> (i perdenti degli 1/8)</li><li><code>U15FCL4</code> → posti <b>dal 13 al 16</b></li></ul><p class=\"guide-tip\">⚠️ Il <b>codice dell'evento</b> può contenere solo <b>cifre e lettere</b> — niente caratteri speciali, niente spazi.</p><p class=\"guide-tip\">💡 Nomina gli eventi collegati riprendendo il codice d'origine seguito da una cifra: la lettura dei tabelloni diventa immediata.</p>",
+                "de": "<p>Nehmen wir eine Hauptbegegnung <code>U15FCL</code> (U15 Damen Recurve), die im <b>Achtelfinale</b> beginnt.</p><p>Es sind <b>so viele Begegnungen anzulegen, wie es Stufen der Trostrunde gibt</b>:</p><ul><li><code>U15FCL2</code> → Plätze <b>5 bis 8</b> (die Verlierer des Viertelfinales)</li><li><code>U15FCL3</code> → Plätze <b>9 bis 12</b> (die Verlierer des Achtelfinales)</li><li><code>U15FCL4</code> → Plätze <b>13 bis 16</b></li></ul><p class=\"guide-tip\">⚠️ Der <b>Code der Begegnung</b> darf nur <b>Ziffern und Buchstaben</b> enthalten — keine Sonderzeichen, keine Leerzeichen.</p><p class=\"guide-tip\">💡 Benennen Sie die verknüpften Begegnungen, indem Sie den ursprünglichen Code um eine Ziffer ergänzen: die Bäume lesen sich dann von selbst.</p>",
+                "es": "<p>Tomemos una prueba principal <code>U15FCL</code> (U15 Mujeres Arco Recurvo) que empieza en <b>octavos</b>.</p><p>Hay que crear <b>tantas pruebas como niveles de consolación</b>:</p><ul><li><code>U15FCL2</code> → puestos <b>5 a 8</b> (los perdedores de cuartos)</li><li><code>U15FCL3</code> → puestos <b>9 a 12</b> (los perdedores de octavos)</li><li><code>U15FCL4</code> → puestos <b>13 a 16</b></li></ul><p class=\"guide-tip\">⚠️ El <b>código de la prueba</b> solo puede contener <b>cifras y letras</b> — sin caracteres especiales ni espacios.</p><p class=\"guide-tip\">💡 Nombre las pruebas vinculadas retomando el código de origen seguido de una cifra: la lectura de los cuadros se vuelve evidente.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -51,8 +118,20 @@
         },
         {
             "id": "creer-epreuve",
-            "title": "Créer l'épreuve liée",
-            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Gestion des Épreuves</b>.</p><p>Sur la <b>dernière ligne</b> du tableau (la ligne de création), saisissez :</p><ul><li>le <b>code</b> de l'épreuve liée (ex. <code>U15FCL2</code>),</li><li>son <b>libellé</b> (ex. « U15 Femme Arc Classique (5-8) »),</li><li>l'<b>ordre</b> : sans incidence, mettez ce que vous voulez,</li><li>le <b>format des duels</b> : Set ou Cumulatif, <b>comme l'épreuve principale</b>,</li><li>le <b>premier tour</b> : la phase nécessaire pour gérer ces duels de classement.</li></ul><p>Puis <b>Sauvegarder</b>.</p><p class=\"guide-tip\">💡 Pour un tableau de 4 archers (places 5-8), le premier tour est une <b>1/2</b> : deux matchs, puis la « finale » qui donne la 5ème place.</p>",
+            "title": {
+                "fr": "Créer l'épreuve liée",
+                "en": "Creating the linked event",
+                "it": "Creare l'evento collegato",
+                "de": "Die verknüpfte Begegnung anlegen",
+                "es": "Crear la prueba vinculada"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Gestion des Épreuves</b>.</p><p>Sur la <b>dernière ligne</b> du tableau (la ligne de création), saisissez :</p><ul><li>le <b>code</b> de l'épreuve liée (ex. <code>U15FCL2</code>),</li><li>son <b>libellé</b> (ex. « U15 Femme Arc Classique (5-8) »),</li><li>l'<b>ordre</b> : sans incidence, mettez ce que vous voulez,</li><li>le <b>format des duels</b> : Set ou Cumulatif, <b>comme l'épreuve principale</b>,</li><li>le <b>premier tour</b> : la phase nécessaire pour gérer ces duels de classement.</li></ul><p>Puis <b>Sauvegarder</b>.</p><p class=\"guide-tip\">💡 Pour un tableau de 4 archers (places 5-8), le premier tour est une <b>1/2</b> : deux matchs, puis la « finale » qui donne la 5ème place.</p>",
+                "en": "<p>Go to <b>Competition &gt; Individual Events Setup &gt; Manage Events</b>.</p><p>On the <b>last row</b> of the table (the creation row), enter:</p><ul><li>the <b>code</b> of the linked event (<code>U15FCL2</code>, say),</li><li>its <b>name</b> (\"U15 Women Recurve (5-8)\", for instance),</li><li>the <b>order</b>: it makes no difference, put what you like,</li><li>the <b>match format</b>: Set System or Cumulative, <b>the same as the main event</b>,</li><li>the <b>first phase</b>: the phase needed to run these ranking matches.</li></ul><p>Then <b>Save</b>.</p><p class=\"guide-tip\">💡 For a bracket of 4 archers (places 5-8), the first phase is a <b>1/2</b>: two matches, then the \"final\" that gives fifth place.</p>",
+                "it": "<p>Vai in <b>Gara &gt; Impostazioni per le Finali Individuali &gt; Gestione degli Eventi</b>.</p><p>Sull'<b>ultima riga</b> della tabella (la riga di creazione), inserisci:</p><ul><li>il <b>codice</b> dell'evento collegato (es. <code>U15FCL2</code>),</li><li>la sua <b>denominazione</b> (es. «U15 Donne Arco Olimpico (5-8)»),</li><li>l'<b>ordine</b>: ininfluente, metti quello che vuoi,</li><li>il <b>formato degli scontri</b>: a set o cumulativo, <b>come l'evento principale</b>,</li><li>la <b>fase di partenza</b>: la fase necessaria per gestire questi scontri di classifica.</li></ul><p>Poi <b>Salva</b>.</p><p class=\"guide-tip\">💡 Per un tabellone da 4 arcieri (posti 5-8), la fase di partenza è una <b>1/2</b>: due scontri, poi la «finale» che assegna il quinto posto.</p>",
+                "de": "<p>Gehen Sie zu <b>Turnier &gt; Einstellungen für Finalrunden - Einzel &gt; Verwaltung der Begegnungen</b>.</p><p>Tragen Sie in der <b>letzten Zeile</b> der Tabelle (der Anlegezeile) ein:</p><ul><li>den <b>Code</b> der verknüpften Begegnung (etwa <code>U15FCL2</code>),</li><li>ihre <b>Bezeichnung</b> (etwa „U15 Damen Recurve (5-8)\"),</li><li>die <b>Reihenfolge</b>: ohne Bedeutung, tragen Sie ein, was Sie wollen,</li><li>das <b>Duellformat</b>: Set System oder Kumulativ, <b>wie die Hauptbegegnung</b>,</li><li>die <b>Startphase</b>: die Phase, die diese Platzierungsduelle brauchen.</li></ul><p>Dann <b>Speichern</b>.</p><p class=\"guide-tip\">💡 Für einen Baum mit 4 Schützen (Plätze 5-8) ist die Startphase ein <b>Halbfinale</b>: zwei Duelle, dann das „Finale\", das den fünften Platz vergibt.</p>",
+                "es": "<p>Vaya a <b>Competición &gt; Configuración de las Finales Individuales &gt; Definir las pruebas</b>.</p><p>En la <b>última fila</b> de la tabla (la fila de creación), escriba:</p><ul><li>el <b>código</b> de la prueba vinculada (p. ej. <code>U15FCL2</code>),</li><li>su <b>denominación</b> (p. ej. «U15 Mujeres Arco Recurvo (5-8)»),</li><li>el <b>orden</b>: sin incidencia, ponga lo que quiera,</li><li>el <b>formato de los enfrentamientos</b>: de sets o acumulado, <b>como la prueba principal</b>,</li><li>la <b>primera fase</b>: la fase necesaria para estos enfrentamientos de clasificación.</li></ul><p>Y luego <b>Guardar</b>.</p><p class=\"guide-tip\">💡 Para un cuadro de 4 arqueros (puestos 5-8), la primera fase es una <b>semifinal</b>: dos enfrentamientos y después la «final» que da el quinto puesto.</p>"
+            },
             "page": "/Final/Individual/ListEvents.php",
             "triggers": [
                 {
@@ -67,7 +146,13 @@
                     "selector": "#New_EvCode",
                     "required": true,
                     "page": "/Final/Individual/ListEvents.php",
-                    "hint": "Code de l'épreuve liée (lettres et chiffres uniquement), ex. U15FCL2"
+                    "hint": {
+                        "fr": "Code de l'épreuve liée (lettres et chiffres uniquement), ex. U15FCL2",
+                        "en": "Code of the linked event (letters and digits only), e.g. U15FCL2",
+                        "it": "Codice dell'evento collegato (solo lettere e cifre), es. U15FCL2",
+                        "de": "Code der verknüpften Begegnung (nur Buchstaben und Ziffern), z. B. U15FCL2",
+                        "es": "Código de la prueba vinculada (solo letras y cifras), p. ej. U15FCL2"
+                    }
                 },
                 {
                     "kind": "action",
@@ -75,7 +160,13 @@
                     "selector": "#New_EvFinalFirstPhase",
                     "required": true,
                     "page": "/Final/Individual/ListEvents.php",
-                    "hint": "Phase nécessaire pour ces duels de classement"
+                    "hint": {
+                        "fr": "Phase nécessaire pour ces duels de classement",
+                        "en": "Phase needed for these ranking matches",
+                        "it": "Fase necessaria per questi scontri di classifica",
+                        "de": "Phase, die diese Platzierungsduelle brauchen",
+                        "es": "Fase necesaria para estos enfrentamientos de clasificación"
+                    }
                 }
             ],
             "optional": false,
@@ -83,8 +174,20 @@
         },
         {
             "id": "avance",
-            "title": "Le menu « Avancé » : le cœur du mécanisme",
-            "content": "<p>Ouvrez la <b>configuration</b> de votre épreuve liée : dans la Gestion des Épreuves, cliquez sur le bouton portant le <b>code de l'épreuve</b> (première colonne). Puis cliquez sur <b>Avancé</b> : un nouveau bloc de réglages apparaît.</p><p>Quatre champs nous intéressent :</p><ul><li><b>Nombre d'athlètes à sélectionner</b> → combien d'archers jouent au départ de ce tableau (4 pour des places 5-8).</li><li><b>Rang du premier athlète sélectionné</b> → à partir de quelle place on récupère.</li><li><b>Code de l'épreuve parente</b> → <b>l'épreuve depuis laquelle on récupère les archers</b>. C'est LE champ clé.</li><li><b>Classement final du vainqueur</b> → la place obtenue par celui qui gagne ce tableau (par exemple <b>5</b> pour une consolante 5-8).</li></ul><p class=\"guide-tip\">⚠️ La liste des épreuves parentes ne propose que les épreuves qui <b>démarrent plus en amont</b> (ex. un 1/4 ou un 1/8 pour une consolante en 1/2). C'est logique : on ne récupère des perdants que d'un tableau qui a commencé <b>avant</b>.</p>",
+            "title": {
+                "fr": "Le menu « Avancé » : le cœur du mécanisme",
+                "en": "The \"Advanced\" menu: the heart of it",
+                "it": "Il menu «Gestione Avanzata»: il cuore del meccanismo",
+                "de": "Das Menü „Fortgeschritten\": der Kern der Sache",
+                "es": "El menú «Avanzado»: el corazón del mecanismo"
+            },
+            "content": {
+                "fr": "<p>Ouvrez la <b>configuration</b> de votre épreuve liée : dans la Gestion des Épreuves, cliquez sur le bouton portant le <b>code de l'épreuve</b> (première colonne). Puis cliquez sur <b>Avancé</b> : un nouveau bloc de réglages apparaît.</p><p>Quatre champs nous intéressent :</p><ul><li><b>Nombre d'athlètes à sélectionner</b> → combien d'archers jouent au départ de ce tableau (4 pour des places 5-8).</li><li><b>Rang du premier athlète sélectionné</b> → à partir de quelle place on récupère.</li><li><b>Code de l'épreuve parente</b> → <b>l'épreuve depuis laquelle on récupère les archers</b>. C'est LE champ clé.</li><li><b>Classement final du vainqueur</b> → la place obtenue par celui qui gagne ce tableau (par exemple <b>5</b> pour une consolante 5-8).</li></ul><p class=\"guide-tip\">⚠️ La liste des épreuves parentes ne propose que les épreuves qui <b>démarrent plus en amont</b> (ex. un 1/4 ou un 1/8 pour une consolante en 1/2). C'est logique : on ne récupère des perdants que d'un tableau qui a commencé <b>avant</b>.</p>",
+                "en": "<p>Open the <b>setup</b> of your linked event: in Manage Events, click the button carrying the <b>event code</b> (the first column). Then click <b>Advanced</b>: a new block of settings appears.</p><p>Four fields concern us:</p><ul><li><b>Number of athletes to select</b> → how many archers start in this bracket (4 for places 5-8).</li><li><b>Rank of First Athlete/Team to Select</b> → the place from which they are taken.</li><li><b>Parent Event Code</b> → <b>the event the archers are taken from</b>. This is THE key field.</li><li><b>Event's Winner Final Rank</b> → the place won by whoever wins this bracket (<b>5</b> for a 5-8 consolation, for instance).</li></ul><p class=\"guide-tip\">⚠️ The list of parent events only offers events that <b>start earlier</b> (a 1/4 or a 1/8 for a consolation at the 1/2). It stands to reason: you can only take losers from a bracket that began <b>before</b>.</p>",
+                "it": "<p>Apri la <b>configurazione</b> del tuo evento collegato: nella Gestione degli Eventi, clicca il pulsante con il <b>codice dell'evento</b> (prima colonna). Poi clicca su <b>Gestione Avanzata</b>: compare un nuovo blocco di impostazioni.</p><p>Ci interessano quattro campi:</p><ul><li><b>Numero di atleti da selezionare</b> → quanti arcieri partono in questo tabellone (4 per i posti 5-8).</li><li><b>Rank del primo Atleta/Squadra da selezionare</b> → da quale posizione si raccoglie.</li><li><b>Codice Evento Genitore</b> → <b>l'evento da cui si raccolgono gli arcieri</b>. È IL campo chiave.</li><li><b>Rank finale del vincitore dell'evento</b> → il posto ottenuto da chi vince questo tabellone (per esempio <b>5</b> per una consolazione 5-8).</li></ul><p class=\"guide-tip\">⚠️ L'elenco degli eventi genitori propone solo gli eventi che <b>partono più a monte</b> (un 1/4 o un 1/8 per una consolazione in 1/2). È logico: si raccolgono perdenti solo da un tabellone iniziato <b>prima</b>.</p>",
+                "de": "<p>Öffnen Sie die <b>Einrichtung</b> Ihrer verknüpften Begegnung: klicken Sie in der Verwaltung der Begegnungen auf die Schaltfläche mit dem <b>Code der Begegnung</b> (erste Spalte). Klicken Sie dann auf <b>Fortgeschritten</b>: ein neuer Block von Einstellungen erscheint.</p><p>Vier Felder gehen uns an:</p><ul><li><b>Anzahl der auszuwählenden Athleten</b> → wie viele Schützen in diesem Baum starten (4 für die Plätze 5-8).</li><li><b>Platzierung des ersten auszuwählenden Athleten/der Mannschaft</b> → ab welchem Platz aufgenommen wird.</li><li><b>Code der übergeordneten Begegnung</b> → <b>die Begegnung, aus der die Schützen kommen</b>. Das ist DAS entscheidende Feld.</li><li><b>Endplatzierung des Siegers der Begegnung</b> → der Platz, den der Sieger dieses Baums erhält (etwa <b>5</b> bei einer Trostrunde 5-8).</li></ul><p class=\"guide-tip\">⚠️ Die Liste der übergeordneten Begegnungen bietet nur Begegnungen an, die <b>früher beginnen</b> (ein Viertel- oder Achtelfinale für eine Trostrunde im Halbfinale). Das ist folgerichtig: Verlierer lassen sich nur aus einem Baum aufnehmen, der <b>vorher</b> begonnen hat.</p>",
+                "es": "<p>Abra la <b>configuración</b> de su prueba vinculada: en Definir las pruebas, haga clic en el botón que lleva el <b>código de la prueba</b> (primera columna). Después haga clic en <b>Avanzado</b>: aparece un nuevo bloque de ajustes.</p><p>Cuatro campos nos interesan:</p><ul><li><b>Número de atletas a seleccionar</b> → cuántos arqueros salen en este cuadro (4 para los puestos 5-8).</li><li><b>Clasificación del Primer Atleta/Equipo a Seleccionar</b> → a partir de qué puesto se recoge.</li><li><b>Código de evento principal</b> → <b>la prueba de la que se recogen los arqueros</b>. Es EL campo clave.</li><li><b>Clasificación final del ganador de la prueba</b> → el puesto que obtiene quien gana este cuadro (por ejemplo <b>5</b> para una consolación 5-8).</li></ul><p class=\"guide-tip\">⚠️ La lista de pruebas principales solo ofrece las que <b>empiezan antes</b> (unos cuartos o unos octavos para una consolación en semifinales). Es lógico: solo se recogen perdedores de un cuadro que ha empezado <b>antes</b>.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -92,28 +195,52 @@
                     "condition": "__css",
                     "required": true,
                     "selector": "#EvCodeParent",
-                    "hint": "En attente : ouvrez la configuration de l'épreuve liée, puis cliquez sur « Avancé »."
+                    "hint": {
+                        "fr": "En attente : ouvrez la configuration de l'épreuve liée, puis cliquez sur « Avancé ».",
+                        "en": "Waiting: open the setup of the linked event, then click \"Advanced\".",
+                        "it": "In attesa: apri la configurazione dell'evento collegato, poi clicca su «Gestione Avanzata».",
+                        "de": "Es wird gewartet: öffnen Sie die Einrichtung der verknüpften Begegnung und klicken Sie auf „Fortgeschritten\".",
+                        "es": "En espera: abra la configuración de la prueba vinculada y haga clic en «Avanzado»."
+                    }
                 },
                 {
                     "kind": "action",
                     "trigger": "change",
                     "selector": "#EvCodeParent",
                     "required": true,
-                    "hint": "Épreuve depuis laquelle les perdants sont récupérés"
+                    "hint": {
+                        "fr": "Épreuve depuis laquelle les perdants sont récupérés",
+                        "en": "Event the losers are taken from",
+                        "it": "Evento da cui si raccolgono i perdenti",
+                        "de": "Begegnung, aus der die Verlierer aufgenommen werden",
+                        "es": "Prueba de la que se recogen los perdedores"
+                    }
                 },
                 {
                     "kind": "action",
                     "trigger": "change",
                     "selector": "#EvWinnerFinalRank",
                     "required": true,
-                    "hint": "Classement final du vainqueur de ce tableau (ex. 5)"
+                    "hint": {
+                        "fr": "Classement final du vainqueur de ce tableau (ex. 5)",
+                        "en": "Final rank of the winner of this bracket (5, for instance)",
+                        "it": "Rank finale del vincitore di questo tabellone (es. 5)",
+                        "de": "Endplatzierung des Siegers dieses Baums (z. B. 5)",
+                        "es": "Clasificación final del ganador de este cuadro (p. ej. 5)"
+                    }
                 },
                 {
                     "kind": "etat",
                     "condition": "has_parent_event",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : une épreuve doit avoir une épreuve parente définie."
+                    "hint": {
+                        "fr": "En attente : une épreuve doit avoir une épreuve parente définie.",
+                        "en": "Waiting: an event must have a parent event defined.",
+                        "it": "In attesa: un evento deve avere un evento genitore definito.",
+                        "de": "Es wird gewartet: eine Begegnung muss eine übergeordnete Begegnung haben.",
+                        "es": "En espera: una prueba debe tener una prueba principal definida."
+                    }
                 }
             ],
             "optional": false,
@@ -121,8 +248,20 @@
         },
         {
             "id": "chainage",
-            "title": "Enchaîner les consolantes",
-            "content": "<p>Le mécanisme <b>se chaîne</b>. Dans notre exemple :</p><ul><li><code>U15FCL2</code> (places 5-8) a pour parent <b>l'épreuve principale</b> <code>U15FCL</code> — elle récupère les <b>perdants des 1/4</b>.</li><li><code>U15FCL3</code> (places 9-12) a pour parent <code>U15FCL</code> aussi — elle récupère les <b>perdants des 1/8</b>.</li><li><code>U15FCL4</code> (places 13-16) a pour parent <code>U15FCL3</code> — elle récupère les <b>perdants de la consolante</b> !</li></ul><p>Une épreuve liée peut donc être elle-même la <b>parente</b> d'une autre : c'est ainsi qu'on construit une cascade complète où <b>personne ne s'arrête de tirer</b>.</p><p class=\"guide-tip\">⚠️ Sur les pages de cibles et d'horaires, les <b>cases rouges sont normales</b> dans le cas d'épreuves liées : plusieurs tableaux partagent les mêmes cibles et les mêmes créneaux. Ne cherchez pas à les faire disparaître.</p>",
+            "title": {
+                "fr": "Enchaîner les consolantes",
+                "en": "Chaining the consolation rounds",
+                "it": "Concatenare le consolazioni",
+                "de": "Trostrunden aneinanderhängen",
+                "es": "Encadenar las consolaciones"
+            },
+            "content": {
+                "fr": "<p>Le mécanisme <b>se chaîne</b>. Dans notre exemple :</p><ul><li><code>U15FCL2</code> (places 5-8) a pour parent <b>l'épreuve principale</b> <code>U15FCL</code> — elle récupère les <b>perdants des 1/4</b>.</li><li><code>U15FCL3</code> (places 9-12) a pour parent <code>U15FCL</code> aussi — elle récupère les <b>perdants des 1/8</b>.</li><li><code>U15FCL4</code> (places 13-16) a pour parent <code>U15FCL3</code> — elle récupère les <b>perdants de la consolante</b> !</li></ul><p>Une épreuve liée peut donc être elle-même la <b>parente</b> d'une autre : c'est ainsi qu'on construit une cascade complète où <b>personne ne s'arrête de tirer</b>.</p><p class=\"guide-tip\">⚠️ Sur les pages de cibles et d'horaires, les <b>cases rouges sont normales</b> dans le cas d'épreuves liées : plusieurs tableaux partagent les mêmes cibles et les mêmes créneaux. Ne cherchez pas à les faire disparaître.</p>",
+                "en": "<p>The mechanism <b>chains</b>. In our example:</p><ul><li><code>U15FCL2</code> (places 5-8) has the <b>main event</b> <code>U15FCL</code> as its parent — it takes in the <b>losers of the 1/4</b>.</li><li><code>U15FCL3</code> (places 9-12) also has <code>U15FCL</code> as its parent — it takes in the <b>losers of the 1/8</b>.</li><li><code>U15FCL4</code> (places 13-16) has <code>U15FCL3</code> as its parent — it takes in the <b>losers of the consolation round</b>!</li></ul><p>A linked event can therefore be the <b>parent</b> of another: that is how a complete cascade is built, in which <b>nobody stops shooting</b>.</p><p class=\"guide-tip\">⚠️ On the target and schedule pages, <b>red boxes are normal</b> with linked events: several brackets share the same targets and the same slots. Do not try to make them go away.</p>",
+                "it": "<p>Il meccanismo <b>si concatena</b>. Nel nostro esempio:</p><ul><li><code>U15FCL2</code> (posti 5-8) ha per genitore l'<b>evento principale</b> <code>U15FCL</code> — raccoglie i <b>perdenti dei 1/4</b>.</li><li><code>U15FCL3</code> (posti 9-12) ha per genitore <code>U15FCL</code> anch'esso — raccoglie i <b>perdenti degli 1/8</b>.</li><li><code>U15FCL4</code> (posti 13-16) ha per genitore <code>U15FCL3</code> — raccoglie i <b>perdenti della consolazione</b>!</li></ul><p>Un evento collegato può quindi essere a sua volta il <b>genitore</b> di un altro: è così che si costruisce una cascata completa in cui <b>nessuno smette di tirare</b>.</p><p class=\"guide-tip\">⚠️ Sulle pagine dei bersagli e degli orari, le <b>caselle rosse sono normali</b> con gli eventi collegati: più tabelloni condividono gli stessi bersagli e le stesse fasce orarie. Non cercare di farle sparire.</p>",
+                "de": "<p>Der Mechanismus <b>lässt sich verketten</b>. In unserem Beispiel:</p><ul><li><code>U15FCL2</code> (Plätze 5-8) hat die <b>Hauptbegegnung</b> <code>U15FCL</code> als übergeordnete — sie nimmt die <b>Verlierer des Viertelfinales</b> auf.</li><li><code>U15FCL3</code> (Plätze 9-12) hat ebenfalls <code>U15FCL</code> als übergeordnete — sie nimmt die <b>Verlierer des Achtelfinales</b> auf.</li><li><code>U15FCL4</code> (Plätze 13-16) hat <code>U15FCL3</code> als übergeordnete — sie nimmt die <b>Verlierer der Trostrunde</b> auf!</li></ul><p>Eine verknüpfte Begegnung kann also selbst die <b>übergeordnete</b> einer anderen sein: so entsteht eine vollständige Kaskade, in der <b>niemand aufhört zu schiessen</b>.</p><p class=\"guide-tip\">⚠️ Auf den Seiten für Scheiben und Zeiten sind <b>rote Felder normal</b>, wenn Begegnungen verknüpft sind: mehrere Bäume teilen sich dieselben Scheiben und dieselben Zeitfenster. Versuchen Sie nicht, sie loszuwerden.</p>",
+                "es": "<p>El mecanismo <b>se encadena</b>. En nuestro ejemplo:</p><ul><li><code>U15FCL2</code> (puestos 5-8) tiene como principal la <b>prueba principal</b> <code>U15FCL</code> — recoge a los <b>perdedores de cuartos</b>.</li><li><code>U15FCL3</code> (puestos 9-12) también tiene <code>U15FCL</code> — recoge a los <b>perdedores de octavos</b>.</li><li><code>U15FCL4</code> (puestos 13-16) tiene <code>U15FCL3</code> — ¡recoge a los <b>perdedores de la consolación</b>!</li></ul><p>Una prueba vinculada puede por tanto ser a su vez la <b>principal</b> de otra: así se construye una cascada completa en la que <b>nadie deja de tirar</b>.</p><p class=\"guide-tip\">⚠️ En las páginas de dianas y horarios, las <b>casillas rojas son normales</b> con pruebas vinculadas: varios cuadros comparten las mismas dianas y las mismas franjas. No intente hacerlas desaparecer.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -130,8 +269,20 @@
         },
         {
             "id": "reste",
-            "title": "Et ensuite ?",
-            "content": "<p>Une épreuve liée est une <b>épreuve comme les autres</b>. Il reste donc à faire, pour chacune, exactement ce que vous savez déjà :</p><ul><li>le nombre d'<b>archers par cible</b>,</li><li>les <b>flèches par set</b>,</li><li>les <b>numéros de cibles</b>,</li><li>les <b>horaires</b>.</li></ul><p class=\"guide-tip\">💡 Comptez large sur les créneaux : avec les consolantes, il y a <b>beaucoup plus de matchs</b> qu'un tableau simple. C'est le prix à payer pour que tous les jeunes tirent.</p>",
+            "title": {
+                "fr": "Et ensuite ?",
+                "en": "And then?",
+                "it": "E poi?",
+                "de": "Und dann?",
+                "es": "¿Y después?"
+            },
+            "content": {
+                "fr": "<p>Une épreuve liée est une <b>épreuve comme les autres</b>. Il reste donc à faire, pour chacune, exactement ce que vous savez déjà :</p><ul><li>le nombre d'<b>archers par cible</b>,</li><li>les <b>flèches par set</b>,</li><li>les <b>numéros de cibles</b>,</li><li>les <b>horaires</b>.</li></ul><p class=\"guide-tip\">💡 Comptez large sur les créneaux : avec les consolantes, il y a <b>beaucoup plus de matchs</b> qu'un tableau simple. C'est le prix à payer pour que tous les jeunes tirent.</p>",
+                "en": "<p>A linked event is an <b>event like any other</b>. So for each of them there remains exactly what you already know how to do:</p><ul><li>the number of <b>archers per target</b>,</li><li>the <b>arrows per set</b>,</li><li>the <b>target numbers</b>,</li><li>the <b>times</b>.</li></ul><p class=\"guide-tip\">💡 Be generous with the slots: with consolation rounds there are <b>far more matches</b> than in a single bracket. That is the price of every young archer shooting.</p>",
+                "it": "<p>Un evento collegato è un <b>evento come gli altri</b>. Resta quindi da fare, per ciascuno, esattamente quello che già sai:</p><ul><li>il numero di <b>arcieri per piazzola</b>,</li><li>le <b>frecce per set</b>,</li><li>i <b>numeri dei bersagli</b>,</li><li>gli <b>orari</b>.</li></ul><p class=\"guide-tip\">💡 Calcola largo sulle fasce orarie: con le consolazioni ci sono <b>molti più scontri</b> che in un tabellone semplice. È il prezzo da pagare perché tutti i giovani tirino.</p>",
+                "de": "<p>Eine verknüpfte Begegnung ist eine <b>Begegnung wie jede andere</b>. Für jede bleibt also genau das zu tun, was Sie schon können:</p><ul><li>die Anzahl der <b>Schützen pro Scheibe</b>,</li><li>die <b>Pfeile pro Satz</b>,</li><li>die <b>Scheibennummern</b>,</li><li>die <b>Zeiten</b>.</li></ul><p class=\"guide-tip\">💡 Rechnen Sie bei den Zeitfenstern grosszügig: mit Trostrunden gibt es <b>weit mehr Duelle</b> als in einem einzelnen Baum. Das ist der Preis dafür, dass alle Jugendlichen schiessen.</p>",
+                "es": "<p>Una prueba vinculada es una <b>prueba como las demás</b>. Queda por hacer, para cada una, exactamente lo que ya sabe:</p><ul><li>el número de <b>arqueros por diana</b>,</li><li>las <b>flechas por set</b>,</li><li>los <b>números de dianas</b>,</li><li>los <b>horarios</b>.</li></ul><p class=\"guide-tip\">💡 Calcule con holgura las franjas horarias: con las consolaciones hay <b>muchos más enfrentamientos</b> que en un cuadro sencillo. Es el precio de que todos los jóvenes tiren.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -139,8 +290,20 @@
         },
         {
             "id": "fin",
-            "title": "C'est terminé !",
-            "content": "<p>Vous savez faire tirer les perdants.</p><p><b>À retenir :</b></p><ul><li>Une <b>consolante = une épreuve liée</b> (un code par niveau : ...2, ...3, ...4).</li><li>Le champ <b>Code de l'épreuve parente</b> (menu <b>Avancé</b>) désigne d'où viennent les perdants.</li><li><b>Classement final du vainqueur</b> donne la place réellement gagnée (5, 9, 13…).</li><li>Une épreuve liée peut être la <b>parente</b> d'une autre → cascade.</li><li>Les <b>cases rouges</b> sont normales avec des épreuves liées.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "title": {
+                "fr": "C'est terminé !",
+                "en": "That's it!",
+                "it": "Finito!",
+                "de": "Fertig!",
+                "es": "¡Terminado!"
+            },
+            "content": {
+                "fr": "<p>Vous savez faire tirer les perdants.</p><p><b>À retenir :</b></p><ul><li>Une <b>consolante = une épreuve liée</b> (un code par niveau : ...2, ...3, ...4).</li><li>Le champ <b>Code de l'épreuve parente</b> (menu <b>Avancé</b>) désigne d'où viennent les perdants.</li><li><b>Classement final du vainqueur</b> donne la place réellement gagnée (5, 9, 13…).</li><li>Une épreuve liée peut être la <b>parente</b> d'une autre → cascade.</li><li>Les <b>cases rouges</b> sont normales avec des épreuves liées.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+                "en": "<p>You can now let the losers keep shooting.</p><p><b>What to remember:</b></p><ul><li>A <b>consolation round = a linked event</b> (one code per level: …2, …3, …4).</li><li>The <b>Parent Event Code</b> field (the <b>Advanced</b> menu) says where the losers come from.</li><li><b>Event's Winner Final Rank</b> gives the place actually won (5, 9, 13…).</li><li>A linked event can be the <b>parent</b> of another → a cascade.</li><li><b>Red boxes</b> are normal with linked events.</li></ul><p>Now for the <b>quiz</b> and the <b>challenge</b>!</p>",
+                "it": "<p>Sai far tirare anche i perdenti.</p><p><b>Da ricordare:</b></p><ul><li>Una <b>consolazione = un evento collegato</b> (un codice per livello: …2, …3, …4).</li><li>Il campo <b>Codice Evento Genitore</b> (menu <b>Gestione Avanzata</b>) indica da dove arrivano i perdenti.</li><li><b>Rank finale del vincitore</b> dà il posto realmente conquistato (5, 9, 13…).</li><li>Un evento collegato può essere il <b>genitore</b> di un altro → cascata.</li><li>Le <b>caselle rosse</b> sono normali con gli eventi collegati.</li></ul><p>Spazio al <b>quiz</b> e alla <b>sfida</b>!</p>",
+                "de": "<p>Sie können die Verlierer weiterschiessen lassen.</p><p><b>Zum Merken:</b></p><ul><li>Eine <b>Trostrunde = eine verknüpfte Begegnung</b> (ein Code je Stufe: …2, …3, …4).</li><li>Das Feld <b>Code der übergeordneten Begegnung</b> (Menü <b>Fortgeschritten</b>) sagt, woher die Verlierer kommen.</li><li><b>Endplatzierung des Siegers</b> gibt den tatsächlich erreichten Platz an (5, 9, 13…).</li><li>Eine verknüpfte Begegnung kann die <b>übergeordnete</b> einer anderen sein → Kaskade.</li><li><b>Rote Felder</b> sind bei verknüpften Begegnungen normal.</li></ul><p>Weiter zum <b>Quiz</b> und zur <b>Aufgabe</b>!</p>",
+                "es": "<p>Ya sabe hacer tirar a los perdedores.</p><p><b>Para recordar:</b></p><ul><li>Una <b>consolación = una prueba vinculada</b> (un código por nivel: …2, …3, …4).</li><li>El campo <b>Código de evento principal</b> (menú <b>Avanzado</b>) indica de dónde vienen los perdedores.</li><li><b>Clasificación final del ganador</b> da el puesto realmente conseguido (5, 9, 13…).</li><li>Una prueba vinculada puede ser la <b>principal</b> de otra → cascada.</li><li>Las <b>casillas rojas</b> son normales con pruebas vinculadas.</li></ul><p>¡Adelante con el <b>cuestionario</b> y el <b>reto</b>!</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -152,59 +315,250 @@
         "shuffle": true,
         "questions": [
             {
-                "q": "À quoi sert le champ « Code de l'épreuve parente » ?",
+                "q": {
+                    "fr": "À quoi sert le champ « Code de l'épreuve parente » ?",
+                    "en": "What is the \"Parent Event Code\" field for?",
+                    "it": "A che cosa serve il campo «Codice Evento Genitore»?",
+                    "de": "Wozu dient das Feld „Code der übergeordneten Begegnung\"?",
+                    "es": "¿Para qué sirve el campo «Código de evento principal»?"
+                },
                 "choices": [
-                    "À désigner l'épreuve depuis laquelle les archers perdants sont récupérés",
-                    "À copier les réglages d'une autre épreuve",
-                    "À fusionner deux catégories au classement",
-                    "À définir l'ordre d'affichage des épreuves"
+                    {
+                        "fr": "À désigner l'épreuve depuis laquelle les archers perdants sont récupérés",
+                        "en": "To say which event the losing archers are taken from",
+                        "it": "A indicare l'evento da cui si raccolgono gli arcieri perdenti",
+                        "de": "Um anzugeben, aus welcher Begegnung die unterlegenen Schützen aufgenommen werden",
+                        "es": "Para indicar la prueba de la que se recogen los arqueros perdedores"
+                    },
+                    {
+                        "fr": "À copier les réglages d'une autre épreuve",
+                        "en": "To copy the settings of another event",
+                        "it": "A copiare le impostazioni di un altro evento",
+                        "de": "Um die Einstellungen einer anderen Begegnung zu kopieren",
+                        "es": "Para copiar los ajustes de otra prueba"
+                    },
+                    {
+                        "fr": "À fusionner deux catégories au classement",
+                        "en": "To merge two classes in the ranking",
+                        "it": "A unire due classi in classifica",
+                        "de": "Um zwei Klassen in der Platzierung zusammenzuführen",
+                        "es": "Para fusionar dos categorías en la clasificación"
+                    },
+                    {
+                        "fr": "À définir l'ordre d'affichage des épreuves",
+                        "en": "To set the display order of the events",
+                        "it": "A definire l'ordine di visualizzazione degli eventi",
+                        "de": "Um die Anzeigereihenfolge der Begegnungen festzulegen",
+                        "es": "Para definir el orden de visualización de las pruebas"
+                    }
                 ],
                 "correct": 0,
-                "explain": "C'est le cœur du mécanisme de la consolante : les perdants du tableau parent alimentent le tableau lié."
+                "explain": {
+                    "fr": "C'est le cœur du mécanisme de la consolante : les perdants du tableau parent alimentent le tableau lié.",
+                    "en": "It is the heart of the consolation mechanism: the losers of the parent bracket feed the linked one.",
+                    "it": "È il cuore del meccanismo della consolazione: i perdenti del tabellone genitore alimentano quello collegato.",
+                    "de": "Es ist der Kern der Trostrunde: die Verlierer des übergeordneten Baums speisen den verknüpften.",
+                    "es": "Es el corazón del mecanismo de la consolación: los perdedores del cuadro principal alimentan el cuadro vinculado."
+                }
             },
             {
-                "q": "Sur une consolante qui attribue les places 5 à 8, que met-on dans « Classement final du vainqueur » ?",
-                "choices": ["5", "1", "8", "4"],
-                "correct": 0,
-                "explain": "Celui qui gagne ce tableau termine 5ème de la compétition."
-            },
-            {
-                "q": "Les pages de cibles et d'horaires affichent des cases rouges sur vos épreuves liées. Que faire ?",
+                "q": {
+                    "fr": "Sur une consolante qui attribue les places 5 à 8, que met-on dans « Classement final du vainqueur » ?",
+                    "en": "On a consolation round awarding places 5 to 8, what goes in \"Event's Winner Final Rank\"?",
+                    "it": "In una consolazione che assegna i posti dal 5 all'8, che cosa si mette in «Rank finale del vincitore»?",
+                    "de": "Was trägt man bei einer Trostrunde um die Plätze 5 bis 8 in „Endplatzierung des Siegers\" ein?",
+                    "es": "En una consolación que atribuye los puestos 5 a 8, ¿qué se pone en «Clasificación final del ganador»?"
+                },
                 "choices": [
-                    "Rien : c'est normal avec des épreuves liées",
-                    "Changer toutes les cibles jusqu'à ce que ce soit vert",
-                    "Supprimer les épreuves liées",
-                    "Repasser le premier tour à « - - - »"
+                    {
+                        "fr": "5",
+                        "en": "5",
+                        "it": "5",
+                        "de": "5",
+                        "es": "5"
+                    },
+                    {
+                        "fr": "1",
+                        "en": "1",
+                        "it": "1",
+                        "de": "1",
+                        "es": "1"
+                    },
+                    {
+                        "fr": "8",
+                        "en": "8",
+                        "it": "8",
+                        "de": "8",
+                        "es": "8"
+                    },
+                    {
+                        "fr": "4",
+                        "en": "4",
+                        "it": "4",
+                        "de": "4",
+                        "es": "4"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Les tableaux liés partagent cibles et créneaux : le rouge est attendu dans ce cas de figure."
+                "explain": {
+                    "fr": "Celui qui gagne ce tableau termine 5ème de la compétition.",
+                    "en": "Whoever wins that bracket finishes fifth in the competition.",
+                    "it": "Chi vince quel tabellone termina quinto nella gara.",
+                    "de": "Wer diesen Baum gewinnt, wird Fünfter des Turniers.",
+                    "es": "Quien gana ese cuadro termina quinto de la competición."
+                }
             },
             {
-                "q": "Peut-on récupérer les perdants d'une consolante dans une autre consolante ?",
+                "q": {
+                    "fr": "Les pages de cibles et d'horaires affichent des cases rouges sur vos épreuves liées. Que faire ?",
+                    "en": "The target and schedule pages show red boxes on your linked events. What do you do?",
+                    "it": "Le pagine dei bersagli e degli orari mostrano caselle rosse sui tuoi eventi collegati. Che cosa fare?",
+                    "de": "Die Seiten für Scheiben und Zeiten zeigen rote Felder bei Ihren verknüpften Begegnungen. Was tun?",
+                    "es": "Las páginas de dianas y horarios muestran casillas rojas en sus pruebas vinculadas. ¿Qué hacer?"
+                },
                 "choices": [
-                    "Oui : une épreuve liée peut être la parente d'une autre",
-                    "Non, une seule consolante par épreuve",
-                    "Oui, mais seulement pour les équipes",
-                    "Non, il faut une compétition séparée"
+                    {
+                        "fr": "Rien : c'est normal avec des épreuves liées",
+                        "en": "Nothing: that is normal with linked events",
+                        "it": "Nulla: è normale con gli eventi collegati",
+                        "de": "Nichts: das ist bei verknüpften Begegnungen normal",
+                        "es": "Nada: es normal con pruebas vinculadas"
+                    },
+                    {
+                        "fr": "Changer toutes les cibles jusqu'à ce que ce soit vert",
+                        "en": "Change every target until it all turns green",
+                        "it": "Cambiare tutti i bersagli finché non diventa verde",
+                        "de": "Alle Scheiben ändern, bis alles grün ist",
+                        "es": "Cambiar todas las dianas hasta que esté en verde"
+                    },
+                    {
+                        "fr": "Supprimer les épreuves liées",
+                        "en": "Delete the linked events",
+                        "it": "Cancellare gli eventi collegati",
+                        "de": "Die verknüpften Begegnungen löschen",
+                        "es": "Eliminar las pruebas vinculadas"
+                    },
+                    {
+                        "fr": "Repasser le premier tour à « - - - »",
+                        "en": "Set the first phase back to \"- - -\"",
+                        "it": "Rimettere la fase di partenza su «- - -»",
+                        "de": "Die Startphase wieder auf „- - -\" stellen",
+                        "es": "Volver a poner la primera fase en «- - -»"
+                    }
                 ],
                 "correct": 0,
-                "explain": "C'est ce chaînage qui permet une cascade complète (5-8, 9-12, 13-16…)."
+                "explain": {
+                    "fr": "Les tableaux liés partagent cibles et créneaux : le rouge est attendu dans ce cas de figure.",
+                    "en": "Linked brackets share targets and slots: red is what you should expect here.",
+                    "it": "I tabelloni collegati condividono bersagli e fasce orarie: il rosso è atteso in questo caso.",
+                    "de": "Verknüpfte Bäume teilen sich Scheiben und Zeitfenster: Rot ist hier zu erwarten.",
+                    "es": "Los cuadros vinculados comparten dianas y franjas: el rojo es lo esperable en este caso."
+                }
             },
             {
-                "q": "Que doit contenir le code d'une épreuve liée ?",
+                "q": {
+                    "fr": "Peut-on récupérer les perdants d'une consolante dans une autre consolante ?",
+                    "en": "Can the losers of a consolation round be taken into another consolation round?",
+                    "it": "Si possono raccogliere i perdenti di una consolazione in un'altra consolazione?",
+                    "de": "Können die Verlierer einer Trostrunde in eine weitere Trostrunde aufgenommen werden?",
+                    "es": "¿Se pueden recoger los perdedores de una consolación en otra consolación?"
+                },
                 "choices": [
-                    "Uniquement des chiffres et des lettres",
-                    "Obligatoirement un tiret",
-                    "Le nom complet de la catégorie",
-                    "Un numéro de licence"
+                    {
+                        "fr": "Oui : une épreuve liée peut être la parente d'une autre",
+                        "en": "Yes: a linked event can be the parent of another",
+                        "it": "Sì: un evento collegato può essere il genitore di un altro",
+                        "de": "Ja: eine verknüpfte Begegnung kann die übergeordnete einer anderen sein",
+                        "es": "Sí: una prueba vinculada puede ser la principal de otra"
+                    },
+                    {
+                        "fr": "Non, une seule consolante par épreuve",
+                        "en": "No, one consolation round per event",
+                        "it": "No, una sola consolazione per evento",
+                        "de": "Nein, eine Trostrunde je Begegnung",
+                        "es": "No, una sola consolación por prueba"
+                    },
+                    {
+                        "fr": "Oui, mais seulement pour les équipes",
+                        "en": "Yes, but only for teams",
+                        "it": "Sì, ma solo per le squadre",
+                        "de": "Ja, aber nur für Mannschaften",
+                        "es": "Sí, pero solo para los equipos"
+                    },
+                    {
+                        "fr": "Non, il faut une compétition séparée",
+                        "en": "No, it needs a separate competition",
+                        "it": "No, serve una gara separata",
+                        "de": "Nein, dafür braucht es ein eigenes Turnier",
+                        "es": "No, hace falta una competición aparte"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Pas de caractères spéciaux ni d'espaces dans le code d'une épreuve."
+                "explain": {
+                    "fr": "C'est ce chaînage qui permet une cascade complète (5-8, 9-12, 13-16…).",
+                    "en": "That chaining is what allows a complete cascade (5-8, 9-12, 13-16…).",
+                    "it": "È questa concatenazione che permette una cascata completa (5-8, 9-12, 13-16…).",
+                    "de": "Genau diese Verkettung erlaubt eine vollständige Kaskade (5-8, 9-12, 13-16…).",
+                    "es": "Es ese encadenamiento el que permite una cascada completa (5-8, 9-12, 13-16…)."
+                }
+            },
+            {
+                "q": {
+                    "fr": "Que doit contenir le code d'une épreuve liée ?",
+                    "en": "What may the code of a linked event contain?",
+                    "it": "Che cosa deve contenere il codice di un evento collegato?",
+                    "de": "Was darf der Code einer verknüpften Begegnung enthalten?",
+                    "es": "¿Qué puede contener el código de una prueba vinculada?"
+                },
+                "choices": [
+                    {
+                        "fr": "Uniquement des chiffres et des lettres",
+                        "en": "Digits and letters only",
+                        "it": "Soltanto cifre e lettere",
+                        "de": "Nur Ziffern und Buchstaben",
+                        "es": "Únicamente cifras y letras"
+                    },
+                    {
+                        "fr": "Obligatoirement un tiret",
+                        "en": "A hyphen, compulsorily",
+                        "it": "Obbligatoriamente un trattino",
+                        "de": "Zwingend einen Bindestrich",
+                        "es": "Obligatoriamente un guion"
+                    },
+                    {
+                        "fr": "Le nom complet de la catégorie",
+                        "en": "The full name of the class",
+                        "it": "Il nome completo della classe",
+                        "de": "Den vollständigen Namen der Klasse",
+                        "es": "El nombre completo de la categoría"
+                    },
+                    {
+                        "fr": "Un numéro de licence",
+                        "en": "A licence number",
+                        "it": "Un numero di tessera",
+                        "de": "Eine Lizenznummer",
+                        "es": "Un número de licencia"
+                    }
+                ],
+                "correct": 0,
+                "explain": {
+                    "fr": "Pas de caractères spéciaux ni d'espaces dans le code d'une épreuve.",
+                    "en": "No special characters and no spaces in an event code.",
+                    "it": "Niente caratteri speciali né spazi nel codice di un evento.",
+                    "de": "Keine Sonderzeichen und keine Leerzeichen im Code einer Begegnung.",
+                    "es": "Sin caracteres especiales ni espacios en el código de una prueba."
+                }
             }
         ]
     },
     "challenge": {
-        "intro": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition :</p><ol><li>Créez une <b>épreuve liée</b> (par exemple <code>...2</code> pour les places 5-8) avec un premier tour adapté.</li><li>Dans son menu <b>Avancé</b>, désignez son <b>épreuve parente</b> et son <b>classement final du vainqueur</b>.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+        "intro": {
+            "fr": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition :</p><ol><li>Créez une <b>épreuve liée</b> (par exemple <code>...2</code> pour les places 5-8) avec un premier tour adapté.</li><li>Dans son menu <b>Avancé</b>, désignez son <b>épreuve parente</b> et son <b>classement final du vainqueur</b>.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+            "en": "<p>Your turn, <b>unaided</b>.</p><p>On your competition:</p><ol><li>Create a <b>linked event</b> (<code>…2</code> for places 5-8, for instance) with a suitable first phase.</li><li>In its <b>Advanced</b> menu, name its <b>parent event</b> and its <b>winner's final rank</b>.</li></ol><p>Click <b>Check</b> when it is done.</p>",
+            "it": "<p>Tocca a te, <b>senza aiuto</b>.</p><p>Sulla tua gara:</p><ol><li>Crea un <b>evento collegato</b> (per esempio <code>…2</code> per i posti 5-8) con una fase di partenza adatta.</li><li>Nel suo menu <b>Gestione Avanzata</b>, indica il suo <b>evento genitore</b> e il suo <b>rank finale del vincitore</b>.</li></ol><p>Clicca su <b>Verifica</b> quando è fatto.</p>",
+            "de": "<p>Sie sind dran, <b>ohne Hilfe</b>.</p><p>In Ihrem Turnier:</p><ol><li>Legen Sie eine <b>verknüpfte Begegnung</b> an (etwa <code>…2</code> für die Plätze 5-8) mit einer passenden Startphase.</li><li>Geben Sie in ihrem Menü <b>Fortgeschritten</b> ihre <b>übergeordnete Begegnung</b> und die <b>Endplatzierung des Siegers</b> an.</li></ol><p>Klicken Sie auf <b>Prüfen</b>, wenn es erledigt ist.</p>",
+            "es": "<p>Le toca a usted, <b>sin ayuda</b>.</p><p>En su competición:</p><ol><li>Cree una <b>prueba vinculada</b> (por ejemplo <code>…2</code> para los puestos 5-8) con una primera fase adecuada.</li><li>En su menú <b>Avanzado</b>, indique su <b>prueba principal</b> y su <b>clasificación final del ganador</b>.</li></ol><p>Haga clic en <b>Verificar</b> cuando esté hecho.</p>"
+        },
         "conditions": [
             "has_individual_duel",
             "has_parent_event"

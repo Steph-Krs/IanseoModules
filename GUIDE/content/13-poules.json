@@ -1,16 +1,47 @@
 {
-    "id": "poules",
+    "lang": "fr",
+    "id": "6gahyhped45dy80it29d",
     "type": "formation",
-    "title": "Les épreuves en Matchs de Poules (~15min)",
-    "description": "Faites s'affronter tous les archers d'un groupe entre eux avant les phases finales : configurez une épreuve en « Matchs de Poules », composez les groupes et affectez les cibles.",
-    "version": "1.0",
-    "group": "Pour aller plus loin",
+    "title": {
+        "fr": "Les épreuves en Matchs de Poules (~15min)",
+        "en": "Round Robin events (~15 min)",
+        "it": "Gli eventi a Girone all'italiana (~15 min)",
+        "de": "Begegnungen im Round Robin (~15 Min.)",
+        "es": "Las pruebas en Round Robin (~15 min)"
+    },
+    "description": {
+        "fr": "Faites s'affronter tous les archers d'un groupe entre eux avant les phases finales : configurez une épreuve en « Matchs de Poules », composez les groupes et affectez les cibles.",
+        "en": "Make every archer of a group meet every other before the final phases: set an event to \"Round Robin\", make up the groups and assign the targets.",
+        "it": "Fai incontrare fra loro tutti gli arcieri di un girone prima delle fasi finali: configura un evento come «Girone all'italiana», componi i gironi e assegna le piazzole.",
+        "de": "Lassen Sie alle Schützen einer Gruppe vor den Finalrunden gegeneinander antreten: stellen Sie eine Begegnung auf „Round Robin\", bilden Sie die Gruppen und teilen Sie die Scheiben zu.",
+        "es": "Haga que todos los arqueros de un grupo se enfrenten entre sí antes de las fases finales: configure una prueba en «Round Robin», componga los grupos y asigne las dianas."
+    },
+    "version": "1.1",
+    "group": {
+        "fr": "Pour aller plus loin",
+        "en": "Going further",
+        "it": "Per approfondire",
+        "de": "Weiterführendes",
+        "es": "Para ir más lejos"
+    },
     "order": 13,
     "steps": [
         {
             "id": "intro",
-            "title": "Pourquoi des poules ?",
-            "content": "<p>Dans une grille classique, un archer qui perd son premier duel a <b>fini sa journée</b>.</p><p>Avec le système de <b>Matchs de Poules</b> (Round Robin), les archers sont répartis en <b>groupes</b> et <b>chacun rencontre tous les autres</b> de son groupe. Chacun tire donc <b>plusieurs matchs garantis</b>, et les meilleurs sortent de la poule pour la suite.</p><p>C'est le format retenu notamment pour les <b>compétitions par équipes de club (D1/D2)</b> et pour beaucoup de formats jeunes.</p><p class=\"guide-tip\">💡 ianseo appelle cela « <b>Matchs de Poules</b> » (ou R-Session). C'est un <b>type d'élimination</b> qu'on choisit à la place de la « Grille normale ».</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "title": {
+                "fr": "Pourquoi des poules ?",
+                "en": "Why round robin?",
+                "it": "Perché i gironi?",
+                "de": "Warum Gruppen?",
+                "es": "¿Por qué grupos?"
+            },
+            "content": {
+                "fr": "<p>Dans une grille classique, un archer qui perd son premier duel a <b>fini sa journée</b>.</p><p>Avec le système de <b>Matchs de Poules</b> (Round Robin), les archers sont répartis en <b>groupes</b> et <b>chacun rencontre tous les autres</b> de son groupe. Chacun tire donc <b>plusieurs matchs garantis</b>, et les meilleurs sortent de la poule pour la suite.</p><p>C'est le format retenu notamment pour les <b>compétitions par équipes de club (D1/D2)</b> et pour beaucoup de formats jeunes.</p><p class=\"guide-tip\">💡 ianseo appelle cela « <b>Matchs de Poules</b> » (ou R-Session). C'est un <b>type d'élimination</b> qu'on choisit à la place de la « Grille normale ».</p><p>Cliquez sur <b>Suivant</b>.</p>",
+                "en": "<p>In an ordinary bracket, an archer who loses the first match has <b>finished for the day</b>.</p><p>With the <b>Round Robin</b> system, archers are shared into <b>groups</b> and <b>each one meets all the others</b> in their group. Everybody therefore shoots <b>several guaranteed matches</b>, and the best leave the group for the rounds that follow.</p><p>It is the format used in particular for <b>club team competitions</b> and for many youth formats.</p><p class=\"guide-tip\">💡 ianseo calls it <b>Round Robin</b> (or R-Session). It is a <b>kind of elimination</b> chosen instead of the \"normal bracket\".</p><p>Click <b>Next</b>.</p>",
+                "it": "<p>In un tabellone classico, l'arciere che perde il primo scontro ha <b>finito la giornata</b>.</p><p>Con il sistema del <b>Girone all'italiana</b> (Round Robin), gli arcieri sono divisi in <b>gironi</b> e <b>ognuno incontra tutti gli altri</b> del proprio girone. Ciascuno tira quindi <b>più scontri garantiti</b>, e i migliori escono dal girone per il seguito.</p><p>È il formato scelto in particolare per le <b>competizioni a squadre di società</b> e per molti formati giovanili.</p><p class=\"guide-tip\">💡 ianseo lo chiama <b>Girone all'italiana</b> (o R-Session). È un <b>tipo di eliminazione</b> che si sceglie al posto del «tabellone normale».</p><p>Clicca su <b>Avanti</b>.</p>",
+                "de": "<p>In einem gewöhnlichen Baum hat ein Schütze, der sein erstes Duell verliert, <b>seinen Tag beendet</b>.</p><p>Beim System <b>Round Robin</b> werden die Schützen in <b>Gruppen</b> aufgeteilt, und <b>jeder trifft auf alle anderen</b> seiner Gruppe. Jeder schiesst also <b>mehrere sichere Duelle</b>, und die Besten verlassen die Gruppe in Richtung der nächsten Runden.</p><p>Es ist das Format, das besonders für <b>Vereinsmannschaftswettbewerbe</b> und für viele Jugendformate gewählt wird.</p><p class=\"guide-tip\">💡 ianseo nennt es <b>Round Robin</b> (oder R-Session). Es ist eine <b>Art der Ausscheidung</b>, die anstelle des „normalen Baums\" gewählt wird.</p><p>Klicken Sie auf <b>Weiter</b>.</p>",
+                "es": "<p>En un cuadro clásico, el arquero que pierde su primer enfrentamiento ha <b>terminado la jornada</b>.</p><p>Con el sistema <b>Round Robin</b>, los arqueros se reparten en <b>grupos</b> y <b>cada uno se enfrenta a todos los demás</b> de su grupo. Cada cual tira por tanto <b>varios enfrentamientos garantizados</b>, y los mejores salen del grupo hacia la fase siguiente.</p><p>Es el formato elegido en particular para las <b>competiciones por equipos de club</b> y para muchos formatos juveniles.</p><p class=\"guide-tip\">💡 ianseo lo llama <b>Round Robin</b> (o R-Session). Es un <b>tipo de eliminación</b> que se escoge en lugar del «cuadro normal».</p><p>Haga clic en <b>Siguiente</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -18,8 +49,20 @@
         },
         {
             "id": "ouvrir",
-            "title": "Ouvrir une compétition avec des archers",
-            "content": "<p>Le guide attend une <b>compétition ouverte</b> avec des <b>participants</b>.</p><p class=\"guide-tip\">💡 Prévoyez assez d'archers dans la catégorie visée : une poule de 4 archers, c'est 6 matchs. Avec 3 archers on ne fait pas grand-chose.</p>",
+            "title": {
+                "fr": "Ouvrir une compétition avec des archers",
+                "en": "Open a competition with archers in it",
+                "it": "Apri una gara con degli arcieri",
+                "de": "Ein Turnier mit Schützen öffnen",
+                "es": "Abra una competición con arqueros"
+            },
+            "content": {
+                "fr": "<p>Le guide attend une <b>compétition ouverte</b> avec des <b>participants</b>.</p><p class=\"guide-tip\">💡 Prévoyez assez d'archers dans la catégorie visée : une poule de 4 archers, c'est 6 matchs. Avec 3 archers on ne fait pas grand-chose.</p>",
+                "en": "<p>The guide is waiting for an <b>open competition</b> with <b>participants</b>.</p><p class=\"guide-tip\">💡 Allow for enough archers in the class you have in mind: a group of 4 archers is 6 matches. With 3 archers there is not much to do.</p>",
+                "it": "<p>La guida attende una <b>gara aperta</b> con dei <b>partecipanti</b>.</p><p class=\"guide-tip\">💡 Prevedi abbastanza arcieri nella classe interessata: un girone da 4 arcieri sono 6 scontri. Con 3 arcieri non si fa granché.</p>",
+                "de": "<p>Die Anleitung wartet auf ein <b>geöffnetes Turnier</b> mit <b>Teilnehmern</b>.</p><p class=\"guide-tip\">💡 Sorgen Sie für genug Schützen in der gewünschten Klasse: eine Gruppe aus 4 Schützen sind 6 Duelle. Mit 3 Schützen lässt sich wenig anfangen.</p>",
+                "es": "<p>La guía espera una <b>competición abierta</b> con <b>participantes</b>.</p><p class=\"guide-tip\">💡 Prevea bastantes arqueros en la clase deseada: un grupo de 4 arqueros son 6 enfrentamientos. Con 3 arqueros no se hace gran cosa.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -27,14 +70,26 @@
                     "condition": "tournament_open",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : ouvrez une compétition."
+                    "hint": {
+                        "fr": "En attente : ouvrez une compétition.",
+                        "en": "Waiting: open a competition.",
+                        "it": "In attesa: apri una gara.",
+                        "de": "Es wird gewartet: öffnen Sie ein Turnier.",
+                        "es": "En espera: abra una competición."
+                    }
                 },
                 {
                     "kind": "etat",
                     "condition": "has_participant",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : inscrivez au moins un participant."
+                    "hint": {
+                        "fr": "En attente : inscrivez au moins un participant.",
+                        "en": "Waiting: enter at least one participant.",
+                        "it": "In attesa: iscrivi almeno un partecipante.",
+                        "de": "Es wird gewartet: melden Sie mindestens einen Teilnehmer.",
+                        "es": "En espera: inscriba al menos un participante."
+                    }
                 }
             ],
             "optional": false,
@@ -42,8 +97,20 @@
         },
         {
             "id": "type-elimination",
-            "title": "Passer l'épreuve en Matchs de Poules",
-            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Gestion des Épreuves</b>.</p><p>Sur la ligne de votre épreuve, repérez la colonne du <b>type d'élimination</b>. Par défaut, elle affiche <b>Grille normale</b>.</p><p>Cliquez sur le bouton <b>Changer</b> de cette colonne : une page de choix s'ouvre. Sélectionnez <b>Matchs de Poules</b>.</p><p>Les autres choix possibles (pour information) :</p><ul><li><b>Grille normale</b> : élimination directe classique,</li><li><b>1er / 2ème tour éliminatoires</b> : les anciens formats à tours de qualification,</li><li><b>Pool 2 / Pool 4</b> : formats de poules internationaux,</li><li><b>Matchs de Poules</b> : le format qui nous intéresse.</li></ul>",
+            "title": {
+                "fr": "Passer l'épreuve en Matchs de Poules",
+                "en": "Switching the event to Round Robin",
+                "it": "Portare l'evento a Girone all'italiana",
+                "de": "Die Begegnung auf Round Robin umstellen",
+                "es": "Pasar la prueba a Round Robin"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Gestion des Épreuves</b>.</p><p>Sur la ligne de votre épreuve, repérez la colonne du <b>type d'élimination</b>. Par défaut, elle affiche <b>Grille normale</b>.</p><p>Cliquez sur le bouton <b>Changer</b> de cette colonne : une page de choix s'ouvre. Sélectionnez <b>Matchs de Poules</b>.</p><p>Les autres choix possibles (pour information) :</p><ul><li><b>Grille normale</b> : élimination directe classique,</li><li><b>1er / 2ème tour éliminatoires</b> : les anciens formats à tours de qualification,</li><li><b>Pool 2 / Pool 4</b> : formats de poules internationaux,</li><li><b>Matchs de Poules</b> : le format qui nous intéresse.</li></ul>",
+                "en": "<p>Go to <b>Competition &gt; Individual Events Setup &gt; Manage Events</b>.</p><p>On the row of your event, find the <b>elimination type</b> column. By default it shows <b>normal bracket</b>.</p><p>Click the <b>Change</b> button in that column: a choice page opens. Select <b>Round Robin</b>.</p><p>The other choices, for information:</p><ul><li><b>Normal bracket</b>: ordinary knock-out,</li><li><b>1st / 2nd elimination round</b>: the older formats with qualification rounds,</li><li><b>Pool 2 / Pool 4</b>: the international pool formats,</li><li><b>Round Robin</b>: the one we are after.</li></ul>",
+                "it": "<p>Vai in <b>Gara &gt; Impostazioni per le Finali Individuali &gt; Gestione degli Eventi</b>.</p><p>Sulla riga del tuo evento, individua la colonna del <b>tipo di eliminazione</b>. Per impostazione predefinita mostra <b>tabellone normale</b>.</p><p>Clicca il pulsante <b>Cambia</b> di quella colonna: si apre una pagina di scelta. Seleziona <b>Girone all'italiana</b>.</p><p>Le altre scelte possibili, per informazione:</p><ul><li><b>Tabellone normale</b>: eliminazione diretta classica,</li><li><b>1° / 2° turno di eliminazione</b>: i vecchi formati con turni di qualificazione,</li><li><b>Pool 2 / Pool 4</b>: i formati a pool internazionali,</li><li><b>Girone all'italiana</b>: quello che ci interessa.</li></ul>",
+                "de": "<p>Gehen Sie zu <b>Turnier &gt; Einstellungen für Finalrunden - Einzel &gt; Verwaltung der Begegnungen</b>.</p><p>Suchen Sie in der Zeile Ihrer Begegnung die Spalte der <b>Ausscheidungsart</b>. Standardmässig steht dort der <b>normale Baum</b>.</p><p>Klicken Sie in dieser Spalte auf <b>Ändern</b>: eine Auswahlseite öffnet sich. Wählen Sie <b>Round Robin</b>.</p><p>Die übrigen Möglichkeiten, zur Information:</p><ul><li><b>Normaler Baum</b>: gewöhnliche K.-o.-Runde,</li><li><b>1. / 2. Ausscheidungsrunde</b>: die älteren Formate mit Qualifikationsrunden,</li><li><b>Pool 2 / Pool 4</b>: die internationalen Poolformate,</li><li><b>Round Robin</b>: das, worum es hier geht.</li></ul>",
+                "es": "<p>Vaya a <b>Competición &gt; Configuración de las Finales Individuales &gt; Definir las pruebas</b>.</p><p>En la fila de su prueba, localice la columna del <b>tipo de eliminación</b>. De forma predeterminada muestra <b>cuadro normal</b>.</p><p>Haga clic en el botón <b>Cambiar</b> de esa columna: se abre una página de elección. Seleccione <b>Round Robin</b>.</p><p>Las demás opciones, a título informativo:</p><ul><li><b>Cuadro normal</b>: eliminatoria directa clásica,</li><li><b>1.ª / 2.ª ronda eliminatoria</b>: los antiguos formatos con rondas de calificación,</li><li><b>Pool 2 / Pool 4</b>: los formatos de pool internacionales,</li><li><b>Round Robin</b>: el que nos interesa.</li></ul>"
+            },
             "page": "/Final/Individual/ListEvents.php",
             "triggers": [
                 {
@@ -57,7 +124,13 @@
                     "condition": "has_pool_event",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : une épreuve doit être passée en « Matchs de Poules »."
+                    "hint": {
+                        "fr": "En attente : une épreuve doit être passée en « Matchs de Poules ».",
+                        "en": "Waiting: an event must be switched to \"Round Robin\".",
+                        "it": "In attesa: un evento deve essere portato a «Girone all'italiana».",
+                        "de": "Es wird gewartet: eine Begegnung muss auf „Round Robin\" stehen.",
+                        "es": "En espera: una prueba debe estar puesta en «Round Robin»."
+                    }
                 }
             ],
             "optional": false,
@@ -65,8 +138,20 @@
         },
         {
             "id": "parametrage",
-            "title": "Le paramétrage de la poule",
-            "content": "<p>Une fois l'épreuve passée en Matchs de Poules, un bouton <b>Paramétrage</b> apparaît sur sa ligne. Cliquez dessus (ou allez dans <b>Compétition &gt; Configuration Round Robin</b>).</p><p>La page affiche trois onglets : <b>Paramétrage</b>, <b>Affectation de groupe</b>, <b>Affectation des cibles</b>. Commençons par le premier.</p><p>Vous y définissez le <b>nombre de tours (niveaux)</b>, et ianseo calcule pour vous :</p><ul><li>les <b>archers qualifiés</b>,</li><li>le nombre de <b>tours par groupe</b>,</li><li>les <b>matchs par personne</b>,</li><li>les <b>matchs par tour</b>.</li></ul><p class=\"guide-tip\">💡 Ces valeurs calculées sont votre <b>garde-fou</b> : si « matchs par tour » explose, votre pas de tir ne suivra pas. Ajustez le nombre de groupes en conséquence.</p><p class=\"guide-tip\">⚠️ Vous pouvez <b>copier le paramétrage</b> d'une autre épreuve avec la liste prévue à cet effet — pratique quand toutes les catégories suivent le même format.</p>",
+            "title": {
+                "fr": "Le paramétrage de la poule",
+                "en": "Setting up the group stage",
+                "it": "Le impostazioni del girone",
+                "de": "Die Einrichtung der Gruppenphase",
+                "es": "La configuración del grupo"
+            },
+            "content": {
+                "fr": "<p>Une fois l'épreuve passée en Matchs de Poules, un bouton <b>Paramétrage</b> apparaît sur sa ligne. Cliquez dessus (ou allez dans <b>Compétition &gt; Configuration Round Robin</b>).</p><p>La page affiche trois onglets : <b>Paramétrage</b>, <b>Affectation de groupe</b>, <b>Affectation des cibles</b>. Commençons par le premier.</p><p>Vous y définissez le <b>nombre de tours (niveaux)</b>, et ianseo calcule pour vous :</p><ul><li>les <b>archers qualifiés</b>,</li><li>le nombre de <b>tours par groupe</b>,</li><li>les <b>matchs par personne</b>,</li><li>les <b>matchs par tour</b>.</li></ul><p class=\"guide-tip\">💡 Ces valeurs calculées sont votre <b>garde-fou</b> : si « matchs par tour » explose, votre pas de tir ne suivra pas. Ajustez le nombre de groupes en conséquence.</p><p class=\"guide-tip\">⚠️ Vous pouvez <b>copier le paramétrage</b> d'une autre épreuve avec la liste prévue à cet effet — pratique quand toutes les catégories suivent le même format.</p>",
+                "en": "<p>Once the event is on Round Robin, a <b>Setup</b> button appears on its row. Click it (or go to <b>Competition &gt; Round Robin Setup</b>).</p><p>The page shows three tabs: <b>Setup</b>, <b>Group Assignment</b>, <b>Target Assignment</b>. Let us start with the first.</p><p>There you set the <b>number of rounds (levels)</b>, and ianseo works out for you:</p><ul><li>the <b>qualified archers</b>,</li><li>the number of <b>rounds per group</b>,</li><li>the <b>matches per person</b>,</li><li>the <b>matches per round</b>.</li></ul><p class=\"guide-tip\">💡 Those calculated values are your <b>safeguard</b>: if \"matches per round\" goes through the roof, your shooting line will not keep up. Adjust the number of groups accordingly.</p><p class=\"guide-tip\">⚠️ You can <b>copy the setup</b> from another event using the list provided — handy when every class follows the same format.</p>",
+                "it": "<p>Una volta portato l'evento a Girone all'italiana, sulla sua riga compare un pulsante <b>Impostazioni</b>. Cliccalo (oppure vai in <b>Gara &gt; Configurazione Girone all'italiana</b>).</p><p>La pagina mostra tre schede: <b>Impostazioni</b>, <b>Assegnazione Gironi</b>, <b>Assegnazione Piazzole</b>. Cominciamo dalla prima.</p><p>Vi definisci il <b>numero di turni (livelli)</b>, e ianseo calcola per te:</p><ul><li>gli <b>arcieri qualificati</b>,</li><li>il numero di <b>turni per girone</b>,</li><li>gli <b>scontri per persona</b>,</li><li>gli <b>scontri per turno</b>.</li></ul><p class=\"guide-tip\">💡 Questi valori calcolati sono la tua <b>salvaguardia</b>: se gli «scontri per turno» esplodono, la tua linea di tiro non reggerà. Regola di conseguenza il numero di gironi.</p><p class=\"guide-tip\">⚠️ Puoi <b>copiare le impostazioni</b> di un altro evento con l'elenco previsto — comodo quando tutte le classi seguono lo stesso formato.</p>",
+                "de": "<p>Steht die Begegnung auf Round Robin, erscheint in ihrer Zeile eine Schaltfläche <b>Setup</b>. Klicken Sie darauf (oder gehen Sie zu <b>Turnier &gt; Round Robin Setup</b>).</p><p>Die Seite zeigt drei Reiter: <b>Setup</b>, <b>Group Assignment</b> (Gruppenzuteilung) und <b>Target Assignment</b> (Scheibenzuteilung). Beginnen wir mit dem ersten.</p><p>Dort legen Sie die <b>Anzahl der Runden (Levels)</b> fest, und ianseo berechnet für Sie:</p><ul><li>die <b>qualifizierten Schützen</b>,</li><li>die Anzahl der <b>Runden je Gruppe</b>,</li><li>die <b>Duelle je Person</b>,</li><li>die <b>Duelle je Runde</b>.</li></ul><p class=\"guide-tip\">💡 Diese berechneten Werte sind Ihr <b>Warnsignal</b>: schnellen die „Duelle je Runde\" in die Höhe, kommt Ihre Schiesslinie nicht mit. Passen Sie die Anzahl der Gruppen entsprechend an.</p><p class=\"guide-tip\">⚠️ Sie können die <b>Einrichtung von einer anderen Begegnung kopieren</b>, über die dafür vorgesehene Liste — praktisch, wenn alle Klassen demselben Format folgen.</p>",
+                "es": "<p>Una vez la prueba en Round Robin, aparece un botón <b>Configuración</b> en su fila. Haga clic en él (o vaya a <b>Competición &gt; Configuración del Round Robin</b>).</p><p>La página muestra tres pestañas: <b>Configuración</b>, <b>Asignación de Grupo</b>, <b>Asignación de dianas</b>. Empecemos por la primera.</p><p>Allí define el <b>número de rondas (niveles)</b>, y ianseo calcula por usted:</p><ul><li>los <b>arqueros clasificados</b>,</li><li>el número de <b>rondas por grupo</b>,</li><li>los <b>enfrentamientos por persona</b>,</li><li>los <b>enfrentamientos por ronda</b>.</li></ul><p class=\"guide-tip\">💡 Estos valores calculados son su <b>señal de alarma</b>: si los «enfrentamientos por ronda» se disparan, su línea de tiro no dará abasto. Ajuste el número de grupos en consecuencia.</p><p class=\"guide-tip\">⚠️ Puede <b>copiar la configuración</b> de otra prueba con la lista prevista al efecto — práctico cuando todas las clases siguen el mismo formato.</p>"
+            },
             "page": "/Modules/RoundRobin/Setup.php",
             "triggers": [
                 {
@@ -81,8 +166,20 @@
         },
         {
             "id": "groupes",
-            "title": "Composer les groupes",
-            "content": "<p>Passez à l'onglet <b>Affectation de groupe</b>.</p><p>C'est ici que vous <b>répartissez les archers dans les poules</b>. La répartition se fait normalement selon le <b>classement de qualification</b> (le 1er et le dernier ne sont pas dans la même poule — on « serpente »).</p><p>Vous pouvez ajuster manuellement si votre règlement l'impose.</p><p class=\"guide-tip\">⚠️ Les groupes doivent être composés <b>après</b> les qualifications (il faut le classement) mais <b>avant</b> le début des matchs de poule. C'est une étape du jour J, à ne pas oublier dans le rush.</p>",
+            "title": {
+                "fr": "Composer les groupes",
+                "en": "Making up the groups",
+                "it": "Comporre i gironi",
+                "de": "Die Gruppen bilden",
+                "es": "Componer los grupos"
+            },
+            "content": {
+                "fr": "<p>Passez à l'onglet <b>Affectation de groupe</b>.</p><p>C'est ici que vous <b>répartissez les archers dans les poules</b>. La répartition se fait normalement selon le <b>classement de qualification</b> (le 1er et le dernier ne sont pas dans la même poule — on « serpente »).</p><p>Vous pouvez ajuster manuellement si votre règlement l'impose.</p><p class=\"guide-tip\">⚠️ Les groupes doivent être composés <b>après</b> les qualifications (il faut le classement) mais <b>avant</b> le début des matchs de poule. C'est une étape du jour J, à ne pas oublier dans le rush.</p>",
+                "en": "<p>Move to the <b>Group Assignment</b> tab.</p><p>This is where you <b>share the archers between the groups</b>. The sharing normally follows the <b>qualification ranking</b> (the first and the last are not in the same group — it snakes).</p><p>You can adjust it by hand if your rules require it.</p><p class=\"guide-tip\">⚠️ The groups have to be made up <b>after</b> qualification (the ranking is needed) but <b>before</b> the group matches begin. It is a task for the day itself, easily forgotten in the rush.</p>",
+                "it": "<p>Passa alla scheda <b>Assegnazione Gironi</b>.</p><p>È qui che <b>distribuisci gli arcieri nei gironi</b>. La distribuzione segue normalmente la <b>classifica di qualificazione</b> (il primo e l'ultimo non stanno nello stesso girone — si procede a serpentina).</p><p>Puoi correggere a mano se il tuo regolamento lo impone.</p><p class=\"guide-tip\">⚠️ I gironi vanno composti <b>dopo</b> le qualificazioni (serve la classifica) ma <b>prima</b> dell'inizio degli scontri. È un compito del giorno di gara, da non dimenticare nella fretta.</p>",
+                "de": "<p>Wechseln Sie zum Reiter <b>Group Assignment</b>.</p><p>Hier <b>verteilen Sie die Schützen auf die Gruppen</b>. Die Verteilung folgt normalerweise der <b>Qualifikationsplatzierung</b> (der Erste und der Letzte sind nicht in derselben Gruppe — es wird im Schlangenlinienverfahren verteilt).</p><p>Sie können von Hand nachbessern, wenn Ihr Reglement es verlangt.</p><p class=\"guide-tip\">⚠️ Die Gruppen müssen <b>nach</b> der Qualifikation gebildet werden (die Platzierung wird gebraucht), aber <b>vor</b> dem Beginn der Gruppenduelle. Eine Aufgabe für den Turniertag, die in der Hektik leicht vergessen wird.</p>",
+                "es": "<p>Pase a la pestaña <b>Asignación de Grupo</b>.</p><p>Aquí es donde <b>reparte a los arqueros en los grupos</b>. El reparto se hace normalmente según la <b>clasificación de calificación</b> (el primero y el último no están en el mismo grupo — se reparte en serpentina).</p><p>Puede ajustarlo a mano si su reglamento lo exige.</p><p class=\"guide-tip\">⚠️ Los grupos deben componerse <b>después</b> de la calificación (hace falta la clasificación) pero <b>antes</b> del inicio de los enfrentamientos. Es una tarea del día de la competición, fácil de olvidar con las prisas.</p>"
+            },
             "page": "/Modules/RoundRobin/Grouping.php",
             "triggers": [
                 {
@@ -97,8 +194,20 @@
         },
         {
             "id": "cibles",
-            "title": "Affecter les cibles des poules",
-            "content": "<p>Dernier onglet : <b>Affectation des cibles</b>.</p><p>Vous attribuez ici les <b>cibles de chaque groupe</b>. Chaque poule occupe en général un <b>bloc de cibles</b> dédié pendant toute la durée des matchs.</p><p class=\"guide-tip\">💡 Réserver un bloc par poule simplifie énormément la vie des arbitres et du speaker : « poule A, cibles 1 à 4 » se comprend immédiatement.</p>",
+            "title": {
+                "fr": "Affecter les cibles des poules",
+                "en": "Assigning the targets of the groups",
+                "it": "Assegnare le piazzole dei gironi",
+                "de": "Die Scheiben der Gruppen zuteilen",
+                "es": "Asignar las dianas de los grupos"
+            },
+            "content": {
+                "fr": "<p>Dernier onglet : <b>Affectation des cibles</b>.</p><p>Vous attribuez ici les <b>cibles de chaque groupe</b>. Chaque poule occupe en général un <b>bloc de cibles</b> dédié pendant toute la durée des matchs.</p><p class=\"guide-tip\">💡 Réserver un bloc par poule simplifie énormément la vie des arbitres et du speaker : « poule A, cibles 1 à 4 » se comprend immédiatement.</p>",
+                "en": "<p>The last tab: <b>Target Assignment</b>.</p><p>Here you give out the <b>targets of each group</b>. A group generally occupies a dedicated <b>block of targets</b> for the whole of its matches.</p><p class=\"guide-tip\">💡 Keeping one block per group makes life enormously easier for the judges and the announcer: \"group A, targets 1 to 4\" is understood at once.</p>",
+                "it": "<p>Ultima scheda: <b>Assegnazione Piazzole</b>.</p><p>Qui attribuisci le <b>piazzole di ogni girone</b>. In genere ogni girone occupa un <b>blocco di piazzole</b> dedicato per tutta la durata degli scontri.</p><p class=\"guide-tip\">💡 Riservare un blocco per girone semplifica moltissimo la vita ai giudici e allo speaker: «girone A, piazzole da 1 a 4» si capisce subito.</p>",
+                "de": "<p>Der letzte Reiter: <b>Target Assignment</b>.</p><p>Hier vergeben Sie die <b>Scheiben jeder Gruppe</b>. Eine Gruppe belegt in der Regel für die ganze Dauer ihrer Duelle einen eigenen <b>Scheibenblock</b>.</p><p class=\"guide-tip\">💡 Ein Block je Gruppe erleichtert Kampfrichtern und Sprecher die Arbeit ungemein: „Gruppe A, Scheiben 1 bis 4\" versteht man sofort.</p>",
+                "es": "<p>Última pestaña: <b>Asignación de dianas</b>.</p><p>Aquí atribuye las <b>dianas de cada grupo</b>. Cada grupo ocupa en general un <b>bloque de dianas</b> propio durante toda la duración de los enfrentamientos.</p><p class=\"guide-tip\">💡 Reservar un bloque por grupo simplifica enormemente la vida a los jueces y al locutor: «grupo A, dianas 1 a 4» se entiende de inmediato.</p>"
+            },
             "page": "/Modules/RoundRobin/Targets.php",
             "triggers": [
                 {
@@ -113,8 +222,20 @@
         },
         {
             "id": "saisie",
-            "title": "Saisir et suivre les poules",
-            "content": "<p>Une fois la compétition lancée, un menu <b>Matchs de Poules</b> apparaît dans la barre de navigation. Vous y trouvez :</p><ul><li>le <b>contrôle des ex-aequo</b> avant les matchs,</li><li>l'<b>affectation des cibles</b> et des groupes,</li><li>la <b>saisie des données</b> (vue tableau),</li><li>les <b>feuilles de marque</b> et les <b>impressions</b> (classement des poules).</li></ul><p class=\"guide-tip\">💡 Le classement de poule tient compte des matchs gagnés/perdus. Les qualifiés sortent ensuite vers la phase finale, exactement comme depuis un classement de qualification.</p>",
+            "title": {
+                "fr": "Saisir et suivre les poules",
+                "en": "Entering and following the groups",
+                "it": "Inserire e seguire i gironi",
+                "de": "Die Gruppen eingeben und verfolgen",
+                "es": "Introducir y seguir los grupos"
+            },
+            "content": {
+                "fr": "<p>Une fois la compétition lancée, un menu <b>Matchs de Poules</b> apparaît dans la barre de navigation. Vous y trouvez :</p><ul><li>le <b>contrôle des ex-aequo</b> avant les matchs,</li><li>l'<b>affectation des cibles</b> et des groupes,</li><li>la <b>saisie des données</b> (vue tableau),</li><li>les <b>feuilles de marque</b> et les <b>impressions</b> (classement des poules).</li></ul><p class=\"guide-tip\">💡 Le classement de poule tient compte des matchs gagnés/perdus. Les qualifiés sortent ensuite vers la phase finale, exactement comme depuis un classement de qualification.</p>",
+                "en": "<p>Once the competition is under way, a <b>Round Robin</b> menu appears in the navigation bar. There you find:</p><ul><li>the <b>tie check</b> before the matches,</li><li>the <b>target</b> and <b>group assignment</b>,</li><li>the <b>data entry</b> (table view),</li><li>the <b>score sheets</b> and the <b>printouts</b> (group standings).</li></ul><p class=\"guide-tip\">💡 The group standing counts matches won and lost. Those who qualify then move on to the final phase, exactly as they would from a qualification ranking.</p>",
+                "it": "<p>Avviata la gara, nella barra di navigazione compare un menu <b>Girone all'italiana</b>. Vi trovi:</p><ul><li>il <b>controllo degli spareggi</b> prima degli scontri,</li><li>l'<b>assegnazione delle piazzole</b> e dei gironi,</li><li>l'<b>inserimento dei dati</b> (vista a tabella),</li><li>gli <b>score</b> e le <b>stampe</b> (classifica dei gironi).</li></ul><p class=\"guide-tip\">💡 La classifica del girone tiene conto degli scontri vinti e persi. I qualificati passano poi alla fase finale, esattamente come da una classifica di qualificazione.</p>",
+                "de": "<p>Läuft das Turnier, erscheint in der Navigationsleiste ein Menü <b>Round Robin</b>. Dort finden Sie:</p><ul><li>die <b>Kontrolle der Gleichstände</b> vor den Duellen,</li><li>die <b>Scheiben-</b> und die <b>Gruppenzuteilung</b>,</li><li>die <b>Dateneingabe</b> (Tabellenansicht),</li><li>die <b>Scorekarten</b> und die <b>Ausdrucke</b> (Gruppentabellen).</li></ul><p class=\"guide-tip\">💡 Die Gruppentabelle rechnet gewonnene und verlorene Duelle. Die Qualifizierten ziehen anschliessend in die Finalrunde ein, genau wie aus einer Qualifikationsplatzierung.</p>",
+                "es": "<p>Una vez lanzada la competición, aparece un menú <b>Round Robin</b> en la barra de navegación. Allí encontrará:</p><ul><li>el <b>control de los empates</b> antes de los enfrentamientos,</li><li>la <b>asignación de dianas</b> y de grupos,</li><li>la <b>introducción de datos</b> (vista de tabla),</li><li>las <b>hojas de puntuación</b> y los <b>listados</b> (clasificación de los grupos).</li></ul><p class=\"guide-tip\">💡 La clasificación del grupo tiene en cuenta los enfrentamientos ganados y perdidos. Los clasificados pasan luego a la fase final, exactamente igual que desde una clasificación de calificación.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -122,8 +243,20 @@
         },
         {
             "id": "fin",
-            "title": "C'est terminé !",
-            "content": "<p>Vous savez configurer des poules.</p><p><b>À retenir :</b></p><ul><li>Le type d'élimination se change dans la <b>Gestion des Épreuves</b> → <b>Matchs de Poules</b>.</li><li>Trois onglets : <b>Paramétrage</b> (niveaux), <b>Affectation de groupe</b> (qui joue avec qui), <b>Affectation des cibles</b>.</li><li>Les groupes se composent <b>après les qualifications</b>, avant les matchs.</li><li>Surveillez les <b>matchs par tour</b> : c'est ce que votre pas de tir devra absorber.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "title": {
+                "fr": "C'est terminé !",
+                "en": "That's it!",
+                "it": "Finito!",
+                "de": "Fertig!",
+                "es": "¡Terminado!"
+            },
+            "content": {
+                "fr": "<p>Vous savez configurer des poules.</p><p><b>À retenir :</b></p><ul><li>Le type d'élimination se change dans la <b>Gestion des Épreuves</b> → <b>Matchs de Poules</b>.</li><li>Trois onglets : <b>Paramétrage</b> (niveaux), <b>Affectation de groupe</b> (qui joue avec qui), <b>Affectation des cibles</b>.</li><li>Les groupes se composent <b>après les qualifications</b>, avant les matchs.</li><li>Surveillez les <b>matchs par tour</b> : c'est ce que votre pas de tir devra absorber.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+                "en": "<p>You can set up a round robin.</p><p><b>What to remember:</b></p><ul><li>The elimination type is changed in <b>Manage Events</b> → <b>Round Robin</b>.</li><li>Three tabs: <b>Setup</b> (levels), <b>Group Assignment</b> (who plays whom), <b>Target Assignment</b>.</li><li>The groups are made up <b>after qualification</b>, before the matches.</li><li>Keep an eye on the <b>matches per round</b>: that is what your shooting line will have to absorb.</li></ul><p>Now for the <b>quiz</b> and the <b>challenge</b>!</p>",
+                "it": "<p>Sai configurare i gironi.</p><p><b>Da ricordare:</b></p><ul><li>Il tipo di eliminazione si cambia nella <b>Gestione degli Eventi</b> → <b>Girone all'italiana</b>.</li><li>Tre schede: <b>Impostazioni</b> (livelli), <b>Assegnazione Gironi</b> (chi gioca con chi), <b>Assegnazione Piazzole</b>.</li><li>I gironi si compongono <b>dopo le qualificazioni</b>, prima degli scontri.</li><li>Tieni d'occhio gli <b>scontri per turno</b>: è ciò che la tua linea di tiro dovrà assorbire.</li></ul><p>Spazio al <b>quiz</b> e alla <b>sfida</b>!</p>",
+                "de": "<p>Sie können eine Gruppenphase einrichten.</p><p><b>Zum Merken:</b></p><ul><li>Die Ausscheidungsart wird in der <b>Verwaltung der Begegnungen</b> geändert → <b>Round Robin</b>.</li><li>Drei Reiter: <b>Setup</b> (Levels), <b>Group Assignment</b> (wer gegen wen), <b>Target Assignment</b>.</li><li>Die Gruppen werden <b>nach der Qualifikation</b> gebildet, vor den Duellen.</li><li>Behalten Sie die <b>Duelle je Runde</b> im Auge: das ist es, was Ihre Schiesslinie verkraften muss.</li></ul><p>Weiter zum <b>Quiz</b> und zur <b>Aufgabe</b>!</p>",
+                "es": "<p>Ya sabe configurar los grupos.</p><p><b>Para recordar:</b></p><ul><li>El tipo de eliminación se cambia en <b>Definir las pruebas</b> → <b>Round Robin</b>.</li><li>Tres pestañas: <b>Configuración</b> (niveles), <b>Asignación de Grupo</b> (quién juega con quién), <b>Asignación de dianas</b>.</li><li>Los grupos se componen <b>después de la calificación</b>, antes de los enfrentamientos.</li><li>Vigile los <b>enfrentamientos por ronda</b>: es lo que su línea de tiro tendrá que absorber.</li></ul><p>¡Adelante con el <b>cuestionario</b> y el <b>reto</b>!</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -135,53 +268,203 @@
         "shuffle": true,
         "questions": [
             {
-                "q": "Quel est l'intérêt principal des Matchs de Poules par rapport à une grille normale ?",
+                "q": {
+                    "fr": "Quel est l'intérêt principal des Matchs de Poules par rapport à une grille normale ?",
+                    "en": "What is the main advantage of a round robin over a normal bracket?",
+                    "it": "Qual è il vantaggio principale del Girone all'italiana rispetto a un tabellone normale?",
+                    "de": "Worin liegt der Hauptvorteil des Round Robin gegenüber einem normalen Baum?",
+                    "es": "¿Cuál es la principal ventaja del Round Robin frente a un cuadro normal?"
+                },
                 "choices": [
-                    "Chaque archer a plusieurs matchs garantis, il n'est pas éliminé au premier duel perdu",
-                    "Les matchs sont plus courts",
-                    "Il n'y a pas besoin de classement de qualification",
-                    "On peut se passer d'arbitres"
+                    {
+                        "fr": "Chaque archer a plusieurs matchs garantis, il n'est pas éliminé au premier duel perdu",
+                        "en": "Every archer has several guaranteed matches, and is not out after one lost duel",
+                        "it": "Ogni arciere ha più scontri garantiti, non è eliminato al primo scontro perso",
+                        "de": "Jeder Schütze hat mehrere sichere Duelle und scheidet nicht nach einem verlorenen Duell aus",
+                        "es": "Cada arquero tiene varios enfrentamientos garantizados, no queda eliminado al primero perdido"
+                    },
+                    {
+                        "fr": "Les matchs sont plus courts",
+                        "en": "The matches are shorter",
+                        "it": "Gli scontri sono più brevi",
+                        "de": "Die Duelle sind kürzer",
+                        "es": "Los enfrentamientos son más cortos"
+                    },
+                    {
+                        "fr": "Il n'y a pas besoin de classement de qualification",
+                        "en": "No qualification ranking is needed",
+                        "it": "Non serve una classifica di qualificazione",
+                        "de": "Eine Qualifikationsplatzierung wird nicht gebraucht",
+                        "es": "No hace falta clasificación de calificación"
+                    },
+                    {
+                        "fr": "On peut se passer d'arbitres",
+                        "en": "You can do without judges",
+                        "it": "Si può fare a meno dei giudici",
+                        "de": "Man kommt ohne Kampfrichter aus",
+                        "es": "Se puede prescindir de los jueces"
+                    }
                 ],
                 "correct": 0,
-                "explain": "En poule, chacun rencontre tous les autres de son groupe : plus de tirs pour tout le monde."
+                "explain": {
+                    "fr": "En poule, chacun rencontre tous les autres de son groupe : plus de tirs pour tout le monde.",
+                    "en": "In a group, everyone meets everyone else: more shooting for all.",
+                    "it": "Nel girone ognuno incontra tutti gli altri del proprio gruppo: più tiri per tutti.",
+                    "de": "In der Gruppe trifft jeder auf alle anderen: mehr Schiessen für alle.",
+                    "es": "En grupo, cada uno se enfrenta a todos los demás del suyo: más tiros para todos."
+                }
             },
             {
-                "q": "Où passe-t-on une épreuve en « Matchs de Poules » ?",
+                "q": {
+                    "fr": "Où passe-t-on une épreuve en « Matchs de Poules » ?",
+                    "en": "Where do you switch an event to \"Round Robin\"?",
+                    "it": "Dove si porta un evento a «Girone all'italiana»?",
+                    "de": "Wo stellt man eine Begegnung auf „Round Robin\" um?",
+                    "es": "¿Dónde se pasa una prueba a «Round Robin»?"
+                },
                 "choices": [
-                    "Dans la Gestion des Épreuves, colonne du type d'élimination",
-                    "Dans le programme de la compétition",
-                    "Dans les informations de la compétition",
-                    "Dans la fiche de chaque archer"
+                    {
+                        "fr": "Dans la Gestion des Épreuves, colonne du type d'élimination",
+                        "en": "In Manage Events, the elimination type column",
+                        "it": "Nella Gestione degli Eventi, colonna del tipo di eliminazione",
+                        "de": "In der Verwaltung der Begegnungen, Spalte der Ausscheidungsart",
+                        "es": "En Definir las pruebas, columna del tipo de eliminación"
+                    },
+                    {
+                        "fr": "Dans le programme de la compétition",
+                        "en": "In the competition schedule",
+                        "it": "Nel programma della gara",
+                        "de": "Im Zeitplan des Turniers",
+                        "es": "En el programa de la competición"
+                    },
+                    {
+                        "fr": "Dans les informations de la compétition",
+                        "en": "In the competition information",
+                        "it": "Nelle informazioni della gara",
+                        "de": "In den Turnierinformationen",
+                        "es": "En los datos de la competición"
+                    },
+                    {
+                        "fr": "Dans la fiche de chaque archer",
+                        "en": "On each archer's record",
+                        "it": "Nella scheda di ogni arciere",
+                        "de": "Im Datensatz jedes Schützen",
+                        "es": "En la ficha de cada arquero"
+                    }
                 ],
                 "correct": 0,
-                "explain": "C'est un type d'élimination, à la place de « Grille normale »."
+                "explain": {
+                    "fr": "C'est un type d'élimination, à la place de « Grille normale ».",
+                    "en": "It is a kind of elimination, chosen instead of the \"normal bracket\".",
+                    "it": "È un tipo di eliminazione, al posto del «tabellone normale».",
+                    "de": "Es ist eine Ausscheidungsart, anstelle des „normalen Baums\".",
+                    "es": "Es un tipo de eliminación, en lugar del «cuadro normal»."
+                }
             },
             {
-                "q": "Quand compose-t-on les groupes de poule ?",
+                "q": {
+                    "fr": "Quand compose-t-on les groupes de poule ?",
+                    "en": "When are the groups made up?",
+                    "it": "Quando si compongono i gironi?",
+                    "de": "Wann werden die Gruppen gebildet?",
+                    "es": "¿Cuándo se componen los grupos?"
+                },
                 "choices": [
-                    "Après les qualifications, avant les matchs",
-                    "Avant l'inscription des archers",
-                    "Après les matchs de poule",
-                    "Au moment de la remise des récompenses"
+                    {
+                        "fr": "Après les qualifications, avant les matchs",
+                        "en": "After qualification, before the matches",
+                        "it": "Dopo le qualificazioni, prima degli scontri",
+                        "de": "Nach der Qualifikation, vor den Duellen",
+                        "es": "Después de la calificación, antes de los enfrentamientos"
+                    },
+                    {
+                        "fr": "Avant l'inscription des archers",
+                        "en": "Before the archers are entered",
+                        "it": "Prima dell'iscrizione degli arcieri",
+                        "de": "Vor der Meldung der Schützen",
+                        "es": "Antes de inscribir a los arqueros"
+                    },
+                    {
+                        "fr": "Après les matchs de poule",
+                        "en": "After the group matches",
+                        "it": "Dopo gli scontri di girone",
+                        "de": "Nach den Gruppenduellen",
+                        "es": "Después de los enfrentamientos de grupo"
+                    },
+                    {
+                        "fr": "Au moment de la remise des récompenses",
+                        "en": "At the prize giving",
+                        "it": "Al momento della premiazione",
+                        "de": "Zur Siegerehrung",
+                        "es": "En el momento de la entrega de premios"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Il faut le classement de qualification pour répartir équitablement les archers dans les poules."
+                "explain": {
+                    "fr": "Il faut le classement de qualification pour répartir équitablement les archers dans les poules.",
+                    "en": "The qualification ranking is needed to share the archers fairly between the groups.",
+                    "it": "Serve la classifica di qualificazione per distribuire equamente gli arcieri nei gironi.",
+                    "de": "Die Qualifikationsplatzierung wird gebraucht, um die Schützen gerecht auf die Gruppen zu verteilen.",
+                    "es": "Hace falta la clasificación de calificación para repartir equitativamente a los arqueros en los grupos."
+                }
             },
             {
-                "q": "Quels sont les trois onglets du paramétrage des poules ?",
+                "q": {
+                    "fr": "Quels sont les trois onglets du paramétrage des poules ?",
+                    "en": "What are the three tabs of the round robin setup?",
+                    "it": "Quali sono le tre schede delle impostazioni dei gironi?",
+                    "de": "Welches sind die drei Reiter der Round-Robin-Einrichtung?",
+                    "es": "¿Cuáles son las tres pestañas de la configuración de los grupos?"
+                },
                 "choices": [
-                    "Paramétrage, Affectation de groupe, Affectation des cibles",
-                    "Archers, Scores, Résultats",
-                    "Qualification, Duels, Classement",
-                    "Programme, Cibles, Impressions"
+                    {
+                        "fr": "Paramétrage, Affectation de groupe, Affectation des cibles",
+                        "en": "Setup, Group Assignment, Target Assignment",
+                        "it": "Impostazioni, Assegnazione Gironi, Assegnazione Piazzole",
+                        "de": "Setup, Group Assignment, Target Assignment",
+                        "es": "Configuración, Asignación de Grupo, Asignación de dianas"
+                    },
+                    {
+                        "fr": "Archers, Scores, Résultats",
+                        "en": "Archers, Scores, Results",
+                        "it": "Arcieri, Punteggi, Risultati",
+                        "de": "Schützen, Ergebnisse, Resultate",
+                        "es": "Arqueros, Puntuaciones, Resultados"
+                    },
+                    {
+                        "fr": "Qualification, Duels, Classement",
+                        "en": "Qualification, Matches, Ranking",
+                        "it": "Qualificazione, Scontri, Classifica",
+                        "de": "Qualifikation, Duelle, Platzierung",
+                        "es": "Calificación, Enfrentamientos, Clasificación"
+                    },
+                    {
+                        "fr": "Programme, Cibles, Impressions",
+                        "en": "Schedule, Targets, Printouts",
+                        "it": "Programma, Piazzole, Stampe",
+                        "de": "Zeitplan, Scheiben, Ausdrucke",
+                        "es": "Programa, Dianas, Listados"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Ces trois onglets couvrent tout le cycle : format, composition des groupes, puis cibles."
+                "explain": {
+                    "fr": "Ces trois onglets couvrent tout le cycle : format, composition des groupes, puis cibles.",
+                    "en": "Those three tabs cover the whole cycle: the format, the make-up of the groups, then the targets.",
+                    "it": "Queste tre schede coprono tutto il ciclo: formato, composizione dei gironi, poi piazzole.",
+                    "de": "Diese drei Reiter decken den ganzen Ablauf ab: Format, Bildung der Gruppen, dann Scheiben.",
+                    "es": "Estas tres pestañas cubren todo el ciclo: formato, composición de los grupos y luego dianas."
+                }
             }
         ]
     },
     "challenge": {
-        "intro": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition :</p><ol><li>Passez une épreuve individuelle en <b>Matchs de Poules</b> (via la colonne du type d'élimination, bouton Changer).</li><li>Ouvrez son <b>Paramétrage</b> et vérifiez les valeurs calculées.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+        "intro": {
+            "fr": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition :</p><ol><li>Passez une épreuve individuelle en <b>Matchs de Poules</b> (via la colonne du type d'élimination, bouton Changer).</li><li>Ouvrez son <b>Paramétrage</b> et vérifiez les valeurs calculées.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+            "en": "<p>Your turn, <b>unaided</b>.</p><p>On your competition:</p><ol><li>Switch an individual event to <b>Round Robin</b> (through the elimination type column, the Change button).</li><li>Open its <b>Setup</b> and look over the calculated values.</li></ol><p>Click <b>Check</b> when it is done.</p>",
+            "it": "<p>Tocca a te, <b>senza aiuto</b>.</p><p>Sulla tua gara:</p><ol><li>Porta un evento individuale a <b>Girone all'italiana</b> (dalla colonna del tipo di eliminazione, pulsante Cambia).</li><li>Apri le sue <b>Impostazioni</b> e controlla i valori calcolati.</li></ol><p>Clicca su <b>Verifica</b> quando è fatto.</p>",
+            "de": "<p>Sie sind dran, <b>ohne Hilfe</b>.</p><p>In Ihrem Turnier:</p><ol><li>Stellen Sie eine Einzelbegegnung auf <b>Round Robin</b> um (über die Spalte der Ausscheidungsart, Schaltfläche Ändern).</li><li>Öffnen Sie ihr <b>Setup</b> und sehen Sie sich die berechneten Werte an.</li></ol><p>Klicken Sie auf <b>Prüfen</b>, wenn es erledigt ist.</p>",
+            "es": "<p>Le toca a usted, <b>sin ayuda</b>.</p><p>En su competición:</p><ol><li>Pase una prueba individual a <b>Round Robin</b> (por la columna del tipo de eliminación, botón Cambiar).</li><li>Abra su <b>Configuración</b> y revise los valores calculados.</li></ol><p>Haga clic en <b>Verificar</b> cuando esté hecho.</p>"
+        },
         "conditions": [
             "has_pool_event"
         ]

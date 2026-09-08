@@ -1,23 +1,56 @@
 [
     {
         "id": "no_tournament",
-        "label": "Aucune compétition ouverte",
+        "label": {
+            "fr": "Aucune compétition ouverte",
+            "en": "No competition open",
+            "it": "Nessuna gara aperta",
+            "de": "Kein Turnier geöffnet",
+            "es": "Ninguna competición abierta"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "lte", "value": 0 }
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "lte",
+                "value": 0
+            }
         ]
     },
     {
         "id": "tournament_open",
-        "label": "Compétition ouverte",
+        "label": {
+            "fr": "Compétition ouverte",
+            "en": "A competition is open",
+            "it": "Una gara è aperta",
+            "de": "Ein Turnier ist geöffnet",
+            "es": "Hay una competición abierta"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 }
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            }
         ]
     },
     {
         "id": "tournament_fr_rules",
-        "label": "Compétition avec règles françaises",
+        "label": {
+            "fr": "Compétition avec règles françaises",
+            "en": "Competition using the French rule set",
+            "it": "Gara con il regolamento francese",
+            "de": "Turnier nach französischem Regelwerk",
+            "es": "Competición con el reglamento francés"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Tournament",
                 "column": "ToLocalRule",
@@ -29,9 +62,20 @@
     },
     {
         "id": "tournament_tae",
-        "label": "Compétition avec discipline TAE",
+        "label": {
+            "fr": "Compétition avec discipline TAE",
+            "en": "Competition in the target archery discipline",
+            "it": "Gara nella disciplina targa",
+            "de": "Turnier in der Disziplin Scheibenbogen",
+            "es": "Competición en la disciplina de tiro a diana"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Tournament",
                 "column": "ToType",
@@ -43,16 +87,39 @@
     },
     {
         "id": "has_individual_duel",
-        "label": "Compétition avec duel individuel configuré",
+        "label": {
+            "fr": "Compétition avec duel individuel configuré",
+            "en": "Individual head-to-head matches are configured",
+            "it": "Gli scontri individuali sono configurati",
+            "de": "Die Einzelduelle sind eingerichtet",
+            "es": "Los enfrentamientos individuales están configurados"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Events",
                 "aggregate": "count",
                 "where": [
-                    { "column": "EvTournament", "source": "session", "key": "TourId" },
-                    { "column": "EvFinalFirstPhase", "op": "neq", "value": "0" },
-                    { "column": "EvTeamEvent", "op": "eq", "value": "0" }
+                    {
+                        "column": "EvTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "EvFinalFirstPhase",
+                        "op": "neq",
+                        "value": "0"
+                    },
+                    {
+                        "column": "EvTeamEvent",
+                        "op": "eq",
+                        "value": "0"
+                    }
                 ],
                 "op": "gt",
                 "value": 0
@@ -61,16 +128,39 @@
     },
     {
         "id": "has_team_duel",
-        "label": "Compétition avec duel équipe configuré",
+        "label": {
+            "fr": "Compétition avec duel équipe configuré",
+            "en": "Team head-to-head matches are configured",
+            "it": "Gli scontri a squadre sono configurati",
+            "de": "Die Mannschaftsduelle sind eingerichtet",
+            "es": "Los enfrentamientos por equipos están configurados"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Events",
                 "aggregate": "count",
                 "where": [
-                    { "column": "EvTournament", "source": "session", "key": "TourId" },
-                    { "column": "EvFinalFirstPhase", "op": "neq", "value": "0" },
-                    { "column": "EvTeamEvent", "op": "eq", "value": "1" }
+                    {
+                        "column": "EvTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "EvFinalFirstPhase",
+                        "op": "neq",
+                        "value": "0"
+                    },
+                    {
+                        "column": "EvTeamEvent",
+                        "op": "eq",
+                        "value": "1"
+                    }
                 ],
                 "op": "gt",
                 "value": 0
@@ -79,15 +169,34 @@
     },
     {
         "id": "has_participant",
-        "label": "Au moins 1 participant inscrit à la compétition",
+        "label": {
+            "fr": "Au moins 1 participant inscrit à la compétition",
+            "en": "At least one participant registered",
+            "it": "Almeno un partecipante iscritto",
+            "de": "Mindestens ein Teilnehmer gemeldet",
+            "es": "Al menos un participante inscrito"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Entries",
                 "aggregate": "count",
                 "where": [
-                    { "column": "EnTournament", "source": "session", "key": "TourId" },
-                    { "column": "EnAthlete", "op": "eq", "value": "1" }
+                    {
+                        "column": "EnTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "EnAthlete",
+                        "op": "eq",
+                        "value": "1"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -96,15 +205,34 @@
     },
     {
         "id": "has_judge",
-        "label": "Au moins 1 arbitre déclaré",
+        "label": {
+            "fr": "Au moins 1 arbitre déclaré",
+            "en": "At least one judge declared",
+            "it": "Almeno un giudice registrato",
+            "de": "Mindestens ein Kampfrichter erfasst",
+            "es": "Al menos un juez registrado"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "TournamentInvolved",
                 "aggregate": "count",
                 "where": [
-                    { "column": "TiTournament", "source": "session", "key": "TourId" },
-                    { "column": "TiType", "op": "in", "value": "1,5,20,21,22,25" }
+                    {
+                        "column": "TiTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "TiType",
+                        "op": "in",
+                        "value": "1,5,20,21,22,25"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -113,16 +241,38 @@
     },
     {
         "id": "has_target_assigned",
-        "label": "Au moins 1 cible attribuée",
+        "label": {
+            "fr": "Au moins 1 cible attribuée",
+            "en": "At least one target assigned",
+            "it": "Almeno una piazzola assegnata",
+            "de": "Mindestens eine Scheibe zugeteilt",
+            "es": "Al menos una diana asignada"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Qualifications",
                 "aggregate": "count",
-                "join": { "table": "Entries", "on": "QuId = EnId" },
+                "join": {
+                    "table": "Entries",
+                    "on": "QuId = EnId"
+                },
                 "where": [
-                    { "column": "EnTournament", "source": "session", "key": "TourId" },
-                    { "column": "QuTargetNo", "op": "neq", "value": "" }
+                    {
+                        "column": "EnTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "QuTargetNo",
+                        "op": "neq",
+                        "value": ""
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -131,16 +281,38 @@
     },
     {
         "id": "has_score",
-        "label": "Au moins 1 score saisi",
+        "label": {
+            "fr": "Au moins 1 score saisi",
+            "en": "At least one score entered",
+            "it": "Almeno un punteggio inserito",
+            "de": "Mindestens ein Ergebnis eingegeben",
+            "es": "Al menos una puntuación introducida"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Qualifications",
                 "aggregate": "count",
-                "join": { "table": "Entries", "on": "QuId = EnId" },
+                "join": {
+                    "table": "Entries",
+                    "on": "QuId = EnId"
+                },
                 "where": [
-                    { "column": "EnTournament", "source": "session", "key": "TourId" },
-                    { "column": "QuScore", "op": "gt", "value": "0" }
+                    {
+                        "column": "EnTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "QuScore",
+                        "op": "gt",
+                        "value": "0"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -149,27 +321,74 @@
     },
     {
         "id": "ffta_export_visited",
-        "label": "Page de téléchargement du fichier résultats FFTA visitée",
+        "label": {
+            "fr": "Page de téléchargement du fichier résultats FFTA visitée",
+            "en": "The results-file download page has been visited",
+            "it": "La pagina di scaricamento del file dei risultati è stata visitata",
+            "de": "Die Seite zum Herunterladen der Ergebnisdatei wurde besucht",
+            "es": "Se ha visitado la página de descarga del archivo de resultados"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
-            { "source": "visited", "path": "/Modules/Sets/FR/exports/" }
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
+            {
+                "source": "visited",
+                "path": "/Modules/Sets/FR/exports/"
+            }
         ]
     },
     {
         "id": "has_8_archers_same_category",
-        "label": "Au moins 8 archers d'une même catégorie, inscrits aux épreuves individuelles et avec un score",
+        "label": {
+            "fr": "Au moins 8 archers d'une même catégorie, inscrits aux épreuves individuelles et avec un score",
+            "en": "At least 8 archers of one and the same category, entered in the individual events and with a score",
+            "it": "Almeno 8 arcieri di una stessa classe, iscritti agli eventi individuali e con un punteggio",
+            "de": "Mindestens 8 Schützen einer Klasse, für die Einzelbegegnungen gemeldet und mit einem Ergebnis",
+            "es": "Al menos 8 arqueros de una misma clase, inscritos en las pruebas individuales y con puntuación"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Entries",
                 "aggregate": "max_group",
-                "join": { "table": "Qualifications", "on": "QuId = EnId" },
-                "group_by": ["EnDivision", "EnClass"],
+                "join": {
+                    "table": "Qualifications",
+                    "on": "QuId = EnId"
+                },
+                "group_by": [
+                    "EnDivision",
+                    "EnClass"
+                ],
                 "where": [
-                    { "column": "EnTournament", "source": "session", "key": "TourId" },
-                    { "column": "EnAthlete", "op": "eq", "value": "1" },
-                    { "column": "EnIndFEvent", "op": "eq", "value": "1" },
-                    { "column": "QuScore", "op": "gt", "value": "0" }
+                    {
+                        "column": "EnTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "EnAthlete",
+                        "op": "eq",
+                        "value": "1"
+                    },
+                    {
+                        "column": "EnIndFEvent",
+                        "op": "eq",
+                        "value": "1"
+                    },
+                    {
+                        "column": "QuScore",
+                        "op": "gt",
+                        "value": "0"
+                    }
                 ],
                 "op": "gte",
                 "value": 8
@@ -178,16 +397,39 @@
     },
     {
         "id": "has_quarter_final_event",
-        "label": "Une épreuve individuelle démarre en 1/4 de finale",
+        "label": {
+            "fr": "Une épreuve individuelle démarre en 1/4 de finale",
+            "en": "An individual event starts at the quarter-finals",
+            "it": "Un evento individuale parte dai quarti di finale",
+            "de": "Eine Einzelbegegnung beginnt im Viertelfinale",
+            "es": "Una prueba individual empieza en cuartos de final"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Events",
                 "aggregate": "count",
                 "where": [
-                    { "column": "EvTournament", "source": "session", "key": "TourId" },
-                    { "column": "EvTeamEvent", "op": "eq", "value": "0" },
-                    { "column": "EvFinalFirstPhase", "op": "eq", "value": "4" }
+                    {
+                        "column": "EvTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "EvTeamEvent",
+                        "op": "eq",
+                        "value": "0"
+                    },
+                    {
+                        "column": "EvFinalFirstPhase",
+                        "op": "eq",
+                        "value": "4"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -196,16 +438,39 @@
     },
     {
         "id": "has_final_schedule",
-        "label": "Au moins un duel a une cible et un horaire attribués",
+        "label": {
+            "fr": "Au moins un duel a une cible et un horaire attribués",
+            "en": "At least one match has both a target and a time",
+            "it": "Almeno uno scontro ha sia un bersaglio sia un orario",
+            "de": "Mindestens ein Duell hat sowohl eine Scheibe als auch eine Zeit",
+            "es": "Al menos un enfrentamiento tiene diana y horario"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "FinSchedule",
                 "aggregate": "count",
                 "where": [
-                    { "column": "FSTournament", "source": "session", "key": "TourId" },
-                    { "column": "FSTarget", "op": "neq", "value": "" },
-                    { "column": "FSScheduledTime", "op": "neq", "value": "" }
+                    {
+                        "column": "FSTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "FSTarget",
+                        "op": "neq",
+                        "value": ""
+                    },
+                    {
+                        "column": "FSScheduledTime",
+                        "op": "neq",
+                        "value": ""
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -214,16 +479,39 @@
     },
     {
         "id": "has_team_event_configured",
-        "label": "Une épreuve par équipe a un premier tour de duels",
+        "label": {
+            "fr": "Une épreuve par équipe a un premier tour de duels",
+            "en": "A team event has a first round of matches",
+            "it": "Un evento a squadre ha una fase di partenza di scontri",
+            "de": "Eine Mannschaftsbegegnung hat eine Startphase mit Duellen",
+            "es": "Una prueba por equipos tiene una primera fase de enfrentamientos"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Events",
                 "aggregate": "count",
                 "where": [
-                    { "column": "EvTournament", "source": "session", "key": "TourId" },
-                    { "column": "EvTeamEvent", "op": "eq", "value": "1" },
-                    { "column": "EvFinalFirstPhase", "op": "neq", "value": "0" }
+                    {
+                        "column": "EvTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "EvTeamEvent",
+                        "op": "eq",
+                        "value": "1"
+                    },
+                    {
+                        "column": "EvFinalFirstPhase",
+                        "op": "neq",
+                        "value": "0"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -232,16 +520,39 @@
     },
     {
         "id": "has_mixed_team_event",
-        "label": "Une épreuve « double mixte » est définie",
+        "label": {
+            "fr": "Une épreuve « double mixte » est définie",
+            "en": "A mixed team event is defined",
+            "it": "È definito un evento a squadre miste",
+            "de": "Eine Mixed-Mannschaftsbegegnung ist festgelegt",
+            "es": "Hay definida una prueba de equipos mixtos"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Events",
                 "aggregate": "count",
                 "where": [
-                    { "column": "EvTournament", "source": "session", "key": "TourId" },
-                    { "column": "EvTeamEvent", "op": "eq", "value": "1" },
-                    { "column": "EvMixedTeam", "op": "eq", "value": "1" }
+                    {
+                        "column": "EvTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "EvTeamEvent",
+                        "op": "eq",
+                        "value": "1"
+                    },
+                    {
+                        "column": "EvMixedTeam",
+                        "op": "eq",
+                        "value": "1"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -250,14 +561,29 @@
     },
     {
         "id": "has_team_created",
-        "label": "Au moins une équipe est constituée",
+        "label": {
+            "fr": "Au moins une équipe est constituée",
+            "en": "At least one team has been made up",
+            "it": "Almeno una squadra è stata composta",
+            "de": "Mindestens eine Mannschaft wurde gebildet",
+            "es": "Al menos un equipo ha sido compuesto"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Teams",
                 "aggregate": "count",
                 "where": [
-                    { "column": "TeTournament", "source": "session", "key": "TourId" }
+                    {
+                        "column": "TeTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -266,14 +592,29 @@
     },
     {
         "id": "has_schedule",
-        "label": "Le programme de la compétition contient au moins une ligne",
+        "label": {
+            "fr": "Le programme de la compétition contient au moins une ligne",
+            "en": "The competition schedule has at least one line",
+            "it": "Il programma della gara ha almeno una riga",
+            "de": "Der Zeitplan des Turniers hat mindestens eine Zeile",
+            "es": "El programa de la competición tiene al menos una línea"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Scheduler",
                 "aggregate": "count",
                 "where": [
-                    { "column": "SchTournament", "source": "session", "key": "TourId" }
+                    {
+                        "column": "SchTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -282,15 +623,34 @@
     },
     {
         "id": "has_session_configured",
-        "label": "Au moins une session avec des cibles est définie",
+        "label": {
+            "fr": "Au moins une session avec des cibles est définie",
+            "en": "At least one session with targets is defined",
+            "it": "È definito almeno un turno con delle piazzole",
+            "de": "Mindestens ein Durchgang mit Scheiben ist festgelegt",
+            "es": "Hay definido al menos un turno con dianas"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Session",
                 "aggregate": "count",
                 "where": [
-                    { "column": "SesTournament", "source": "session", "key": "TourId" },
-                    { "column": "SesTar4Session", "op": "gt", "value": "0" }
+                    {
+                        "column": "SesTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "SesTar4Session",
+                        "op": "gt",
+                        "value": "0"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -299,15 +659,34 @@
     },
     {
         "id": "has_parent_event",
-        "label": "Une épreuve de consolante (épreuve parente) est configurée",
+        "label": {
+            "fr": "Une épreuve de consolante (épreuve parente) est configurée",
+            "en": "A consolation event (a parent event) is configured",
+            "it": "È configurato un evento di consolazione (un evento genitore)",
+            "de": "Eine Trostrunde (eine übergeordnete Begegnung) ist eingerichtet",
+            "es": "Hay configurada una prueba de consolación (una prueba principal)"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Events",
                 "aggregate": "count",
                 "where": [
-                    { "column": "EvTournament", "source": "session", "key": "TourId" },
-                    { "column": "EvCodeParent", "op": "neq", "value": "" }
+                    {
+                        "column": "EvTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "EvCodeParent",
+                        "op": "neq",
+                        "value": ""
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -316,15 +695,34 @@
     },
     {
         "id": "has_pool_event",
-        "label": "Une épreuve est configurée en « Matchs de Poules »",
+        "label": {
+            "fr": "Une épreuve est configurée en « Matchs de Poules »",
+            "en": "An event is configured as pool matches",
+            "it": "Un evento è configurato come girone all'italiana",
+            "de": "Eine Begegnung ist als Round Robin eingerichtet",
+            "es": "Una prueba está configurada como Round Robin"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Events",
                 "aggregate": "count",
                 "where": [
-                    { "column": "EvTournament", "source": "session", "key": "TourId" },
-                    { "column": "EvElimType", "op": "eq", "value": "5" }
+                    {
+                        "column": "EvTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "EvElimType",
+                        "op": "eq",
+                        "value": "5"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -333,14 +731,29 @@
     },
     {
         "id": "has_image",
-        "label": "Au moins une image (logo) est chargée dans la compétition",
+        "label": {
+            "fr": "Au moins une image (logo) est chargée dans la compétition",
+            "en": "At least one image (a logo) is loaded in the competition",
+            "it": "Almeno un'immagine (un logo) è caricata nella gara",
+            "de": "Mindestens ein Bild (ein Logo) ist im Turnier geladen",
+            "es": "Al menos una imagen (un logotipo) está cargada en la competición"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "Images",
                 "aggregate": "count",
                 "where": [
-                    { "column": "ImTournament", "source": "session", "key": "TourId" }
+                    {
+                        "column": "ImTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -349,14 +762,29 @@
     },
     {
         "id": "has_tv_rule",
-        "label": "Au moins un canal de sortie TV est créé",
+        "label": {
+            "fr": "Au moins un canal de sortie TV est créé",
+            "en": "At least one TV output channel exists",
+            "it": "Esiste almeno un canale di uscita TV",
+            "de": "Mindestens ein TV-Ausgangskanal besteht",
+            "es": "Existe al menos un canal de salida de TV"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "TVRules",
                 "aggregate": "count",
                 "where": [
-                    { "column": "TVRTournament", "source": "session", "key": "TourId" }
+                    {
+                        "column": "TVRTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -365,14 +793,29 @@
     },
     {
         "id": "has_id_card",
-        "label": "Un modèle de badge / dossard est enregistré",
+        "label": {
+            "fr": "Un modèle de badge / dossard est enregistré",
+            "en": "An accreditation or back-number template is saved",
+            "it": "È salvato un modello di accredito o di pettorale",
+            "de": "Eine Vorlage für Ausweis oder Startnummer ist gespeichert",
+            "es": "Hay guardada una plantilla de acreditación o de dorsal"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "IdCards",
                 "aggregate": "count",
                 "where": [
-                    { "column": "IcTournament", "source": "session", "key": "TourId" }
+                    {
+                        "column": "IcTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -381,33 +824,88 @@
     },
     {
         "id": "online_codes_visited",
-        "label": "Page « Saisie des codes en-ligne » (ianseo.net) visitée",
+        "label": {
+            "fr": "Page « Saisie des codes en-ligne » (ianseo.net) visitée",
+            "en": "The online-codes page (ianseo.net) has been visited",
+            "it": "La pagina dei codici online (ianseo.net) è stata visitata",
+            "de": "Die Seite der Online-Codes (ianseo.net) wurde besucht",
+            "es": "Se ha visitado la página de los códigos en línea (ianseo.net)"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
-            { "source": "visited", "path": "/Tournament/SetCredentials.php" }
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
+            {
+                "source": "visited",
+                "path": "/Tournament/SetCredentials.php"
+            }
         ]
     },
     {
         "id": "listload_visited",
-        "label": "Page d'importation tableur visitée",
+        "label": {
+            "fr": "Page d'importation tableur visitée",
+            "en": "The spreadsheet import page has been visited",
+            "it": "La pagina di importazione da foglio di calcolo è stata visitata",
+            "de": "Die Seite für den Tabellenimport wurde besucht",
+            "es": "Se ha visitado la página de importación desde hoja de cálculo"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
-            { "source": "visited", "path": "/Partecipants/ListLoad.php" }
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
+            {
+                "source": "visited",
+                "path": "/Partecipants/ListLoad.php"
+            }
         ]
     },
     {
         "id": "isk_ng_lite_enabled",
-        "label": "ISK-NG est activé en version Lite (gratuite)",
+        "label": {
+            "fr": "ISK-NG est activé en version Lite (gratuite)",
+            "en": "ISK-NG is enabled in its free Lite version",
+            "it": "ISK-NG è attivo nella versione gratuita Lite",
+            "de": "ISK-NG ist in der kostenlosen Fassung Lite eingeschaltet",
+            "es": "ISK-NG está activado en su versión gratuita Lite"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
             {
                 "table": "ModulesParameters",
                 "aggregate": "count",
                 "where": [
-                    { "column": "MpTournament", "source": "session", "key": "TourId" },
-                    { "column": "MpModule", "op": "eq", "value": "ISK-NG" },
-                    { "column": "MpParameter", "op": "eq", "value": "Mode" },
-                    { "column": "MpValue", "op": "eq", "value": "ng-lite" }
+                    {
+                        "column": "MpTournament",
+                        "source": "session",
+                        "key": "TourId"
+                    },
+                    {
+                        "column": "MpModule",
+                        "op": "eq",
+                        "value": "ISK-NG"
+                    },
+                    {
+                        "column": "MpParameter",
+                        "op": "eq",
+                        "value": "Mode"
+                    },
+                    {
+                        "column": "MpValue",
+                        "op": "eq",
+                        "value": "ng-lite"
+                    }
                 ],
                 "op": "gte",
                 "value": 1
@@ -416,26 +914,68 @@
     },
     {
         "id": "isk_qrcodes_visited",
-        "label": "Page d'impression des QR-codes ISK visitée",
+        "label": {
+            "fr": "Page d'impression des QR-codes ISK visitée",
+            "en": "The ISK QR-code printing page has been visited",
+            "it": "La pagina di stampa dei QR-code ISK è stata visitata",
+            "de": "Die Seite zum Druck der ISK-QR-Codes wurde besucht",
+            "es": "Se ha visitado la página de impresión de los códigos QR de ISK"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
-            { "source": "visited", "path": "/Api/ISK-NG/QRcodes.php" }
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
+            {
+                "source": "visited",
+                "path": "/Api/ISK-NG/QRcodes.php"
+            }
         ]
     },
     {
         "id": "accreditation_visited",
-        "label": "Page d'accréditation visitée",
+        "label": {
+            "fr": "Page d'accréditation visitée",
+            "en": "The accreditation page has been visited",
+            "it": "La pagina di accredito è stata visitata",
+            "de": "Die Akkreditierungsseite wurde besucht",
+            "es": "Se ha visitado la página de acreditación"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
-            { "source": "visited", "path": "/Accreditation/" }
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
+            {
+                "source": "visited",
+                "path": "/Accreditation/"
+            }
         ]
     },
     {
         "id": "upload_results_visited",
-        "label": "Page d'envoi vers ianseo.net visitée",
+        "label": {
+            "fr": "Page d'envoi vers ianseo.net visitée",
+            "en": "The upload-to-ianseo.net page has been visited",
+            "it": "La pagina di invio a ianseo.net è stata visitata",
+            "de": "Die Seite zum Senden an ianseo.net wurde besucht",
+            "es": "Se ha visitado la página de envío a ianseo.net"
+        },
         "checks": [
-            { "source": "session", "key": "TourId", "op": "gt", "value": 0 },
-            { "source": "visited", "path": "/Tournament/UploadResults.php" }
+            {
+                "source": "session",
+                "key": "TourId",
+                "op": "gt",
+                "value": 0
+            },
+            {
+                "source": "visited",
+                "path": "/Tournament/UploadResults.php"
+            }
         ]
     }
 ]

@@ -1,16 +1,47 @@
 {
-    "id": "sorties-tv",
+    "lang": "fr",
+    "id": "7xjsix6ivre9fysy36lh",
     "type": "formation",
-    "title": "Les sorties TV et leurs canaux (~15min)",
-    "description": "Diffusez les scores sur les écrans du gymnase : créez des règles de sortie TV (participants, qualifications, phases finales) et pilotez les canaux d'affichage.",
-    "version": "1.0",
-    "group": "Pour aller plus loin",
+    "title": {
+        "fr": "Les sorties TV et leurs canaux (~15min)",
+        "en": "TV outputs and their channels (~15 min)",
+        "it": "Le uscite TV e i loro canali (~15 min)",
+        "de": "Die TV-Ausgänge und ihre Kanäle (~15 Min.)",
+        "es": "Las salidas de TV y sus canales (~15 min)"
+    },
+    "description": {
+        "fr": "Diffusez les scores sur les écrans du gymnase : créez des règles de sortie TV (participants, qualifications, phases finales) et pilotez les canaux d'affichage.",
+        "en": "Show the scores on the screens around the venue: create TV output rules (participants, qualification, final phases) and drive the display channels.",
+        "it": "Diffondi i punteggi sugli schermi del palazzetto: crea regole di uscita TV (partecipanti, qualificazioni, fasi finali) e pilota i canali di visualizzazione.",
+        "de": "Zeigen Sie die Ergebnisse auf den Bildschirmen der Halle: legen Sie TV-Ausgangsregeln an (Teilnehmer, Qualifikation, Finalrunden) und steuern Sie die Anzeigekanäle.",
+        "es": "Muestre las puntuaciones en las pantallas del pabellón: cree reglas de salida de TV (participantes, calificación, fases finales) y gobierne los canales de visualización."
+    },
+    "version": "1.1",
+    "group": {
+        "fr": "Pour aller plus loin",
+        "en": "Going further",
+        "it": "Per approfondire",
+        "de": "Weiterführendes",
+        "es": "Para ir más lejos"
+    },
     "order": 17,
     "steps": [
         {
             "id": "intro",
-            "title": "Afficher les scores sur écran",
-            "content": "<p>Pour rendre les scores visibles de tous, ianseo sait <b>diffuser des pages sur des écrans</b> (téléviseur, vidéoprojecteur, second écran d'ordinateur).</p><p>Le mécanisme repose sur deux notions à bien distinguer :</p><ul><li>la <b>règle de sortie TV</b> : <b>quoi</b> afficher (la liste des participants ? les qualifications ? les duels ?) et avec quelle mise en forme,</li><li>le <b>canal de sortie</b> : <b>où</b> l'afficher, c'est-à-dire quel écran reçoit quelle règle.</li></ul><p>Une règle peut être envoyée sur plusieurs canaux, et un canal peut changer de règle en cours de journée.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "title": {
+                "fr": "Afficher les scores sur écran",
+                "en": "Putting the scores on a screen",
+                "it": "Mostrare i punteggi su schermo",
+                "de": "Die Ergebnisse auf einen Bildschirm bringen",
+                "es": "Mostrar las puntuaciones en pantalla"
+            },
+            "content": {
+                "fr": "<p>Pour rendre les scores visibles de tous, ianseo sait <b>diffuser des pages sur des écrans</b> (téléviseur, vidéoprojecteur, second écran d'ordinateur).</p><p>Le mécanisme repose sur deux notions à bien distinguer :</p><ul><li>la <b>règle de sortie TV</b> : <b>quoi</b> afficher (la liste des participants ? les qualifications ? les duels ?) et avec quelle mise en forme,</li><li>le <b>canal de sortie</b> : <b>où</b> l'afficher, c'est-à-dire quel écran reçoit quelle règle.</li></ul><p>Une règle peut être envoyée sur plusieurs canaux, et un canal peut changer de règle en cours de journée.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+                "en": "<p>To make the scores visible to everyone, ianseo can <b>broadcast pages to screens</b> (a television, a projector, a second computer monitor).</p><p>The mechanism rests on two ideas that must be kept apart:</p><ul><li>the <b>TV output rule</b>: <b>what</b> to show (the participant list? qualification? the matches?) and how it looks,</li><li>the <b>output channel</b>: <b>where</b> to show it, that is, which screen gets which rule.</li></ul><p>A rule can be sent to several channels, and a channel can change rule during the day.</p><p>Click <b>Next</b>.</p>",
+                "it": "<p>Per rendere i punteggi visibili a tutti, ianseo sa <b>trasmettere pagine su schermi</b> (televisore, videoproiettore, secondo monitor del computer).</p><p>Il meccanismo poggia su due nozioni da tenere ben distinte:</p><ul><li>la <b>regola di uscita TV</b>: <b>che cosa</b> mostrare (l'elenco dei partecipanti? le qualificazioni? gli scontri?) e con quale aspetto,</li><li>il <b>canale di uscita</b>: <b>dove</b> mostrarlo, cioè quale schermo riceve quale regola.</li></ul><p>Una regola può essere inviata a più canali, e un canale può cambiare regola nel corso della giornata.</p><p>Clicca su <b>Avanti</b>.</p>",
+                "de": "<p>Damit die Ergebnisse für alle sichtbar sind, kann ianseo <b>Seiten auf Bildschirme senden</b> (Fernseher, Beamer, zweiter Computermonitor).</p><p>Der Mechanismus beruht auf zwei Begriffen, die auseinanderzuhalten sind:</p><ul><li>die <b>TV-Ausgangsregel</b>: <b>was</b> gezeigt wird (die Teilnehmerliste? die Qualifikation? die Duelle?) und wie es aussieht,</li><li>der <b>Ausgangskanal</b>: <b>wo</b> es gezeigt wird, also welcher Bildschirm welche Regel bekommt.</li></ul><p>Eine Regel kann an mehrere Kanäle gehen, und ein Kanal kann im Lauf des Tages die Regel wechseln.</p><p>Klicken Sie auf <b>Weiter</b>.</p>",
+                "es": "<p>Para que las puntuaciones sean visibles para todos, ianseo sabe <b>emitir páginas a pantallas</b> (televisor, proyector, segundo monitor del ordenador).</p><p>El mecanismo descansa en dos nociones que conviene distinguir bien:</p><ul><li>la <b>regla de salida de TV</b>: <b>qué</b> mostrar (¿el listado de participantes? ¿la calificación? ¿los enfrentamientos?) y con qué aspecto,</li><li>el <b>canal de salida</b>: <b>dónde</b> mostrarlo, es decir, qué pantalla recibe qué regla.</li></ul><p>Una regla puede enviarse a varios canales, y un canal puede cambiar de regla a lo largo del día.</p><p>Haga clic en <b>Siguiente</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -18,8 +49,20 @@
         },
         {
             "id": "ouvrir",
-            "title": "Ouvrir une compétition",
-            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p>",
+            "title": {
+                "fr": "Ouvrir une compétition",
+                "en": "Open a competition",
+                "it": "Apri una gara",
+                "de": "Ein Turnier öffnen",
+                "es": "Abra una competición"
+            },
+            "content": {
+                "fr": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p>",
+                "en": "<p>The guide is waiting for a <b>competition to be open</b>.</p>",
+                "it": "<p>La guida attende che una <b>gara sia aperta</b>.</p>",
+                "de": "<p>Die Anleitung wartet darauf, dass ein <b>Turnier geöffnet</b> ist.</p>",
+                "es": "<p>La guía espera a que haya una <b>competición abierta</b>.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -27,7 +70,13 @@
                     "condition": "tournament_open",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : ouvrez une compétition."
+                    "hint": {
+                        "fr": "En attente : ouvrez une compétition.",
+                        "en": "Waiting: open a competition.",
+                        "it": "In attesa: apri una gara.",
+                        "de": "Es wird gewartet: öffnen Sie ein Turnier.",
+                        "es": "En espera: abra una competición."
+                    }
                 }
             ],
             "optional": false,
@@ -35,8 +84,20 @@
         },
         {
             "id": "regles",
-            "title": "Créer une règle de sortie TV",
-            "content": "<p>Allez dans <b>Sorties &gt; Sortie TV</b>.</p><p>Créez une <b>règle</b>. Les trois grands types :</p><ul><li>la <b>liste des participants</b>,</li><li>l'affichage des <b>scores de qualification</b>,</li><li>l'affichage des <b>scores en phases finales</b> (duels).</li></ul><p>Pour que l'affichage soit exploitable sur un écran, sélectionnez le rendu <b>« Page CSS »</b>.</p><p class=\"guide-tip\">💡 Créez une règle <b>par moment de la journée</b> : « participants » avant le départ, « qualifications » pendant les séries, « phases finales » l'après-midi. Vous n'aurez plus qu'à basculer les canaux.</p>",
+            "title": {
+                "fr": "Créer une règle de sortie TV",
+                "en": "Creating a TV output rule",
+                "it": "Creare una regola di uscita TV",
+                "de": "Eine TV-Ausgangsregel anlegen",
+                "es": "Crear una regla de salida de TV"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Sorties &gt; Sortie TV</b>.</p><p>Créez une <b>règle</b>. Les trois grands types :</p><ul><li>la <b>liste des participants</b>,</li><li>l'affichage des <b>scores de qualification</b>,</li><li>l'affichage des <b>scores en phases finales</b> (duels).</li></ul><p>Pour que l'affichage soit exploitable sur un écran, sélectionnez le rendu <b>« Page CSS »</b>.</p><p class=\"guide-tip\">💡 Créez une règle <b>par moment de la journée</b> : « participants » avant le départ, « qualifications » pendant les séries, « phases finales » l'après-midi. Vous n'aurez plus qu'à basculer les canaux.</p>",
+                "en": "<p>Go to <b>Outputs &gt; TV Output</b>.</p><p>Create a <b>rule</b>. The three main types:</p><ul><li>the <b>participant list</b>,</li><li>the display of the <b>qualification scores</b>,</li><li>the display of the <b>scores in the final phases</b> (the matches).</li></ul><p>For the display to be usable on a screen, choose the <b>\"CSS page\"</b> output.</p><p class=\"guide-tip\">💡 Make one rule <b>per part of the day</b>: \"participants\" before the start, \"qualification\" during the ends, \"final phases\" in the afternoon. All you then do is switch the channels.</p>",
+                "it": "<p>Vai in <b>Uscite &gt; Uscita TV</b>.</p><p>Crea una <b>regola</b>. I tre grandi tipi:</p><ul><li>l'<b>elenco dei partecipanti</b>,</li><li>la visualizzazione dei <b>punteggi di qualificazione</b>,</li><li>la visualizzazione dei <b>punteggi delle fasi finali</b> (gli scontri).</li></ul><p>Perché la visualizzazione sia utilizzabile su uno schermo, seleziona la resa <b>«Pagina CSS»</b>.</p><p class=\"guide-tip\">💡 Crea una regola <b>per ogni momento della giornata</b>: «partecipanti» prima della partenza, «qualificazioni» durante le volée, «fasi finali» il pomeriggio. Non ti resterà che commutare i canali.</p>",
+                "de": "<p>Gehen Sie zu <b>Ausgaben &gt; TV Ausgang</b>.</p><p>Legen Sie eine <b>Regel</b> an. Die drei grossen Arten:</p><ul><li>die <b>Teilnehmerliste</b>,</li><li>die Anzeige der <b>Qualifikationsergebnisse</b>,</li><li>die Anzeige der <b>Ergebnisse der Finalrunden</b> (der Duelle).</li></ul><p>Damit die Anzeige auf einem Bildschirm brauchbar ist, wählen Sie die Ausgabe <b>„CSS-Seite\"</b>.</p><p class=\"guide-tip\">💡 Legen Sie eine Regel <b>je Tagesabschnitt</b> an: „Teilnehmer\" vor dem Start, „Qualifikation\" während der Passen, „Finalrunden\" am Nachmittag. Danach schalten Sie nur noch die Kanäle um.</p>",
+                "es": "<p>Vaya a <b>Salidas &gt; Salida TV</b>.</p><p>Cree una <b>regla</b>. Los tres grandes tipos:</p><ul><li>el <b>listado de participantes</b>,</li><li>la visualización de las <b>puntuaciones de calificación</b>,</li><li>la visualización de las <b>puntuaciones de las fases finales</b> (los enfrentamientos).</li></ul><p>Para que la visualización sea aprovechable en una pantalla, seleccione la salida <b>«Página CSS»</b>.</p><p class=\"guide-tip\">💡 Cree una regla <b>por cada momento de la jornada</b>: «participantes» antes de la salida, «calificación» durante las series, «fases finales» por la tarde. Solo tendrá que conmutar los canales.</p>"
+            },
             "page": "/TV/",
             "triggers": [
                 {
@@ -50,7 +111,13 @@
                     "condition": "has_tv_rule",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : créez au moins une règle de sortie TV."
+                    "hint": {
+                        "fr": "En attente : créez au moins une règle de sortie TV.",
+                        "en": "Waiting: create at least one TV output rule.",
+                        "it": "In attesa: crea almeno una regola di uscita TV.",
+                        "de": "Es wird gewartet: legen Sie mindestens eine TV-Ausgangsregel an.",
+                        "es": "En espera: cree al menos una regla de salida de TV."
+                    }
                 }
             ],
             "optional": false,
@@ -58,8 +125,20 @@
         },
         {
             "id": "mise-en-forme",
-            "title": "La mise en forme",
-            "content": "<p>Chaque règle a ses <b>couleurs</b> : fond de page, fond de tableau, en-têtes, ligne courante, ligne suivante, police de caractères.</p><p>Vous pouvez donc adapter l'affichage à votre <b>écran</b> et à la <b>lumière du gymnase</b>.</p><p class=\"guide-tip\">💡 Sur un écran vu de loin : <b>gros caractères</b>, fort contraste (texte clair sur fond sombre), peu de lignes à la fois. Un tableau magnifique mais illisible depuis le pas de tir ne sert à rien.</p>",
+            "title": {
+                "fr": "La mise en forme",
+                "en": "The look of it",
+                "it": "L'aspetto",
+                "de": "Das Aussehen",
+                "es": "El aspecto"
+            },
+            "content": {
+                "fr": "<p>Chaque règle a ses <b>couleurs</b> : fond de page, fond de tableau, en-têtes, ligne courante, ligne suivante, police de caractères.</p><p>Vous pouvez donc adapter l'affichage à votre <b>écran</b> et à la <b>lumière du gymnase</b>.</p><p class=\"guide-tip\">💡 Sur un écran vu de loin : <b>gros caractères</b>, fort contraste (texte clair sur fond sombre), peu de lignes à la fois. Un tableau magnifique mais illisible depuis le pas de tir ne sert à rien.</p>",
+                "en": "<p>Every rule has its own <b>colours</b>: page background, table background, headers, current row, next row, and the font.</p><p>So you can suit the display to your <b>screen</b> and to the <b>light in the venue</b>.</p><p class=\"guide-tip\">💡 On a screen seen from a distance: <b>large type</b>, strong contrast (light text on a dark background), few rows at a time. A beautiful table that cannot be read from the shooting line is no use at all.</p>",
+                "it": "<p>Ogni regola ha i suoi <b>colori</b>: sfondo della pagina, sfondo della tabella, intestazioni, riga corrente, riga successiva, carattere.</p><p>Puoi quindi adattare la visualizzazione al tuo <b>schermo</b> e alla <b>luce del palazzetto</b>.</p><p class=\"guide-tip\">💡 Su uno schermo visto da lontano: <b>caratteri grandi</b>, forte contrasto (testo chiaro su fondo scuro), poche righe per volta. Una tabella magnifica ma illeggibile dalla linea di tiro non serve a nulla.</p>",
+                "de": "<p>Jede Regel hat ihre eigenen <b>Farben</b>: Seitenhintergrund, Tabellenhintergrund, Kopfzeilen, aktuelle Zeile, nächste Zeile und die Schrift.</p><p>So passen Sie die Anzeige an Ihren <b>Bildschirm</b> und an das <b>Licht in der Halle</b> an.</p><p class=\"guide-tip\">💡 Auf einem Bildschirm, der aus der Ferne gelesen wird: <b>grosse Schrift</b>, starker Kontrast (helle Schrift auf dunklem Grund), wenige Zeilen auf einmal. Eine prächtige Tabelle, die man von der Schiesslinie aus nicht lesen kann, nützt nichts.</p>",
+                "es": "<p>Cada regla tiene sus <b>colores</b>: fondo de página, fondo de tabla, encabezados, fila actual, fila siguiente y tipo de letra.</p><p>Así puede adaptar la visualización a su <b>pantalla</b> y a la <b>luz del pabellón</b>.</p><p class=\"guide-tip\">💡 En una pantalla vista de lejos: <b>letra grande</b>, mucho contraste (texto claro sobre fondo oscuro), pocas filas a la vez. Una tabla magnífica pero ilegible desde la línea de tiro no sirve de nada.</p>"
+            },
             "page": "/TV/",
             "triggers": [],
             "optional": true,
@@ -67,8 +146,20 @@
         },
         {
             "id": "canaux",
-            "title": "Les canaux de sortie",
-            "content": "<p>Allez dans <b>Sorties &gt; Canaux de sortie TV</b>.</p><p>Un <b>canal</b> = un <b>écran</b>. Pour chacun, vous choisissez :</p><ul><li>son <b>nom</b> (« Écran hall », « Écran pas de tir »…),</li><li>la <b>compétition</b> et la <b>règle</b> qu'il affiche,</li><li>son <b>statut</b> (actif ou non),</li><li>éventuellement un <b>message</b> à faire défiler, ou un <b>fichier</b> à afficher.</li></ul><p>Sur l'ordinateur relié à l'écran, il suffit d'ouvrir l'<b>URL du canal</b> en plein écran : il se met à jour <b>tout seul</b>.</p><p class=\"guide-tip\">💡 C'est là toute la puissance du système : vous <b>changez la règle d'un canal depuis le greffe</b>, et l'écran du hall bascule des qualifications aux phases finales — sans que personne n'aille toucher à l'ordinateur du hall.</p>",
+            "title": {
+                "fr": "Les canaux de sortie",
+                "en": "The output channels",
+                "it": "I canali di uscita",
+                "de": "Die Ausgangskanäle",
+                "es": "Los canales de salida"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Sorties &gt; Canaux de sortie TV</b>.</p><p>Un <b>canal</b> = un <b>écran</b>. Pour chacun, vous choisissez :</p><ul><li>son <b>nom</b> (« Écran hall », « Écran pas de tir »…),</li><li>la <b>compétition</b> et la <b>règle</b> qu'il affiche,</li><li>son <b>statut</b> (actif ou non),</li><li>éventuellement un <b>message</b> à faire défiler, ou un <b>fichier</b> à afficher.</li></ul><p>Sur l'ordinateur relié à l'écran, il suffit d'ouvrir l'<b>URL du canal</b> en plein écran : il se met à jour <b>tout seul</b>.</p><p class=\"guide-tip\">💡 C'est là toute la puissance du système : vous <b>changez la règle d'un canal depuis le greffe</b>, et l'écran du hall bascule des qualifications aux phases finales — sans que personne n'aille toucher à l'ordinateur du hall.</p>",
+                "en": "<p>Go to <b>Outputs &gt; TV Output Channels</b>.</p><p>A <b>channel</b> = a <b>screen</b>. For each one you choose:</p><ul><li>its <b>name</b> (\"Hall screen\", \"Shooting line screen\"…),</li><li>the <b>competition</b> and the <b>rule</b> it shows,</li><li>its <b>status</b> (active or not),</li><li>optionally a <b>message</b> to scroll, or a <b>file</b> to display.</li></ul><p>On the computer connected to the screen, all you do is open the <b>channel's URL</b> full screen: it refreshes <b>by itself</b>.</p><p class=\"guide-tip\">💡 That is the whole power of the system: you <b>change a channel's rule from the registration desk</b>, and the hall screen switches from qualification to the final phases — without anybody going to touch the computer in the hall.</p>",
+                "it": "<p>Vai in <b>Uscite &gt; Canali Uscita TV</b>.</p><p>Un <b>canale</b> = uno <b>schermo</b>. Per ciascuno scegli:</p><ul><li>il suo <b>nome</b> («Schermo atrio», «Schermo linea di tiro»…),</li><li>la <b>gara</b> e la <b>regola</b> che mostra,</li><li>il suo <b>stato</b> (attivo o no),</li><li>eventualmente un <b>messaggio</b> da far scorrere, o un <b>file</b> da mostrare.</li></ul><p>Sul computer collegato allo schermo basta aprire l'<b>URL del canale</b> a schermo intero: si aggiorna <b>da solo</b>.</p><p class=\"guide-tip\">💡 Qui sta tutta la forza del sistema: <b>cambi la regola di un canale dalla segreteria</b> e lo schermo dell'atrio passa dalle qualificazioni alle fasi finali — senza che nessuno vada a toccare il computer dell'atrio.</p>",
+                "de": "<p>Gehen Sie zu <b>Ausgaben &gt; TV Output Kanäle</b>.</p><p>Ein <b>Kanal</b> = ein <b>Bildschirm</b>. Für jeden wählen Sie:</p><ul><li>seinen <b>Namen</b> („Bildschirm Foyer\", „Bildschirm Schiesslinie\"…),</li><li>das <b>Turnier</b> und die <b>Regel</b>, die er zeigt,</li><li>seinen <b>Status</b> (aktiv oder nicht),</li><li>wahlweise eine <b>Laufschrift</b> oder eine <b>Datei</b> zur Anzeige.</li></ul><p>Auf dem Rechner am Bildschirm genügt es, die <b>URL des Kanals</b> im Vollbild zu öffnen: sie aktualisiert sich <b>von selbst</b>.</p><p class=\"guide-tip\">💡 Darin liegt die ganze Stärke des Systems: Sie <b>ändern die Regel eines Kanals von der Meldestelle aus</b>, und der Bildschirm im Foyer wechselt von der Qualifikation zu den Finalrunden — ohne dass jemand den Rechner im Foyer anfassen muss.</p>",
+                "es": "<p>Vaya a <b>Salidas &gt; Canales de salida TV</b>.</p><p>Un <b>canal</b> = una <b>pantalla</b>. Para cada uno elige:</p><ul><li>su <b>nombre</b> («Pantalla del vestíbulo», «Pantalla de la línea de tiro»…),</li><li>la <b>competición</b> y la <b>regla</b> que muestra,</li><li>su <b>estado</b> (activo o no),</li><li>si quiere, un <b>mensaje</b> para hacer desfilar, o un <b>archivo</b> que mostrar.</li></ul><p>En el ordenador conectado a la pantalla basta con abrir la <b>URL del canal</b> a pantalla completa: se actualiza <b>solo</b>.</p><p class=\"guide-tip\">💡 Ahí está toda la potencia del sistema: <b>cambia la regla de un canal desde secretaría</b> y la pantalla del vestíbulo pasa de la calificación a las fases finales — sin que nadie vaya a tocar el ordenador del vestíbulo.</p>"
+            },
             "page": "/TV/ChannelSetup.php",
             "triggers": [
                 {
@@ -83,8 +174,20 @@
         },
         {
             "id": "spotting",
-            "title": "Les autres sorties",
-            "content": "<p>Le menu <b>Sorties</b> propose aussi deux affichages utiles :</p><ul><li><b>Spotting</b> : la vue des <b>flèches dans le blason</b>, pour les duels — parfait sur un écran face au public.</li><li>l'affichage <b>en direct du score du match en cours</b> (dernière entrée du menu).</li></ul><p class=\"guide-tip\">💡 Sur une finale, un écran en Spotting et un écran en scores, c'est ce qui transforme une remise de médailles en spectacle.</p>",
+            "title": {
+                "fr": "Les autres sorties",
+                "en": "The other outputs",
+                "it": "Le altre uscite",
+                "de": "Die übrigen Ausgaben",
+                "es": "Las demás salidas"
+            },
+            "content": {
+                "fr": "<p>Le menu <b>Sorties</b> propose aussi deux affichages utiles :</p><ul><li><b>Spotting</b> : la vue des <b>flèches dans le blason</b>, pour les duels — parfait sur un écran face au public.</li><li>l'affichage <b>en direct du score du match en cours</b> (dernière entrée du menu).</li></ul><p class=\"guide-tip\">💡 Sur une finale, un écran en Spotting et un écran en scores, c'est ce qui transforme une remise de médailles en spectacle.</p>",
+                "en": "<p>The <b>Outputs</b> menu also offers two useful displays:</p><ul><li><b>Spotting</b>: the view of the <b>arrows in the target face</b>, for the matches — perfect on a screen facing the public.</li><li>the <b>live display of the score of the match in progress</b> (the last entry of the menu).</li></ul><p class=\"guide-tip\">💡 At a final, one screen on Spotting and one on the scores is what turns a medal ceremony into a show.</p>",
+                "it": "<p>Il menu <b>Uscite</b> propone anche due visualizzazioni utili:</p><ul><li><b>Spotting</b>: la vista delle <b>frecce nel bersaglio</b>, per gli scontri — perfetta su uno schermo rivolto al pubblico.</li><li>la visualizzazione <b>in diretta del punteggio dello scontro in corso</b> (ultima voce del menu).</li></ul><p class=\"guide-tip\">💡 In una finale, uno schermo con lo Spotting e uno con i punteggi è ciò che trasforma una premiazione in uno spettacolo.</p>",
+                "de": "<p>Das Menü <b>Ausgaben</b> bietet noch zwei nützliche Anzeigen:</p><ul><li><b>Spotter</b>: die Ansicht der <b>Pfeile in der Auflage</b>, für die Duelle — ideal auf einem Bildschirm zum Publikum hin.</li><li>die Anzeige des <b>laufenden Duellergebnisses in Echtzeit</b> (der letzte Eintrag des Menüs).</li></ul><p class=\"guide-tip\">💡 Bei einem Finale machen ein Bildschirm mit Spotter und einer mit den Ergebnissen aus einer Siegerehrung ein Schauspiel.</p>",
+                "es": "<p>El menú <b>Salidas</b> ofrece además dos visualizaciones útiles:</p><ul><li><b>Seguimiento</b>: la vista de las <b>flechas en la diana</b>, para los enfrentamientos — perfecta en una pantalla orientada al público.</li><li>la visualización <b>en directo de la puntuación del enfrentamiento en curso</b> (última entrada del menú).</li></ul><p class=\"guide-tip\">💡 En una final, una pantalla con Seguimiento y otra con las puntuaciones es lo que convierte una entrega de medallas en un espectáculo.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": true,
@@ -92,8 +195,20 @@
         },
         {
             "id": "fin",
-            "title": "C'est terminé !",
-            "content": "<p>Vos écrans sont vivants.</p><p><b>À retenir :</b></p><ul><li>Une <b>règle</b> = <b>quoi</b> afficher (participants / qualifications / phases finales), en <b>« Page CSS »</b>.</li><li>Un <b>canal</b> = <b>où</b> l'afficher. On ouvre son URL en plein écran sur l'ordinateur de l'écran.</li><li>On <b>bascule un canal d'une règle à l'autre depuis le greffe</b>, sans se déplacer.</li><li>Gros caractères, fort contraste : ça se lit de loin.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "title": {
+                "fr": "C'est terminé !",
+                "en": "That's it!",
+                "it": "Finito!",
+                "de": "Fertig!",
+                "es": "¡Terminado!"
+            },
+            "content": {
+                "fr": "<p>Vos écrans sont vivants.</p><p><b>À retenir :</b></p><ul><li>Une <b>règle</b> = <b>quoi</b> afficher (participants / qualifications / phases finales), en <b>« Page CSS »</b>.</li><li>Un <b>canal</b> = <b>où</b> l'afficher. On ouvre son URL en plein écran sur l'ordinateur de l'écran.</li><li>On <b>bascule un canal d'une règle à l'autre depuis le greffe</b>, sans se déplacer.</li><li>Gros caractères, fort contraste : ça se lit de loin.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+                "en": "<p>Your screens are alive.</p><p><b>What to remember:</b></p><ul><li>A <b>rule</b> = <b>what</b> to show (participants / qualification / final phases), as a <b>\"CSS page\"</b>.</li><li>A <b>channel</b> = <b>where</b> to show it. Open its URL full screen on that screen's computer.</li><li>You <b>switch a channel from one rule to another from the registration desk</b>, without moving.</li><li>Large type, strong contrast: it reads from a distance.</li></ul><p>Now for the <b>quiz</b> and the <b>challenge</b>!</p>",
+                "it": "<p>I tuoi schermi sono vivi.</p><p><b>Da ricordare:</b></p><ul><li>Una <b>regola</b> = <b>che cosa</b> mostrare (partecipanti / qualificazioni / fasi finali), in <b>«Pagina CSS»</b>.</li><li>Un <b>canale</b> = <b>dove</b> mostrarlo. Si apre il suo URL a schermo intero sul computer di quello schermo.</li><li>Si <b>commuta un canale da una regola all'altra dalla segreteria</b>, senza spostarsi.</li><li>Caratteri grandi, forte contrasto: si legge da lontano.</li></ul><p>Spazio al <b>quiz</b> e alla <b>sfida</b>!</p>",
+                "de": "<p>Ihre Bildschirme leben.</p><p><b>Zum Merken:</b></p><ul><li>Eine <b>Regel</b> = <b>was</b> gezeigt wird (Teilnehmer / Qualifikation / Finalrunden), als <b>„CSS-Seite\"</b>.</li><li>Ein <b>Kanal</b> = <b>wo</b> es gezeigt wird. Seine URL wird auf dem Rechner dieses Bildschirms im Vollbild geöffnet.</li><li>Man <b>schaltet einen Kanal von der Meldestelle aus</b> von einer Regel auf die andere, ohne sich zu bewegen.</li><li>Grosse Schrift, starker Kontrast: das liest sich aus der Ferne.</li></ul><p>Weiter zum <b>Quiz</b> und zur <b>Aufgabe</b>!</p>",
+                "es": "<p>Sus pantallas están vivas.</p><p><b>Para recordar:</b></p><ul><li>Una <b>regla</b> = <b>qué</b> mostrar (participantes / calificación / fases finales), en <b>«Página CSS»</b>.</li><li>Un <b>canal</b> = <b>dónde</b> mostrarlo. Se abre su URL a pantalla completa en el ordenador de esa pantalla.</li><li>Se <b>conmuta un canal de una regla a otra desde secretaría</b>, sin moverse.</li><li>Letra grande, mucho contraste: se lee de lejos.</li></ul><p>¡Adelante con el <b>cuestionario</b> y el <b>reto</b>!</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -105,48 +220,203 @@
         "shuffle": true,
         "questions": [
             {
-                "q": "Quelle est la différence entre une règle et un canal de sortie TV ?",
+                "q": {
+                    "fr": "Quelle est la différence entre une règle et un canal de sortie TV ?",
+                    "en": "What is the difference between a TV output rule and a channel?",
+                    "it": "Qual è la differenza fra una regola e un canale di uscita TV?",
+                    "de": "Was ist der Unterschied zwischen einer TV-Ausgangsregel und einem Kanal?",
+                    "es": "¿Cuál es la diferencia entre una regla y un canal de salida de TV?"
+                },
                 "choices": [
-                    "La règle définit QUOI afficher, le canal définit OÙ l'afficher",
-                    "La règle est pour les qualifications, le canal pour les duels",
-                    "Ce sont deux mots pour la même chose",
-                    "La règle concerne les couleurs, le canal les scores"
+                    {
+                        "fr": "La règle définit QUOI afficher, le canal définit OÙ l'afficher",
+                        "en": "The rule says WHAT to show, the channel says WHERE to show it",
+                        "it": "La regola definisce CHE COSA mostrare, il canale definisce DOVE mostrarlo",
+                        "de": "Die Regel sagt, WAS gezeigt wird, der Kanal sagt, WO",
+                        "es": "La regla define QUÉ mostrar, el canal define DÓNDE mostrarlo"
+                    },
+                    {
+                        "fr": "La règle est pour les qualifications, le canal pour les duels",
+                        "en": "The rule is for qualification, the channel for the matches",
+                        "it": "La regola è per le qualificazioni, il canale per gli scontri",
+                        "de": "Die Regel ist für die Qualifikation, der Kanal für die Duelle",
+                        "es": "La regla es para la calificación, el canal para los enfrentamientos"
+                    },
+                    {
+                        "fr": "Ce sont deux mots pour la même chose",
+                        "en": "They are two words for the same thing",
+                        "it": "Sono due parole per la stessa cosa",
+                        "de": "Es sind zwei Wörter für dieselbe Sache",
+                        "es": "Son dos palabras para lo mismo"
+                    },
+                    {
+                        "fr": "La règle concerne les couleurs, le canal les scores",
+                        "en": "The rule is about the colours, the channel about the scores",
+                        "it": "La regola riguarda i colori, il canale i punteggi",
+                        "de": "Die Regel betrifft die Farben, der Kanal die Ergebnisse",
+                        "es": "La regla se ocupa de los colores, el canal de las puntuaciones"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Une règle (contenu + mise en forme) est envoyée vers un ou plusieurs canaux (les écrans)."
+                "explain": {
+                    "fr": "Une règle (contenu + mise en forme) est envoyée vers un ou plusieurs canaux (les écrans).",
+                    "en": "A rule (content plus look) is sent to one or more channels, which are the screens.",
+                    "it": "Una regola (contenuto più aspetto) viene inviata a uno o più canali, cioè gli schermi.",
+                    "de": "Eine Regel (Inhalt und Aussehen) wird an einen oder mehrere Kanäle gesendet, also an die Bildschirme.",
+                    "es": "Una regla (contenido más aspecto) se envía a uno o varios canales, que son las pantallas."
+                }
             },
             {
-                "q": "Quel rendu faut-il sélectionner pour afficher une sortie TV sur un écran ?",
-                "choices": ["Page CSS", "Page PDF", "Page XML", "Page Excel"],
-                "correct": 0,
-                "explain": "Le rendu « Page CSS » produit la page d'affichage destinée aux écrans."
-            },
-            {
-                "q": "Quels sont les trois grands types de sorties TV ?",
+                "q": {
+                    "fr": "Quel rendu faut-il sélectionner pour afficher une sortie TV sur un écran ?",
+                    "en": "Which output has to be chosen to show a TV output on a screen?",
+                    "it": "Quale resa bisogna selezionare per mostrare un'uscita TV su uno schermo?",
+                    "de": "Welche Ausgabe ist zu wählen, um einen TV-Ausgang auf einem Bildschirm zu zeigen?",
+                    "es": "¿Qué salida hay que seleccionar para mostrar una salida de TV en una pantalla?"
+                },
                 "choices": [
-                    "Liste des participants, scores de qualification, scores des phases finales",
-                    "Programme, plan de cible, mandat",
-                    "Badges, dossards, feuilles de marque",
-                    "Participants, arbitres, organisation"
+                    {
+                        "fr": "Page CSS",
+                        "en": "CSS page",
+                        "it": "Pagina CSS",
+                        "de": "CSS-Seite",
+                        "es": "Página CSS"
+                    },
+                    {
+                        "fr": "Page PDF",
+                        "en": "PDF page",
+                        "it": "Pagina PDF",
+                        "de": "PDF-Seite",
+                        "es": "Página PDF"
+                    },
+                    {
+                        "fr": "Page XML",
+                        "en": "XML page",
+                        "it": "Pagina XML",
+                        "de": "XML-Seite",
+                        "es": "Página XML"
+                    },
+                    {
+                        "fr": "Page Excel",
+                        "en": "Excel page",
+                        "it": "Pagina Excel",
+                        "de": "Excel-Seite",
+                        "es": "Página Excel"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Ces trois types couvrent le déroulé complet d'une compétition."
+                "explain": {
+                    "fr": "Le rendu « Page CSS » produit la page d'affichage destinée aux écrans.",
+                    "en": "The \"CSS page\" output produces the display page meant for screens.",
+                    "it": "La resa «Pagina CSS» produce la pagina di visualizzazione destinata agli schermi.",
+                    "de": "Die Ausgabe „CSS-Seite\" erzeugt die Anzeigeseite, die für Bildschirme gedacht ist.",
+                    "es": "La salida «Página CSS» produce la página de visualización destinada a las pantallas."
+                }
             },
             {
-                "q": "En pleine compétition, vous voulez que l'écran du hall passe des qualifications aux phases finales. Que faites-vous ?",
+                "q": {
+                    "fr": "Quels sont les trois grands types de sorties TV ?",
+                    "en": "What are the three main types of TV output?",
+                    "it": "Quali sono i tre grandi tipi di uscita TV?",
+                    "de": "Welches sind die drei grossen Arten von TV-Ausgang?",
+                    "es": "¿Cuáles son los tres grandes tipos de salida de TV?"
+                },
                 "choices": [
-                    "Vous changez la règle affectée à ce canal, depuis le greffe",
-                    "Vous allez rouvrir une autre page sur l'ordinateur du hall",
-                    "Vous redémarrez ianseo",
-                    "Vous créez une nouvelle compétition"
+                    {
+                        "fr": "Liste des participants, scores de qualification, scores des phases finales",
+                        "en": "Participant list, qualification scores, final phase scores",
+                        "it": "Elenco dei partecipanti, punteggi di qualificazione, punteggi delle fasi finali",
+                        "de": "Teilnehmerliste, Qualifikationsergebnisse, Ergebnisse der Finalrunden",
+                        "es": "Listado de participantes, puntuaciones de calificación, puntuaciones de las fases finales"
+                    },
+                    {
+                        "fr": "Programme, plan de cible, mandat",
+                        "en": "Schedule, target plan, competition notice",
+                        "it": "Programma, piano dei bersagli, bando",
+                        "de": "Zeitplan, Scheibenplan, Ausschreibung",
+                        "es": "Programa, plano de dianas, convocatoria"
+                    },
+                    {
+                        "fr": "Badges, dossards, feuilles de marque",
+                        "en": "Badges, back numbers, score sheets",
+                        "it": "Tesserini, pettorali, score",
+                        "de": "Ausweise, Startnummern, Scorekarten",
+                        "es": "Identificaciones, dorsales, hojas de puntuación"
+                    },
+                    {
+                        "fr": "Participants, arbitres, organisation",
+                        "en": "Participants, judges, organisation",
+                        "it": "Partecipanti, giudici, organizzazione",
+                        "de": "Teilnehmer, Kampfrichter, Organisation",
+                        "es": "Participantes, jueces, organización"
+                    }
                 ],
                 "correct": 0,
-                "explain": "C'est tout l'intérêt des canaux : l'écran se met à jour seul, sans intervention sur place."
+                "explain": {
+                    "fr": "Ces trois types couvrent le déroulé complet d'une compétition.",
+                    "en": "Those three types cover the whole run of a competition.",
+                    "it": "Questi tre tipi coprono l'intero svolgimento di una gara.",
+                    "de": "Diese drei Arten decken den gesamten Ablauf eines Turniers ab.",
+                    "es": "Esos tres tipos cubren el desarrollo completo de una competición."
+                }
+            },
+            {
+                "q": {
+                    "fr": "En pleine compétition, vous voulez que l'écran du hall passe des qualifications aux phases finales. Que faites-vous ?",
+                    "en": "Mid-competition, you want the hall screen to move from qualification to the final phases. What do you do?",
+                    "it": "In piena gara vuoi che lo schermo dell'atrio passi dalle qualificazioni alle fasi finali. Che cosa fai?",
+                    "de": "Mitten im Turnier soll der Bildschirm im Foyer von der Qualifikation zu den Finalrunden wechseln. Was tun Sie?",
+                    "es": "En plena competición quiere que la pantalla del vestíbulo pase de la calificación a las fases finales. ¿Qué hace?"
+                },
+                "choices": [
+                    {
+                        "fr": "Vous changez la règle affectée à ce canal, depuis le greffe",
+                        "en": "Change the rule assigned to that channel, from the registration desk",
+                        "it": "Cambi la regola assegnata a quel canale, dalla segreteria",
+                        "de": "Sie ändern die Regel dieses Kanals, von der Meldestelle aus",
+                        "es": "Cambia la regla asignada a ese canal, desde secretaría"
+                    },
+                    {
+                        "fr": "Vous allez rouvrir une autre page sur l'ordinateur du hall",
+                        "en": "Go and open another page on the hall computer",
+                        "it": "Vai ad aprire un'altra pagina sul computer dell'atrio",
+                        "de": "Sie öffnen am Rechner im Foyer eine andere Seite",
+                        "es": "Va a abrir otra página en el ordenador del vestíbulo"
+                    },
+                    {
+                        "fr": "Vous redémarrez ianseo",
+                        "en": "Restart ianseo",
+                        "it": "Riavvii ianseo",
+                        "de": "Sie starten ianseo neu",
+                        "es": "Reinicia ianseo"
+                    },
+                    {
+                        "fr": "Vous créez une nouvelle compétition",
+                        "en": "Create a new competition",
+                        "it": "Crei una nuova gara",
+                        "de": "Sie legen ein neues Turnier an",
+                        "es": "Crea una nueva competición"
+                    }
+                ],
+                "correct": 0,
+                "explain": {
+                    "fr": "C'est tout l'intérêt des canaux : l'écran se met à jour seul, sans intervention sur place.",
+                    "en": "That is the point of channels: the screen refreshes on its own, with nobody going there.",
+                    "it": "È tutto il senso dei canali: lo schermo si aggiorna da solo, senza interventi sul posto.",
+                    "de": "Genau dafür sind Kanäle da: der Bildschirm aktualisiert sich von selbst, ohne Eingriff vor Ort.",
+                    "es": "Ese es todo el interés de los canales: la pantalla se actualiza sola, sin intervención in situ."
+                }
             }
         ]
     },
     "challenge": {
-        "intro": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition ouverte :</p><ol><li>Créez au moins une <b>règle de sortie TV</b> (par exemple l'affichage des scores de qualification, en « Page CSS »).</li><li>Allez ensuite voir les <b>Canaux de sortie TV</b> et affectez-lui un canal.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+        "intro": {
+            "fr": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition ouverte :</p><ol><li>Créez au moins une <b>règle de sortie TV</b> (par exemple l'affichage des scores de qualification, en « Page CSS »).</li><li>Allez ensuite voir les <b>Canaux de sortie TV</b> et affectez-lui un canal.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+            "en": "<p>Your turn, <b>unaided</b>.</p><p>On your open competition:</p><ol><li>Create at least one <b>TV output rule</b> (the qualification scores as a \"CSS page\", for instance).</li><li>Then go and look at the <b>TV Output Channels</b> and give it a channel.</li></ol><p>Click <b>Check</b> when it is done.</p>",
+            "it": "<p>Tocca a te, <b>senza aiuto</b>.</p><p>Sulla tua gara aperta:</p><ol><li>Crea almeno una <b>regola di uscita TV</b> (per esempio la visualizzazione dei punteggi di qualificazione, in «Pagina CSS»).</li><li>Vai poi a vedere i <b>Canali Uscita TV</b> e assegnale un canale.</li></ol><p>Clicca su <b>Verifica</b> quando è fatto.</p>",
+            "de": "<p>Sie sind dran, <b>ohne Hilfe</b>.</p><p>In Ihrem geöffneten Turnier:</p><ol><li>Legen Sie mindestens eine <b>TV-Ausgangsregel</b> an (etwa die Anzeige der Qualifikationsergebnisse als „CSS-Seite\").</li><li>Sehen Sie sich dann die <b>TV Output Kanäle</b> an und weisen Sie ihr einen Kanal zu.</li></ol><p>Klicken Sie auf <b>Prüfen</b>, wenn es erledigt ist.</p>",
+            "es": "<p>Le toca a usted, <b>sin ayuda</b>.</p><p>En su competición abierta:</p><ol><li>Cree al menos una <b>regla de salida de TV</b> (por ejemplo la visualización de las puntuaciones de calificación, en «Página CSS»).</li><li>Vaya después a ver los <b>Canales de salida TV</b> y asígnele un canal.</li></ol><p>Haga clic en <b>Verificar</b> cuando esté hecho.</p>"
+        },
         "conditions": [
             "has_tv_rule"
         ]

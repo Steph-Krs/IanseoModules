@@ -1,20 +1,50 @@
 <?php
 /**
- * Désinstallation d'un module Custom, commune à tous les modules.
+ * Uninstall screen, shared by every custom module.
  *
- * Ce fichier vit dans _shared/ et NON dans le module : un script qui supprime
- * son propre dossier pendant qu'il s'exécute échoue sous Windows (fichier
- * verrouillé par Apache/PHP). Depuis _shared/, rien de ce qui tourne n'est
- * supprimé.
+ * WHY THIS LIVES IN _shared/ AND NOT IN THE MODULE
+ * A script that deletes its own folder while it is running works on Linux and
+ * fails on Windows, where Apache and PHP hold the running file open. From
+ * _shared/, nothing that is executing is ever deleted, so the behaviour is the
+ * same on both.
+ *
+ * THE SAFEGUARDS, none of which may be weakened
+ *   - upd_admin_guard(): AclRoot AND the server administrator view when an
+ *     account module is installed;
+ *   - upd_valid_module(): null byte rejected, basename, character whitelist, and
+ *     a module.json requirement — so no ianseo folder can ever be named;
+ *   - upd_rrmdir(): containment, refusing any path outside Custom/ and Custom/
+ *     itself;
+ *   - a CSRF token in the session, plus typing the module name to confirm;
+ *   - table names filtered before any SQL, because version.json comes from a
+ *     GitHub repository and is untrusted input;
+ *   - _shared/ is never deleted from here: other modules depend on it.
+ *
+ * Backups are NOT made by default. The files stay recoverable from the
+ * repository, and an archive would only duplicate whatever secrets a local
+ * configuration holds. A module that keeps genuinely unversioned data asks for
+ * one with "uninstall_backup": true, and it is then offered as a single
+ * download and deleted from the server immediately afterwards.
  */
-define('HTDOCS', dirname(__DIR__, 3));
+
+// Walk up to the ianseo root instead of counting directory levels, so this keeps
+// working if the modules are installed somewhere other than Modules/Custom/.
+$_upd_root = __DIR__;
+while ($_upd_root !== dirname($_upd_root) && !is_file($_upd_root . '/config.php')) {
+    $_upd_root = dirname($_upd_root);
+}
+define('HTDOCS', $_upd_root);
+unset($_upd_root);
+
 require_once(HTDOCS . '/config.php');
 require_once __DIR__ . '/update-lib.php';
+require_once __DIR__ . '/paths.php';
 
 upd_admin_guard();
 
-// Téléchargement à usage unique de la sauvegarde (modules "uninstall_backup") :
-// on l'envoie puis on la supprime → rien ne persiste sur le serveur.
+/* ---- Single-use download of the backup ----
+ * Sent, then deleted: nothing is left on the server. The token is compared with
+ * hash_equals so a wrong guess takes the same time as a right one. */
 if (isset($_GET['download'])) {
     $dl = $_SESSION['upd_backup_dl'] ?? null;
     if (is_array($dl) && hash_equals((string)$dl['token'], (string)$_GET['download']) && is_file($dl['file'])) {
@@ -27,14 +57,14 @@ if (isset($_GET['download'])) {
         unset($_SESSION['upd_backup_dl']);
         exit;
     }
-    unset($_SESSION['upd_backup_dl']); // jeton invalide/expiré
+    unset($_SESSION['upd_backup_dl']);   // invalid or expired token
 }
 
-$modules = upd_list_modules();
-$dir     = upd_valid_module($_REQUEST['module'] ?? '');
-$name    = $dir ? basename($dir) : '';
-$tables  = $dir ? upd_module_tables($dir) : [];
-$warning = $dir ? upd_uninstall_warning($dir) : '';
+$modules    = upd_list_modules();
+$dir        = upd_valid_module($_REQUEST['module'] ?? '');
+$name       = $dir ? basename($dir) : '';
+$tables     = $dir ? upd_module_tables($dir) : [];
+$warning    = $dir ? upd_uninstall_warning($dir) : '';
 $wantBackup = $dir ? upd_uninstall_backup($dir) : false;
 
 $messages      = [];
@@ -47,50 +77,58 @@ if (empty($_SESSION['upd_uninstall_token'])) {
 }
 $token = $_SESSION['upd_uninstall_token'];
 
+/* ---- The uninstall itself ---- */
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'uninstall') {
     $confirm = trim((string)($_POST['confirm'] ?? ''));
     $dropDb  = !empty($_POST['drop_tables']);
 
     if (!$dir) {
-        $messages[] = ['err', 'Module introuvable ou non géré par ce système.'];
+        $messages[] = ['err', upd_text('ErrModuleNotFound')];
     } elseif (!hash_equals($token, (string)($_POST['token'] ?? ''))) {
-        $messages[] = ['err', 'Jeton de sécurité invalide. Rechargez la page et recommencez.'];
+        $messages[] = ['err', upd_text('ErrBadToken')];
     } elseif ($confirm !== $name) {
-        $messages[] = ['err', 'Le nom saisi ne correspond pas à « ' . $name .' ». Rien n\'a été supprimé.'];
+        $messages[] = ['err', upd_text('ErrNameMismatch', $name)];
     } else {
-        upd_purge_old_backups();                 // pas d'accumulation d'archives résiduelles
+        upd_purge_old_backups();   // no accumulation of leftover archives
 
         $backupPath = null;
         $backupErr  = null;
-        if ($wantBackup) {                       // seuls les modules sensibles gardent un filet
+        if ($wantBackup) {
             $backup = upd_backup_module($dir, $name);
             if (isset($backup['_error'])) $backupErr = $backup['_error'];
             else                          $backupPath = $backup['file'];
         }
 
         if ($backupErr !== null) {
-            $messages[] = ['err', 'Sauvegarde impossible (' . $backupErr . '). Désinstallation annulée.'];
+            // A backup that was asked for and failed aborts the whole thing: the
+            // module asked for it precisely because its data is not recoverable.
+            $messages[] = ['err', upd_text('ErrBackupFailed', $backupErr)];
         } else {
             if ($dropDb && $tables) $droppedTables = upd_drop_tables($tables);
+
             if (upd_rrmdir($dir)) {
                 $done = true;
                 unset($_SESSION['upd_uninstall_token']);
-                if ($backupPath) {               // sauvegarde à usage unique : lien de téléchargement
+                if ($backupPath) {
                     $downloadToken = bin2hex(random_bytes(16));
                     $_SESSION['upd_backup_dl'] = ['file' => $backupPath, 'token' => $downloadToken];
                 }
             } else {
-                $messages[] = ['err', 'Suppression des fichiers impossible (droits insuffisants sur le dossier ?).'];
-                if ($backupPath && is_file($backupPath)) @unlink($backupPath); // ne rien laisser traîner
+                $messages[] = ['err', upd_text('ErrDeleteFailed')];
+                // Leave nothing lying around if the deletion did not happen.
+                if ($backupPath && is_file($backupPath)) @unlink($backupPath);
             }
         }
     }
 }
 
+$PAGE_TITLE = upd_text('UninstallTitle');
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 
 <style>
+/* Scoped to this page's own class prefix. */
 .uns-section { max-width: 760px; margin-bottom: 28px; }
 .uns-msg { padding: 8px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
 .uns-msg-ok  { background: #e8faf0; border-left: 3px solid #1a8a4a; color: #1a5a33; }
@@ -110,120 +148,121 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .uns-path { font-family: monospace; font-size: 12px; background: #f7f9ff; border: 1px solid #dde2f5; border-radius: 4px; padding: 6px 10px; display: inline-block; word-break: break-all; }
 </style>
 
-<h1>Désinstaller un module</h1>
+<?php
+/* =======================================================================
+ * Rendering
+ *
+ * Produced in PHP rather than woven out of template tags: ianseo asks that a
+ * file be in one language at a time, and this screen has three mutually
+ * exclusive states — done, no module chosen, confirmation — which are far
+ * easier to read as three branches than as a chain of "elseif" spread across
+ * a hundred lines of markup.
+ *
+ * Several of the strings below carry deliberate markup from the language files
+ * (a bold module name, a link), so those are echoed as they are and only the
+ * values substituted into them are escaped.
+ * =====================================================================*/
 
-<?php foreach ($messages as [$type, $text]): ?>
-  <div class="uns-msg <?= $type === 'ok' ? 'uns-msg-ok' : 'uns-msg-err' ?>"><?= htmlspecialchars($text) ?></div>
-<?php endforeach; ?>
+$backHome = '<p style="margin-top:20px"><a href="' . $CFG->ROOT_DIR . 'index.php">← '
+          . upd_esc(upd_text('BackHome')) . '</a></p>';
 
-<?php if ($done): ?>
+$page = '<h1>' . upd_esc(upd_text('UninstallTitle')) . '</h1>';
 
-  <div class="uns-section">
-    <div class="uns-msg uns-msg-ok">
-      Le module <b><?= htmlspecialchars($name) ?></b> a été désinstallé.
-    </div>
-    <?php if ($downloadToken): ?>
-      <p style="font-size:13px">Une sauvegarde des fichiers a été préparée. Téléchargez-la maintenant —
-        <b>elle est supprimée du serveur dès le téléchargement</b> :</p>
-      <p style="margin:10px 0">
-        <a class="uns-btn" style="background:#0254a8;color:#fff;text-decoration:none;display:inline-block"
-           href="?download=<?= urlencode($downloadToken) ?>">&#11015; Télécharger la sauvegarde (.zip)</a>
-      </p>
-      <p class="uns-hint" style="margin-top:0">Si vous ne la téléchargez pas, elle sera purgée automatiquement du dossier temporaire.</p>
-    <?php else: ?>
-      <p style="font-size:13px">Aucune sauvegarde conservée : les fichiers restent récupérables depuis le
-        dépôt GitHub, et une réinstallation les restaure.</p>
-    <?php endif; ?>
-    <?php if ($droppedTables): ?>
-      <p style="font-size:13px;margin-top:14px">Tables supprimées : <b><?= htmlspecialchars(implode(', ', $droppedTables)) ?></b></p>
-    <?php elseif ($tables): ?>
-      <p style="font-size:13px;margin-top:14px">
-        Les tables <b><?= htmlspecialchars(implode(', ', $tables)) ?></b> ont été <b>conservées</b> :
-        une réinstallation retrouvera les données.
-      </p>
-    <?php endif; ?>
-    <p style="margin-top:20px"><a href="<?= $CFG->ROOT_DIR ?>index.php">← Retour à l'accueil ianseo</a></p>
-  </div>
+foreach ($messages as [$type, $text]) {
+    $page .= '<div class="uns-msg ' . ($type === 'ok' ? 'uns-msg-ok' : 'uns-msg-err') . '">'
+           . upd_esc($text) . '</div>';
+}
 
-<?php elseif (!$dir): ?>
+if ($done) {
 
-  <div class="uns-section">
-    <?php if ($modules): ?>
-      <p style="font-size:13px">Choisissez le module à désinstaller :</p>
-      <ul class="uns-list">
-        <?php foreach ($modules as $m): ?>
-          <li><a href="?module=<?= urlencode($m) ?>"><?= htmlspecialchars($m) ?></a></li>
-        <?php endforeach; ?>
-      </ul>
-      <p class="uns-hint">Seuls les dossiers contenant un <code>module.json</code> sont listés.</p>
-    <?php else: ?>
-      <p style="font-size:13px">Aucun module géré par ce système n'est installé.</p>
-    <?php endif; ?>
-    <p style="margin-top:20px"><a href="<?= $CFG->ROOT_DIR ?>index.php">← Retour à l'accueil ianseo</a></p>
-  </div>
+    $page .= '<div class="uns-section"><div class="uns-msg uns-msg-ok">'
+           . upd_text('UninstallDone', '<b>' . upd_esc($name) . '</b>') . '</div>';
 
-<?php else: ?>
+    if ($downloadToken) {
+        $page .= '<p style="font-size:13px">' . upd_text('BackupPrepared') . '</p>'
+               . '<p style="margin:10px 0">'
+               . '<a class="uns-btn" style="background:#0254a8;color:#fff;text-decoration:none;display:inline-block"'
+               . ' href="?download=' . urlencode($downloadToken) . '">&#11015; '
+               . upd_esc(upd_text('DownloadBackup')) . '</a></p>'
+               . '<p class="uns-hint" style="margin-top:0">' . upd_esc(upd_text('BackupPurgeNote')) . '</p>';
+    } else {
+        $page .= '<p style="font-size:13px">' . upd_esc(upd_text('NoBackupKept')) . '</p>';
+    }
 
-  <div class="uns-section">
-    <div class="uns-box">
-      <h2>&#9888; Désinstaller le module « <?= htmlspecialchars($name) ?> »</h2>
+    if ($droppedTables) {
+        $page .= '<p style="font-size:13px;margin-top:14px">'
+               . upd_text('TablesDropped', '<b>' . upd_esc(implode(', ', $droppedTables)) . '</b>') . '</p>';
+    } elseif ($tables) {
+        $page .= '<p style="font-size:13px;margin-top:14px">'
+               . upd_text('TablesKept', '<b>' . upd_esc(implode(', ', $tables)) . '</b>') . '</p>';
+    }
 
-      <p style="font-size:13px;margin:0 0 10px">Cette action va :</p>
-      <ul class="uns-list">
-        <?php if ($wantBackup): ?>
-          <li>préparer une <b>sauvegarde téléchargeable</b> des fichiers (proposée juste après, puis supprimée du serveur) ;</li>
-        <?php endif; ?>
-        <li>supprimer définitivement le dossier <code>Modules/Custom/<?= htmlspecialchars($name) ?>/</code><?php if (!$wantBackup): ?> (fichiers récupérables depuis le dépôt GitHub)<?php endif; ?>.</li>
-      </ul>
+    $page .= $backHome . '</div>';
 
-      <p class="uns-hint" style="margin-top:-6px">
-        La bibliothèque commune <code>_shared/</code> n'est jamais supprimée : d'autres modules l'utilisent.
-      </p>
+} elseif (!$dir) {
 
-      <?php if ($warning): ?>
-        <div class="uns-warning">
-          <b>&#9888; Avertissement de ce module — à lire avant de continuer</b>
-          <div style="margin-top:6px"><?= nl2br(htmlspecialchars($warning)) ?></div>
-        </div>
-      <?php endif; ?>
+    // No module named, or a name that did not survive the safeguards: offer the
+    // list of what is actually installed rather than an error.
+    $page .= '<div class="uns-section">';
+    if ($modules) {
+        $page .= '<p style="font-size:13px">' . upd_esc(upd_text('ChooseModule')) . '</p><ul class="uns-list">';
+        foreach ($modules as $m) {
+            $page .= '<li><a href="?module=' . urlencode($m) . '">' . upd_esc($m) . '</a></li>';
+        }
+        $page .= '</ul><p class="uns-hint">' . upd_text('OnlyModuleJson') . '</p>';
+    } else {
+        $page .= '<p style="font-size:13px">' . upd_esc(upd_text('NoModuleInstalled')) . '</p>';
+    }
+    $page .= $backHome . '</div>';
 
-      <form method="post">
-        <input type="hidden" name="action" value="uninstall">
-        <input type="hidden" name="module" value="<?= htmlspecialchars($name) ?>">
-        <input type="hidden" name="token"  value="<?= htmlspecialchars($token) ?>">
+} else {
 
-        <?php if ($tables): ?>
-          <div class="uns-danger">
-            <label style="cursor:pointer">
-              <input type="checkbox" name="drop_tables" value="1">
-              Supprimer aussi les <b>données en base</b> :
-              <code><?= htmlspecialchars(implode('</code>, <code>', $tables)) ?></code>
-            </label>
-            <div style="margin-top:6px;color:#8a5a00">
-              Décoché, les données sont conservées et une réinstallation les retrouve.
-              <b>Coché, la suppression est irréversible.</b>
-            </div>
-          </div>
-        <?php endif; ?>
+    $page .= '<div class="uns-section"><div class="uns-box">'
+           . '<h2>&#9888; ' . upd_esc(upd_text('UninstallHeading', $name)) . '</h2>'
+           . '<p style="font-size:13px;margin:0 0 10px">' . upd_esc(upd_text('ThisWillDo')) . '</p>'
+           . '<ul class="uns-list">';
 
-        <div class="uns-confirm">
-          Pour confirmer, tapez le nom du module (<b><?= htmlspecialchars($name) ?></b>) :<br>
-          <input type="text" name="confirm" autocomplete="off" required
-                 placeholder="<?= htmlspecialchars($name) ?>" style="margin-top:6px">
-        </div>
+    if ($wantBackup) $page .= '<li>' . upd_text('WillPrepareBackup') . '</li>';
 
-        <p style="margin-top:16px">
-          <button type="submit" class="uns-btn uns-btn-danger"
-                  onclick="return confirm('Dernière confirmation : désinstaller <?= htmlspecialchars($name, ENT_QUOTES) ?> ?')">
-            &#128465; Désinstaller définitivement
-          </button>
-          <a class="uns-btn uns-btn-cancel" style="margin-left:8px"
-             href="<?= $CFG->ROOT_DIR ?>index.php">Annuler</a>
-        </p>
-      </form>
-    </div>
-  </div>
+    $page .= '<li>' . upd_text('WillDeleteFolder', 'Modules/Custom/' . upd_esc($name) . '/')
+           . ($wantBackup ? '' : upd_text('FilesRecoverable')) . '.</li>'
+           . '</ul>'
+           . '<p class="uns-hint" style="margin-top:-6px">' . upd_text('SharedNeverRemoved') . '</p>';
 
-<?php endif; ?>
+    if ($warning) {
+        $page .= '<div class="uns-warning"><b>&#9888; ' . upd_esc(upd_text('ModuleWarningTitle')) . '</b>'
+               . '<div style="margin-top:6px">' . nl2br(upd_esc($warning)) . '</div></div>';
+    }
 
-<?php include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php'); ?>
+    $page .= '<form method="post">'
+           . '<input type="hidden" name="action" value="uninstall">'
+           . '<input type="hidden" name="module" value="' . upd_esc($name) . '">'
+           . '<input type="hidden" name="token" value="' . upd_esc($token) . '">';
+
+    // Dropping the tables is offered only when the module declared any, and the
+    // box is unchecked: keeping the data is the safe default.
+    if ($tables) {
+        $codes = [];
+        foreach ($tables as $t) $codes[] = '<code>' . upd_esc($t) . '</code>';
+        $page .= '<div class="uns-danger"><label style="cursor:pointer">'
+               . '<input type="checkbox" name="drop_tables" value="1"> '
+               . upd_text('DropTablesLabel') . ' ' . implode(', ', $codes) . '</label>'
+               . '<div style="margin-top:6px;color:#8a5a00">' . upd_text('DropTablesNote') . '</div></div>';
+    }
+
+    $page .= '<div class="uns-confirm">'
+           . upd_text('ConfirmTypeName', '<b>' . upd_esc($name) . '</b>') . '<br>'
+           . '<input type="text" name="confirm" autocomplete="off" required placeholder="'
+           . upd_esc($name) . '" style="margin-top:6px"></div>'
+           . '<p style="margin-top:16px">'
+           . '<button type="submit" class="uns-btn uns-btn-danger" onclick="return confirm('
+           . upd_esc(json_encode(upd_text('FinalConfirm', $name))) . ')">&#128465; '
+           . upd_esc(upd_text('UninstallForever')) . '</button>'
+           . '<a class="uns-btn uns-btn-cancel" style="margin-left:8px" href="'
+           . $CFG->ROOT_DIR . 'index.php">' . upd_esc(upd_text('Cancel')) . '</a>'
+           . '</p></form></div></div>';
+}
+
+echo $page;
+
+include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

@@ -1,16 +1,47 @@
 {
-    "id": "programme-plan-cible",
+    "lang": "fr",
+    "id": "98wiyk9lnjqltgqgejiq",
     "type": "formation",
-    "title": "Le programme et le plan de cible (~15min)",
-    "description": "Définissez les départs (sessions), rédigez le programme de la compétition, affectez les archers sur les cibles et imprimez le plan de cible et les listes du greffe.",
-    "version": "1.0",
-    "group": "Les bases",
+    "title": {
+        "fr": "Le programme et le plan de cible (~15min)",
+        "en": "The schedule and the target plan (~15 min)",
+        "it": "Il programma e il piano dei bersagli (~15 min)",
+        "de": "Der Zeitplan und der Scheibenplan (~15 Min.)",
+        "es": "El programa y el plano de dianas (~15 min)"
+    },
+    "description": {
+        "fr": "Définissez les départs (sessions), rédigez le programme de la compétition, affectez les archers sur les cibles et imprimez le plan de cible et les listes du greffe.",
+        "en": "Define the sessions, write the competition schedule, assign the archers to targets and print the target plan and the registration desk lists.",
+        "it": "Definisci i turni, redigi il programma della gara, assegna gli arcieri alle piazzole e stampa il piano dei bersagli e gli elenchi della segreteria.",
+        "de": "Legen Sie die Durchgänge fest, schreiben Sie den Zeitplan des Turniers, teilen Sie die Schützen den Scheiben zu und drucken Sie den Scheibenplan und die Listen für die Meldestelle.",
+        "es": "Defina los turnos, redacte el programa de la competición, asigne los arqueros a las dianas e imprima el plano de dianas y los listados de secretaría."
+    },
+    "version": "1.1",
+    "group": {
+        "fr": "Les bases",
+        "en": "The basics",
+        "it": "Le basi",
+        "de": "Die Grundlagen",
+        "es": "Lo básico"
+    },
     "order": 4,
     "steps": [
         {
             "id": "intro",
-            "title": "Programme et plan de cible : de quoi parle-t-on ?",
-            "content": "<p>Deux documents que tout organisateur doit produire :</p><ul><li>Le <b>programme</b> : le déroulé de la journée (ouverture du greffe, départs, entraînements, podiums…).</li><li>Le <b>plan de cible</b> : qui tire sur quelle cible, sur quel blason.</li></ul><p>Les deux reposent sur la même fondation : les <b>départs (sessions)</b>.</p><p><b>Au programme :</b></p><ol><li>Définir les départs et leurs cibles</li><li>Rédiger le programme</li><li>Affecter les archers sur les cibles</li><li>Imprimer le plan de cible et les listes du greffe</li></ol><p>Cliquez sur <b>Suivant</b>.</p>",
+            "title": {
+                "fr": "Programme et plan de cible : de quoi parle-t-on ?",
+                "en": "Schedule and target plan: what are we talking about?",
+                "it": "Programma e piano dei bersagli: di che cosa si parla?",
+                "de": "Zeitplan und Scheibenplan: wovon reden wir?",
+                "es": "Programa y plano de dianas: ¿de qué hablamos?"
+            },
+            "content": {
+                "fr": "<p>Deux documents que tout organisateur doit produire :</p><ul><li>Le <b>programme</b> : le déroulé de la journée (ouverture du greffe, départs, entraînements, podiums…).</li><li>Le <b>plan de cible</b> : qui tire sur quelle cible, sur quel blason.</li></ul><p>Les deux reposent sur la même fondation : les <b>départs (sessions)</b>.</p><p><b>Au programme :</b></p><ol><li>Définir les départs et leurs cibles</li><li>Rédiger le programme</li><li>Affecter les archers sur les cibles</li><li>Imprimer le plan de cible et les listes du greffe</li></ol><p>Cliquez sur <b>Suivant</b>.</p>",
+                "en": "<p>Two documents every organiser has to produce:</p><ul><li>The <b>schedule</b>: how the day runs (registration desk opening, sessions, warm-ups, prize givings…).</li><li>The <b>target plan</b>: who shoots on which target, on which face.</li></ul><p>Both rest on the same foundation: the <b>sessions</b>.</p><p><b>What we will cover:</b></p><ol><li>Defining the sessions and their targets</li><li>Writing the schedule</li><li>Assigning the archers to targets</li><li>Printing the target plan and the registration desk lists</li></ol><p>Click <b>Next</b>.</p>",
+                "it": "<p>Due documenti che ogni organizzatore deve produrre:</p><ul><li>Il <b>programma</b>: lo svolgimento della giornata (apertura della segreteria, turni, riscaldamenti, premiazioni…).</li><li>Il <b>piano dei bersagli</b>: chi tira su quale piazzola, su quale bersaglio.</li></ul><p>Entrambi poggiano sulla stessa base: i <b>turni</b>.</p><p><b>Nel programma:</b></p><ol><li>Definire i turni e le loro piazzole</li><li>Redigere il programma</li><li>Assegnare gli arcieri alle piazzole</li><li>Stampare il piano dei bersagli e gli elenchi della segreteria</li></ol><p>Clicca su <b>Avanti</b>.</p>",
+                "de": "<p>Zwei Unterlagen, die jeder Veranstalter erstellen muss:</p><ul><li>Der <b>Zeitplan</b>: der Ablauf des Tages (Öffnung der Meldestelle, Durchgänge, Aufwärmen, Siegerehrungen…).</li><li>Der <b>Scheibenplan</b>: wer auf welcher Scheibe schiesst, auf welche Auflage.</li></ul><p>Beide beruhen auf derselben Grundlage: den <b>Durchgängen</b>.</p><p><b>Auf dem Programm:</b></p><ol><li>Die Durchgänge und ihre Scheiben festlegen</li><li>Den Zeitplan schreiben</li><li>Die Schützen den Scheiben zuteilen</li><li>Den Scheibenplan und die Listen der Meldestelle drucken</li></ol><p>Klicken Sie auf <b>Weiter</b>.</p>",
+                "es": "<p>Dos documentos que todo organizador debe producir:</p><ul><li>El <b>programa</b>: el desarrollo de la jornada (apertura de secretaría, turnos, calentamientos, entregas de premios…).</li><li>El <b>plano de dianas</b>: quién tira en qué diana, sobre qué blanco.</li></ul><p>Ambos descansan sobre la misma base: los <b>turnos</b>.</p><p><b>En el programa:</b></p><ol><li>Definir los turnos y sus dianas</li><li>Redactar el programa</li><li>Asignar los arqueros a las dianas</li><li>Imprimir el plano de dianas y los listados de secretaría</li></ol><p>Haga clic en <b>Siguiente</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -18,8 +49,20 @@
         },
         {
             "id": "ouvrir-competition",
-            "title": "Ouvrir votre compétition",
-            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b> avec au moins un participant inscrit.</p><p>Allez dans <b>Compétition &gt; Ouvrir</b>.</p>",
+            "title": {
+                "fr": "Ouvrir votre compétition",
+                "en": "Open your competition",
+                "it": "Apri la tua gara",
+                "de": "Ihr Turnier öffnen",
+                "es": "Abra su competición"
+            },
+            "content": {
+                "fr": "<p>Le guide attend qu'une <b>compétition soit ouverte</b> avec au moins un participant inscrit.</p><p>Allez dans <b>Compétition &gt; Ouvrir</b>.</p>",
+                "en": "<p>The guide is waiting for a <b>competition to be open</b>, with at least one participant entered.</p><p>Go to <b>Competition &gt; Open</b>.</p>",
+                "it": "<p>La guida attende che una <b>gara sia aperta</b> con almeno un partecipante iscritto.</p><p>Vai in <b>Gara &gt; Apri</b>.</p>",
+                "de": "<p>Die Anleitung wartet darauf, dass ein <b>Turnier geöffnet</b> ist, mit mindestens einem gemeldeten Teilnehmer.</p><p>Gehen Sie zu <b>Turnier &gt; Öffnen</b>.</p>",
+                "es": "<p>La guía espera a que haya una <b>competición abierta</b> con al menos un participante inscrito.</p><p>Vaya a <b>Competición &gt; Abrir</b>.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -27,14 +70,26 @@
                     "condition": "tournament_open",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : ouvrez une compétition (Compétition > Ouvrir)."
+                    "hint": {
+                        "fr": "En attente : ouvrez une compétition (Compétition > Ouvrir).",
+                        "en": "Waiting: open a competition (Competition > Open).",
+                        "it": "In attesa: apri una gara (Gara > Apri).",
+                        "de": "Es wird gewartet: öffnen Sie ein Turnier (Turnier > Öffnen).",
+                        "es": "En espera: abra una competición (Competición > Abrir)."
+                    }
                 },
                 {
                     "kind": "etat",
                     "condition": "has_participant",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : inscrivez au moins un participant."
+                    "hint": {
+                        "fr": "En attente : inscrivez au moins un participant.",
+                        "en": "Waiting: enter at least one participant.",
+                        "it": "In attesa: iscrivi almeno un partecipante.",
+                        "de": "Es wird gewartet: melden Sie mindestens einen Teilnehmer.",
+                        "es": "En espera: inscriba al menos un participante."
+                    }
                 }
             ],
             "optional": false,
@@ -42,8 +97,20 @@
         },
         {
             "id": "sessions",
-            "title": "Définir les départs (sessions)",
-            "content": "<p>Allez dans <b>Compétition &gt; Paramètres de la compétition &gt; Session</b>.</p><p>Un <b>départ</b> (session) = un groupe d'archers qui tire au même moment. Pour chaque départ, vous définissez :</p><ul><li>le <b>nombre de cibles</b> disponibles,</li><li>le <b>nombre d'archers par cible</b> (2, 3 ou 4),</li><li>la <b>première cible</b> (utile si le départ 2 commence à la cible 11, par exemple),</li><li>les <b>distances et blasons</b> de la session.</li></ul><p class=\"guide-tip\">💡 C'est ici que tout se joue : <b>cibles × archers par cible = capacité du départ</b>. Si vous ne pouvez pas affecter tous vos archers plus tard, c'est presque toujours ce réglage qu'il faut revoir.</p>",
+            "title": {
+                "fr": "Définir les départs (sessions)",
+                "en": "Defining the sessions",
+                "it": "Definire i turni",
+                "de": "Die Durchgänge festlegen",
+                "es": "Definir los turnos"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Compétition &gt; Paramètres de la compétition &gt; Session</b>.</p><p>Un <b>départ</b> (session) = un groupe d'archers qui tire au même moment. Pour chaque départ, vous définissez :</p><ul><li>le <b>nombre de cibles</b> disponibles,</li><li>le <b>nombre d'archers par cible</b> (2, 3 ou 4),</li><li>la <b>première cible</b> (utile si le départ 2 commence à la cible 11, par exemple),</li><li>les <b>distances et blasons</b> de la session.</li></ul><p class=\"guide-tip\">💡 C'est ici que tout se joue : <b>cibles × archers par cible = capacité du départ</b>. Si vous ne pouvez pas affecter tous vos archers plus tard, c'est presque toujours ce réglage qu'il faut revoir.</p>",
+                "en": "<p>Go to <b>Competition &gt; Edit Competition Info &gt; Session</b>.</p><p>A <b>session</b> = a group of archers shooting at the same time. For each one you define:</p><ul><li>the <b>number of targets</b> available,</li><li>the <b>number of archers per target</b> (2, 3 or 4),</li><li>the <b>first target</b> (useful if session 2 starts at target 11, say),</li><li>the <b>distances and target faces</b> of the session.</li></ul><p class=\"guide-tip\">💡 Everything is decided here: <b>targets × archers per target = the capacity of the session</b>. If you cannot fit all your archers in later, this setting is almost always the one to revisit.</p>",
+                "it": "<p>Vai in <b>Gara &gt; Modifica Dati Gara &gt; Turno</b>.</p><p>Un <b>turno</b> = un gruppo di arcieri che tira nello stesso momento. Per ciascuno definisci:</p><ul><li>il <b>numero di piazzole</b> disponibili,</li><li>il <b>numero di arcieri per piazzola</b> (2, 3 o 4),</li><li>la <b>prima piazzola</b> (utile se il turno 2 comincia alla piazzola 11, per esempio),</li><li>le <b>distanze e i bersagli</b> del turno.</li></ul><p class=\"guide-tip\">💡 Qui si decide tutto: <b>piazzole × arcieri per piazzola = capienza del turno</b>. Se più avanti non riesci ad assegnare tutti i tuoi arcieri, quasi sempre è questa impostazione da rivedere.</p>",
+                "de": "<p>Gehen Sie zu <b>Turnier &gt; Turnierdaten ändern &gt; Durchgang</b>.</p><p>Ein <b>Durchgang</b> = eine Gruppe von Schützen, die zur selben Zeit schiesst. Für jeden legen Sie fest:</p><ul><li>die <b>Anzahl der Scheiben</b>, die zur Verfügung stehen,</li><li>die <b>Anzahl der Schützen pro Scheibe</b> (2, 3 oder 4),</li><li>die <b>erste Scheibe</b> (nützlich, wenn Durchgang 2 etwa bei Scheibe 11 beginnt),</li><li>die <b>Distanzen und Scheibenauflagen</b> des Durchgangs.</li></ul><p class=\"guide-tip\">💡 Hier entscheidet sich alles: <b>Scheiben × Schützen pro Scheibe = Fassungsvermögen des Durchgangs</b>. Lassen sich später nicht alle Schützen unterbringen, ist fast immer diese Einstellung zu überarbeiten.</p>",
+                "es": "<p>Vaya a <b>Competición &gt; Editar Datos de la Competición &gt; Turno</b>.</p><p>Un <b>turno</b> = un grupo de arqueros que tira al mismo tiempo. Para cada uno define:</p><ul><li>el <b>número de dianas</b> disponibles,</li><li>el <b>número de arqueros por diana</b> (2, 3 o 4),</li><li>la <b>primera diana</b> (útil si el turno 2 empieza en la diana 11, por ejemplo),</li><li>las <b>distancias y dianas</b> del turno.</li></ul><p class=\"guide-tip\">💡 Aquí se decide todo: <b>dianas × arqueros por diana = capacidad del turno</b>. Si más adelante no puede colocar a todos sus arqueros, casi siempre es este ajuste el que hay que revisar.</p>"
+            },
             "page": "/Tournament/ManSessions_kiss.php",
             "triggers": [
                 {
@@ -57,7 +124,13 @@
                     "condition": "has_session_configured",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : au moins un départ doit avoir un nombre de cibles défini."
+                    "hint": {
+                        "fr": "En attente : au moins un départ doit avoir un nombre de cibles défini.",
+                        "en": "Waiting: at least one session must have a number of targets set.",
+                        "it": "In attesa: almeno un turno deve avere un numero di piazzole definito.",
+                        "de": "Es wird gewartet: mindestens ein Durchgang muss eine Anzahl von Scheiben haben.",
+                        "es": "En espera: al menos un turno debe tener definido un número de dianas."
+                    }
                 }
             ],
             "optional": false,
@@ -65,8 +138,20 @@
         },
         {
             "id": "programme",
-            "title": "Rédiger le programme",
-            "content": "<p>Allez dans <b>Compétition &gt; Programme</b>.</p><p>Les <b>départs</b> que vous venez de définir s'affichent <b>automatiquement</b>. Vous complétez autour d'eux tout ce qui fait la journée :</p><ul><li>l'<b>ouverture du greffe</b>,</li><li>la <b>vérification du matériel</b>,</li><li>les <b>volées d'entraînement</b>,</li><li>les <b>podiums</b>, réunions, etc.</li></ul><p>Chaque ligne a une <b>date</b>, une <b>heure</b> et une <b>durée</b>, puis un <b>Titre</b>, un <b>Sous-titre</b> et un <b>Texte</b> selon l'affichage souhaité.</p><p class=\"guide-tip\">⚠️ Les <b>dates et heures sont obligatoires</b> — sans elles, la ligne ne s'affichera pas correctement dans le programme.</p><p class=\"guide-tip\">💡 Pour modifier l'horaire d'un <b>départ</b>, ne le faites pas ici : passez par le <b>paramétrage avancé des départs</b>.</p>",
+            "title": {
+                "fr": "Rédiger le programme",
+                "en": "Writing the schedule",
+                "it": "Redigere il programma",
+                "de": "Den Zeitplan schreiben",
+                "es": "Redactar el programa"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Compétition &gt; Programme</b>.</p><p>Les <b>départs</b> que vous venez de définir s'affichent <b>automatiquement</b>. Vous complétez autour d'eux tout ce qui fait la journée :</p><ul><li>l'<b>ouverture du greffe</b>,</li><li>la <b>vérification du matériel</b>,</li><li>les <b>volées d'entraînement</b>,</li><li>les <b>podiums</b>, réunions, etc.</li></ul><p>Chaque ligne a une <b>date</b>, une <b>heure</b> et une <b>durée</b>, puis un <b>Titre</b>, un <b>Sous-titre</b> et un <b>Texte</b> selon l'affichage souhaité.</p><p class=\"guide-tip\">⚠️ Les <b>dates et heures sont obligatoires</b> — sans elles, la ligne ne s'affichera pas correctement dans le programme.</p><p class=\"guide-tip\">💡 Pour modifier l'horaire d'un <b>départ</b>, ne le faites pas ici : passez par le <b>paramétrage avancé des départs</b>.</p>",
+                "en": "<p>Go to <b>Competition &gt; Schedule</b>.</p><p>The <b>sessions</b> you have just defined appear <b>automatically</b>. Around them you fill in everything else that makes up the day:</p><ul><li>the <b>registration desk opening</b>,</li><li>the <b>equipment inspection</b>,</li><li>the <b>practice ends</b>,</li><li>the <b>prize givings</b>, meetings, and so on.</li></ul><p>Each line has a <b>date</b>, a <b>time</b> and a <b>duration</b>, then a <b>Title</b>, a <b>Subtitle</b> and a <b>Text</b>, depending on how you want it displayed.</p><p class=\"guide-tip\">⚠️ The <b>dates and times are required</b> — without them the line will not appear properly in the schedule.</p><p class=\"guide-tip\">💡 To change the time of a <b>session</b>, do not do it here: go through the <b>advanced session settings</b>.</p>",
+                "it": "<p>Vai in <b>Gara &gt; Programma</b>.</p><p>I <b>turni</b> che hai appena definito compaiono <b>automaticamente</b>. Attorno a essi completi tutto ciò che fa la giornata:</p><ul><li>l'<b>apertura della segreteria</b>,</li><li>il <b>controllo dei materiali</b>,</li><li>le <b>volée di riscaldamento</b>,</li><li>le <b>premiazioni</b>, le riunioni e così via.</li></ul><p>Ogni riga ha una <b>data</b>, un'<b>ora</b> e una <b>durata</b>, poi un <b>Titolo</b>, un <b>Sottotitolo</b> e un <b>Testo</b>, secondo la visualizzazione desiderata.</p><p class=\"guide-tip\">⚠️ <b>Date e orari sono obbligatori</b> — senza di essi la riga non comparirà correttamente nel programma.</p><p class=\"guide-tip\">💡 Per modificare l'orario di un <b>turno</b>, non farlo qui: passa dalle <b>impostazioni avanzate dei turni</b>.</p>",
+                "de": "<p>Gehen Sie zu <b>Turnier &gt; Zeitplan</b>.</p><p>Die eben festgelegten <b>Durchgänge</b> erscheinen <b>automatisch</b>. Darum herum ergänzen Sie alles, was den Tag ausmacht:</p><ul><li>die <b>Öffnung der Meldestelle</b>,</li><li>die <b>Materialkontrolle</b>,</li><li>die <b>Probepassen</b>,</li><li>die <b>Siegerehrungen</b>, Besprechungen und so weiter.</li></ul><p>Jede Zeile hat ein <b>Datum</b>, eine <b>Uhrzeit</b> und eine <b>Dauer</b>, dann einen <b>Titel</b>, einen <b>Untertitel</b> und einen <b>Text</b>, je nach gewünschter Darstellung.</p><p class=\"guide-tip\">⚠️ <b>Datum und Uhrzeit sind Pflicht</b> — ohne sie erscheint die Zeile im Zeitplan nicht richtig.</p><p class=\"guide-tip\">💡 Die Uhrzeit eines <b>Durchgangs</b> ändern Sie nicht hier, sondern über die <b>erweiterten Durchgangseinstellungen</b>.</p>",
+                "es": "<p>Vaya a <b>Competición &gt; Programa</b>.</p><p>Los <b>turnos</b> que acaba de definir aparecen <b>automáticamente</b>. Alrededor de ellos completa todo lo que compone la jornada:</p><ul><li>la <b>apertura de secretaría</b>,</li><li>la <b>revisión del material</b>,</li><li>las <b>tandas de calentamiento</b>,</li><li>las <b>entregas de premios</b>, reuniones, etc.</li></ul><p>Cada línea tiene una <b>fecha</b>, una <b>hora</b> y una <b>duración</b>, y luego un <b>Título</b>, un <b>Subtítulo</b> y un <b>Texto</b> según la presentación deseada.</p><p class=\"guide-tip\">⚠️ Las <b>fechas y horas son obligatorias</b> — sin ellas la línea no aparecerá correctamente en el programa.</p><p class=\"guide-tip\">💡 Para cambiar el horario de un <b>turno</b>, no lo haga aquí: pase por los <b>ajustes avanzados de los turnos</b>.</p>"
+            },
             "page": "/Scheduler/",
             "triggers": [
                 {
@@ -80,7 +165,13 @@
                     "condition": "has_schedule",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : ajoutez au moins une ligne au programme."
+                    "hint": {
+                        "fr": "En attente : ajoutez au moins une ligne au programme.",
+                        "en": "Waiting: add at least one line to the schedule.",
+                        "it": "In attesa: aggiungi almeno una riga al programma.",
+                        "de": "Es wird gewartet: fügen Sie dem Zeitplan mindestens eine Zeile hinzu.",
+                        "es": "En espera: añada al menos una línea al programa."
+                    }
                 }
             ],
             "optional": false,
@@ -88,8 +179,20 @@
         },
         {
             "id": "commentaire-session",
-            "title": "Le commentaire d'un départ",
-            "content": "<p>Toujours dans le <b>Programme</b>, chaque session peut recevoir un <b>commentaire</b> affiché sur le document.</p><p>Pour les qualifications, la FFTA recommande d'<b>inclure l'entraînement</b> dans l'horaire et la durée du départ, puis de détailler dans le commentaire, par exemple :</p><p><code>Entraînement (3 volées) suivi du tir de classement en rythme AB/CD</code></p><p>Vous pouvez aussi y décrire la <b>répartition des blasons</b> par cible, avec cette syntaxe :</p><p><code>1-4@18m@TrispotsCo,5-10@18m@TrispotsCl,11-15@18m@Blason40</code></p><p class=\"guide-tip\">💡 Lecture : cibles 1 à 4 en trispots poulies, 5 à 10 en trispots classique, 11 à 15 en blason 40. Un archer et un arbitre lisent ainsi le plan de tir d'un coup d'œil.</p>",
+            "title": {
+                "fr": "Le commentaire d'un départ",
+                "en": "The comment on a session",
+                "it": "Il commento di un turno",
+                "de": "Die Bemerkung zu einem Durchgang",
+                "es": "El comentario de un turno"
+            },
+            "content": {
+                "fr": "<p>Toujours dans le <b>Programme</b>, chaque session peut recevoir un <b>commentaire</b> affiché sur le document.</p><p>Pour les qualifications, la FFTA recommande d'<b>inclure l'entraînement</b> dans l'horaire et la durée du départ, puis de détailler dans le commentaire, par exemple :</p><p><code>Entraînement (3 volées) suivi du tir de classement en rythme AB/CD</code></p><p>Vous pouvez aussi y décrire la <b>répartition des blasons</b> par cible, avec cette syntaxe :</p><p><code>1-4@18m@TrispotsCo,5-10@18m@TrispotsCl,11-15@18m@Blason40</code></p><p class=\"guide-tip\">💡 Lecture : cibles 1 à 4 en trispots poulies, 5 à 10 en trispots classique, 11 à 15 en blason 40. Un archer et un arbitre lisent ainsi le plan de tir d'un coup d'œil.</p>",
+                "en": "<p>Still in the <b>Schedule</b>, each session can carry a <b>comment</b> shown on the document.</p><p>For qualification, the French federation recommends <b>including the warm-up</b> in the time and duration of the session, then giving the detail in the comment, for instance:</p><p><code>Warm-up (3 ends) followed by the ranking round, AB/CD rhythm</code></p><p>You can also describe the <b>layout of the target faces</b>, with this syntax:</p><p><code>1-4@18m@TrispotsCo,5-10@18m@TrispotsCl,11-15@18m@Blason40</code></p><p class=\"guide-tip\">💡 Read as: targets 1 to 4 compound triple faces, 5 to 10 recurve triple faces, 11 to 15 the 40 cm face. An archer or a judge reads the shooting layout at a glance.</p>",
+                "it": "<p>Sempre nel <b>Programma</b>, ogni turno può ricevere un <b>commento</b> mostrato sul documento.</p><p>Per le qualificazioni, la federazione francese consiglia di <b>includere il riscaldamento</b> nell'orario e nella durata del turno, e poi di dettagliare nel commento, per esempio:</p><p><code>Riscaldamento (3 volée) seguito dal tiro di classifica con ritmo AB/CD</code></p><p>Puoi anche descrivervi la <b>disposizione dei bersagli</b> per piazzola, con questa sintassi:</p><p><code>1-4@18m@TrispotsCo,5-10@18m@TrispotsCl,11-15@18m@Blason40</code></p><p class=\"guide-tip\">💡 Si legge: piazzole da 1 a 4 con trispot compound, da 5 a 10 con trispot olimpico, da 11 a 15 con bersaglio da 40. Un arciere o un giudice legge così il piano di tiro a colpo d'occhio.</p>",
+                "de": "<p>Weiterhin im <b>Zeitplan</b> kann jeder Durchgang eine <b>Bemerkung</b> erhalten, die auf dem Dokument erscheint.</p><p>Für die Qualifikation empfiehlt der französische Verband, das <b>Aufwärmen in Uhrzeit und Dauer</b> des Durchgangs einzuschliessen und in der Bemerkung zu erläutern, etwa:</p><p><code>Aufwärmen (3 Passen), danach die Wertungsrunde im Rhythmus AB/CD</code></p><p>Sie können darin auch die <b>Verteilung der Scheibenauflagen</b> beschreiben, mit dieser Schreibweise:</p><p><code>1-4@18m@TrispotsCo,5-10@18m@TrispotsCl,11-15@18m@Blason40</code></p><p class=\"guide-tip\">💡 Zu lesen als: Scheiben 1 bis 4 Dreifachauflage Compound, 5 bis 10 Dreifachauflage Recurve, 11 bis 15 die 40er Auflage. Schütze und Kampfrichter lesen den Schiessplan so auf einen Blick.</p>",
+                "es": "<p>Siempre en el <b>Programa</b>, cada turno puede recibir un <b>comentario</b> que se muestra en el documento.</p><p>Para la calificación, la federación francesa recomienda <b>incluir el calentamiento</b> en el horario y la duración del turno, y detallarlo luego en el comentario, por ejemplo:</p><p><code>Calentamiento (3 tandas) seguido del tiro de clasificación con ritmo AB/CD</code></p><p>También puede describir ahí el <b>reparto de las dianas</b> por puesto, con esta sintaxis:</p><p><code>1-4@18m@TrispotsCo,5-10@18m@TrispotsCl,11-15@18m@Blason40</code></p><p class=\"guide-tip\">💡 Se lee: dianas 1 a 4 con trispot de compuesto, 5 a 10 con trispot de recurvo, 11 a 15 con diana de 40. Un arquero o un juez lee así el plano de tiro de un vistazo.</p>"
+            },
             "page": "/Scheduler/",
             "triggers": [],
             "optional": true,
@@ -97,8 +200,20 @@
         },
         {
             "id": "affectation-cibles",
-            "title": "Affecter les archers sur les cibles",
-            "content": "<p>Allez dans <b>Participants &gt; Cible &gt; Affectation automatique</b>.</p><p>C'est le <b>tirage au sort</b> du plan de cible. Réglages utiles :</p><ul><li><b>Session</b> : le départ concerné,</li><li><b>Grouper par division / par classe</b> : place les archers d'une même arme ou d'une même catégorie sur des cibles voisines,</li><li><b>De / À</b> : limiter le tirage à une plage de cibles,</li><li><b>Effectuer l'affectation</b> : la case à cocher qui <b>écrit réellement</b> le résultat (sans elle, c'est une simulation).</li></ul><p class=\"guide-tip\">⚠️ Sans la case <b>Effectuer l'affectation</b>, ianseo vous montre le résultat mais <b>n'enregistre rien</b>. C'est une sécurité : vérifiez d'abord, cochez ensuite.</p><p class=\"guide-tip\">💡 <b>Affectation manuelle</b> (menu voisin) permet de corriger un archer à la main après coup, sans refaire tout le tirage.</p>",
+            "title": {
+                "fr": "Affecter les archers sur les cibles",
+                "en": "Assigning the archers to targets",
+                "it": "Assegnare gli arcieri alle piazzole",
+                "de": "Die Schützen den Scheiben zuteilen",
+                "es": "Asignar los arqueros a las dianas"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Participants &gt; Cible &gt; Affectation automatique</b>.</p><p>C'est le <b>tirage au sort</b> du plan de cible. Réglages utiles :</p><ul><li><b>Session</b> : le départ concerné,</li><li><b>Grouper par division / par classe</b> : place les archers d'une même arme ou d'une même catégorie sur des cibles voisines,</li><li><b>De / À</b> : limiter le tirage à une plage de cibles,</li><li><b>Effectuer l'affectation</b> : la case à cocher qui <b>écrit réellement</b> le résultat (sans elle, c'est une simulation).</li></ul><p class=\"guide-tip\">⚠️ Sans la case <b>Effectuer l'affectation</b>, ianseo vous montre le résultat mais <b>n'enregistre rien</b>. C'est une sécurité : vérifiez d'abord, cochez ensuite.</p><p class=\"guide-tip\">💡 <b>Affectation manuelle</b> (menu voisin) permet de corriger un archer à la main après coup, sans refaire tout le tirage.</p>",
+                "en": "<p>Go to <b>Participants &gt; Target &gt; Draw</b>.</p><p>This is the <b>draw</b> for the target plan. The settings that matter:</p><ul><li><b>Session</b>: the session concerned,</li><li><b>Group by division / by class</b>: puts the archers of one division or one class on neighbouring targets,</li><li><b>From / To</b>: limits the draw to a range of targets,</li><li><b>Perform the assignment</b>: the tick box that actually <b>writes</b> the result (without it, this is a simulation).</li></ul><p class=\"guide-tip\">⚠️ Without the <b>Perform the assignment</b> box, ianseo shows you the result but <b>records nothing</b>. That is deliberate: check first, tick afterwards.</p><p class=\"guide-tip\">💡 <b>Manual Assignment</b> (the neighbouring menu) lets you correct one archer by hand afterwards, without redoing the whole draw.</p>",
+                "it": "<p>Vai in <b>Partecipanti &gt; Piazzole &gt; Sorteggio Elettronico</b>.</p><p>È il <b>sorteggio</b> del piano dei bersagli. Impostazioni utili:</p><ul><li><b>Turno</b>: il turno interessato,</li><li><b>Raggruppa per divisione / per classe</b>: mette gli arcieri di una stessa divisione o classe su piazzole vicine,</li><li><b>Da / A</b>: limita il sorteggio a un intervallo di piazzole,</li><li><b>Esegui l'assegnazione</b>: la casella che <b>scrive davvero</b> il risultato (senza di essa è una simulazione).</li></ul><p class=\"guide-tip\">⚠️ Senza la casella <b>Esegui l'assegnazione</b>, ianseo ti mostra il risultato ma <b>non registra nulla</b>. È una sicurezza voluta: prima verifica, poi spunta.</p><p class=\"guide-tip\">💡 L'<b>Assegnazione Manuale</b> (menu vicino) permette di correggere un arciere a mano in seguito, senza rifare tutto il sorteggio.</p>",
+                "de": "<p>Gehen Sie zu <b>Teilnehmer &gt; Scheibe &gt; Auslosung</b>.</p><p>Das ist die <b>Auslosung</b> des Scheibenplans. Nützliche Einstellungen:</p><ul><li><b>Durchgang</b>: der betreffende Durchgang,</li><li><b>Nach Bogenart / nach Klasse gruppieren</b>: setzt Schützen derselben Bogenart oder Klasse auf benachbarte Scheiben,</li><li><b>Von / Bis</b>: begrenzt die Auslosung auf einen Scheibenbereich,</li><li><b>Zuteilung durchführen</b>: das Kästchen, das das Ergebnis <b>wirklich schreibt</b> (ohne es ist es eine Simulation).</li></ul><p class=\"guide-tip\">⚠️ Ohne das Kästchen <b>Zuteilung durchführen</b> zeigt ianseo Ihnen das Ergebnis, <b>speichert aber nichts</b>. Das ist Absicht: erst prüfen, dann anhaken.</p><p class=\"guide-tip\">💡 Die <b>Zuteilung von Hand</b> (benachbartes Menü) erlaubt es, einen Schützen nachträglich von Hand zu korrigieren, ohne die ganze Auslosung zu wiederholen.</p>",
+                "es": "<p>Vaya a <b>Participantes &gt; Dianas &gt; Asignación por Sorteo</b>.</p><p>Es el <b>sorteo</b> del plano de dianas. Ajustes útiles:</p><ul><li><b>Turno</b>: el turno correspondiente,</li><li><b>Agrupar por división / por clase</b>: coloca a los arqueros de una misma división o clase en dianas contiguas,</li><li><b>De / A</b>: limita el sorteo a un rango de dianas,</li><li><b>Realizar la asignación</b>: la casilla que <b>escribe realmente</b> el resultado (sin ella, es una simulación).</li></ul><p class=\"guide-tip\">⚠️ Sin la casilla <b>Realizar la asignación</b>, ianseo le muestra el resultado pero <b>no guarda nada</b>. Es una seguridad deliberada: compruebe primero, marque después.</p><p class=\"guide-tip\">💡 La <b>Asignación Manual</b> (menú vecino) permite corregir a un arquero a mano después, sin repetir todo el sorteo.</p>"
+            },
             "page": "/Partecipants/SetTarget_auto.php",
             "triggers": [
                 {
@@ -113,14 +228,26 @@
                     "selector": "#DoAssign",
                     "required": true,
                     "page": "/Partecipants/SetTarget_auto.php",
-                    "hint": "La case qui enregistre réellement l'affectation"
+                    "hint": {
+                        "fr": "La case qui enregistre réellement l'affectation",
+                        "en": "The box that actually records the assignment",
+                        "it": "La casella che registra davvero l'assegnazione",
+                        "de": "Das Kästchen, das die Zuteilung wirklich speichert",
+                        "es": "La casilla que guarda realmente la asignación"
+                    }
                 },
                 {
                     "kind": "etat",
                     "condition": "has_target_assigned",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : au moins un archer doit avoir une cible attribuée."
+                    "hint": {
+                        "fr": "En attente : au moins un archer doit avoir une cible attribuée.",
+                        "en": "Waiting: at least one archer must have a target assigned.",
+                        "it": "In attesa: almeno un arciere deve avere una piazzola assegnata.",
+                        "de": "Es wird gewartet: mindestens ein Schütze muss eine Scheibe zugeteilt bekommen.",
+                        "es": "En espera: al menos un arquero debe tener una diana asignada."
+                    }
                 }
             ],
             "optional": false,
@@ -128,8 +255,20 @@
         },
         {
             "id": "impressions",
-            "title": "Imprimer le plan de cible et les listes du greffe",
-            "content": "<p>Allez dans <b>Participants &gt; Impressions</b>.</p><p>Vous pouvez éditer la liste des archers par <b>cibles</b>, par <b>clubs</b>, par <b>ordre alphabétique</b> ou par <b>catégorie de classement</b>.</p><p><b>Les deux documents recommandés par la FFTA :</b></p><ul><li><b>Liste des cibles (+ Type de cible)</b> → c'est votre <b>plan de cible</b>. C'est le document le plus proche de la liste de greffe de Result'Arc.</li><li><b>Liste des participants par ordre alphabétique (+ Type de cible)</b> → la <b>feuille de greffe</b> pour l'accueil.</li></ul><p class=\"guide-tip\">💡 Le <b>programme complet</b> en PDF, lui, s'obtient depuis la page <b>Programme</b>, bouton <b>Programme complet</b>.</p>",
+            "title": {
+                "fr": "Imprimer le plan de cible et les listes du greffe",
+                "en": "Printing the target plan and the registration desk lists",
+                "it": "Stampare il piano dei bersagli e gli elenchi della segreteria",
+                "de": "Scheibenplan und Listen der Meldestelle drucken",
+                "es": "Imprimir el plano de dianas y los listados de secretaría"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Participants &gt; Impressions</b>.</p><p>Vous pouvez éditer la liste des archers par <b>cibles</b>, par <b>clubs</b>, par <b>ordre alphabétique</b> ou par <b>catégorie de classement</b>.</p><p><b>Les deux documents recommandés par la FFTA :</b></p><ul><li><b>Liste des cibles (+ Type de cible)</b> → c'est votre <b>plan de cible</b>. C'est le document le plus proche de la liste de greffe de Result'Arc.</li><li><b>Liste des participants par ordre alphabétique (+ Type de cible)</b> → la <b>feuille de greffe</b> pour l'accueil.</li></ul><p class=\"guide-tip\">💡 Le <b>programme complet</b> en PDF, lui, s'obtient depuis la page <b>Programme</b>, bouton <b>Programme complet</b>.</p>",
+                "en": "<p>Go to <b>Participants &gt; Printout</b>.</p><p>You can produce the list of archers by <b>target</b>, by <b>club</b>, in <b>alphabetical order</b> or by <b>ranking class</b>.</p><p><b>The two documents the French federation recommends:</b></p><ul><li><b>Participant List ordered by Target (+ Target Type)</b> → this is your <b>target plan</b>. It is the document closest to the Result'Arc registration list.</li><li><b>Participant list in alphabetical order (+ Target Type)</b> → the <b>registration desk sheet</b> for the welcome table.</li></ul><p class=\"guide-tip\">💡 The <b>complete schedule</b> as a PDF comes from the <b>Schedule</b> page, the <b>Complete schedule</b> button.</p>",
+                "it": "<p>Vai in <b>Partecipanti &gt; Stampe</b>.</p><p>Puoi produrre l'elenco degli arcieri per <b>piazzola</b>, per <b>società</b>, in <b>ordine alfabetico</b> o per <b>classe di classifica</b>.</p><p><b>I due documenti consigliati dalla federazione francese:</b></p><ul><li><b>Stampa Piazzole (+ Tipologia Bersaglio)</b> → è il tuo <b>piano dei bersagli</b>. È il documento più vicino all'elenco di segreteria di Result'Arc.</li><li><b>Elenco dei partecipanti in ordine alfabetico (+ Tipologia Bersaglio)</b> → il <b>foglio di segreteria</b> per l'accoglienza.</li></ul><p class=\"guide-tip\">💡 Il <b>programma completo</b> in PDF si ottiene invece dalla pagina <b>Programma</b>, pulsante <b>Programma completo</b>.</p>",
+                "de": "<p>Gehen Sie zu <b>Teilnehmer &gt; Druck</b>.</p><p>Sie können die Schützenliste nach <b>Scheibe</b>, nach <b>Verein</b>, in <b>alphabetischer Reihenfolge</b> oder nach <b>Wertungsklasse</b> erstellen.</p><p><b>Die beiden vom französischen Verband empfohlenen Unterlagen:</b></p><ul><li><b>Ausdruck der Scheibeneinteilung (+ Scheibentyp)</b> → das ist Ihr <b>Scheibenplan</b>. Es ist die Unterlage, die der Meldeliste von Result'Arc am nächsten kommt.</li><li><b>Teilnehmerliste in alphabetischer Reihenfolge (+ Scheibentyp)</b> → das <b>Blatt für die Meldestelle</b> am Empfang.</li></ul><p class=\"guide-tip\">💡 Den <b>vollständigen Zeitplan</b> als PDF erhalten Sie dagegen auf der Seite <b>Zeitplan</b>, über die Schaltfläche <b>Zeitplan abschliessen</b>.</p>",
+                "es": "<p>Vaya a <b>Participantes &gt; Listados para imprimir</b>.</p><p>Puede editar el listado de arqueros por <b>dianas</b>, por <b>clubes</b>, por <b>orden alfabético</b> o por <b>clase de clasificación</b>.</p><p><b>Los dos documentos recomendados por la federación francesa:</b></p><ul><li><b>Listado de Participantes por Dianas (+ Tipo de Diana)</b> → es su <b>plano de dianas</b>. Es el documento más parecido al listado de secretaría de Result'Arc.</li><li><b>Listado de participantes por orden alfabético (+ Tipo de Diana)</b> → la <b>hoja de secretaría</b> para la acogida.</li></ul><p class=\"guide-tip\">💡 El <b>programa completo</b> en PDF se obtiene, en cambio, desde la página <b>Programa</b>, con el botón <b>Programación completa</b>.</p>"
+            },
             "page": "/Partecipants/PrintOut.php",
             "triggers": [
                 {
@@ -144,8 +283,20 @@
         },
         {
             "id": "fin",
-            "title": "C'est terminé !",
-            "content": "<p>Votre compétition a un <b>programme</b> et un <b>plan de cible</b>.</p><p><b>À retenir :</b></p><ul><li>Tout part des <b>départs</b> : cibles × archers par cible.</li><li>Le programme <b>reprend les départs automatiquement</b> ; vous ajoutez le reste (greffe, entraînements, podiums).</li><li>L'affectation automatique n'écrit rien <b>sans la case « Effectuer l'affectation »</b>.</li><li>Le plan de cible s'imprime via <b>Participants &gt; Impressions &gt; Liste des cibles (+ Type de cible)</b>.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "title": {
+                "fr": "C'est terminé !",
+                "en": "That's it!",
+                "it": "Finito!",
+                "de": "Fertig!",
+                "es": "¡Terminado!"
+            },
+            "content": {
+                "fr": "<p>Votre compétition a un <b>programme</b> et un <b>plan de cible</b>.</p><p><b>À retenir :</b></p><ul><li>Tout part des <b>départs</b> : cibles × archers par cible.</li><li>Le programme <b>reprend les départs automatiquement</b> ; vous ajoutez le reste (greffe, entraînements, podiums).</li><li>L'affectation automatique n'écrit rien <b>sans la case « Effectuer l'affectation »</b>.</li><li>Le plan de cible s'imprime via <b>Participants &gt; Impressions &gt; Liste des cibles (+ Type de cible)</b>.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+                "en": "<p>Your competition has a <b>schedule</b> and a <b>target plan</b>.</p><p><b>What to remember:</b></p><ul><li>Everything starts from the <b>sessions</b>: targets × archers per target.</li><li>The schedule <b>picks up the sessions automatically</b>; you add the rest (registration desk, warm-ups, prize givings).</li><li>The draw records nothing <b>without the \"Perform the assignment\" box</b>.</li><li>The target plan is printed from <b>Participants &gt; Printout &gt; Participant List ordered by Target (+ Target Type)</b>.</li></ul><p>Now for the <b>quiz</b> and the <b>challenge</b>!</p>",
+                "it": "<p>La tua gara ha un <b>programma</b> e un <b>piano dei bersagli</b>.</p><p><b>Da ricordare:</b></p><ul><li>Tutto parte dai <b>turni</b>: piazzole × arcieri per piazzola.</li><li>Il programma <b>riprende i turni automaticamente</b>; tu aggiungi il resto (segreteria, riscaldamenti, premiazioni).</li><li>Il sorteggio non scrive nulla <b>senza la casella «Esegui l'assegnazione»</b>.</li><li>Il piano dei bersagli si stampa da <b>Partecipanti &gt; Stampe &gt; Stampa Piazzole (+ Tipologia Bersaglio)</b>.</li></ul><p>Spazio al <b>quiz</b> e alla <b>sfida</b>!</p>",
+                "de": "<p>Ihr Turnier hat einen <b>Zeitplan</b> und einen <b>Scheibenplan</b>.</p><p><b>Zum Merken:</b></p><ul><li>Alles geht von den <b>Durchgängen</b> aus: Scheiben × Schützen pro Scheibe.</li><li>Der Zeitplan <b>übernimmt die Durchgänge automatisch</b>; Sie ergänzen den Rest (Meldestelle, Aufwärmen, Siegerehrungen).</li><li>Die Auslosung speichert nichts <b>ohne das Kästchen „Zuteilung durchführen\"</b>.</li><li>Der Scheibenplan wird über <b>Teilnehmer &gt; Druck &gt; Ausdruck der Scheibeneinteilung (+ Scheibentyp)</b> gedruckt.</li></ul><p>Weiter zum <b>Quiz</b> und zur <b>Aufgabe</b>!</p>",
+                "es": "<p>Su competición tiene un <b>programa</b> y un <b>plano de dianas</b>.</p><p><b>Para recordar:</b></p><ul><li>Todo parte de los <b>turnos</b>: dianas × arqueros por diana.</li><li>El programa <b>recoge los turnos automáticamente</b>; usted añade el resto (secretaría, calentamientos, entregas de premios).</li><li>El sorteo no guarda nada <b>sin la casilla «Realizar la asignación»</b>.</li><li>El plano de dianas se imprime desde <b>Participantes &gt; Listados para imprimir &gt; Listado de Participantes por Dianas (+ Tipo de Diana)</b>.</li></ul><p>¡Adelante con el <b>cuestionario</b> y el <b>reto</b>!</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -157,64 +308,250 @@
         "shuffle": true,
         "questions": [
             {
-                "q": "Vous lancez l'affectation automatique, le résultat s'affiche… mais rien n'est enregistré. Pourquoi ?",
+                "q": {
+                    "fr": "Vous lancez l'affectation automatique, le résultat s'affiche… mais rien n'est enregistré. Pourquoi ?",
+                    "en": "You run the draw, the result appears… but nothing is recorded. Why?",
+                    "it": "Lanci il sorteggio, il risultato compare… ma non viene registrato nulla. Perché?",
+                    "de": "Sie starten die Auslosung, das Ergebnis erscheint… aber nichts wird gespeichert. Warum?",
+                    "es": "Lanza el sorteo, aparece el resultado… pero no se guarda nada. ¿Por qué?"
+                },
                 "choices": [
-                    "La case « Effectuer l'affectation » n'était pas cochée",
-                    "Il faut redémarrer ianseo",
-                    "Les scores ne sont pas encore saisis",
-                    "Le programme n'est pas complété"
+                    {
+                        "fr": "La case « Effectuer l'affectation » n'était pas cochée",
+                        "en": "The \"Perform the assignment\" box was not ticked",
+                        "it": "La casella «Esegui l'assegnazione» non era spuntata",
+                        "de": "Das Kästchen „Zuteilung durchführen\" war nicht angehakt",
+                        "es": "La casilla «Realizar la asignación» no estaba marcada"
+                    },
+                    {
+                        "fr": "Il faut redémarrer ianseo",
+                        "en": "ianseo needs restarting",
+                        "it": "Bisogna riavviare ianseo",
+                        "de": "ianseo muss neu gestartet werden",
+                        "es": "Hay que reiniciar ianseo"
+                    },
+                    {
+                        "fr": "Les scores ne sont pas encore saisis",
+                        "en": "The scores have not been entered yet",
+                        "it": "I punteggi non sono ancora inseriti",
+                        "de": "Die Ergebnisse sind noch nicht eingegeben",
+                        "es": "Las puntuaciones aún no están introducidas"
+                    },
+                    {
+                        "fr": "Le programme n'est pas complété",
+                        "en": "The schedule is not complete",
+                        "it": "Il programma non è completato",
+                        "de": "Der Zeitplan ist nicht vollständig",
+                        "es": "El programa no está completo"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Sans cette case, ianseo simule le tirage et affiche le résultat sans l'écrire. C'est une sécurité volontaire."
+                "explain": {
+                    "fr": "Sans cette case, ianseo simule le tirage et affiche le résultat sans l'écrire. C'est une sécurité volontaire.",
+                    "en": "Without that box, ianseo simulates the draw and shows the result without writing it. The safeguard is deliberate.",
+                    "it": "Senza quella casella, ianseo simula il sorteggio e mostra il risultato senza scriverlo. È una sicurezza voluta.",
+                    "de": "Ohne dieses Kästchen simuliert ianseo die Auslosung und zeigt das Ergebnis, ohne es zu schreiben. Die Sicherung ist gewollt.",
+                    "es": "Sin esa casilla, ianseo simula el sorteo y muestra el resultado sin escribirlo. Es una seguridad deliberada."
+                }
             },
             {
-                "q": "Où définit-on le nombre de cibles et le nombre d'archers par cible ?",
+                "q": {
+                    "fr": "Où définit-on le nombre de cibles et le nombre d'archers par cible ?",
+                    "en": "Where do you set the number of targets and the number of archers per target?",
+                    "it": "Dove si definiscono il numero di piazzole e il numero di arcieri per piazzola?",
+                    "de": "Wo werden die Anzahl der Scheiben und die Anzahl der Schützen pro Scheibe festgelegt?",
+                    "es": "¿Dónde se define el número de dianas y el número de arqueros por diana?"
+                },
                 "choices": [
-                    "Compétition > Paramètres de la compétition > Session (les départs)",
-                    "Dans le programme",
-                    "Dans la fiche de chaque participant",
-                    "Dans les impressions"
+                    {
+                        "fr": "Compétition > Paramètres de la compétition > Session (les départs)",
+                        "en": "Competition > Edit Competition Info > Session",
+                        "it": "Gara > Modifica Dati Gara > Turno",
+                        "de": "Turnier > Turnierdaten ändern > Durchgang",
+                        "es": "Competición > Editar Datos de la Competición > Turno"
+                    },
+                    {
+                        "fr": "Dans le programme",
+                        "en": "In the schedule",
+                        "it": "Nel programma",
+                        "de": "Im Zeitplan",
+                        "es": "En el programa"
+                    },
+                    {
+                        "fr": "Dans la fiche de chaque participant",
+                        "en": "On each participant's record",
+                        "it": "Nella scheda di ogni partecipante",
+                        "de": "Im Datensatz jedes Teilnehmers",
+                        "es": "En la ficha de cada participante"
+                    },
+                    {
+                        "fr": "Dans les impressions",
+                        "en": "In the printouts",
+                        "it": "Nelle stampe",
+                        "de": "In den Ausdrucken",
+                        "es": "En los listados"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Les départs (sessions) portent la capacité de tir : nombre de cibles et archers par cible."
+                "explain": {
+                    "fr": "Les départs (sessions) portent la capacité de tir : nombre de cibles et archers par cible.",
+                    "en": "The sessions carry the shooting capacity: number of targets and archers per target.",
+                    "it": "I turni portano la capienza di tiro: numero di piazzole e arcieri per piazzola.",
+                    "de": "Die Durchgänge tragen das Fassungsvermögen: Anzahl der Scheiben und Schützen pro Scheibe.",
+                    "es": "Los turnos llevan la capacidad de tiro: número de dianas y arqueros por diana."
+                }
             },
             {
-                "q": "Quel document constitue le « plan de cible » recommandé par la FFTA ?",
+                "q": {
+                    "fr": "Quel document constitue le « plan de cible » recommandé par la FFTA ?",
+                    "en": "Which document makes up the \"target plan\" the French federation recommends?",
+                    "it": "Quale documento costituisce il «piano dei bersagli» consigliato dalla federazione francese?",
+                    "de": "Welche Unterlage bildet den vom französischen Verband empfohlenen „Scheibenplan\"?",
+                    "es": "¿Qué documento constituye el «plano de dianas» que recomienda la federación francesa?"
+                },
                 "choices": [
-                    "Liste des cibles (+ Type de cible)",
-                    "Liste par clubs",
-                    "Classement par catégorie",
-                    "Le programme complet"
+                    {
+                        "fr": "Liste des cibles (+ Type de cible)",
+                        "en": "Participant List ordered by Target (+ Target Type)",
+                        "it": "Stampa Piazzole (+ Tipologia Bersaglio)",
+                        "de": "Ausdruck der Scheibeneinteilung (+ Scheibentyp)",
+                        "es": "Listado de Participantes por Dianas (+ Tipo de Diana)"
+                    },
+                    {
+                        "fr": "Liste par clubs",
+                        "en": "The list by club",
+                        "it": "L'elenco per società",
+                        "de": "Die Liste nach Verein",
+                        "es": "El listado por clubes"
+                    },
+                    {
+                        "fr": "Classement par catégorie",
+                        "en": "The ranking by class",
+                        "it": "La classifica per classe",
+                        "de": "Die Platzierung nach Klasse",
+                        "es": "La clasificación por categoría"
+                    },
+                    {
+                        "fr": "Le programme complet",
+                        "en": "The complete schedule",
+                        "it": "Il programma completo",
+                        "de": "Der vollständige Zeitplan",
+                        "es": "El programa completo"
+                    }
                 ],
                 "correct": 0,
-                "explain": "C'est le document le plus proche de la liste de greffe de Result'Arc."
+                "explain": {
+                    "fr": "C'est le document le plus proche de la liste de greffe de Result'Arc.",
+                    "en": "It is the document closest to the Result'Arc registration list.",
+                    "it": "È il documento più vicino all'elenco di segreteria di Result'Arc.",
+                    "de": "Es ist die Unterlage, die der Meldeliste von Result'Arc am nächsten kommt.",
+                    "es": "Es el documento más parecido al listado de secretaría de Result'Arc."
+                }
             },
             {
-                "q": "Dans le programme, les horaires des départs…",
+                "q": {
+                    "fr": "Dans le programme, les horaires des départs…",
+                    "en": "In the schedule, the session times…",
+                    "it": "Nel programma, gli orari dei turni…",
+                    "de": "Im Zeitplan erscheinen die Zeiten der Durchgänge…",
+                    "es": "En el programa, los horarios de los turnos…"
+                },
                 "choices": [
-                    "s'affichent automatiquement à partir des sessions",
-                    "doivent être ressaisis à la main",
-                    "sont générés après les qualifications",
-                    "ne peuvent pas apparaître"
+                    {
+                        "fr": "s'affichent automatiquement à partir des sessions",
+                        "en": "appear automatically from the sessions",
+                        "it": "compaiono automaticamente a partire dai turni",
+                        "de": "automatisch aus den Durchgängen",
+                        "es": "aparecen automáticamente a partir de los turnos"
+                    },
+                    {
+                        "fr": "doivent être ressaisis à la main",
+                        "en": "have to be typed in again by hand",
+                        "it": "vanno reinseriti a mano",
+                        "de": "müssen von Hand neu eingetragen werden",
+                        "es": "hay que volver a escribirlos a mano"
+                    },
+                    {
+                        "fr": "sont générés après les qualifications",
+                        "en": "are produced after qualification",
+                        "it": "sono generati dopo le qualificazioni",
+                        "de": "werden nach der Qualifikation erzeugt",
+                        "es": "se generan después de la calificación"
+                    },
+                    {
+                        "fr": "ne peuvent pas apparaître",
+                        "en": "cannot appear at all",
+                        "it": "non possono comparire",
+                        "de": "können gar nicht erscheinen",
+                        "es": "no pueden aparecer"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Les départs sont repris automatiquement ; pour les modifier, on passe par le paramétrage avancé des départs."
+                "explain": {
+                    "fr": "Les départs sont repris automatiquement ; pour les modifier, on passe par le paramétrage avancé des départs.",
+                    "en": "The sessions are picked up automatically; to change them, go through the advanced session settings.",
+                    "it": "I turni sono ripresi automaticamente; per modificarli si passa dalle impostazioni avanzate dei turni.",
+                    "de": "Die Durchgänge werden automatisch übernommen; zum Ändern geht man über die erweiterten Durchgangseinstellungen.",
+                    "es": "Los turnos se recogen automáticamente; para modificarlos se pasa por los ajustes avanzados de los turnos."
+                }
             },
             {
-                "q": "Que signifie le commentaire de session « 1-4@18m@TrispotsCo,5-10@18m@TrispotsCl » ?",
+                "q": {
+                    "fr": "Que signifie le commentaire de session « 1-4@18m@TrispotsCo,5-10@18m@TrispotsCl » ?",
+                    "en": "What does the session comment \"1-4@18m@TrispotsCo,5-10@18m@TrispotsCl\" mean?",
+                    "it": "Che cosa significa il commento di turno «1-4@18m@TrispotsCo,5-10@18m@TrispotsCl»?",
+                    "de": "Was bedeutet die Durchgangsbemerkung „1-4@18m@TrispotsCo,5-10@18m@TrispotsCl\"?",
+                    "es": "¿Qué significa el comentario de turno «1-4@18m@TrispotsCo,5-10@18m@TrispotsCl»?"
+                },
                 "choices": [
-                    "Cibles 1 à 4 : 18 m trispots poulies ; cibles 5 à 10 : 18 m trispots classique",
-                    "4 archers sur la cible 1 et 10 sur la cible 5",
-                    "Les départs 1 et 5 commencent à 18 h",
-                    "Les scores 1 à 4 comptent double"
+                    {
+                        "fr": "Cibles 1 à 4 : 18 m trispots poulies ; cibles 5 à 10 : 18 m trispots classique",
+                        "en": "Targets 1 to 4: 18 m compound triple faces; targets 5 to 10: 18 m recurve triple faces",
+                        "it": "Piazzole da 1 a 4: 18 m trispot compound; piazzole da 5 a 10: 18 m trispot olimpico",
+                        "de": "Scheiben 1 bis 4: 18 m Dreifachauflage Compound; Scheiben 5 bis 10: 18 m Dreifachauflage Recurve",
+                        "es": "Dianas 1 a 4: 18 m trispot de compuesto; dianas 5 a 10: 18 m trispot de recurvo"
+                    },
+                    {
+                        "fr": "4 archers sur la cible 1 et 10 sur la cible 5",
+                        "en": "4 archers on target 1 and 10 on target 5",
+                        "it": "4 arcieri sulla piazzola 1 e 10 sulla piazzola 5",
+                        "de": "4 Schützen auf Scheibe 1 und 10 auf Scheibe 5",
+                        "es": "4 arqueros en la diana 1 y 10 en la diana 5"
+                    },
+                    {
+                        "fr": "Les départs 1 et 5 commencent à 18 h",
+                        "en": "Sessions 1 and 5 start at 6 pm",
+                        "it": "I turni 1 e 5 iniziano alle 18",
+                        "de": "Die Durchgänge 1 und 5 beginnen um 18 Uhr",
+                        "es": "Los turnos 1 y 5 empiezan a las 18 h"
+                    },
+                    {
+                        "fr": "Les scores 1 à 4 comptent double",
+                        "en": "Scores 1 to 4 count double",
+                        "it": "I punteggi da 1 a 4 contano doppio",
+                        "de": "Die Ergebnisse 1 bis 4 zählen doppelt",
+                        "es": "Las puntuaciones 1 a 4 cuentan el doble"
+                    }
                 ],
                 "correct": 0,
-                "explain": "La syntaxe est plage-de-cibles@distance@blason : elle décrit la répartition des blasons sur le pas de tir."
+                "explain": {
+                    "fr": "La syntaxe est plage-de-cibles@distance@blason : elle décrit la répartition des blasons sur le pas de tir.",
+                    "en": "The syntax is target-range@distance@face: it describes how the faces are laid out along the shooting line.",
+                    "it": "La sintassi è intervallo-di-piazzole@distanza@bersaglio: descrive la disposizione dei bersagli sulla linea di tiro.",
+                    "de": "Die Schreibweise lautet Scheibenbereich@Distanz@Auflage: sie beschreibt, wie die Auflagen auf der Schiesslinie verteilt sind.",
+                    "es": "La sintaxis es rango-de-dianas@distancia@blanco: describe el reparto de las dianas en la línea de tiro."
+                }
             }
         ]
     },
     "challenge": {
-        "intro": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition ouverte :</p><ol><li>Définissez au moins un <b>départ</b> avec un nombre de cibles.</li><li>Ajoutez au moins une ligne au <b>programme</b> (par exemple l'ouverture du greffe).</li><li>Lancez l'<b>affectation des cibles</b> pour qu'au moins un archer ait une cible.</li></ol><p>Cliquez sur <b>Vérifier</b> quand vous avez terminé.</p>",
+        "intro": {
+            "fr": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition ouverte :</p><ol><li>Définissez au moins un <b>départ</b> avec un nombre de cibles.</li><li>Ajoutez au moins une ligne au <b>programme</b> (par exemple l'ouverture du greffe).</li><li>Lancez l'<b>affectation des cibles</b> pour qu'au moins un archer ait une cible.</li></ol><p>Cliquez sur <b>Vérifier</b> quand vous avez terminé.</p>",
+            "en": "<p>Your turn, <b>unaided</b>.</p><p>On your open competition:</p><ol><li>Define at least one <b>session</b> with a number of targets.</li><li>Add at least one line to the <b>schedule</b> (the registration desk opening, for instance).</li><li>Run the <b>target assignment</b> so that at least one archer has a target.</li></ol><p>Click <b>Check</b> when you are done.</p>",
+            "it": "<p>Tocca a te, <b>senza aiuto</b>.</p><p>Sulla tua gara aperta:</p><ol><li>Definisci almeno un <b>turno</b> con un numero di piazzole.</li><li>Aggiungi almeno una riga al <b>programma</b> (per esempio l'apertura della segreteria).</li><li>Lancia l'<b>assegnazione delle piazzole</b> perché almeno un arciere abbia una piazzola.</li></ol><p>Clicca su <b>Verifica</b> quando hai finito.</p>",
+            "de": "<p>Sie sind dran, <b>ohne Hilfe</b>.</p><p>In Ihrem geöffneten Turnier:</p><ol><li>Legen Sie mindestens einen <b>Durchgang</b> mit einer Anzahl von Scheiben fest.</li><li>Fügen Sie dem <b>Zeitplan</b> mindestens eine Zeile hinzu (etwa die Öffnung der Meldestelle).</li><li>Starten Sie die <b>Scheibeneinteilung</b>, damit mindestens ein Schütze eine Scheibe hat.</li></ol><p>Klicken Sie auf <b>Prüfen</b>, wenn Sie fertig sind.</p>",
+            "es": "<p>Le toca a usted, <b>sin ayuda</b>.</p><p>En su competición abierta:</p><ol><li>Defina al menos un <b>turno</b> con un número de dianas.</li><li>Añada al menos una línea al <b>programa</b> (por ejemplo la apertura de secretaría).</li><li>Lance la <b>asignación de dianas</b> para que al menos un arquero tenga diana.</li></ol><p>Haga clic en <b>Verificar</b> cuando haya terminado.</p>"
+        },
         "conditions": [
             "has_session_configured",
             "has_schedule",

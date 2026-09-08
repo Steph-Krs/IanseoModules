@@ -1,16 +1,47 @@
 {
-    "id": "publication-ianseo-net",
+    "lang": "fr",
+    "id": "j77bebae7hmd14oa3vcj",
     "type": "formation",
-    "title": "Publier les résultats sur ianseo.net (~10min)",
-    "description": "Demandez un code internet, puis publiez en ligne participants, plan de cible, programme et résultats en direct. Attention : cela ne remplace pas l'envoi du fichier TXT à la FFTA.",
-    "version": "1.0",
-    "group": "Pour aller plus loin",
+    "title": {
+        "fr": "Publier les résultats sur ianseo.net (~10min)",
+        "en": "Publishing the results on ianseo.net (~10 min)",
+        "it": "Pubblicare i risultati su ianseo.net (~10 min)",
+        "de": "Die Ergebnisse auf ianseo.net veröffentlichen (~10 Min.)",
+        "es": "Publicar los resultados en ianseo.net (~10 min)"
+    },
+    "description": {
+        "fr": "Demandez un code internet, puis publiez en ligne participants, plan de cible, programme et résultats en direct. Attention : cela ne remplace pas l'envoi du fichier TXT à la FFTA.",
+        "en": "Ask for an internet code, then publish the participants, the target plan, the schedule and the live results online. Careful: this does not replace sending the TXT file to the federation.",
+        "it": "Chiedi un codice internet, poi pubblica online partecipanti, piano dei bersagli, programma e risultati in diretta. Attenzione: questo non sostituisce l'invio del file TXT alla federazione.",
+        "de": "Fordern Sie einen Internet-Code an und veröffentlichen Sie dann Teilnehmer, Scheibenplan, Zeitplan und Ergebnisse in Echtzeit im Netz. Achtung: das ersetzt nicht das Senden der TXT-Datei an den Verband.",
+        "es": "Pida un código de internet y publique en línea participantes, plano de dianas, programa y resultados en directo. Atención: esto no sustituye al envío del archivo TXT a la federación."
+    },
+    "version": "1.1",
+    "group": {
+        "fr": "Pour aller plus loin",
+        "en": "Going further",
+        "it": "Per approfondire",
+        "de": "Weiterführendes",
+        "es": "Para ir más lejos"
+    },
     "order": 15,
     "steps": [
         {
             "id": "intro",
-            "title": "Publier en ligne — et ce que ça ne remplace pas",
-            "content": "<p>ianseo permet de publier votre compétition sur <b>ianseo.net</b> : les archers, les familles et les clubs suivent les <b>résultats en direct</b> depuis leur téléphone.</p><p class=\"guide-tip\">⚠️ <b>À lire absolument :</b> publier sur ianseo.net <b>ne remplace en aucun cas</b> l'envoi du <b>fichier TXT à la FFTA</b> à la fin de la compétition. Ce sont <b>deux démarches totalement distinctes</b> : ianseo.net, c'est la vitrine publique ; le fichier TXT, c'est la <b>transmission officielle des résultats</b> à la fédération. Publier en ligne et oublier le TXT = résultats jamais enregistrés par la FFTA.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "title": {
+                "fr": "Publier en ligne — et ce que ça ne remplace pas",
+                "en": "Publishing online — and what it does not replace",
+                "it": "Pubblicare online — e ciò che non sostituisce",
+                "de": "Im Netz veröffentlichen — und was es nicht ersetzt",
+                "es": "Publicar en línea — y lo que no sustituye"
+            },
+            "content": {
+                "fr": "<p>ianseo permet de publier votre compétition sur <b>ianseo.net</b> : les archers, les familles et les clubs suivent les <b>résultats en direct</b> depuis leur téléphone.</p><p class=\"guide-tip\">⚠️ <b>À lire absolument :</b> publier sur ianseo.net <b>ne remplace en aucun cas</b> l'envoi du <b>fichier TXT à la FFTA</b> à la fin de la compétition. Ce sont <b>deux démarches totalement distinctes</b> : ianseo.net, c'est la vitrine publique ; le fichier TXT, c'est la <b>transmission officielle des résultats</b> à la fédération. Publier en ligne et oublier le TXT = résultats jamais enregistrés par la FFTA.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+                "en": "<p>ianseo lets you publish your competition on <b>ianseo.net</b>: archers, families and clubs follow the <b>live results</b> from their phones.</p><p class=\"guide-tip\">⚠️ <b>Read this carefully:</b> publishing on ianseo.net <b>in no way replaces</b> sending the <b>TXT file to the federation</b> at the end of the competition. These are <b>two entirely separate things</b>: ianseo.net is the public shop window; the TXT file is the <b>official transmission of the results</b> to the federation. Publish online and forget the TXT, and the results are never recorded by the federation.</p><p>Click <b>Next</b>.</p>",
+                "it": "<p>ianseo permette di pubblicare la tua gara su <b>ianseo.net</b>: arcieri, famiglie e società seguono i <b>risultati in diretta</b> dal telefono.</p><p class=\"guide-tip\">⚠️ <b>Da leggere assolutamente:</b> pubblicare su ianseo.net <b>non sostituisce in alcun modo</b> l'invio del <b>file TXT alla federazione</b> alla fine della gara. Sono <b>due procedure del tutto distinte</b>: ianseo.net è la vetrina pubblica; il file TXT è la <b>trasmissione ufficiale dei risultati</b> alla federazione. Pubblicare online e dimenticare il TXT = risultati mai registrati dalla federazione.</p><p>Clicca su <b>Avanti</b>.</p>",
+                "de": "<p>Mit ianseo lässt sich Ihr Turnier auf <b>ianseo.net</b> veröffentlichen: Schützen, Familien und Vereine verfolgen die <b>Ergebnisse in Echtzeit</b> vom Telefon aus.</p><p class=\"guide-tip\">⚠️ <b>Unbedingt lesen:</b> eine Veröffentlichung auf ianseo.net ersetzt <b>in keiner Weise</b> das Senden der <b>TXT-Datei an den Verband</b> am Ende des Turniers. Das sind <b>zwei vollkommen getrennte Vorgänge</b>: ianseo.net ist das öffentliche Schaufenster; die TXT-Datei ist die <b>amtliche Übermittlung der Ergebnisse</b> an den Verband. Wer im Netz veröffentlicht und die TXT vergisst, dessen Ergebnisse werden vom Verband nie erfasst.</p><p>Klicken Sie auf <b>Weiter</b>.</p>",
+                "es": "<p>ianseo permite publicar su competición en <b>ianseo.net</b>: arqueros, familias y clubes siguen los <b>resultados en directo</b> desde su teléfono.</p><p class=\"guide-tip\">⚠️ <b>Léalo sin falta:</b> publicar en ianseo.net <b>no sustituye en absoluto</b> al envío del <b>archivo TXT a la federación</b> al final de la competición. Son <b>dos gestiones completamente distintas</b>: ianseo.net es el escaparate público; el archivo TXT es la <b>transmisión oficial de los resultados</b> a la federación. Publicar en línea y olvidar el TXT = resultados nunca registrados por la federación.</p><p>Haga clic en <b>Siguiente</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -18,8 +49,20 @@
         },
         {
             "id": "ouvrir",
-            "title": "Ouvrir votre compétition",
-            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p><p class=\"guide-tip\">⚠️ Le <b>code de la compétition</b> saisi à la création <b>ne devra plus être modifié</b> une fois la demande de code internet envoyée. Vérifiez-le avant de continuer.</p>",
+            "title": {
+                "fr": "Ouvrir votre compétition",
+                "en": "Open your competition",
+                "it": "Apri la tua gara",
+                "de": "Ihr Turnier öffnen",
+                "es": "Abra su competición"
+            },
+            "content": {
+                "fr": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p><p class=\"guide-tip\">⚠️ Le <b>code de la compétition</b> saisi à la création <b>ne devra plus être modifié</b> une fois la demande de code internet envoyée. Vérifiez-le avant de continuer.</p>",
+                "en": "<p>The guide is waiting for a <b>competition to be open</b>.</p><p class=\"guide-tip\">⚠️ The <b>competition code</b> entered when it was created <b>must not be changed</b> once the request for an internet code has been sent. Check it before going on.</p>",
+                "it": "<p>La guida attende che una <b>gara sia aperta</b>.</p><p class=\"guide-tip\">⚠️ Il <b>codice della gara</b> inserito alla creazione <b>non dovrà più essere modificato</b> una volta inviata la richiesta di codice internet. Verificalo prima di continuare.</p>",
+                "de": "<p>Die Anleitung wartet darauf, dass ein <b>Turnier geöffnet</b> ist.</p><p class=\"guide-tip\">⚠️ Der beim Anlegen eingetragene <b>Turniercode</b> darf <b>nicht mehr geändert werden</b>, sobald der Internet-Code angefordert wurde. Prüfen Sie ihn, bevor Sie weitergehen.</p>",
+                "es": "<p>La guía espera a que haya una <b>competición abierta</b>.</p><p class=\"guide-tip\">⚠️ El <b>código de la competición</b> introducido al crearla <b>ya no deberá modificarse</b> una vez enviada la solicitud de código de internet. Compruébelo antes de continuar.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -27,7 +70,13 @@
                     "condition": "tournament_open",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : ouvrez une compétition."
+                    "hint": {
+                        "fr": "En attente : ouvrez une compétition.",
+                        "en": "Waiting: open a competition.",
+                        "it": "In attesa: apri una gara.",
+                        "de": "Es wird gewartet: öffnen Sie ein Turnier.",
+                        "es": "En espera: abra una competición."
+                    }
                 }
             ],
             "optional": false,
@@ -35,8 +84,20 @@
         },
         {
             "id": "demande-code",
-            "title": "Demander un code internet",
-            "content": "<p>Pour publier, il faut d'abord obtenir un <b>numéro unique</b> attribué à votre compétition par l'équipe ianseo.</p><p>Allez dans <b>Compétition &gt; Envoyer à ianseo.net &gt; Envoyer</b>, puis cliquez sur le titre <b>« Cliquez ici pour demander un code »</b>.</p><p>Un <b>récapitulatif</b> de la configuration de votre compétition s'affiche. Vous devez saisir :</p><ul><li>un <b>mot de passe</b>,</li><li>une <b>adresse e-mail</b>.</li></ul><p class=\"guide-tip\">⚠️ <b>Ne demandez un code que pour les concours qui auront réellement lieu.</b> Chaque demande est validée manuellement par une équipe de bénévoles — les demandes fantaisistes leur font perdre du temps.</p>",
+            "title": {
+                "fr": "Demander un code internet",
+                "en": "Asking for an internet code",
+                "it": "Chiedere un codice internet",
+                "de": "Einen Internet-Code anfordern",
+                "es": "Pedir un código de internet"
+            },
+            "content": {
+                "fr": "<p>Pour publier, il faut d'abord obtenir un <b>numéro unique</b> attribué à votre compétition par l'équipe ianseo.</p><p>Allez dans <b>Compétition &gt; Envoyer à ianseo.net &gt; Envoyer</b>, puis cliquez sur le titre <b>« Cliquez ici pour demander un code »</b>.</p><p>Un <b>récapitulatif</b> de la configuration de votre compétition s'affiche. Vous devez saisir :</p><ul><li>un <b>mot de passe</b>,</li><li>une <b>adresse e-mail</b>.</li></ul><p class=\"guide-tip\">⚠️ <b>Ne demandez un code que pour les concours qui auront réellement lieu.</b> Chaque demande est validée manuellement par une équipe de bénévoles — les demandes fantaisistes leur font perdre du temps.</p>",
+                "en": "<p>To publish, you first need a <b>unique number</b> given to your competition by the ianseo team.</p><p>Go to <b>Competition &gt; Send to ianseo.net &gt; Send</b>, then click the heading <b>\"Click here to ask for a code\"</b>.</p><p>A <b>summary</b> of your competition's setup appears. You have to enter:</p><ul><li>a <b>password</b>,</li><li>an <b>email address</b>.</li></ul><p class=\"guide-tip\">⚠️ <b>Only ask for a code for competitions that will really take place.</b> Every request is approved by hand by a team of volunteers — frivolous requests waste their time.</p>",
+                "it": "<p>Per pubblicare serve prima un <b>numero unico</b> attribuito alla tua gara dal team di ianseo.</p><p>Vai in <b>Gara &gt; Invia a ianseo.net &gt; Invia</b>, poi clicca sul titolo <b>«Clicca qui per richiedere un codice»</b>.</p><p>Compare un <b>riepilogo</b> della configurazione della tua gara. Devi inserire:</p><ul><li>una <b>password</b>,</li><li>un <b>indirizzo e-mail</b>.</li></ul><p class=\"guide-tip\">⚠️ <b>Chiedi un codice solo per le gare che si terranno davvero.</b> Ogni richiesta è approvata a mano da una squadra di volontari — le richieste inutili fanno perdere loro tempo.</p>",
+                "de": "<p>Zum Veröffentlichen braucht es zunächst eine <b>eindeutige Nummer</b>, die das ianseo-Team Ihrem Turnier zuteilt.</p><p>Gehen Sie zu <b>Turnier &gt; An ianseo.net senden &gt; Senden</b> und klicken Sie auf die Überschrift <b>„Hier klicken, um einen Code anzufordern\"</b>.</p><p>Eine <b>Übersicht</b> über die Einrichtung Ihres Turniers erscheint. Sie müssen eingeben:</p><ul><li>ein <b>Passwort</b>,</li><li>eine <b>E-Mail-Adresse</b>.</li></ul><p class=\"guide-tip\">⚠️ <b>Fordern Sie nur für Turniere einen Code an, die wirklich stattfinden.</b> Jede Anfrage wird von einem Team Freiwilliger von Hand geprüft — sinnlose Anfragen kosten sie Zeit.</p>",
+                "es": "<p>Para publicar hace falta primero un <b>número único</b> atribuido a su competición por el equipo de ianseo.</p><p>Vaya a <b>Competición &gt; Enviar a ianseo.net &gt; Enviar</b> y haga clic en el título <b>«Haga clic aquí para pedir un código»</b>.</p><p>Aparece un <b>resumen</b> de la configuración de su competición. Debe introducir:</p><ul><li>una <b>contraseña</b>,</li><li>una <b>dirección de correo</b>.</li></ul><p class=\"guide-tip\">⚠️ <b>Pida un código solo para los concursos que se vayan a celebrar de verdad.</b> Cada solicitud la aprueba a mano un equipo de voluntarios — las solicitudes fantasiosas les hacen perder tiempo.</p>"
+            },
             "page": "/Tournament/UploadResults.php",
             "triggers": [
                 {
@@ -51,8 +112,20 @@
         },
         {
             "id": "validation",
-            "title": "Attendre la validation (deux e-mails)",
-            "content": "<p>Vous allez recevoir <b>deux e-mails</b>, et ils ne veulent pas dire la même chose :</p><ol><li>Le <b>premier</b> confirme que votre compétition a bien été <b>reçue</b> par le système ianseo et qu'elle est <b>en cours de validation</b>. <b>Aucune publication n'est encore possible.</b></li><li>Le <b>second</b> arrive après la <b>validation manuelle</b> par l'équipe ianseo. C'est seulement à partir de là que vous pouvez publier.</li></ol><p class=\"guide-tip\">⚠️ Ne vous y prenez donc <b>pas la veille</b> : la validation est faite par des humains et peut prendre du temps. Demandez votre code <b>dès que la compétition est configurée</b>.</p>",
+            "title": {
+                "fr": "Attendre la validation (deux e-mails)",
+                "en": "Waiting for approval (two emails)",
+                "it": "Attendere l'approvazione (due e-mail)",
+                "de": "Auf die Freigabe warten (zwei E-Mails)",
+                "es": "Esperar la validación (dos correos)"
+            },
+            "content": {
+                "fr": "<p>Vous allez recevoir <b>deux e-mails</b>, et ils ne veulent pas dire la même chose :</p><ol><li>Le <b>premier</b> confirme que votre compétition a bien été <b>reçue</b> par le système ianseo et qu'elle est <b>en cours de validation</b>. <b>Aucune publication n'est encore possible.</b></li><li>Le <b>second</b> arrive après la <b>validation manuelle</b> par l'équipe ianseo. C'est seulement à partir de là que vous pouvez publier.</li></ol><p class=\"guide-tip\">⚠️ Ne vous y prenez donc <b>pas la veille</b> : la validation est faite par des humains et peut prendre du temps. Demandez votre code <b>dès que la compétition est configurée</b>.</p>",
+                "en": "<p>You will get <b>two emails</b>, and they do not mean the same thing:</p><ol><li>The <b>first</b> confirms that your competition has been <b>received</b> by the ianseo system and is <b>being approved</b>. <b>Nothing can be published yet.</b></li><li>The <b>second</b> arrives after the ianseo team has <b>approved it by hand</b>. Only from then on can you publish.</li></ol><p class=\"guide-tip\">⚠️ So do not leave it <b>to the day before</b>: the approval is done by people and can take time. Ask for your code <b>as soon as the competition is set up</b>.</p>",
+                "it": "<p>Riceverai <b>due e-mail</b>, e non vogliono dire la stessa cosa:</p><ol><li>La <b>prima</b> conferma che la tua gara è stata <b>ricevuta</b> dal sistema ianseo ed è <b>in corso di approvazione</b>. <b>Non è ancora possibile pubblicare nulla.</b></li><li>La <b>seconda</b> arriva dopo l'<b>approvazione manuale</b> da parte del team ianseo. Solo da quel momento puoi pubblicare.</li></ol><p class=\"guide-tip\">⚠️ Non ridurti quindi <b>alla vigilia</b>: l'approvazione è fatta da persone e può richiedere tempo. Chiedi il codice <b>appena la gara è configurata</b>.</p>",
+                "de": "<p>Sie erhalten <b>zwei E-Mails</b>, und sie bedeuten nicht dasselbe:</p><ol><li>Die <b>erste</b> bestätigt, dass Ihr Turnier vom ianseo-System <b>empfangen</b> wurde und <b>geprüft wird</b>. <b>Veröffentlichen ist noch nicht möglich.</b></li><li>Die <b>zweite</b> kommt nach der <b>Freigabe von Hand</b> durch das ianseo-Team. Erst ab da können Sie veröffentlichen.</li></ol><p class=\"guide-tip\">⚠️ Warten Sie also nicht bis <b>zum Vortag</b>: die Freigabe erfolgt durch Menschen und kann dauern. Fordern Sie den Code an, <b>sobald das Turnier eingerichtet ist</b>.</p>",
+                "es": "<p>Recibirá <b>dos correos</b>, y no significan lo mismo:</p><ol><li>El <b>primero</b> confirma que su competición ha sido <b>recibida</b> por el sistema de ianseo y está <b>en proceso de validación</b>. <b>Todavía no se puede publicar nada.</b></li><li>El <b>segundo</b> llega tras la <b>validación manual</b> por el equipo de ianseo. Solo a partir de ahí puede publicar.</li></ol><p class=\"guide-tip\">⚠️ Así que no lo deje <b>para la víspera</b>: la validación la hacen personas y puede llevar tiempo. Pida su código <b>en cuanto la competición esté configurada</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -60,8 +133,20 @@
         },
         {
             "id": "codes",
-            "title": "Saisir les codes en ligne",
-            "content": "<p>Une fois le <b>second e-mail</b> reçu, allez dans <b>Compétition &gt; Envoyer à ianseo.net &gt; Saisie des codes en-ligne</b>.</p><p>Reportez les <b>informations reçues par e-mail</b> (identifiant de la compétition et mot de passe).</p><p>C'est cette page qui <b>authentifie</b> votre ianseo auprès de ianseo.net. Sans elle, les envois seront refusés.</p>",
+            "title": {
+                "fr": "Saisir les codes en ligne",
+                "en": "Entering the online codes",
+                "it": "Inserire i codici online",
+                "de": "Die Online-Codes eintragen",
+                "es": "Introducir los códigos en línea"
+            },
+            "content": {
+                "fr": "<p>Une fois le <b>second e-mail</b> reçu, allez dans <b>Compétition &gt; Envoyer à ianseo.net &gt; Saisie des codes en-ligne</b>.</p><p>Reportez les <b>informations reçues par e-mail</b> (identifiant de la compétition et mot de passe).</p><p>C'est cette page qui <b>authentifie</b> votre ianseo auprès de ianseo.net. Sans elle, les envois seront refusés.</p>",
+                "en": "<p>Once the <b>second email</b> has arrived, go to <b>Competition &gt; Send to ianseo.net &gt; Online codes</b>.</p><p>Copy across the <b>details you received by email</b> (the competition identifier and the password).</p><p>It is this page that <b>identifies</b> your ianseo to ianseo.net. Without it, anything you send is refused.</p>",
+                "it": "<p>Ricevuta la <b>seconda e-mail</b>, vai in <b>Gara &gt; Invia a ianseo.net &gt; Inserimento dei codici online</b>.</p><p>Riporta le <b>informazioni ricevute per e-mail</b> (identificativo della gara e password).</p><p>È questa pagina che <b>autentica</b> il tuo ianseo presso ianseo.net. Senza di essa, gli invii verranno rifiutati.</p>",
+                "de": "<p>Ist die <b>zweite E-Mail</b> da, gehen Sie zu <b>Turnier &gt; An ianseo.net senden &gt; Eingabe der Online-Codes</b>.</p><p>Übertragen Sie die <b>per E-Mail erhaltenen Angaben</b> (Turnierkennung und Passwort).</p><p>Diese Seite ist es, die Ihr ianseo gegenüber ianseo.net <b>ausweist</b>. Ohne sie werden alle Sendungen abgelehnt.</p>",
+                "es": "<p>Recibido el <b>segundo correo</b>, vaya a <b>Competición &gt; Enviar a ianseo.net &gt; Introducción de los códigos en línea</b>.</p><p>Copie los <b>datos recibidos por correo</b> (identificador de la competición y contraseña).</p><p>Es esta página la que <b>identifica</b> su ianseo ante ianseo.net. Sin ella, los envíos serán rechazados.</p>"
+            },
             "page": "/Tournament/SetCredentials.php",
             "triggers": [
                 {
@@ -75,7 +160,13 @@
                     "condition": "online_codes_visited",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : ouvrez la page de saisie des codes en-ligne."
+                    "hint": {
+                        "fr": "En attente : ouvrez la page de saisie des codes en-ligne.",
+                        "en": "Waiting: open the online codes page.",
+                        "it": "In attesa: apri la pagina di inserimento dei codici online.",
+                        "de": "Es wird gewartet: öffnen Sie die Seite für die Eingabe der Online-Codes.",
+                        "es": "En espera: abra la página de introducción de los códigos en línea."
+                    }
                 }
             ],
             "optional": false,
@@ -83,8 +174,20 @@
         },
         {
             "id": "envoyer",
-            "title": "Envoyer les informations",
-            "content": "<p>Retournez dans <b>Compétition &gt; Envoyer à ianseo.net &gt; Envoyer</b>.</p><p><b>Commencez par le début :</b> envoyez d'abord les <b>images</b> et les <b>participants</b>. Vous pouvez publier la liste des participants par <b>club/pays</b>, par <b>cible</b> ou par <b>ordre alphabétique</b>.</p><p>Vous pouvez ensuite publier les autres documents utiles :</p><ul><li>le <b>programme</b>,</li><li>le <b>plan de cibles</b>,</li><li>le <b>mandat</b>,</li><li>des <b>liens</b> vers le site de votre club.</li></ul><p>Pendant la compétition, revenez sur cette page pour <b>envoyer les scores</b> au fil de l'eau.</p><p class=\"guide-tip\">💡 La page distingue les compétitions <b>avec duels</b> et <b>sans duels</b> : les options proposées s'adaptent à votre configuration.</p>",
+            "title": {
+                "fr": "Envoyer les informations",
+                "en": "Sending the information",
+                "it": "Inviare le informazioni",
+                "de": "Die Informationen senden",
+                "es": "Enviar la información"
+            },
+            "content": {
+                "fr": "<p>Retournez dans <b>Compétition &gt; Envoyer à ianseo.net &gt; Envoyer</b>.</p><p><b>Commencez par le début :</b> envoyez d'abord les <b>images</b> et les <b>participants</b>. Vous pouvez publier la liste des participants par <b>club/pays</b>, par <b>cible</b> ou par <b>ordre alphabétique</b>.</p><p>Vous pouvez ensuite publier les autres documents utiles :</p><ul><li>le <b>programme</b>,</li><li>le <b>plan de cibles</b>,</li><li>le <b>mandat</b>,</li><li>des <b>liens</b> vers le site de votre club.</li></ul><p>Pendant la compétition, revenez sur cette page pour <b>envoyer les scores</b> au fil de l'eau.</p><p class=\"guide-tip\">💡 La page distingue les compétitions <b>avec duels</b> et <b>sans duels</b> : les options proposées s'adaptent à votre configuration.</p>",
+                "en": "<p>Go back to <b>Competition &gt; Send to ianseo.net &gt; Send</b>.</p><p><b>Start at the beginning:</b> send the <b>images</b> and the <b>participants</b> first. You can publish the participant list by <b>club or country</b>, by <b>target</b> or in <b>alphabetical order</b>.</p><p>You can then publish the other useful documents:</p><ul><li>the <b>schedule</b>,</li><li>the <b>target plan</b>,</li><li>the <b>competition notice</b>,</li><li><b>links</b> to your club's website.</li></ul><p>During the competition, come back to this page to <b>send the scores</b> as you go.</p><p class=\"guide-tip\">💡 The page tells competitions <b>with matches</b> from those <b>without</b>: the options offered follow your setup.</p>",
+                "it": "<p>Torna in <b>Gara &gt; Invia a ianseo.net &gt; Invia</b>.</p><p><b>Comincia dall'inizio:</b> invia prima le <b>immagini</b> e i <b>partecipanti</b>. Puoi pubblicare l'elenco dei partecipanti per <b>società/nazione</b>, per <b>piazzola</b> o in <b>ordine alfabetico</b>.</p><p>Poi puoi pubblicare gli altri documenti utili:</p><ul><li>il <b>programma</b>,</li><li>il <b>piano dei bersagli</b>,</li><li>il <b>bando</b>,</li><li>dei <b>collegamenti</b> al sito della tua società.</li></ul><p>Durante la gara, torna su questa pagina per <b>inviare i punteggi</b> man mano.</p><p class=\"guide-tip\">💡 La pagina distingue le gare <b>con scontri</b> da quelle <b>senza</b>: le opzioni proposte si adattano alla tua configurazione.</p>",
+                "de": "<p>Gehen Sie zurück zu <b>Turnier &gt; An ianseo.net senden &gt; Senden</b>.</p><p><b>Fangen Sie vorn an:</b> senden Sie zuerst die <b>Bilder</b> und die <b>Teilnehmer</b>. Die Teilnehmerliste lässt sich nach <b>Verein/Land</b>, nach <b>Scheibe</b> oder in <b>alphabetischer Reihenfolge</b> veröffentlichen.</p><p>Danach können Sie die weiteren nützlichen Unterlagen veröffentlichen:</p><ul><li>den <b>Zeitplan</b>,</li><li>den <b>Scheibenplan</b>,</li><li>die <b>Ausschreibung</b>,</li><li><b>Links</b> zur Website Ihres Vereins.</li></ul><p>Kommen Sie während des Turniers auf diese Seite zurück, um die <b>Ergebnisse laufend zu senden</b>.</p><p class=\"guide-tip\">💡 Die Seite unterscheidet Turniere <b>mit Duellen</b> von solchen <b>ohne</b>: die angebotenen Möglichkeiten richten sich nach Ihrer Einrichtung.</p>",
+                "es": "<p>Vuelva a <b>Competición &gt; Enviar a ianseo.net &gt; Enviar</b>.</p><p><b>Empiece por el principio:</b> envíe primero las <b>imágenes</b> y los <b>participantes</b>. Puede publicar el listado de participantes por <b>club/país</b>, por <b>diana</b> o por <b>orden alfabético</b>.</p><p>Después puede publicar los demás documentos útiles:</p><ul><li>el <b>programa</b>,</li><li>el <b>plano de dianas</b>,</li><li>la <b>convocatoria</b>,</li><li><b>enlaces</b> a la web de su club.</li></ul><p>Durante la competición, vuelva a esta página para <b>enviar las puntuaciones</b> sobre la marcha.</p><p class=\"guide-tip\">💡 La página distingue las competiciones <b>con enfrentamientos</b> de las que no los tienen: las opciones ofrecidas se adaptan a su configuración.</p>"
+            },
             "page": "/Tournament/UploadResults.php",
             "triggers": [
                 {
@@ -99,8 +202,20 @@
         },
         {
             "id": "txt-ffta",
-            "title": "Et le fichier FFTA, alors ?",
-            "content": "<p>Répétons-le, c'est <b>la</b> confusion classique :</p><p class=\"guide-tip\">⚠️ <b>ianseo.net ≠ FFTA.</b> Publier vos résultats sur ianseo.net est une opération de <b>communication</b>. La <b>transmission officielle</b> des résultats à la fédération se fait <b>séparément</b>, en générant le <b>fichier TXT</b> et en le déposant sur l'extranet FFTA, à la fin de la compétition.</p><p>Le fichier TXT se télécharge depuis <b>Compétition &gt; Exports &gt; Export pour FFTA</b>.</p><p class=\"guide-tip\">💡 Une compétition magnifiquement publiée en ligne dont le TXT n'a jamais été envoyé, c'est une compétition <b>qui n'a pas eu lieu</b> pour la FFTA : pas de classement national, pas de progression pour vos archers.</p>",
+            "title": {
+                "fr": "Et le fichier FFTA, alors ?",
+                "en": "So what about the federation file?",
+                "it": "E allora il file per la federazione?",
+                "de": "Und die Verbandsdatei?",
+                "es": "¿Y el archivo para la federación?"
+            },
+            "content": {
+                "fr": "<p>Répétons-le, c'est <b>la</b> confusion classique :</p><p class=\"guide-tip\">⚠️ <b>ianseo.net ≠ FFTA.</b> Publier vos résultats sur ianseo.net est une opération de <b>communication</b>. La <b>transmission officielle</b> des résultats à la fédération se fait <b>séparément</b>, en générant le <b>fichier TXT</b> et en le déposant sur l'extranet FFTA, à la fin de la compétition.</p><p>Le fichier TXT se télécharge depuis <b>Compétition &gt; Exports &gt; Export pour FFTA</b>.</p><p class=\"guide-tip\">💡 Une compétition magnifiquement publiée en ligne dont le TXT n'a jamais été envoyé, c'est une compétition <b>qui n'a pas eu lieu</b> pour la FFTA : pas de classement national, pas de progression pour vos archers.</p>",
+                "en": "<p>Let us say it again, because it is <b>the</b> classic confusion:</p><p class=\"guide-tip\">⚠️ <b>ianseo.net ≠ the federation.</b> Publishing your results on ianseo.net is a matter of <b>communication</b>. The <b>official transmission</b> of the results to the federation is done <b>separately</b>, by producing the <b>TXT file</b> and uploading it to the federation extranet at the end of the competition.</p><p>The TXT file is downloaded from <b>Competition &gt; Exports &gt; Export for French Federation</b>.</p><p class=\"guide-tip\">💡 A beautifully published competition whose TXT was never sent is, to the federation, a competition <b>that did not happen</b>: no national ranking, no progress for your archers.</p>",
+                "it": "<p>Ripetiamolo, è <b>la</b> confusione classica:</p><p class=\"guide-tip\">⚠️ <b>ianseo.net ≠ federazione.</b> Pubblicare i risultati su ianseo.net è un'operazione di <b>comunicazione</b>. La <b>trasmissione ufficiale</b> dei risultati alla federazione avviene <b>a parte</b>, generando il <b>file TXT</b> e caricandolo sull'extranet federale alla fine della gara.</p><p>Il file TXT si scarica da <b>Gara &gt; Esportazioni &gt; Esportazione per la Federazione Francese</b>.</p><p class=\"guide-tip\">💡 Una gara splendidamente pubblicata online il cui TXT non è mai stato inviato è, per la federazione, una gara <b>che non ha avuto luogo</b>: nessuna classifica nazionale, nessun progresso per i tuoi arcieri.</p>",
+                "de": "<p>Sagen wir es noch einmal, denn es ist <b>die</b> klassische Verwechslung:</p><p class=\"guide-tip\">⚠️ <b>ianseo.net ≠ Verband.</b> Die Ergebnisse auf ianseo.net zu veröffentlichen ist eine Sache der <b>Öffentlichkeitsarbeit</b>. Die <b>amtliche Übermittlung</b> der Ergebnisse an den Verband geschieht <b>getrennt davon</b>, indem am Ende des Turniers die <b>TXT-Datei</b> erzeugt und ins Verbands-Extranet geladen wird.</p><p>Die TXT-Datei wird über <b>Turnier &gt; Exporte &gt; Export für den Französischen Verband</b> heruntergeladen.</p><p class=\"guide-tip\">💡 Ein prächtig veröffentlichtes Turnier, dessen TXT nie gesendet wurde, ist für den Verband ein Turnier, das <b>nicht stattgefunden hat</b>: keine nationale Rangliste, kein Fortschritt für Ihre Schützen.</p>",
+                "es": "<p>Repitámoslo, porque es <b>la</b> confusión clásica:</p><p class=\"guide-tip\">⚠️ <b>ianseo.net ≠ federación.</b> Publicar sus resultados en ianseo.net es una operación de <b>comunicación</b>. La <b>transmisión oficial</b> de los resultados a la federación se hace <b>aparte</b>, generando el <b>archivo TXT</b> y subiéndolo al extranet federativo al final de la competición.</p><p>El archivo TXT se descarga desde <b>Competición &gt; Exportaciones &gt; Exportar para la Federación Francesa</b>.</p><p class=\"guide-tip\">💡 Una competición magníficamente publicada en línea cuyo TXT nunca se envió es, para la federación, una competición <b>que no ha tenido lugar</b>: sin clasificación nacional, sin progresión para sus arqueros.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -108,8 +223,20 @@
         },
         {
             "id": "fin",
-            "title": "C'est terminé !",
-            "content": "<p><b>À retenir :</b></p><ul><li><b>Demandez le code internet tôt</b> : la validation est manuelle.</li><li><b>Deux e-mails</b> : le 1er = bien reçu ; le 2nd = vous pouvez publier.</li><li>Le <b>code de la compétition</b> ne doit plus changer après la demande.</li><li>On envoie d'abord <b>images + participants</b>, puis les documents, puis les scores.</li><li><b>ianseo.net ne remplace JAMAIS le fichier TXT à la FFTA.</b></li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "title": {
+                "fr": "C'est terminé !",
+                "en": "That's it!",
+                "it": "Finito!",
+                "de": "Fertig!",
+                "es": "¡Terminado!"
+            },
+            "content": {
+                "fr": "<p><b>À retenir :</b></p><ul><li><b>Demandez le code internet tôt</b> : la validation est manuelle.</li><li><b>Deux e-mails</b> : le 1er = bien reçu ; le 2nd = vous pouvez publier.</li><li>Le <b>code de la compétition</b> ne doit plus changer après la demande.</li><li>On envoie d'abord <b>images + participants</b>, puis les documents, puis les scores.</li><li><b>ianseo.net ne remplace JAMAIS le fichier TXT à la FFTA.</b></li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+                "en": "<p><b>What to remember:</b></p><ul><li><b>Ask for the internet code early</b>: approval is done by hand.</li><li><b>Two emails</b>: the first = received; the second = you may publish.</li><li>The <b>competition code</b> must not change after the request.</li><li>Send <b>images and participants</b> first, then the documents, then the scores.</li><li><b>ianseo.net NEVER replaces the TXT file for the federation.</b></li></ul><p>Now for the <b>quiz</b> and the <b>challenge</b>!</p>",
+                "it": "<p><b>Da ricordare:</b></p><ul><li><b>Chiedi il codice internet per tempo</b>: l'approvazione è manuale.</li><li><b>Due e-mail</b>: la 1ª = ricevuta; la 2ª = puoi pubblicare.</li><li>Il <b>codice della gara</b> non deve più cambiare dopo la richiesta.</li><li>Si inviano prima <b>immagini + partecipanti</b>, poi i documenti, poi i punteggi.</li><li><b>ianseo.net non sostituisce MAI il file TXT per la federazione.</b></li></ul><p>Spazio al <b>quiz</b> e alla <b>sfida</b>!</p>",
+                "de": "<p><b>Zum Merken:</b></p><ul><li><b>Fordern Sie den Internet-Code früh an</b>: die Freigabe erfolgt von Hand.</li><li><b>Zwei E-Mails</b>: die erste = empfangen; die zweite = Sie dürfen veröffentlichen.</li><li>Der <b>Turniercode</b> darf sich nach der Anfrage nicht mehr ändern.</li><li>Zuerst <b>Bilder und Teilnehmer</b> senden, dann die Unterlagen, dann die Ergebnisse.</li><li><b>ianseo.net ersetzt NIE die TXT-Datei für den Verband.</b></li></ul><p>Weiter zum <b>Quiz</b> und zur <b>Aufgabe</b>!</p>",
+                "es": "<p><b>Para recordar:</b></p><ul><li><b>Pida el código de internet pronto</b>: la validación es manual.</li><li><b>Dos correos</b>: el 1.º = recibido; el 2.º = ya puede publicar.</li><li>El <b>código de la competición</b> no debe cambiar después de la solicitud.</li><li>Se envían primero <b>imágenes + participantes</b>, luego los documentos, luego las puntuaciones.</li><li><b>ianseo.net NUNCA sustituye al archivo TXT para la federación.</b></li></ul><p>¡Adelante con el <b>cuestionario</b> y el <b>reto</b>!</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -121,53 +248,203 @@
         "shuffle": true,
         "questions": [
             {
-                "q": "Vous avez publié tous vos résultats sur ianseo.net. Que reste-t-il à faire pour la FFTA ?",
+                "q": {
+                    "fr": "Vous avez publié tous vos résultats sur ianseo.net. Que reste-t-il à faire pour la FFTA ?",
+                    "en": "You have published all your results on ianseo.net. What is left to do for the federation?",
+                    "it": "Hai pubblicato tutti i tuoi risultati su ianseo.net. Che cosa resta da fare per la federazione?",
+                    "de": "Sie haben alle Ergebnisse auf ianseo.net veröffentlicht. Was bleibt für den Verband zu tun?",
+                    "es": "Ha publicado todos sus resultados en ianseo.net. ¿Qué queda por hacer para la federación?"
+                },
                 "choices": [
-                    "Générer le fichier TXT et le déposer sur l'extranet FFTA",
-                    "Rien, la FFTA récupère les résultats sur ianseo.net",
-                    "Envoyer un e-mail à la fédération",
-                    "Rien, la publication vaut transmission officielle"
+                    {
+                        "fr": "Générer le fichier TXT et le déposer sur l'extranet FFTA",
+                        "en": "Produce the TXT file and upload it to the federation extranet",
+                        "it": "Generare il file TXT e caricarlo sull'extranet federale",
+                        "de": "Die TXT-Datei erzeugen und ins Verbands-Extranet laden",
+                        "es": "Generar el archivo TXT y subirlo al extranet federativo"
+                    },
+                    {
+                        "fr": "Rien, la FFTA récupère les résultats sur ianseo.net",
+                        "en": "Nothing, the federation takes the results from ianseo.net",
+                        "it": "Nulla, la federazione recupera i risultati da ianseo.net",
+                        "de": "Nichts, der Verband holt sich die Ergebnisse von ianseo.net",
+                        "es": "Nada, la federación recoge los resultados de ianseo.net"
+                    },
+                    {
+                        "fr": "Envoyer un e-mail à la fédération",
+                        "en": "Send an email to the federation",
+                        "it": "Inviare un'e-mail alla federazione",
+                        "de": "Eine E-Mail an den Verband senden",
+                        "es": "Enviar un correo a la federación"
+                    },
+                    {
+                        "fr": "Rien, la publication vaut transmission officielle",
+                        "en": "Nothing, publishing counts as official transmission",
+                        "it": "Nulla, la pubblicazione vale come trasmissione ufficiale",
+                        "de": "Nichts, die Veröffentlichung gilt als amtliche Übermittlung",
+                        "es": "Nada, la publicación equivale a la transmisión oficial"
+                    }
                 ],
                 "correct": 0,
-                "explain": "ianseo.net est une vitrine publique. La transmission officielle passe obligatoirement par le fichier TXT."
+                "explain": {
+                    "fr": "ianseo.net est une vitrine publique. La transmission officielle passe obligatoirement par le fichier TXT.",
+                    "en": "ianseo.net is a public shop window. The official transmission goes through the TXT file, always.",
+                    "it": "ianseo.net è una vetrina pubblica. La trasmissione ufficiale passa obbligatoriamente dal file TXT.",
+                    "de": "ianseo.net ist ein öffentliches Schaufenster. Die amtliche Übermittlung läuft zwingend über die TXT-Datei.",
+                    "es": "ianseo.net es un escaparate público. La transmisión oficial pasa obligatoriamente por el archivo TXT."
+                }
             },
             {
-                "q": "Que signifie le PREMIER e-mail reçu après la demande de code ?",
+                "q": {
+                    "fr": "Que signifie le PREMIER e-mail reçu après la demande de code ?",
+                    "en": "What does the FIRST email after the code request mean?",
+                    "it": "Che cosa significa la PRIMA e-mail ricevuta dopo la richiesta di codice?",
+                    "de": "Was bedeutet die ERSTE E-Mail nach der Code-Anfrage?",
+                    "es": "¿Qué significa el PRIMER correo recibido tras la solicitud de código?"
+                },
                 "choices": [
-                    "La compétition est reçue et en cours de validation : on ne peut pas encore publier",
-                    "La publication est active",
-                    "La demande est refusée",
-                    "Le fichier TXT a été transmis"
+                    {
+                        "fr": "La compétition est reçue et en cours de validation : on ne peut pas encore publier",
+                        "en": "The competition has been received and is being approved: you cannot publish yet",
+                        "it": "La gara è stata ricevuta ed è in corso di approvazione: non si può ancora pubblicare",
+                        "de": "Das Turnier ist eingegangen und wird geprüft: veröffentlichen ist noch nicht möglich",
+                        "es": "La competición se ha recibido y está en validación: todavía no se puede publicar"
+                    },
+                    {
+                        "fr": "La publication est active",
+                        "en": "Publishing is live",
+                        "it": "La pubblicazione è attiva",
+                        "de": "Die Veröffentlichung läuft",
+                        "es": "La publicación está activa"
+                    },
+                    {
+                        "fr": "La demande est refusée",
+                        "en": "The request has been refused",
+                        "it": "La richiesta è stata rifiutata",
+                        "de": "Die Anfrage wurde abgelehnt",
+                        "es": "La solicitud ha sido rechazada"
+                    },
+                    {
+                        "fr": "Le fichier TXT a été transmis",
+                        "en": "The TXT file has been sent",
+                        "it": "Il file TXT è stato trasmesso",
+                        "de": "Die TXT-Datei wurde übermittelt",
+                        "es": "El archivo TXT se ha transmitido"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Il faut attendre le second e-mail, qui confirme la validation manuelle par l'équipe ianseo."
+                "explain": {
+                    "fr": "Il faut attendre le second e-mail, qui confirme la validation manuelle par l'équipe ianseo.",
+                    "en": "You have to wait for the second email, which confirms the ianseo team's approval by hand.",
+                    "it": "Bisogna attendere la seconda e-mail, che conferma l'approvazione manuale da parte del team ianseo.",
+                    "de": "Man muss die zweite E-Mail abwarten, die die Freigabe von Hand durch das ianseo-Team bestätigt.",
+                    "es": "Hay que esperar al segundo correo, que confirma la validación manual del equipo de ianseo."
+                }
             },
             {
-                "q": "Après la demande de code internet, que ne faut-il plus modifier ?",
+                "q": {
+                    "fr": "Après la demande de code internet, que ne faut-il plus modifier ?",
+                    "en": "After the internet code has been requested, what must no longer be changed?",
+                    "it": "Dopo la richiesta del codice internet, che cosa non va più modificato?",
+                    "de": "Was darf nach der Anfrage des Internet-Codes nicht mehr geändert werden?",
+                    "es": "Tras la solicitud del código de internet, ¿qué no debe modificarse ya?"
+                },
                 "choices": [
-                    "Le code de la compétition",
-                    "Le nom du club organisateur",
-                    "Les horaires du programme",
-                    "Le nombre de cibles"
+                    {
+                        "fr": "Le code de la compétition",
+                        "en": "The competition code",
+                        "it": "Il codice della gara",
+                        "de": "Der Turniercode",
+                        "es": "El código de la competición"
+                    },
+                    {
+                        "fr": "Le nom du club organisateur",
+                        "en": "The name of the organising club",
+                        "it": "Il nome della società organizzatrice",
+                        "de": "Der Name des ausrichtenden Vereins",
+                        "es": "El nombre del club organizador"
+                    },
+                    {
+                        "fr": "Les horaires du programme",
+                        "en": "The times in the schedule",
+                        "it": "Gli orari del programma",
+                        "de": "Die Zeiten im Zeitplan",
+                        "es": "Los horarios del programa"
+                    },
+                    {
+                        "fr": "Le nombre de cibles",
+                        "en": "The number of targets",
+                        "it": "Il numero di piazzole",
+                        "de": "Die Anzahl der Scheiben",
+                        "es": "El número de dianas"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Le code identifie la compétition auprès de ianseo.net : le changer casse le lien."
+                "explain": {
+                    "fr": "Le code identifie la compétition auprès de ianseo.net : le changer casse le lien.",
+                    "en": "The code identifies the competition to ianseo.net: changing it breaks the link.",
+                    "it": "Il codice identifica la gara presso ianseo.net: cambiarlo rompe il collegamento.",
+                    "de": "Der Code weist das Turnier gegenüber ianseo.net aus: ihn zu ändern zerreisst die Verbindung.",
+                    "es": "El código identifica la competición ante ianseo.net: cambiarlo rompe el vínculo."
+                }
             },
             {
-                "q": "Quand faut-il demander le code internet ?",
+                "q": {
+                    "fr": "Quand faut-il demander le code internet ?",
+                    "en": "When should the internet code be requested?",
+                    "it": "Quando bisogna chiedere il codice internet?",
+                    "de": "Wann sollte der Internet-Code angefordert werden?",
+                    "es": "¿Cuándo hay que pedir el código de internet?"
+                },
                 "choices": [
-                    "Dès que la compétition est configurée, car la validation est manuelle",
-                    "La veille de la compétition",
-                    "Le matin même",
-                    "Après les qualifications"
+                    {
+                        "fr": "Dès que la compétition est configurée, car la validation est manuelle",
+                        "en": "As soon as the competition is set up, because approval is done by hand",
+                        "it": "Appena la gara è configurata, perché l'approvazione è manuale",
+                        "de": "Sobald das Turnier eingerichtet ist, denn die Freigabe erfolgt von Hand",
+                        "es": "En cuanto la competición esté configurada, porque la validación es manual"
+                    },
+                    {
+                        "fr": "La veille de la compétition",
+                        "en": "The day before the competition",
+                        "it": "La vigilia della gara",
+                        "de": "Am Vortag des Turniers",
+                        "es": "La víspera de la competición"
+                    },
+                    {
+                        "fr": "Le matin même",
+                        "en": "On the morning itself",
+                        "it": "La mattina stessa",
+                        "de": "Am Morgen selbst",
+                        "es": "La misma mañana"
+                    },
+                    {
+                        "fr": "Après les qualifications",
+                        "en": "After qualification",
+                        "it": "Dopo le qualificazioni",
+                        "de": "Nach der Qualifikation",
+                        "es": "Después de la calificación"
+                    }
                 ],
                 "correct": 0,
-                "explain": "La validation est faite par des humains : s'y prendre tard, c'est risquer de ne pas pouvoir publier."
+                "explain": {
+                    "fr": "La validation est faite par des humains : s'y prendre tard, c'est risquer de ne pas pouvoir publier.",
+                    "en": "Approval is done by people: leaving it late risks not being able to publish at all.",
+                    "it": "L'approvazione è fatta da persone: muoversi tardi significa rischiare di non poter pubblicare.",
+                    "de": "Die Freigabe erfolgt durch Menschen: wer spät dran ist, riskiert, gar nicht veröffentlichen zu können.",
+                    "es": "La validación la hacen personas: dejarlo para el final es arriesgarse a no poder publicar."
+                }
             }
         ]
     },
     "challenge": {
-        "intro": "<p>À vous de jouer.</p><p>Sur votre compétition ouverte :</p><ol><li>Ouvrez la page <b>Envoyer à ianseo.net</b> et repérez le lien de <b>demande de code</b>.</li><li>Ouvrez la page <b>Saisie des codes en-ligne</b>.</li></ol><p class=\"guide-tip\">💡 Ce défi ne vous demande <b>pas</b> de faire une vraie demande de code : ne demandez un code que pour un concours qui aura réellement lieu.</p><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+        "intro": {
+            "fr": "<p>À vous de jouer.</p><p>Sur votre compétition ouverte :</p><ol><li>Ouvrez la page <b>Envoyer à ianseo.net</b> et repérez le lien de <b>demande de code</b>.</li><li>Ouvrez la page <b>Saisie des codes en-ligne</b>.</li></ol><p class=\"guide-tip\">💡 Ce défi ne vous demande <b>pas</b> de faire une vraie demande de code : ne demandez un code que pour un concours qui aura réellement lieu.</p><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+            "en": "<p>Your turn.</p><p>On your open competition:</p><ol><li>Open the <b>Send to ianseo.net</b> page and find the <b>code request</b> link.</li><li>Open the <b>Online codes</b> page.</li></ol><p class=\"guide-tip\">💡 This challenge does <b>not</b> ask you to make a real code request: only ask for a code for a competition that will really take place.</p><p>Click <b>Check</b> when it is done.</p>",
+            "it": "<p>Tocca a te.</p><p>Sulla tua gara aperta:</p><ol><li>Apri la pagina <b>Invia a ianseo.net</b> e individua il collegamento di <b>richiesta del codice</b>.</li><li>Apri la pagina <b>Inserimento dei codici online</b>.</li></ol><p class=\"guide-tip\">💡 Questa sfida <b>non</b> ti chiede di fare una vera richiesta di codice: chiedi un codice solo per una gara che si terrà davvero.</p><p>Clicca su <b>Verifica</b> quando è fatto.</p>",
+            "de": "<p>Sie sind dran.</p><p>In Ihrem geöffneten Turnier:</p><ol><li>Öffnen Sie die Seite <b>An ianseo.net senden</b> und finden Sie den Link zur <b>Code-Anfrage</b>.</li><li>Öffnen Sie die Seite <b>Eingabe der Online-Codes</b>.</li></ol><p class=\"guide-tip\">💡 Diese Aufgabe verlangt <b>keine</b> echte Code-Anfrage: fordern Sie einen Code nur für ein Turnier an, das wirklich stattfindet.</p><p>Klicken Sie auf <b>Prüfen</b>, wenn es erledigt ist.</p>",
+            "es": "<p>Le toca a usted.</p><p>En su competición abierta:</p><ol><li>Abra la página <b>Enviar a ianseo.net</b> y localice el enlace de <b>solicitud de código</b>.</li><li>Abra la página <b>Introducción de los códigos en línea</b>.</li></ol><p class=\"guide-tip\">💡 Este reto <b>no</b> le pide hacer una solicitud de código real: pida un código solo para un concurso que se vaya a celebrar de verdad.</p><p>Haga clic en <b>Verificar</b> cuando esté hecho.</p>"
+        },
         "conditions": [
             "upload_results_visited",
             "online_codes_visited"

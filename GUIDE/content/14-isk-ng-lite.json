@@ -1,16 +1,47 @@
 {
-    "id": "isk-ng-lite",
+    "lang": "fr",
+    "id": "3wrmhl4ee0qdono4xgpy",
     "type": "formation",
-    "title": "Saisie sur téléphone avec ISK-NG Lite (~15min)",
-    "description": "Faites saisir les scores par les archers eux-mêmes, sur leur propre téléphone, avec la version gratuite d'IanseoScoreKeeper NG. Activation, QR-codes et verrouillage des sessions.",
-    "version": "1.0",
-    "group": "Pour aller plus loin",
+    "title": {
+        "fr": "Saisie sur téléphone avec ISK-NG Lite (~15min)",
+        "en": "Scoring on a phone with ISK-NG Lite (~15 min)",
+        "it": "Inserimento da telefono con ISK-NG Lite (~15 min)",
+        "de": "Eingabe am Telefon mit ISK-NG Lite (~15 Min.)",
+        "es": "Introducción desde el teléfono con ISK-NG Lite (~15 min)"
+    },
+    "description": {
+        "fr": "Faites saisir les scores par les archers eux-mêmes, sur leur propre téléphone, avec la version gratuite d'IanseoScoreKeeper NG. Activation, QR-codes et verrouillage des sessions.",
+        "en": "Let the archers enter their own scores, on their own phones, with the free version of IanseoScoreKeeper NG. Turning it on, QR codes and locking the sessions.",
+        "it": "Fai inserire i punteggi dagli arcieri stessi, sul loro telefono, con la versione gratuita di IanseoScoreKeeper NG. Attivazione, QR-code e blocco dei turni.",
+        "de": "Lassen Sie die Schützen ihre Ergebnisse selbst eingeben, auf dem eigenen Telefon, mit der kostenlosen Fassung von IanseoScoreKeeper NG. Einschalten, QR-Codes und Sperren der Durchgänge.",
+        "es": "Haga que los propios arqueros introduzcan sus puntuaciones, en su teléfono, con la versión gratuita de IanseoScoreKeeper NG. Activación, códigos QR y bloqueo de los turnos."
+    },
+    "version": "1.1",
+    "group": {
+        "fr": "Pour aller plus loin",
+        "en": "Going further",
+        "it": "Per approfondire",
+        "de": "Weiterführendes",
+        "es": "Para ir más lejos"
+    },
     "order": 14,
     "steps": [
         {
             "id": "intro",
-            "title": "ISK-NG Lite : la saisie par les archers",
-            "content": "<p><b>IanseoScoreKeeper NG</b> (ISK-NG) est l'application mobile de ianseo. Les archers saisissent leurs scores <b>sur leur propre téléphone</b>, et les scores remontent <b>automatiquement</b> dans ianseo.</p><p>Il existe deux versions :</p><ul><li><b>Lite</b> — <b>gratuite et sans publicité</b> : saisie des scores, récolte des <b>scores de qualification</b>, contrôle des sessions accessibles aux archers, QR-codes sur les feuilles de marque.</li><li><b>Pro</b> — payante (licence) : en plus, la récolte des <b>scores de duels</b>, le regroupement de tablettes, la <b>supervision en direct</b> et le contrôle à distance.</li></ul><p><b>Cette formation couvre la version Lite</b>, celle qui convient à l'immense majorité des concours de club.</p><p class=\"guide-tip\">💡 En Lite, ce sont les <b>téléphones des archers</b> qui servent — vous n'avez aucun matériel à acheter.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "title": {
+                "fr": "ISK-NG Lite : la saisie par les archers",
+                "en": "ISK-NG Lite: the archers do the scoring",
+                "it": "ISK-NG Lite: l'inserimento fatto dagli arcieri",
+                "de": "ISK-NG Lite: die Schützen geben selbst ein",
+                "es": "ISK-NG Lite: los arqueros introducen sus puntuaciones"
+            },
+            "content": {
+                "fr": "<p><b>IanseoScoreKeeper NG</b> (ISK-NG) est l'application mobile de ianseo. Les archers saisissent leurs scores <b>sur leur propre téléphone</b>, et les scores remontent <b>automatiquement</b> dans ianseo.</p><p>Il existe deux versions :</p><ul><li><b>Lite</b> — <b>gratuite et sans publicité</b> : saisie des scores, récolte des <b>scores de qualification</b>, contrôle des sessions accessibles aux archers, QR-codes sur les feuilles de marque.</li><li><b>Pro</b> — payante (licence) : en plus, la récolte des <b>scores de duels</b>, le regroupement de tablettes, la <b>supervision en direct</b> et le contrôle à distance.</li></ul><p><b>Cette formation couvre la version Lite</b>, celle qui convient à l'immense majorité des concours de club.</p><p class=\"guide-tip\">💡 En Lite, ce sont les <b>téléphones des archers</b> qui servent — vous n'avez aucun matériel à acheter.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+                "en": "<p><b>IanseoScoreKeeper NG</b> (ISK-NG) is ianseo's mobile app. Archers enter their scores <b>on their own phones</b>, and the scores come back into ianseo <b>by themselves</b>.</p><p>There are two versions:</p><ul><li><b>Lite</b> — <b>free and without advertising</b>: score entry, collection of the <b>qualification scores</b>, control of which sessions archers can reach, QR codes on the score sheets.</li><li><b>Pro</b> — paid (a licence): on top of that, collection of the <b>match scores</b>, grouping of tablets, <b>live supervision</b> and remote control.</li></ul><p><b>This course covers the Lite version</b>, the one that suits the vast majority of club competitions.</p><p class=\"guide-tip\">💡 In Lite it is the <b>archers' own phones</b> that are used — you have no equipment to buy.</p><p>Click <b>Next</b>.</p>",
+                "it": "<p><b>IanseoScoreKeeper NG</b> (ISK-NG) è l'applicazione mobile di ianseo. Gli arcieri inseriscono i propri punteggi <b>sul proprio telefono</b>, e i punteggi risalgono <b>automaticamente</b> in ianseo.</p><p>Esistono due versioni:</p><ul><li><b>Lite</b> — <b>gratuita e senza pubblicità</b>: inserimento dei punteggi, raccolta dei <b>punteggi di qualificazione</b>, controllo dei turni accessibili agli arcieri, QR-code sugli score.</li><li><b>Pro</b> — a pagamento (licenza): in più, la raccolta dei <b>punteggi degli scontri</b>, il raggruppamento di tablet, la <b>supervisione in diretta</b> e il controllo a distanza.</li></ul><p><b>Questo corso copre la versione Lite</b>, quella che va bene per la grandissima maggioranza delle gare sociali.</p><p class=\"guide-tip\">💡 In Lite si usano i <b>telefoni degli arcieri</b> — non c'è nulla da acquistare.</p><p>Clicca su <b>Avanti</b>.</p>",
+                "de": "<p><b>IanseoScoreKeeper NG</b> (ISK-NG) ist die mobile App von ianseo. Die Schützen geben ihre Ergebnisse <b>auf dem eigenen Telefon</b> ein, und die Ergebnisse laufen <b>von selbst</b> in ianseo ein.</p><p>Es gibt zwei Fassungen:</p><ul><li><b>Lite</b> — <b>kostenlos und ohne Werbung</b>: Ergebniseingabe, Sammeln der <b>Qualifikationsergebnisse</b>, Steuerung der für die Schützen erreichbaren Durchgänge, QR-Codes auf den Scorekarten.</li><li><b>Pro</b> — kostenpflichtig (Lizenz): dazu das Sammeln der <b>Duellergebnisse</b>, das Gruppieren von Tablets, die <b>Überwachung in Echtzeit</b> und die Fernsteuerung.</li></ul><p><b>Dieser Kurs behandelt die Fassung Lite</b>, die für die allermeisten Vereinsturniere passt.</p><p class=\"guide-tip\">💡 In Lite dienen die <b>Telefone der Schützen</b> — Sie müssen keine Geräte kaufen.</p><p>Klicken Sie auf <b>Weiter</b>.</p>",
+                "es": "<p><b>IanseoScoreKeeper NG</b> (ISK-NG) es la aplicación móvil de ianseo. Los arqueros introducen sus puntuaciones <b>en su propio teléfono</b>, y las puntuaciones suben <b>automáticamente</b> a ianseo.</p><p>Hay dos versiones:</p><ul><li><b>Lite</b> — <b>gratuita y sin publicidad</b>: introducción de puntuaciones, recogida de las <b>puntuaciones de calificación</b>, control de los turnos accesibles a los arqueros, códigos QR en las hojas de puntuación.</li><li><b>Pro</b> — de pago (licencia): además, la recogida de las <b>puntuaciones de los enfrentamientos</b>, la agrupación de tabletas, la <b>supervisión en directo</b> y el control a distancia.</li></ul><p><b>Este curso cubre la versión Lite</b>, la que conviene a la inmensa mayoría de los concursos de club.</p><p class=\"guide-tip\">💡 En Lite se usan los <b>teléfonos de los arqueros</b> — no tiene que comprar ningún equipo.</p><p>Haga clic en <b>Siguiente</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -18,8 +49,20 @@
         },
         {
             "id": "ouvrir",
-            "title": "Ouvrir une compétition",
-            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p>",
+            "title": {
+                "fr": "Ouvrir une compétition",
+                "en": "Open a competition",
+                "it": "Apri una gara",
+                "de": "Ein Turnier öffnen",
+                "es": "Abra una competición"
+            },
+            "content": {
+                "fr": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p>",
+                "en": "<p>The guide is waiting for a <b>competition to be open</b>.</p>",
+                "it": "<p>La guida attende che una <b>gara sia aperta</b>.</p>",
+                "de": "<p>Die Anleitung wartet darauf, dass ein <b>Turnier geöffnet</b> ist.</p>",
+                "es": "<p>La guía espera a que haya una <b>competición abierta</b>.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -27,7 +70,13 @@
                     "condition": "tournament_open",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : ouvrez une compétition."
+                    "hint": {
+                        "fr": "En attente : ouvrez une compétition.",
+                        "en": "Waiting: open a competition.",
+                        "it": "In attesa: apri una gara.",
+                        "de": "Es wird gewartet: öffnen Sie ein Turnier.",
+                        "es": "En espera: abra una competición."
+                    }
                 }
             ],
             "optional": false,
@@ -35,8 +84,20 @@
         },
         {
             "id": "activer",
-            "title": "Activer ISK-NG en version Lite",
-            "content": "<p>Allez dans <b>Compétition &gt; Paramètres de la compétition &gt; Informations de la compétition</b> et descendez jusqu'au bloc <b>ISK-NG</b>.</p><p>Réglez :</p><ul><li><b>Mode</b> → <b>ng-lite</b> (la version gratuite),</li><li><b>Adresse du serveur</b> → l'<b>adresse IP de votre ordinateur</b> sur le réseau Wi-Fi du gymnase.</li></ul><p>Puis <b>Sauvegardez</b>.</p><p class=\"guide-tip\">⚠️ <b>L'adresse IP est indispensable</b>, même en version Lite. C'est elle que les téléphones vont contacter. Vous la trouvez dans les paramètres de votre Wi-Fi, sous <b>« Adresse IPv4 »</b> — par exemple <code>192.168.0.82</code>. Saisissez-la telle quelle.</p><p class=\"guide-tip\">💡 Si vous choisissez <b>ng-pro</b> sans saisir de <b>numéro de licence</b>, ianseo <b>rebascule automatiquement en Lite</b>. Pas de mauvaise surprise possible.</p>",
+            "title": {
+                "fr": "Activer ISK-NG en version Lite",
+                "en": "Turning on ISK-NG in Lite",
+                "it": "Attivare ISK-NG in versione Lite",
+                "de": "ISK-NG in der Fassung Lite einschalten",
+                "es": "Activar ISK-NG en versión Lite"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Compétition &gt; Paramètres de la compétition &gt; Informations de la compétition</b> et descendez jusqu'au bloc <b>ISK-NG</b>.</p><p>Réglez :</p><ul><li><b>Mode</b> → <b>ng-lite</b> (la version gratuite),</li><li><b>Adresse du serveur</b> → l'<b>adresse IP de votre ordinateur</b> sur le réseau Wi-Fi du gymnase.</li></ul><p>Puis <b>Sauvegardez</b>.</p><p class=\"guide-tip\">⚠️ <b>L'adresse IP est indispensable</b>, même en version Lite. C'est elle que les téléphones vont contacter. Vous la trouvez dans les paramètres de votre Wi-Fi, sous <b>« Adresse IPv4 »</b> — par exemple <code>192.168.0.82</code>. Saisissez-la telle quelle.</p><p class=\"guide-tip\">💡 Si vous choisissez <b>ng-pro</b> sans saisir de <b>numéro de licence</b>, ianseo <b>rebascule automatiquement en Lite</b>. Pas de mauvaise surprise possible.</p>",
+                "en": "<p>Go to <b>Competition &gt; Edit Competition Info &gt; Competition Info</b> and scroll down to the <b>ISK-NG</b> block.</p><p>Set:</p><ul><li><b>Mode</b> → <b>ng-lite</b> (the free version),</li><li><b>Server address</b> → the <b>IP address of your computer</b> on the venue's Wi-Fi network.</li></ul><p>Then <b>Save</b>.</p><p class=\"guide-tip\">⚠️ <b>The IP address is required</b>, even in Lite. It is what the phones contact. You will find it in your Wi-Fi settings, under <b>\"IPv4 address\"</b> — <code>192.168.0.82</code>, for instance. Enter it exactly as it is.</p><p class=\"guide-tip\">💡 If you choose <b>ng-pro</b> without entering a <b>licence number</b>, ianseo <b>falls back to Lite by itself</b>. No unpleasant surprise is possible.</p>",
+                "it": "<p>Vai in <b>Gara &gt; Modifica Dati Gara &gt; Info Gara</b> e scendi fino al blocco <b>ISK-NG</b>.</p><p>Imposta:</p><ul><li><b>Modo</b> → <b>ng-lite</b> (la versione gratuita),</li><li><b>Indirizzo del server</b> → l'<b>indirizzo IP del tuo computer</b> sulla rete Wi-Fi del palazzetto.</li></ul><p>Poi <b>Salva</b>.</p><p class=\"guide-tip\">⚠️ <b>L'indirizzo IP è indispensabile</b>, anche in versione Lite. È quello che i telefoni contatteranno. Lo trovi nelle impostazioni del tuo Wi-Fi, sotto <b>«Indirizzo IPv4»</b> — per esempio <code>192.168.0.82</code>. Inseriscilo così com'è.</p><p class=\"guide-tip\">💡 Se scegli <b>ng-pro</b> senza inserire un <b>numero di licenza</b>, ianseo <b>ritorna automaticamente a Lite</b>. Nessuna brutta sorpresa possibile.</p>",
+                "de": "<p>Gehen Sie zu <b>Turnier &gt; Turnierdaten ändern &gt; Turnierinfo verwalten</b> und scrollen Sie bis zum Block <b>ISK-NG</b>.</p><p>Stellen Sie ein:</p><ul><li><b>Modus</b> → <b>ng-lite</b> (die kostenlose Fassung),</li><li><b>Serveradresse</b> → die <b>IP-Adresse Ihres Rechners</b> im WLAN der Halle.</li></ul><p>Dann <b>Speichern</b>.</p><p class=\"guide-tip\">⚠️ <b>Die IP-Adresse ist unverzichtbar</b>, auch in der Fassung Lite. Sie ist es, die die Telefone ansprechen. Sie finden sie in Ihren WLAN-Einstellungen unter <b>„IPv4-Adresse\"</b> — etwa <code>192.168.0.82</code>. Tragen Sie sie genau so ein.</p><p class=\"guide-tip\">💡 Wählen Sie <b>ng-pro</b>, ohne eine <b>Lizenznummer</b> einzutragen, fällt ianseo <b>von selbst auf Lite zurück</b>. Eine böse Überraschung ist nicht möglich.</p>",
+                "es": "<p>Vaya a <b>Competición &gt; Editar Datos de la Competición &gt; Detalles de la Competición</b> y baje hasta el bloque <b>ISK-NG</b>.</p><p>Ajuste:</p><ul><li><b>Modo</b> → <b>ng-lite</b> (la versión gratuita),</li><li><b>Dirección del servidor</b> → la <b>dirección IP de su ordenador</b> en la red Wi-Fi del pabellón.</li></ul><p>Y luego <b>Guarde</b>.</p><p class=\"guide-tip\">⚠️ <b>La dirección IP es imprescindible</b>, incluso en versión Lite. Es la que van a contactar los teléfonos. La encontrará en los ajustes de su Wi-Fi, bajo <b>«Dirección IPv4»</b> — por ejemplo <code>192.168.0.82</code>. Escríbala tal cual.</p><p class=\"guide-tip\">💡 Si elige <b>ng-pro</b> sin introducir un <b>número de licencia</b>, ianseo <b>vuelve automáticamente a Lite</b>. No es posible ninguna mala sorpresa.</p>"
+            },
             "page": "/Tournament/index.php",
             "triggers": [
                 {
@@ -50,7 +111,13 @@
                     "condition": "isk_ng_lite_enabled",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : réglez le mode ISK-NG sur « ng-lite » et sauvegardez."
+                    "hint": {
+                        "fr": "En attente : réglez le mode ISK-NG sur « ng-lite » et sauvegardez.",
+                        "en": "Waiting: set the ISK-NG mode to \"ng-lite\" and save.",
+                        "it": "In attesa: imposta il modo ISK-NG su «ng-lite» e salva.",
+                        "de": "Es wird gewartet: stellen Sie den ISK-NG-Modus auf „ng-lite\" und speichern Sie.",
+                        "es": "En espera: ponga el modo ISK-NG en «ng-lite» y guarde."
+                    }
                 }
             ],
             "optional": false,
@@ -58,8 +125,20 @@
         },
         {
             "id": "menu-isk",
-            "title": "Le menu ISK apparaît",
-            "content": "<p>Une fois ISK-NG activé et la compétition rouverte, un nouveau menu <b>ISK</b> apparaît dans la barre de navigation.</p><p>En version <b>Lite</b>, il contient :</p><ul><li><b>Imprimer les codes d'installation QR</b> — pour que les archers installent et connectent l'appli,</li><li><b>Imprimer les scores de cible sur feuille de QR-Code</b> — le QR-code que l'archer scanne pour ouvrir la saisie de sa cible,</li><li><b>Gérer les sessions verrouillées</b> — pour ouvrir/fermer la saisie,</li><li>les <b>Paramètres de calcul du classement</b> et le <b>Groupement de périphériques</b>.</li></ul><p class=\"guide-tip\">💡 Les entrées <b>Gestion des périphériques</b>, <b>Résultats</b> et <b>Contrôle du terrain</b> n'apparaissent <b>pas</b> en Lite : elles sont réservées à la version Pro. C'est normal, ne les cherchez pas.</p>",
+            "title": {
+                "fr": "Le menu ISK apparaît",
+                "en": "The ISK menu appears",
+                "it": "Compare il menu ISK",
+                "de": "Das Menü ISK erscheint",
+                "es": "Aparece el menú ISK"
+            },
+            "content": {
+                "fr": "<p>Une fois ISK-NG activé et la compétition rouverte, un nouveau menu <b>ISK</b> apparaît dans la barre de navigation.</p><p>En version <b>Lite</b>, il contient :</p><ul><li><b>Imprimer les codes d'installation QR</b> — pour que les archers installent et connectent l'appli,</li><li><b>Imprimer les scores de cible sur feuille de QR-Code</b> — le QR-code que l'archer scanne pour ouvrir la saisie de sa cible,</li><li><b>Gérer les sessions verrouillées</b> — pour ouvrir/fermer la saisie,</li><li>les <b>Paramètres de calcul du classement</b> et le <b>Groupement de périphériques</b>.</li></ul><p class=\"guide-tip\">💡 Les entrées <b>Gestion des périphériques</b>, <b>Résultats</b> et <b>Contrôle du terrain</b> n'apparaissent <b>pas</b> en Lite : elles sont réservées à la version Pro. C'est normal, ne les cherchez pas.</p>",
+                "en": "<p>Once ISK-NG is on and the competition has been reopened, a new <b>ISK</b> menu appears in the navigation bar.</p><p>In <b>Lite</b> it holds:</p><ul><li><b>Print the QR installation codes</b> — so archers can install and connect the app,</li><li><b>Print the target scores on a QR code sheet</b> — the QR code the archer scans to open the scoring for their target,</li><li><b>Manage Locked Sessions</b> — to open and close the scoring,</li><li>the <b>ranking calculation settings</b> and the <b>device grouping</b>.</li></ul><p class=\"guide-tip\">💡 The entries <b>Device management</b>, <b>Results</b> and <b>Field monitor</b> do <b>not</b> appear in Lite: they belong to the Pro version. That is normal — do not go looking for them.</p>",
+                "it": "<p>Una volta attivato ISK-NG e riaperta la gara, nella barra di navigazione compare un nuovo menu <b>ISK</b>.</p><p>In versione <b>Lite</b> contiene:</p><ul><li><b>Stampa i codici QR di installazione</b> — perché gli arcieri installino e colleghino l'app,</li><li><b>Stampa i punteggi delle piazzole su foglio di QR-Code</b> — il QR-code che l'arciere scansiona per aprire l'inserimento della propria piazzola,</li><li><b>Gestisci le sessioni bloccate</b> — per aprire e chiudere l'inserimento,</li><li>le <b>impostazioni di calcolo della classifica</b> e il <b>raggruppamento dei dispositivi</b>.</li></ul><p class=\"guide-tip\">💡 Le voci <b>Gestione dispositivi</b>, <b>Risultati</b> e <b>Controllo del campo</b> <b>non</b> compaiono in Lite: sono riservate alla versione Pro. È normale, non cercarle.</p>",
+                "de": "<p>Ist ISK-NG eingeschaltet und das Turnier wieder geöffnet, erscheint in der Navigationsleiste ein neues Menü <b>ISK</b>.</p><p>In der Fassung <b>Lite</b> enthält es:</p><ul><li><b>Die QR-Installationscodes drucken</b> — damit die Schützen die App einrichten und verbinden,</li><li><b>Die Scheibenergebnisse als QR-Code-Blatt drucken</b> — der QR-Code, den der Schütze scannt, um die Eingabe für seine Scheibe zu öffnen,</li><li><b>Gesperrte Sitzungen verwalten</b> — um die Eingabe zu öffnen und zu schliessen,</li><li>die <b>Einstellungen der Platzierungsberechnung</b> und die <b>Gerätegruppierung</b>.</li></ul><p class=\"guide-tip\">💡 Die Einträge <b>Geräteverwaltung</b>, <b>Ergebnisse</b> und <b>Feldüberwachung</b> erscheinen in Lite <b>nicht</b>: sie gehören zur Fassung Pro. Das ist normal — suchen Sie nicht danach.</p>",
+                "es": "<p>Una vez activado ISK-NG y reabierta la competición, aparece un nuevo menú <b>ISK</b> en la barra de navegación.</p><p>En versión <b>Lite</b> contiene:</p><ul><li><b>Imprimir los códigos QR de instalación</b> — para que los arqueros instalen y conecten la aplicación,</li><li><b>Imprimir las puntuaciones de diana en hoja de códigos QR</b> — el código QR que el arquero escanea para abrir la introducción de su diana,</li><li><b>Gestionar las sesiones bloqueadas</b> — para abrir y cerrar la introducción,</li><li>los <b>ajustes de cálculo de la clasificación</b> y la <b>agrupación de dispositivos</b>.</li></ul><p class=\"guide-tip\">💡 Las entradas <b>Gestión de dispositivos</b>, <b>Resultados</b> y <b>Control del campo</b> <b>no</b> aparecen en Lite: están reservadas a la versión Pro. Es normal, no las busque.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -67,8 +146,20 @@
         },
         {
             "id": "qr-installation",
-            "title": "Les codes d'installation QR",
-            "content": "<p>Allez dans <b>ISK &gt; Imprimer les codes d'installation QR</b>.</p><p>ianseo génère une feuille de <b>QR-codes</b>. Chaque archer :</p><ol><li>installe l'application <b>IanseoScoreKeeper NG</b> (gratuite) sur son téléphone,</li><li><b>scanne le QR-code</b> depuis le menu de l'application,</li><li>se retrouve automatiquement connecté à <b>votre</b> compétition, sur <b>votre</b> serveur.</li></ol><p>Affichez ces QR-codes à l'accueil et sur le pas de tir.</p><p class=\"guide-tip\">⚠️ Les téléphones doivent être sur le <b>même réseau Wi-Fi</b> que l'ordinateur ianseo — c'est tout l'intérêt de l'adresse IP saisie à l'étape précédente. Pas de Wi-Fi commun = pas de remontée de scores.</p>",
+            "title": {
+                "fr": "Les codes d'installation QR",
+                "en": "The QR installation codes",
+                "it": "I codici QR di installazione",
+                "de": "Die QR-Installationscodes",
+                "es": "Los códigos QR de instalación"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>ISK &gt; Imprimer les codes d'installation QR</b>.</p><p>ianseo génère une feuille de <b>QR-codes</b>. Chaque archer :</p><ol><li>installe l'application <b>IanseoScoreKeeper NG</b> (gratuite) sur son téléphone,</li><li><b>scanne le QR-code</b> depuis le menu de l'application,</li><li>se retrouve automatiquement connecté à <b>votre</b> compétition, sur <b>votre</b> serveur.</li></ol><p>Affichez ces QR-codes à l'accueil et sur le pas de tir.</p><p class=\"guide-tip\">⚠️ Les téléphones doivent être sur le <b>même réseau Wi-Fi</b> que l'ordinateur ianseo — c'est tout l'intérêt de l'adresse IP saisie à l'étape précédente. Pas de Wi-Fi commun = pas de remontée de scores.</p>",
+                "en": "<p>Go to <b>ISK &gt; Print the QR installation codes</b>.</p><p>ianseo produces a sheet of <b>QR codes</b>. Each archer:</p><ol><li>installs the <b>IanseoScoreKeeper NG</b> app (free) on their phone,</li><li><b>scans the QR code</b> from the app's menu,</li><li>ends up connected automatically to <b>your</b> competition, on <b>your</b> server.</li></ol><p>Put these QR codes up at the welcome desk and on the shooting line.</p><p class=\"guide-tip\">⚠️ The phones must be on the <b>same Wi-Fi network</b> as the ianseo computer — that is the whole point of the IP address entered in the previous step. No shared Wi-Fi, no scores coming back.</p>",
+                "it": "<p>Vai in <b>ISK &gt; Stampa i codici QR di installazione</b>.</p><p>ianseo genera un foglio di <b>QR-code</b>. Ogni arciere:</p><ol><li>installa l'applicazione <b>IanseoScoreKeeper NG</b> (gratuita) sul proprio telefono,</li><li><b>scansiona il QR-code</b> dal menu dell'applicazione,</li><li>si ritrova collegato automaticamente alla <b>tua</b> gara, sul <b>tuo</b> server.</li></ol><p>Esponi questi QR-code all'accoglienza e sulla linea di tiro.</p><p class=\"guide-tip\">⚠️ I telefoni devono stare sulla <b>stessa rete Wi-Fi</b> del computer con ianseo — è tutto il senso dell'indirizzo IP inserito al passo precedente. Niente Wi-Fi comune, niente punteggi che risalgono.</p>",
+                "de": "<p>Gehen Sie zu <b>ISK &gt; Die QR-Installationscodes drucken</b>.</p><p>ianseo erzeugt ein Blatt mit <b>QR-Codes</b>. Jeder Schütze:</p><ol><li>installiert die App <b>IanseoScoreKeeper NG</b> (kostenlos) auf seinem Telefon,</li><li><b>scannt den QR-Code</b> aus dem Menü der App,</li><li>ist danach automatisch mit <b>Ihrem</b> Turnier auf <b>Ihrem</b> Server verbunden.</li></ol><p>Hängen Sie diese QR-Codes am Empfang und an der Schiesslinie aus.</p><p class=\"guide-tip\">⚠️ Die Telefone müssen im <b>selben WLAN</b> sein wie der ianseo-Rechner — genau dafür ist die IP-Adresse aus dem vorigen Schritt da. Kein gemeinsames WLAN, keine Ergebnisse.</p>",
+                "es": "<p>Vaya a <b>ISK &gt; Imprimir los códigos QR de instalación</b>.</p><p>ianseo genera una hoja de <b>códigos QR</b>. Cada arquero:</p><ol><li>instala la aplicación <b>IanseoScoreKeeper NG</b> (gratuita) en su teléfono,</li><li><b>escanea el código QR</b> desde el menú de la aplicación,</li><li>queda conectado automáticamente a <b>su</b> competición, en <b>su</b> servidor.</li></ol><p>Exponga estos códigos QR en la acogida y en la línea de tiro.</p><p class=\"guide-tip\">⚠️ Los teléfonos deben estar en la <b>misma red Wi-Fi</b> que el ordenador con ianseo — ese es todo el sentido de la dirección IP del paso anterior. Sin Wi-Fi común, no suben las puntuaciones.</p>"
+            },
             "page": "/Api/ISK-NG/QRcodes.php",
             "triggers": [
                 {
@@ -83,8 +174,20 @@
         },
         {
             "id": "qr-cibles",
-            "title": "Les QR-codes des cibles",
-            "content": "<p>Allez ensuite dans <b>ISK &gt; Imprimer les scores de cible sur feuille de QR-Code</b>.</p><p>En scannant le QR-code de sa cible, le téléphone de l'archer sait <b>qui tire où</b> : il ouvre directement la bonne feuille de marque. C'est le <b>même QR-code</b> que celui qui figure sur les feuilles de marque imprimées.</p><p class=\"guide-tip\">💡 Vous pouvez donc aussi faire figurer les <b>QR-codes directement sur les feuilles de marque</b> (Qualification &gt; Impression des feuilles de marque). Le QR-code tient alors compte de la <b>série</b> sur laquelle l'archer va saisir.</p><p class=\"guide-tip\">⚠️ Les <b>codes-barres</b> classiques ne sont lisibles qu'avec une <b>imprimante laser</b> — le jet d'encre n'est pas assez précis. Préférez les <b>QR-codes</b>.</p>",
+            "title": {
+                "fr": "Les QR-codes des cibles",
+                "en": "The target QR codes",
+                "it": "I QR-code delle piazzole",
+                "de": "Die QR-Codes der Scheiben",
+                "es": "Los códigos QR de las dianas"
+            },
+            "content": {
+                "fr": "<p>Allez ensuite dans <b>ISK &gt; Imprimer les scores de cible sur feuille de QR-Code</b>.</p><p>En scannant le QR-code de sa cible, le téléphone de l'archer sait <b>qui tire où</b> : il ouvre directement la bonne feuille de marque. C'est le <b>même QR-code</b> que celui qui figure sur les feuilles de marque imprimées.</p><p class=\"guide-tip\">💡 Vous pouvez donc aussi faire figurer les <b>QR-codes directement sur les feuilles de marque</b> (Qualification &gt; Impression des feuilles de marque). Le QR-code tient alors compte de la <b>série</b> sur laquelle l'archer va saisir.</p><p class=\"guide-tip\">⚠️ Les <b>codes-barres</b> classiques ne sont lisibles qu'avec une <b>imprimante laser</b> — le jet d'encre n'est pas assez précis. Préférez les <b>QR-codes</b>.</p>",
+                "en": "<p>Then go to <b>ISK &gt; Print the target scores on a QR code sheet</b>.</p><p>By scanning the QR code of their target, an archer's phone knows <b>who shoots where</b>: it opens the right score sheet directly. It is the <b>same QR code</b> as the one printed on the score sheets.</p><p class=\"guide-tip\">💡 So you can also have the <b>QR codes printed on the score sheets themselves</b> (Qualification &gt; Scorecard Printout). The QR code then takes account of the <b>distance</b> the archer is going to score.</p><p class=\"guide-tip\">⚠️ Ordinary <b>barcodes</b> can only be read when printed on a <b>laser printer</b> — inkjet is not precise enough. Prefer <b>QR codes</b>.</p>",
+                "it": "<p>Vai poi in <b>ISK &gt; Stampa i punteggi delle piazzole su foglio di QR-Code</b>.</p><p>Scansionando il QR-code della propria piazzola, il telefono dell'arciere sa <b>chi tira dove</b>: apre direttamente lo score giusto. È lo <b>stesso QR-code</b> che compare sugli score stampati.</p><p class=\"guide-tip\">💡 Puoi quindi anche far comparire i <b>QR-code direttamente sugli score</b> (Qualificazione &gt; Stampa Score). Il QR-code tiene allora conto della <b>volée</b> su cui l'arciere andrà a inserire.</p><p class=\"guide-tip\">⚠️ I <b>codici a barre</b> classici sono leggibili solo con una <b>stampante laser</b> — il getto d'inchiostro non è abbastanza preciso. Preferisci i <b>QR-code</b>.</p>",
+                "de": "<p>Gehen Sie danach zu <b>ISK &gt; Die Scheibenergebnisse als QR-Code-Blatt drucken</b>.</p><p>Scannt ein Schütze den QR-Code seiner Scheibe, weiss sein Telefon, <b>wer wo schiesst</b>: es öffnet direkt die richtige Scorekarte. Es ist <b>derselbe QR-Code</b> wie der auf den gedruckten Scorekarten.</p><p class=\"guide-tip\">💡 Sie können die <b>QR-Codes also auch direkt auf die Scorekarten</b> drucken lassen (Qualifikation &gt; Scorekarten Druck). Der QR-Code berücksichtigt dann die <b>Passe</b>, die der Schütze eingeben wird.</p><p class=\"guide-tip\">⚠️ Gewöhnliche <b>Barcodes</b> sind nur mit einem <b>Laserdrucker</b> lesbar — Tintenstrahl ist nicht genau genug. Nehmen Sie lieber <b>QR-Codes</b>.</p>",
+                "es": "<p>Vaya después a <b>ISK &gt; Imprimir las puntuaciones de diana en hoja de códigos QR</b>.</p><p>Al escanear el código QR de su diana, el teléfono del arquero sabe <b>quién tira dónde</b>: abre directamente la hoja correcta. Es el <b>mismo código QR</b> que figura en las hojas de puntuación impresas.</p><p class=\"guide-tip\">💡 También puede hacer que los <b>códigos QR salgan directamente en las hojas de puntuación</b> (Calificación &gt; Imprimir las Hojas de Puntuación). El código QR tiene entonces en cuenta la <b>serie</b> en la que el arquero va a introducir.</p><p class=\"guide-tip\">⚠️ Los <b>códigos de barras</b> clásicos solo son legibles con una <b>impresora láser</b> — la inyección de tinta no es lo bastante precisa. Prefiera los <b>códigos QR</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -92,8 +195,20 @@
         },
         {
             "id": "sessions-verrouillees",
-            "title": "Verrouiller / déverrouiller les sessions",
-            "content": "<p>Allez dans <b>ISK &gt; Gérer les sessions verrouillées</b>.</p><p>C'est votre <b>interrupteur</b> : vous décidez quelles <b>sessions (départs)</b> sont ouvertes à la saisie par les archers.</p><ul><li><b>Déverrouillée</b> → les archers de ce départ peuvent saisir.</li><li><b>Verrouillée</b> → la saisie est fermée (avant le départ, ou une fois les scores validés).</li></ul><p class=\"guide-tip\">⚠️ <b>Verrouillez le départ dès que les scores sont validés.</b> Sinon un archer peut encore modifier sa feuille de marque après signature — et vos classements bougent sous vos pieds.</p>",
+            "title": {
+                "fr": "Verrouiller / déverrouiller les sessions",
+                "en": "Locking and unlocking the sessions",
+                "it": "Bloccare e sbloccare i turni",
+                "de": "Durchgänge sperren und freigeben",
+                "es": "Bloquear y desbloquear los turnos"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>ISK &gt; Gérer les sessions verrouillées</b>.</p><p>C'est votre <b>interrupteur</b> : vous décidez quelles <b>sessions (départs)</b> sont ouvertes à la saisie par les archers.</p><ul><li><b>Déverrouillée</b> → les archers de ce départ peuvent saisir.</li><li><b>Verrouillée</b> → la saisie est fermée (avant le départ, ou une fois les scores validés).</li></ul><p class=\"guide-tip\">⚠️ <b>Verrouillez le départ dès que les scores sont validés.</b> Sinon un archer peut encore modifier sa feuille de marque après signature — et vos classements bougent sous vos pieds.</p>",
+                "en": "<p>Go to <b>ISK &gt; Manage Locked Sessions</b>.</p><p>This is your <b>switch</b>: you decide which <b>sessions</b> are open for archers to score in.</p><ul><li><b>Unlocked</b> → the archers of that session can enter scores.</li><li><b>Locked</b> → scoring is closed (before the session, or once the scores are approved).</li></ul><p class=\"guide-tip\">⚠️ <b>Lock the session as soon as the scores are approved.</b> Otherwise an archer can still change their score sheet after signing it — and your rankings shift under your feet.</p>",
+                "it": "<p>Vai in <b>ISK &gt; Gestisci le sessioni bloccate</b>.</p><p>È il tuo <b>interruttore</b>: decidi quali <b>turni</b> sono aperti all'inserimento da parte degli arcieri.</p><ul><li><b>Sbloccato</b> → gli arcieri di quel turno possono inserire.</li><li><b>Bloccato</b> → l'inserimento è chiuso (prima del turno, oppure una volta convalidati i punteggi).</li></ul><p class=\"guide-tip\">⚠️ <b>Blocca il turno appena i punteggi sono convalidati.</b> Altrimenti un arciere può ancora modificare il proprio score dopo la firma — e le tue classifiche si muovono sotto i piedi.</p>",
+                "de": "<p>Gehen Sie zu <b>ISK &gt; Gesperrte Sitzungen verwalten</b>.</p><p>Das ist Ihr <b>Schalter</b>: Sie entscheiden, welche <b>Durchgänge</b> für die Eingabe durch die Schützen offen sind.</p><ul><li><b>Freigegeben</b> → die Schützen dieses Durchgangs können eingeben.</li><li><b>Gesperrt</b> → die Eingabe ist geschlossen (vor dem Durchgang, oder sobald die Ergebnisse bestätigt sind).</li></ul><p class=\"guide-tip\">⚠️ <b>Sperren Sie den Durchgang, sobald die Ergebnisse bestätigt sind.</b> Sonst kann ein Schütze seine Scorekarte auch nach der Unterschrift noch ändern — und Ihre Platzierungen verschieben sich unter Ihren Füssen.</p>",
+                "es": "<p>Vaya a <b>ISK &gt; Gestionar las sesiones bloqueadas</b>.</p><p>Es su <b>interruptor</b>: usted decide qué <b>turnos</b> están abiertos a la introducción por parte de los arqueros.</p><ul><li><b>Desbloqueado</b> → los arqueros de ese turno pueden introducir.</li><li><b>Bloqueado</b> → la introducción está cerrada (antes del turno, o una vez validadas las puntuaciones).</li></ul><p class=\"guide-tip\">⚠️ <b>Bloquee el turno en cuanto las puntuaciones estén validadas.</b> Si no, un arquero puede aún modificar su hoja después de firmarla — y sus clasificaciones se mueven bajo sus pies.</p>"
+            },
             "page": "/Api/ISK-NG/Sessions.php",
             "triggers": [
                 {
@@ -108,8 +223,20 @@
         },
         {
             "id": "fin",
-            "title": "C'est terminé !",
-            "content": "<p>Vos archers peuvent saisir depuis leur téléphone.</p><p><b>À retenir :</b></p><ul><li><b>Lite = gratuit</b> : qualifications, sur les téléphones des archers. <b>Pro = payant</b> : duels, tablettes, supervision.</li><li>Il faut <b>toujours</b> renseigner l'<b>adresse IP</b> de l'ordinateur ianseo, même en Lite.</li><li>Tout le monde sur le <b>même Wi-Fi</b>.</li><li>Les <b>QR-codes</b> connectent l'appli, puis la cible.</li><li><b>Verrouillez la session</b> dès les scores validés.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "title": {
+                "fr": "C'est terminé !",
+                "en": "That's it!",
+                "it": "Finito!",
+                "de": "Fertig!",
+                "es": "¡Terminado!"
+            },
+            "content": {
+                "fr": "<p>Vos archers peuvent saisir depuis leur téléphone.</p><p><b>À retenir :</b></p><ul><li><b>Lite = gratuit</b> : qualifications, sur les téléphones des archers. <b>Pro = payant</b> : duels, tablettes, supervision.</li><li>Il faut <b>toujours</b> renseigner l'<b>adresse IP</b> de l'ordinateur ianseo, même en Lite.</li><li>Tout le monde sur le <b>même Wi-Fi</b>.</li><li>Les <b>QR-codes</b> connectent l'appli, puis la cible.</li><li><b>Verrouillez la session</b> dès les scores validés.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+                "en": "<p>Your archers can score from their phones.</p><p><b>What to remember:</b></p><ul><li><b>Lite = free</b>: qualification, on the archers' phones. <b>Pro = paid</b>: matches, tablets, supervision.</li><li>The <b>IP address</b> of the ianseo computer must <b>always</b> be filled in, even in Lite.</li><li>Everybody on the <b>same Wi-Fi</b>.</li><li>The <b>QR codes</b> connect the app, then the target.</li><li><b>Lock the session</b> as soon as the scores are approved.</li></ul><p>Now for the <b>quiz</b> and the <b>challenge</b>!</p>",
+                "it": "<p>I tuoi arcieri possono inserire dal telefono.</p><p><b>Da ricordare:</b></p><ul><li><b>Lite = gratuita</b>: qualificazioni, sui telefoni degli arcieri. <b>Pro = a pagamento</b>: scontri, tablet, supervisione.</li><li>Bisogna <b>sempre</b> indicare l'<b>indirizzo IP</b> del computer con ianseo, anche in Lite.</li><li>Tutti sulla <b>stessa rete Wi-Fi</b>.</li><li>I <b>QR-code</b> collegano l'app, poi la piazzola.</li><li><b>Blocca il turno</b> appena i punteggi sono convalidati.</li></ul><p>Spazio al <b>quiz</b> e alla <b>sfida</b>!</p>",
+                "de": "<p>Ihre Schützen können vom Telefon aus eingeben.</p><p><b>Zum Merken:</b></p><ul><li><b>Lite = kostenlos</b>: Qualifikation, auf den Telefonen der Schützen. <b>Pro = kostenpflichtig</b>: Duelle, Tablets, Überwachung.</li><li>Die <b>IP-Adresse</b> des ianseo-Rechners muss <b>immer</b> eingetragen sein, auch in Lite.</li><li>Alle im <b>selben WLAN</b>.</li><li>Die <b>QR-Codes</b> verbinden erst die App, dann die Scheibe.</li><li><b>Sperren Sie den Durchgang</b>, sobald die Ergebnisse bestätigt sind.</li></ul><p>Weiter zum <b>Quiz</b> und zur <b>Aufgabe</b>!</p>",
+                "es": "<p>Sus arqueros pueden introducir desde su teléfono.</p><p><b>Para recordar:</b></p><ul><li><b>Lite = gratuita</b>: calificación, en los teléfonos de los arqueros. <b>Pro = de pago</b>: enfrentamientos, tabletas, supervisión.</li><li>Hay que indicar <b>siempre</b> la <b>dirección IP</b> del ordenador con ianseo, incluso en Lite.</li><li>Todo el mundo en la <b>misma Wi-Fi</b>.</li><li>Los <b>códigos QR</b> conectan la aplicación y luego la diana.</li><li><b>Bloquee el turno</b> en cuanto las puntuaciones estén validadas.</li></ul><p>¡Adelante con el <b>cuestionario</b> y el <b>reto</b>!</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -121,64 +248,250 @@
         "shuffle": true,
         "questions": [
             {
-                "q": "Que permet la version Lite (gratuite) d'ISK-NG ?",
+                "q": {
+                    "fr": "Que permet la version Lite (gratuite) d'ISK-NG ?",
+                    "en": "What does the Lite (free) version of ISK-NG allow?",
+                    "it": "Che cosa permette la versione Lite (gratuita) di ISK-NG?",
+                    "de": "Was erlaubt die Fassung Lite (kostenlos) von ISK-NG?",
+                    "es": "¿Qué permite la versión Lite (gratuita) de ISK-NG?"
+                },
                 "choices": [
-                    "La récolte des scores de qualification sur les téléphones des archers",
-                    "La récolte des scores de duels",
-                    "La supervision en direct de la récolte",
-                    "Le contrôle à distance des tablettes"
+                    {
+                        "fr": "La récolte des scores de qualification sur les téléphones des archers",
+                        "en": "Collecting the qualification scores on the archers' phones",
+                        "it": "La raccolta dei punteggi di qualificazione sui telefoni degli arcieri",
+                        "de": "Das Sammeln der Qualifikationsergebnisse auf den Telefonen der Schützen",
+                        "es": "La recogida de las puntuaciones de calificación en los teléfonos de los arqueros"
+                    },
+                    {
+                        "fr": "La récolte des scores de duels",
+                        "en": "Collecting the match scores",
+                        "it": "La raccolta dei punteggi degli scontri",
+                        "de": "Das Sammeln der Duellergebnisse",
+                        "es": "La recogida de las puntuaciones de los enfrentamientos"
+                    },
+                    {
+                        "fr": "La supervision en direct de la récolte",
+                        "en": "Live supervision of the collection",
+                        "it": "La supervisione in diretta della raccolta",
+                        "de": "Die Überwachung des Sammelns in Echtzeit",
+                        "es": "La supervisión en directo de la recogida"
+                    },
+                    {
+                        "fr": "Le contrôle à distance des tablettes",
+                        "en": "Remote control of the tablets",
+                        "it": "Il controllo a distanza dei tablet",
+                        "de": "Die Fernsteuerung der Tablets",
+                        "es": "El control a distancia de las tabletas"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Les duels, la supervision en direct et le contrôle à distance sont réservés à la version Pro (payante)."
+                "explain": {
+                    "fr": "Les duels, la supervision en direct et le contrôle à distance sont réservés à la version Pro (payante).",
+                    "en": "Matches, live supervision and remote control belong to the Pro version, which is paid for.",
+                    "it": "Scontri, supervisione in diretta e controllo a distanza sono riservati alla versione Pro (a pagamento).",
+                    "de": "Duelle, Überwachung in Echtzeit und Fernsteuerung gehören zur kostenpflichtigen Fassung Pro.",
+                    "es": "Los enfrentamientos, la supervisión en directo y el control a distancia están reservados a la versión Pro (de pago)."
+                }
             },
             {
-                "q": "Faut-il renseigner l'adresse IP du serveur en version Lite ?",
+                "q": {
+                    "fr": "Faut-il renseigner l'adresse IP du serveur en version Lite ?",
+                    "en": "Does the server's IP address have to be filled in for the Lite version?",
+                    "it": "Bisogna indicare l'indirizzo IP del server nella versione Lite?",
+                    "de": "Muss die IP-Adresse des Servers in der Fassung Lite eingetragen werden?",
+                    "es": "¿Hay que indicar la dirección IP del servidor en la versión Lite?"
+                },
                 "choices": [
-                    "Oui, elle est indispensable dans les deux versions",
-                    "Non, seulement en version Pro",
-                    "Non, ianseo la détecte tout seul",
-                    "Seulement si on utilise des tablettes"
+                    {
+                        "fr": "Oui, elle est indispensable dans les deux versions",
+                        "en": "Yes, it is required in both versions",
+                        "it": "Sì, è indispensabile in entrambe le versioni",
+                        "de": "Ja, sie ist in beiden Fassungen unverzichtbar",
+                        "es": "Sí, es imprescindible en ambas versiones"
+                    },
+                    {
+                        "fr": "Non, seulement en version Pro",
+                        "en": "No, only in the Pro version",
+                        "it": "No, soltanto nella versione Pro",
+                        "de": "Nein, nur in der Fassung Pro",
+                        "es": "No, solo en la versión Pro"
+                    },
+                    {
+                        "fr": "Non, ianseo la détecte tout seul",
+                        "en": "No, ianseo finds it by itself",
+                        "it": "No, ianseo lo rileva da solo",
+                        "de": "Nein, ianseo erkennt sie von selbst",
+                        "es": "No, ianseo la detecta solo"
+                    },
+                    {
+                        "fr": "Seulement si on utilise des tablettes",
+                        "en": "Only when tablets are used",
+                        "it": "Solo se si usano i tablet",
+                        "de": "Nur wenn Tablets verwendet werden",
+                        "es": "Solo si se usan tabletas"
+                    }
                 ],
                 "correct": 0,
-                "explain": "C'est l'adresse que les téléphones contactent : sans elle, aucune remontée de score."
+                "explain": {
+                    "fr": "C'est l'adresse que les téléphones contactent : sans elle, aucune remontée de score.",
+                    "en": "It is the address the phones contact: without it, no score comes back.",
+                    "it": "È l'indirizzo che i telefoni contattano: senza di esso nessun punteggio risale.",
+                    "de": "Es ist die Adresse, die die Telefone ansprechen: ohne sie kommt kein Ergebnis an.",
+                    "es": "Es la dirección que contactan los teléfonos: sin ella no sube ninguna puntuación."
+                }
             },
             {
-                "q": "Vous choisissez le mode « ng-pro » sans saisir de numéro de licence. Que se passe-t-il ?",
+                "q": {
+                    "fr": "Vous choisissez le mode « ng-pro » sans saisir de numéro de licence. Que se passe-t-il ?",
+                    "en": "You choose the \"ng-pro\" mode without entering a licence number. What happens?",
+                    "it": "Scegli il modo «ng-pro» senza inserire un numero di licenza. Che cosa succede?",
+                    "de": "Sie wählen den Modus „ng-pro\", ohne eine Lizenznummer einzutragen. Was geschieht?",
+                    "es": "Elige el modo «ng-pro» sin introducir un número de licencia. ¿Qué ocurre?"
+                },
                 "choices": [
-                    "ianseo rebascule automatiquement en Lite",
-                    "La compétition est bloquée",
-                    "Les fonctions Pro sont activées gratuitement",
-                    "Les scores ne remontent plus"
+                    {
+                        "fr": "ianseo rebascule automatiquement en Lite",
+                        "en": "ianseo falls back to Lite by itself",
+                        "it": "ianseo ritorna automaticamente a Lite",
+                        "de": "ianseo fällt von selbst auf Lite zurück",
+                        "es": "ianseo vuelve automáticamente a Lite"
+                    },
+                    {
+                        "fr": "La compétition est bloquée",
+                        "en": "The competition is blocked",
+                        "it": "La gara viene bloccata",
+                        "de": "Das Turnier wird gesperrt",
+                        "es": "La competición queda bloqueada"
+                    },
+                    {
+                        "fr": "Les fonctions Pro sont activées gratuitement",
+                        "en": "The Pro features are enabled for free",
+                        "it": "Le funzioni Pro si attivano gratuitamente",
+                        "de": "Die Pro-Funktionen werden kostenlos freigeschaltet",
+                        "es": "Las funciones Pro se activan gratis"
+                    },
+                    {
+                        "fr": "Les scores ne remontent plus",
+                        "en": "The scores stop coming back",
+                        "it": "I punteggi non risalgono più",
+                        "de": "Es kommen keine Ergebnisse mehr an",
+                        "es": "Las puntuaciones dejan de subir"
+                    }
                 ],
                 "correct": 0,
-                "explain": "La version Pro exige une licence ; sans elle, ianseo retombe proprement sur ng-lite."
+                "explain": {
+                    "fr": "La version Pro exige une licence ; sans elle, ianseo retombe proprement sur ng-lite.",
+                    "en": "The Pro version needs a licence; without one, ianseo drops back cleanly to ng-lite.",
+                    "it": "La versione Pro richiede una licenza; senza, ianseo ricade in modo pulito su ng-lite.",
+                    "de": "Die Fassung Pro verlangt eine Lizenz; ohne sie fällt ianseo sauber auf ng-lite zurück.",
+                    "es": "La versión Pro exige una licencia; sin ella, ianseo cae limpiamente en ng-lite."
+                }
             },
             {
-                "q": "Pourquoi verrouiller une session dans ISK ?",
+                "q": {
+                    "fr": "Pourquoi verrouiller une session dans ISK ?",
+                    "en": "Why lock a session in ISK?",
+                    "it": "Perché bloccare un turno in ISK?",
+                    "de": "Warum sperrt man einen Durchgang in ISK?",
+                    "es": "¿Por qué bloquear un turno en ISK?"
+                },
                 "choices": [
-                    "Pour empêcher les archers de modifier leurs scores une fois validés",
-                    "Pour économiser la batterie des téléphones",
-                    "Pour accélérer le calcul du classement",
-                    "Pour imprimer les feuilles de marque"
+                    {
+                        "fr": "Pour empêcher les archers de modifier leurs scores une fois validés",
+                        "en": "To stop archers changing their scores once they are approved",
+                        "it": "Per impedire agli arcieri di modificare i punteggi una volta convalidati",
+                        "de": "Um zu verhindern, dass Schützen bestätigte Ergebnisse noch ändern",
+                        "es": "Para impedir que los arqueros modifiquen sus puntuaciones una vez validadas"
+                    },
+                    {
+                        "fr": "Pour économiser la batterie des téléphones",
+                        "en": "To save the phones' batteries",
+                        "it": "Per risparmiare la batteria dei telefoni",
+                        "de": "Um den Akku der Telefone zu schonen",
+                        "es": "Para ahorrar batería en los teléfonos"
+                    },
+                    {
+                        "fr": "Pour accélérer le calcul du classement",
+                        "en": "To speed up the ranking calculation",
+                        "it": "Per accelerare il calcolo della classifica",
+                        "de": "Um die Platzierungsberechnung zu beschleunigen",
+                        "es": "Para acelerar el cálculo de la clasificación"
+                    },
+                    {
+                        "fr": "Pour imprimer les feuilles de marque",
+                        "en": "To print the score sheets",
+                        "it": "Per stampare gli score",
+                        "de": "Um die Scorekarten zu drucken",
+                        "es": "Para imprimir las hojas de puntuación"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Une session déverrouillée reste modifiable par les archers, même après signature."
+                "explain": {
+                    "fr": "Une session déverrouillée reste modifiable par les archers, même après signature.",
+                    "en": "An unlocked session can still be changed by the archers, even after signing.",
+                    "it": "Un turno sbloccato resta modificabile dagli arcieri, anche dopo la firma.",
+                    "de": "Ein freigegebener Durchgang bleibt für die Schützen änderbar, auch nach der Unterschrift.",
+                    "es": "Un turno desbloqueado sigue siendo modificable por los arqueros, incluso después de firmar."
+                }
             },
             {
-                "q": "Codes-barres ou QR-codes sur les feuilles de marque ?",
+                "q": {
+                    "fr": "Codes-barres ou QR-codes sur les feuilles de marque ?",
+                    "en": "Barcodes or QR codes on the score sheets?",
+                    "it": "Codici a barre o QR-code sugli score?",
+                    "de": "Barcodes oder QR-Codes auf den Scorekarten?",
+                    "es": "¿Códigos de barras o códigos QR en las hojas de puntuación?"
+                },
                 "choices": [
-                    "QR-codes : les codes-barres exigent une imprimante laser",
-                    "Codes-barres : ils sont plus fiables",
-                    "Peu importe, les deux se valent",
-                    "Ni l'un ni l'autre en version Lite"
+                    {
+                        "fr": "QR-codes : les codes-barres exigent une imprimante laser",
+                        "en": "QR codes: barcodes need a laser printer",
+                        "it": "QR-code: i codici a barre richiedono una stampante laser",
+                        "de": "QR-Codes: Barcodes verlangen einen Laserdrucker",
+                        "es": "Códigos QR: los de barras exigen una impresora láser"
+                    },
+                    {
+                        "fr": "Codes-barres : ils sont plus fiables",
+                        "en": "Barcodes: they are more reliable",
+                        "it": "Codici a barre: sono più affidabili",
+                        "de": "Barcodes: sie sind zuverlässiger",
+                        "es": "Códigos de barras: son más fiables"
+                    },
+                    {
+                        "fr": "Peu importe, les deux se valent",
+                        "en": "It makes no difference, both are equal",
+                        "it": "Non importa, si equivalgono",
+                        "de": "Egal, beide sind gleichwertig",
+                        "es": "Da igual, valen lo mismo"
+                    },
+                    {
+                        "fr": "Ni l'un ni l'autre en version Lite",
+                        "en": "Neither one in the Lite version",
+                        "it": "Né gli uni né gli altri nella versione Lite",
+                        "de": "Weder noch in der Fassung Lite",
+                        "es": "Ninguno de los dos en la versión Lite"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Les imprimantes jet d'encre ne sont pas assez précises pour un code-barres exploitable."
+                "explain": {
+                    "fr": "Les imprimantes jet d'encre ne sont pas assez précises pour un code-barres exploitable.",
+                    "en": "Inkjet printers are not precise enough for a barcode that can actually be read.",
+                    "it": "Le stampanti a getto d'inchiostro non sono abbastanza precise per un codice a barre utilizzabile.",
+                    "de": "Tintenstrahldrucker sind für einen brauchbaren Barcode nicht genau genug.",
+                    "es": "Las impresoras de inyección de tinta no son lo bastante precisas para un código de barras aprovechable."
+                }
             }
         ]
     },
     "challenge": {
-        "intro": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition :</p><ol><li>Activez <b>ISK-NG en mode Lite</b> (<code>ng-lite</code>) dans les informations de la compétition, avec l'adresse IP de votre machine.</li><li>Allez imprimer les <b>codes d'installation QR</b> depuis le menu ISK.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+        "intro": {
+            "fr": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition :</p><ol><li>Activez <b>ISK-NG en mode Lite</b> (<code>ng-lite</code>) dans les informations de la compétition, avec l'adresse IP de votre machine.</li><li>Allez imprimer les <b>codes d'installation QR</b> depuis le menu ISK.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+            "en": "<p>Your turn, <b>unaided</b>.</p><p>On your competition:</p><ol><li>Turn on <b>ISK-NG in Lite mode</b> (<code>ng-lite</code>) in the competition information, with your machine's IP address.</li><li>Go and print the <b>QR installation codes</b> from the ISK menu.</li></ol><p>Click <b>Check</b> when it is done.</p>",
+            "it": "<p>Tocca a te, <b>senza aiuto</b>.</p><p>Sulla tua gara:</p><ol><li>Attiva <b>ISK-NG in modo Lite</b> (<code>ng-lite</code>) nelle informazioni della gara, con l'indirizzo IP della tua macchina.</li><li>Vai a stampare i <b>codici QR di installazione</b> dal menu ISK.</li></ol><p>Clicca su <b>Verifica</b> quando è fatto.</p>",
+            "de": "<p>Sie sind dran, <b>ohne Hilfe</b>.</p><p>In Ihrem Turnier:</p><ol><li>Schalten Sie <b>ISK-NG im Modus Lite</b> (<code>ng-lite</code>) in den Turnierinformationen ein, mit der IP-Adresse Ihres Rechners.</li><li>Drucken Sie die <b>QR-Installationscodes</b> aus dem Menü ISK.</li></ol><p>Klicken Sie auf <b>Prüfen</b>, wenn es erledigt ist.</p>",
+            "es": "<p>Le toca a usted, <b>sin ayuda</b>.</p><p>En su competición:</p><ol><li>Active <b>ISK-NG en modo Lite</b> (<code>ng-lite</code>) en los datos de la competición, con la dirección IP de su máquina.</li><li>Vaya a imprimir los <b>códigos QR de instalación</b> desde el menú ISK.</li></ol><p>Haga clic en <b>Verificar</b> cuando esté hecho.</p>"
+        },
         "conditions": [
             "isk_ng_lite_enabled",
             "isk_qrcodes_visited"

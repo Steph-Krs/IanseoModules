@@ -1,58 +1,113 @@
 <?php
-define('HTDOCS', dirname(dirname(dirname(dirname(dirname(__FILE__))))));
+/**
+ * Visual course editor of the Interactive Guide module.
+ *
+ * Builds the content file of a course: its steps, the element each step points
+ * at, the quiz and the challenge. The alternative to this screen is writing the
+ * JSON by hand, which the editor still allows through its "JSON source" panel —
+ * the two views edit the same document.
+ *
+ * THE TRIGGER RECORDER is what makes the editor usable at all. Writing a CSS
+ * selector for an ianseo element by hand means reading ianseo's HTML; instead,
+ * the editor sends the author into the real software with a recording panel
+ * (rendered by the module's menu.php, so it exists on every page), and each
+ * click there becomes a trigger. The result travels back through localStorage.
+ *
+ * IMPORT AND EXPORT use the .ianseo convention: the JSON compressed with zlib,
+ * as ianseo's own exports are. Import decodes with json_decode and never
+ * unserialize, so a crafted file cannot instantiate objects.
+ */
+
+// Walk up to the ianseo root instead of counting directory levels, so the module
+// keeps working if it is installed somewhere other than Modules/Custom/.
+$_guide_root = __DIR__;
+while ($_guide_root !== dirname($_guide_root) && !is_file($_guide_root . '/config.php')) {
+    $_guide_root = dirname($_guide_root);
+}
+define('HTDOCS', $_guide_root);
+unset($_guide_root);
+
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib/guide-lib.inc.php');
 
 guide_check_admin();
 
+$adminUrl    = (function_exists('cmod_url') ? cmod_url(dirname(__DIR__)) : $CFG->ROOT_DIR . 'Modules/Custom/GUIDE/') . 'admin/';
 $contentDir  = dirname(__DIR__) . '/content/';
 $editId      = isset($_GET['id']) ? preg_replace('/[^a-z0-9\-]/', '', strtolower($_GET['id'])) : '';
-$condFile    = dirname(__DIR__) . '/conditions.json';
-$conditions  = file_exists($condFile) ? (json_decode(file_get_contents($condFile), true) ?: []) : [];
+// Condition labels are multilingual; resolve them here rather than in the
+// browser, so the script below only ever handles plain strings. Only the label
+// is display text — the id is what a course stores, and it stays untouched.
+$conditions = [];
+foreach (guide_load_conditions() as $c) {
+    $c['label'] = guide_i18n($c['label'] ?? '');
+    $conditions[] = $c;
+}
+
+/**
+ * Base language offered for a course that does not declare one.
+ *
+ * The author's own interface language, not English: a course starts out as
+ * plain strings in whatever language its author writes, and that is what the
+ * base language names. Defaulting to English filed a French author's original
+ * text under "en" the first time they translated a field — the course then
+ * carried its French as its English translation.
+ *
+ * Narrowed to the languages the selector offers, a regional code through its
+ * parent (fr-ca gives fr), so the value always matches an option.
+ */
+$editorLangs    = ['en', 'fr', 'it', 'de', 'es'];
+$editorBaseLang = 'en';
+foreach ([guide_lang_code(), mb_substr(guide_lang_code(), 0, 2)] as $try) {
+    if (in_array($try, $editorLangs, true)) { $editorBaseLang = $try; break; }
+}
 
 $action = $_POST['action'] ?? '';
 
-/* ---- Export .ianseo (JSON compressé zlib, comme les exports natifs ianseo) ---- */
+/* ---- Export .ianseo: the JSON compressed with zlib, as ianseo's own exports ---- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'export-ianseo') {
     $data = json_decode($_POST['json_raw'] ?? '', true);
-    if (!$data || empty($data['id'])) { http_response_code(400); echo 'JSON invalide'; exit; }
+    if (!$data || empty($data['id'])) { http_response_code(400); echo guide_text('EdErrJson'); exit; }
     $payload = gzcompress(json_encode($data, JSON_UNESCAPED_UNICODE), 9);
     $fname   = preg_replace('/[^a-z0-9\-]/', '', strtolower($data['id'])) . '.ianseo';
     header('Content-Type: application/octet-stream');
     header('Content-Disposition: attachment; filename="' . $fname . '"');
+    // bytes: Content-Length counts bytes on the wire, so strlen is the right
+    // one here — mb_strlen would understate a compressed payload and truncate
+    // the download.
     header('Content-Length: ' . strlen($payload));
     echo $payload;
     exit;
 }
 
-/* ---- Import .ianseo (ou .json brut en repli) ---- */
+/* ---- Import .ianseo, falling back to a plain .json ---- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'import-ianseo') {
     header('Content-Type: application/json; charset=utf-8');
     if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-        echo json_encode(['error' => 'Fichier manquant ou en erreur.']); exit;
+        echo json_encode(['error' => guide_text('EdErrFileMissing')]); exit;
     }
     $raw  = file_get_contents($_FILES['file']['tmp_name']);
     $json = @gzuncompress($raw);          // .ianseo (zlib)
-    if ($json === false) $json = $raw;    // repli : .json non compressé
+    if ($json === false) $json = $raw;    // fall back to an uncompressed .json
     $data = json_decode($json, true);
     if (!$data || empty($data['id']) || !isset($data['steps'])) {
-        echo json_encode(['error' => 'Fichier invalide (formation non reconnue).']); exit;
+        echo json_encode(['error' => guide_text('EdErrFileNotCourse')]); exit;
     }
     echo json_encode(['ok' => true, 'formation' => $data], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-/* ---- Sauvegarde ---- */
+/* ---- Save ---- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['json_raw'])) {
     $isAjax = !empty($_POST['is_ajax']);
     $error  = null;
     $data   = json_decode($_POST['json_raw'], true);
     if (!$data || empty($data['id'])) {
-        $error = 'JSON invalide ou champ "id" manquant.';
+        $error = guide_text('EdErrJsonNoId');
     } else {
         $cleanId = preg_replace('/[^a-z0-9\-]/', '', strtolower($data['id']));
         if ($cleanId !== $data['id']) {
-            $error = 'L\'id ne doit contenir que des lettres minuscules, chiffres et tirets.';
+            $error = guide_text('EdErrIdChars');
         } else {
             $targetFile = null;
             foreach (glob($contentDir . '*.json') as $f) {
@@ -64,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['json_raw'])) {
                 $targetFile = $contentDir . sprintf('%02d', $count) . '-' . $cleanId . '.json';
             }
             if (file_put_contents($targetFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) === false) {
-                $error = 'Erreur lors de l\'écriture du fichier.';
+                $error = guide_text('EdErrWrite');
             }
         }
     }
@@ -79,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['json_raw'])) {
     }
 }
 
-/* ---- Chargement ---- */
+/* ---- Load ---- */
 function generateFormationId() {
     $chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     $id = '';
@@ -99,24 +154,26 @@ if (!$formation) {
         'id' => generateFormationId(),
         'title' => '', 'description' => '', 'version' => '1.0',
         'steps' => [[
-            'id' => 'step-' . substr(md5(uniqid()), 0, 6),
-            'title' => 'Titre de l\'étape',
-            'content' => '<p>Contenu HTML de l\'étape.</p>',
+            'id' => 'step-' . substr(md5(uniqid()), 0, 6),   // bytes: md5 is hex, one byte per character
+            'title' => guide_text('EdStepTitlePh'),
+            'content' => guide_text('EdNewStepBody'),
             'page' => null, 'triggers' => [],
         ]],
     ];
 }
 
-$PAGE_TITLE = $editId ? 'Éditer : ' . $formation['title'] : 'Nouvelle formation';
+// guide_i18n(): the title of a translated course is a language map, and the
+// page title needs the reader's own language, not the whole map.
+$PAGE_TITLE = $editId ? guide_text('EdTitleEdit', guide_i18n($formation['title'])) : guide_text('EdTitleNew');
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 
 <style>
-/* ===== Mise en page ===== */
+/* ===== Layout ===== */
 
 .ge-top-bar  { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
 
-/* Formation metadata */
+/* Course metadata */
 .ge-meta {
   display: grid;
   grid-template-columns: 2fr 3fr 90px;
@@ -131,7 +188,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .ge-meta-field label { display: block; font-size: 11px; font-weight: 700; color: #0254a8; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 3px; }
 .ge-meta-field input { width: 100%; padding: 6px 9px; border: 1px solid #c8d4ec; border-radius: 5px; font-size: 13px; box-sizing: border-box; }
 
-/* ===== Éditeur : deux colonnes ===== */
+/* ===== Editor: two columns ===== */
 .ge-editor  { display: flex; gap: 20px; align-items: flex-start; }
 .ge-left    { width: 400px; flex-shrink: 0; }
 .ge-right   { flex: 1; min-width: 0; }
@@ -150,7 +207,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .tb-tip:hover { background: #ffe9a0 !important; }
 .tb-code  { font-family: monospace; font-size: 11px; background: #eef2ff !important; border-color: #c5cef5 !important; color: #082c7c !important; }
 
-/* ===== Panneau guide (éditeur principal) ===== */
+/* ===== The guide panel =====
+   Deliberately styled like the real panel: the author edits what the learner
+   will actually see, rather than a form that only resembles it. */
 .ge-panel {
   border-left: 2px solid rgba(2,84,168,.2);
   border-right: 2px solid rgba(2,84,168,.2);
@@ -179,7 +238,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .ge-panel-prog-fill { height: 100%; background: linear-gradient(90deg,#0254a8,#082c7c); border-radius: 2px; transition: width .3s; }
 .ge-panel-prog-txt  { font-size: 10px; color: #8a94c0; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
 
-/* ===== Zones éditables ===== */
+/* ===== Editable areas ===== */
 #pv-stitle {
   font-size: 14px; font-weight: 700; color: #082c7c;
   padding: 12px 16px 6px; min-height: 32px;
@@ -199,7 +258,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #pv-content[data-ph]:empty::before {
   content: attr(data-ph); color: #c0c8e0; pointer-events: none;
 }
-/* Styles du contenu (réplication de guide.css pour cette div) */
+/* Content styling, mirroring guide.css so the preview matches the panel */
 #pv-content p { margin: 0 0 8px; }
 #pv-content p:last-child { margin-bottom: 0; }
 #pv-content ul,
@@ -225,7 +284,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   padding: 1px 5px; font-size: 11px; font-family: monospace; color: #082c7c; font-weight: 600;
 }
 
-/* Image 16:9 (bandes noires auto) — preview éditeur + vignettes */
+/* 16:9 frame with automatic letterboxing — editor preview and thumbnails */
 .guide-img-16x9 {
   position: relative; width: 100%; padding-top: 56.25%;
   background: #000; border-radius: 8px; overflow: hidden;
@@ -239,7 +298,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #f-img-preview   { width: 180px; flex-shrink: 0; }
 .ge-img-ctrl { display: flex; gap: 10px; align-items: flex-start; margin-top: 4px; }
 
-/* Barre nav panneau (décorative) */
+/* Panel navigation bar */
 .ge-panel-nav {
   display: flex; justify-content: space-between; align-items: center;
   padding: 10px 12px; border-top: 1px solid #eef0f8; background: #f7f9ff; gap: 6px;
@@ -255,7 +314,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   color: #fff !important; border: none !important; flex: 1; text-align: center;
 }
 
-/* ===== Actions étape (sous la preview) + options ===== */
+/* ===== Step actions and options ===== */
 .ge-step-acts { display: flex; gap: 8px; margin-top: 12px; }
 
 .ge-opts { background: #fff; border: 1px solid #dde2f5; border-radius: 10px; padding: 14px 16px; }
@@ -279,7 +338,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .tr-kind { padding: 4px 5px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 11px; flex-shrink: 0; background: #fff; }
 .tr-kind option[value="action"] { color: #0254a8; }
 .tr-kind option[value="etat"]   { color: #7c5cbf; }
-/* Annule le width:100% de .ge-opt input[type=text] pour les champs de trigger */
+/* Cancels the width:100% of .ge-opt input[type=text] for the trigger fields */
 .tr-row input[type=text] { width: auto; }
 .tr-page { padding: 4px 6px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 11px; flex: 0 0 130px; box-sizing: border-box; }
 .tr-type { padding: 4px 5px; border: 1px solid #c8d4ec; border-radius: 4px; font-size: 12px; flex-shrink: 0; }
@@ -296,7 +355,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 .tr-del  { padding: 3px 7px !important; font-size: 11px !important; flex-shrink: 0; }
 .tr-hint { flex: 1; min-width: 0; padding: 4px 7px; border: 1px dashed #c8d4ec; border-radius: 4px; font-size: 11px; box-sizing: border-box; color: #555; background: #fafbff; }
 
-/* ===== Sections QCM / Défi ===== */
+/* ===== Quiz and challenge sections ===== */
 details.ge-extra { margin-top: 18px; border: 1px solid #dde2f5; border-radius: 10px; background: #fff; }
 details.ge-extra > summary {
   cursor: pointer; padding: 11px 16px; font-size: 13px; font-weight: 700; color: #0254a8;
@@ -318,7 +377,7 @@ details.ge-extra .ge-hint { font-weight: 400; }
 .qz-head b { color: #0254a8; font-size: 12px; }
 .qz-lbl { font-size: 11px; color: #888; margin: 6px 0 2px; }
 
-/* ===== JSON (accordéon) ===== */
+/* ===== Raw JSON accordion ===== */
 .ge-json-sect  { margin-top: 20px; }
 .ge-json-toggle {
   background: none; border: 1px solid #c8d4ec; border-radius: 6px;
@@ -350,163 +409,187 @@ details.ge-extra .ge-hint { font-weight: 400; }
 .ge-mt  { margin-top: 20px; }
 </style>
 
-<h1><?= $editId ? 'Éditer la formation' : 'Nouvelle formation' ?></h1>
-<p><a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/">← Retour à la liste</a></p>
+<h1><?= htmlspecialchars($editId ? guide_text('EdHeadingEdit') : guide_text('EdTitleNew')) ?></h1>
+<p><a href="<?= htmlspecialchars($adminUrl) ?>">← <?= htmlspecialchars(guide_text('EdBackList')) ?></a></p>
 
 <?php if (!empty($error)): ?>
-  <div class="ge-err">Erreur : <?= htmlspecialchars($error) ?></div>
+  <div class="ge-err"><?= htmlspecialchars(guide_text('EdErrorLabel')) ?> <?= htmlspecialchars($error) ?></div>
 <?php endif; ?>
 
 <div class="ge-main">
 
-<!-- Barre Export / Import -->
+<!-- Export and import bar -->
 <div class="ge-top-bar">
-  <button class="ge-btn ge-btn-ghost" onclick="exportIanseo()" title="Fichier .ianseo compressé (plus léger), comme les exports natifs ianseo">⬇ Exporter (.ianseo)</button>
+  <button class="ge-btn ge-btn-ghost" onclick="exportIanseo()" title="<?= htmlspecialchars(guide_text('EdExportHint')) ?>">⬇ <?= htmlspecialchars(guide_text('EdExport')) ?></button>
   <label class="ge-btn ge-btn-ghost" style="cursor:pointer">
-    ⬆ Importer (.ianseo)
+    ⬆ <?= htmlspecialchars(guide_text('EdImport')) ?>
     <input type="file" id="import-file" accept=".ianseo,.json,application/json" style="display:none">
   </label>
   <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/help.php" target="_blank"
-     class="ge-btn ge-btn-ghost" style="text-decoration:none;margin-left:auto">❔ Aide à la création</a>
+     class="ge-btn ge-btn-ghost" style="text-decoration:none;margin-left:auto">❔ <?= htmlspecialchars(guide_text('EdHelpLink')) ?></a>
 </div>
 
-<!-- Métadonnées formation -->
+<!-- Course metadata -->
 <div class="ge-meta">
   <div class="ge-meta-field">
-    <label>Titre de la formation</label>
-    <input type="text" id="f-title" placeholder="Ma première compétition" oninput="captureAndSync()">
+    <label><?= htmlspecialchars(guide_text('EdFieldTitle')) ?></label>
+    <input type="text" id="f-title" placeholder="<?= htmlspecialchars(guide_text('EdTitlePlaceholder')) ?>" oninput="captureAndSync()">
   </div>
   <div class="ge-meta-field">
-    <label>Description</label>
-    <input type="text" id="f-description" placeholder="Description courte..." oninput="captureAndSync()">
+    <label><?= htmlspecialchars(guide_text('EdFieldDesc')) ?></label>
+    <input type="text" id="f-description" placeholder="<?= htmlspecialchars(guide_text('EdDescPlaceholder')) ?>" oninput="captureAndSync()">
   </div>
   <div class="ge-meta-field">
-    <label>Version</label>
+    <label><?= htmlspecialchars(guide_text('EdFieldVersion')) ?></label>
     <input type="text" id="f-version" placeholder="1.0" oninput="captureAndSync()">
   </div>
   <div class="ge-meta-field">
-    <label>Groupe <span style="text-transform:none;font-weight:400;color:#999">(parcours)</span></label>
-    <input type="text" id="f-group" placeholder="Les bases" oninput="captureAndSync()">
+    <label><?= htmlspecialchars(guide_text('EdFieldGroup')) ?> <span style="text-transform:none;font-weight:400;color:#999"><?= htmlspecialchars(guide_text('EdGroupHint')) ?></span></label>
+    <input type="text" id="f-group" placeholder="<?= htmlspecialchars(guide_text('EdGroupPlaceholder')) ?>" oninput="captureAndSync()">
   </div>
   <div class="ge-meta-field">
-    <label>Sous-groupe</label>
-    <input type="text" id="f-subgroup" placeholder="(optionnel)" oninput="captureAndSync()">
+    <label><?= htmlspecialchars(guide_text('EdFieldSubgroup')) ?></label>
+    <input type="text" id="f-subgroup" placeholder="<?= htmlspecialchars(guide_text('EdSubgroupPlaceholder')) ?>" oninput="captureAndSync()">
   </div>
   <div class="ge-meta-field">
-    <label>Ordre</label>
+    <label><?= htmlspecialchars(guide_text('EdFieldOrder')) ?></label>
     <input type="number" id="f-order" placeholder="10" oninput="captureAndSync()">
+  </div>
+  <!-- Editing language. A course carries every language it has been written in,
+       inside its own file; this selector says which one the fields below show
+       and write. The original language is the one plain strings are written in,
+       which is what lets the editor turn a plain string into a language map
+       without mislabelling the text that was already there. -->
+  <div class="ge-meta-field">
+    <label><?= htmlspecialchars(guide_text('EdFieldEditLang')) ?></label>
+    <select id="f-lang" onchange="switchLang(this.value)"></select>
+  </div>
+  <div class="ge-meta-field">
+    <label><?= htmlspecialchars(guide_text('EdFieldBaseLang')) ?></label>
+    <?php
+    /* Pre-selected on the author's own language rather than on whichever option
+       comes first, so a new course never starts by calling its text English. */
+    $baseOptions = ['en' => 'LangEn', 'fr' => 'LangFr', 'it' => 'LangIt',
+                    'de' => 'LangDe', 'es' => 'LangEs'];
+    echo '<select id="f-baselang" onchange="captureAndSync()">';
+    foreach ($baseOptions as $code => $key) {
+        echo '<option value="' . $code . '"' . ($code === $editorBaseLang ? ' selected' : '') . '>'
+           . htmlspecialchars(guide_text($key), ENT_QUOTES, 'UTF-8') . '</option>';
+    }
+    echo '</select>';
+    ?>
   </div>
 </div>
 <p style="font-size:11px;color:#aaa;margin:-12px 0 14px">
   ID : <code style="background:#f0f4ff;padding:1px 6px;border-radius:3px;color:#555"><?= htmlspecialchars($formation['id']) ?></code>
-  — identifiant unique auto-généré, modifiable via le JSON si nécessaire
+  <?= htmlspecialchars(guide_text('EdIdHint')) ?>
 </p>
 
-<!-- Vignette de la formation -->
+<!-- Course thumbnail -->
 <div class="ge-opt" style="margin-bottom:18px">
-  <label>Vignette de la formation <span class="ge-hint">(optionnelle · 16:9 · GIF accepté · affichée dans le catalogue)</span></label>
+  <label><?= htmlspecialchars(guide_text('EdThumbnail')) ?> <span class="ge-hint"><?= htmlspecialchars(guide_text('EdThumbnailHint')) ?></span></label>
   <div class="ge-img-ctrl">
     <div id="f-img-preview" style="display:none"></div>
     <div>
       <label class="ge-btn ge-btn-ghost" style="cursor:pointer">
-        🖼 Choisir une image
+        🖼 <?= htmlspecialchars(guide_text('EdChooseImage')) ?>
         <input type="file" accept="image/*" style="display:none" onchange="handleFormationImageFile(this)">
       </label>
-      <button type="button" class="ge-btn ge-btn-del" id="f-img-remove" style="display:none;margin-left:6px" onclick="removeFormationImage()">Retirer</button>
+      <button type="button" class="ge-btn ge-btn-del" id="f-img-remove" style="display:none;margin-left:6px" onclick="removeFormationImage()"><?= htmlspecialchars(guide_text('EdRemove')) ?></button>
     </div>
   </div>
 </div>
 
-<!-- Éditeur -->
+<!-- Editor -->
 <div class="ge-editor">
 
-  <!-- Colonne gauche : panneau éditeur -->
+  <!-- Left column: the editable panel -->
   <div class="ge-left">
 
-    <!-- Toolbar de formatage -->
+    <!-- Formatting toolbar -->
     <div class="ge-toolbar">
-      <button class="tb" onclick="fmt('bold')"    title="Gras (Ctrl+B)"><b>B</b></button>
-      <button class="tb" onclick="fmt('italic')"  title="Italique (Ctrl+I)"><i>I</i></button>
-      <button class="tb" onclick="fmt('underline')" title="Souligné (Ctrl+U)"><u>U</u></button>
+      <button class="tb" onclick="fmt('bold')"    title="<?= htmlspecialchars(guide_text('EdBold')) ?>"><b>B</b></button>
+      <button class="tb" onclick="fmt('italic')"  title="<?= htmlspecialchars(guide_text('EdItalic')) ?>"><i>I</i></button>
+      <button class="tb" onclick="fmt('underline')" title="<?= htmlspecialchars(guide_text('EdUnderline')) ?>"><u>U</u></button>
       <input  type="color" class="tb-color" id="txt-color" value="#082c7c"
-              onchange="fmt('foreColor',this.value)" title="Couleur du texte">
-      <button class="tb" onclick="fmt('removeFormat')" title="Supprimer le formatage" style="font-size:11px;color:#888">✕fmt</button>
+              onchange="fmt('foreColor',this.value)" title="<?= htmlspecialchars(guide_text('EdTextColour')) ?>">
+      <button class="tb" onclick="fmt('removeFormat')" title="<?= htmlspecialchars(guide_text('EdRemoveFormat')) ?>" style="font-size:11px;color:#888">✕fmt</button>
       <div class="tb-sep"></div>
-      <button class="tb" onclick="fmt('insertUnorderedList')" title="Liste à puces">• ≡</button>
-      <button class="tb" onclick="fmt('insertOrderedList')"   title="Liste numérotée">1. ≡</button>
+      <button class="tb" onclick="fmt('insertUnorderedList')" title="<?= htmlspecialchars(guide_text('EdBullets')) ?>">• ≡</button>
+      <button class="tb" onclick="fmt('insertOrderedList')"   title="<?= htmlspecialchars(guide_text('EdNumbered')) ?>">1. ≡</button>
       <div class="tb-sep"></div>
-      <button class="tb tb-tip"  onclick="insertTip()"  title="Ajouter un encadré conseil">💡 Conseil</button>
-      <button class="tb tb-code" onclick="insertCode()" title="Code inline">&lt;/&gt;</button>
+      <button class="tb tb-tip"  onclick="insertTip()"  title="<?= htmlspecialchars(guide_text('EdTipHint')) ?>">💡 <?= htmlspecialchars(guide_text('EdTip')) ?></button>
+      <button class="tb tb-code" onclick="insertCode()" title="<?= htmlspecialchars(guide_text('EdCode')) ?>">&lt;/&gt;</button>
     </div>
 
-    <!-- Panneau guide éditable -->
+    <!-- The panel, exactly as a learner sees it -->
     <div class="ge-panel">
       <div class="ge-panel-header">
-        <span class="ge-panel-header-title">Guide interactif</span>
-        <span class="ge-panel-header-hint">éditeur</span>
+        <span class="ge-panel-header-title"><?= htmlspecialchars(guide_text('ModuleName')) ?></span>
+        <span class="ge-panel-header-hint"><?= htmlspecialchars(guide_text('EdEditorBadge')) ?></span>
       </div>
       <div class="ge-panel-fname" id="pv-fname"></div>
       <div class="ge-panel-prog">
         <div class="ge-panel-prog-bar">
           <div class="ge-panel-prog-fill" id="pv-fill" style="width:0%"></div>
         </div>
-        <span class="ge-panel-prog-txt" id="pv-prog-txt">Étape 1 / 1</span>
+        <span class="ge-panel-prog-txt" id="pv-prog-txt"></span>
       </div>
 
-      <!-- Image d'étape (preview) -->
+      <!-- Step image preview -->
       <div id="pv-step-image" style="display:none"></div>
 
-      <!-- Titre (éditable) -->
+      <!-- Step title, edited in place -->
       <div id="pv-stitle" contenteditable="true"
-           data-ph="Titre de l'étape..."
+           data-ph="<?= htmlspecialchars(guide_text('EdStepTitlePh')) ?>"
            oninput="captureAndSync()"
            onkeydown="if(event.key==='Enter'){event.preventDefault();}">
       </div>
 
-      <!-- Contenu (éditable riche) -->
+      <!-- Step content, edited in place -->
       <div id="pv-content" contenteditable="true"
-           data-ph="Cliquez ici pour écrire le contenu (HTML)..."
+           data-ph="<?= htmlspecialchars(guide_text('EdContentPh')) ?>"
            oninput="captureAndSync()">
       </div>
 
-      <!-- Boutons nav (fonctionnels : navigation entre étapes, comme en formation) -->
+      <!-- Navigation, working as it does during a real course -->
       <div class="ge-panel-nav">
-        <button class="ge-panel-nav-btn" id="pv-btn-prev" onclick="navStep(-1)">◀ Préc.</button>
-        <button class="ge-panel-nav-btn" id="pv-btn-next" onclick="navStep(1)">Suivant ▶</button>
+        <button class="ge-panel-nav-btn" id="pv-btn-prev" onclick="navStep(-1)">◀ <?= htmlspecialchars(guide_text('CmdPrev')) ?></button>
+        <button class="ge-panel-nav-btn" id="pv-btn-next" onclick="navStep(1)"><?= htmlspecialchars(guide_text('CmdNextStep')) ?> ▶</button>
       </div>
     </div>
 
-    <!-- Actions sur l'étape (regroupées sous la preview) -->
+    <!-- Step actions -->
     <div class="ge-step-acts">
-      <button class="ge-btn ge-btn-add" onclick="addStep(-1)" title="Insérer une étape avant celle-ci">+ Avant</button>
-      <button class="ge-btn ge-btn-add" onclick="addStep(1)"  title="Insérer une étape après celle-ci">+ Après</button>
-      <button class="ge-btn ge-btn-del" onclick="deleteStep()" title="Supprimer cette étape">✕</button>
+      <button class="ge-btn ge-btn-add" onclick="addStep(-1)" title="<?= htmlspecialchars(guide_text('EdAddBeforeHint')) ?>">+ <?= htmlspecialchars(guide_text('EdAddBefore')) ?></button>
+      <button class="ge-btn ge-btn-add" onclick="addStep(1)"  title="<?= htmlspecialchars(guide_text('EdAddAfterHint')) ?>">+ <?= htmlspecialchars(guide_text('EdAddAfter')) ?></button>
+      <button class="ge-btn ge-btn-del" onclick="deleteStep()" title="<?= htmlspecialchars(guide_text('EdDeleteStepHint')) ?>">✕</button>
     </div>
 
   </div><!-- /ge-left -->
 
-  <!-- Colonne droite : options -->
+  <!-- Right-hand column: options -->
   <div class="ge-right">
 
-    <!-- Options de l'étape -->
+    <!-- Step options -->
     <div class="ge-opts">
-      <div class="ge-opts-title">Options de l'étape</div>
+      <div class="ge-opts-title"><?= htmlspecialchars(guide_text('EdStepOptions')) ?></div>
 
       <div class="ge-opt">
-        <label>Page par défaut <span class="ge-hint">(pour les triggers sans page propre · <code>*</code> = toutes les pages)</span></label>
-        <input type="text" id="opt-page" placeholder="/path/to/file.php ou *" oninput="captureAndSync()">
+        <label><?= htmlspecialchars(guide_text('EdDefaultPage')) ?> <span class="ge-hint"><?= guide_text('EdDefaultPageHint') ?></span></label>
+        <input type="text" id="opt-page" placeholder="<?= htmlspecialchars(guide_text('EdOptPagePh')) ?>" oninput="captureAndSync()">
       </div>
 
       <div class="ge-opt">
-        <label>Image de l'étape <span class="ge-hint">(optionnelle · 16:9 · GIF accepté)</span></label>
+        <label><?= htmlspecialchars(guide_text('EdStepImage')) ?> <span class="ge-hint"><?= htmlspecialchars(guide_text('EdStepImageHint')) ?></span></label>
         <div class="ge-img-ctrl">
           <div id="step-img-thumb" style="display:none"></div>
           <div>
             <label class="ge-btn ge-btn-ghost" style="cursor:pointer;font-size:12px;padding:5px 12px">
-              🖼 Choisir
+              🖼 <?= htmlspecialchars(guide_text('EdChoose')) ?>
               <input type="file" accept="image/*" style="display:none" onchange="handleStepImageFile(this)">
             </label>
-            <button type="button" class="ge-btn ge-btn-del" id="step-img-remove" style="display:none;margin-top:6px;font-size:12px" onclick="removeStepImage()">Retirer</button>
+            <button type="button" class="ge-btn ge-btn-del" id="step-img-remove" style="display:none;margin-top:6px;font-size:12px" onclick="removeStepImage()"><?= htmlspecialchars(guide_text('EdRemove')) ?></button>
           </div>
         </div>
       </div>
@@ -514,33 +597,33 @@ details.ge-extra .ge-hint { font-weight: 400; }
       <div class="ge-opt">
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;">
           <input type="checkbox" id="opt-optional" onchange="captureAndSync()" style="margin:0;">
-          Facultatif <span class="ge-hint">("Marquer comme fait" visible — l'utilisateur peut forcer l'étape)</span>
+          <?= htmlspecialchars(guide_text('EdOptional')) ?> <span class="ge-hint"><?= htmlspecialchars(guide_text('EdOptionalHint')) ?></span>
         </label>
       </div>
 
       <div class="ge-opt">
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;">
           <input type="checkbox" id="opt-strict-click" onchange="captureAndSync()" style="margin:0;">
-          Non-permissif <span class="ge-hint">(bloque tout clic hors du sélecteur attendu)</span>
+          <?= htmlspecialchars(guide_text('EdStrict')) ?> <span class="ge-hint"><?= htmlspecialchars(guide_text('EdStrictHint')) ?></span>
         </label>
       </div>
 
       <div class="ge-opt">
         <label>
           Triggers
-          <span class="ge-hint">— déclenchés dans l'ordre ; glisser-déposer pour réordonner</span>
+          <span class="ge-hint"><?= htmlspecialchars(guide_text('EdTriggersHint')) ?></span>
         </label>
         <div id="triggers-list"></div>
         <button type="button" class="ge-btn ge-btn-ghost"
                 onclick="addTrigger()"
                 style="margin-top:8px;font-size:12px;padding:5px 14px">
-          + Ajouter un trigger
+          + <?= htmlspecialchars(guide_text('EdAddTrigger')) ?>
         </button>
         <button type="button" class="ge-btn ge-btn-ghost"
                 onclick="startRecording()"
                 style="margin-top:8px;margin-left:6px;font-size:12px;padding:5px 14px;border-color:#e0b4ae;color:#c0392b"
-                title="Naviguer dans ianseo et cliquer sur les éléments pour enregistrer des triggers automatiquement">
-          🔴 Enregistrer les triggers
+                title="<?= htmlspecialchars(guide_text('EdRecordHint')) ?>">
+          🔴 <?= htmlspecialchars(guide_text('EdRecord')) ?>
         </button>
       </div>
     </div>
@@ -548,74 +631,276 @@ details.ge-extra .ge-hint { font-weight: 400; }
   </div><!-- /ge-right -->
 </div><!-- /ge-editor -->
 
-<!-- Activités : QCM et Défi -->
+<!-- The other two activities: quiz and challenge -->
 <details class="ge-extra" id="sect-quiz">
-  <summary>📝 QCM de validation <span class="ge-hint">(optionnel — proposé à la fin du guide, compte pour la cible d'argent/or)</span></summary>
+  <summary>📝 <?= htmlspecialchars(guide_text('EdQuizSummary')) ?> <span class="ge-hint"><?= htmlspecialchars(guide_text('EdQuizHint')) ?></span></summary>
   <div class="ge-extra-body">
     <div class="ge-opt" style="max-width:240px">
-      <label>Score minimal pour réussir (%)</label>
+      <label><?= htmlspecialchars(guide_text('EdPassScore')) ?></label>
       <input type="number" id="quiz-pass" min="1" max="100" placeholder="70" oninput="captureAndSync()">
     </div>
     <div class="ge-opt">
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;text-transform:none;">
         <input type="checkbox" id="quiz-shuffle" onchange="captureAndSync()" style="margin:0;">
-        Réponses affichées dans un ordre aléatoire
+        <?= htmlspecialchars(guide_text('EdShuffle')) ?>
       </label>
     </div>
     <div id="quiz-list"></div>
     <button type="button" class="ge-btn ge-btn-ghost" onclick="addQuizQuestion()" style="font-size:12px;padding:5px 14px">
-      + Ajouter une question
+      + <?= htmlspecialchars(guide_text('EdAddQuestion')) ?>
     </button>
   </div>
 </details>
 
 <details class="ge-extra" id="sect-defi">
-  <summary>🎯 Défi <span class="ge-hint">(optionnel — l'utilisateur agit sans aide, validation par conditions d'état)</span></summary>
+  <summary>🎯 <?= htmlspecialchars(guide_text('EdChallengeSummary')) ?> <span class="ge-hint"><?= htmlspecialchars(guide_text('EdChallengeHint')) ?></span></summary>
   <div class="ge-extra-body">
     <div class="ge-opt">
-      <label>Consigne <span class="ge-hint">(HTML autorisé)</span></label>
+      <label><?= htmlspecialchars(guide_text('EdBrief')) ?> <span class="ge-hint"><?= htmlspecialchars(guide_text('EdBriefHint')) ?></span></label>
       <textarea id="defi-intro" rows="3" oninput="captureAndSync()"
-                placeholder="<p>Créez une compétition avec 2 sessions...</p>"></textarea>
+                placeholder="<?= htmlspecialchars(guide_text('EdBriefPh')) ?>"></textarea>
     </div>
     <div class="ge-opt">
-      <label>Conditions à remplir <span class="ge-hint">(toutes)</span></label>
+      <label><?= htmlspecialchars(guide_text('EdConditionsToMeet')) ?> <span class="ge-hint"><?= htmlspecialchars(guide_text('EdConditionsHint')) ?></span></label>
       <div id="defi-conds"></div>
-      <p class="ge-hint">Créez de nouvelles conditions avec le <a href="conditions.php">constructeur de conditions</a>.</p>
+      <p class="ge-hint"><?= guide_text('EdConditionsLink') ?></p>
     </div>
   </div>
 </details>
 
-<!-- JSON source (accordéon, pour experts) -->
+<!-- The same document as raw JSON -->
 <div class="ge-json-sect">
   <button class="ge-json-toggle" onclick="toggleJson()">
     <span id="json-icon">▶</span>
-    JSON source — pour experts / import-export
+    <?= htmlspecialchars(guide_text('EdJsonToggle')) ?>
   </button>
   <div id="ge-json-body">
     <textarea id="guide-json-editor" spellcheck="false"></textarea>
-    <div class="ge-json-err" id="json-err">⚠ JSON invalide</div>
+    <div class="ge-json-err" id="json-err">⚠ <?= htmlspecialchars(guide_text('EdErrJson')) ?></div>
     <div style="margin-top:6px">
-      <button class="ge-btn ge-btn-apply" onclick="applyJson()">↺ Appliquer le JSON à l'éditeur visuel</button>
+      <button class="ge-btn ge-btn-apply" onclick="applyJson()">↺ <?= htmlspecialchars(guide_text('EdApplyJson')) ?></button>
     </div>
   </div>
 </div>
 
-<!-- Sauvegarde -->
+<!-- Save -->
 <div class="ge-mt" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-  <button type="button" class="ge-btn ge-btn-save" id="btn-save" onclick="prepareSave()">💾 Enregistrer la formation</button>
+  <button type="button" class="ge-btn ge-btn-save" id="btn-save" onclick="prepareSave()">💾 <?= htmlspecialchars(guide_text('EdSave')) ?></button>
   <span id="save-status" style="display:none;font-size:13px;font-weight:600;"></span>
 </div>
 
 </div><!-- /ge-main -->
 
 <script>
-/* ===== Conditions d'état (injectées depuis PHP) ===== */
+/* ===== State conditions, published from PHP ===== */
 var GUIDE_CONDITIONS = <?= json_encode(array_values($conditions), JSON_UNESCAPED_UNICODE) ?>;
 
-/* ===== État ===== */
-var _fd      = null;  // objet formation courant
-var _sidx    = 0;     // index étape courante
-var _syncing = false; // évite les boucles de sync
+/* ===== Translations =====
+   The editor builds most of its widgets in JavaScript, so its wording travels
+   here rather than going through guide_text() at render time. */
+var GE_T = <?= json_encode([
+    'langNames' => [
+        'en' => guide_text('LangEn'), 'fr' => guide_text('LangFr'), 'it' => guide_text('LangIt'),
+        'de' => guide_text('LangDe'), 'es' => guide_text('LangEs'),
+    ],
+    /* The author's own interface language, used as the base language of a course
+       that has not declared one. Assuming English there labelled a French
+       author's text as English, and the first translation then filed it under
+       "en" — a course whose English was the original French.
+       Narrowed to the languages the base-language selector offers, a regional
+       code through its parent (fr-ca gives fr), so the value always selects. */
+    'uiLang'        => $editorBaseLang,
+    'toTranslate'   => guide_text('EdToTranslate'),
+    'step'          => guide_text('JsStep'),
+    'newStep'       => guide_text('EdNewStep'),
+    'newStepBody'   => guide_text('EdNewStepBody'),
+    'errOneStep'    => guide_text('EdErrOneStep'),
+    'errNoId'       => guide_text('EdErrNoId'),
+    'delStepConfirm'=> guide_text('EdDelStepConfirm'),
+    'stepFallback'  => guide_text('EdStepFallback'),
+    'noConditions'  => guide_text('EdNoConditions'),
+    'correctAnswer' => guide_text('EdCorrectAnswer'),
+    'answerPh'      => guide_text('EdAnswerPh'),
+    'optionalSuffix'=> guide_text('EdOptionalSuffix'),
+    'answersLabel'  => guide_text('EdAnswersLabel'),
+    'explainLabel'  => guide_text('EdExplainLabel'),
+    'explainPh'     => guide_text('EdExplainPh'),
+    'questionPh'    => guide_text('EdQuestionPh'),
+    'condCss'       => guide_text('EdCondCss'),
+    'dragHint'      => guide_text('EdDragHint'),
+    'kindAction'    => guide_text('EdKindAction'),
+    'kindState'     => guide_text('EdKindState'),
+    'pagePh'        => guide_text('EdPagePh'),
+    'pageHint'      => guide_text('EdPageHint'),
+    'triggerInput'  => guide_text('EdTriggerInput'),
+    'triggerKeyup'  => guide_text('EdTriggerKeyup'),
+    'triggerKeydown'=> guide_text('EdTriggerKeydown'),
+    'selectorPh'    => guide_text('EdSelectorPh'),
+    'selectorHint'  => guide_text('EdSelectorHint'),
+    'condPagePh'    => guide_text('EdCondPagePh'),
+    'condPageHint'  => guide_text('EdCondPageHint'),
+    'condCssPh'     => guide_text('EdCondCssPh'),
+    'condCssHint'   => guide_text('EdCondCssHint'),
+    'cssModeHint'   => guide_text('EdCssModeHint'),
+    'cssPresent'    => guide_text('EdCssPresent'),
+    'imageBig'      => guide_text('EdImageBig'),
+    'recConfirm'    => guide_text('EdRecConfirm'),
+    'saveFailed'    => guide_text('EdSaveFailed'),
+    'unknown'       => guide_text('EdUnknown'),
+    'networkSave'   => guide_text('EdNetworkSave'),
+    'triggersAdded' => guide_text('EdTriggersAdded'),
+    'imported'      => guide_text('EdImported'),
+    'networkImport' => guide_text('EdNetworkImport'),
+    'saved'         => guide_text('EdSaved'),
+    'networkErr'    => guide_text('EdNetworkErr'),
+    'question'      => guide_text('EdQuestion'),
+    'untitled'      => guide_text('EdUntitled'),
+    'next'          => guide_text('CmdNextStep'),
+    'finish'        => guide_text('JsFinish'),
+    'chooseCond'    => guide_text('EdChooseCondition'),
+    'condPage'      => guide_text('EdCondPage'),
+    'gateAlways'    => guide_text('EdGateAlways'),
+    'gateIf'        => guide_text('EdGateIf'),
+    'gateIfNot'     => guide_text('EdGateIfNot'),
+    'gateHint'      => guide_text('EdGateHint'),
+    'triggerKind'   => guide_text('EdTriggerKind'),
+    'hintPh'        => guide_text('EdHintPh'),
+    'requiredShort' => guide_text('EdRequiredShort'),
+    'delete'        => guide_text('EdDelete'),
+    'triggerNone'   => guide_text('EdTriggerNone'),
+    'triggerClick'  => guide_text('EdTriggerClick'),
+    'triggerDbl'    => guide_text('EdTriggerDblClick'),
+    'triggerChange' => guide_text('EdTriggerChange'),
+    'triggerFocus'  => guide_text('EdTriggerFocus'),
+    'triggerSubmit' => guide_text('EdTriggerSubmit'),
+    'triggerHover'  => guide_text('EdTriggerHover'),
+    'cssAbsent'     => guide_text('EdCssAbsent'),
+    'noTrigger'     => guide_text('EdNoTrigger'),
+    'tipBody'       => guide_text('EdTipBody'),
+    'errNotImage'   => guide_text('EdErrNotImage'),
+    'errJson'       => guide_text('EdErrJson'),
+    'importPrefix'  => guide_text('EdImportPrefix'),
+    'unknownError'  => guide_text('EdUnknownError'),
+    'saving'        => guide_text('EdSaving'),
+    'save'          => guide_text('EdSave'),
+], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
+/* ===== State ===== */
+var _fd      = null;  // the course being edited
+var _sidx    = 0;     // index of the step on screen
+var _syncing = false; // guards against sync loops
+var _lang    = '';    // language being edited; '' means the course's own base language
+
+/* ===== Multilingual fields =====
+   A course carries every language it has been written in, inside its own file.
+   Only the TEXT of a field becomes a map; the structure around it — steps,
+   selectors, pages — is never duplicated, so the languages cannot drift apart
+   and point at different elements. Mirrors guide_i18n() on the PHP side.
+
+   The file's `lang` says which language its plain strings are written in. It is
+   what lets the editor turn a plain string into a map without guessing: the old
+   text keeps its own language rather than being mislabelled as the new one.
+   The language being EDITED cannot answer that question — it says where the
+   author is typing now, not what the untouched text already is.
+
+   A course that declares nothing falls back to the author's own interface
+   language, not to English: someone writing in French would otherwise have
+   their text filed under "en" the first time they translated a field. */
+
+var LANG_NAMES = GE_T.langNames;
+
+function baseLang() { return (_fd && _fd.lang) || GE_T.uiLang || 'en'; }
+function editLang() { return _lang || baseLang(); }
+
+// Is this value a language map rather than ordinary content?
+function isLangMap(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  var keys = Object.keys(v);
+  if (!keys.length) return false;
+  return keys.every(function (k) {
+    return /^[a-z]{2}(-[a-z]{2})?$/.test(k) && typeof v[k] === 'string';
+  });
+}
+
+// Does this field hold text in ANY language? What decides whether a piece of
+// the course still exists, as opposed to i18nGet(), which answers for the one
+// language on screen. Translating a course into a third language must not make
+// its answers look empty and delete them.
+function i18nAny(v) {
+  if (isLangMap(v)) return Object.keys(v).some(function (k) { return v[k] !== ''; });
+  return !!(v && String(v).trim() !== '');
+}
+
+// The text to show for the language being edited. Empty rather than a fallback:
+// the author has to SEE that a translation is missing before they can add it.
+function i18nGet(v) {
+  if (!isLangMap(v)) return (editLang() === baseLang()) ? (v || '') : '';
+  return v[editLang()] || '';
+}
+
+// Write the edited text back, keeping the other languages.
+function i18nSet(current, value) {
+  var lang = editLang();
+
+  if (isLangMap(current)) {
+    var out = {};
+    Object.keys(current).forEach(function (k) { out[k] = current[k]; });
+    if (value === '') delete out[lang]; else out[lang] = value;
+    // Down to a single language: store it plainly again rather than leave a map
+    // of one, so a course that loses its translations reads as it did before.
+    var left = Object.keys(out);
+    if (!left.length) return '';
+    if (left.length === 1 && left[0] === baseLang()) return out[left[0]];
+    return out;
+  }
+
+  if (lang === baseLang()) return value;          // still a single language
+
+  // First translation of this field: keep the existing text under the base
+  // language so it is not silently relabelled.
+  var map = {};
+  if (current) map[baseLang()] = current;
+  if (value)   map[lang] = value;
+  return Object.keys(map).length ? map : '';
+}
+
+// Fill the language selector with the languages this course already has, plus
+// the ones it could be translated into.
+function renderLangSelect() {
+  var sel = document.getElementById('f-lang');
+  if (!sel || !_fd) return;
+
+  var present = {};
+  (function walk(node) {
+    if (isLangMap(node)) { Object.keys(node).forEach(function (k) { present[k] = true; }); return; }
+    if (node && typeof node === 'object') Object.keys(node).forEach(function (k) { walk(node[k]); });
+  })(_fd);
+  present[baseLang()] = true;
+
+  var codes = Object.keys(LANG_NAMES).sort(function (a, b) {
+    var pa = present[a] ? 0 : 1, pb = present[b] ? 0 : 1;
+    return pa - pb || a.localeCompare(b);
+  });
+
+  sel.innerHTML = codes.map(function (c) {
+    var label = (LANG_NAMES[c] || c) + (present[c] ? '' : ' — ' + GE_T.toTranslate);
+    return '<option value="' + c + '"' + (c === editLang() ? ' selected' : '') + '>' + label + '</option>';
+  }).join('');
+
+  var base = document.getElementById('f-baselang');
+  if (base) base.value = baseLang();
+}
+
+function switchLang(code) {
+  // Captured while the OLD language is still current, or what the author just
+  // typed would be written under the language they are switching to.
+  captureFormation();
+  captureStep();
+  captureExtras();
+  _lang = code;
+  _syncing = true;
+  try { syncToDOM(); } finally { _syncing = false; }
+}
 
 /* ===== Init ===== */
 
@@ -634,8 +919,8 @@ document.addEventListener('DOMContentLoaded', function () {
   checkRecResult();
 });
 
-/* Entrée dans un encadré conseil → sort en paragraphe normal.
-   Shift+Entrée → reste dans le conseil (saut de ligne <br>, comportement natif). */
+/* Enter inside a tip box leaves it and starts an ordinary paragraph.
+   Shift+Enter stays inside it, inserting a line break, which is the native behaviour. */
 function onContentKeydown(e) {
   if (e.key !== 'Enter' || e.shiftKey) return;
   var tip = currentTipElement();
@@ -676,13 +961,13 @@ function captureAndSync() {
   renderJson();
 }
 
-/* ===== Activités : QCM & Défi ===== */
+/* ===== Activities: quiz and challenge ===== */
 
 function initDefiConds() {
   var box = document.getElementById('defi-conds');
   box.innerHTML = '';
   if (!GUIDE_CONDITIONS.length) {
-    box.innerHTML = '<p class="ge-hint">Aucune condition définie.</p>';
+    box.innerHTML = '<p class="ge-hint">' + esc(GE_T.noConditions) + '</p>';
     return;
   }
   GUIDE_CONDITIONS.forEach(function (c) {
@@ -711,24 +996,30 @@ function addQuizQuestion(q) {
   for (var i = 0; i < 4; i++) {
     choicesHtml +=
       '<div class="qz-choice-row">' +
-        '<input type="checkbox" class="qz-correct"' + (correct.indexOf(i) !== -1 ? ' checked' : '') + ' title="Bonne réponse">' +
-        '<input type="text" class="qz-choice" placeholder="Réponse ' + (i + 1) + (i > 1 ? ' (optionnelle)' : '') + '" value="">' +
+        '<input type="checkbox" class="qz-correct"' + (correct.indexOf(i) !== -1 ? ' checked' : '') + ' title="' + esc(GE_T.correctAnswer) + '">' +
+        '<input type="text" class="qz-choice" placeholder="' + esc(GE_T.answerPh.replace('{$a}', i + 1) + (i > 1 ? GE_T.optionalSuffix : '')) + '" value="">' +
       '</div>';
   }
   block.innerHTML =
-    '<div class="qz-head"><b>Question</b>' +
+    '<div class="qz-head"><b>' + esc(GE_T.question) + '</b>' +
       '<button type="button" class="ge-btn ge-btn-del" style="font-size:11px;padding:3px 8px" onclick="this.closest(\'.qz-block\').remove();captureAndSync()">✕</button>' +
     '</div>' +
-    '<textarea class="qz-q" rows="2" placeholder="Énoncé de la question..."></textarea>' +
-    '<div class="qz-lbl">Réponses — cochez la ou les bonnes (au moins une) :</div>' +
+    '<textarea class="qz-q" rows="2" placeholder="' + esc(GE_T.questionPh) + '"></textarea>' +
+    '<div class="qz-lbl">' + esc(GE_T.answersLabel) + '</div>' +
     choicesHtml +
-    '<div class="qz-lbl">Explication (affichée après la réponse, optionnelle) :</div>' +
-    '<input type="text" class="qz-explain" placeholder="Pourquoi cette réponse...">';
+    '<div class="qz-lbl">' + esc(GE_T.explainLabel) + '</div>' +
+    '<input type="text" class="qz-explain" placeholder="' + esc(GE_T.explainPh) + '">';
 
-  block.querySelector('.qz-q').value = q.q || '';
+  // The block is the only place the other languages of this question survive:
+  // the quiz is rebuilt from the DOM on every capture, so the original object is
+  // thrown away. Indexed BY ROW, never by the compacted output, so an answer
+  // left empty in one language cannot shift the rest out of alignment.
+  block._i18n = { q: q.q, choices: (q.choices || []).slice(), explain: q.explain };
+
+  block.querySelector('.qz-q').value = i18nGet(q.q);
   var inputs = block.querySelectorAll('.qz-choice');
-  (q.choices || []).forEach(function (c, i) { if (inputs[i]) inputs[i].value = c; });
-  block.querySelector('.qz-explain').value = q.explain || '';
+  (q.choices || []).forEach(function (c, i) { if (inputs[i]) inputs[i].value = i18nGet(c); });
+  block.querySelector('.qz-explain').value = i18nGet(q.explain);
 
   block.querySelectorAll('textarea, input').forEach(function (el) {
     el.addEventListener('input',  captureAndSync);
@@ -739,25 +1030,29 @@ function addQuizQuestion(q) {
 
 function captureExtras() {
   if (!_fd) return;
-  // QCM
+  // Quiz
   var questions = [];
   document.querySelectorAll('#quiz-list .qz-block').forEach(function (block) {
-    var qText = block.querySelector('.qz-q').value.trim();
+    var store = block._i18n || { q: '', choices: [], explain: '' };
+    var qText = i18nSet(store.q, block.querySelector('.qz-q').value.trim());
     var rows  = block.querySelectorAll('.qz-choice-row');
     var choices = [], correct = [], kept = 0;
-    rows.forEach(function (row) {
-      var txt = row.querySelector('.qz-choice').value.trim();
-      var cb  = row.querySelector('.qz-correct');
-      if (txt === '') return;
-      if (cb.checked) correct.push(kept);
-      choices.push(txt);
+    rows.forEach(function (row, i) {
+      var val = i18nSet(store.choices[i], row.querySelector('.qz-choice').value.trim());
+      store.choices[i] = val;               // by row, so the rows stay aligned
+      if (!i18nAny(val)) return;            // exists in no language at all
+      if (row.querySelector('.qz-correct').checked) correct.push(kept);
+      choices.push(val);
       kept++;
     });
-    if (!qText || choices.length < 2) return;
-    if (!correct.length) correct = [0]; // toujours au moins une bonne réponse
+    var expl = i18nSet(store.explain, block.querySelector('.qz-explain').value.trim());
+    store.q = qText; store.explain = expl;
+    block._i18n = store;
+
+    if (!i18nAny(qText) || choices.length < 2) return;
+    if (!correct.length) correct = [0];   // a question always has one right answer
     var entry = { q: qText, choices: choices, correct: (correct.length === 1 ? correct[0] : correct) };
-    var expl = block.querySelector('.qz-explain').value.trim();
-    if (expl) entry.explain = expl;
+    if (i18nAny(expl)) entry.explain = expl;
     questions.push(entry);
   });
   if (questions.length) {
@@ -767,10 +1062,11 @@ function captureExtras() {
   } else {
     delete _fd.quiz;
   }
-  // Défi
+  // Challenge
   var conds = [];
   document.querySelectorAll('#defi-conds .defi-cond-cb:checked').forEach(function (cb) { conds.push(cb.value); });
-  var intro = document.getElementById('defi-intro').value.trim();
+  var intro = i18nSet(_fd.challenge ? _fd.challenge.intro : '',
+                      document.getElementById('defi-intro').value.trim());
   if (conds.length) {
     _fd.challenge = { intro: intro, conditions: conds };
   } else {
@@ -780,7 +1076,7 @@ function captureExtras() {
 
 function syncExtras() {
   if (!_fd) return;
-  // QCM
+  // Quiz
   var list = document.getElementById('quiz-list');
   list.innerHTML = '';
   var qz = _fd.quiz || {};
@@ -788,9 +1084,9 @@ function syncExtras() {
   document.getElementById('quiz-shuffle').checked = !!qz.shuffle;
   (qz.questions || []).forEach(function (q) { addQuizQuestion(q); });
   if (qz.questions && qz.questions.length) document.getElementById('sect-quiz').open = true;
-  // Défi
+  // Challenge
   var ch = _fd.challenge || {};
-  document.getElementById('defi-intro').value = ch.intro || '';
+  document.getElementById('defi-intro').value = i18nGet(ch.intro);
   var selected = ch.conditions || [];
   document.querySelectorAll('#defi-conds .defi-cond-cb').forEach(function (cb) {
     cb.checked = selected.indexOf(cb.value) !== -1;
@@ -800,13 +1096,20 @@ function syncExtras() {
 
 function captureFormation() {
   if (!_fd) return;
-  // ID : jamais modifié via l'UI, préservé tel quel depuis le JSON
-  _fd.title       = getVal('f-title');
-  _fd.description = getVal('f-description');
+
+  // The id is never editable here: it is the key everything else refers to —
+  // saved progress, contextual help, the update comparison.
+  var base = document.getElementById('f-baselang');
+  if (base && base.value) _fd.lang = base.value;
+
+  _fd.title       = i18nSet(_fd.title,       getVal('f-title'));
+  _fd.description = i18nSet(_fd.description, getVal('f-description'));
   _fd.version     = getVal('f-version') || '1.0';
-  var grp = getVal('f-group').trim();
-  var sgr = getVal('f-subgroup').trim();
+
+  var grp = i18nSet(_fd.group,    getVal('f-group').trim());
+  var sgr = i18nSet(_fd.subgroup, getVal('f-subgroup').trim());
   var ord = parseInt(getVal('f-order'), 10);
+
   if (grp) _fd.group = grp; else delete _fd.group;
   if (sgr) _fd.subgroup = sgr; else delete _fd.subgroup;
   if (!isNaN(ord)) _fd.order = ord; else delete _fd.order;
@@ -815,13 +1118,13 @@ function captureFormation() {
 function captureStep() {
   if (!_fd || !_fd.steps || !_fd.steps.length) return;
   var s     = _fd.steps[_sidx];
-  s.title   = document.getElementById('pv-stitle').textContent.trim();
-  s.content = cleanHtml(document.getElementById('pv-content').innerHTML);
+  s.title   = i18nSet(s.title,   document.getElementById('pv-stitle').textContent.trim());
+  s.content = i18nSet(s.content, cleanHtml(document.getElementById('pv-content').innerHTML));
   s.page         = getVal('opt-page') || null;
   s.optional     = document.getElementById('opt-optional').checked;
   s.strict_click = document.getElementById('opt-strict-click').checked;
 
-  // Collecte les triggers depuis les lignes de la liste
+  // Collect the triggers from the rows of the list
   s.triggers = [];
   document.querySelectorAll('#triggers-list .tr-row').forEach(function (row) {
     var kind = row.querySelector('.tr-kind').value;
@@ -842,12 +1145,14 @@ function captureStep() {
       var page = row.querySelector('.tr-page').value.trim() || null;
       var type = row.querySelector('.tr-type').value;
       var sel  = row.querySelector('.tr-sel').value.trim();
-      var hint = row.querySelector('.tr-hint').value.trim() || null;
+      var hint = i18nSet(row._hintI18n, row.querySelector('.tr-hint').value.trim());
       tr = { kind: 'action', trigger: type === 'null' ? null : type, selector: sel || null, required: req };
       if (page) tr.page = page;
       if (hint) tr.hint = hint;
+      row._hintI18n = hint;
     }
-    // Condition d'activation (branche conditionnelle) — commune action/état
+    // Activation condition, shared by action and state triggers: this is what
+    // gives a course an if/else without nesting its steps.
     var gate = row.querySelector('.tr-gate-cond').value;
     if (gate) {
       var sep = gate.indexOf(':');
@@ -858,7 +1163,7 @@ function captureStep() {
     s.triggers.push(tr);
   });
 
-  // Supprime les anciens champs mono-trigger s'ils existent
+  // Drop the old single-trigger fields, from the format that predates the list
   delete s.trigger; delete s.selector; delete s.required;
 }
 
@@ -873,11 +1178,13 @@ function updatePanelChrome() {
   if (!_fd || !_fd.steps) return;
   var total = _fd.steps.length;
   var pct   = total > 1 ? Math.round(_sidx / (total - 1) * 100) : 100;
-  setText('pv-fname',   _fd.title || '(titre formation)');
+  // i18nGet(): the title of a translated course is a language map, and the
+  // preview must show the language being edited rather than the whole object.
+  setText('pv-fname',   i18nGet(_fd.title) || GE_T.untitled);
   document.getElementById('pv-fill').style.width = pct + '%';
-  setText('pv-prog-txt', 'Étape ' + (_sidx + 1) + ' / ' + total);
+  setText('pv-prog-txt', GE_T.step + ' ' + (_sidx + 1) + ' / ' + total);
   document.getElementById('pv-btn-prev').disabled = (_sidx === 0);
-  setText('pv-btn-next', _sidx === total - 1 ? 'Terminer ✓' : 'Suivant ▶');
+  setText('pv-btn-next', _sidx === total - 1 ? (GE_T.finish + ' ✓') : (GE_T.next + ' ▶'));
 }
 
 /* ===== JSON → DOM ===== */
@@ -886,11 +1193,12 @@ function syncToDOM() {
   if (!_fd) return;
   _syncing = true;
   try {
-    setVal('f-title',       _fd.title       || '');
-    setVal('f-description', _fd.description || '');
+    renderLangSelect();
+    setVal('f-title',       i18nGet(_fd.title));
+    setVal('f-description', i18nGet(_fd.description));
     setVal('f-version',     _fd.version     || '1.0');
-    setVal('f-group',       _fd.group       || '');
-    setVal('f-subgroup',    _fd.subgroup    || '');
+    setVal('f-group',       i18nGet(_fd.group));
+    setVal('f-subgroup',    i18nGet(_fd.subgroup));
     setVal('f-order',       (_fd.order !== undefined && _fd.order !== null) ? String(_fd.order) : '');
     renderFormationImagePreview();
     syncExtras();
@@ -904,8 +1212,8 @@ function syncToDOM() {
 function loadStepToDOM() {
   if (!_fd || !_fd.steps || !_fd.steps.length) return;
   var s = _fd.steps[_sidx];
-  document.getElementById('pv-stitle').textContent = s.title   || '';
-  document.getElementById('pv-content').innerHTML  = s.content || '';
+  document.getElementById('pv-stitle').textContent = i18nGet(s.title);
+  document.getElementById('pv-content').innerHTML  = i18nGet(s.content);
   setVal('opt-page', s.page || '');
   document.getElementById('opt-optional').checked    = (s.optional !== false);
   document.getElementById('opt-strict-click').checked = !!(s.strict_click);
@@ -940,22 +1248,22 @@ function clampStep() {
   _sidx = Math.max(0, Math.min(_sidx, _fd.steps.length - 1));
 }
 
-/* ===== Ajouter / Supprimer étape ===== */
+/* ===== Adding and deleting steps ===== */
 
 function addStep(direction) {
   captureStep();
   if (!_fd.steps) _fd.steps = [];
   var newStep = {
     id:       'step-' + Date.now().toString().slice(-6),
-    title:    'Nouvelle étape',
-    content:  '<p>Contenu de l\'étape.</p>',
+    title:    GE_T.newStep,
+    content:  GE_T.newStepBody,
     page: null, triggers: []
   };
   var insertAt = direction < 0 ? _sidx : _sidx + 1;
   _fd.steps.splice(insertAt, 0, newStep);
   _sidx = insertAt;
   _syncing = true; try { loadStepToDOM(); } finally { _syncing = false; }
-  // Focus sur le titre pour édition immédiate
+  // Focus the title so the author can type straight away
   var t = document.getElementById('pv-stitle');
   t.focus();
   document.execCommand('selectAll');
@@ -963,10 +1271,11 @@ function addStep(direction) {
 
 function deleteStep() {
   if (!_fd.steps || _fd.steps.length <= 1) {
-    alert('Une formation doit avoir au moins une étape.');
+    alert(GE_T.errOneStep);
     return;
   }
-  if (!confirm('Supprimer l\'étape "' + (_fd.steps[_sidx].title || 'étape ' + (_sidx + 1)) + '" ?')) return;
+  var stepName = i18nGet(_fd.steps[_sidx].title) || GE_T.stepFallback.replace('{$a}', _sidx + 1);
+  if (!confirm(GE_T.delStepConfirm.replace('{$a}', stepName))) return;
   _fd.steps.splice(_sidx, 1);
   if (_sidx >= _fd.steps.length) _sidx = _fd.steps.length - 1;
   _syncing = true; try { loadStepToDOM(); } finally { _syncing = false; }
@@ -977,21 +1286,22 @@ function deleteStep() {
 var _dragSrc = null;
 
 function buildConditionOptions() {
-  var opts = '<option value="">— choisir une condition…</option>';
-  opts += '<option value="__page">📍 Page active</option>';
-  opts += '<option value="__css">🔎 Présence / absence d\'un élément</option>';
+  var opts = '<option value="">' + esc(GE_T.chooseCond) + '</option>';
+  opts += '<option value="__page">📍 ' + esc(GE_T.condPage) + '</option>';
+  opts += '<option value="__css">🔎 ' + esc(GE_T.condCss) + '</option>';
   GUIDE_CONDITIONS.forEach(function (c) {
-    opts += '<option value="' + c.id + '">' + c.label + '</option>';
+    opts += '<option value="' + esc(c.id) + '">' + esc(c.label) + '</option>';
   });
   return opts;
 }
 
-/* Condition d'activation (branche) : le trigger n'est pris en compte que si elle est vraie/fausse. */
+/* Activation condition (a branch): the trigger counts only if it is true, or
+   false for the "if NOT" form. */
 function buildGateOptions() {
-  var opts = '<option value="">⎇ toujours actif</option>';
+  var opts = '<option value="">⎇ ' + esc(GE_T.gateAlways) + '</option>';
   GUIDE_CONDITIONS.forEach(function (c) {
-    opts += '<option value="met:' + c.id + '">si : ' + c.label + '</option>';
-    opts += '<option value="not:' + c.id + '">si PAS : ' + c.label + '</option>';
+    opts += '<option value="met:' + esc(c.id) + '">' + esc(GE_T.gateIf + ' ' + c.label) + '</option>';
+    opts += '<option value="not:' + esc(c.id) + '">' + esc(GE_T.gateIfNot + ' ' + c.label) + '</option>';
   });
   return opts;
 }
@@ -1005,7 +1315,8 @@ function setTriggerKind(row, kind) {
   if (!isAction) setEtatCondUI(row);
 }
 
-/* Affiche les champs spécifiques selon la condition intégrée sélectionnée (📍 Page active / 🔎 Élément). */
+/* Show the fields that belong to the built-in condition chosen: the page to
+   be open, or the element to look for. */
 function setEtatCondUI(row) {
   var cond = row.querySelector('.tr-cond').value;
   row.querySelector('.tr-cond-page').style.display     = (cond === '__page') ? '' : 'none';
@@ -1023,49 +1334,49 @@ function addTrigger(t) {
 
   row.innerHTML =
     '<div class="tr-main">' +
-      '<span class="tr-drag" title="Déplacer">⠿</span>' +
-      '<select class="tr-kind" title="Type de trigger">' +
-        '<option value="action">⚡ Action</option>' +
-        '<option value="etat">✓ État</option>' +
+      '<span class="tr-drag" title="' + esc(GE_T.dragHint) + '">⠿</span>' +
+      '<select class="tr-kind" title="' + esc(GE_T.triggerKind) + '">' +
+        '<option value="action">⚡ ' + esc(GE_T.kindAction) + '</option>' +
+        '<option value="etat">✓ ' + esc(GE_T.kindState) + '</option>' +
       '</select>' +
-      '<input type="text" class="tr-hint" placeholder="💬 Info-bulle (optionnelle)">' +
-      '<label class="tr-req"><input type="checkbox"> Oblig.</label>' +
-      '<button type="button" class="ge-btn ge-btn-del tr-del" title="Supprimer" onclick="removeTrigger(this)">✕</button>' +
+      '<input type="text" class="tr-hint" placeholder="💬 ' + esc(GE_T.hintPh) + '">' +
+      '<label class="tr-req"><input type="checkbox"> ' + esc(GE_T.requiredShort) + '</label>' +
+      '<button type="button" class="ge-btn ge-btn-del tr-del" title="' + esc(GE_T.delete) + '" onclick="removeTrigger(this)">✕</button>' +
     '</div>' +
     '<div class="tr-body tr-body-action">' +
-      '<input type="text" class="tr-page" placeholder="/page ou *" title="Page : vide = page de l\'étape · * = toutes les pages">' +
+      '<input type="text" class="tr-page" placeholder="' + esc(GE_T.pagePh) + '" title="' + esc(GE_T.pageHint) + '">' +
       '<select class="tr-type">' +
-        '<option value="null">— aucun</option>' +
-        '<option value="click">clic</option>' +
-        '<option value="dblclick">double-clic</option>' +
-        '<option value="change">changement</option>' +
-        '<option value="input">saisie (temps réel)</option>' +
-        '<option value="keyup">touche relâchée</option>' +
-        '<option value="keydown">touche pressée</option>' +
-        '<option value="focus">focus</option>' +
-        '<option value="submit">soumission</option>' +
-        '<option value="mouseover">survol</option>' +
+        '<option value="null">' + esc(GE_T.triggerNone) + '</option>' +
+        '<option value="click">' + esc(GE_T.triggerClick) + '</option>' +
+        '<option value="dblclick">' + esc(GE_T.triggerDbl) + '</option>' +
+        '<option value="change">' + esc(GE_T.triggerChange) + '</option>' +
+        '<option value="input">' + esc(GE_T.triggerInput) + '</option>' +
+        '<option value="keyup">' + esc(GE_T.triggerKeyup) + '</option>' +
+        '<option value="keydown">' + esc(GE_T.triggerKeydown) + '</option>' +
+        '<option value="focus">' + esc(GE_T.triggerFocus) + '</option>' +
+        '<option value="submit">' + esc(GE_T.triggerSubmit) + '</option>' +
+        '<option value="mouseover">' + esc(GE_T.triggerHover) + '</option>' +
       '</select>' +
-      '<input type="text" class="tr-sel" placeholder="#sélecteur-css" ' +
-        'title="Id dynamique (ex : #d_q_QuSession_25360) ? Utilisez un sélecteur par préfixe : [id^=&quot;d_q_QuSession_&quot;]">' +
+      '<input type="text" class="tr-sel" placeholder="' + esc(GE_T.selectorPh) + '" ' +
+        'title="' + esc(GE_T.selectorHint) + '">' +
     '</div>' +
     '<div class="tr-body tr-body-etat" style="display:none">' +
       '<select class="tr-cond">' + buildConditionOptions() + '</select>' +
-      '<input type="text" class="tr-cond-page" placeholder="/page à vérifier ou *" style="display:none" ' +
-             'title="Page que l\'utilisateur doit avoir active (peut différer de la page de l\'étape)">' +
-      '<input type="text" class="tr-cond-css" placeholder="#sélecteur-css" style="display:none" ' +
-             'title="Élément à détecter (accepte [id^=&quot;…&quot;] pour les id dynamiques)">' +
-      '<select class="tr-cond-css-mode" style="display:none" title="L\'élément doit être…">' +
-        '<option value="present">présent</option>' +
-        '<option value="absent">absent</option>' +
+      '<input type="text" class="tr-cond-page" placeholder="' + esc(GE_T.condPagePh) + '" style="display:none" ' +
+             'title="' + esc(GE_T.condPageHint) + '">' +
+      '<input type="text" class="tr-cond-css" placeholder="' + esc(GE_T.condCssPh) + '" style="display:none" ' +
+             'title="' + esc(GE_T.condCssHint) + '">' +
+      '<select class="tr-cond-css-mode" style="display:none" title="' + esc(GE_T.cssModeHint) + '">' +
+        '<option value="present">' + esc(GE_T.cssPresent) + '</option>' +
+        '<option value="absent">' + esc(GE_T.cssAbsent) + '</option>' +
       '</select>' +
     '</div>' +
-    '<div class="tr-gate" title="Branche conditionnelle : ce trigger n\'est pris en compte que si la condition est remplie">' +
+    '<div class="tr-gate" title="' + esc(GE_T.gateHint) + '">' +
       '<span class="tr-gate-label">⎇</span>' +
       '<select class="tr-gate-cond">' + buildGateOptions() + '</select>' +
     '</div>';
 
-  // Valeurs initiales
+  // Initial values
   row.querySelector('.tr-kind').value        = kind;
   row.querySelector('.tr-page').value        = t.page      || '';
   row.querySelector('.tr-type').value        = t.trigger   || 'null';
@@ -1076,7 +1387,14 @@ function addTrigger(t) {
   row.querySelector('.tr-cond-css-mode').value = t.absent ? 'absent' : 'present';
   row.querySelector('.tr-gate-cond').value   = t.when ? ('met:' + t.when) : (t.when_not ? ('not:' + t.when_not) : '');
   row.querySelector('.tr-req input').checked = !!t.required;
-  row.querySelector('.tr-hint').value        = t.hint      || '';
+  row.querySelector('.tr-hint').value        = i18nGet(t.hint);
+
+  // The row is the only place the other languages of this hint survive: the
+  // trigger list is rebuilt from the DOM on every capture, so the original
+  // object is thrown away. Stored on the element itself, so it follows the row
+  // when the author drags it to a new position.
+  row._hintI18n = t.hint;
+
   setTriggerKind(row, kind);
 
   // Listeners
@@ -1115,7 +1433,7 @@ function updateTriggersEmpty() {
     if (!empty) {
       var p = document.createElement('p');
       p.className = 'tr-empty';
-      p.textContent = 'Aucun trigger — le bouton Suivant est toujours libre.';
+      p.textContent = GE_T.noTrigger;
       list.appendChild(p);
     }
   } else {
@@ -1150,7 +1468,7 @@ function initTriggerDnd(row) {
   });
 }
 
-/* ===== Toolbar de formatage ===== */
+/* ===== Formatting toolbar ===== */
 
 function fmt(cmd, val) {
   document.getElementById('pv-content').focus();
@@ -1161,7 +1479,7 @@ function fmt(cmd, val) {
 function insertTip() {
   document.getElementById('pv-content').focus();
   document.execCommand('insertHTML', false,
-    '<p class="guide-tip">⚠️ Texte du conseil ou avertissement</p><p></p>');
+    '<p class="guide-tip">⚠️ ' + esc(GE_T.tipBody) + '</p><p></p>');
   setTimeout(captureAndSync, 0);
 }
 
@@ -1174,16 +1492,18 @@ function insertCode() {
   setTimeout(captureAndSync, 0);
 }
 
-/* ===== Images (base64 embarqué) ===== */
+/* ===== Images =====
+   Stored as base64 inside the content file, so a course travels as one
+   document — through the GitHub sync and through import/export alike. */
 
 function readImageFile(input, cb) {
   var file = input.files && input.files[0];
   input.value = '';
   if (!file) return;
-  if (!/^image\//.test(file.type)) { alert('Veuillez choisir une image (PNG, JPG, GIF…).'); return; }
+  if (!/^image\//.test(file.type)) { alert(GE_T.errNotImage); return; }
   if (file.size > 2 * 1024 * 1024) {
     var mo = (file.size / 1024 / 1024).toFixed(1);
-    if (!confirm('Cette image fait ' + mo + ' Mo.\nLes grosses images alourdissent la formation et sa synchronisation GitHub.\nContinuer quand même ?')) return;
+    if (!confirm(GE_T.imageBig.replace('{$a}', mo))) return;
   }
   var reader = new FileReader();
   reader.onload = function (e) { cb(e.target.result); };
@@ -1249,17 +1569,17 @@ function renderStepImagePreview() {
   document.getElementById('step-img-remove').style.display = (img ? '' : 'none');
 }
 
-/* ===== Enregistrement de triggers ===== */
+/* ===== Recording triggers ===== */
 
 function startRecording() {
   captureAndSync();
-  if (!_fd || !_fd.id) { alert('La formation doit avoir un identifiant.'); return; }
+  if (!_fd || !_fd.id) { alert(GE_T.errNoId); return; }
   var step = _fd.steps[_sidx];
   if (!step) return;
-  if (!confirm('Démarrer l\'enregistrement des triggers ?\n\n'
-    + 'La formation va d\'abord être enregistrée, puis vous serez redirigé dans ianseo. '
-    + 'Cliquez sur les éléments souhaités : ils seront ajoutés à cette étape. '
-    + 'Cliquez sur « Terminer » dans le panneau rouge pour revenir ici.')) return;
+
+  // Saved before leaving: the recording happens in ianseo itself, on another
+  // page, so anything unsaved here would be lost on the way.
+  if (!confirm(GE_T.recConfirm)) return;
 
   var json = document.getElementById('guide-json-editor').value;
   var fd = new FormData();
@@ -1268,11 +1588,12 @@ function startRecording() {
   fetch('', { method: 'POST', body: fd })
     .then(function (r) { return r.json(); })
     .then(function (data) {
-      if (!data.ok) { alert('Échec de la sauvegarde : ' + (data.error || 'inconnue')); return; }
+      if (!data.ok) { alert(GE_T.saveFailed.replace('{$a}', data.error || GE_T.unknown)); return; }
       var rec = {
         active: true, paused: false,
         formation_id: _fd.id, step_id: step.id,
-        // Forcer l'id dans l'URL de retour : une nouvelle formation sans ?id se recréerait à vide
+        // Force the id into the return URL: a brand new course with no ?id would
+  // come back as an empty one.
         return_url: window.location.pathname + '?id=' + encodeURIComponent(_fd.id),
         triggers: []
       };
@@ -1281,7 +1602,7 @@ function startRecording() {
       var page = (step.page && step.page !== '*') ? step.page : '';
       window.location.href = page ? (root.replace(/\/$/, '') + page) : root;
     })
-    .catch(function () { alert('Erreur réseau lors de la sauvegarde.'); });
+    .catch(function () { alert(GE_T.networkSave); });
 }
 
 function checkRecResult() {
@@ -1302,17 +1623,21 @@ function checkRecResult() {
   if (!step.triggers) step.triggers = [];
   res.triggers.forEach(function (t) { step.triggers.push(t); });
   syncToDOM();
-  alert(res.triggers.length + ' trigger(s) enregistré(s) ont été ajoutés à l\'étape « '
-    + (step.title || ('étape ' + (idx + 1))) + ' ».\nVérifiez-les puis enregistrez la formation.');
+  alert(GE_T.triggersAdded
+    .replace('{$a[n]}', res.triggers.length)
+    .replace('{$a[step]}', i18nGet(step.title) || GE_T.stepFallback.replace('{$a}', idx + 1)));
 }
 
-/* ===== Export / Import (.ianseo = JSON compressé zlib côté serveur) ===== */
+/* ===== Export and import =====
+   .ianseo is the JSON compressed with zlib on the server side, the same format
+   ianseo uses for its own exports. */
 
 function exportIanseo() {
   captureAndSync();
   var json = document.getElementById('guide-json-editor').value;
-  try { JSON.parse(json); } catch (e) { alert('JSON invalide.'); return; }
-  // Soumission par formulaire caché → la réponse binaire déclenche le téléchargement du .ianseo
+  try { JSON.parse(json); } catch (e) { alert(GE_T.errJson); return; }
+  // Submitted through a hidden form: the binary response is what makes the
+  // browser download the .ianseo file instead of rendering it.
   var f  = document.createElement('form');
   f.method = 'POST'; f.action = ''; f.style.display = 'none';
   var i1 = document.createElement('input'); i1.type = 'hidden'; i1.name = 'action';   i1.value = 'export-ianseo';
@@ -1333,16 +1658,16 @@ function handleImport(e) {
     .then(function (data) {
       if (data.ok && data.formation) {
         _fd = data.formation; _sidx = 0; syncToDOM();
-        showSaveStatus('ok', '✓ Formation importée — vérifiez puis enregistrez');
+        showSaveStatus('ok', '✓ ' + GE_T.imported);
       } else {
-        alert('Import : ' + (data.error || 'erreur inconnue'));
+        alert(GE_T.importPrefix.replace('{$a}', data.error || GE_T.unknownError));
       }
     })
-    .catch(function () { alert('Erreur réseau lors de l\'import.'); });
+    .catch(function () { alert(GE_T.networkImport); });
   e.target.value = '';
 }
 
-/* ===== Sauvegarde ===== */
+/* ===== Save ===== */
 
 function prepareSave() {
   captureAndSync();
@@ -1350,7 +1675,7 @@ function prepareSave() {
   var json = document.getElementById('guide-json-editor').value;
 
   btn.disabled    = true;
-  btn.textContent = '⏳ Enregistrement…';
+  btn.textContent = '⏳ ' + GE_T.saving;
 
   var fd = new FormData();
   fd.append('json_raw', json);
@@ -1360,17 +1685,17 @@ function prepareSave() {
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (data.ok) {
-        showSaveStatus('ok', '✓ Formation enregistrée');
+        showSaveStatus('ok', '✓ ' + GE_T.saved);
       } else {
-        showSaveStatus('err', '✗ ' + (data.error || 'Erreur inconnue'));
+        showSaveStatus('err', '✗ ' + (data.error || GE_T.unknownError));
       }
     })
     .catch(function () {
-      showSaveStatus('err', '✗ Erreur réseau');
+      showSaveStatus('err', '✗ ' + GE_T.networkErr);
     })
     .finally(function () {
       btn.disabled    = false;
-      btn.textContent = '💾 Enregistrer la formation';
+      btn.textContent = '💾 ' + GE_T.save;
     });
 }
 
@@ -1383,7 +1708,7 @@ function showSaveStatus(type, msg) {
   el._t = setTimeout(function () { el.style.display = 'none'; }, 3000);
 }
 
-/* ===== JSON accordéon ===== */
+/* ===== Raw JSON ===== */
 
 function toggleJson() {
   var body = document.getElementById('ge-json-body');
@@ -1392,7 +1717,7 @@ function toggleJson() {
   document.getElementById('json-icon').textContent = show ? '▼' : '▶';
 }
 
-/* ===== Utilitaires ===== */
+/* ===== Utilities ===== */
 
 function getVal(id)    { return document.getElementById(id).value; }
 function setVal(id, v) {
@@ -1411,8 +1736,9 @@ function cleanHtml(html) {
     .replace(/<p><br\s*\/?><\/p>$/gi, '')
     .replace(/<div><br\s*\/?><\/div>/gi, '')
     .trim();
-  // Nettoyage DOM : retire les style="" inline sur ul/ol/li
-  // (Chrome peut en ajouter via execCommand et ça écrase notre CSS)
+  // DOM cleanup: strip the inline style="" from ul/ol/li
+  // Chrome adds inline styles through execCommand, and they would override
+  // the panel's own CSS.
   var tmp = document.createElement('div');
   tmp.innerHTML = html;
   tmp.querySelectorAll('ul, ol, li').forEach(function(el) {

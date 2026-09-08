@@ -1,11 +1,37 @@
-/* Guide interactif — moteur de tutoriel v3 */
+/**
+ * Interactive Guide — course player.
+ *
+ * Runs on every ianseo page, injected by the module's menu.php. It owns the side
+ * panel, walks the user through the steps of a course, highlights the element
+ * each step points at, and plays the quiz, challenge, checklist and
+ * troubleshooting readers.
+ *
+ * THE ONE RULE THAT SHAPES MOST OF THIS FILE: never hold on to a DOM node.
+ * ianseo re-renders whole sub-trees after a save, so a node kept in a variable
+ * becomes detached and would be read as "the element disappeared". The current
+ * CSS SELECTOR is kept instead and re-queried; event listeners are delegated on
+ * document so they survive the node being replaced.
+ *
+ * Progress lives in two places on purpose: localStorage for instant reads and
+ * for installations without accounts, and the server (through guide-api.php) so
+ * a user finds their place again on another machine.
+ */
 (function () {
   'use strict';
 
-  // Cloisonnement par compte (module d'authentification facultatif) : menu.php pose
-  // window.GUIDE_USER ('' sans compte). L'état fonctionnel est suffixé par utilisateur
-  // pour que deux comptes sur le même navigateur ne partagent ni formation en cours ni
-  // progression. Les préférences cosmétiques (côté, taille) restent communes.
+  /* ===== Translations =====
+     menu.php publishes the strings as window.GUIDE_T; see guide_js_strings().
+     T() falls back to the key itself, so a missing translation shows something
+     recognisable instead of "undefined". */
+  function T(key) {
+    var t = window.GUIDE_T;
+    return (t && typeof t[key] === 'string') ? t[key] : key;
+  }
+
+  // Per-account separation (the account module is optional): menu.php sets
+  // window.GUIDE_USER, '' when there is none. The functional state is suffixed
+  // with the account so two users of the same browser share neither the course
+  // in progress nor its progress. Cosmetic preferences (side, width) stay common.
   var GUSER     = (typeof window.GUIDE_USER === 'string') ? window.GUIDE_USER : '';
   var LS_SUFFIX = GUSER ? '::' + GUSER : '';
 
@@ -18,14 +44,16 @@
   var state       = null;
   var formation   = null;
   var panel, fab;
-  var _triggerOff      = null; // cleanup du listener actif
-  var _syncTimer       = null; // debounce sync serveur
-  var _triggerIdx      = 0;   // index du trigger courant dans l'étape
-  var _doneTriggerMask = {};  // { index: true } des triggers déjà déclenchés
-  var _navigating      = false; // page en cours de déchargement (submit/navigation ianseo)
+  var _triggerOff      = null;  // cleanup of the active listener
+  var _syncTimer       = null;  // debounce for the server sync
+  var _triggerIdx      = 0;     // current trigger within the step
+  var _doneTriggerMask = {};    // { index: true } for triggers already fired
+  var _navigating      = false; // page unloading (an ianseo submit or navigation)
 
-  /* ===== Traceur de diagnostic (survit aux rechargements) =====
-     Console : GuideDebug(true) pour activer/réinitialiser, reproduire, puis GuideDebug() pour afficher. */
+  /* ===== Diagnostic tracer, surviving page reloads =====
+     Kept in localStorage rather than the console because the bugs worth tracing
+     here happen ACROSS a page load — an ianseo form submit wipes the console.
+     Console: GuideDebug(true) to arm and reset, reproduce, then GuideDebug(). */
   var LS_DBG = 'guide_debug';
   function _dbgOn() { try { return localStorage.getItem('guide_debug_on') === '1'; } catch (e) { return false; } }
   function _dbg(msg) {
@@ -38,11 +66,11 @@
     } catch (e) {}
   }
   window.GuideDebug = function (on) {
-    if (on === true)  { localStorage.setItem('guide_debug_on', '1'); localStorage.removeItem(LS_DBG); console.log('[Guide] debug ON — reproduisez le bug, puis tapez GuideDebug()'); return; }
+    if (on === true)  { localStorage.setItem('guide_debug_on', '1'); localStorage.removeItem(LS_DBG); console.log('[Guide] debug ON — reproduce the bug, then type GuideDebug()'); return; }
     if (on === false) { localStorage.setItem('guide_debug_on', '0'); console.log('[Guide] debug OFF'); return; }
     var arr = [];
     try { arr = JSON.parse(localStorage.getItem(LS_DBG)) || []; } catch (e) {}
-    console.log('%c[Guide] trace (' + arr.length + ' évènements) :', 'font-weight:bold');
+    console.log('%c[Guide] trace (' + arr.length + ' events):', 'font-weight:bold');
     arr.forEach(function (e) { console.log(e.t + '  ' + e.p + '  ' + e.m); });
     return arr;
   };
@@ -54,8 +82,9 @@
     fab   = document.getElementById('guide-fab');
     if (!panel) return;
 
-    // Permettre au guide de s'afficher dans les popups ianseo (PopEdit.php…), qui n'incluent pas
-    // get_which_menu() — donc pas notre injection serveur. On intercepte window.open côté parent.
+    // ianseo popups (PopEdit.php and friends) use head-popup.php, which does NOT
+    // call get_which_menu() — so the server never injects the panel into them.
+    // window.open is wrapped in the parent window instead.
     setupPopupInjection();
 
     document.getElementById('guide-panel-min').addEventListener('click', hidePanel);
@@ -69,12 +98,13 @@
     document.getElementById('guide-btn-validate').addEventListener('click', toggleValidate);
     fab.addEventListener('click', onFabClick);
 
-    // Page en cours de déchargement → ne plus reculer (éviter de régresser la progression
-    // sauvegardée pendant une soumission de formulaire / navigation ianseo).
+    // Once the page is unloading, stop moving backwards: an ianseo form submit
+    // tears elements out of the DOM, and treating that as "the target vanished"
+    // would save a position earlier than the one the user actually reached.
     window.addEventListener('beforeunload', function () { _navigating = true; });
     window.addEventListener('pagehide',     function () { _navigating = true; });
 
-    // Mode enregistrement de triggers (prioritaire sur le mode formation)
+    // Trigger recording takes priority over playing a course.
     if (recActive()) { recInit(); return; }
 
     applyPanelSide(loadSide());
@@ -84,7 +114,8 @@
     _dbg('INIT trigger_index=' + (state && state.trigger_index) + ' step=' + (state && state.step_index) +
          ' active=' + (state && state.active) + ' validated=' + (state && state.validated ? Object.keys(state.validated).join(',') : '-'));
 
-    // Sync état local → serveur au chargement (rattrape les navigations interrompues)
+    // Push the local position to the server on load, which catches up the
+    // navigations that were interrupted before the debounced sync could fire.
     if (state && state.active && state.gp_id && (!state.mode || state.mode === 'guide')) {
       serverPost('update', {
         gp_id: state.gp_id, step: state.step_index || 0,
@@ -124,17 +155,19 @@
     }
   }
 
-  // Exécute l'init même si le DOM est déjà prêt (cas des popups où guide.js est injecté après chargement).
+  // Runs even when the DOM is already parsed. Essential in a popup, where this
+  // script is injected after the page has finished loading and DOMContentLoaded
+  // will never fire again.
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', guideInit);
   else guideInit();
 
-  /* ===== API publique ===== */
+  /* ===== Public API (window.Guide*) ===== */
 
   window.GuideStart = function (formationId) {
     clearHighlight(); clearTrigger(); clearTourWarning();
     fetchFormation(formationId, function (f) {
       formation = f;
-      if (!formation) { alert('Formation introuvable.'); return; }
+      if (!formation) { alert(T('JsCourseNotFound')); return; }
       state = { active: true, formation_id: formationId, step_index: 0, validated: {}, gp_id: null };
       saveState();
       serverPost('start', {
@@ -144,7 +177,8 @@
         if (data && data.gp_id) {
           state.gp_id = data.gp_id;
           saveState();
-          // Synchroniser si l'utilisateur a déjà avancé avant la réponse serveur
+          // The user may already have moved on while the request was in flight,
+          // so send the position again now that there is a row to attach it to.
           serverPost('update', {
             gp_id: state.gp_id, step: state.step_index || 0,
             status: 'en_cours', validated: state.validated || {}
@@ -165,10 +199,11 @@
 
     fetchFormation(formationId, function (f) {
       formation = f;
-      if (!formation) { alert('Formation introuvable.'); return; }
+      if (!formation) { alert(T('JsCourseNotFound')); return; }
       if (state.step_index >= formation.steps.length) state.step_index = 0;
 
-      // Toujours vérifier le serveur — le gp_id peut être absent si localStorage a été effacé
+      // Always ask the server as well: gp_id is missing whenever localStorage
+      // was cleared or the user is resuming from another machine.
       fetchServerProgress(formationId, function (srv) {
         clearTourWarning();
         if (srv) {
@@ -200,11 +235,11 @@
     if (side === 'left') {
       panel.classList.add('guide-panel-left');
       if (fab) fab.classList.add('guide-fab-left');
-      if (toggle) { toggle.textContent = '→'; toggle.title = 'Déplacer vers la droite'; }
+      if (toggle) { toggle.textContent = '→'; toggle.title = T('JsMoveRight'); }
     } else {
       panel.classList.remove('guide-panel-left');
       if (fab) fab.classList.remove('guide-fab-left');
-      if (toggle) { toggle.textContent = '←'; toggle.title = 'Déplacer vers la gauche'; }
+      if (toggle) { toggle.textContent = '←'; toggle.title = T('JsMoveLeft'); }
     }
   }
 
@@ -223,7 +258,7 @@
     var btn = document.getElementById('guide-panel-max');
     if (btn) {
       btn.textContent = wide ? '❐' : '▢';
-      btn.title       = wide ? 'Taille normale' : 'Agrandir';
+      btn.title       = wide ? T('JsPanelNormalSize') : T('PanelMaximise');
     }
     if (_highlighted) placeArrow(_highlighted);
   }
@@ -249,14 +284,16 @@
     if (!formation || !state) return;
     if (!isStepDone(formation.steps[state.step_index])) return;
     if (state.step_index >= formation.steps.length - 1) { completeFormation(); return; }
-    _dbg('nextStep → step ' + (state.step_index + 1) + ', reset trigger_index=0');
+    _dbg('nextStep -> step ' + (state.step_index + 1) + ', reset trigger_index=0');
     clearHighlight(); clearTrigger();
     state.step_index++;
     state.trigger_index = 0;
     saveState(); scheduleSync(); renderStep();
   }
 
-  // Index du trigger actionnable précédent (saute les sous-étapes non actionnables).
+  // Index of the previous ACTIONABLE trigger, skipping the sub-steps that only
+  // display something and cannot be acted on — going back to one of those would
+  // look like nothing happened.
   function prevActionableIdx(step, fromIdx) {
     var triggers = step.triggers || [];
     var i = fromIdx - 1;
@@ -269,12 +306,14 @@
     return -1;
   }
 
-  // 🔄 Recommencer : remet les indications de l'étape à zéro (réinitialisation volontaire).
+  // 🔄 Start the hints of this step again. This is a DELIBERATE reset by the
+  // user, which is why it is allowed to move trigger_index backwards — the
+  // automatic paths never are (see persistTriggerIdx).
   function restartTriggers() {
     if (!formation || !state) return;
     var step = formation.steps[state.step_index];
     if (!(step.triggers || []).length) return;
-    _dbg('restartTriggers (manuel) → trigger_index=0');
+    _dbg('restartTriggers (manual) -> trigger_index=0');
     clearHighlight(); clearTrigger();
     _triggerIdx = 0;
     _doneTriggerMask = {};
@@ -285,13 +324,14 @@
     startTriggerSequence(step);
   }
 
-  // ↶ Revenir d'une indication : recule au trigger actionnable précédent (manuel, pas de cascade).
+  // ↶ Back one hint. Steps back exactly one actionable trigger and stops there:
+  // no cascade, so the user stays in control of where they land.
   function backOneTrigger() {
     if (!formation || !state) return;
     var step = formation.steps[state.step_index];
     var i = prevActionableIdx(step, _triggerIdx);
     if (i < 0) return;
-    _dbg('backOneTrigger (manuel) ' + _triggerIdx + ' → ' + i);
+    _dbg('backOneTrigger (manual) ' + _triggerIdx + ' -> ' + i);
     clearHighlight(); clearTrigger();
     for (var k = i; k < (step.triggers || []).length; k++) delete _doneTriggerMask[k];
     _triggerIdx = i;
@@ -302,7 +342,8 @@
     startTriggerSequence(step);
   }
 
-  // Active/désactive (et masque sans trigger) les boutons Recommencer / Revenir.
+  // Enable, disable, or hide entirely the "start over" and "back one hint"
+  // buttons: a step with no trigger has nothing for them to act on.
   function updateTriggerNavBtns() {
     var back    = document.getElementById('guide-btn-back');
     var restart = document.getElementById('guide-btn-restart');
@@ -332,15 +373,17 @@
     state.active = false;
     state.mode = null;
     saveState();
-    renderCompletionView(); // le panneau reste ouvert : QCM / défi / formation suivante
+    // The panel deliberately stays open: it now offers the quiz, the challenge
+    // and the next course, which is where most users go from here.
+    renderCompletionView();
   }
 
   function stopFormation() {
     if (!state || !state.active) { formation = null; hidePanel(); return; }
     var isTool = (state.mode === 'checklist' || state.mode === 'faq' || state.mode === 'quiz' || state.mode === 'defi');
-    var msg = isTool
-      ? 'Fermer ?\nVotre progression locale est conservée.'
-      : 'Quitter la formation ?\nVotre progression est sauvegardée — vous pourrez reprendre ici.';
+    // A tool (checklist, troubleshooting, quiz, challenge) has nothing stored on
+    // the server, so the wording promises only what is actually kept.
+    var msg = isTool ? T('JsCloseKeepLocal') : T('JsLeaveCourse');
     if (!confirm(msg)) return;
     clearHighlight(); clearTrigger(); clearTourWarning();
     if (!isTool && state.gp_id) {
@@ -353,7 +396,9 @@
     hidePanel();
   }
 
-  /* ===== Validation d'une étape ===== */
+  /* ===== Is a step done? =====
+     A step with no REQUIRED trigger is done as soon as it is shown: it only had
+     something to read. A step that does have one waits for it to fire. */
 
   function isStepDone(step) {
     if (!step) return true;
@@ -370,7 +415,7 @@
     var isLast = state.step_index === formation.steps.length - 1;
     var done   = isStepDone(step);
     btn.disabled    = !done;
-    btn.textContent = isLast ? 'Terminer ✓' : 'Suivant ▶';
+    btn.textContent = isLast ? T('JsFinish') + ' ✓' : T('CmdNextStep') + ' ▶';
     btn.classList.toggle('guide-btn-locked', !done);
   }
 
@@ -398,16 +443,20 @@
     if (!btn || !formation || !state) return;
     var step            = formation.steps[state.step_index];
     var needsValidation = (step.triggers || []).some(function(t) { return t.required; });
+    // optional === false means the step insists on the real action: the manual
+    // "mark as done" escape hatch is then hidden rather than merely discouraged.
     var isStrict        = step.optional === false;
     var done            = !!(state.validated && state.validated[step.id]);
 
     if (wrap) wrap.style.display = (needsValidation && !isStrict) ? '' : 'none';
-    btn.textContent = done ? '✓ Fait' : '☐ Marquer comme fait';
+    btn.textContent = done ? '✓ ' + T('JsDone') : '☐ ' + T('CmdMarkDone');
     if (done) btn.classList.add('guide-validated');
     else      btn.classList.remove('guide-validated');
   }
 
-  /* ===== Système de triggers séquentiels ===== */
+  /* ===== Sequential triggers =====
+     A step holds an ordered list of triggers and the player attaches them one at
+     a time, so the user is only ever shown one thing to do. */
 
   function startTriggerSequence(step) {
     clearHighlight(); clearTrigger();
@@ -431,17 +480,19 @@
     _dbg('attach idx=' + _triggerIdx + ' ' + (t.kind || 'action') + ' sel=' + (t.selector || t.condition || '-') +
          ' req=' + !!t.required + (t.when ? ' when=' + t.when : '') + (t.when_not ? ' whenNot=' + t.when_not : ''));
 
-    // Sous-étape non actionnable (sans action ni obligation) → passer
+    // A sub-step with neither an event to wait for nor a requirement is purely
+    // decorative: skip it rather than stall the sequence on it.
     var isAction  = !t.kind || t.kind === 'action';
     var actionable = isAction ? (t.trigger || t.required) : t.required;
     if (!actionable) { skipCurrentTrigger(step); return; }
 
-    // Condition d'activation (branche conditionnelle) — évaluation possiblement asynchrone
+    // Conditional branch. Evaluating the gate may need the server, so everything
+    // after it has to cope with the sequence having moved on meanwhile.
     if (t.when || t.when_not) {
       var idxAtEval = _triggerIdx;
       clearHighlight();
       evaluateGate(t, function (active) {
-        // Garde anti-course : la séquence a-t-elle changé pendant l'évaluation serveur ?
+        // Race guard: did the step or the trigger change while we were asking?
         if (!state || !formation || formation.steps[state.step_index] !== step || _triggerIdx !== idxAtEval) return;
         if (active) proceedWithTrigger(step, t);
         else        skipCurrentTrigger(step);
@@ -452,7 +503,9 @@
     proceedWithTrigger(step, t);
   }
 
-  // Marque le trigger courant comme "fait" et passe au suivant (sous-étape passée ou branche non prise).
+  // Mark the current trigger as done and move on. Used both for a decorative
+  // sub-step and for a branch that was not taken — a required trigger disabled
+  // by its own condition must NOT block the step.
   function skipCurrentTrigger(step) {
     _dbg('SKIP idx=' + _triggerIdx);
     _doneTriggerMask[_triggerIdx] = true;
@@ -461,7 +514,9 @@
     attachCurrentTrigger(step);
   }
 
-  // Évalue la condition d'activation d'un trigger. 'when' = actif si remplie ; 'when_not' = actif si NON remplie.
+  // Evaluate a trigger's activation condition. 'when' makes it active when the
+  // condition is met, 'when_not' when it is not; both together are an AND. This
+  // is what gives a course an if/else without nesting its steps.
   function evaluateGate(t, cb) {
     var checks = [];
     if (t.when)     checks.push({ cond: t.when,     want: true  });
@@ -477,7 +532,7 @@
   }
 
   function proceedWithTrigger(step, t) {
-    // ---- Trigger état (condition serveur ou page active) ----
+    // ---- State trigger: a server condition, or "the right page is open" ----
     if (t.kind === 'etat') {
       clearHighlight();
       evaluateEtat(step, t, function (met, label) {
@@ -485,44 +540,51 @@
         if (met) {
           onTriggerFired(step);
         } else if (t.condition === '__page') {
-          // Le lien "aller sur la page" est géré par updatePageInfo() — pas de message redondant
+          // updatePageInfo() already shows a "go to the page" link, so a second
+          // message saying the same thing would only add noise.
           clearConditionWait();
         } else {
           showConditionWait(label);
-          if (t.condition === '__css') startEtatPoll(step, t); // élément dynamique → re-vérifie
+          // A __css element can appear or disappear without a page load, so it
+          // has to be polled rather than checked once.
+          if (t.condition === '__css') startEtatPoll(step, t);
         }
       });
       return;
     }
 
-    // ---- Trigger action (événement DOM) ----
+    // ---- Action trigger: a DOM event ----
     var tPage = triggerPage(step, t);
     clearHighlight();
 
-    if (!isOnRightPage(tPage)) return; // mauvaise page : updatePageInfo affiche le lien
+    if (!isOnRightPage(tPage)) return;   // wrong page: updatePageInfo shows the link
 
     if (t.selector) {
-      // Aucun recul automatique : on cale la surbrillance sur la cible si présente (ou son parent
-      // visible si masquée/hors-écran), sinon on attend qu'elle apparaisse (applyHighlight via la
-      // surveillance). L'écouteur d'événement est délégué sur document → il reste actif même si la
-      // cible n'est pas encore là.
+      // Never step backwards automatically. The highlight settles on the target
+      // if it is there (or on its nearest visible ancestor when it is inside a
+      // closed submenu), and otherwise simply waits for it to appear — the
+      // visibility watch calls applyHighlight again. The event listener is
+      // delegated on document, so it works even before the target exists.
       _curSelector = t.selector;
       _hint = t.hint || '';
-      applyHighlight();         // surligne l'élément (ou son ancêtre visible le plus proche)
-      startHighlightTracking(); // listeners scroll/resize + surveillance par re-requête
+      applyHighlight();         // the element itself, or its nearest visible ancestor
+      startHighlightTracking(); // scroll/resize listeners plus the re-query watch
       if (step.strict_click) enableStrictClick(t.selector);
     }
 
-    // Trigger manuel (trigger: null) ou sans cible → l'utilisateur clique "Marquer comme fait"
+    // A manual trigger (trigger: null) or one with no target has no event to
+    // wait for: the user confirms it with "mark as done".
     if (!t.trigger || !t.selector) return;
 
     bindTriggerEvent(step, t);
   }
 
-  // Écouteur délégué sur document : résiste aux re-render partiels de ianseo
-  // (le nœud peut être remplacé, on ne garde aucune référence directe).
+  // Delegated on document rather than bound to the node, so it survives ianseo
+  // re-rendering the part of the page the target lives in. No direct reference
+  // to the element is kept anywhere.
   function bindTriggerEvent(step, t) {
-    // Pré-validation 'change' : champ déjà rempli / coché
+    // A 'change' trigger on a field that is ALREADY filled in would never fire,
+    // leaving the user stuck on a step they have effectively done: check first.
     if (t.trigger === 'change') {
       var pre = document.querySelector(t.selector);
       if (pre) {
@@ -549,24 +611,29 @@
     _doneTriggerMask[_triggerIdx] = true;
     _triggerIdx++;
     while (_triggerIdx < triggers.length && _doneTriggerMask[_triggerIdx]) _triggerIdx++;
-    _dbg('FIRED → idx=' + _triggerIdx);
+    _dbg('FIRED -> idx=' + _triggerIdx);
     persistTriggerIdx();
     attachCurrentTrigger(step);
     updatePageInfo(step);
     if (allRequiredDone(step)) autoValidateStep(step);
   }
 
-  // Persistance MONOTONE de la progression dans l'étape : ne descend jamais (anti-régression).
-  // Seules les avancées réelles (onTriggerFired, skipCurrentTrigger) sont sauvegardées.
-  // (Les changements d'étape réinitialisent explicitement state.trigger_index à 0 dans prev/nextStep.)
+  // Saving the position within a step is MONOTONIC: it never goes down.
+  //
+  // Only real progress (onTriggerFired, skipCurrentTrigger) is saved through
+  // here. That is a defence against a whole class of bug: after an ianseo page
+  // reload the earlier targets are often gone, and anything that inferred a
+  // position from what is currently on screen would walk the user backwards.
+  // Deliberate rewinds — prev/nextStep, revalidateEtat, the 🔄 and ↶ buttons —
+  // set state.trigger_index directly and bypass this.
   function persistTriggerIdx() {
     if (!state) return;
     if (typeof state.trigger_index !== 'number' || _triggerIdx > state.trigger_index) {
-      _dbg('PERSIST trigger_index ' + state.trigger_index + ' → ' + _triggerIdx);
+      _dbg('PERSIST trigger_index ' + state.trigger_index + ' -> ' + _triggerIdx);
       state.trigger_index = _triggerIdx;
       saveState();
     } else {
-      _dbg('persist skipped (monotone) _triggerIdx=' + _triggerIdx + ' saved=' + state.trigger_index);
+      _dbg('persist skipped (monotonic) _triggerIdx=' + _triggerIdx + ' saved=' + state.trigger_index);
     }
   }
 
@@ -582,9 +649,11 @@
     if (style.visibility === 'hidden' || style.display === 'none' || parseFloat(style.opacity) === 0) return false;
     var rect = el.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return false;
-    // Masquage par positionnement hors-écran (menus Suckerfish ianseo : left/top: -9999px).
-    // Un élément simplement défilé hors viewport garde une coordonnée document >= 0 ; un menu caché
-    // est à une coordonnée absurde (ex : top -99736px) → on le considère non visible.
+    // Hidden by being positioned off-screen: ianseo's Suckerfish menus park
+    // closed submenus at left/top -9999px, which passes every display and size
+    // test above. Without this the arrow was placed at top: -99736px.
+    // Simply scrolling out of view keeps a document coordinate >= 0, so a
+    // scrolled element is not mistaken for a hidden one.
     var absTop  = rect.top  + (window.scrollY || window.pageYOffset || 0);
     var absLeft = rect.left + (window.scrollX || window.pageXOffset || 0);
     if (absTop < -1000 || absLeft < -1000) return false;
@@ -606,7 +675,7 @@
     renderValidateBtn(); updateNextBtn();
   }
 
-  /* ===== Rendu d'une étape ===== */
+  /* ===== Rendering a step ===== */
 
   function renderStep() {
     if (!formation || !state) return;
@@ -618,7 +687,8 @@
 
     document.getElementById('guide-panel-formation-name').textContent = formation.title;
     document.getElementById('guide-panel-progress-fill').style.width  = pct + '%';
-    document.getElementById('guide-panel-progress-text').textContent  = 'Étape ' + (idx + 1) + ' / ' + total;
+    // Steps are stored zero-based and shown one-based.
+    document.getElementById('guide-panel-progress-text').textContent  = T('JsStep') + ' ' + (idx + 1) + ' / ' + total;
     renderStepImage(step);
     document.getElementById('guide-panel-step-title').textContent     = step.title;
     document.getElementById('guide-panel-step-content').innerHTML     = sanitizeContent(step.content);
@@ -667,20 +737,20 @@
   function evaluateEtat(step, t, cb) {
     if (t.condition === '__page') {
       var page = t.page || step.page || null;
-      cb(isOnRightPage(page), 'Vous devez être sur la page : ' + (page || '(non définie)'));
+      cb(isOnRightPage(page), T('JsMustBeOnPage') + ' ' + (page || T('JsPageUndefined')));
     } else if (t.condition === '__css') {
       var present = cssElementVisible(t.selector);
       var met = t.absent ? !present : present;
-      var label = t.hint || (t.absent
-        ? 'En attente : l\'élément indiqué doit disparaître.'
-        : 'En attente : l\'élément indiqué doit apparaître à l\'écran.');
+      var label = t.hint || (t.absent ? T('JsWaitElementGone') : T('JsWaitElementShown'));
       cb(met, label);
     } else {
       checkCondition(t.condition || '', cb);
     }
   }
 
-  // Présence "visible à l'écran" d'un sélecteur (gère les sélecteurs dynamiques [id^="…"]).
+  // Is a selector matched by something actually visible on screen? Handles the
+  // attribute-prefix selectors courses use for ianseo's numbered ids, such as
+  // [id^="d_q_QuSession_"].
   function cssElementVisible(selector) {
     if (!selector) return false;
     try {
@@ -689,7 +759,9 @@
     } catch (e) { return false; }
   }
 
-  // Polling d'un état client (__css) : l'élément peut apparaître/disparaître sans rechargement.
+  // Polling for a client-side state (__css). Needed because the element can
+  // appear or disappear without any page load — ianseo builds several tables in
+  // JavaScript after the page is served.
   var _etatPoll = null;
   function startEtatPoll(step, t) {
     stopEtatPoll();
@@ -702,8 +774,8 @@
   }
   function stopEtatPoll() { if (_etatPoll) { clearInterval(_etatPoll); _etatPoll = null; } }
 
-  // Re-validation d'un état en tenant compte de sa condition d'activation :
-  // une branche non prise (gate faux) ne doit pas pouvoir dé-valider l'étape.
+  // Re-check a state, taking its activation condition into account first: a
+  // branch that was never taken must not be able to un-validate the step.
   function gateThenEtat(step, t, cb) {
     evaluateGate(t, function (active) {
       if (!active) { cb(true); return; }
@@ -712,7 +784,7 @@
   }
 
   function revalidateEtat(step, etatTriggers) {
-    _dbg('revalidateEtat: ' + etatTriggers.length + ' état(s) requis sur étape validée');
+    _dbg('revalidateEtat: ' + etatTriggers.length + ' required state(s) on a validated step');
     var remaining = etatTriggers.length;
     var allMet    = true;
     etatTriggers.forEach(function (t) {
@@ -721,10 +793,10 @@
         if (!met) allMet = false;
         if (--remaining === 0) {
           if (allMet) {
-            _dbg('revalidateEtat → tout OK, étape reste validée');
+            _dbg('revalidateEtat -> all still true, step stays validated');
             clearHighlight(); clearTrigger();
           } else {
-            _dbg('revalidateEtat → ÉCHEC : dé-validation + RESET trigger_index=0, relance séquence');
+            _dbg('revalidateEtat -> FAILED: un-validate + RESET trigger_index=0, restart sequence');
             delete state.validated[step.id];
             state.trigger_index = 0;
             _triggerIdx      = 0;
@@ -739,14 +811,16 @@
     });
   }
 
-  /* ===== Surbrillance ===== */
+  /* ===== Highlighting =====
+     The part of the file that has to survive ianseo re-rendering the page under
+     it, hence the selector-not-node rule stated at the top. */
 
   var _highlighted     = null;
   var _arrow           = null;
   var _hint            = '';
   var _strictClickOff  = null;
   var _visWatch        = null;
-  var _curSelector     = null;  // sélecteur du trigger courant (re-requêté, jamais de noeud périmé)
+  var _curSelector     = null;  // selector of the current trigger, re-queried, never a stale node
 
   function nearestVisibleAncestor(el) {
     var node = el;
@@ -764,14 +838,16 @@
     return r.top >= 0 && r.left >= 0 && r.bottom <= vh && r.right <= vw;
   }
 
-  // Place/replace la surbrillance en re-requêtant le sélecteur courant.
-  // Cible visible → on la surligne ; cible masquée (sous-menu fermé) → ancêtre visible le plus proche ;
-  // rien de visible → on retire la flèche (en attente, sans fantôme).
+  // Place or re-place the highlight by re-querying the current selector.
+  //   target visible          -> highlight it
+  //   target present, hidden  -> anchor on the nearest visible ancestor, which
+  //                              is the menu entry the user has to open first
+  //   nothing visible         -> remove the arrow rather than leave a ghost
   function applyHighlight() {
     if (!_curSelector) return;
     var target = document.querySelector(_curSelector);
     var anchor = target ? (isElementVisible(target) ? target : nearestVisibleAncestor(target)) : null;
-    if (anchor === _highlighted) return; // déjà calé sur le bon élément
+    if (anchor === _highlighted) return;   // already on the right element
     if (_highlighted) { _highlighted.classList.remove('guide-highlight'); _highlighted = null; }
     removeArrow();
     if (!anchor) return;
@@ -788,12 +864,16 @@
     startVisibilityWatch();
   }
 
-  // Surveillance par re-requête (résiste aux re-render ianseo) : on ne se fie jamais à un noeud mémorisé.
-  // applyHighlight() ré-ancre sur la cible (ou son parent visible si masquée/hors-écran) et retire la
-  // flèche si la cible est absente. JAMAIS de retour en arrière : après un rechargement où la page a
-  // changé (post-import LookupTableLoad), les éléments des triggers précédents sont absents — un recul
-  // remonterait jusqu'au menu (toujours présent dans la nav) → fausse impression de redémarrage.
-  // On reste sur le trigger courant et la surbrillance réapparaît dès que la cible revient.
+  // A watch that re-queries rather than trusting a remembered node, so it copes
+  // with ianseo replacing the element: applyHighlight() re-anchors on the target
+  // (or its visible parent) and removes the arrow when nothing is there.
+  //
+  // It NEVER steps back. An earlier version did, and after a reload that changed
+  // the page — importing a lookup table, for instance — the previous triggers'
+  // elements were gone, so it walked back up to the navigation menu, which is
+  // present on every page, and the course appeared to restart itself. Staying on
+  // the current trigger costs nothing: the highlight returns as soon as the
+  // target does.
   function startVisibilityWatch() {
     stopVisibilityWatch();
     _visWatch = setInterval(visualWatchTick, 500);
@@ -812,7 +892,8 @@
     var handler = function (e) {
       var panel = document.getElementById('guide-panel');
       if (panel && panel.contains(e.target)) return;
-      // Ne jamais bloquer les contrôles du guide lui-même (FAB, recorder)
+      // Never block the guide's own controls. Without this, minimising the panel
+      // while strict mode is on would leave the user unable to reopen it.
       if (e.target.closest && e.target.closest('#guide-fab, #guide-rec')) return;
       try { if (e.target.closest && e.target.closest(selector)) return; } catch (ex) {}
       e.preventDefault();
@@ -863,10 +944,15 @@
     avoidPanelOverlap(el);
   }
 
-  // Empêche le panneau de recouvrir l'ÉLÉMENT indiqué (on ignore la flèche).
-  // Règle : élément à l'intérieur du panneau → bascule de côté ; si toujours à l'intérieur
-  // après bascule → réduit exceptionnellement le panneau de moitié, le temps du trigger.
-  // On calcule la position FINALE du panneau (indépendante de l'animation de bascule).
+  // Keep the panel from covering the ELEMENT being pointed at. The arrow itself
+  // is ignored: it is small, and moving the panel for it would be constant.
+  //
+  // Escalation: element behind the panel -> move the panel to the other side;
+  // still behind it -> halve the panel's width for the duration of the trigger.
+  //
+  // The panel's FINAL position is computed rather than measured, because during
+  // the side-switch animation a measurement returns an intermediate rectangle
+  // and produces a false positive.
   var _panelDodged = false;
   var _panelShrunk = false;
 
@@ -874,7 +960,8 @@
     return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
   }
 
-  // Rectangle qu'occuperait le panneau pour un côté donné (ancré en bas, marge 20px).
+  // The rectangle the panel would occupy on a given side, anchored to the bottom
+  // with a 20px margin — matching the CSS, without depending on a measurement.
   function panelSideRect(side, w, h) {
     var vw = window.innerWidth  || document.documentElement.clientWidth;
     var vh = window.innerHeight || document.documentElement.clientHeight;
@@ -892,17 +979,18 @@
     var w = pr.width || 360, h = pr.height || 300;
     var side = panel.classList.contains('guide-panel-left') ? 'left' : 'right';
 
-    // 1) L'élément est-il à l'intérieur du panneau (à sa position finale) ?
+    // 1) Is the element behind the panel, at the panel's final position?
     if (!rectsOverlap(panelSideRect(side, w, h), elRect)) return;
 
-    // 2) Déplacer de l'autre côté (une seule fois)
+    // 2) Move to the other side, once. clearHighlight() puts the user's own
+    //    choice of side back afterwards.
     if (!_panelDodged) {
       _panelDodged = true;
       side = (side === 'right') ? 'left' : 'right';
-      applyPanelSide(side); // visuel seulement, non sauvegardé
+      applyPanelSide(side);   // visual only, deliberately not saved
     }
 
-    // 3) Toujours à l'intérieur après déplacement → réduire de moitié (une seule fois)
+    // 3) Still behind it after moving: halve the width, once.
     if (!_panelShrunk && rectsOverlap(panelSideRect(side, w, h), elRect)) {
       _panelShrunk = true;
       panel.classList.add('guide-panel-half');
@@ -929,9 +1017,11 @@
     document.removeEventListener('scroll', onResize, true);
   }
 
-  /* ===== Visibilité panneau ===== */
-
-  /* ===== Avertissement compétition différente ===== */
+  /* ===== Panel visibility, and the "different competition" warning =====
+     A course is followed against one competition. Resuming it while another one
+     is open is allowed — the steps still make sense — but the elements a step
+     points at may not exist there, so the user is told rather than left
+     wondering why nothing is highlighted. */
 
   var WARN_ID = 'guide-tour-warn';
 
@@ -944,9 +1034,8 @@
       'padding:7px 12px', 'font-size:11px', 'color:#664d00',
       'line-height:1.5', 'cursor:pointer'
     ].join(';');
-    warn.title = 'Cliquez pour masquer';
-    warn.innerHTML = '⚠️ <b>Formation commencée dans une autre compétition.</b><br>' +
-      'Certains menus ou sélecteurs peuvent être absents de cette compétition.';
+    warn.title = T('JsClickToHide');
+    warn.innerHTML = T('JsOtherCompetition');
     warn.addEventListener('click', clearTourWarning);
     var prog = document.getElementById('guide-panel-progress');
     if (prog) prog.insertAdjacentElement('afterend', warn);
@@ -959,8 +1048,10 @@
 
   function showPanel() { panel.style.display = 'flex'; if (fab) fab.style.display = 'none'; }
 
-  // Réduire = PAUSE : on détache le trigger actif ET le mode non-permissif (sinon le blocage
-  // des clics empêcherait même de rouvrir via le FAB). Rouvrir (FAB) ré-attache tout (play).
+  // Minimising means PAUSE. The active trigger AND strict-click mode are both
+  // detached — leaving strict mode on with the panel hidden would block the very
+  // clicks needed to bring it back. Reopening from the floating button
+  // re-attaches everything.
   function hidePanel() {
     panel.style.display = 'none';
     clearHighlight();
@@ -1072,7 +1163,8 @@
   }
 
   function normPath(p) {
-    // /foo/index.php → /foo/   (même page côté serveur web)
+    // /foo/index.php and /foo/ are the same page to the web server, so they must
+    // compare equal here too. Mirrors guide_norm_path() on the PHP side.
     return p.replace(/\/index\.php$/, '/');
   }
 
@@ -1092,24 +1184,45 @@
     return normCurrent === normPage;
   }
 
-  function checkCondition(cid, cb) {
-    var url = apiRoot() + 'Modules/Custom/GUIDE/guide-api.php?action=check-condition&cid=' + encodeURIComponent(cid);
+  /* Ask the server about SEVERAL conditions at once.
+     One request whatever the number of conditions: a challenge polls its own
+     every ten seconds, and one request per condition per poll is the kind of
+     traffic that is invisible on a laptop and painful on a venue's wifi.
+     cb receives an object keyed by condition id: { met, label }. */
+  function checkConditions(cids, cb) {
+    var list = (cids || []).filter(function (c) { return !!c; });
+    if (!list.length) { cb({}); return; }
+
+    var url = apiRoot() + 'Modules/Custom/GUIDE/guide-api.php?action=check-condition&cid='
+            + encodeURIComponent(list.join(','));
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
     xhr.onreadystatechange = function () {
       if (xhr.readyState !== 4) return;
+      var out = {};
       try {
         var data = JSON.parse(xhr.responseText);
-        cb(data.met === true, data.label || cid);
-      } catch (e) { cb(false, cid); }
+        out = data.conditions || {};
+      } catch (e) { /* leave out empty: every condition then reads as not met */ }
+      list.forEach(function (c) { if (!out[c]) out[c] = { met: false, label: c }; });
+      cb(out);
     };
     xhr.send();
+  }
+
+  /* One condition, on top of the batch call — the shape most callers want. */
+  function checkCondition(cid, cb) {
+    checkConditions([cid], function (res) {
+      var r = res[cid] || { met: false, label: cid };
+      cb(r.met === true, r.label || cid);
+    });
   }
 
   function showConditionWait(label) {
     var el = document.getElementById('guide-panel-condition-wait');
     if (!el) return;
-    el.innerHTML = '<p class="guide-condition-wait">🔍 Condition requise non satisfaite :<br><b>' + esc(label) + '</b></p>';
+    el.innerHTML = '<p class="guide-condition-wait">🔍 ' + esc(T('JsConditionNotMet')) +
+                   '<br><b>' + esc(label) + '</b></p>';
     el.style.display = '';
   }
 
@@ -1131,8 +1244,8 @@
     if (page && !isOnRightPage(page)) {
       pageInfo.style.display = '';
       pageInfo.innerHTML =
-        '<p class="guide-page-warning">📍 Cette étape s\'effectue sur une autre page :<br>' +
-        '<a href="' + esc(buildUrl(page)) + '" class="guide-page-link">Aller sur la page →</a></p>';
+        '<p class="guide-page-warning">📍 ' + esc(T('JsStepOnOtherPage')) + '<br>' +
+        '<a href="' + esc(buildUrl(page)) + '" class="guide-page-link">' + esc(T('JsGoToPage')) + ' →</a></p>';
     } else {
       pageInfo.style.display = 'none';
       pageInfo.innerHTML = '';
@@ -1155,14 +1268,18 @@
       .replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  /* ===== Vues du panneau (QCM, défi, checklist, FAQ, fin de formation) ===== */
+  /* ===== The other panel views =====
+     The same panel serves the quiz, the challenge, the checklist, the
+     troubleshooting tree and the end-of-course screen. They share its chrome and
+     its persistence; only the body changes. */
 
   function showNav(show) {
     var n = document.getElementById('guide-panel-nav');
     if (n) n.style.display = show ? 'flex' : 'none';
   }
 
-  // Remplit le panneau avec une vue non-guide : masque les zones spécifiques au guide.
+  // Fill the panel with a view that is not the step-by-step guide, hiding the
+  // parts that only make sense there.
   function setPanelView(titleText, contentNode, progressText) {
     clearHighlight();
     var img = document.getElementById('guide-panel-step-image');
@@ -1205,7 +1322,8 @@
   function hasQuiz(f)      { return !!(f && f.quiz && f.quiz.questions && f.quiz.questions.length); }
   function hasChallenge(f) { return !!(f && f.challenge && f.challenge.conditions && f.challenge.conditions.length); }
 
-  // Badge cible : niveau selon les activités réussies parmi celles disponibles
+  // Achievement level: measured against what this course OFFERS, so a course
+  // without a quiz can still reach gold.
   function badgeLevel(f, srv) {
     var avail = 1 + (hasQuiz(f) ? 1 : 0) + (hasChallenge(f) ? 1 : 0);
     var done  = 1 + ((srv && srv.quiz) ? 1 : 0) + ((srv && srv.challenge) ? 1 : 0);
@@ -1215,7 +1333,7 @@
   }
 
   function badgeHtml(lvl) {
-    var label = lvl === 'or' ? "Cible d'or" : (lvl === 'argent' ? "Cible d'argent" : 'Cible de bronze');
+    var label = lvl === 'or' ? T('TargetGold') : (lvl === 'argent' ? T('TargetSilver') : T('TargetBronze'));
     return '<b class="guide-badge-' + lvl + '">🎯 ' + label + '</b>';
   }
 
@@ -1224,33 +1342,35 @@
       var el = document.getElementById('guide-done-badge');
       if (!el || !formation) return;
       var lvl = badgeLevel(formation, s);
-      el.innerHTML = 'Distinction : ' + badgeHtml(lvl) +
-        (lvl !== 'or' ? '<br><span style="font-size:11px;color:#888">Réussissez toutes les activités pour la cible d\'or.</span>' : '');
+      el.innerHTML = esc(T('JsAchievement')) + ' ' + badgeHtml(lvl) +
+        (lvl !== 'or' ? '<br><span style="font-size:11px;color:#888">' + esc(T('JsGoldHint')) + '</span>' : '');
     });
   }
 
-  /* ---- Écran de fin de guide ---- */
+  /* ---- End-of-guide screen ---- */
 
   function renderCompletionView() {
     var f = formation;
     if (!f) return;
     var wrap = document.createElement('div');
     var p = document.createElement('p');
-    p.innerHTML = '<b>Félicitations !</b> Vous avez terminé le guide de cette formation.';
+    p.innerHTML = T('JsGuideFinished');
     wrap.appendChild(p);
     var badge = document.createElement('p');
     badge.id = 'guide-done-badge';
     wrap.appendChild(badge);
-    if (hasQuiz(f))      wrap.appendChild(ctaBtn('📝 Passer au QCM', 'guide-cta-main', function () { GuideStartQuiz(f.id); }));
-    if (hasChallenge(f)) wrap.appendChild(ctaBtn('🎯 Relever le défi', hasQuiz(f) ? '' : 'guide-cta-main', function () { GuideStartChallenge(f.id); }));
+    // The remaining activities are offered in order, and whichever comes first
+    // gets the primary styling, so a course without a quiz still leads somewhere.
+    if (hasQuiz(f))      wrap.appendChild(ctaBtn('📝 ' + T('Quiz'), 'guide-cta-main', function () { GuideStartQuiz(f.id); }));
+    if (hasChallenge(f)) wrap.appendChild(ctaBtn('🎯 ' + T('JsTakeChallenge'), hasQuiz(f) ? '' : 'guide-cta-main', function () { GuideStartChallenge(f.id); }));
     var nextHolder = document.createElement('div');
     wrap.appendChild(nextHolder);
-    wrap.appendChild(ctaBtn('🏠 Retour au catalogue', 'guide-cta-ghost', function () { window.location.href = buildUrl('/Modules/Custom/GUIDE/'); }));
-    setPanelView('🎉 Formation terminée !', wrap, f.title);
+    wrap.appendChild(ctaBtn('🏠 ' + T('JsBackToCatalogue'), 'guide-cta-ghost', function () { window.location.href = buildUrl('/Modules/Custom/GUIDE/'); }));
+    setPanelView('🎉 ' + T('JsCourseComplete'), wrap, f.title);
     document.getElementById('guide-panel-progress-fill').style.width = '100%';
     updateDoneBadge(f.id);
     fetchNextFormation(f.id, function (n) {
-      if (n) nextHolder.appendChild(ctaBtn('▶ Formation suivante : ' + esc(n.title), (hasQuiz(f) || hasChallenge(f)) ? '' : 'guide-cta-main', function () { GuideStart(n.id); }));
+      if (n) nextHolder.appendChild(ctaBtn('▶ ' + T('JsNextCourse') + ' : ' + esc(n.title), (hasQuiz(f) || hasChallenge(f)) ? '' : 'guide-cta-main', function () { GuideStart(n.id); }));
     });
   }
 
@@ -1259,7 +1379,7 @@
   window.GuideStartQuiz = function (fid) {
     clearHighlight(); clearTrigger();
     fetchFormation(fid, function (f) {
-      if (!f || !hasQuiz(f)) { alert('Pas de QCM pour cette formation.'); return; }
+      if (!f || !hasQuiz(f)) { alert(T('JsNoQuiz')); return; }
       formation = f;
       state = { active: true, formation_id: fid, mode: 'quiz', qi: 0, qok: 0 };
       saveState();
@@ -1267,7 +1387,8 @@
     });
   };
 
-  // 'correct' : index (héritage) ou tableau d'index (réponses multiples)
+  // 'correct' is either one index (the original format) or an array of them
+    // (several right answers). Both are still accepted.
   function quizCorrectSet(q) {
     return Array.isArray(q.correct) ? q.correct.slice() : [q.correct || 0];
   }
@@ -1292,11 +1413,12 @@
     if (multi) {
       var note = document.createElement('p');
       note.style.cssText = 'font-size:11px;color:#7c5cbf;margin:0 0 6px';
-      note.textContent = '☑ Plusieurs réponses possibles — sélectionnez puis validez.';
+      note.textContent = '☑ ' + T('JsMultipleAnswers');
       wrap.appendChild(note);
     }
 
-    // Ordre d'affichage (aléatoire si demandé), chaque bouton garde son index d'origine
+    // Display order, shuffled when the course asks for it. Each button keeps its
+    // original index, so the answer is checked against the right choice.
     var order = (q.choices || []).map(function (_, k) { return k; });
     if (formation.quiz.shuffle) shuffleArr(order);
 
@@ -1311,24 +1433,26 @@
     });
 
     if (multi) {
-      wrap.appendChild(ctaBtn('Valider la réponse ✓', 'guide-cta-main', function () {
+      wrap.appendChild(ctaBtn(T('JsConfirmAnswer') + ' ✓', 'guide-cta-main', function () {
         if (wrap._answered) return;
         var sel = [];
         var btns = wrap.querySelectorAll('.guide-quiz-choice');
         for (var k = 0; k < btns.length; k++) if (btns[k]._sel) sel.push(btns[k]._orig);
-        if (!sel.length) return; // toujours au moins une réponse
+        if (!sel.length) return;   // never accept an empty answer
         answerQuiz(sel, wrap, q, correct);
       }));
     }
 
-    setPanelView(q.q || '', wrap, 'QCM — Question ' + (i + 1) + ' / ' + qs.length);
+    setPanelView(q.q || '', wrap,
+      T('Quiz') + ' — ' + T('JsQuestion') + ' ' + (i + 1) + ' / ' + qs.length);
     document.getElementById('guide-panel-progress-fill').style.width = Math.round(i / qs.length * 100) + '%';
   }
 
   function answerQuiz(selected, wrap, q, correct) {
     if (wrap._answered) return;
     wrap._answered = true;
-    // Bonne réponse = exactement l'ensemble des réponses correctes
+    // Right answer means EXACTLY the set of correct choices: on a
+    // multiple-answer question, picking one of two correct choices is wrong.
     var ok = selected.length === correct.length && selected.every(function (s) { return correct.indexOf(s) !== -1; });
     if (ok) state.qok = (state.qok || 0) + 1;
     var btns = wrap.querySelectorAll('.guide-quiz-choice');
@@ -1341,10 +1465,11 @@
     }
     var fb = document.createElement('div');
     fb.className = 'guide-quiz-fb ' + (ok ? 'ok' : 'ko');
-    fb.innerHTML = (ok ? '✅ Bonne réponse !' : '❌ Mauvaise réponse.') + (q.explain ? '<br>' + esc(q.explain) : '');
+    fb.innerHTML = (ok ? '✅ ' + esc(T('JsRightAnswer')) : '❌ ' + esc(T('JsWrongAnswer')))
+                 + (q.explain ? '<br>' + esc(q.explain) : '');
     wrap.appendChild(fb);
     var isLast = (state.qi || 0) >= formation.quiz.questions.length - 1;
-    wrap.appendChild(ctaBtn(isLast ? 'Voir le résultat ▶' : 'Question suivante ▶', 'guide-cta-main', function () {
+    wrap.appendChild(ctaBtn((isLast ? T('JsSeeResult') : T('JsNextQuestion')) + ' ▶', 'guide-cta-main', function () {
       state.qi = (state.qi || 0) + 1;
       saveState();
       renderQuiz();
@@ -1362,40 +1487,41 @@
     var wrap = document.createElement('div');
     var p = document.createElement('p');
     if (passed) {
-      p.innerHTML = '✅ <b>QCM réussi !</b> Score : ' + score + '% (' + ok + '/' + total + ').';
+      p.innerHTML = '✅ ' + T('JsQuizPassedScore') + score + '% (' + ok + '/' + total + ').';
       wrap.appendChild(p);
       var badge = document.createElement('p');
       badge.id = 'guide-done-badge';
       wrap.appendChild(badge);
       serverPost('activity', { formation_id: f.id, activity: 'quiz' }, function () { updateDoneBadge(f.id); });
-      if (hasChallenge(f)) wrap.appendChild(ctaBtn('🎯 Relever le défi', 'guide-cta-main', function () { GuideStartChallenge(f.id); }));
+      if (hasChallenge(f)) wrap.appendChild(ctaBtn('🎯 ' + T('JsTakeChallenge'), 'guide-cta-main', function () { GuideStartChallenge(f.id); }));
       var nh = document.createElement('div');
       wrap.appendChild(nh);
       fetchNextFormation(f.id, function (n) {
-        if (n) nh.appendChild(ctaBtn('▶ Formation suivante : ' + esc(n.title), hasChallenge(f) ? '' : 'guide-cta-main', function () { GuideStart(n.id); }));
+        if (n) nh.appendChild(ctaBtn('▶ ' + T('JsNextCourse') + ' : ' + esc(n.title), hasChallenge(f) ? '' : 'guide-cta-main', function () { GuideStart(n.id); }));
       });
       state.active = false; state.mode = null; saveState();
     } else {
-      p.innerHTML = '❌ Score : ' + score + '% (' + ok + '/' + total + ') — il faut au moins ' + pass + '%.';
+      p.innerHTML = '❌ ' + esc(T('JsScoreFailed')
+        .replace('{score}', score).replace('{ok}', ok).replace('{total}', total).replace('{pass}', pass));
       wrap.appendChild(p);
-      wrap.appendChild(ctaBtn('↺ Réessayer', 'guide-cta-main', function () {
+      wrap.appendChild(ctaBtn('↺ ' + T('JsRetry'), 'guide-cta-main', function () {
         state.qi = 0; state.qok = 0; saveState();
         renderQuiz();
       }));
     }
-    wrap.appendChild(ctaBtn('🏠 Retour au catalogue', 'guide-cta-ghost', function () { window.location.href = buildUrl('/Modules/Custom/GUIDE/'); }));
-    setPanelView(passed ? '🎉 QCM réussi !' : 'Résultat du QCM', wrap, f.title + ' — QCM');
+    wrap.appendChild(ctaBtn('🏠 ' + T('JsBackToCatalogue'), 'guide-cta-ghost', function () { window.location.href = buildUrl('/Modules/Custom/GUIDE/'); }));
+    setPanelView(passed ? '🎉 ' + T('JsQuizPassed') : T('JsQuizResult'), wrap, f.title + ' — ' + T('Quiz'));
     document.getElementById('guide-panel-progress-fill').style.width = '100%';
   }
 
-  /* ---- Défi ---- */
+  /* ---- Challenge ---- */
 
   var _defiTimer = null;
 
   window.GuideStartChallenge = function (fid) {
     clearHighlight(); clearTrigger();
     fetchFormation(fid, function (f) {
-      if (!f || !hasChallenge(f)) { alert('Pas de défi pour cette formation.'); return; }
+      if (!f || !hasChallenge(f)) { alert(T('JsNoChallenge')); return; }
       formation = f;
       state = { active: true, formation_id: fid, mode: 'defi' };
       saveState();
@@ -1421,12 +1547,14 @@
       list.appendChild(row);
     });
     wrap.appendChild(list);
-    wrap.appendChild(ctaBtn('🔍 Vérifier maintenant', 'guide-cta-main', runDefiCheck));
+    wrap.appendChild(ctaBtn('🔍 ' + T('JsCheckNow'), 'guide-cta-main', runDefiCheck));
     var hint = document.createElement('p');
     hint.className = 'guide-defi-hint';
-    hint.textContent = 'Vérification automatique toutes les 10 secondes.';
+    // Polled as well as offered as a button: the conditions become true through
+    // work done in ianseo, not through anything happening on this panel.
+    hint.textContent = T('JsAutoCheck');
     wrap.appendChild(hint);
-    setPanelView('🎯 Défi', wrap, formation.title + ' — Défi');
+    setPanelView('🎯 ' + T('Challenge'), wrap, formation.title + T('JsChallengeSuffix'));
     runDefiCheck();
     if (_defiTimer) clearInterval(_defiTimer);
     _defiTimer = setInterval(function () {
@@ -1436,18 +1564,22 @@
   }
 
   function runDefiCheck() {
-    var rows = document.querySelectorAll('#guide-defi-conds .guide-defi-cond');
+    var rows = Array.prototype.slice.call(
+      document.querySelectorAll('#guide-defi-conds .guide-defi-cond'));
     if (!rows.length) return;
-    var remaining = rows.length;
-    var allMet = true;
-    Array.prototype.forEach.call(rows, function (row) {
-      checkCondition(row.dataset.cid, function (met, label) {
+
+    // One request for the whole challenge, not one per condition.
+    checkConditions(rows.map(function (r) { return r.dataset.cid; }), function (res) {
+      var allMet = true;
+      rows.forEach(function (row) {
+        var r   = res[row.dataset.cid] || { met: false, label: row.dataset.cid };
+        var met = r.met === true;
         row.querySelector('.guide-defi-status').textContent = met ? '✅' : '❌';
-        row.querySelector('.guide-defi-label').textContent  = label || row.dataset.cid;
+        row.querySelector('.guide-defi-label').textContent  = r.label || row.dataset.cid;
         row.classList.toggle('met', met);
         if (!met) allMet = false;
-        if (--remaining === 0 && allMet) defiSuccess();
       });
+      if (allMet) defiSuccess();
     });
   }
 
@@ -1459,18 +1591,18 @@
     state.active = false; state.mode = null; saveState();
     var wrap = document.createElement('div');
     var p = document.createElement('p');
-    p.innerHTML = '<b>Bravo !</b> Toutes les conditions du défi sont remplies.';
+    p.innerHTML = T('JsChallengeDone');
     wrap.appendChild(p);
     var badge = document.createElement('p');
     badge.id = 'guide-done-badge';
     wrap.appendChild(badge);
     var nh = document.createElement('div');
     wrap.appendChild(nh);
-    wrap.appendChild(ctaBtn('🏠 Retour au catalogue', 'guide-cta-ghost', function () { window.location.href = buildUrl('/Modules/Custom/GUIDE/'); }));
-    setPanelView('🏆 Défi réussi !', wrap, f.title + ' — Défi');
+    wrap.appendChild(ctaBtn('🏠 ' + T('JsBackToCatalogue'), 'guide-cta-ghost', function () { window.location.href = buildUrl('/Modules/Custom/GUIDE/'); }));
+    setPanelView('🏆 ' + T('JsChallengePassed'), wrap, f.title + T('JsChallengeSuffix'));
     document.getElementById('guide-panel-progress-fill').style.width = '100%';
     fetchNextFormation(f.id, function (n) {
-      if (n) nh.appendChild(ctaBtn('▶ Formation suivante : ' + esc(n.title), 'guide-cta-main', function () { GuideStart(n.id); }));
+      if (n) nh.appendChild(ctaBtn('▶ ' + T('JsNextCourse') + ' : ' + esc(n.title), 'guide-cta-main', function () { GuideStart(n.id); }));
     });
   }
 
@@ -1479,10 +1611,10 @@
   window.GuideStartTool = function (id) {
     clearHighlight(); clearTrigger();
     fetchFormation(id, function (f) {
-      if (!f) { alert('Contenu introuvable.'); return; }
+      if (!f) { alert(T('JsContentNotFound')); return; }
       formation = f;
       if (f.type === 'checklist') {
-        // Conserver l'avancement local si on rouvre la même checklist
+        // Keep what was already ticked when the same checklist is reopened
         var prev = loadState();
         if (prev && prev.tool_id === id && prev.mode === 'checklist') state = prev;
         else state = { active: true, tool_id: id, mode: 'checklist', qidx: 0, tags: [], answers: null, checked: {} };
@@ -1514,6 +1646,9 @@
       }
     });
     var wrap = document.createElement('div');
+    // Every item driven by a condition, gathered before the rows are built, so
+    // the whole checklist costs one request instead of one per item.
+    var pending = {};
     items.forEach(function (it) {
       var key = 'i' + it._idx;
       var row = document.createElement('label');
@@ -1530,32 +1665,44 @@
       });
       row.appendChild(cb);
       var span = document.createElement('span');
-      span.innerHTML = esc(it.label) + (it.page ? ' <a href="' + esc(buildUrl(it.page)) + '" class="guide-ck-link" title="Aller sur la page">↗</a>' : '');
+      span.innerHTML = esc(it.label) + (it.page ? ' <a href="' + esc(buildUrl(it.page)) +
+                     '" class="guide-ck-link" title="' + esc(T('JsGoToPage')) + '">↗</a>' : '');
       row.appendChild(span);
       if (cb.checked) row.classList.add('done');
       wrap.appendChild(row);
-      // Auto-cochage par condition (sans re-render : mise à jour ciblée)
+      // Items driven by a condition tick themselves. Updated in place rather than
+      // re-rendered, so the boxes the user just ticked are not thrown away.
       if (it.condition && !cb.checked) {
-        checkCondition(it.condition, function (met) {
-          if (met && !cb.checked) {
-            cb.checked = true;
-            row.classList.add('done');
-            if (!state.checked) state.checked = {};
-            state.checked[key] = true;
-            saveState();
-            updateCkProgress();
-          }
-        });
+        (pending[it.condition] = pending[it.condition] || []).push({ cb: cb, row: row, key: key });
       }
     });
+
+    var conds = Object.keys(pending);
+    if (conds.length) {
+      checkConditions(conds, function (res) {
+        var changed = false;
+        conds.forEach(function (cid) {
+          if (!res[cid] || res[cid].met !== true) return;
+          pending[cid].forEach(function (p) {
+            if (p.cb.checked) return;
+            p.cb.checked = true;
+            p.row.classList.add('done');
+            if (!state.checked) state.checked = {};
+            state.checked[p.key] = true;
+            changed = true;
+          });
+        });
+        if (changed) { saveState(); updateCkProgress(); }
+      });
+    }
     if (qs.length) {
-      wrap.appendChild(ctaBtn('↺ Refaire le questionnaire', 'guide-cta-ghost', function () {
+      wrap.appendChild(ctaBtn('↺ ' + T('JsRedoQuestions'), 'guide-cta-ghost', function () {
         state.answers = null; state.tags = []; state.qidx = 0;
         saveState();
         renderChecklist();
       }));
     }
-    setPanelView(t.title || 'Checklist', wrap, '');
+    setPanelView(t.title || T('JsChecklist'), wrap, '');
     updateCkProgress();
   }
 
@@ -1563,7 +1710,8 @@
     var rows  = document.querySelectorAll('#guide-panel-step-content .guide-ck-item');
     var done  = document.querySelectorAll('#guide-panel-step-content .guide-ck-item.done');
     var total = rows.length;
-    document.getElementById('guide-panel-progress-text').textContent = 'Checklist — ' + done.length + ' / ' + total;
+    document.getElementById('guide-panel-progress-text').textContent =
+      T('JsChecklist') + ' — ' + done.length + ' / ' + total;
     document.getElementById('guide-panel-progress-fill').style.width = (total ? Math.round(done.length / total * 100) : 0) + '%';
   }
 
@@ -1587,7 +1735,7 @@
         renderChecklistQuestion();
       }));
     });
-    setPanelView(q.q || '', wrap, 'Question ' + (i + 1) + ' / ' + qs.length);
+    setPanelView(q.q || '', wrap, T('JsQuestion') + ' ' + (i + 1) + ' / ' + qs.length);
   }
 
   function renderFaq() {
@@ -1596,8 +1744,8 @@
     var n = nodes[nid] || nodes.start;
     var wrap = document.createElement('div');
     if (!n) {
-      wrap.textContent = 'FAQ vide ou nœud "start" manquant.';
-      setPanelView(formation.title || 'FAQ', wrap, '');
+      wrap.textContent = T('JsFaqEmpty');
+      setPanelView(formation.title || T('Troubleshooting'), wrap, '');
       return;
     }
     if (n.solution) {
@@ -1605,8 +1753,8 @@
       d.className = 'guide-faq-sol';
       d.innerHTML = sanitizeContent(n.solution);
       wrap.appendChild(d);
-      if (n.page)      wrap.appendChild(ctaBtn('📍 Aller sur la page', 'guide-cta-main', function () { window.location.href = buildUrl(n.page); }));
-      if (n.formation) wrap.appendChild(ctaBtn('🎓 Lancer la formation liée', '', function () { GuideStart(n.formation); }));
+      if (n.page)      wrap.appendChild(ctaBtn('📍 ' + T('JsGoToPage'), 'guide-cta-main', function () { window.location.href = buildUrl(n.page); }));
+      if (n.formation) wrap.appendChild(ctaBtn('🎓 ' + T('JsStartLinkedCourse'), '', function () { GuideStart(n.formation); }));
     } else {
       var p = document.createElement('p');
       p.textContent = n.q || '';
@@ -1621,7 +1769,7 @@
       });
     }
     if ((state.hist || []).length) {
-      wrap.appendChild(ctaBtn('↶ Retour', 'guide-cta-ghost', function () {
+      wrap.appendChild(ctaBtn('↶ ' + T('JsBack'), 'guide-cta-ghost', function () {
         var h = state.hist || [];
         state.node = h.pop() || 'start';
         state.hist = h;
@@ -1630,21 +1778,22 @@
       }));
     }
     if (nid !== 'start') {
-      wrap.appendChild(ctaBtn('⟲ Recommencer', 'guide-cta-ghost', function () {
+      wrap.appendChild(ctaBtn('⟲ ' + T('JsRestart'), 'guide-cta-ghost', function () {
         state.node = 'start'; state.hist = [];
         saveState();
         renderFaq();
       }));
     }
-    setPanelView(formation.title || 'Dépannage', wrap, 'Dépannage');
+    setPanelView(formation.title || T('Troubleshooting'), wrap, T('Troubleshooting'));
   }
 
-  /* ---- Aide contextuelle ---- */
+  /* ---- Contextual help ---- */
 
   var _ctxItems = [];
 
-  // Avec un compte, la préférence vient du serveur (window.GUIDE_CTX injecté par menu.php
-  // sur chaque page) : elle suit l'utilisateur d'un poste à l'autre. Sans compte, localStorage.
+  // With an account the preference comes from the server (menu.php publishes it
+  // as window.GUIDE_CTX on every page), so it follows the user from one machine
+  // to another. Without one, localStorage is all there is.
   function ctxEnabled() {
     if (GUSER && typeof window.GUIDE_CTX !== 'undefined' && window.GUIDE_CTX !== null) return window.GUIDE_CTX != 0;
     return localStorage.getItem(LS_CTX) !== '0';
@@ -1667,7 +1816,8 @@
     xhr.open('GET', url, true);
     xhr.onreadystatechange = function () {
       if (xhr.readyState !== 4) return;
-      try { _ctxItems = JSON.parse(xhr.responseText) || []; } catch (e) { _ctxItems = []; }
+      // The API answers in the ianseo envelope: error / msg, then the payload.
+      try { _ctxItems = (JSON.parse(xhr.responseText) || {}).items || []; } catch (e) { _ctxItems = []; }
       showFabIfNeeded();
     };
     xhr.send();
@@ -1677,7 +1827,7 @@
     formation = null;
     var wrap = document.createElement('div');
     var p = document.createElement('p');
-    p.textContent = 'Contenus du Guide interactif liés à cette page :';
+    p.textContent = T('JsCtxIntro');
     wrap.appendChild(p);
     var icons = { formation: '🎓', checklist: '🧰', faq: '🛟' };
     _ctxItems.forEach(function (it) {
@@ -1686,9 +1836,9 @@
         else GuideStartTool(it.id);
       }));
     });
-    wrap.appendChild(ctaBtn('🏠 Tout le catalogue', 'guide-cta-ghost', function () { window.location.href = buildUrl('/Modules/Custom/GUIDE/'); }));
+    wrap.appendChild(ctaBtn('🏠 ' + T('JsWholeCatalogue'), 'guide-cta-ghost', function () { window.location.href = buildUrl('/Modules/Custom/GUIDE/'); }));
     var off = document.createElement('p');
-    off.innerHTML = '<a href="#" style="font-size:11px;color:#999">Désactiver l\'aide contextuelle</a>';
+    off.innerHTML = '<a href="#" style="font-size:11px;color:#999">' + esc(T('JsDisableCtx')) + '</a>';
     off.querySelector('a').addEventListener('click', function (e) {
       e.preventDefault();
       setCtxPref(false);
@@ -1696,13 +1846,16 @@
       hidePanel();
     });
     wrap.appendChild(off);
-    setPanelView('💡 Aide contextuelle', wrap, '');
+    setPanelView('💡 ' + T('JsContextHelp'), wrap, '');
   }
 
-  /* ===== Injection du guide dans les popups ianseo (PopEdit.php…) =====
-     Les popups utilisent head-popup.php qui n'appelle pas get_which_menu() → notre panneau n'y est
-     pas injecté côté serveur. On enveloppe window.open (parent) pour injecter, dans la popup (même
-     origine), le CSS + le balisage du panneau/recorder + une instance de guide.js qui s'auto-initialise. */
+  /* ===== Getting the guide into ianseo popups (PopEdit.php and friends) =====
+     Popups use head-popup.php, which does not call get_which_menu(), so the
+     server never injects the panel into them. window.open is wrapped in the
+     parent instead, and once the popup has loaded — same origin — the CSS, a
+     copy of the panel and recorder markup, and an instance of this script are
+     inserted into it. That instance initialises itself, because the popup's DOM
+     is already parsed by the time it arrives. */
 
   function setupPopupInjection() {
     if (window._guidePopupWrapped) return;
@@ -1729,15 +1882,16 @@
       var doc;
       try {
         if (win.closed) { clearInterval(iv); return; }
-        doc = win.document;                                   // lève si cross-origin
+        doc = win.document;                                   // throws if cross-origin
         if (!doc || doc.readyState !== 'complete' || !doc.body) return;
       } catch (e) { clearInterval(iv); return; }              // autre origine → on abandonne
-      if (!shouldGuidePopup()) return;                         // rien à afficher
-      if (!doc.getElementById('guide-panel')) injectGuide(win);// (ré)injecte après chargement/rechargement
+      if (!shouldGuidePopup()) return;                         // nothing to show
+      if (!doc.getElementById('guide-panel')) injectGuide(win);// (re)inject after a load or reload
     }, 750);
   }
 
-  // Réutilise l'URL (versionnée ?v=mtime) d'un asset déjà chargé dans la fenêtre parente.
+  // Reuse the URL, cache-busting suffix and all, of an asset the parent window
+  // has already loaded.
   function guideAssetUrl(rx, fallback) {
     var tags = document.querySelectorAll('link[href],script[src]');
     for (var i = 0; i < tags.length; i++) {
@@ -1765,7 +1919,8 @@
       link.href = guideAssetUrl(/Modules\/Custom\/GUIDE\/assets\/guide\.css/, root + 'Modules/Custom/GUIDE/assets/guide.css');
       head.appendChild(link);
 
-      // Copie du panneau + FAB + recorder depuis la fenêtre parente (sans état d'affichage hérité)
+      // Copy the panel, the floating button and the recorder from the parent, with
+    // none of its display state carried over.
       ['guide-panel', 'guide-fab', 'guide-rec'].forEach(function (id) {
         var el = document.getElementById(id);
         if (!el) return;
@@ -1775,11 +1930,12 @@
         doc.body.appendChild(imported);
       });
 
-      // Instance de guide.js dans la popup : s'auto-initialise (DOM déjà prêt)
+      // An instance of this script inside the popup. It initialises itself, since
+    // the DOM is already parsed by the time the script is inserted.
       var sc = doc.createElement('script');
       sc.src = guideAssetUrl(/Modules\/Custom\/GUIDE\/assets\/guide\.js/, root + 'Modules/Custom/GUIDE/assets/guide.js');
       doc.body.appendChild(sc);
-    } catch (e) { /* popup fermée / cross-origin */ }
+    } catch (e) { /* popup closed, or cross-origin */ }
   }
 
   /* ===== Enregistreur de triggers ===== */
@@ -1792,8 +1948,9 @@
   function recSave() { localStorage.setItem(LS_REC, JSON.stringify(_rec)); }
   function recClearStorage() { localStorage.removeItem(LS_REC); }
   function recActive() { var r = recLoad(); return !!(r && r.active); }
-  // Recharge _rec depuis localStorage avant toute modif : parent et popup partagent le même
-  // enregistrement, on évite ainsi qu'une fenêtre écrase les triggers ajoutés par l'autre.
+  // Re-read _rec from localStorage before touching it: the parent window and the
+  // popup share one recording, and without this each would overwrite the
+  // triggers the other has just added.
   function recResync() { var fresh = recLoad(); if (fresh && fresh.active) _rec = fresh; }
 
   function recInit() {
@@ -1821,7 +1978,8 @@
       var box = document.getElementById('guide-rec');
       if (box && box.contains(e.target)) return;
       if (panel && panel.contains(e.target)) return;
-      // Ne pas enregistrer sur les pages du module GUIDE (catalogue/admin)
+      // Do not record on the module's own pages: the author clicking through the
+      // editor is not describing a course.
       if (/\/Modules\/Custom\/GUIDE\//.test(window.location.pathname)) return;
 
       var target = e.target.closest('a,button,input,select,textarea,label,[onclick],[role="button"],[role="menuitem"]') || e.target;
@@ -1835,7 +1993,8 @@
       _rec.triggers.push({ kind: 'action', trigger: type, selector: sel, page: currentPagePath(), required: true });
       recSave();
       recRenderList();
-      // Ne pas empêcher l'action : l'utilisateur doit pouvoir naviguer / interagir
+      // The click is NOT prevented: the author has to be able to navigate and
+      // interact normally while recording.
     };
     document.addEventListener('click', handler, true);
     _recClickOff = function () { document.removeEventListener('click', handler, true); };
@@ -1873,7 +2032,7 @@
     window.location.href = url || (apiRoot() + 'Modules/Custom/GUIDE/admin/');
   }
   function recAbort() {
-    if (!confirm('Abandonner l\'enregistrement ?\nLes triggers enregistrés seront perdus.')) return;
+    if (!confirm(T('JsAbortRecording'))) return;
     var url = _rec.return_url;
     recClearStorage();
     window.location.href = url || (apiRoot() + 'Modules/Custom/GUIDE/admin/');
@@ -1882,7 +2041,7 @@
   function recRenderList() {
     var n = _rec.triggers.length;
     var title = document.getElementById('guide-rec-title');
-    if (title) title.textContent = 'Enregistrement (' + n + ')';
+    if (title) title.textContent = T('RecTitle') + ' (' + n + ')';
     var list = document.getElementById('guide-rec-list');
     if (!list) return;
     list.innerHTML = '';
@@ -1904,14 +2063,15 @@
     return path || '/';
   }
 
-  /* Génère un sélecteur CSS raisonnablement robuste pour un élément. */
+  /* Build a reasonably robust CSS selector for an element. */
   function cssEsc(s) {
     if (window.CSS && CSS.escape) return CSS.escape(s);
     return String(s).replace(/([^a-zA-Z0-9_-])/g, '\\$1');
   }
-  // Id dynamique type "d_q_QuSession_25360" (suffixe numérique = id d'enregistrement DB) :
-  // le #id exact ne survivrait pas au changement de participant/compétition → sélecteur
-  // d'attribut par préfixe [id^="d_q_QuSession_"], stable et qui matche tous les équivalents.
+  // A numbered id such as "d_q_QuSession_25360" carries a database record
+  // number, so the exact #id would stop matching the moment the participant or
+  // the competition changes. A prefix selector, [id^="d_q_QuSession_"], is
+  // stable and matches every equivalent element.
   function dynamicIdSelector(id) {
     var m = id.match(/^(.+?[_-])\d+$/);
     if (m && m[1].length >= 3) return '[id^="' + m[1].replace(/"/g, '\\"') + '"]';

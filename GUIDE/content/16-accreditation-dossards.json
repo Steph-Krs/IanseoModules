@@ -1,16 +1,47 @@
 {
-    "id": "accreditation-dossards",
+    "lang": "fr",
+    "id": "vrb9wn3tkcoo37uz4cnd",
     "type": "formation",
-    "title": "Accréditations et dossards (~15min)",
-    "description": "Créez les badges d'accréditation et les dossards de vos archers : tarifs, couleurs, photos, modèles de badges et impression pour les qualifications comme pour les duels.",
-    "version": "1.0",
-    "group": "Pour aller plus loin",
+    "title": {
+        "fr": "Accréditations et dossards (~15min)",
+        "en": "Accreditation and back numbers (~15 min)",
+        "it": "Accrediti e pettorali (~15 min)",
+        "de": "Akkreditierung und Startnummern (~15 Min.)",
+        "es": "Acreditaciones y dorsales (~15 min)"
+    },
+    "description": {
+        "fr": "Créez les badges d'accréditation et les dossards de vos archers : tarifs, couleurs, photos, modèles de badges et impression pour les qualifications comme pour les duels.",
+        "en": "Produce your archers' accreditation badges and back numbers: entry fees, colours, photographs, badge layouts and printing, for qualification as well as for the matches.",
+        "it": "Crea i tesserini di accredito e i pettorali dei tuoi arcieri: quote di iscrizione, colori, foto, modelli di tesserino e stampa, sia per le qualificazioni sia per gli scontri.",
+        "de": "Erstellen Sie die Akkreditierungsausweise und die Startnummern Ihrer Schützen: Startgebühren, Farben, Fotos, Ausweisvorlagen und Druck, für die Qualifikation wie für die Duelle.",
+        "es": "Cree las identificaciones de acreditación y los dorsales de sus arqueros: tarifas, colores, fotos, plantillas de identificación e impresión, tanto para la calificación como para los enfrentamientos."
+    },
+    "version": "1.1",
+    "group": {
+        "fr": "Pour aller plus loin",
+        "en": "Going further",
+        "it": "Per approfondire",
+        "de": "Weiterführendes",
+        "es": "Para ir más lejos"
+    },
     "order": 16,
     "steps": [
         {
             "id": "intro",
-            "title": "Accréditation, badge, dossard : qui fait quoi ?",
-            "content": "<p>Trois notions qu'on mélange souvent :<\/p><ul><li>L'<b>accréditation<\/b> : le passage au greffe. On pointe l'archer, on encaisse éventuellement son engagement, on lui remet ses documents.<\/li><li>Le <b>badge<\/b> : la carte que porte l'archer (nom, club, catégorie, photo, code-barres).<\/li><li>Le <b>dossard<\/b> : le numéro que l'archer porte dans le dos — indispensable en duels et pour le public.<\/li><\/ul><p>ianseo produit les trois, à partir des mêmes données.<\/p><p>Cliquez sur <b>Suivant<\/b>.<\/p>",
+            "title": {
+                "fr": "Accréditation, badge, dossard : qui fait quoi ?",
+                "en": "Accreditation, badge, back number: which is which?",
+                "it": "Accredito, tesserino, pettorale: chi fa che cosa?",
+                "de": "Akkreditierung, Ausweis, Startnummer: was ist was?",
+                "es": "Acreditación, identificación, dorsal: ¿qué es cada cosa?"
+            },
+            "content": {
+                "fr": "<p>Trois notions qu'on mélange souvent :</p><ul><li>L'<b>accréditation</b> : le passage au greffe. On pointe l'archer, on encaisse éventuellement son engagement, on lui remet ses documents.</li><li>Le <b>badge</b> : la carte que porte l'archer (nom, club, catégorie, photo, code-barres).</li><li>Le <b>dossard</b> : le numéro que l'archer porte dans le dos — indispensable en duels et pour le public.</li></ul><p>ianseo produit les trois, à partir des mêmes données.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+                "en": "<p>Three things that often get mixed up:</p><ul><li><b>Accreditation</b>: going through the registration desk. The archer is checked in, the entry fee may be taken, and the documents are handed over.</li><li>The <b>badge</b>: the card the archer wears (name, club, class, photograph, barcode).</li><li>The <b>back number</b>: the number the archer wears on their back — essential in the matches and for the public.</li></ul><p>ianseo produces all three, from the same data.</p><p>Click <b>Next</b>.</p>",
+                "it": "<p>Tre nozioni che spesso si confondono:</p><ul><li>L'<b>accredito</b>: il passaggio in segreteria. Si registra l'arciere, eventualmente si incassa la quota, gli si consegnano i documenti.</li><li>Il <b>tesserino</b>: la tessera che l'arciere porta addosso (nome, società, classe, foto, codice a barre).</li><li>Il <b>pettorale</b>: il numero che l'arciere porta sulla schiena — indispensabile negli scontri e per il pubblico.</li></ul><p>ianseo produce tutti e tre, dagli stessi dati.</p><p>Clicca su <b>Avanti</b>.</p>",
+                "de": "<p>Drei Dinge, die oft durcheinandergehen:</p><ul><li>Die <b>Akkreditierung</b>: der Gang zur Meldestelle. Der Schütze wird erfasst, gegebenenfalls wird die Startgebühr kassiert, und die Unterlagen werden ausgehändigt.</li><li>Der <b>Ausweis</b>: die Karte, die der Schütze trägt (Name, Verein, Klasse, Foto, Barcode).</li><li>Die <b>Startnummer</b>: die Nummer, die der Schütze auf dem Rücken trägt — unverzichtbar in den Duellen und für das Publikum.</li></ul><p>ianseo erzeugt alle drei aus denselben Daten.</p><p>Klicken Sie auf <b>Weiter</b>.</p>",
+                "es": "<p>Tres nociones que suelen mezclarse:</p><ul><li>La <b>acreditación</b>: el paso por secretaría. Se registra al arquero, se cobra en su caso la inscripción y se le entregan los documentos.</li><li>La <b>identificación</b>: la tarjeta que lleva el arquero (nombre, club, categoría, foto, código de barras).</li><li>El <b>dorsal</b>: el número que el arquero lleva a la espalda — imprescindible en los enfrentamientos y para el público.</li></ul><p>ianseo produce los tres a partir de los mismos datos.</p><p>Haga clic en <b>Siguiente</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -18,8 +49,20 @@
         },
         {
             "id": "ouvrir",
-            "title": "Une compétition avec des archers",
-            "content": "<p>Le guide attend une <b>compétition ouverte<\/b> avec au moins un <b>participant<\/b>.<\/p>",
+            "title": {
+                "fr": "Une compétition avec des archers",
+                "en": "A competition with archers in it",
+                "it": "Una gara con degli arcieri",
+                "de": "Ein Turnier mit Schützen",
+                "es": "Una competición con arqueros"
+            },
+            "content": {
+                "fr": "<p>Le guide attend une <b>compétition ouverte</b> avec au moins un <b>participant</b>.</p>",
+                "en": "<p>The guide is waiting for an <b>open competition</b> with at least one <b>participant</b>.</p>",
+                "it": "<p>La guida attende una <b>gara aperta</b> con almeno un <b>partecipante</b>.</p>",
+                "de": "<p>Die Anleitung wartet auf ein <b>geöffnetes Turnier</b> mit mindestens einem <b>Teilnehmer</b>.</p>",
+                "es": "<p>La guía espera una <b>competición abierta</b> con al menos un <b>participante</b>.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -38,15 +81,27 @@
         },
         {
             "id": "tarifs",
-            "title": "Les tarifs d'engagement",
-            "content": "<p>Allez dans <b>Participants &gt; Accréditation &gt; Paramétrage des tarifs<\/b>.<\/p><p>Définissez ici le <b>montant de l'engagement<\/b>, éventuellement différent selon la catégorie (jeunes, adultes) ou le type de tir.<\/p><p>Le suivi des paiements se fait ensuite dans <b>État des paiements des athlètes<\/b> : vous voyez d'un coup d'œil qui a réglé et qui doit encore passer à la caisse.<\/p><p class=\"guide-tip\">💡 Facultatif, mais très utile sur les gros concours : le greffe sait immédiatement si l'archer qui se présente est à jour.<\/p>",
-            "page": "\/Accreditation\/ManagePrices.php",
+            "title": {
+                "fr": "Les tarifs d'engagement",
+                "en": "The entry fees",
+                "it": "Le quote di iscrizione",
+                "de": "Die Startgebühren",
+                "es": "Las tarifas de inscripción"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Participants &gt; Accréditation &gt; Paramétrage des tarifs</b>.</p><p>Définissez ici le <b>montant de l'engagement</b>, éventuellement différent selon la catégorie (jeunes, adultes) ou le type de tir.</p><p>Le suivi des paiements se fait ensuite dans <b>État des paiements des athlètes</b> : vous voyez d'un coup d'œil qui a réglé et qui doit encore passer à la caisse.</p><p class=\"guide-tip\">💡 Facultatif, mais très utile sur les gros concours : le greffe sait immédiatement si l'archer qui se présente est à jour.</p>",
+                "en": "<p>Go to <b>Participants &gt; Accreditation &gt; Fee settings</b>.</p><p>Set the <b>amount of the entry fee</b> here, which may differ by class (juniors, adults) or by type of shooting.</p><p>Payments are then followed under <b>Athletes' payment status</b>: at a glance you see who has paid and who still has to come to the desk.</p><p class=\"guide-tip\">💡 Optional, but very useful at a large competition: the registration desk knows at once whether the archer in front of them is up to date.</p>",
+                "it": "<p>Vai in <b>Partecipanti &gt; Accrediti &gt; Impostazione delle quote</b>.</p><p>Definisci qui l'<b>importo dell'iscrizione</b>, eventualmente diverso a seconda della classe (giovani, adulti) o del tipo di tiro.</p><p>Il controllo dei pagamenti si fa poi in <b>Stato dei pagamenti degli atleti</b>: vedi a colpo d'occhio chi ha pagato e chi deve ancora passare in cassa.</p><p class=\"guide-tip\">💡 Facoltativo, ma molto utile nelle gare grandi: la segreteria sa subito se l'arciere che si presenta è in regola.</p>",
+                "de": "<p>Gehen Sie zu <b>Teilnehmer &gt; Akkreditierung &gt; Einstellung der Gebühren</b>.</p><p>Legen Sie hier die <b>Höhe der Startgebühr</b> fest, gegebenenfalls verschieden nach Klasse (Jugend, Erwachsene) oder Art des Schiessens.</p><p>Die Zahlungen verfolgen Sie danach unter <b>Zahlungsstand der Athleten</b>: auf einen Blick sehen Sie, wer bezahlt hat und wer noch zur Kasse muss.</p><p class=\"guide-tip\">💡 Freiwillig, bei grossen Turnieren aber sehr nützlich: die Meldestelle weiss sofort, ob der Schütze vor ihr auf dem Laufenden ist.</p>",
+                "es": "<p>Vaya a <b>Participantes &gt; Acreditación &gt; Configuración de tarifas</b>.</p><p>Defina aquí el <b>importe de la inscripción</b>, que puede variar según la categoría (jóvenes, adultos) o el tipo de tiro.</p><p>El seguimiento de los pagos se hace después en <b>Estado de los pagos de los atletas</b>: ve de un vistazo quién ha pagado y quién debe pasar aún por caja.</p><p class=\"guide-tip\">💡 Opcional, pero muy útil en concursos grandes: secretaría sabe al instante si el arquero que se presenta está al día.</p>"
+            },
+            "page": "/Accreditation/ManagePrices.php",
             "triggers": [
                 {
                     "kind": "etat",
                     "condition": "__page",
                     "required": true,
-                    "page": "\/Accreditation\/ManagePrices.php"
+                    "page": "/Accreditation/ManagePrices.php"
                 }
             ],
             "optional": true,
@@ -54,15 +109,27 @@
         },
         {
             "id": "couleurs",
-            "title": "Les couleurs d'accréditation",
-            "content": "<p>Allez dans <b>Participants &gt; Accréditation &gt; Gestion des couleurs d'accréditation<\/b>.<\/p><p>Vous associez une <b>couleur<\/b> à chaque type de personne : archers, entraîneurs, arbitres, organisation, invités…<\/p><p>Au premier coup d'œil sur un badge, on sait <b>qui a le droit d'être où<\/b>.<\/p><p class=\"guide-tip\">💡 Sur un championnat, c'est ce qui permet à un bénévole de l'entrée de refuser poliment l'accès au pas de tir à un accompagnateur — sans avoir à connaître tout le monde.<\/p>",
-            "page": "\/Accreditation\/Colors.php",
+            "title": {
+                "fr": "Les couleurs d'accréditation",
+                "en": "The accreditation colours",
+                "it": "I colori di accredito",
+                "de": "Die Akkreditierungsfarben",
+                "es": "Los colores de acreditación"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Participants &gt; Accréditation &gt; Gestion des couleurs d'accréditation</b>.</p><p>Vous associez une <b>couleur</b> à chaque type de personne : archers, entraîneurs, arbitres, organisation, invités…</p><p>Au premier coup d'œil sur un badge, on sait <b>qui a le droit d'être où</b>.</p><p class=\"guide-tip\">💡 Sur un championnat, c'est ce qui permet à un bénévole de l'entrée de refuser poliment l'accès au pas de tir à un accompagnateur — sans avoir à connaître tout le monde.</p>",
+                "en": "<p>Go to <b>Participants &gt; Accreditation &gt; Accreditation colour management</b>.</p><p>You give a <b>colour</b> to each kind of person: archers, coaches, judges, organisation, guests…</p><p>One look at a badge tells you <b>who is allowed where</b>.</p><p class=\"guide-tip\">💡 At a championship, this is what lets a volunteer on the gate politely turn a companion away from the shooting line — without having to know everybody personally.</p>",
+                "it": "<p>Vai in <b>Partecipanti &gt; Accrediti &gt; Gestione dei colori di accredito</b>.</p><p>Associ un <b>colore</b> a ogni tipo di persona: arcieri, allenatori, giudici, organizzazione, ospiti…</p><p>A colpo d'occhio su un tesserino si sa <b>chi ha diritto di stare dove</b>.</p><p class=\"guide-tip\">💡 In un campionato è ciò che permette a un volontario all'ingresso di negare educatamente l'accesso alla linea di tiro a un accompagnatore — senza dover conoscere tutti.</p>",
+                "de": "<p>Gehen Sie zu <b>Teilnehmer &gt; Akkreditierung &gt; Verwaltung der Akkreditierungsfarben</b>.</p><p>Sie ordnen jeder Art von Person eine <b>Farbe</b> zu: Schützen, Trainer, Kampfrichter, Organisation, Gäste…</p><p>Ein Blick auf einen Ausweis sagt, <b>wer wo sein darf</b>.</p><p class=\"guide-tip\">💡 Bei einer Meisterschaft ist das, was einem Freiwilligen am Eingang erlaubt, eine Begleitperson höflich von der Schiesslinie fernzuhalten — ohne alle persönlich kennen zu müssen.</p>",
+                "es": "<p>Vaya a <b>Participantes &gt; Acreditación &gt; Gestión de los colores de acreditación</b>.</p><p>Asocia un <b>color</b> a cada tipo de persona: arqueros, entrenadores, jueces, organización, invitados…</p><p>De un vistazo a una identificación se sabe <b>quién tiene derecho a estar dónde</b>.</p><p class=\"guide-tip\">💡 En un campeonato, es lo que permite a un voluntario de la entrada negar amablemente el acceso a la línea de tiro a un acompañante — sin tener que conocer a todo el mundo.</p>"
+            },
+            "page": "/Accreditation/Colors.php",
             "triggers": [
                 {
                     "kind": "etat",
                     "condition": "__page",
                     "required": true,
-                    "page": "\/Accreditation\/Colors.php"
+                    "page": "/Accreditation/Colors.php"
                 }
             ],
             "optional": true,
@@ -70,15 +137,27 @@
         },
         {
             "id": "accreditation",
-            "title": "La page d'accréditation",
-            "content": "<p>Allez dans <b>Participants &gt; Accréditation &gt; Accréditation<\/b>.<\/p><p>C'est <b>l'écran du greffe<\/b> le jour J. Vous y recherchez un archer, vérifiez ses informations, et l'<b>accréditez<\/b>.<\/p><p>Vous pouvez aussi lui <b>prendre une photo<\/b> (menu <b>Prendre une photo<\/b>) : elle apparaîtra sur son badge.<\/p><p class=\"guide-tip\">💡 Sur une compétition de club, la photo est superflue. Sur un championnat avec contrôle d'accès, elle devient précieuse.<\/p>",
-            "page": "\/Accreditation\/",
+            "title": {
+                "fr": "La page d'accréditation",
+                "en": "The accreditation page",
+                "it": "La pagina di accredito",
+                "de": "Die Akkreditierungsseite",
+                "es": "La página de acreditación"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Participants &gt; Accréditation &gt; Accréditation</b>.</p><p>C'est <b>l'écran du greffe</b> le jour J. Vous y recherchez un archer, vérifiez ses informations, et l'<b>accréditez</b>.</p><p>Vous pouvez aussi lui <b>prendre une photo</b> (menu <b>Prendre une photo</b>) : elle apparaîtra sur son badge.</p><p class=\"guide-tip\">💡 Sur une compétition de club, la photo est superflue. Sur un championnat avec contrôle d'accès, elle devient précieuse.</p>",
+                "en": "<p>Go to <b>Participants &gt; Accreditation &gt; Accreditation</b>.</p><p>This is the <b>registration desk screen</b> on the day. You look an archer up, check their details, and <b>accredit</b> them.</p><p>You can also <b>take their photograph</b> (the <b>Take a photo</b> menu): it will appear on their badge.</p><p class=\"guide-tip\">💡 At a club competition the photograph is unnecessary. At a championship with access control it becomes valuable.</p>",
+                "it": "<p>Vai in <b>Partecipanti &gt; Accrediti &gt; Accredito</b>.</p><p>È lo <b>schermo della segreteria</b> il giorno di gara. Vi cerchi un arciere, verifichi i suoi dati e lo <b>accrediti</b>.</p><p>Puoi anche <b>scattargli una foto</b> (menu <b>Scatta una foto</b>): comparirà sul suo tesserino.</p><p class=\"guide-tip\">💡 In una gara sociale la foto è superflua. In un campionato con controllo degli accessi diventa preziosa.</p>",
+                "de": "<p>Gehen Sie zu <b>Teilnehmer &gt; Akkreditierung &gt; Akkreditierung</b>.</p><p>Das ist der <b>Bildschirm der Meldestelle</b> am Turniertag. Sie suchen dort einen Schützen, prüfen seine Angaben und <b>akkreditieren</b> ihn.</p><p>Sie können ihn auch <b>fotografieren</b> (Menü <b>Ein Foto aufnehmen</b>): das Bild erscheint auf seinem Ausweis.</p><p class=\"guide-tip\">💡 Bei einem Vereinsturnier ist das Foto überflüssig. Bei einer Meisterschaft mit Zugangskontrolle wird es wertvoll.</p>",
+                "es": "<p>Vaya a <b>Participantes &gt; Acreditación &gt; Acreditación</b>.</p><p>Es la <b>pantalla de secretaría</b> el día de la competición. Allí busca a un arquero, comprueba sus datos y lo <b>acredita</b>.</p><p>También puede <b>hacerle una foto</b> (menú <b>Hacer una foto</b>): aparecerá en su identificación.</p><p class=\"guide-tip\">💡 En una competición de club la foto sobra. En un campeonato con control de accesos se vuelve valiosa.</p>"
+            },
+            "page": "/Accreditation/",
             "triggers": [
                 {
                     "kind": "etat",
                     "condition": "__page",
                     "required": true,
-                    "page": "\/Accreditation\/"
+                    "page": "/Accreditation/"
                 }
             ],
             "optional": false,
@@ -86,15 +165,27 @@
         },
         {
             "id": "badges",
-            "title": "Créer et imprimer les badges",
-            "content": "<p>Allez dans <b>Participants &gt; Accréditation &gt; Impression des badges d'accréditation<\/b>.<\/p><p>C'est un véritable <b>éditeur de modèle<\/b> : vous choisissez une <b>image de fond<\/b>, puis vous <b>placez les éléments<\/b> (nom, prénom, club, catégorie, cible, photo, code-barres…) à l'endroit voulu sur la carte.<\/p><p>Le modèle est <b>enregistré dans la compétition<\/b> : vous le réutilisez d'une année sur l'autre en réimportant la compétition.<\/p><p class=\"guide-tip\">💡 Prenez le temps de faire un beau modèle une fois — il vous resservira sur toutes vos compétitions.<\/p>",
-            "page": "\/Accreditation\/IdCards.php",
+            "title": {
+                "fr": "Créer et imprimer les badges",
+                "en": "Creating and printing the badges",
+                "it": "Creare e stampare i tesserini",
+                "de": "Die Ausweise erstellen und drucken",
+                "es": "Crear e imprimir las identificaciones"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Participants &gt; Accréditation &gt; Impression des badges d'accréditation</b>.</p><p>C'est un véritable <b>éditeur de modèle</b> : vous choisissez une <b>image de fond</b>, puis vous <b>placez les éléments</b> (nom, prénom, club, catégorie, cible, photo, code-barres…) à l'endroit voulu sur la carte.</p><p>Le modèle est <b>enregistré dans la compétition</b> : vous le réutilisez d'une année sur l'autre en réimportant la compétition.</p><p class=\"guide-tip\">💡 Prenez le temps de faire un beau modèle une fois — il vous resservira sur toutes vos compétitions.</p>",
+                "en": "<p>Go to <b>Participants &gt; Accreditation &gt; Print Accreditation Badges</b>.</p><p>It is a real <b>layout editor</b>: you choose a <b>background image</b>, then <b>place the elements</b> (surname, first name, club, class, target, photograph, barcode…) wherever you want them on the card.</p><p>The layout is <b>saved inside the competition</b>: you reuse it from one year to the next by importing that competition again.</p><p class=\"guide-tip\">💡 Take the time to make one good layout — it will serve you at every competition you run.</p>",
+                "it": "<p>Vai in <b>Partecipanti &gt; Accrediti &gt; Stampa Accrediti</b>.</p><p>È un vero e proprio <b>editor di modelli</b>: scegli un'<b>immagine di sfondo</b>, poi <b>disponi gli elementi</b> (cognome, nome, società, classe, piazzola, foto, codice a barre…) dove vuoi sulla tessera.</p><p>Il modello è <b>salvato nella gara</b>: lo riutilizzi di anno in anno reimportando la gara.</p><p class=\"guide-tip\">💡 Prenditi il tempo di fare un bel modello una volta sola — ti servirà per tutte le tue gare.</p>",
+                "de": "<p>Gehen Sie zu <b>Teilnehmer &gt; Akkreditierung &gt; Namensschilder drucken</b>.</p><p>Es ist ein richtiger <b>Vorlageneditor</b>: Sie wählen ein <b>Hintergrundbild</b> und <b>setzen dann die Elemente</b> (Nachname, Vorname, Verein, Klasse, Scheibe, Foto, Barcode…) an die gewünschte Stelle der Karte.</p><p>Die Vorlage wird <b>im Turnier gespeichert</b>: Sie verwenden sie Jahr für Jahr wieder, indem Sie dieses Turnier erneut importieren.</p><p class=\"guide-tip\">💡 Nehmen Sie sich einmal die Zeit für eine schöne Vorlage — sie wird Ihnen bei allen Turnieren dienen.</p>",
+                "es": "<p>Vaya a <b>Participantes &gt; Acreditación &gt; Imprime Identificaciones</b>.</p><p>Es un auténtico <b>editor de plantillas</b>: elige una <b>imagen de fondo</b> y luego <b>coloca los elementos</b> (apellido, nombre, club, categoría, diana, foto, código de barras…) donde quiera de la tarjeta.</p><p>La plantilla queda <b>guardada en la competición</b>: la reutiliza de un año para otro reimportando esa competición.</p><p class=\"guide-tip\">💡 Tómese el tiempo de hacer una buena plantilla una vez — le servirá en todas sus competiciones.</p>"
+            },
+            "page": "/Accreditation/IdCards.php",
             "triggers": [
                 {
                     "kind": "etat",
                     "condition": "__page",
                     "required": true,
-                    "page": "\/Accreditation\/IdCards.php"
+                    "page": "/Accreditation/IdCards.php"
                 },
                 {
                     "kind": "etat",
@@ -107,8 +198,20 @@
         },
         {
             "id": "dossards",
-            "title": "Les dossards des différentes phases",
-            "content": "<p>Le <b>dossard<\/b> utilise le même éditeur que le badge, mais avec un <b>type<\/b> différent selon la phase de la compétition :<\/p><ul><li>depuis <b>Qualification &gt; Nouveaux dossards<\/b> → les dossards de la <b>phase de qualification<\/b>,<\/li><li>depuis <b>Finales individuelles &gt; Nouveaux dossards<\/b> → les dossards des <b>duels<\/b>,<\/li><li>de même pour les <b>éliminatoires<\/b> et les <b>équipes<\/b>.<\/li><\/ul><p>Les informations affichées ne sont pas les mêmes selon la phase — d'où un <b>type de dossard par phase<\/b>.<\/p><p class=\"guide-tip\">⚠️ On évite d'imprimer un dossard avec un numéro de cible ou de départ qui peuvent changer.<\/p><p><\/p><p><\/p><p><\/p><p class=\"guide-tip\">💡Mettez les noms de clubs en majuscule<\/p>",
+            "title": {
+                "fr": "Les dossards des différentes phases",
+                "en": "Back numbers for the different phases",
+                "it": "I pettorali delle diverse fasi",
+                "de": "Startnummern für die verschiedenen Phasen",
+                "es": "Los dorsales de las distintas fases"
+            },
+            "content": {
+                "fr": "<p>Le <b>dossard</b> utilise le même éditeur que le badge, mais avec un <b>type</b> différent selon la phase de la compétition :</p><ul><li>depuis <b>Qualification &gt; Nouveaux dossards</b> → les dossards de la <b>phase de qualification</b>,</li><li>depuis <b>Finales individuelles &gt; Nouveaux dossards</b> → les dossards des <b>duels</b>,</li><li>de même pour les <b>éliminatoires</b> et les <b>équipes</b>.</li></ul><p>Les informations affichées ne sont pas les mêmes selon la phase — d'où un <b>type de dossard par phase</b>.</p><p class=\"guide-tip\">⚠️ On évite d'imprimer un dossard avec un numéro de cible ou de départ qui peuvent changer.</p><p></p><p></p><p></p><p class=\"guide-tip\">💡Mettez les noms de clubs en majuscule</p>",
+                "en": "<p>The <b>back number</b> uses the same editor as the badge, but with a different <b>type</b> depending on the phase of the competition:</p><ul><li>from <b>Qualification &gt; New back numbers</b> → the back numbers of the <b>qualification phase</b>,</li><li>from <b>Individual Finals &gt; New back numbers</b> → the back numbers for the <b>matches</b>,</li><li>and likewise for the <b>eliminations</b> and the <b>teams</b>.</li></ul><p>The details shown are not the same from one phase to the next — hence <b>one type of back number per phase</b>.</p><p class=\"guide-tip\">⚠️ Avoid printing a back number with a target or session number, which can change.</p><p></p><p></p><p></p><p class=\"guide-tip\">💡 Put the club names in capitals.</p>",
+                "it": "<p>Il <b>pettorale</b> usa lo stesso editor del tesserino, ma con un <b>tipo</b> diverso a seconda della fase della gara:</p><ul><li>da <b>Qualificazione &gt; Nuovi pettorali</b> → i pettorali della <b>fase di qualificazione</b>,</li><li>da <b>Finali Individuali &gt; Nuovi pettorali</b> → i pettorali degli <b>scontri</b>,</li><li>lo stesso per le <b>eliminatorie</b> e per le <b>squadre</b>.</li></ul><p>Le informazioni mostrate non sono le stesse a seconda della fase — da qui un <b>tipo di pettorale per fase</b>.</p><p class=\"guide-tip\">⚠️ Si evita di stampare un pettorale con un numero di piazzola o di turno, che possono cambiare.</p><p></p><p></p><p></p><p class=\"guide-tip\">💡 Scrivi i nomi delle società in maiuscolo.</p>",
+                "de": "<p>Die <b>Startnummer</b> nutzt denselben Editor wie der Ausweis, aber mit einem anderen <b>Typ</b>, je nach Phase des Turniers:</p><ul><li>aus <b>Qualifikation &gt; Neue Startnummern</b> → die Startnummern der <b>Qualifikationsphase</b>,</li><li>aus <b>Einzelfinale &gt; Neue Startnummern</b> → die Startnummern für die <b>Duelle</b>,</li><li>ebenso für die <b>Ausscheidungen</b> und die <b>Mannschaften</b>.</li></ul><p>Die angezeigten Angaben sind je nach Phase nicht dieselben — daher <b>ein Startnummerntyp je Phase</b>.</p><p class=\"guide-tip\">⚠️ Vermeiden Sie es, eine Startnummer mit einer Scheiben- oder Durchgangsnummer zu drucken, die sich ändern kann.</p><p></p><p></p><p></p><p class=\"guide-tip\">💡 Schreiben Sie die Vereinsnamen in Grossbuchstaben.</p>",
+                "es": "<p>El <b>dorsal</b> usa el mismo editor que la identificación, pero con un <b>tipo</b> distinto según la fase de la competición:</p><ul><li>desde <b>Calificación &gt; Nuevos dorsales</b> → los dorsales de la <b>fase de calificación</b>,</li><li>desde <b>Finales Individuales &gt; Nuevos dorsales</b> → los dorsales de los <b>enfrentamientos</b>,</li><li>lo mismo para las <b>eliminatorias</b> y los <b>equipos</b>.</li></ul><p>Los datos mostrados no son los mismos según la fase — de ahí un <b>tipo de dorsal por fase</b>.</p><p class=\"guide-tip\">⚠️ Se evita imprimir un dorsal con un número de diana o de turno, que pueden cambiar.</p><p></p><p></p><p></p><p class=\"guide-tip\">💡 Escriba los nombres de los clubes en mayúsculas.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -116,8 +219,20 @@
         },
         {
             "id": "fin",
-            "title": "C'est terminé !",
-            "content": "<p>Vos archers ont badge et dossard.<\/p><p><b>À retenir :<\/b><\/p><ul><li><b>Tarifs<\/b> et <b>couleurs<\/b> : facultatifs, mais ils font gagner du temps au greffe et à l'entrée.<\/li><li>Le <b>modèle de badge<\/b> se dessine une fois et se réutilise.<\/li><li>Le <b>dossard<\/b> a un <b>type par phase<\/b> (qualification, duels, équipes).<\/li><li>Évitez d'imprimer sur un dossard des informations qui peuvent <b>changer<\/b> (numéro de cible, départ).<\/li><\/ul><p>Place au <b>QCM<\/b> et au <b>défi<\/b> !<\/p>",
+            "title": {
+                "fr": "C'est terminé !",
+                "en": "That's it!",
+                "it": "Finito!",
+                "de": "Fertig!",
+                "es": "¡Terminado!"
+            },
+            "content": {
+                "fr": "<p>Vos archers ont badge et dossard.</p><p><b>À retenir :</b></p><ul><li><b>Tarifs</b> et <b>couleurs</b> : facultatifs, mais ils font gagner du temps au greffe et à l'entrée.</li><li>Le <b>modèle de badge</b> se dessine une fois et se réutilise.</li><li>Le <b>dossard</b> a un <b>type par phase</b> (qualification, duels, équipes).</li><li>Évitez d'imprimer sur un dossard des informations qui peuvent <b>changer</b> (numéro de cible, départ).</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+                "en": "<p>Your archers have a badge and a back number.</p><p><b>What to remember:</b></p><ul><li><b>Fees</b> and <b>colours</b>: optional, but they save time at the desk and at the gate.</li><li>The <b>badge layout</b> is drawn once and reused.</li><li>The <b>back number</b> has <b>one type per phase</b> (qualification, matches, teams).</li><li>Avoid printing anything on a back number that can <b>change</b> (target number, session).</li></ul><p>Now for the <b>quiz</b> and the <b>challenge</b>!</p>",
+                "it": "<p>I tuoi arcieri hanno tesserino e pettorale.</p><p><b>Da ricordare:</b></p><ul><li><b>Quote</b> e <b>colori</b>: facoltativi, ma fanno guadagnare tempo alla segreteria e all'ingresso.</li><li>Il <b>modello di tesserino</b> si disegna una volta e si riutilizza.</li><li>Il <b>pettorale</b> ha un <b>tipo per fase</b> (qualificazione, scontri, squadre).</li><li>Evita di stampare su un pettorale informazioni che possono <b>cambiare</b> (numero di piazzola, turno).</li></ul><p>Spazio al <b>quiz</b> e alla <b>sfida</b>!</p>",
+                "de": "<p>Ihre Schützen haben Ausweis und Startnummer.</p><p><b>Zum Merken:</b></p><ul><li><b>Gebühren</b> und <b>Farben</b>: freiwillig, sparen aber der Meldestelle und dem Eingang Zeit.</li><li>Die <b>Ausweisvorlage</b> wird einmal gezeichnet und immer wieder verwendet.</li><li>Die <b>Startnummer</b> hat <b>einen Typ je Phase</b> (Qualifikation, Duelle, Mannschaften).</li><li>Drucken Sie auf eine Startnummer nichts, was sich <b>ändern</b> kann (Scheibennummer, Durchgang).</li></ul><p>Weiter zum <b>Quiz</b> und zur <b>Aufgabe</b>!</p>",
+                "es": "<p>Sus arqueros tienen identificación y dorsal.</p><p><b>Para recordar:</b></p><ul><li><b>Tarifas</b> y <b>colores</b>: opcionales, pero ahorran tiempo en secretaría y en la entrada.</li><li>La <b>plantilla de identificación</b> se dibuja una vez y se reutiliza.</li><li>El <b>dorsal</b> tiene un <b>tipo por fase</b> (calificación, enfrentamientos, equipos).</li><li>Evite imprimir en un dorsal datos que puedan <b>cambiar</b> (número de diana, turno).</li></ul><p>¡Adelante con el <b>cuestionario</b> y el <b>reto</b>!</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -128,54 +243,204 @@
         "pass_score": 70,
         "questions": [
             {
-                "q": "Pourquoi éviter d'imprimer le numéro de cible ou de départ sur les dossards ?",
+                "q": {
+                    "fr": "Pourquoi éviter d'imprimer le numéro de cible ou de départ sur les dossards ?",
+                    "en": "Why avoid printing the target or session number on the back numbers?",
+                    "it": "Perché evitare di stampare il numero di piazzola o di turno sui pettorali?",
+                    "de": "Warum sollte man Scheiben- oder Durchgangsnummer nicht auf die Startnummern drucken?",
+                    "es": "¿Por qué evitar imprimir el número de diana o de turno en los dorsales?"
+                },
                 "choices": [
-                    "Parce que ces informations peuvent changer et rendre le dossard faux",
-                    "Parce que c'est interdit par la FFTA",
-                    "Parce que l'éditeur de badges ne le permet pas",
-                    "Parce que cela ralentit l'impression"
+                    {
+                        "fr": "Parce que ces informations peuvent changer et rendre le dossard faux",
+                        "en": "Because those details can change, which would make the back number wrong",
+                        "it": "Perché quelle informazioni possono cambiare e rendere falso il pettorale",
+                        "de": "Weil sich diese Angaben ändern können und die Startnummer dann falsch ist",
+                        "es": "Porque esos datos pueden cambiar y dejar el dorsal equivocado"
+                    },
+                    {
+                        "fr": "Parce que c'est interdit par la FFTA",
+                        "en": "Because the federation forbids it",
+                        "it": "Perché è vietato dalla federazione",
+                        "de": "Weil der Verband es verbietet",
+                        "es": "Porque lo prohíbe la federación"
+                    },
+                    {
+                        "fr": "Parce que l'éditeur de badges ne le permet pas",
+                        "en": "Because the badge editor cannot do it",
+                        "it": "Perché l'editor dei tesserini non lo permette",
+                        "de": "Weil der Ausweiseditor es nicht kann",
+                        "es": "Porque el editor de identificaciones no lo permite"
+                    },
+                    {
+                        "fr": "Parce que cela ralentit l'impression",
+                        "en": "Because it slows the printing down",
+                        "it": "Perché rallenta la stampa",
+                        "de": "Weil es den Druck verlangsamt",
+                        "es": "Porque ralentiza la impresión"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Une réaffectation de cible ou un changement de départ rendrait le dossard faux : on n'imprime pas d'informations susceptibles de changer."
+                "explain": {
+                    "fr": "Une réaffectation de cible ou un changement de départ rendrait le dossard faux : on n'imprime pas d'informations susceptibles de changer.",
+                    "en": "A target reassignment or a change of session would make the back number wrong: never print details liable to change.",
+                    "it": "Una riassegnazione di piazzola o un cambio di turno renderebbe falso il pettorale: non si stampano informazioni che possono cambiare.",
+                    "de": "Eine neue Scheibeneinteilung oder ein Durchgangswechsel würde die Startnummer falsch machen: man druckt nichts, was sich ändern kann.",
+                    "es": "Una reasignación de diana o un cambio de turno dejaría el dorsal equivocado: no se imprimen datos que puedan cambiar."
+                }
             },
             {
-                "q": "À quoi servent les couleurs d'accréditation ?",
+                "q": {
+                    "fr": "À quoi servent les couleurs d'accréditation ?",
+                    "en": "What are the accreditation colours for?",
+                    "it": "A che cosa servono i colori di accredito?",
+                    "de": "Wozu dienen die Akkreditierungsfarben?",
+                    "es": "¿Para qué sirven los colores de acreditación?"
+                },
                 "choices": [
-                    "À identifier d'un coup d'œil le rôle de chacun (archer, arbitre, organisation…)",
-                    "À distinguer les catégories d'âge",
-                    "À coder les armes utilisées",
-                    "À numéroter les cibles"
+                    {
+                        "fr": "À identifier d'un coup d'œil le rôle de chacun (archer, arbitre, organisation…)",
+                        "en": "To tell at a glance what each person is (archer, judge, organisation…)",
+                        "it": "A identificare a colpo d'occhio il ruolo di ciascuno (arciere, giudice, organizzazione…)",
+                        "de": "Um auf einen Blick die Rolle jedes Einzelnen zu erkennen (Schütze, Kampfrichter, Organisation…)",
+                        "es": "Para identificar de un vistazo el papel de cada uno (arquero, juez, organización…)"
+                    },
+                    {
+                        "fr": "À distinguer les catégories d'âge",
+                        "en": "To tell the age classes apart",
+                        "it": "A distinguere le classi di età",
+                        "de": "Um die Altersklassen zu unterscheiden",
+                        "es": "Para distinguir las categorías de edad"
+                    },
+                    {
+                        "fr": "À coder les armes utilisées",
+                        "en": "To code the divisions used",
+                        "it": "A codificare le divisioni usate",
+                        "de": "Um die verwendeten Bogenarten zu verschlüsseln",
+                        "es": "Para codificar las divisiones utilizadas"
+                    },
+                    {
+                        "fr": "À numéroter les cibles",
+                        "en": "To number the targets",
+                        "it": "A numerare le piazzole",
+                        "de": "Um die Scheiben zu nummerieren",
+                        "es": "Para numerar las dianas"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Elles permettent de contrôler les accès sans connaître personnellement tout le monde."
+                "explain": {
+                    "fr": "Elles permettent de contrôler les accès sans connaître personnellement tout le monde.",
+                    "en": "They make access control possible without knowing everybody personally.",
+                    "it": "Permettono di controllare gli accessi senza conoscere personalmente tutti.",
+                    "de": "Sie ermöglichen eine Zugangskontrolle, ohne alle persönlich zu kennen.",
+                    "es": "Permiten controlar los accesos sin conocer personalmente a todo el mundo."
+                }
             },
             {
-                "q": "Le dossard des duels et celui des qualifications…",
+                "q": {
+                    "fr": "Le dossard des duels et celui des qualifications…",
+                    "en": "The back number for the matches and the one for qualification…",
+                    "it": "Il pettorale degli scontri e quello delle qualificazioni…",
+                    "de": "Die Startnummer für die Duelle und die für die Qualifikation…",
+                    "es": "El dorsal de los enfrentamientos y el de la calificación…"
+                },
                 "choices": [
-                    "sont deux types différents, imprimés depuis des menus différents",
-                    "sont strictement identiques",
-                    "n'existent pas dans ianseo",
-                    "s'impriment tous les deux depuis le menu Participants uniquement"
+                    {
+                        "fr": "sont deux types différents, imprimés depuis des menus différents",
+                        "en": "are two different types, printed from different menus",
+                        "it": "sono due tipi diversi, stampati da menu diversi",
+                        "de": "sind zwei verschiedene Typen, die aus verschiedenen Menüs gedruckt werden",
+                        "es": "son dos tipos distintos, impresos desde menús distintos"
+                    },
+                    {
+                        "fr": "sont strictement identiques",
+                        "en": "are strictly identical",
+                        "it": "sono del tutto identici",
+                        "de": "sind völlig gleich",
+                        "es": "son estrictamente idénticos"
+                    },
+                    {
+                        "fr": "n'existent pas dans ianseo",
+                        "en": "do not exist in ianseo",
+                        "it": "non esistono in ianseo",
+                        "de": "gibt es in ianseo nicht",
+                        "es": "no existen en ianseo"
+                    },
+                    {
+                        "fr": "s'impriment tous les deux depuis le menu Participants uniquement",
+                        "en": "are both printed from the Participants menu only",
+                        "it": "si stampano entrambi soltanto dal menu Partecipanti",
+                        "de": "werden beide nur aus dem Menü Teilnehmer gedruckt",
+                        "es": "se imprimen ambos únicamente desde el menú Participantes"
+                    }
                 ],
                 "correct": 0,
-                "explain": "En qualification l'archer porte sa cible ; en duel il porte son rang\/match. D'où deux types de dossards."
+                "explain": {
+                    "fr": "En qualification l'archer porte sa cible ; en duel il porte son rang/match. D'où deux types de dossards.",
+                    "en": "In qualification the archer wears their target; in a match they wear their seed or match. Hence two types.",
+                    "it": "In qualificazione l'arciere porta la sua piazzola; nello scontro porta il suo rank o il match. Da qui due tipi di pettorale.",
+                    "de": "In der Qualifikation trägt der Schütze seine Scheibe; im Duell seine Setzung oder Begegnung. Daher zwei Typen.",
+                    "es": "En calificación el arquero lleva su diana; en el enfrentamiento lleva su puesto o su partido. De ahí dos tipos de dorsal."
+                }
             },
             {
-                "q": "Le modèle de badge que vous dessinez est…",
+                "q": {
+                    "fr": "Le modèle de badge que vous dessinez est…",
+                    "en": "The badge layout you draw is…",
+                    "it": "Il modello di tesserino che disegni è…",
+                    "de": "Die Ausweisvorlage, die Sie zeichnen, ist…",
+                    "es": "La plantilla de identificación que dibuja está…"
+                },
                 "choices": [
-                    "enregistré dans la compétition et réutilisable",
-                    "perdu à la fermeture de la compétition",
-                    "commun à toutes les compétitions du serveur",
-                    "imposé par la FFTA"
+                    {
+                        "fr": "enregistré dans la compétition et réutilisable",
+                        "en": "saved inside the competition and reusable",
+                        "it": "salvato nella gara e riutilizzabile",
+                        "de": "im Turnier gespeichert und wiederverwendbar",
+                        "es": "guardada en la competición y es reutilizable"
+                    },
+                    {
+                        "fr": "perdu à la fermeture de la compétition",
+                        "en": "lost when the competition is closed",
+                        "it": "perso alla chiusura della gara",
+                        "de": "beim Schliessen des Turniers verloren",
+                        "es": "perdida al cerrar la competición"
+                    },
+                    {
+                        "fr": "commun à toutes les compétitions du serveur",
+                        "en": "shared by every competition on the server",
+                        "it": "comune a tutte le gare del server",
+                        "de": "für alle Turniere des Servers gemeinsam",
+                        "es": "compartida por todas las competiciones del servidor"
+                    },
+                    {
+                        "fr": "imposé par la FFTA",
+                        "en": "imposed by the federation",
+                        "it": "imposto dalla federazione",
+                        "de": "vom Verband vorgegeben",
+                        "es": "impuesta por la federación"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Il est stocké avec la compétition : en réimportant celle-ci, vous récupérez votre modèle."
+                "explain": {
+                    "fr": "Il est stocké avec la compétition : en réimportant celle-ci, vous récupérez votre modèle.",
+                    "en": "It is stored with the competition: import that competition again and you get your layout back.",
+                    "it": "È salvato con la gara: reimportandola, ritrovi il tuo modello.",
+                    "de": "Sie ist im Turnier abgelegt: importieren Sie dieses erneut, haben Sie Ihre Vorlage wieder.",
+                    "es": "Se guarda con la competición: al reimportarla, recupera su plantilla."
+                }
             }
         ],
         "shuffle": true
     },
     "challenge": {
-        "intro": "<p>À vous de jouer.<\/p><p>Sur votre compétition ouverte :<\/p><ol><li>Passez par la page d'<b>Accréditation<\/b>.<\/li><li>Créez et <b>enregistrez un modèle<\/b> de badge ou de dossard (Impression des badges d'accréditation).<\/li><\/ol><p>Cliquez sur <b>Vérifier<\/b> quand c'est fait.<\/p>",
+        "intro": {
+            "fr": "<p>À vous de jouer.</p><p>Sur votre compétition ouverte :</p><ol><li>Passez par la page d'<b>Accréditation</b>.</li><li>Créez et <b>enregistrez un modèle</b> de badge ou de dossard (Impression des badges d'accréditation).</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+            "en": "<p>Your turn.</p><p>On your open competition:</p><ol><li>Go through the <b>Accreditation</b> page.</li><li>Create and <b>save a layout</b> for a badge or a back number (Print Accreditation Badges).</li></ol><p>Click <b>Check</b> when it is done.</p>",
+            "it": "<p>Tocca a te.</p><p>Sulla tua gara aperta:</p><ol><li>Passa dalla pagina di <b>Accredito</b>.</li><li>Crea e <b>salva un modello</b> di tesserino o di pettorale (Stampa Accrediti).</li></ol><p>Clicca su <b>Verifica</b> quando è fatto.</p>",
+            "de": "<p>Sie sind dran.</p><p>In Ihrem geöffneten Turnier:</p><ol><li>Gehen Sie über die Seite <b>Akkreditierung</b>.</li><li>Erstellen und <b>speichern Sie eine Vorlage</b> für einen Ausweis oder eine Startnummer (Namensschilder drucken).</li></ol><p>Klicken Sie auf <b>Prüfen</b>, wenn es erledigt ist.</p>",
+            "es": "<p>Le toca a usted.</p><p>En su competición abierta:</p><ol><li>Pase por la página de <b>Acreditación</b>.</li><li>Cree y <b>guarde una plantilla</b> de identificación o de dorsal (Imprime Identificaciones).</li></ol><p>Haga clic en <b>Verificar</b> cuando esté hecho.</p>"
+        },
         "conditions": [
             "has_id_card",
             "accreditation_visited"

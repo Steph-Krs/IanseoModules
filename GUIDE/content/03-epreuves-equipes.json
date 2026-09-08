@@ -1,16 +1,47 @@
 {
-    "id": "epreuves-equipes",
+    "lang": "fr",
+    "id": "9vclui9hslrhbpkanruc",
     "type": "formation",
-    "title": "Les épreuves par équipe (~20min)",
-    "description": "Sur une compétition TAE existante, créez trois types d'équipes : équipe classique (3 archers), double mixte (1 femme + 1 homme) et équipe panachée (1 archer par arme). Comprenez le système des 1ère/2ème équipes.",
-    "version": "1.0",
-    "group": "Les bases",
+    "title": {
+        "fr": "Les épreuves par équipe (~20min)",
+        "en": "Team events (~20 min)",
+        "it": "Gli eventi a squadre (~20 min)",
+        "de": "Die Mannschaftsbegegnungen (~20 Min.)",
+        "es": "Las pruebas por equipos (~20 min)"
+    },
+    "description": {
+        "fr": "Sur une compétition TAE existante, créez trois types d'équipes : équipe classique (3 archers), double mixte (1 femme + 1 homme) et équipe panachée (1 archer par arme). Comprenez le système des 1ère/2ème équipes.",
+        "en": "On an existing outdoor competition, create three kinds of team: the ordinary team (3 archers), the mixed team (1 woman + 1 man) and the mixed-division team (1 archer per division). Understand the first/second team system.",
+        "it": "Su una gara all'aperto già esistente, crea tre tipi di squadra: la squadra classica (3 arcieri), la squadra mista (1 donna + 1 uomo) e la squadra con divisioni diverse (1 arciere per divisione). Capisci il sistema della prima e della seconda squadra.",
+        "de": "Legen Sie in einem bestehenden Freiluftturnier drei Arten von Mannschaft an: die gewöhnliche Mannschaft (3 Schützen), die Mixed-Mannschaft (1 Frau + 1 Mann) und die bogenartgemischte Mannschaft (1 Schütze je Bogenart). Verstehen Sie das System der ersten und zweiten Mannschaft.",
+        "es": "Sobre una competición al aire libre ya existente, cree tres tipos de equipo: el equipo clásico (3 arqueros), el equipo mixto (1 mujer + 1 hombre) y el equipo de divisiones mezcladas (1 arquero por división). Comprenda el sistema de primer y segundo equipo."
+    },
+    "version": "1.1",
+    "group": {
+        "fr": "Les bases",
+        "en": "The basics",
+        "it": "Le basi",
+        "de": "Die Grundlagen",
+        "es": "Lo básico"
+    },
     "order": 3,
     "steps": [
         {
             "id": "intro",
-            "title": "Avant de commencer",
-            "content": "<p>Cette formation part d'une <b>compétition TAE déjà créée</b>, avec des archers inscrits.</p><p>Une <b>épreuve par équipe</b> se définit par une <b>règle de composition</b> : « prendre N archers répondant à tel critère de division et de classe ». Nous allons construire <b>trois cas concrets</b> :</p><ul><li><b>Équipe TAE</b> : 3 archers, même sexe, même arme</li><li><b>Double mixte</b> : 1 femme + 1 homme, même arme</li><li><b>Équipe panachée</b> (style parcours) : 3 archers, même sexe, 1 par arme</li></ul><p class=\"guide-tip\">💡 Cette formation <b>ne crée pas les matchs</b> par équipe. Une fois les épreuves définies, la configuration des duels par équipe suit <b>exactement le même principe</b> que les duels individuels (premier tour, cibles, horaires…) — voir la formation <b>Configurer les duels</b>.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "title": {
+                "fr": "Avant de commencer",
+                "en": "Before you begin",
+                "it": "Prima di cominciare",
+                "de": "Bevor Sie beginnen",
+                "es": "Antes de empezar"
+            },
+            "content": {
+                "fr": "<p>Cette formation part d'une <b>compétition TAE déjà créée</b>, avec des archers inscrits.</p><p>Une <b>épreuve par équipe</b> se définit par une <b>règle de composition</b> : « prendre N archers répondant à tel critère de division et de classe ». Nous allons construire <b>trois cas concrets</b> :</p><ul><li><b>Équipe TAE</b> : 3 archers, même sexe, même arme</li><li><b>Double mixte</b> : 1 femme + 1 homme, même arme</li><li><b>Équipe panachée</b> (style parcours) : 3 archers, même sexe, 1 par arme</li></ul><p class=\"guide-tip\">💡 Cette formation <b>ne crée pas les matchs</b> par équipe. Une fois les épreuves définies, la configuration des duels par équipe suit <b>exactement le même principe</b> que les duels individuels (premier tour, cibles, horaires…) — voir la formation <b>Configurer les duels</b>.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+                "en": "<p>This course starts from an <b>outdoor competition that already exists</b>, with archers entered.</p><p>A <b>team event</b> is defined by a <b>composition rule</b>: \"take N archers matching this division and class\". We are going to build <b>three real cases</b>:</p><ul><li><b>Ordinary team</b>: 3 archers, same gender, same division</li><li><b>Mixed team</b>: 1 woman + 1 man, same division</li><li><b>Mixed-division team</b> (as in field archery): 3 archers, same gender, one per division</li></ul><p class=\"guide-tip\">💡 This course <b>does not create the team matches</b>. Once the events are defined, setting up the team matches follows <b>exactly the same pattern</b> as the individual ones (first phase, targets, times…) — see the course <b>Setting up the matches</b>.</p><p>Click <b>Next</b>.</p>",
+                "it": "<p>Questo corso parte da una <b>gara all'aperto già creata</b>, con arcieri iscritti.</p><p>Un <b>evento a squadre</b> si definisce con una <b>regola di composizione</b>: «prendi N arcieri che rispondono a questo criterio di divisione e di classe». Costruiremo <b>tre casi concreti</b>:</p><ul><li><b>Squadra classica</b>: 3 arcieri, stesso sesso, stessa divisione</li><li><b>Squadra mista</b>: 1 donna + 1 uomo, stessa divisione</li><li><b>Squadra con divisioni diverse</b> (stile campagna): 3 arcieri, stesso sesso, uno per divisione</li></ul><p class=\"guide-tip\">💡 Questo corso <b>non crea gli scontri</b> a squadre. Definiti gli eventi, la configurazione degli scontri a squadre segue <b>esattamente lo stesso schema</b> di quelli individuali (fase di partenza, bersagli, orari…) — vedi il corso <b>Configurare gli scontri</b>.</p><p>Clicca su <b>Avanti</b>.</p>",
+                "de": "<p>Dieser Kurs geht von einem <b>bereits angelegten Freiluftturnier</b> mit gemeldeten Schützen aus.</p><p>Eine <b>Mannschaftsbegegnung</b> wird durch eine <b>Zusammensetzungsregel</b> festgelegt: „nimm N Schützen, die dieser Bogenart und Klasse entsprechen\". Wir bauen <b>drei konkrete Fälle</b>:</p><ul><li><b>Gewöhnliche Mannschaft</b>: 3 Schützen, gleiches Geschlecht, gleiche Bogenart</li><li><b>Mixed-Mannschaft</b>: 1 Frau + 1 Mann, gleiche Bogenart</li><li><b>Bogenartgemischte Mannschaft</b> (wie im Feldbogen): 3 Schützen, gleiches Geschlecht, einer je Bogenart</li></ul><p class=\"guide-tip\">💡 Dieser Kurs <b>legt die Mannschaftsduelle nicht an</b>. Sind die Begegnungen einmal festgelegt, folgt die Einrichtung der Mannschaftsduelle <b>genau demselben Muster</b> wie bei den Einzelduellen (Startphase, Scheiben, Zeiten…) — siehe den Kurs <b>Die Duelle einrichten</b>.</p><p>Klicken Sie auf <b>Weiter</b>.</p>",
+                "es": "<p>Este curso parte de una <b>competición al aire libre ya creada</b>, con arqueros inscritos.</p><p>Una <b>prueba por equipos</b> se define mediante una <b>regla de composición</b>: «tomar N arqueros que respondan a este criterio de división y de clase». Vamos a construir <b>tres casos concretos</b>:</p><ul><li><b>Equipo clásico</b>: 3 arqueros, mismo sexo, misma división</li><li><b>Equipo mixto</b>: 1 mujer + 1 hombre, misma división</li><li><b>Equipo de divisiones mezcladas</b> (estilo bosque): 3 arqueros, mismo sexo, uno por división</li></ul><p class=\"guide-tip\">💡 Este curso <b>no crea los enfrentamientos</b> por equipos. Definidas las pruebas, la configuración de los enfrentamientos por equipos sigue <b>exactamente el mismo esquema</b> que los individuales (primera fase, dianas, horarios…) — vea el curso <b>Configurar los enfrentamientos</b>.</p><p>Haga clic en <b>Siguiente</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -18,8 +49,20 @@
         },
         {
             "id": "ouvrir-competition",
-            "title": "Ouvrir votre compétition TAE",
-            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p><p>Allez dans <b>Compétition &gt; Ouvrir</b> et ouvrez votre compétition TAE (ou une compétition avec des archers inscrits).</p>",
+            "title": {
+                "fr": "Ouvrir votre compétition TAE",
+                "en": "Open your outdoor competition",
+                "it": "Apri la tua gara all'aperto",
+                "de": "Ihr Freiluftturnier öffnen",
+                "es": "Abra su competición al aire libre"
+            },
+            "content": {
+                "fr": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p><p>Allez dans <b>Compétition &gt; Ouvrir</b> et ouvrez votre compétition TAE (ou une compétition avec des archers inscrits).</p>",
+                "en": "<p>The guide is waiting for a <b>competition to be open</b>.</p><p>Go to <b>Competition &gt; Open</b> and open your outdoor competition (or any competition with archers entered).</p>",
+                "it": "<p>La guida attende che una <b>gara sia aperta</b>.</p><p>Vai in <b>Gara &gt; Apri</b> e apri la tua gara all'aperto (o una gara con arcieri iscritti).</p>",
+                "de": "<p>Die Anleitung wartet darauf, dass ein <b>Turnier geöffnet</b> ist.</p><p>Gehen Sie zu <b>Turnier &gt; Öffnen</b> und öffnen Sie Ihr Freiluftturnier (oder ein Turnier mit gemeldeten Schützen).</p>",
+                "es": "<p>La guía espera a que haya una <b>competición abierta</b>.</p><p>Vaya a <b>Competición &gt; Abrir</b> y abra su competición al aire libre (o una competición con arqueros inscritos).</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -27,14 +70,26 @@
                     "condition": "tournament_open",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : ouvrez une compétition (Compétition > Ouvrir)."
+                    "hint": {
+                        "fr": "En attente : ouvrez une compétition (Compétition > Ouvrir).",
+                        "en": "Waiting: open a competition (Competition > Open).",
+                        "it": "In attesa: apri una gara (Gara > Apri).",
+                        "de": "Es wird gewartet: öffnen Sie ein Turnier (Turnier > Öffnen).",
+                        "es": "En espera: abra una competición (Competición > Abrir)."
+                    }
                 },
                 {
                     "kind": "etat",
                     "condition": "has_participant",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : la compétition doit contenir au moins un participant."
+                    "hint": {
+                        "fr": "En attente : la compétition doit contenir au moins un participant.",
+                        "en": "Waiting: the competition must hold at least one participant.",
+                        "it": "In attesa: la gara deve contenere almeno un partecipante.",
+                        "de": "Es wird gewartet: das Turnier muss mindestens einen Teilnehmer enthalten.",
+                        "es": "En espera: la competición debe contener al menos un participante."
+                    }
                 }
             ],
             "optional": false,
@@ -42,8 +97,20 @@
         },
         {
             "id": "participation-equipe",
-            "title": "La participation aux épreuves par équipe",
-            "content": "<p>Rendez-vous dans <b>Participants &gt; Participation des compétiteurs aux épreuves Ind/Equipe</b>.</p><p>Comme pour les duels individuels, chaque archer a une case de participation — mais cette fois pour les <b>épreuves par équipe</b>.</p><ul><li>Case <b>cochée</b> = l'archer peut être <b>sélectionné dans une équipe</b>.</li><li>Case <b>décochée</b> = l'archer ne sera <b>jamais retenu</b>, même s'il a le meilleur score du club.</li></ul><p>La case de l'<b>en-tête de colonne</b> coche/décoche tout le monde d'un coup.</p><p class=\"guide-tip\">⚠️ <b>Insistons :</b> une équipe incomplète ou absente vient presque toujours de là. Si un club a bien 3 archers mais qu'une seule équipe de 2 apparaît, vérifiez <b>cette case</b> en premier.</p>",
+            "title": {
+                "fr": "La participation aux épreuves par équipe",
+                "en": "Participation in the team events",
+                "it": "La partecipazione agli eventi a squadre",
+                "de": "Die Teilnahme an den Mannschaftsbegegnungen",
+                "es": "La participación en las pruebas por equipos"
+            },
+            "content": {
+                "fr": "<p>Rendez-vous dans <b>Participants &gt; Participation des compétiteurs aux épreuves Ind/Equipe</b>.</p><p>Comme pour les duels individuels, chaque archer a une case de participation — mais cette fois pour les <b>épreuves par équipe</b>.</p><ul><li>Case <b>cochée</b> = l'archer peut être <b>sélectionné dans une équipe</b>.</li><li>Case <b>décochée</b> = l'archer ne sera <b>jamais retenu</b>, même s'il a le meilleur score du club.</li></ul><p>La case de l'<b>en-tête de colonne</b> coche/décoche tout le monde d'un coup.</p><p class=\"guide-tip\">⚠️ <b>Insistons :</b> une équipe incomplète ou absente vient presque toujours de là. Si un club a bien 3 archers mais qu'une seule équipe de 2 apparaît, vérifiez <b>cette case</b> en premier.</p>",
+                "en": "<p>Go to <b>Participants &gt; Athletes Participation to Ind/Team Event</b>.</p><p>As with the individual matches, every archer has a participation box — this time for the <b>team events</b>.</p><ul><li>Box <b>ticked</b> = the archer can be <b>picked for a team</b>.</li><li>Box <b>unticked</b> = the archer will <b>never be picked</b>, even with the best score in the club.</li></ul><p>The box in the <b>column header</b> ticks or unticks everybody at once.</p><p class=\"guide-tip\">⚠️ <b>Worth repeating:</b> an incomplete or missing team nearly always comes from here. If a club really has 3 archers but only a team of 2 appears, check <b>that box</b> first.</p>",
+                "it": "<p>Vai in <b>Partecipanti &gt; Partecipazione Individuale - Squadre</b>.</p><p>Come per gli scontri individuali, ogni arciere ha una casella di partecipazione — questa volta per gli <b>eventi a squadre</b>.</p><ul><li>Casella <b>spuntata</b> = l'arciere può essere <b>scelto in una squadra</b>.</li><li>Casella <b>non spuntata</b> = l'arciere non sarà <b>mai selezionato</b>, anche col miglior punteggio della società.</li></ul><p>La casella dell'<b>intestazione di colonna</b> spunta o toglie la spunta a tutti in una volta.</p><p class=\"guide-tip\">⚠️ <b>Insistiamo:</b> una squadra incompleta o assente viene quasi sempre da qui. Se una società ha davvero 3 arcieri ma compare una sola squadra da 2, controlla <b>quella casella</b> per prima cosa.</p>",
+                "de": "<p>Gehen Sie zu <b>Teilnehmer &gt; Teilnahme Einzel - Mannschaft</b>.</p><p>Wie bei den Einzelduellen hat jeder Schütze ein Teilnahmefeld — diesmal für die <b>Mannschaftsbegegnungen</b>.</p><ul><li>Feld <b>angehakt</b> = der Schütze kann <b>in eine Mannschaft gewählt werden</b>.</li><li>Feld <b>nicht angehakt</b> = der Schütze wird <b>nie berücksichtigt</b>, auch mit dem besten Ergebnis des Vereins nicht.</li></ul><p>Das Feld in der <b>Spaltenüberschrift</b> hakt alle auf einmal an oder ab.</p><p class=\"guide-tip\">⚠️ <b>Nochmals:</b> eine unvollständige oder fehlende Mannschaft kommt fast immer daher. Hat ein Verein tatsächlich 3 Schützen, erscheint aber nur eine Mannschaft aus 2, prüfen Sie zuerst <b>dieses Feld</b>.</p>",
+                "es": "<p>Vaya a <b>Participantes &gt; Participación de los atletas en las pruebas Ind/Equipos</b>.</p><p>Como en los enfrentamientos individuales, cada arquero tiene una casilla de participación — esta vez para las <b>pruebas por equipos</b>.</p><ul><li>Casilla <b>marcada</b> = el arquero puede ser <b>seleccionado en un equipo</b>.</li><li>Casilla <b>sin marcar</b> = el arquero <b>nunca será elegido</b>, aunque tenga la mejor puntuación del club.</li></ul><p>La casilla de la <b>cabecera de columna</b> marca o desmarca a todos de una vez.</p><p class=\"guide-tip\">⚠️ <b>Insistimos:</b> un equipo incompleto o ausente casi siempre viene de aquí. Si un club tiene realmente 3 arqueros pero solo aparece un equipo de 2, compruebe <b>esa casilla</b> lo primero.</p>"
+            },
             "page": "/Partecipants/ManEventAccess.php",
             "triggers": [
                 {
@@ -58,7 +125,13 @@
                     "selector": "#d_e_EnTeamFEvent",
                     "required": true,
                     "page": "/Partecipants/ManEventAccess.php",
-                    "hint": "Case d'en-tête : participation aux épreuves par ÉQUIPE pour tous les archers"
+                    "hint": {
+                        "fr": "Case d'en-tête : participation aux épreuves par ÉQUIPE pour tous les archers",
+                        "en": "Header box: participation in the TEAM events for every archer",
+                        "it": "Casella di intestazione: partecipazione agli eventi a SQUADRE per tutti gli arcieri",
+                        "de": "Feld in der Überschrift: Teilnahme an den MANNSCHAFTSbegegnungen für alle Schützen",
+                        "es": "Casilla de cabecera: participación en las pruebas por EQUIPOS para todos los arqueros"
+                    }
                 }
             ],
             "optional": false,
@@ -66,8 +139,20 @@
         },
         {
             "id": "gestion-epreuves-equipe",
-            "title": "La page Gestion des Épreuves (équipes)",
-            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves par équipe &gt; Gestion des Épreuves</b>.</p><p>C'est ici que vivent les épreuves par équipe. Sur chaque ligne, vous retrouvez les mêmes réglages que pour l'individuel :</p><ul><li><b>Grille normale</b> pour des éliminations directes classiques,</li><li>le <b>format des matchs</b> : Set ou Cumul,</li><li>le <b>premier tour</b> : 1/8, 1/4, 1/2… ou <b>« - - - »</b> s'il n'y a pas de phase finale (juste un classement),</li><li>le <b>type de blason</b>, sa <b>taille</b> et la <b>distance</b>.</li></ul><p>Pour <b>définir la composition</b> d'une équipe, cliquez sur le bouton portant le <b>code de l'épreuve</b> (première colonne du tableau). Il s'affiche en <b>rouge</b> tant qu'aucune règle de composition n'est définie.</p>",
+            "title": {
+                "fr": "La page Gestion des Épreuves (équipes)",
+                "en": "The Manage Events page (teams)",
+                "it": "La pagina Gestione degli Eventi (squadre)",
+                "de": "Die Seite Verwaltung der Begegnungen (Mannschaften)",
+                "es": "La página Definir las pruebas (equipos)"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves par équipe &gt; Gestion des Épreuves</b>.</p><p>C'est ici que vivent les épreuves par équipe. Sur chaque ligne, vous retrouvez les mêmes réglages que pour l'individuel :</p><ul><li><b>Grille normale</b> pour des éliminations directes classiques,</li><li>le <b>format des matchs</b> : Set ou Cumul,</li><li>le <b>premier tour</b> : 1/8, 1/4, 1/2… ou <b>« - - - »</b> s'il n'y a pas de phase finale (juste un classement),</li><li>le <b>type de blason</b>, sa <b>taille</b> et la <b>distance</b>.</li></ul><p>Pour <b>définir la composition</b> d'une équipe, cliquez sur le bouton portant le <b>code de l'épreuve</b> (première colonne du tableau). Il s'affiche en <b>rouge</b> tant qu'aucune règle de composition n'est définie.</p>",
+                "en": "<p>Go to <b>Competition &gt; Team Events Setup &gt; Manage Events</b>.</p><p>This is where the team events live. On each row you find the same settings as for the individual events:</p><ul><li>the <b>normal bracket</b> for ordinary knock-out rounds,</li><li>the <b>match format</b>: Set System or Cumulative,</li><li>the <b>first phase</b>: 1/8, 1/4, 1/2… or <b>\"- - -\"</b> if there is no final phase (a ranking only),</li><li>the <b>target face</b>, its <b>size</b> and the <b>distance</b>.</li></ul><p>To <b>define the composition</b> of a team, click the button carrying the <b>event code</b> (the first column of the table). It shows in <b>red</b> as long as no composition rule has been defined.</p>",
+                "it": "<p>Vai in <b>Gara &gt; Impostazioni per le Finali a Squadre &gt; Gestione degli Eventi</b>.</p><p>È qui che vivono gli eventi a squadre. Su ogni riga ritrovi le stesse impostazioni dell'individuale:</p><ul><li>il <b>tabellone normale</b> per eliminazioni dirette classiche,</li><li>il <b>formato degli scontri</b>: Sistema a set o Sistema cumulativo,</li><li>la <b>fase di partenza</b>: 1/8, 1/4, 1/2… oppure <b>«- - -»</b> se non c'è fase finale (solo una classifica),</li><li>il <b>tipo di bersaglio</b>, la sua <b>dimensione</b> e la <b>distanza</b>.</li></ul><p>Per <b>definire la composizione</b> di una squadra, clicca il pulsante con il <b>codice dell'evento</b> (prima colonna della tabella). Resta <b>rosso</b> finché non è definita alcuna regola di composizione.</p>",
+                "de": "<p>Gehen Sie zu <b>Turnier &gt; Einstellungen für Finalrunden - Mannschaft &gt; Verwaltung der Begegnungen</b>.</p><p>Hier leben die Mannschaftsbegegnungen. In jeder Zeile finden Sie dieselben Einstellungen wie im Einzel:</p><ul><li>den <b>normalen Baum</b> für gewöhnliche K.-o.-Runden,</li><li>das <b>Duellformat</b>: Set System oder Kumulativ,</li><li>die <b>Startphase</b>: 1/8, 1/4, 1/2… oder <b>„- - -\"</b>, wenn es keine Finalrunde gibt (nur eine Platzierung),</li><li>die <b>Scheibenauflage</b>, ihre <b>Grösse</b> und die <b>Distanz</b>.</li></ul><p>Um die <b>Zusammensetzung</b> einer Mannschaft festzulegen, klicken Sie auf die Schaltfläche mit dem <b>Code der Begegnung</b> (erste Spalte der Tabelle). Sie bleibt <b>rot</b>, solange keine Zusammensetzungsregel festgelegt ist.</p>",
+                "es": "<p>Vaya a <b>Competición &gt; Configuración de las Finales por Equipos &gt; Definir las pruebas</b>.</p><p>Aquí viven las pruebas por equipos. En cada fila encontrará los mismos ajustes que en las individuales:</p><ul><li>el <b>cuadro normal</b> para eliminatorias directas clásicas,</li><li>el <b>formato de los enfrentamientos</b>: Sistema de Sets o Acumulado,</li><li>la <b>primera fase</b>: 1/8, 1/4, 1/2… o <b>«- - -»</b> si no hay fase final (solo una clasificación),</li><li>el <b>tipo de diana</b>, su <b>tamaño</b> y la <b>distancia</b>.</li></ul><p>Para <b>definir la composición</b> de un equipo, haga clic en el botón que lleva el <b>código de la prueba</b> (primera columna de la tabla). Aparece en <b>rojo</b> mientras no se haya definido ninguna regla de composición.</p>"
+            },
             "page": "/Final/Team/ListEvents.php",
             "triggers": [
                 {
@@ -82,8 +167,20 @@
         },
         {
             "id": "cas1-equipe-tae",
-            "title": "Cas 1 — L'équipe TAE (3 archers, même sexe, même arme)",
-            "content": "<p>Ouvrez la <b>configuration d'une épreuve par équipe</b> (par exemple « Femme Arc Classique »).</p><p>La composition se définit avec <b>trois colonnes</b> :</p><ul><li><b>Nombre</b> : combien d'archers répondant au critère entrent dans l'équipe → ici <b>3</b></li><li><b>Division</b> : la (ou les) arme(s) autorisée(s) → ici <b>Arc Classique</b></li><li><b>Classe</b> : les classes d'âge <b>et de sexe</b> → ici les classes <b>Femmes</b> (de U18 à S3 par exemple)</li></ul><p>Maintenez <b>Ctrl</b> pour sélectionner plusieurs classes, puis <b>Sauvegarder</b>.</p><p>Résultat : ianseo constituera une équipe avec les <b>3 meilleures archères Arc Classique</b> de chaque club.</p><p class=\"guide-tip\">💡 « <b>Épreuve Équipe Mixte</b> » reste sur <b>Non</b> : ce réglage est réservé au <b>double mixte</b>, pas à une équipe de 3 archers du même sexe.</p>",
+            "title": {
+                "fr": "Cas 1 — L'équipe TAE (3 archers, même sexe, même arme)",
+                "en": "Case 1 — The ordinary team (3 archers, same gender, same division)",
+                "it": "Caso 1 — La squadra classica (3 arcieri, stesso sesso, stessa divisione)",
+                "de": "Fall 1 — Die gewöhnliche Mannschaft (3 Schützen, gleiches Geschlecht, gleiche Bogenart)",
+                "es": "Caso 1 — El equipo clásico (3 arqueros, mismo sexo, misma división)"
+            },
+            "content": {
+                "fr": "<p>Ouvrez la <b>configuration d'une épreuve par équipe</b> (par exemple « Femme Arc Classique »).</p><p>La composition se définit avec <b>trois colonnes</b> :</p><ul><li><b>Nombre</b> : combien d'archers répondant au critère entrent dans l'équipe → ici <b>3</b></li><li><b>Division</b> : la (ou les) arme(s) autorisée(s) → ici <b>Arc Classique</b></li><li><b>Classe</b> : les classes d'âge <b>et de sexe</b> → ici les classes <b>Femmes</b> (de U18 à S3 par exemple)</li></ul><p>Maintenez <b>Ctrl</b> pour sélectionner plusieurs classes, puis <b>Sauvegarder</b>.</p><p>Résultat : ianseo constituera une équipe avec les <b>3 meilleures archères Arc Classique</b> de chaque club.</p><p class=\"guide-tip\">💡 « <b>Épreuve Équipe Mixte</b> » reste sur <b>Non</b> : ce réglage est réservé au <b>double mixte</b>, pas à une équipe de 3 archers du même sexe.</p>",
+                "en": "<p>Open the <b>setup of a team event</b> (\"Women Recurve\", for instance).</p><p>The composition is defined by <b>three columns</b>:</p><ul><li><b>Number</b>: how many archers matching the criterion go into the team → here <b>3</b></li><li><b>Division</b>: the division or divisions allowed → here <b>Recurve Bow</b></li><li><b>Class</b>: the age <b>and gender</b> classes → here the <b>Women</b> classes (from U18 to S3, say)</li></ul><p>Hold <b>Ctrl</b> to select several classes, then <b>Save</b>.</p><p>The result: ianseo will make up a team from the <b>3 best women recurve archers</b> of each club.</p><p class=\"guide-tip\">💡 \"<b>Mixed Team Event</b>\" stays on <b>No</b>: that setting is for the <b>mixed team</b> only, not for a team of 3 archers of the same gender.</p>",
+                "it": "<p>Apri la <b>configurazione di un evento a squadre</b> (per esempio «Donne Arco Olimpico»).</p><p>La composizione si definisce con <b>tre colonne</b>:</p><ul><li><b>Numero</b>: quanti arcieri che rispondono al criterio entrano nella squadra → qui <b>3</b></li><li><b>Divisione</b>: la o le divisioni ammesse → qui <b>Arco Olimpico</b></li><li><b>Classe</b>: le classi di età <b>e di sesso</b> → qui le classi <b>Donne</b> (da U18 a S3, per esempio)</li></ul><p>Tieni premuto <b>Ctrl</b> per selezionare più classi, poi <b>Salva</b>.</p><p>Risultato: ianseo comporrà una squadra con le <b>3 migliori arciere di arco olimpico</b> di ogni società.</p><p class=\"guide-tip\">💡 «<b>Gara Squadre Miste</b>» resta su <b>No</b>: quell'impostazione è riservata alla <b>squadra mista</b>, non a una squadra di 3 arcieri dello stesso sesso.</p>",
+                "de": "<p>Öffnen Sie die <b>Einrichtung einer Mannschaftsbegegnung</b> (etwa „Damen Recurve\").</p><p>Die Zusammensetzung wird über <b>drei Spalten</b> festgelegt:</p><ul><li><b>Anzahl</b>: wie viele Schützen, die dem Kriterium entsprechen, in die Mannschaft kommen → hier <b>3</b></li><li><b>Bogenart</b>: die zugelassene Bogenart oder Bogenarten → hier <b>Recurve</b></li><li><b>Klasse</b>: die Alters- <b>und Geschlechtsklassen</b> → hier die <b>Damenklassen</b> (etwa von U18 bis S3)</li></ul><p>Halten Sie <b>Strg</b> gedrückt, um mehrere Klassen zu wählen, dann <b>Speichern</b>.</p><p>Ergebnis: ianseo stellt eine Mannschaft aus den <b>3 besten Recurve-Schützinnen</b> jedes Vereins zusammen.</p><p class=\"guide-tip\">💡 „<b>Mixed Team Begegnung</b>\" bleibt auf <b>Nein</b>: diese Einstellung ist der <b>Mixed-Mannschaft</b> vorbehalten, nicht einer Mannschaft aus 3 Schützen desselben Geschlechts.</p>",
+                "es": "<p>Abra la <b>configuración de una prueba por equipos</b> (por ejemplo «Mujeres Arco Recurvo»).</p><p>La composición se define con <b>tres columnas</b>:</p><ul><li><b>Número</b>: cuántos arqueros que cumplan el criterio entran en el equipo → aquí <b>3</b></li><li><b>División</b>: la división o divisiones autorizadas → aquí <b>Arco Recurvo</b></li><li><b>Clase</b>: las clases de edad <b>y de sexo</b> → aquí las clases <b>Mujeres</b> (de U18 a S3, por ejemplo)</li></ul><p>Mantenga <b>Ctrl</b> para seleccionar varias clases y luego <b>Guardar</b>.</p><p>Resultado: ianseo formará un equipo con las <b>3 mejores arqueras de arco recurvo</b> de cada club.</p><p class=\"guide-tip\">💡 «<b>Competición por Equipos Mixtos</b>» se queda en <b>No</b>: ese ajuste está reservado al <b>equipo mixto</b>, no a un equipo de 3 arqueros del mismo sexo.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -91,14 +188,26 @@
                     "condition": "__css",
                     "required": true,
                     "selector": "#EcNumber",
-                    "hint": "En attente : ouvrez la configuration d'une épreuve par équipe (règles de composition)."
+                    "hint": {
+                        "fr": "En attente : ouvrez la configuration d'une épreuve par équipe (règles de composition).",
+                        "en": "Waiting: open the setup of a team event (composition rules).",
+                        "it": "In attesa: apri la configurazione di un evento a squadre (regole di composizione).",
+                        "de": "Es wird gewartet: öffnen Sie die Einrichtung einer Mannschaftsbegegnung (Zusammensetzungsregeln).",
+                        "es": "En espera: abra la configuración de una prueba por equipos (reglas de composición)."
+                    }
                 },
                 {
                     "kind": "action",
                     "trigger": "change",
                     "selector": "#EcNumber",
                     "required": true,
-                    "hint": "Nombre d'archers pour cette règle : saisissez 3"
+                    "hint": {
+                        "fr": "Nombre d'archers pour cette règle : saisissez 3",
+                        "en": "Number of archers for this rule: enter 3",
+                        "it": "Numero di arcieri per questa regola: inserisci 3",
+                        "de": "Anzahl der Schützen für diese Regel: tragen Sie 3 ein",
+                        "es": "Número de arqueros para esta regla: escriba 3"
+                    }
                 }
             ],
             "optional": false,
@@ -106,8 +215,20 @@
         },
         {
             "id": "cas2-double-mixte",
-            "title": "Cas 2 — Le double mixte (1 femme + 1 homme)",
-            "content": "<p>Le double mixte se construit avec <b>deux règles</b> dans la <b>même épreuve</b> :</p><ol><li><b>1</b> archer — Arc Classique — classes <b>Femmes</b> (U18 à S3)</li><li><b>1</b> archer — Arc Classique — classes <b>Hommes</b> (U18 à S3)</li></ol><p>Ajoutez la première règle et sauvegardez, puis ajoutez la seconde et sauvegardez.</p><p>Puis — et c'est <b>le point clé</b> — passez <b>Épreuve Équipe Mixte</b> sur <b>Oui</b>.</p><p class=\"guide-tip\">⚠️ <b>Attention au piège :</b> « Épreuve Équipe Mixte = Oui » sert <b>uniquement au double mixte</b>. Pour une équipe « scratch » qui contient des hommes et des femmes sans être un double mixte (voir cas 3), il faut laisser <b>Non</b>.</p>",
+            "title": {
+                "fr": "Cas 2 — Le double mixte (1 femme + 1 homme)",
+                "en": "Case 2 — The mixed team (1 woman + 1 man)",
+                "it": "Caso 2 — La squadra mista (1 donna + 1 uomo)",
+                "de": "Fall 2 — Die Mixed-Mannschaft (1 Frau + 1 Mann)",
+                "es": "Caso 2 — El equipo mixto (1 mujer + 1 hombre)"
+            },
+            "content": {
+                "fr": "<p>Le double mixte se construit avec <b>deux règles</b> dans la <b>même épreuve</b> :</p><ol><li><b>1</b> archer — Arc Classique — classes <b>Femmes</b> (U18 à S3)</li><li><b>1</b> archer — Arc Classique — classes <b>Hommes</b> (U18 à S3)</li></ol><p>Ajoutez la première règle et sauvegardez, puis ajoutez la seconde et sauvegardez.</p><p>Puis — et c'est <b>le point clé</b> — passez <b>Épreuve Équipe Mixte</b> sur <b>Oui</b>.</p><p class=\"guide-tip\">⚠️ <b>Attention au piège :</b> « Épreuve Équipe Mixte = Oui » sert <b>uniquement au double mixte</b>. Pour une équipe « scratch » qui contient des hommes et des femmes sans être un double mixte (voir cas 3), il faut laisser <b>Non</b>.</p>",
+                "en": "<p>A mixed team is built from <b>two rules</b> in the <b>same event</b>:</p><ol><li><b>1</b> archer — Recurve Bow — <b>Women</b> classes (U18 to S3)</li><li><b>1</b> archer — Recurve Bow — <b>Men</b> classes (U18 to S3)</li></ol><p>Add the first rule and save, then add the second and save.</p><p>Then — and this is <b>the key point</b> — set <b>Mixed Team Event</b> to <b>Yes</b>.</p><p class=\"guide-tip\">⚠️ <b>Mind the trap:</b> \"Mixed Team Event = Yes\" is for the <b>mixed team only</b>. For a team that happens to hold men and women without being a mixed team (see case 3), leave it on <b>No</b>.</p>",
+                "it": "<p>La squadra mista si costruisce con <b>due regole</b> nello <b>stesso evento</b>:</p><ol><li><b>1</b> arciere — Arco Olimpico — classi <b>Donne</b> (da U18 a S3)</li><li><b>1</b> arciere — Arco Olimpico — classi <b>Uomini</b> (da U18 a S3)</li></ol><p>Aggiungi la prima regola e salva, poi aggiungi la seconda e salva.</p><p>Poi — ed è <b>il punto chiave</b> — porta <b>Gara Squadre Miste</b> su <b>Sì</b>.</p><p class=\"guide-tip\">⚠️ <b>Attenzione al tranello:</b> «Gara Squadre Miste = Sì» serve <b>soltanto alla squadra mista</b>. Per una squadra che contiene uomini e donne senza essere una squadra mista (vedi caso 3), lascia <b>No</b>.</p>",
+                "de": "<p>Eine Mixed-Mannschaft entsteht aus <b>zwei Regeln</b> in <b>derselben Begegnung</b>:</p><ol><li><b>1</b> Schütze — Recurve — <b>Damen</b>klassen (U18 bis S3)</li><li><b>1</b> Schütze — Recurve — <b>Herren</b>klassen (U18 bis S3)</li></ol><p>Fügen Sie die erste Regel hinzu und speichern Sie, dann die zweite und speichern Sie erneut.</p><p>Und dann — das ist <b>der springende Punkt</b> — stellen Sie <b>Mixed Team Begegnung</b> auf <b>Ja</b>.</p><p class=\"guide-tip\">⚠️ <b>Vorsicht, Falle:</b> „Mixed Team Begegnung = Ja\" gilt <b>nur für die Mixed-Mannschaft</b>. Für eine Mannschaft, die Männer und Frauen enthält, ohne eine Mixed-Mannschaft zu sein (siehe Fall 3), bleibt es auf <b>Nein</b>.</p>",
+                "es": "<p>El equipo mixto se construye con <b>dos reglas</b> en la <b>misma prueba</b>:</p><ol><li><b>1</b> arquero — Arco Recurvo — clases <b>Mujeres</b> (de U18 a S3)</li><li><b>1</b> arquero — Arco Recurvo — clases <b>Hombres</b> (de U18 a S3)</li></ol><p>Añada la primera regla y guarde, luego añada la segunda y guarde.</p><p>Después — y este es <b>el punto clave</b> — ponga <b>Competición por Equipos Mixtos</b> en <b>Sí</b>.</p><p class=\"guide-tip\">⚠️ <b>Cuidado con la trampa:</b> «Competición por Equipos Mixtos = Sí» sirve <b>únicamente para el equipo mixto</b>. Para un equipo que reúne hombres y mujeres sin ser un equipo mixto (véase el caso 3), déjelo en <b>No</b>.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -115,14 +236,26 @@
                     "condition": "__css",
                     "required": true,
                     "selector": "#EvMixedTeam",
-                    "hint": "En attente : ouvrez la configuration d'une épreuve par équipe."
+                    "hint": {
+                        "fr": "En attente : ouvrez la configuration d'une épreuve par équipe.",
+                        "en": "Waiting: open the setup of a team event.",
+                        "it": "In attesa: apri la configurazione di un evento a squadre.",
+                        "de": "Es wird gewartet: öffnen Sie die Einrichtung einer Mannschaftsbegegnung.",
+                        "es": "En espera: abra la configuración de una prueba por equipos."
+                    }
                 },
                 {
                     "kind": "action",
                     "trigger": "change",
                     "selector": "#EvMixedTeam",
                     "required": true,
-                    "hint": "Épreuve Équipe Mixte : Oui (double mixte uniquement)"
+                    "hint": {
+                        "fr": "Épreuve Équipe Mixte : Oui (double mixte uniquement)",
+                        "en": "Mixed Team Event: Yes (mixed team only)",
+                        "it": "Gara Squadre Miste: Sì (solo per la squadra mista)",
+                        "de": "Mixed Team Begegnung: Ja (nur für die Mixed-Mannschaft)",
+                        "es": "Competición por Equipos Mixtos: Sí (solo para el equipo mixto)"
+                    }
                 }
             ],
             "optional": false,
@@ -130,8 +263,20 @@
         },
         {
             "id": "cas3-panachage",
-            "title": "Cas 3 — L'équipe panachée (1 archer par arme)",
-            "content": "<p>C'est la composition utilisée dans les <b>disciplines de parcours</b> : 3 archers du même sexe, <b>un par arme</b>.</p><p>On crée <b>trois règles</b> dans la même épreuve :</p><ol><li><b>1</b> archer — <b>Arc Classique</b> — classes Femmes</li><li><b>1</b> archer — <b>Arc à Poulies</b> — classes Femmes</li><li><b>1</b> archer — <b>Bare-Bow</b> — classes Femmes</li></ol><p>ianseo retiendra la <b>meilleure archère de chaque arme</b> pour composer l'équipe du club.</p><p class=\"guide-tip\">⚠️ Même si l'équipe mélange plusieurs profils, <b>Épreuve Équipe Mixte reste sur Non</b>. Ce réglage ne concerne que le double mixte.</p><p class=\"guide-tip\">💡 Même principe pour une équipe « 4 meilleurs jeunes archers classiques de U11 à U21, hommes ou femmes » : une seule règle, Nombre = 4, avec toutes les classes concernées — et <b>Mixte = Non</b>.</p>",
+            "title": {
+                "fr": "Cas 3 — L'équipe panachée (1 archer par arme)",
+                "en": "Case 3 — The mixed-division team (one archer per division)",
+                "it": "Caso 3 — La squadra con divisioni diverse (un arciere per divisione)",
+                "de": "Fall 3 — Die bogenartgemischte Mannschaft (ein Schütze je Bogenart)",
+                "es": "Caso 3 — El equipo de divisiones mezcladas (un arquero por división)"
+            },
+            "content": {
+                "fr": "<p>C'est la composition utilisée dans les <b>disciplines de parcours</b> : 3 archers du même sexe, <b>un par arme</b>.</p><p>On crée <b>trois règles</b> dans la même épreuve :</p><ol><li><b>1</b> archer — <b>Arc Classique</b> — classes Femmes</li><li><b>1</b> archer — <b>Arc à Poulies</b> — classes Femmes</li><li><b>1</b> archer — <b>Bare-Bow</b> — classes Femmes</li></ol><p>ianseo retiendra la <b>meilleure archère de chaque arme</b> pour composer l'équipe du club.</p><p class=\"guide-tip\">⚠️ Même si l'équipe mélange plusieurs profils, <b>Épreuve Équipe Mixte reste sur Non</b>. Ce réglage ne concerne que le double mixte.</p><p class=\"guide-tip\">💡 Même principe pour une équipe « 4 meilleurs jeunes archers classiques de U11 à U21, hommes ou femmes » : une seule règle, Nombre = 4, avec toutes les classes concernées — et <b>Mixte = Non</b>.</p>",
+                "en": "<p>This is the composition used in the <b>field disciplines</b>: 3 archers of the same gender, <b>one per division</b>.</p><p>You create <b>three rules</b> in the same event:</p><ol><li><b>1</b> archer — <b>Recurve Bow</b> — Women classes</li><li><b>1</b> archer — <b>Compound Bow</b> — Women classes</li><li><b>1</b> archer — <b>Bare Bow</b> — Women classes</li></ol><p>ianseo will pick the <b>best woman archer of each division</b> to make up the club's team.</p><p class=\"guide-tip\">⚠️ Even though the team mixes several profiles, <b>Mixed Team Event stays on No</b>. That setting concerns the mixed team only.</p><p class=\"guide-tip\">💡 The same goes for a team of \"the 4 best young recurve archers from U11 to U21, men or women\": a single rule, Number = 4, with every class concerned — and <b>Mixed = No</b>.</p>",
+                "it": "<p>È la composizione usata nelle <b>discipline di campagna</b>: 3 arcieri dello stesso sesso, <b>uno per divisione</b>.</p><p>Si creano <b>tre regole</b> nello stesso evento:</p><ol><li><b>1</b> arciere — <b>Arco Olimpico</b> — classi Donne</li><li><b>1</b> arciere — <b>Arco Compound</b> — classi Donne</li><li><b>1</b> arciere — <b>Arco Nudo</b> — classi Donne</li></ol><p>ianseo sceglierà la <b>migliore arciera di ogni divisione</b> per comporre la squadra della società.</p><p class=\"guide-tip\">⚠️ Anche se la squadra mescola più profili, <b>Gara Squadre Miste resta su No</b>. Quell'impostazione riguarda solo la squadra mista.</p><p class=\"guide-tip\">💡 Stesso principio per una squadra «i 4 migliori giovani arcieri di arco olimpico da U11 a U21, uomini o donne»: una sola regola, Numero = 4, con tutte le classi interessate — e <b>Miste = No</b>.</p>",
+                "de": "<p>Das ist die Zusammensetzung der <b>Feldbogendisziplinen</b>: 3 Schützen desselben Geschlechts, <b>einer je Bogenart</b>.</p><p>Man legt <b>drei Regeln</b> in derselben Begegnung an:</p><ol><li><b>1</b> Schütze — <b>Recurve</b> — Damenklassen</li><li><b>1</b> Schütze — <b>Compound</b> — Damenklassen</li><li><b>1</b> Schütze — <b>Blankbogen</b> — Damenklassen</li></ol><p>ianseo wählt die <b>beste Schützin jeder Bogenart</b>, um die Mannschaft des Vereins zu bilden.</p><p class=\"guide-tip\">⚠️ Auch wenn die Mannschaft mehrere Profile mischt, <b>bleibt Mixed Team Begegnung auf Nein</b>. Diese Einstellung betrifft nur die Mixed-Mannschaft.</p><p class=\"guide-tip\">💡 Dasselbe gilt für eine Mannschaft aus „den 4 besten jungen Recurve-Schützen von U11 bis U21, Männer oder Frauen\": eine einzige Regel, Anzahl = 4, mit allen betroffenen Klassen — und <b>Mixed = Nein</b>.</p>",
+                "es": "<p>Es la composición usada en las <b>disciplinas de bosque</b>: 3 arqueros del mismo sexo, <b>uno por división</b>.</p><p>Se crean <b>tres reglas</b> en la misma prueba:</p><ol><li><b>1</b> arquero — <b>Arco Recurvo</b> — clases Mujeres</li><li><b>1</b> arquero — <b>Arco Compuesto</b> — clases Mujeres</li><li><b>1</b> arquero — <b>Arco Desnudo</b> — clases Mujeres</li></ol><p>ianseo elegirá a la <b>mejor arquera de cada división</b> para formar el equipo del club.</p><p class=\"guide-tip\">⚠️ Aunque el equipo mezcle varios perfiles, <b>Competición por Equipos Mixtos sigue en No</b>. Ese ajuste solo afecta al equipo mixto.</p><p class=\"guide-tip\">💡 El mismo principio para un equipo de «los 4 mejores arqueros jóvenes de recurvo de U11 a U21, hombres o mujeres»: una sola regla, Número = 4, con todas las clases afectadas — y <b>Mixtos = No</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -139,8 +284,20 @@
         },
         {
             "id": "sous-equipes",
-            "title": "1ère / 2ème équipe : composer les équipes soi-même",
-            "content": "<p>Par défaut, ianseo compose les équipes <b>automatiquement</b> avec les <b>meilleurs résultats</b> de chaque club. Le <b>Mode de création des équipes</b> vaut alors : <b>« Par défaut (2e équipe si disponible, sinon 1ère équipe) »</b>.</p><p>Si vous voulez <b>composer vos équipes vous-même</b> (et non selon les scores), sélectionnez <b>« Toujours 2ème équipe »</b> dans les paramètres de l'épreuve.</p><p>Il faut ensuite <b>désigner les archers</b> concernés, un par un, sur leur <b>fiche participant</b>.</p><p class=\"guide-tip\">💡 Ce mécanisme sert par exemple à aligner une « équipe 2 » d'un club, ou à constituer des équipes qui ne suivent pas la logique du meilleur score.</p>",
+            "title": {
+                "fr": "1ère / 2ème équipe : composer les équipes soi-même",
+                "en": "First / second team: making up the teams yourself",
+                "it": "Prima / seconda squadra: comporre le squadre da sé",
+                "de": "Erste / zweite Mannschaft: die Mannschaften selbst zusammenstellen",
+                "es": "Primer / segundo equipo: componer los equipos uno mismo"
+            },
+            "content": {
+                "fr": "<p>Par défaut, ianseo compose les équipes <b>automatiquement</b> avec les <b>meilleurs résultats</b> de chaque club. Le <b>Mode de création des équipes</b> vaut alors : <b>« Par défaut (2e équipe si disponible, sinon 1ère équipe) »</b>.</p><p>Si vous voulez <b>composer vos équipes vous-même</b> (et non selon les scores), sélectionnez <b>« Toujours 2ème équipe »</b> dans les paramètres de l'épreuve.</p><p>Il faut ensuite <b>désigner les archers</b> concernés, un par un, sur leur <b>fiche participant</b>.</p><p class=\"guide-tip\">💡 Ce mécanisme sert par exemple à aligner une « équipe 2 » d'un club, ou à constituer des équipes qui ne suivent pas la logique du meilleur score.</p>",
+                "en": "<p>By default ianseo makes up the teams <b>automatically</b>, from the <b>best results</b> of each club. The <b>Team Creation Mode</b> is then: <b>\"Default (second team if available, otherwise first team)\"</b>.</p><p>If you want to <b>make up your teams yourself</b> (rather than by score), select <b>\"Always second team\"</b> in the settings of the event.</p><p>You then have to <b>name the archers</b> concerned, one by one, on their <b>participant record</b>.</p><p class=\"guide-tip\">💡 This is what lets a club field a \"team 2\", or build teams that do not follow the best-score logic.</p>",
+                "it": "<p>Per impostazione predefinita ianseo compone le squadre <b>automaticamente</b>, con i <b>migliori risultati</b> di ogni società. Il <b>Modo Creazione Squadre</b> vale allora: <b>«Predefinito (seconda squadra se disponibile, altrimenti prima squadra)»</b>.</p><p>Se vuoi <b>comporre tu le squadre</b> (e non in base ai punteggi), seleziona <b>«Sempre seconda squadra»</b> nelle impostazioni dell'evento.</p><p>Bisogna poi <b>designare gli arcieri</b> interessati, uno per uno, sulla loro <b>scheda partecipante</b>.</p><p class=\"guide-tip\">💡 Questo meccanismo serve per esempio a schierare la «squadra 2» di una società, o a formare squadre che non seguono la logica del miglior punteggio.</p>",
+                "de": "<p>Standardmässig stellt ianseo die Mannschaften <b>automatisch</b> aus den <b>besten Ergebnissen</b> jedes Vereins zusammen. Der <b>Team Erstellungs-Modus</b> steht dann auf: <b>„Standard (zweite Mannschaft, wenn vorhanden, sonst erste Mannschaft)\"</b>.</p><p>Wollen Sie Ihre <b>Mannschaften selbst zusammenstellen</b> (und nicht nach Ergebnis), wählen Sie in den Einstellungen der Begegnung <b>„Immer zweite Mannschaft\"</b>.</p><p>Danach müssen Sie die betreffenden <b>Schützen einzeln benennen</b>, auf ihrem <b>Teilnehmerdatensatz</b>.</p><p class=\"guide-tip\">💡 So lässt sich etwa eine „Mannschaft 2\" eines Vereins aufstellen, oder es lassen sich Mannschaften bilden, die nicht der Logik des besten Ergebnisses folgen.</p>",
+                "es": "<p>De forma predeterminada, ianseo compone los equipos <b>automáticamente</b> con los <b>mejores resultados</b> de cada club. El <b>Modo de creación de Equipos</b> vale entonces: <b>«Predeterminado (segundo equipo si está disponible, si no, primer equipo)»</b>.</p><p>Si quiere <b>componer usted mismo sus equipos</b> (y no según las puntuaciones), seleccione <b>«Siempre segundo equipo»</b> en los ajustes de la prueba.</p><p>Después hay que <b>designar a los arqueros</b> afectados, uno a uno, en su <b>ficha de participante</b>.</p><p class=\"guide-tip\">💡 Este mecanismo sirve, por ejemplo, para presentar un «equipo 2» de un club, o para formar equipos que no siguen la lógica de la mejor puntuación.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -148,14 +305,26 @@
                     "condition": "__css",
                     "required": true,
                     "selector": "#EvTeamCreationMode",
-                    "hint": "En attente : ouvrez la configuration d'une épreuve par équipe."
+                    "hint": {
+                        "fr": "En attente : ouvrez la configuration d'une épreuve par équipe.",
+                        "en": "Waiting: open the setup of a team event.",
+                        "it": "In attesa: apri la configurazione di un evento a squadre.",
+                        "de": "Es wird gewartet: öffnen Sie die Einrichtung einer Mannschaftsbegegnung.",
+                        "es": "En espera: abra la configuración de una prueba por equipos."
+                    }
                 },
                 {
                     "kind": "action",
                     "trigger": "change",
                     "selector": "#EvTeamCreationMode",
                     "required": true,
-                    "hint": "Mode de création des équipes"
+                    "hint": {
+                        "fr": "Mode de création des équipes",
+                        "en": "Team Creation Mode",
+                        "it": "Modo Creazione Squadre",
+                        "de": "Team Erstellungs-Modus",
+                        "es": "Modo de creación de Equipos"
+                    }
                 }
             ],
             "optional": false,
@@ -163,8 +332,20 @@
         },
         {
             "id": "fiche-participant",
-            "title": "Le champ « Équipe partielle » de la fiche participant",
-            "content": "<p>Allez dans <b>Participants &gt; Liste (Simple)</b> et <b>ouvrez la fiche d'un archer</b> (elle s'ouvre dans une <b>fenêtre séparée</b> — le guide vous y suit).</p><p>Cherchez le champ <b>Équipe partielle</b>. C'est lui qui porte le numéro d'équipe :</p><ul><li><b>vide ou 0</b> → l'archer appartient à l'<b>équipe 1</b> (comportement normal)</li><li><b>2</b> → l'archer est affecté à l'<b>équipe 2</b> du club</li></ul><p>Avec le mode <b>« Toujours 2ème équipe »</b>, ce sont donc les archers portant le numéro <b>2</b> qui formeront l'équipe.</p><p class=\"guide-tip\">💡 Les informations de la 2ème équipe <b>ne doivent pas obligatoirement correspondre</b> aux clubs existants : c'est un regroupement libre.</p>",
+            "title": {
+                "fr": "Le champ « Équipe partielle » de la fiche participant",
+                "en": "The \"Sub-team\" field of the participant record",
+                "it": "Il campo «Sotto-squadra» della scheda partecipante",
+                "de": "Das Feld „Teilmannschaft\" im Teilnehmerdatensatz",
+                "es": "El campo «Subequipo» de la ficha de participante"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Participants &gt; Liste (Simple)</b> et <b>ouvrez la fiche d'un archer</b> (elle s'ouvre dans une <b>fenêtre séparée</b> — le guide vous y suit).</p><p>Cherchez le champ <b>Équipe partielle</b>. C'est lui qui porte le numéro d'équipe :</p><ul><li><b>vide ou 0</b> → l'archer appartient à l'<b>équipe 1</b> (comportement normal)</li><li><b>2</b> → l'archer est affecté à l'<b>équipe 2</b> du club</li></ul><p>Avec le mode <b>« Toujours 2ème équipe »</b>, ce sont donc les archers portant le numéro <b>2</b> qui formeront l'équipe.</p><p class=\"guide-tip\">💡 Les informations de la 2ème équipe <b>ne doivent pas obligatoirement correspondre</b> aux clubs existants : c'est un regroupement libre.</p>",
+                "en": "<p>Go to <b>Participants &gt; List (Simple)</b> and <b>open an archer's record</b> (it opens in a <b>separate window</b> — the guide follows you there).</p><p>Look for the <b>Sub-team</b> field. It is the one carrying the team number:</p><ul><li><b>empty or 0</b> → the archer belongs to <b>team 1</b> (the normal behaviour)</li><li><b>2</b> → the archer is assigned to the club's <b>team 2</b></li></ul><p>With the <b>\"Always second team\"</b> mode, it is therefore the archers carrying the number <b>2</b> who will make up the team.</p><p class=\"guide-tip\">💡 The details of the second team <b>need not match</b> the existing clubs: it is a free grouping.</p>",
+                "it": "<p>Vai in <b>Partecipanti &gt; Elenco (Base)</b> e <b>apri la scheda di un arciere</b> (si apre in una <b>finestra separata</b> — la guida ti ci segue).</p><p>Cerca il campo <b>Sotto-squadra</b>. È quello che porta il numero di squadra:</p><ul><li><b>vuoto o 0</b> → l'arciere appartiene alla <b>squadra 1</b> (comportamento normale)</li><li><b>2</b> → l'arciere è assegnato alla <b>squadra 2</b> della società</li></ul><p>Con il modo <b>«Sempre seconda squadra»</b>, saranno quindi gli arcieri col numero <b>2</b> a formare la squadra.</p><p class=\"guide-tip\">💡 Le informazioni della seconda squadra <b>non devono per forza corrispondere</b> alle società esistenti: è un raggruppamento libero.</p>",
+                "de": "<p>Gehen Sie zu <b>Teilnehmer &gt; Liste (Basis)</b> und <b>öffnen Sie den Datensatz eines Schützen</b> (er öffnet sich in einem <b>eigenen Fenster</b> — die Anleitung folgt Ihnen dorthin).</p><p>Suchen Sie das Feld <b>Teilmannschaft</b>. Es trägt die Mannschaftsnummer:</p><ul><li><b>leer oder 0</b> → der Schütze gehört zur <b>Mannschaft 1</b> (das übliche Verhalten)</li><li><b>2</b> → der Schütze ist der <b>Mannschaft 2</b> des Vereins zugeordnet</li></ul><p>Im Modus <b>„Immer zweite Mannschaft\"</b> bilden also die Schützen mit der Nummer <b>2</b> die Mannschaft.</p><p class=\"guide-tip\">💡 Die Angaben der zweiten Mannschaft <b>müssen nicht</b> den bestehenden Vereinen entsprechen: es ist eine freie Gruppierung.</p>",
+                "es": "<p>Vaya a <b>Participantes &gt; Inscripción de participantes (simple)</b> y <b>abra la ficha de un arquero</b> (se abre en una <b>ventana aparte</b> — la guía le sigue hasta allí).</p><p>Busque el campo <b>Subequipo</b>. Es el que lleva el número de equipo:</p><ul><li><b>vacío o 0</b> → el arquero pertenece al <b>equipo 1</b> (comportamiento normal)</li><li><b>2</b> → el arquero queda asignado al <b>equipo 2</b> del club</li></ul><p>Con el modo <b>«Siempre segundo equipo»</b>, serán por tanto los arqueros con el número <b>2</b> los que formen el equipo.</p><p class=\"guide-tip\">💡 Los datos del segundo equipo <b>no tienen por qué corresponder</b> a los clubes existentes: es una agrupación libre.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -172,7 +353,13 @@
                     "condition": "__css",
                     "required": true,
                     "selector": "#d_e_EnSubTeam_",
-                    "hint": "En attente : ouvrez la fiche d'un participant (fenêtre d'édition)."
+                    "hint": {
+                        "fr": "En attente : ouvrez la fiche d'un participant (fenêtre d'édition).",
+                        "en": "Waiting: open a participant's record (the editing window).",
+                        "it": "In attesa: apri la scheda di un partecipante (finestra di modifica).",
+                        "de": "Es wird gewartet: öffnen Sie den Datensatz eines Teilnehmers (das Bearbeitungsfenster).",
+                        "es": "En espera: abra la ficha de un participante (ventana de edición)."
+                    }
                 }
             ],
             "optional": false,
@@ -180,8 +367,20 @@
         },
         {
             "id": "impression-equipes",
-            "title": "Imprimer le classement de l'épreuve par équipe",
-            "content": "<p>Deux endroits, selon ce que vous cherchez :</p><ul><li><b>Impressions &gt; Tours finaux</b> : les <b>grilles de matchs</b> et le <b>classement final</b> des épreuves par équipe (après les duels).</li><li><b>Qualification &gt; Impressions tous résultats</b> : le <b>classement des équipes issu des qualifications</b> (cumul des scores des équipiers), qui sert de base à la constitution du tableau.</li></ul><p>Sélectionnez votre épreuve par équipe, puis générez le PDF.</p>",
+            "title": {
+                "fr": "Imprimer le classement de l'épreuve par équipe",
+                "en": "Printing the ranking of a team event",
+                "it": "Stampare la classifica dell'evento a squadre",
+                "de": "Die Platzierung der Mannschaftsbegegnung drucken",
+                "es": "Imprimir la clasificación de la prueba por equipos"
+            },
+            "content": {
+                "fr": "<p>Deux endroits, selon ce que vous cherchez :</p><ul><li><b>Impressions &gt; Tours finaux</b> : les <b>grilles de matchs</b> et le <b>classement final</b> des épreuves par équipe (après les duels).</li><li><b>Qualification &gt; Impressions tous résultats</b> : le <b>classement des équipes issu des qualifications</b> (cumul des scores des équipiers), qui sert de base à la constitution du tableau.</li></ul><p>Sélectionnez votre épreuve par équipe, puis générez le PDF.</p>",
+                "en": "<p>Two places, depending on what you are after:</p><ul><li><b>Printout &gt; Final Rounds</b>: the <b>brackets</b> and the <b>final ranking</b> of the team events (after the matches).</li><li><b>Qualification &gt; Class and Division Result Lists</b>: the <b>team ranking from qualification</b> (the team members' scores added up), which is what the bracket is built on.</li></ul><p>Select your team event, then produce the PDF.</p>",
+                "it": "<p>Due posti, secondo quello che cerchi:</p><ul><li><b>Stampe &gt; Fasi Finali</b>: i <b>tabelloni degli scontri</b> e la <b>classifica finale</b> degli eventi a squadre (dopo gli scontri).</li><li><b>Qualificazione &gt; Classifiche di Classe</b>: la <b>classifica delle squadre dalle qualificazioni</b> (somma dei punteggi dei componenti), che fa da base al tabellone.</li></ul><p>Seleziona il tuo evento a squadre, poi genera il PDF.</p>",
+                "de": "<p>Zwei Stellen, je nachdem, was Sie suchen:</p><ul><li><b>Druck &gt; Finalrunde</b>: die <b>Duellbäume</b> und die <b>Endplatzierung</b> der Mannschaftsbegegnungen (nach den Duellen).</li><li><b>Qualifikation &gt; Ergebnislisten nach Bogenart/Altersklasse</b>: die <b>Mannschaftsplatzierung aus der Qualifikation</b> (die Summe der Ergebnisse der Mannschaftsmitglieder), auf der der Baum aufbaut.</li></ul><p>Wählen Sie Ihre Mannschaftsbegegnung und erzeugen Sie das PDF.</p>",
+                "es": "<p>Dos sitios, según lo que busque:</p><ul><li><b>Listados para imprimir &gt; Series Finales</b>: los <b>cuadros de enfrentamientos</b> y la <b>clasificación final</b> de las pruebas por equipos (después de los enfrentamientos).</li><li><b>Calificación &gt; Clasificación por Categorías</b>: la <b>clasificación de equipos salida de la calificación</b> (suma de las puntuaciones de los componentes), que sirve de base al cuadro.</li></ul><p>Seleccione su prueba por equipos y genere el PDF.</p>"
+            },
             "page": "/Final/PrintOut.php",
             "triggers": [
                 {
@@ -196,8 +395,20 @@
         },
         {
             "id": "fin",
-            "title": "C'est terminé !",
-            "content": "<p>Vous savez définir les <b>trois grandes familles</b> d'épreuves par équipe.</p><p><b>À retenir :</b></p><ul><li>Une équipe = une suite de règles <b>Nombre + Division + Classe</b>.</li><li><b>Mixte = Oui</b> <b>uniquement</b> pour le double mixte.</li><li>La <b>participation aux épreuves par équipe</b> doit être à <b>Oui</b>.</li><li><b>« Toujours 2ème équipe »</b> + champ <b>Équipe partielle</b> = composer soi-même ses équipes.</li></ul><p><b>Et les matchs ?</b> Une fois les épreuves définies, les duels par équipe se configurent <b>exactement comme en individuel</b> : premier tour, archers par cible, cibles, horaires. Reprenez la formation <b>Configurer les duels</b> en passant par le menu <b>Configuration des épreuves par équipe</b>.</p><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "title": {
+                "fr": "C'est terminé !",
+                "en": "That's it!",
+                "it": "Finito!",
+                "de": "Fertig!",
+                "es": "¡Terminado!"
+            },
+            "content": {
+                "fr": "<p>Vous savez définir les <b>trois grandes familles</b> d'épreuves par équipe.</p><p><b>À retenir :</b></p><ul><li>Une équipe = une suite de règles <b>Nombre + Division + Classe</b>.</li><li><b>Mixte = Oui</b> <b>uniquement</b> pour le double mixte.</li><li>La <b>participation aux épreuves par équipe</b> doit être à <b>Oui</b>.</li><li><b>« Toujours 2ème équipe »</b> + champ <b>Équipe partielle</b> = composer soi-même ses équipes.</li></ul><p><b>Et les matchs ?</b> Une fois les épreuves définies, les duels par équipe se configurent <b>exactement comme en individuel</b> : premier tour, archers par cible, cibles, horaires. Reprenez la formation <b>Configurer les duels</b> en passant par le menu <b>Configuration des épreuves par équipe</b>.</p><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+                "en": "<p>You can now define the <b>three main families</b> of team event.</p><p><b>What to remember:</b></p><ul><li>A team = a series of <b>Number + Division + Class</b> rules.</li><li><b>Mixed = Yes</b> <b>only</b> for the mixed team.</li><li><b>Participation in the team events</b> must be set to <b>Yes</b>.</li><li><b>\"Always second team\"</b> + the <b>Sub-team</b> field = making up your teams yourself.</li></ul><p><b>And the matches?</b> Once the events are defined, the team matches are set up <b>exactly as the individual ones</b>: first phase, archers per target, targets, times. Take the course <b>Setting up the matches</b> again, going through the <b>Team Events Setup</b> menu.</p><p>Now for the <b>quiz</b> and the <b>challenge</b>!</p>",
+                "it": "<p>Ora sai definire le <b>tre grandi famiglie</b> di eventi a squadre.</p><p><b>Da ricordare:</b></p><ul><li>Una squadra = una serie di regole <b>Numero + Divisione + Classe</b>.</li><li><b>Miste = Sì</b> <b>soltanto</b> per la squadra mista.</li><li>La <b>partecipazione agli eventi a squadre</b> deve essere su <b>Sì</b>.</li><li><b>«Sempre seconda squadra»</b> + campo <b>Sotto-squadra</b> = comporre da sé le proprie squadre.</li></ul><p><b>E gli scontri?</b> Definiti gli eventi, gli scontri a squadre si configurano <b>esattamente come nell'individuale</b>: fase di partenza, arcieri per piazzola, bersagli, orari. Riprendi il corso <b>Configurare gli scontri</b> passando dal menu <b>Impostazioni per le Finali a Squadre</b>.</p><p>Spazio al <b>quiz</b> e alla <b>sfida</b>!</p>",
+                "de": "<p>Sie können nun die <b>drei grossen Familien</b> von Mannschaftsbegegnungen festlegen.</p><p><b>Zum Merken:</b></p><ul><li>Eine Mannschaft = eine Folge von Regeln <b>Anzahl + Bogenart + Klasse</b>.</li><li><b>Mixed = Ja</b> <b>nur</b> für die Mixed-Mannschaft.</li><li>Die <b>Teilnahme an den Mannschaftsbegegnungen</b> muss auf <b>Ja</b> stehen.</li><li><b>„Immer zweite Mannschaft\"</b> + Feld <b>Teilmannschaft</b> = die Mannschaften selbst zusammenstellen.</li></ul><p><b>Und die Duelle?</b> Sind die Begegnungen festgelegt, werden die Mannschaftsduelle <b>genau wie im Einzel</b> eingerichtet: Startphase, Schützen pro Scheibe, Scheiben, Zeiten. Nehmen Sie den Kurs <b>Die Duelle einrichten</b> noch einmal, über das Menü <b>Einstellungen für Finalrunden - Mannschaft</b>.</p><p>Weiter zum <b>Quiz</b> und zur <b>Aufgabe</b>!</p>",
+                "es": "<p>Ya sabe definir las <b>tres grandes familias</b> de pruebas por equipos.</p><p><b>Para recordar:</b></p><ul><li>Un equipo = una serie de reglas <b>Número + División + Clase</b>.</li><li><b>Mixtos = Sí</b> <b>únicamente</b> para el equipo mixto.</li><li>La <b>participación en las pruebas por equipos</b> debe estar en <b>Sí</b>.</li><li><b>«Siempre segundo equipo»</b> + campo <b>Subequipo</b> = componer uno mismo sus equipos.</li></ul><p><b>¿Y los enfrentamientos?</b> Definidas las pruebas, los enfrentamientos por equipos se configuran <b>exactamente como en individual</b>: primera fase, arqueros por diana, dianas, horarios. Retome el curso <b>Configurar los enfrentamientos</b> pasando por el menú <b>Configuración de las Finales por Equipos</b>.</p><p>¡Adelante con el <b>cuestionario</b> y el <b>reto</b>!</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -209,64 +420,250 @@
         "shuffle": true,
         "questions": [
             {
-                "q": "Vous configurez un double mixte (1 femme + 1 homme, arc classique). Que faut-il faire ?",
+                "q": {
+                    "fr": "Vous configurez un double mixte (1 femme + 1 homme, arc classique). Que faut-il faire ?",
+                    "en": "You are setting up a mixed team (1 woman + 1 man, recurve). What do you do?",
+                    "it": "Stai configurando una squadra mista (1 donna + 1 uomo, arco olimpico). Che cosa devi fare?",
+                    "de": "Sie richten eine Mixed-Mannschaft ein (1 Frau + 1 Mann, Recurve). Was ist zu tun?",
+                    "es": "Está configurando un equipo mixto (1 mujer + 1 hombre, arco recurvo). ¿Qué hay que hacer?"
+                },
                 "choices": [
-                    "Deux règles à 1 archer (classes Femmes, puis classes Hommes) et Épreuve Équipe Mixte = Oui",
-                    "Une règle à 2 archers avec toutes les classes, et Mixte = Non",
-                    "Une règle à 2 archers et Mixte = Oui",
-                    "Deux règles à 1 archer et Mixte = Non"
+                    {
+                        "fr": "Deux règles à 1 archer (classes Femmes, puis classes Hommes) et Épreuve Équipe Mixte = Oui",
+                        "en": "Two rules of 1 archer (Women classes, then Men classes) and Mixed Team Event = Yes",
+                        "it": "Due regole da 1 arciere (classi Donne, poi classi Uomini) e Gara Squadre Miste = Sì",
+                        "de": "Zwei Regeln zu 1 Schützen (Damenklassen, dann Herrenklassen) und Mixed Team Begegnung = Ja",
+                        "es": "Dos reglas de 1 arquero (clases Mujeres, luego clases Hombres) y Competición por Equipos Mixtos = Sí"
+                    },
+                    {
+                        "fr": "Une règle à 2 archers avec toutes les classes, et Mixte = Non",
+                        "en": "One rule of 2 archers with every class, and Mixed = No",
+                        "it": "Una regola da 2 arcieri con tutte le classi, e Miste = No",
+                        "de": "Eine Regel zu 2 Schützen mit allen Klassen, und Mixed = Nein",
+                        "es": "Una regla de 2 arqueros con todas las clases, y Mixtos = No"
+                    },
+                    {
+                        "fr": "Une règle à 2 archers et Mixte = Oui",
+                        "en": "One rule of 2 archers and Mixed = Yes",
+                        "it": "Una regola da 2 arcieri e Miste = Sì",
+                        "de": "Eine Regel zu 2 Schützen und Mixed = Ja",
+                        "es": "Una regla de 2 arqueros y Mixtos = Sí"
+                    },
+                    {
+                        "fr": "Deux règles à 1 archer et Mixte = Non",
+                        "en": "Two rules of 1 archer and Mixed = No",
+                        "it": "Due regole da 1 arciere e Miste = No",
+                        "de": "Zwei Regeln zu 1 Schützen und Mixed = Nein",
+                        "es": "Dos reglas de 1 arquero y Mixtos = No"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Le double mixte se compose de deux règles distinctes (1 femme, 1 homme) ET du réglage Épreuve Équipe Mixte = Oui."
+                "explain": {
+                    "fr": "Le double mixte se compose de deux règles distinctes (1 femme, 1 homme) ET du réglage Épreuve Équipe Mixte = Oui.",
+                    "en": "A mixed team is made of two separate rules (1 woman, 1 man) AND the setting Mixed Team Event = Yes.",
+                    "it": "La squadra mista si compone di due regole distinte (1 donna, 1 uomo) E dell'impostazione Gara Squadre Miste = Sì.",
+                    "de": "Eine Mixed-Mannschaft besteht aus zwei getrennten Regeln (1 Frau, 1 Mann) UND der Einstellung Mixed Team Begegnung = Ja.",
+                    "es": "El equipo mixto se compone de dos reglas distintas (1 mujer, 1 hombre) Y del ajuste Competición por Equipos Mixtos = Sí."
+                }
             },
             {
-                "q": "Une équipe « parcours » réunit 3 archères : 1 classique, 1 poulies, 1 bare-bow. Quel réglage pour « Épreuve Équipe Mixte » ?",
+                "q": {
+                    "fr": "Une équipe « parcours » réunit 3 archères : 1 classique, 1 poulies, 1 bare-bow. Quel réglage pour « Épreuve Équipe Mixte » ?",
+                    "en": "A field team brings together 3 women archers: 1 recurve, 1 compound, 1 barebow. What setting for \"Mixed Team Event\"?",
+                    "it": "Una squadra «campagna» riunisce 3 arciere: 1 olimpico, 1 compound, 1 arco nudo. Quale impostazione per «Gara Squadre Miste»?",
+                    "de": "Eine Feldbogen-Mannschaft vereint 3 Schützinnen: 1 Recurve, 1 Compound, 1 Blankbogen. Welche Einstellung für „Mixed Team Begegnung\"?",
+                    "es": "Un equipo «de bosque» reúne a 3 arqueras: 1 recurvo, 1 compuesto, 1 arco desnudo. ¿Qué ajuste para «Competición por Equipos Mixtos»?"
+                },
                 "choices": [
-                    "Non — ce réglage est réservé au double mixte",
-                    "Oui — l'équipe mélange plusieurs armes",
-                    "Oui — dès qu'il y a plusieurs divisions",
-                    "Peu importe, ianseo corrige tout seul"
+                    {
+                        "fr": "Non — ce réglage est réservé au double mixte",
+                        "en": "No — that setting is for the mixed team only",
+                        "it": "No — quell'impostazione è riservata alla squadra mista",
+                        "de": "Nein — diese Einstellung ist der Mixed-Mannschaft vorbehalten",
+                        "es": "No — ese ajuste está reservado al equipo mixto"
+                    },
+                    {
+                        "fr": "Oui — l'équipe mélange plusieurs armes",
+                        "en": "Yes — the team mixes several divisions",
+                        "it": "Sì — la squadra mescola più divisioni",
+                        "de": "Ja — die Mannschaft mischt mehrere Bogenarten",
+                        "es": "Sí — el equipo mezcla varias divisiones"
+                    },
+                    {
+                        "fr": "Oui — dès qu'il y a plusieurs divisions",
+                        "en": "Yes — as soon as there is more than one division",
+                        "it": "Sì — non appena ci sono più divisioni",
+                        "de": "Ja — sobald es mehr als eine Bogenart gibt",
+                        "es": "Sí — en cuanto hay varias divisiones"
+                    },
+                    {
+                        "fr": "Peu importe, ianseo corrige tout seul",
+                        "en": "It makes no difference, ianseo sorts it out",
+                        "it": "Non importa, ianseo corregge da solo",
+                        "de": "Egal, ianseo korrigiert das von selbst",
+                        "es": "Da igual, ianseo lo corrige solo"
+                    }
                 ],
                 "correct": 0,
-                "explain": "« Mixte » ne désigne pas le panachage d'armes mais le double mixte (1 homme + 1 femme). Ici, on laisse Non."
+                "explain": {
+                    "fr": "« Mixte » ne désigne pas le panachage d'armes mais le double mixte (1 homme + 1 femme). Ici, on laisse Non.",
+                    "en": "\"Mixed\" does not mean a mixture of divisions but the mixed team (1 man + 1 woman). Here, leave it on No.",
+                    "it": "«Miste» non indica il mescolare le divisioni ma la squadra mista (1 uomo + 1 donna). Qui si lascia No.",
+                    "de": "„Mixed\" meint nicht die Mischung von Bogenarten, sondern die Mixed-Mannschaft (1 Mann + 1 Frau). Hier bleibt es auf Nein.",
+                    "es": "«Mixtos» no designa la mezcla de divisiones sino el equipo mixto (1 hombre + 1 mujer). Aquí se deja en No."
+                }
             },
             {
-                "q": "Que représentent les trois colonnes d'une règle de composition d'équipe ?",
+                "q": {
+                    "fr": "Que représentent les trois colonnes d'une règle de composition d'équipe ?",
+                    "en": "What do the three columns of a team composition rule stand for?",
+                    "it": "Che cosa rappresentano le tre colonne di una regola di composizione di squadra?",
+                    "de": "Wofür stehen die drei Spalten einer Zusammensetzungsregel?",
+                    "es": "¿Qué representan las tres columnas de una regla de composición de equipo?"
+                },
                 "choices": [
-                    "Le nombre d'archers, la (ou les) division(s), et les classes d'âge/sexe",
-                    "Le nombre d'équipes, la cible et l'horaire",
-                    "Le score minimum, la distance et le blason",
-                    "Le club, le nom et le numéro de licence"
+                    {
+                        "fr": "Le nombre d'archers, la (ou les) division(s), et les classes d'âge/sexe",
+                        "en": "The number of archers, the division or divisions, and the age/gender classes",
+                        "it": "Il numero di arcieri, la o le divisioni, e le classi di età e sesso",
+                        "de": "Die Anzahl der Schützen, die Bogenart oder Bogenarten, und die Alters- und Geschlechtsklassen",
+                        "es": "El número de arqueros, la división o divisiones, y las clases de edad y sexo"
+                    },
+                    {
+                        "fr": "Le nombre d'équipes, la cible et l'horaire",
+                        "en": "The number of teams, the target and the time",
+                        "it": "Il numero di squadre, il bersaglio e l'orario",
+                        "de": "Die Anzahl der Mannschaften, die Scheibe und die Zeit",
+                        "es": "El número de equipos, la diana y el horario"
+                    },
+                    {
+                        "fr": "Le score minimum, la distance et le blason",
+                        "en": "The minimum score, the distance and the target face",
+                        "it": "Il punteggio minimo, la distanza e il tipo di bersaglio",
+                        "de": "Das Mindestergebnis, die Distanz und die Scheibenauflage",
+                        "es": "La puntuación mínima, la distancia y la diana"
+                    },
+                    {
+                        "fr": "Le club, le nom et le numéro de licence",
+                        "en": "The club, the name and the licence number",
+                        "it": "La società, il nome e il numero di tessera",
+                        "de": "Der Verein, der Name und die Lizenznummer",
+                        "es": "El club, el nombre y el número de licencia"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Nombre + Division + Classe : « prendre N archers répondant à ces critères »."
+                "explain": {
+                    "fr": "Nombre + Division + Classe : « prendre N archers répondant à ces critères ».",
+                    "en": "Number + Division + Class: \"take N archers matching these criteria\".",
+                    "it": "Numero + Divisione + Classe: «prendi N arcieri che rispondono a questi criteri».",
+                    "de": "Anzahl + Bogenart + Klasse: „nimm N Schützen, die diesen Kriterien entsprechen\".",
+                    "es": "Número + División + Clase: «tomar N arqueros que cumplan estos criterios»."
+                }
             },
             {
-                "q": "Vous voulez composer vos équipes vous-même, sans vous baser sur les meilleurs scores. Que faites-vous ?",
+                "q": {
+                    "fr": "Vous voulez composer vos équipes vous-même, sans vous baser sur les meilleurs scores. Que faites-vous ?",
+                    "en": "You want to make up your teams yourself, rather than from the best scores. What do you do?",
+                    "it": "Vuoi comporre tu le squadre, senza basarti sui migliori punteggi. Che cosa fai?",
+                    "de": "Sie wollen Ihre Mannschaften selbst zusammenstellen, nicht nach den besten Ergebnissen. Was tun Sie?",
+                    "es": "Quiere componer usted mismo sus equipos, sin basarse en las mejores puntuaciones. ¿Qué hace?"
+                },
                 "choices": [
-                    "Mode de création « Toujours 2ème équipe », puis renseigner « Équipe partielle » = 2 sur les fiches des archers",
-                    "Vous supprimez les archers non retenus de la compétition",
-                    "Vous décochez leur participation individuelle",
-                    "Vous saisissez manuellement les scores des équipes"
+                    {
+                        "fr": "Mode de création « Toujours 2ème équipe », puis renseigner « Équipe partielle » = 2 sur les fiches des archers",
+                        "en": "Creation mode \"Always second team\", then set \"Sub-team\" = 2 on the archers' records",
+                        "it": "Modo di creazione «Sempre seconda squadra», poi indichi «Sotto-squadra» = 2 sulle schede degli arcieri",
+                        "de": "Erstellungs-Modus „Immer zweite Mannschaft\", dann „Teilmannschaft\" = 2 in den Datensätzen der Schützen eintragen",
+                        "es": "Modo de creación «Siempre segundo equipo» y luego poner «Subequipo» = 2 en las fichas de los arqueros"
+                    },
+                    {
+                        "fr": "Vous supprimez les archers non retenus de la compétition",
+                        "en": "Delete the archers you have not picked from the competition",
+                        "it": "Elimini dalla gara gli arcieri non scelti",
+                        "de": "Sie löschen die nicht gewählten Schützen aus dem Turnier",
+                        "es": "Elimina de la competición a los arqueros no elegidos"
+                    },
+                    {
+                        "fr": "Vous décochez leur participation individuelle",
+                        "en": "Untick their individual participation",
+                        "it": "Togli la spunta alla loro partecipazione individuale",
+                        "de": "Sie haken ihre Einzelteilnahme ab",
+                        "es": "Desmarca su participación individual"
+                    },
+                    {
+                        "fr": "Vous saisissez manuellement les scores des équipes",
+                        "en": "Enter the team scores by hand",
+                        "it": "Inserisci a mano i punteggi delle squadre",
+                        "de": "Sie tragen die Mannschaftsergebnisse von Hand ein",
+                        "es": "Introduce a mano las puntuaciones de los equipos"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Le mode « Toujours 2ème équipe » fait basculer ianseo sur les archers marqués en équipe 2 dans leur fiche participant."
+                "explain": {
+                    "fr": "Le mode « Toujours 2ème équipe » fait basculer ianseo sur les archers marqués en équipe 2 dans leur fiche participant.",
+                    "en": "The \"Always second team\" mode makes ianseo use the archers marked as team 2 on their participant record.",
+                    "it": "Il modo «Sempre seconda squadra» fa passare ianseo agli arcieri contrassegnati come squadra 2 nella loro scheda partecipante.",
+                    "de": "Der Modus „Immer zweite Mannschaft\" lässt ianseo die Schützen verwenden, die in ihrem Teilnehmerdatensatz als Mannschaft 2 gekennzeichnet sind.",
+                    "es": "El modo «Siempre segundo equipo» hace que ianseo use a los arqueros marcados como equipo 2 en su ficha de participante."
+                }
             },
             {
-                "q": "Un club a 3 archers mais aucune équipe n'apparaît. Que vérifier en premier ?",
+                "q": {
+                    "fr": "Un club a 3 archers mais aucune équipe n'apparaît. Que vérifier en premier ?",
+                    "en": "A club has 3 archers but no team appears. What do you check first?",
+                    "it": "Una società ha 3 arcieri ma non compare alcuna squadra. Che cosa verifichi per prima cosa?",
+                    "de": "Ein Verein hat 3 Schützen, aber es erscheint keine Mannschaft. Was prüfen Sie zuerst?",
+                    "es": "Un club tiene 3 arqueros pero no aparece ningún equipo. ¿Qué comprueba primero?"
+                },
                 "choices": [
-                    "La participation aux épreuves par équipe (case à Oui)",
-                    "La couleur du blason",
-                    "L'ordre d'affichage des épreuves",
-                    "La taille de la cible"
+                    {
+                        "fr": "La participation aux épreuves par équipe (case à Oui)",
+                        "en": "Participation in the team events (the box set to Yes)",
+                        "it": "La partecipazione agli eventi a squadre (casella su Sì)",
+                        "de": "Die Teilnahme an den Mannschaftsbegegnungen (Feld auf Ja)",
+                        "es": "La participación en las pruebas por equipos (casilla en Sí)"
+                    },
+                    {
+                        "fr": "La couleur du blason",
+                        "en": "The colour of the target face",
+                        "it": "Il colore del bersaglio",
+                        "de": "Die Farbe der Scheibenauflage",
+                        "es": "El color de la diana"
+                    },
+                    {
+                        "fr": "L'ordre d'affichage des épreuves",
+                        "en": "The display order of the events",
+                        "it": "L'ordine di visualizzazione degli eventi",
+                        "de": "Die Anzeigereihenfolge der Begegnungen",
+                        "es": "El orden de visualización de las pruebas"
+                    },
+                    {
+                        "fr": "La taille de la cible",
+                        "en": "The size of the target",
+                        "it": "La dimensione del bersaglio",
+                        "de": "Die Grösse der Scheibe",
+                        "es": "El tamaño de la diana"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Comme pour l'individuel, la case de participation aux épreuves par équipe conditionne la sélection de l'archer."
+                "explain": {
+                    "fr": "Comme pour l'individuel, la case de participation aux épreuves par équipe conditionne la sélection de l'archer.",
+                    "en": "As for the individual events, the team participation box decides whether the archer can be picked.",
+                    "it": "Come per l'individuale, la casella di partecipazione agli eventi a squadre decide se l'arciere può essere scelto.",
+                    "de": "Wie im Einzel entscheidet das Feld für die Teilnahme an den Mannschaftsbegegnungen, ob der Schütze gewählt werden kann.",
+                    "es": "Como en individual, la casilla de participación en las pruebas por equipos condiciona la selección del arquero."
+                }
             }
         ]
     },
     "challenge": {
-        "intro": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition ouverte :</p><ol><li>Configurez une <b>épreuve par équipe</b> avec un <b>premier tour</b> de duels (autre que « - - - »).</li><li>Créez une épreuve <b>double mixte</b> : deux règles à 1 archer (une pour les classes Femmes, une pour les classes Hommes) et <b>Épreuve Équipe Mixte = Oui</b>.</li></ol><p class=\"guide-tip\">💡 Pensez à la participation aux épreuves par équipe des archers !</p><p>Cliquez sur <b>Vérifier</b> quand vous avez terminé.</p>",
+        "intro": {
+            "fr": "<p>À vous de jouer, <b>sans aide</b>.</p><p>Sur votre compétition ouverte :</p><ol><li>Configurez une <b>épreuve par équipe</b> avec un <b>premier tour</b> de duels (autre que « - - - »).</li><li>Créez une épreuve <b>double mixte</b> : deux règles à 1 archer (une pour les classes Femmes, une pour les classes Hommes) et <b>Épreuve Équipe Mixte = Oui</b>.</li></ol><p class=\"guide-tip\">💡 Pensez à la participation aux épreuves par équipe des archers !</p><p>Cliquez sur <b>Vérifier</b> quand vous avez terminé.</p>",
+            "en": "<p>Your turn, <b>unaided</b>.</p><p>On your open competition:</p><ol><li>Set up a <b>team event</b> with a <b>first phase</b> of matches (anything but \"- - -\").</li><li>Create a <b>mixed team</b> event: two rules of 1 archer (one for the Women classes, one for the Men classes) and <b>Mixed Team Event = Yes</b>.</li></ol><p class=\"guide-tip\">💡 Do not forget the archers' participation in the team events!</p><p>Click <b>Check</b> when you are done.</p>",
+            "it": "<p>Tocca a te, <b>senza aiuto</b>.</p><p>Sulla tua gara aperta:</p><ol><li>Configura un <b>evento a squadre</b> con una <b>fase di partenza</b> di scontri (diversa da «- - -»).</li><li>Crea un evento <b>squadra mista</b>: due regole da 1 arciere (una per le classi Donne, una per le classi Uomini) e <b>Gara Squadre Miste = Sì</b>.</li></ol><p class=\"guide-tip\">💡 Non dimenticare la partecipazione degli arcieri agli eventi a squadre!</p><p>Clicca su <b>Verifica</b> quando hai finito.</p>",
+            "de": "<p>Sie sind dran, <b>ohne Hilfe</b>.</p><p>In Ihrem geöffneten Turnier:</p><ol><li>Richten Sie eine <b>Mannschaftsbegegnung</b> mit einer <b>Startphase</b> für Duelle ein (etwas anderes als „- - -\").</li><li>Legen Sie eine <b>Mixed-Mannschaft</b> an: zwei Regeln zu 1 Schützen (eine für die Damenklassen, eine für die Herrenklassen) und <b>Mixed Team Begegnung = Ja</b>.</li></ol><p class=\"guide-tip\">💡 Denken Sie an die Teilnahme der Schützen an den Mannschaftsbegegnungen!</p><p>Klicken Sie auf <b>Prüfen</b>, wenn Sie fertig sind.</p>",
+            "es": "<p>Le toca a usted, <b>sin ayuda</b>.</p><p>En su competición abierta:</p><ol><li>Configure una <b>prueba por equipos</b> con una <b>primera fase</b> de enfrentamientos (distinta de «- - -»).</li><li>Cree una prueba de <b>equipo mixto</b>: dos reglas de 1 arquero (una para las clases Mujeres, otra para las clases Hombres) y <b>Competición por Equipos Mixtos = Sí</b>.</li></ol><p class=\"guide-tip\">💡 ¡No olvide la participación de los arqueros en las pruebas por equipos!</p><p>Haga clic en <b>Verificar</b> cuando haya terminado.</p>"
+        },
         "conditions": [
             "has_team_event_configured",
             "has_mixed_team_event"

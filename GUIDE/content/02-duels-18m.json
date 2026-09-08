@@ -1,16 +1,47 @@
 {
-    "id": "duels-18m",
+    "lang": "fr",
+    "id": "ow1nhpo59nsqx1c6xyi4",
     "type": "formation",
-    "title": "Configurer les duels (18 m) (~20min)",
-    "description": "Sur une compétition 18 m existante, configurez de A à Z les phases finales d'une épreuve : premier tour, archers par cible, flèches par set, cibles, horaires, entraînements, ex-aequo, saisie par grille et impression du classement.",
-    "version": "1.0",
-    "group": "Les bases",
+    "title": {
+        "fr": "Configurer les duels (18 m) (~20min)",
+        "en": "Setting up the matches (18 m) (~20 min)",
+        "it": "Configurare gli scontri (18 m) (~20 min)",
+        "de": "Die Duelle einrichten (18 m) (~20 Min.)",
+        "es": "Configurar los enfrentamientos (18 m) (~20 min)"
+    },
+    "description": {
+        "fr": "Sur une compétition 18 m existante, configurez de A à Z les phases finales d'une épreuve : premier tour, archers par cible, flèches par set, cibles, horaires, entraînements, ex-aequo, saisie par grille et impression du classement.",
+        "en": "On an existing 18 m competition, set up the final phases of an event from start to finish: first round, archers per target, arrows per set, targets, times, warm-ups, ties, bracket entry and ranking printout.",
+        "it": "Su una gara 18 m già esistente, configura dall'inizio alla fine le fasi finali di un evento: prima fase, arcieri per piazzola, frecce per set, bersagli, orari, riscaldamenti, spareggi, inserimento con griglie e stampa della classifica.",
+        "de": "Richten Sie in einem bestehenden 18-m-Turnier die Finalrunden einer Begegnung von A bis Z ein: erste Phase, Schützen pro Scheibe, Pfeile pro Satz, Scheiben, Zeiten, Aufwärmen, Gleichstände, Eingabe nach Finalpaarungen und Ausdruck der Platzierung.",
+        "es": "Sobre una competición de 18 m ya existente, configure de principio a fin las fases finales de una prueba: primera fase, arqueros por diana, flechas por set, dianas, horarios, calentamientos, empates, introducción por cuadros e impresión de la clasificación."
+    },
+    "version": "1.1",
+    "group": {
+        "fr": "Les bases",
+        "en": "The basics",
+        "it": "Le basi",
+        "de": "Die Grundlagen",
+        "es": "Lo básico"
+    },
     "order": 2,
     "steps": [
         {
             "id": "intro",
-            "title": "Avant de commencer",
-            "content": "<p>Cette formation part d'une <b>compétition 18 m déjà créée</b>, avec des archers inscrits et des scores saisis. Nous n'allons donc <b>rien créer</b> : nous allons configurer les <b>duels</b> (phases finales) d'une épreuve existante.</p><p><b>Au programme :</b></p><ul><li>Vérifier la participation aux épreuves individuelles</li><li>Choisir le premier tour des duels (1/4 de finale)</li><li>Archers par cible, flèches par set</li><li>Numéros de cibles, horaires, entraînements</li><li>Contrôler les ex-aequo, saisir les duels, imprimer le classement</li></ul><p class=\"guide-tip\">⚠️ Règle d'or : <b>aucun paramétrage de duel ne doit être modifié après le début des qualifications</b>. Tout se prépare en amont.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "title": {
+                "fr": "Avant de commencer",
+                "en": "Before you begin",
+                "it": "Prima di cominciare",
+                "de": "Bevor Sie beginnen",
+                "es": "Antes de empezar"
+            },
+            "content": {
+                "fr": "<p>Cette formation part d'une <b>compétition 18 m déjà créée</b>, avec des archers inscrits et des scores saisis. Nous n'allons donc <b>rien créer</b> : nous allons configurer les <b>duels</b> (phases finales) d'une épreuve existante.</p><p><b>Au programme :</b></p><ul><li>Vérifier la participation aux épreuves individuelles</li><li>Choisir le premier tour des duels (1/4 de finale)</li><li>Archers par cible, flèches par set</li><li>Numéros de cibles, horaires, entraînements</li><li>Contrôler les ex-aequo, saisir les duels, imprimer le classement</li></ul><p class=\"guide-tip\">⚠️ Règle d'or : <b>aucun paramétrage de duel ne doit être modifié après le début des qualifications</b>. Tout se prépare en amont.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+                "en": "<p>This course starts from an <b>18 m competition that already exists</b>, with archers entered and scores recorded. So we will <b>create nothing</b>: we are going to set up the <b>matches</b> (the final phases) of an existing event.</p><p><b>What we will cover:</b></p><ul><li>Checking participation in the individual events</li><li>Choosing the first round of the matches (quarter-finals)</li><li>Archers per target, arrows per set</li><li>Target numbers, times, warm-ups</li><li>Resolving ties, entering the matches, printing the ranking</li></ul><p class=\"guide-tip\">⚠️ The golden rule: <b>no match setting may be changed once qualification has started</b>. Everything is prepared beforehand.</p><p>Click <b>Next</b>.</p>",
+                "it": "<p>Questo corso parte da una <b>gara 18 m già creata</b>, con arcieri iscritti e punteggi inseriti. Non creeremo quindi <b>nulla</b>: configureremo gli <b>scontri</b> (le fasi finali) di un evento esistente.</p><p><b>Nel programma:</b></p><ul><li>Verificare la partecipazione agli eventi individuali</li><li>Scegliere la prima fase degli scontri (quarti di finale)</li><li>Arcieri per piazzola, frecce per set</li><li>Numeri dei bersagli, orari, riscaldamenti</li><li>Risolvere gli spareggi, inserire gli scontri, stampare la classifica</li></ul><p class=\"guide-tip\">⚠️ Regola d'oro: <b>nessuna impostazione degli scontri va modificata dopo l'inizio delle qualificazioni</b>. Tutto si prepara prima.</p><p>Clicca su <b>Avanti</b>.</p>",
+                "de": "<p>Dieser Kurs geht von einem <b>bereits angelegten 18-m-Turnier</b> aus, mit gemeldeten Schützen und eingegebenen Ergebnissen. Wir legen also <b>nichts an</b>: wir richten die <b>Duelle</b> (die Finalrunden) einer bestehenden Begegnung ein.</p><p><b>Auf dem Programm:</b></p><ul><li>Die Teilnahme an den Einzelbegegnungen prüfen</li><li>Die erste Phase der Duelle wählen (Viertelfinale)</li><li>Schützen pro Scheibe, Pfeile pro Satz</li><li>Scheibennummern, Zeiten, Aufwärmen</li><li>Gleichstände auflösen, Duelle eingeben, Platzierung drucken</li></ul><p class=\"guide-tip\">⚠️ Die goldene Regel: <b>keine Einstellung der Duelle darf nach dem Beginn der Qualifikation geändert werden</b>. Alles wird vorher vorbereitet.</p><p>Klicken Sie auf <b>Weiter</b>.</p>",
+                "es": "<p>Este curso parte de una <b>competición de 18 m ya creada</b>, con arqueros inscritos y puntuaciones introducidas. No vamos a <b>crear nada</b>: vamos a configurar los <b>enfrentamientos</b> (las fases finales) de una prueba existente.</p><p><b>En el programa:</b></p><ul><li>Comprobar la participación en las pruebas individuales</li><li>Elegir la primera fase de los enfrentamientos (cuartos de final)</li><li>Arqueros por diana, flechas por set</li><li>Números de dianas, horarios, calentamientos</li><li>Resolver los empates, introducir los enfrentamientos, imprimir la clasificación</li></ul><p class=\"guide-tip\">⚠️ Regla de oro: <b>ningún ajuste de los enfrentamientos debe cambiarse una vez empezada la calificación</b>. Todo se prepara antes.</p><p>Haga clic en <b>Siguiente</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -18,8 +49,20 @@
         },
         {
             "id": "ouvrir-competition",
-            "title": "Ouvrir votre compétition 18 m",
-            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p><p>Si ce n'est pas déjà fait, allez dans <b>Compétition &gt; Ouvrir</b> et ouvrez votre compétition 18 m.</p><p class=\"guide-tip\">💡 Vous n'avez pas encore de compétition ? Suivez d'abord la formation <b>Ma première compétition</b>, puis revenez ici.</p>",
+            "title": {
+                "fr": "Ouvrir votre compétition 18 m",
+                "en": "Open your 18 m competition",
+                "it": "Apri la tua gara 18 m",
+                "de": "Ihr 18-m-Turnier öffnen",
+                "es": "Abra su competición de 18 m"
+            },
+            "content": {
+                "fr": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p><p>Si ce n'est pas déjà fait, allez dans <b>Compétition &gt; Ouvrir</b> et ouvrez votre compétition 18 m.</p><p class=\"guide-tip\">💡 Vous n'avez pas encore de compétition ? Suivez d'abord la formation <b>Ma première compétition</b>, puis revenez ici.</p>",
+                "en": "<p>The guide is waiting for a <b>competition to be open</b>.</p><p>If it is not already, go to <b>Competition &gt; Open</b> and open your 18 m competition.</p><p class=\"guide-tip\">💡 No competition yet? Follow the course <b>My first competition</b> first, then come back here.</p>",
+                "it": "<p>La guida attende che una <b>gara sia aperta</b>.</p><p>Se non lo è già, vai in <b>Gara &gt; Apri</b> e apri la tua gara 18 m.</p><p class=\"guide-tip\">💡 Non hai ancora una gara? Segui prima il corso <b>La mia prima gara</b>, poi torna qui.</p>",
+                "de": "<p>Die Anleitung wartet darauf, dass ein <b>Turnier geöffnet</b> ist.</p><p>Ist das noch nicht der Fall, gehen Sie zu <b>Turnier &gt; Öffnen</b> und öffnen Sie Ihr 18-m-Turnier.</p><p class=\"guide-tip\">💡 Sie haben noch kein Turnier? Machen Sie zuerst den Kurs <b>Mein erstes Turnier</b> und kommen Sie dann hierher zurück.</p>",
+                "es": "<p>La guía espera a que haya una <b>competición abierta</b>.</p><p>Si aún no lo está, vaya a <b>Competición &gt; Abrir</b> y abra su competición de 18 m.</p><p class=\"guide-tip\">💡 ¿Todavía no tiene competición? Siga primero el curso <b>Mi primera competición</b> y vuelva luego aquí.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -27,7 +70,13 @@
                     "condition": "tournament_open",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : ouvrez une compétition (Compétition > Ouvrir)."
+                    "hint": {
+                        "fr": "En attente : ouvrez une compétition (Compétition > Ouvrir).",
+                        "en": "Waiting: open a competition (Competition > Open).",
+                        "it": "In attesa: apri una gara (Gara > Apri).",
+                        "de": "Es wird gewartet: öffnen Sie ein Turnier (Turnier > Öffnen).",
+                        "es": "En espera: abra una competición (Competición > Abrir)."
+                    }
                 }
             ],
             "optional": false,
@@ -35,8 +84,20 @@
         },
         {
             "id": "prerequis-archers",
-            "title": "Prérequis : 8 archers avec des scores",
-            "content": "<p>Pour faire des duels en <b>1/4 de finale</b>, il faut <b>8 archers dans une même catégorie</b> (8 archers = 4 matchs de quart de finale).</p><p>Le guide attend que votre compétition contienne, dans une <b>même catégorie</b> (même arme, même classe) :</p><ul><li>au moins <b>8 archers</b>,</li><li>dont la <b>participation aux épreuves individuelles</b> est à <b>Oui</b>,</li><li>et qui ont un <b>score de qualification</b> saisi.</li></ul><p class=\"guide-tip\">⚠️ <b>Le point le plus souvent oublié : la participation aux épreuves individuelles.</b> Un archer dont cette case n'est pas cochée <b>n'apparaîtra jamais dans les duels</b>, même s'il a le meilleur score. C'est l'étape suivante — nous allons la vérifier ensemble.</p><p>Saisissez les scores manquants via <b>Qualification &gt; Saisie des feuilles de marque</b> si nécessaire.</p>",
+            "title": {
+                "fr": "Prérequis : 8 archers avec des scores",
+                "en": "What you need: 8 archers with scores",
+                "it": "Requisito: 8 arcieri con punteggi",
+                "de": "Voraussetzung: 8 Schützen mit Ergebnissen",
+                "es": "Requisito: 8 arqueros con puntuaciones"
+            },
+            "content": {
+                "fr": "<p>Pour faire des duels en <b>1/4 de finale</b>, il faut <b>8 archers dans une même catégorie</b> (8 archers = 4 matchs de quart de finale).</p><p>Le guide attend que votre compétition contienne, dans une <b>même catégorie</b> (même arme, même classe) :</p><ul><li>au moins <b>8 archers</b>,</li><li>dont la <b>participation aux épreuves individuelles</b> est à <b>Oui</b>,</li><li>et qui ont un <b>score de qualification</b> saisi.</li></ul><p class=\"guide-tip\">⚠️ <b>Le point le plus souvent oublié : la participation aux épreuves individuelles.</b> Un archer dont cette case n'est pas cochée <b>n'apparaîtra jamais dans les duels</b>, même s'il a le meilleur score. C'est l'étape suivante — nous allons la vérifier ensemble.</p><p>Saisissez les scores manquants via <b>Qualification &gt; Saisie des feuilles de marque</b> si nécessaire.</p>",
+                "en": "<p>To run matches from the <b>quarter-finals</b>, you need <b>8 archers in one class</b> (8 archers = 4 quarter-final matches).</p><p>The guide is waiting for your competition to hold, within a <b>single class</b> (same division, same age class):</p><ul><li>at least <b>8 archers</b>,</li><li>whose <b>participation in the individual events</b> is set to <b>Yes</b>,</li><li>and who have a <b>qualification score</b> entered.</li></ul><p class=\"guide-tip\">⚠️ <b>The thing most often forgotten: participation in the individual events.</b> An archer whose box is not ticked <b>will never appear in the matches</b>, even with the best score. That is the next step — we will check it together.</p><p>Enter any missing scores through <b>Qualification &gt; Input Score</b> if you need to.</p>",
+                "it": "<p>Per fare gli scontri dai <b>quarti di finale</b>, servono <b>8 arcieri in una stessa classe</b> (8 arcieri = 4 quarti di finale).</p><p>La guida attende che la tua gara contenga, in una <b>stessa classe</b> (stessa divisione, stessa classe di età):</p><ul><li>almeno <b>8 arcieri</b>,</li><li>la cui <b>partecipazione agli eventi individuali</b> sia su <b>Sì</b>,</li><li>e che abbiano un <b>punteggio di qualificazione</b> inserito.</li></ul><p class=\"guide-tip\">⚠️ <b>Il punto che si dimentica più spesso: la partecipazione agli eventi individuali.</b> Un arciere con quella casella non spuntata <b>non comparirà mai negli scontri</b>, anche col miglior punteggio. È il passo successivo — lo verificheremo insieme.</p><p>Inserisci i punteggi mancanti da <b>Qualificazione &gt; Inserimento Punti</b>, se serve.</p>",
+                "de": "<p>Für Duelle ab dem <b>Viertelfinale</b> brauchen Sie <b>8 Schützen in einer Klasse</b> (8 Schützen = 4 Viertelfinalbegegnungen).</p><p>Die Anleitung wartet darauf, dass Ihr Turnier in <b>einer Klasse</b> (gleiche Bogenart, gleiche Altersklasse) enthält:</p><ul><li>mindestens <b>8 Schützen</b>,</li><li>deren <b>Teilnahme an den Einzelbegegnungen</b> auf <b>Ja</b> steht,</li><li>und die ein <b>Qualifikationsergebnis</b> eingetragen haben.</li></ul><p class=\"guide-tip\">⚠️ <b>Was am häufigsten vergessen wird: die Teilnahme an den Einzelbegegnungen.</b> Ein Schütze, bei dem dieses Feld nicht angehakt ist, <b>erscheint nie in den Duellen</b>, auch mit dem besten Ergebnis nicht. Das ist der nächste Schritt — wir prüfen es gemeinsam.</p><p>Tragen Sie fehlende Ergebnisse bei Bedarf über <b>Qualifikation &gt; Eingabe der Ergebnisse</b> nach.</p>",
+                "es": "<p>Para hacer enfrentamientos desde <b>cuartos de final</b> hacen falta <b>8 arqueros en una misma clase</b> (8 arqueros = 4 partidos de cuartos).</p><p>La guía espera que su competición contenga, dentro de una <b>misma clase</b> (misma división, misma clase de edad):</p><ul><li>al menos <b>8 arqueros</b>,</li><li>cuya <b>participación en las pruebas individuales</b> esté en <b>Sí</b>,</li><li>y que tengan una <b>puntuación de calificación</b> introducida.</li></ul><p class=\"guide-tip\">⚠️ <b>Lo que más se olvida: la participación en las pruebas individuales.</b> Un arquero con esa casilla sin marcar <b>no aparecerá nunca en los enfrentamientos</b>, aunque tenga la mejor puntuación. Es el paso siguiente — lo comprobaremos juntos.</p><p>Introduzca las puntuaciones que falten en <b>Calificación &gt; Introducción de tanteos</b>, si hace falta.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -44,7 +105,13 @@
                     "condition": "has_8_archers_same_category",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : 8 archers d'une même catégorie, participation individuelle à Oui, avec un score."
+                    "hint": {
+                        "fr": "En attente : 8 archers d'une même catégorie, participation individuelle à Oui, avec un score.",
+                        "en": "Waiting: 8 archers of one class, individual participation set to Yes, with a score.",
+                        "it": "In attesa: 8 arcieri di una stessa classe, partecipazione individuale su Sì, con un punteggio.",
+                        "de": "Es wird gewartet: 8 Schützen einer Klasse, Einzelteilnahme auf Ja, mit einem Ergebnis.",
+                        "es": "En espera: 8 arqueros de una misma clase, participación individual en Sí, con puntuación."
+                    }
                 }
             ],
             "optional": false,
@@ -52,8 +119,20 @@
         },
         {
             "id": "participation-indiv",
-            "title": "La participation aux épreuves individuelles",
-            "content": "<p>Rendez-vous dans <b>Participants &gt; Participation des compétiteurs aux épreuves Ind/Equipe</b>.</p><p>Cette page est <b>capitale</b>. Chaque archer y a une case par type d'épreuve. Celle qui nous intéresse est la colonne des <b>épreuves individuelles (duels)</b> :</p><ul><li>Case <b>cochée</b> = l'archer participera aux duels.</li><li>Case <b>décochée</b> = l'archer sera dans le classement de qualification, mais <b>exclu des duels</b>.</li></ul><p>La case de <b>l'en-tête de colonne</b> permet de cocher/décocher <b>tous les archers d'un coup</b> (lien « Tous »).</p><p class=\"guide-tip\">⚠️ C'est <b>l'erreur n°1</b> en compétition : des archers absents du tableau de duels parce que cette case n'était pas cochée. Vérifiez-la <b>avant</b> le début des qualifications.</p>",
+            "title": {
+                "fr": "La participation aux épreuves individuelles",
+                "en": "Participation in the individual events",
+                "it": "La partecipazione agli eventi individuali",
+                "de": "Die Teilnahme an den Einzelbegegnungen",
+                "es": "La participación en las pruebas individuales"
+            },
+            "content": {
+                "fr": "<p>Rendez-vous dans <b>Participants &gt; Participation des compétiteurs aux épreuves Ind/Equipe</b>.</p><p>Cette page est <b>capitale</b>. Chaque archer y a une case par type d'épreuve. Celle qui nous intéresse est la colonne des <b>épreuves individuelles (duels)</b> :</p><ul><li>Case <b>cochée</b> = l'archer participera aux duels.</li><li>Case <b>décochée</b> = l'archer sera dans le classement de qualification, mais <b>exclu des duels</b>.</li></ul><p>La case de <b>l'en-tête de colonne</b> permet de cocher/décocher <b>tous les archers d'un coup</b> (lien « Tous »).</p><p class=\"guide-tip\">⚠️ C'est <b>l'erreur n°1</b> en compétition : des archers absents du tableau de duels parce que cette case n'était pas cochée. Vérifiez-la <b>avant</b> le début des qualifications.</p>",
+                "en": "<p>Go to <b>Participants &gt; Athletes Participation to Ind/Team Event</b>.</p><p>This page is <b>crucial</b>. Every archer has one box per type of event. The one that concerns us is the column for the <b>individual events (the matches)</b>:</p><ul><li>Box <b>ticked</b> = the archer will take part in the matches.</li><li>Box <b>unticked</b> = the archer stays in the qualification ranking but is <b>left out of the matches</b>.</li></ul><p>The box in the <b>column header</b> ticks or unticks <b>every archer at once</b> (the \"all\" link).</p><p class=\"guide-tip\">⚠️ This is <b>mistake number one</b> at a competition: archers missing from the bracket because that box was not ticked. Check it <b>before</b> qualification starts.</p>",
+                "it": "<p>Vai in <b>Partecipanti &gt; Partecipazione Individuale - Squadre</b>.</p><p>Questa pagina è <b>fondamentale</b>. Ogni arciere ha una casella per tipo di evento. Quella che ci interessa è la colonna degli <b>eventi individuali (gli scontri)</b>:</p><ul><li>Casella <b>spuntata</b> = l'arciere parteciperà agli scontri.</li><li>Casella <b>non spuntata</b> = l'arciere resta nella classifica di qualificazione, ma è <b>escluso dagli scontri</b>.</li></ul><p>La casella dell'<b>intestazione di colonna</b> spunta o toglie la spunta a <b>tutti gli arcieri in una volta</b> (il collegamento «tutti»).</p><p class=\"guide-tip\">⚠️ È <b>l'errore numero uno</b> in gara: arcieri assenti dal tabellone perché quella casella non era spuntata. Verificala <b>prima</b> dell'inizio delle qualificazioni.</p>",
+                "de": "<p>Gehen Sie zu <b>Teilnehmer &gt; Teilnahme Einzel - Mannschaft</b>.</p><p>Diese Seite ist <b>entscheidend</b>. Jeder Schütze hat dort ein Feld je Art der Begegnung. Uns interessiert die Spalte der <b>Einzelbegegnungen (der Duelle)</b>:</p><ul><li>Feld <b>angehakt</b> = der Schütze nimmt an den Duellen teil.</li><li>Feld <b>nicht angehakt</b> = der Schütze bleibt in der Qualifikationsplatzierung, ist aber <b>von den Duellen ausgeschlossen</b>.</li></ul><p>Das Feld in der <b>Spaltenüberschrift</b> hakt <b>alle Schützen auf einmal</b> an oder ab (der Link „alle\").</p><p class=\"guide-tip\">⚠️ Das ist <b>Fehler Nummer eins</b> im Turnier: Schützen fehlen im Duellbaum, weil dieses Feld nicht angehakt war. Prüfen Sie es <b>vor</b> dem Beginn der Qualifikation.</p>",
+                "es": "<p>Vaya a <b>Participantes &gt; Participación de los atletas en las pruebas Ind/Equipos</b>.</p><p>Esta página es <b>capital</b>. Cada arquero tiene una casilla por tipo de prueba. La que nos interesa es la columna de las <b>pruebas individuales (los enfrentamientos)</b>:</p><ul><li>Casilla <b>marcada</b> = el arquero participará en los enfrentamientos.</li><li>Casilla <b>sin marcar</b> = el arquero sigue en la clasificación de calificación, pero queda <b>excluido de los enfrentamientos</b>.</li></ul><p>La casilla de la <b>cabecera de columna</b> marca o desmarca <b>a todos los arqueros de una vez</b> (el enlace «todos»).</p><p class=\"guide-tip\">⚠️ Es <b>el error número uno</b> en competición: arqueros que faltan en el cuadro porque esa casilla no estaba marcada. Compruébela <b>antes</b> de que empiece la calificación.</p>"
+            },
             "page": "/Partecipants/ManEventAccess.php",
             "triggers": [
                 {
@@ -68,7 +147,13 @@
                     "selector": "#d_e_EnIndFEvent",
                     "required": true,
                     "page": "/Partecipants/ManEventAccess.php",
-                    "hint": "Case d'en-tête : coche la participation individuelle pour TOUS les archers"
+                    "hint": {
+                        "fr": "Case d'en-tête : coche la participation individuelle pour TOUS les archers",
+                        "en": "Header box: ticks individual participation for EVERY archer",
+                        "it": "Casella di intestazione: spunta la partecipazione individuale per TUTTI gli arcieri",
+                        "de": "Feld in der Überschrift: hakt die Einzelteilnahme für ALLE Schützen an",
+                        "es": "Casilla de cabecera: marca la participación individual de TODOS los arqueros"
+                    }
                 }
             ],
             "optional": false,
@@ -76,8 +161,20 @@
         },
         {
             "id": "premier-tour",
-            "title": "Choisir le premier tour des duels",
-            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Gestion des Épreuves</b>.</p><p>Les <b>épreuves</b> (= catégories de classement) sont <b>déjà pré-configurées</b> par ianseo : il ne faut <b>pas les supprimer</b>.</p><p>Sur la ligne de la catégorie où vous avez vos 8 archers, ouvrez la liste <b>Premier tour</b> et choisissez <b>1/4</b>.</p><ul><li><b>1/4</b> = les duels démarrent en quart de finale (8 archers).</li><li><b>« - - - »</b> = <b>pas de duels</b> pour cette épreuve, mais la catégorie reste au classement de qualification.</li></ul><p>Vérifiez aussi sur la même ligne : le <b>format des duels</b> (Set ou Cumulatif, selon l'arme), le <b>type de blason</b>, sa <b>taille</b> et la <b>distance</b>.</p><p class=\"guide-tip\">💡 Le format <b>Set</b> est utilisé pour l'arc classique, le <b>Cumulatif</b> pour l'arc à poulies. En règles françaises, ianseo pré-remplit correctement.</p>",
+            "title": {
+                "fr": "Choisir le premier tour des duels",
+                "en": "Choosing the first round of the matches",
+                "it": "Scegliere la prima fase degli scontri",
+                "de": "Die erste Phase der Duelle wählen",
+                "es": "Elegir la primera fase de los enfrentamientos"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Gestion des Épreuves</b>.</p><p>Les <b>épreuves</b> (= catégories de classement) sont <b>déjà pré-configurées</b> par ianseo : il ne faut <b>pas les supprimer</b>.</p><p>Sur la ligne de la catégorie où vous avez vos 8 archers, ouvrez la liste <b>Premier tour</b> et choisissez <b>1/4</b>.</p><ul><li><b>1/4</b> = les duels démarrent en quart de finale (8 archers).</li><li><b>« - - - »</b> = <b>pas de duels</b> pour cette épreuve, mais la catégorie reste au classement de qualification.</li></ul><p>Vérifiez aussi sur la même ligne : le <b>format des duels</b> (Set ou Cumulatif, selon l'arme), le <b>type de blason</b>, sa <b>taille</b> et la <b>distance</b>.</p><p class=\"guide-tip\">💡 Le format <b>Set</b> est utilisé pour l'arc classique, le <b>Cumulatif</b> pour l'arc à poulies. En règles françaises, ianseo pré-remplit correctement.</p>",
+                "en": "<p>Go to <b>Competition &gt; Individual Events Setup &gt; Manage Events</b>.</p><p>The <b>events</b> (that is, the ranking classes) are <b>already set up</b> by ianseo: do <b>not delete them</b>.</p><p>On the row of the class holding your 8 archers, open the <b>First phase</b> list and choose <b>1/4</b>.</p><ul><li><b>1/4</b> = the matches start at the quarter-finals (8 archers).</li><li><b>\"- - -\"</b> = <b>no matches</b> for this event, but the class stays in the qualification ranking.</li></ul><p>On the same row, also check the <b>match format</b> (Set System or Cumulative, depending on the division), the <b>target face</b>, its <b>size</b> and the <b>distance</b>.</p><p class=\"guide-tip\">💡 The <b>Set System</b> is used for recurve, <b>Cumulative</b> for compound. Under French rules, ianseo fills these in correctly.</p>",
+                "it": "<p>Vai in <b>Gara &gt; Impostazioni per le Finali Individuali &gt; Gestione degli Eventi</b>.</p><p>Gli <b>eventi</b> (cioè le classi di classifica) sono <b>già preconfigurati</b> da ianseo: <b>non vanno cancellati</b>.</p><p>Sulla riga della classe in cui hai i tuoi 8 arcieri, apri l'elenco <b>Fase di Partenza</b> e scegli <b>1/4</b>.</p><ul><li><b>1/4</b> = gli scontri partono dai quarti di finale (8 arcieri).</li><li><b>«- - -»</b> = <b>nessuno scontro</b> per questo evento, ma la classe resta nella classifica di qualificazione.</li></ul><p>Sulla stessa riga verifica anche il <b>formato degli scontri</b> (Sistema a set o Sistema cumulativo, secondo la divisione), il <b>tipo di bersaglio</b>, la sua <b>dimensione</b> e la <b>distanza</b>.</p><p class=\"guide-tip\">💡 Il <b>Sistema a set</b> si usa per l'olimpico, il <b>Sistema cumulativo</b> per il compound. Con i regolamenti francesi, ianseo compila correttamente.</p>",
+                "de": "<p>Gehen Sie zu <b>Turnier &gt; Einstellungen für Finalrunden - Einzel &gt; Verwaltung der Begegnungen</b>.</p><p>Die <b>Begegnungen</b> (also die Wertungsklassen) sind von ianseo <b>bereits vorbereitet</b>: <b>löschen Sie sie nicht</b>.</p><p>Öffnen Sie in der Zeile der Klasse mit Ihren 8 Schützen die Liste <b>Startphase</b> und wählen Sie <b>1/4</b>.</p><ul><li><b>1/4</b> = die Duelle beginnen im Viertelfinale (8 Schützen).</li><li><b>„- - -\"</b> = <b>keine Duelle</b> für diese Begegnung, die Klasse bleibt aber in der Qualifikationsplatzierung.</li></ul><p>Prüfen Sie in derselben Zeile auch das <b>Duellformat</b> (Set System oder Kumulativ, je nach Bogenart), die <b>Scheibenauflage</b>, ihre <b>Grösse</b> und die <b>Distanz</b>.</p><p class=\"guide-tip\">💡 Das <b>Set System</b> gilt für Recurve, <b>Kumulativ</b> für Compound. Unter französischen Regeln füllt ianseo das korrekt vor.</p>",
+                "es": "<p>Vaya a <b>Competición &gt; Configuración de las Finales Individuales &gt; Definir las pruebas</b>.</p><p>Las <b>pruebas</b> (es decir, las clases de clasificación) están <b>ya preconfiguradas</b> por ianseo: <b>no las borre</b>.</p><p>En la fila de la clase donde tiene sus 8 arqueros, abra la lista <b>Primera Fase</b> y elija <b>1/4</b>.</p><ul><li><b>1/4</b> = los enfrentamientos empiezan en cuartos de final (8 arqueros).</li><li><b>«- - -»</b> = <b>sin enfrentamientos</b> para esta prueba, pero la clase sigue en la clasificación de calificación.</li></ul><p>Compruebe también en la misma fila el <b>formato de los enfrentamientos</b> (Sistema de Sets o Acumulado, según la división), el <b>tipo de diana</b>, su <b>tamaño</b> y la <b>distancia</b>.</p><p class=\"guide-tip\">💡 El <b>Sistema de Sets</b> se usa para el arco recurvo, el <b>Acumulado</b> para el compuesto. Con los reglamentos franceses, ianseo lo rellena correctamente.</p>"
+            },
             "page": "/Final/Individual/ListEvents.php",
             "triggers": [
                 {
@@ -92,14 +189,26 @@
                     "selector": "[id^=\"d_EvFinalFirstPhase_\"]",
                     "required": true,
                     "page": "/Final/Individual/ListEvents.php",
-                    "hint": "Sélectionnez 1/4 pour votre catégorie (8 archers)"
+                    "hint": {
+                        "fr": "Sélectionnez 1/4 pour votre catégorie (8 archers)",
+                        "en": "Select 1/4 for your class (8 archers)",
+                        "it": "Seleziona 1/4 per la tua classe (8 arcieri)",
+                        "de": "Wählen Sie 1/4 für Ihre Klasse (8 Schützen)",
+                        "es": "Seleccione 1/4 para su clase (8 arqueros)"
+                    }
                 },
                 {
                     "kind": "etat",
                     "condition": "has_quarter_final_event",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : une épreuve individuelle doit avoir 1/4 comme premier tour."
+                    "hint": {
+                        "fr": "En attente : une épreuve individuelle doit avoir 1/4 comme premier tour.",
+                        "en": "Waiting: an individual event must have 1/4 as its first phase.",
+                        "it": "In attesa: un evento individuale deve avere 1/4 come fase di partenza.",
+                        "de": "Es wird gewartet: eine Einzelbegegnung muss 1/4 als Startphase haben.",
+                        "es": "En espera: una prueba individual debe tener 1/4 como primera fase."
+                    }
                 }
             ],
             "optional": false,
@@ -107,8 +216,20 @@
         },
         {
             "id": "archers-par-cible",
-            "title": "Archers par cible",
-            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Archers par cible</b>.</p><p>Ce tableau croise vos <b>épreuves</b> (en lignes) et les <b>tours</b> (1/4, 1/2, Bronze, Finale Or…). Cliquez sur les <b>pastilles</b> pour changer la valeur.</p><p>Les quatre réglages possibles :</p><ul><li><b>1 archer par cible</b></li><li><b>2 archers par cible</b></li><li><b>1 match par cible</b></li><li><b>2 matchs par cible</b> (tir en AB/CD)</li></ul><p class=\"guide-tip\">💡 Chaque épreuve <b>et</b> chaque tour peuvent avoir un réglage différent : en 1/4 on met souvent 2 matchs par cible pour aller vite, et 1 match par cible pour la finale.</p>",
+            "title": {
+                "fr": "Archers par cible",
+                "en": "Archers per target",
+                "it": "Arcieri per piazzola",
+                "de": "Schützen pro Scheibe",
+                "es": "Arqueros por diana"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Archers par cible</b>.</p><p>Ce tableau croise vos <b>épreuves</b> (en lignes) et les <b>tours</b> (1/4, 1/2, Bronze, Finale Or…). Cliquez sur les <b>pastilles</b> pour changer la valeur.</p><p>Les quatre réglages possibles :</p><ul><li><b>1 archer par cible</b></li><li><b>2 archers par cible</b></li><li><b>1 match par cible</b></li><li><b>2 matchs par cible</b> (tir en AB/CD)</li></ul><p class=\"guide-tip\">💡 Chaque épreuve <b>et</b> chaque tour peuvent avoir un réglage différent : en 1/4 on met souvent 2 matchs par cible pour aller vite, et 1 match par cible pour la finale.</p>",
+                "en": "<p>Go to <b>Competition &gt; Individual Events Setup &gt; Archers on Targets</b>.</p><p>This grid crosses your <b>events</b> (as rows) with the <b>rounds</b> (1/4, 1/2, Bronze, Gold final…). Click the <b>markers</b> to change a value.</p><p>The four possible settings:</p><ul><li><b>1 archer per target</b></li><li><b>2 archers per target</b></li><li><b>1 match per target</b></li><li><b>2 matches per target</b> (shooting AB/CD)</li></ul><p class=\"guide-tip\">💡 Every event <b>and</b> every round can have its own setting: 2 matches per target is common in the quarter-finals to save time, and 1 match per target for the final.</p>",
+                "it": "<p>Vai in <b>Gara &gt; Impostazioni per le Finali Individuali &gt; Numero Arcieri per Piazzola</b>.</p><p>Questa tabella incrocia i tuoi <b>eventi</b> (nelle righe) e le <b>fasi</b> (1/4, 1/2, Bronzo, Finale Oro…). Clicca sui <b>pallini</b> per cambiare il valore.</p><p>Le quattro impostazioni possibili:</p><ul><li><b>1 arciere per piazzola</b></li><li><b>2 arcieri per piazzola</b></li><li><b>1 scontro per piazzola</b></li><li><b>2 scontri per piazzola</b> (tiro in AB/CD)</li></ul><p class=\"guide-tip\">💡 Ogni evento <b>e</b> ogni fase possono avere un'impostazione diversa: nei quarti si mettono spesso 2 scontri per piazzola per andare veloci, e 1 scontro per piazzola per la finale.</p>",
+                "de": "<p>Gehen Sie zu <b>Turnier &gt; Einstellungen für Finalrunden - Einzel &gt; Anzahl der Schützen auf der Scheibe</b>.</p><p>Diese Tabelle kreuzt Ihre <b>Begegnungen</b> (in den Zeilen) mit den <b>Runden</b> (1/4, 1/2, Bronze, Goldfinale…). Klicken Sie auf die <b>Punkte</b>, um den Wert zu ändern.</p><p>Die vier möglichen Einstellungen:</p><ul><li><b>1 Schütze pro Scheibe</b></li><li><b>2 Schützen pro Scheibe</b></li><li><b>1 Duell pro Scheibe</b></li><li><b>2 Duelle pro Scheibe</b> (Schiessen in AB/CD)</li></ul><p class=\"guide-tip\">💡 Jede Begegnung <b>und</b> jede Runde kann eine eigene Einstellung haben: im Viertelfinale nimmt man oft 2 Duelle pro Scheibe, um Zeit zu sparen, und 1 Duell pro Scheibe für das Finale.</p>",
+                "es": "<p>Vaya a <b>Competición &gt; Configuración de las Finales Individuales &gt; Arqueros por Diana</b>.</p><p>Esta tabla cruza sus <b>pruebas</b> (en filas) y las <b>rondas</b> (1/4, 1/2, Bronce, Final de Oro…). Haga clic en los <b>puntos</b> para cambiar el valor.</p><p>Los cuatro ajustes posibles:</p><ul><li><b>1 arquero por diana</b></li><li><b>2 arqueros por diana</b></li><li><b>1 enfrentamiento por diana</b></li><li><b>2 enfrentamientos por diana</b> (tiro en AB/CD)</li></ul><p class=\"guide-tip\">💡 Cada prueba <b>y</b> cada ronda pueden tener un ajuste distinto: en cuartos suelen ponerse 2 enfrentamientos por diana para ir rápido, y 1 por diana para la final.</p>"
+            },
             "page": "/Final/PhaseDetails.php",
             "triggers": [
                 {
@@ -123,7 +244,13 @@
                     "required": true,
                     "selector": "#TableBody tr",
                     "page": "/Final/PhaseDetails.php",
-                    "hint": "En attente : le tableau des épreuves doit s'afficher."
+                    "hint": {
+                        "fr": "En attente : le tableau des épreuves doit s'afficher.",
+                        "en": "Waiting: the events grid must be on screen.",
+                        "it": "In attesa: la tabella degli eventi deve essere a schermo.",
+                        "de": "Es wird gewartet: die Tabelle der Begegnungen muss angezeigt werden.",
+                        "es": "En espera: la tabla de las pruebas debe estar en pantalla."
+                    }
                 }
             ],
             "optional": false,
@@ -131,8 +258,20 @@
         },
         {
             "id": "fleches-par-set",
-            "title": "Flèches par set",
-            "content": "<p>Toujours dans <b>Configuration des épreuves individuelles</b>, ouvrez <b>Flèches par set</b>.</p><p>Vous y définissez, pour chaque épreuve et chaque tour, le nombre de <b>reprises (sets)</b>, le nombre de <b>flèches</b> et les flèches de <b>barrage</b> (shoot-off).</p><p class=\"guide-tip\">⚠️ En 18 m règles françaises, les valeurs par défaut sont conformes. Ne les modifiez que si votre mandat prévoit un format particulier.</p>",
+            "title": {
+                "fr": "Flèches par set",
+                "en": "Arrows per set",
+                "it": "Frecce per set",
+                "de": "Pfeile pro Satz",
+                "es": "Flechas por set"
+            },
+            "content": {
+                "fr": "<p>Toujours dans <b>Configuration des épreuves individuelles</b>, ouvrez <b>Flèches par set</b>.</p><p>Vous y définissez, pour chaque épreuve et chaque tour, le nombre de <b>reprises (sets)</b>, le nombre de <b>flèches</b> et les flèches de <b>barrage</b> (shoot-off).</p><p class=\"guide-tip\">⚠️ En 18 m règles françaises, les valeurs par défaut sont conformes. Ne les modifiez que si votre mandat prévoit un format particulier.</p>",
+                "en": "<p>Still under <b>Individual Events Setup</b>, open <b>Arrows per Set</b>.</p><p>Here you set, for each event and each round, the number of <b>sets</b>, the number of <b>arrows</b> and the <b>shoot-off</b> arrows.</p><p class=\"guide-tip\">⚠️ At 18 m under French rules, the default values are correct. Change them only if your competition notice calls for a particular format.</p>",
+                "it": "<p>Sempre in <b>Impostazioni per le Finali Individuali</b>, apri <b>Frecce per set</b>.</p><p>Qui definisci, per ogni evento e ogni fase, il numero di <b>set</b>, il numero di <b>frecce</b> e le frecce di <b>spareggio</b>.</p><p class=\"guide-tip\">⚠️ Sui 18 m con i regolamenti francesi, i valori predefiniti sono conformi. Modificali solo se il tuo bando prevede un formato particolare.</p>",
+                "de": "<p>Öffnen Sie weiterhin unter <b>Einstellungen für Finalrunden - Einzel</b> den Punkt <b>Pfeile pro Satz</b>.</p><p>Hier legen Sie für jede Begegnung und jede Runde die Anzahl der <b>Sätze</b>, die Anzahl der <b>Pfeile</b> und die Pfeile für das <b>Stechen</b> fest.</p><p class=\"guide-tip\">⚠️ Auf 18 m unter französischen Regeln sind die Vorgabewerte regelkonform. Ändern Sie sie nur, wenn Ihre Ausschreibung ein besonderes Format vorsieht.</p>",
+                "es": "<p>Siempre en <b>Configuración de las Finales Individuales</b>, abra <b>Flechas por Set</b>.</p><p>Aquí define, para cada prueba y cada ronda, el número de <b>sets</b>, el número de <b>flechas</b> y las flechas de <b>desempate</b>.</p><p class=\"guide-tip\">⚠️ En 18 m con reglamentos franceses, los valores predeterminados son conformes. Cámbielos solo si su convocatoria prevé un formato particular.</p>"
+            },
             "page": "/Final/PhaseDetails.php?option=ArrowPhase",
             "triggers": [
                 {
@@ -147,8 +286,20 @@
         },
         {
             "id": "numeros-cibles",
-            "title": "Attribuer les numéros de cibles",
-            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Numéro des cibles</b>.</p><p>Vous attribuez ici une <b>cible à chaque match</b>.</p><p><b>Astuce qui fait gagner beaucoup de temps :</b> saisissez la première case avec un <b>+</b> à la suite du numéro (par exemple <code>1+</code>) : les cibles suivantes seront numérotées automatiquement avec un incrément de 1. Les symboles <code>-</code> et <code>*</code> sont également disponibles avec d'autres incréments.</p><p class=\"guide-tip\">⚠️ Une case <b>rouge</b> signale que <b>deux matchs</b> sont prévus sur la <b>même cible</b>, à la <b>même heure</b> (ou sans heure définie). Corrigez avant la compétition.</p>",
+            "title": {
+                "fr": "Attribuer les numéros de cibles",
+                "en": "Assigning the target numbers",
+                "it": "Assegnare i numeri dei bersagli",
+                "de": "Die Scheibennummern zuteilen",
+                "es": "Asignar los números de dianas"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Numéro des cibles</b>.</p><p>Vous attribuez ici une <b>cible à chaque match</b>.</p><p><b>Astuce qui fait gagner beaucoup de temps :</b> saisissez la première case avec un <b>+</b> à la suite du numéro (par exemple <code>1+</code>) : les cibles suivantes seront numérotées automatiquement avec un incrément de 1. Les symboles <code>-</code> et <code>*</code> sont également disponibles avec d'autres incréments.</p><p class=\"guide-tip\">⚠️ Une case <b>rouge</b> signale que <b>deux matchs</b> sont prévus sur la <b>même cible</b>, à la <b>même heure</b> (ou sans heure définie). Corrigez avant la compétition.</p>",
+                "en": "<p>Go to <b>Competition &gt; Individual Events Setup &gt; Target's Number</b>.</p><p>Here you give <b>a target to each match</b>.</p><p><b>A trick that saves a great deal of time:</b> type the first box with a <b>+</b> after the number (<code>1+</code>, for instance): the following targets are numbered automatically, one apart. The symbols <code>-</code> and <code>*</code> are also available, with other steps.</p><p class=\"guide-tip\">⚠️ A <b>red</b> box means <b>two matches</b> are set on the <b>same target</b>, at the <b>same time</b> (or with no time set). Fix it before the competition.</p>",
+                "it": "<p>Vai in <b>Gara &gt; Impostazioni per le Finali Individuali &gt; Numeri dei Bersagli</b>.</p><p>Qui assegni <b>un bersaglio a ogni scontro</b>.</p><p><b>Un trucco che fa risparmiare molto tempo:</b> scrivi nella prima casella un <b>+</b> dopo il numero (per esempio <code>1+</code>): i bersagli successivi verranno numerati automaticamente con incremento 1. Anche i simboli <code>-</code> e <code>*</code> sono disponibili, con altri incrementi.</p><p class=\"guide-tip\">⚠️ Una casella <b>rossa</b> segnala che <b>due scontri</b> sono previsti sullo <b>stesso bersaglio</b>, alla <b>stessa ora</b> (oppure senza ora definita). Correggi prima della gara.</p>",
+                "de": "<p>Gehen Sie zu <b>Turnier &gt; Einstellungen für Finalrunden - Einzel &gt; Anzahl der Scheiben</b>.</p><p>Hier geben Sie <b>jedem Duell eine Scheibe</b>.</p><p><b>Ein Kniff, der viel Zeit spart:</b> schreiben Sie in das erste Feld ein <b>+</b> hinter die Nummer (etwa <code>1+</code>): die folgenden Scheiben werden automatisch mit Schrittweite 1 nummeriert. Die Zeichen <code>-</code> und <code>*</code> stehen ebenfalls zur Verfügung, mit anderen Schrittweiten.</p><p class=\"guide-tip\">⚠️ Ein <b>rotes</b> Feld zeigt an, dass <b>zwei Duelle</b> auf <b>derselben Scheibe</b> zur <b>selben Zeit</b> vorgesehen sind (oder ohne festgelegte Zeit). Korrigieren Sie das vor dem Turnier.</p>",
+                "es": "<p>Vaya a <b>Competición &gt; Configuración de las Finales Individuales &gt; Numeración de Dianas</b>.</p><p>Aquí asigna <b>una diana a cada enfrentamiento</b>.</p><p><b>Un truco que ahorra mucho tiempo:</b> escriba en la primera casilla un <b>+</b> detrás del número (por ejemplo <code>1+</code>): las dianas siguientes se numeran automáticamente de una en una. Los símbolos <code>-</code> y <code>*</code> también están disponibles, con otros incrementos.</p><p class=\"guide-tip\">⚠️ Una casilla <b>roja</b> avisa de que hay <b>dos enfrentamientos</b> previstos en la <b>misma diana</b> y a la <b>misma hora</b> (o sin hora definida). Corríjalo antes de la competición.</p>"
+            },
             "page": "/Final/Individual/ManTarget.php",
             "triggers": [
                 {
@@ -163,8 +314,20 @@
         },
         {
             "id": "horaires",
-            "title": "Attribuer les horaires des duels",
-            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Programme</b>.</p><p>Attribuez les <b>horaires de chaque tour</b>, une épreuve après l'autre.</p><p><b>Astuce :</b> les cases situées <b>au-dessus des grilles</b> permettent d'attribuer une heure à <b>tous les duels du tour en une seule fois</b>, avec le bouton <b>Assigner à tous</b>.</p><p class=\"guide-tip\">⚠️ Si les cases deviennent <b>jaunes</b> : vérifiez le format (<code>jj-mm-aaaa</code> et <code>hh:mm</code>), puis que les <b>dates correspondent bien</b> à celles saisies dans les informations de la compétition.</p>",
+            "title": {
+                "fr": "Attribuer les horaires des duels",
+                "en": "Assigning the match times",
+                "it": "Assegnare gli orari degli scontri",
+                "de": "Die Zeiten der Duelle zuteilen",
+                "es": "Asignar los horarios de los enfrentamientos"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Programme</b>.</p><p>Attribuez les <b>horaires de chaque tour</b>, une épreuve après l'autre.</p><p><b>Astuce :</b> les cases situées <b>au-dessus des grilles</b> permettent d'attribuer une heure à <b>tous les duels du tour en une seule fois</b>, avec le bouton <b>Assigner à tous</b>.</p><p class=\"guide-tip\">⚠️ Si les cases deviennent <b>jaunes</b> : vérifiez le format (<code>jj-mm-aaaa</code> et <code>hh:mm</code>), puis que les <b>dates correspondent bien</b> à celles saisies dans les informations de la compétition.</p>",
+                "en": "<p>Go to <b>Competition &gt; Individual Events Setup &gt; Schedule</b>.</p><p>Set the <b>times of each round</b>, one event after another.</p><p><b>A trick:</b> the boxes <b>above the grids</b> give one time to <b>every match of the round at once</b>, with the <b>Assign to all</b> button.</p><p class=\"guide-tip\">⚠️ If the boxes turn <b>yellow</b>: check the format (<code>dd-mm-yyyy</code> and <code>hh:mm</code>), then that the <b>dates match</b> those entered in the competition information.</p>",
+                "it": "<p>Vai in <b>Gara &gt; Impostazioni per le Finali Individuali &gt; Programma</b>.</p><p>Assegna gli <b>orari di ogni fase</b>, un evento dopo l'altro.</p><p><b>Trucco:</b> le caselle <b>sopra le griglie</b> permettono di dare un'ora a <b>tutti gli scontri della fase in una volta sola</b>, con il pulsante <b>Assegna a tutti</b>.</p><p class=\"guide-tip\">⚠️ Se le caselle diventano <b>gialle</b>: verifica il formato (<code>gg-mm-aaaa</code> e <code>hh:mm</code>), poi che le <b>date corrispondano</b> a quelle inserite nelle informazioni della gara.</p>",
+                "de": "<p>Gehen Sie zu <b>Turnier &gt; Einstellungen für Finalrunden - Einzel &gt; Zeitplan</b>.</p><p>Vergeben Sie die <b>Zeiten jeder Runde</b>, eine Begegnung nach der anderen.</p><p><b>Ein Kniff:</b> die Felder <b>über den Tabellen</b> geben <b>allen Duellen der Runde auf einmal</b> eine Zeit, mit der Schaltfläche <b>Allen zuweisen</b>.</p><p class=\"guide-tip\">⚠️ Werden die Felder <b>gelb</b>: prüfen Sie das Format (<code>tt-mm-jjjj</code> und <code>hh:mm</code>) und dann, ob die <b>Daten mit denen übereinstimmen</b>, die in den Turnierinformationen eingetragen sind.</p>",
+                "es": "<p>Vaya a <b>Competición &gt; Configuración de las Finales Individuales &gt; Programa</b>.</p><p>Asigne los <b>horarios de cada ronda</b>, prueba tras prueba.</p><p><b>Truco:</b> las casillas situadas <b>encima de los cuadros</b> permiten dar una hora a <b>todos los enfrentamientos de la ronda de una vez</b>, con el botón <b>Asignar a todos</b>.</p><p class=\"guide-tip\">⚠️ Si las casillas se ponen <b>amarillas</b>: compruebe el formato (<code>dd-mm-aaaa</code> y <code>hh:mm</code>), y luego que las <b>fechas coincidan</b> con las introducidas en los datos de la competición.</p>"
+            },
             "page": "/Final/Individual/ManSchedule.php",
             "triggers": [
                 {
@@ -178,7 +341,13 @@
                     "condition": "has_final_schedule",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : au moins un duel doit avoir une cible ET un horaire."
+                    "hint": {
+                        "fr": "En attente : au moins un duel doit avoir une cible ET un horaire.",
+                        "en": "Waiting: at least one match must have a target AND a time.",
+                        "it": "In attesa: almeno uno scontro deve avere un bersaglio E un orario.",
+                        "de": "Es wird gewartet: mindestens ein Duell muss eine Scheibe UND eine Zeit haben.",
+                        "es": "En espera: al menos un enfrentamiento debe tener diana Y horario."
+                    }
                 }
             ],
             "optional": false,
@@ -186,8 +355,20 @@
         },
         {
             "id": "entrainements",
-            "title": "Les horaires d'entraînement",
-            "content": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Horaire des entraînements</b>.</p><p>Vous pouvez ajouter les <b>entraînements qui précèdent les duels</b>. Affectez les <b>cibles</b> de chaque phase d'entraînement pour qu'elles apparaissent dans le <b>plan de cible</b>.</p><p class=\"guide-tip\">💡 Une fois les horaires posés, les duels <b>apparaissent automatiquement dans le programme</b> de la compétition.</p>",
+            "title": {
+                "fr": "Les horaires d'entraînement",
+                "en": "The warm-up times",
+                "it": "Gli orari di riscaldamento",
+                "de": "Die Aufwärmzeiten",
+                "es": "Los horarios de calentamiento"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Compétition &gt; Configuration des épreuves individuelles &gt; Horaire des entraînements</b>.</p><p>Vous pouvez ajouter les <b>entraînements qui précèdent les duels</b>. Affectez les <b>cibles</b> de chaque phase d'entraînement pour qu'elles apparaissent dans le <b>plan de cible</b>.</p><p class=\"guide-tip\">💡 Une fois les horaires posés, les duels <b>apparaissent automatiquement dans le programme</b> de la compétition.</p>",
+                "en": "<p>Go to <b>Competition &gt; Individual Events Setup &gt; Warm Up Schedule</b>.</p><p>You can add the <b>warm-ups that precede the matches</b>. Assign the <b>targets</b> of each warm-up phase so they appear on the <b>target plan</b>.</p><p class=\"guide-tip\">💡 Once the times are set, the matches <b>appear automatically in the competition schedule</b>.</p>",
+                "it": "<p>Vai in <b>Gara &gt; Impostazioni per le Finali Individuali &gt; Sessioni di Riscaldamento</b>.</p><p>Puoi aggiungere i <b>riscaldamenti che precedono gli scontri</b>. Assegna i <b>bersagli</b> di ogni fase di riscaldamento perché compaiano nel <b>piano dei bersagli</b>.</p><p class=\"guide-tip\">💡 Una volta messi gli orari, gli scontri <b>compaiono automaticamente nel programma</b> della gara.</p>",
+                "de": "<p>Gehen Sie zu <b>Turnier &gt; Einstellungen für Finalrunden - Einzel &gt; Aufwärm Zeitplan</b>.</p><p>Sie können das <b>Aufwärmen vor den Duellen</b> ergänzen. Weisen Sie den <b>Scheiben</b> jeder Aufwärmphase zu, damit sie im <b>Scheibenplan</b> erscheinen.</p><p class=\"guide-tip\">💡 Sind die Zeiten gesetzt, <b>erscheinen die Duelle automatisch im Zeitplan</b> des Turniers.</p>",
+                "es": "<p>Vaya a <b>Competición &gt; Configuración de las Finales Individuales &gt; Programa del Calentamiento</b>.</p><p>Puede añadir los <b>calentamientos previos a los enfrentamientos</b>. Asigne las <b>dianas</b> de cada fase de calentamiento para que aparezcan en el <b>plano de dianas</b>.</p><p class=\"guide-tip\">💡 Una vez puestos los horarios, los enfrentamientos <b>aparecen automáticamente en el programa</b> de la competición.</p>"
+            },
             "page": "/Final/ManTraining.php",
             "triggers": [
                 {
@@ -202,8 +383,20 @@
         },
         {
             "id": "ex-aequo",
-            "title": "Contrôler les ex-aequo AVANT les phases finales",
-            "content": "<p>Étape <b>indispensable le jour J</b>, une fois les qualifications terminées : <b>Finales individuelles &gt; Contrôler les ex-aequo avant les phases finales</b>.</p><p>Deux archers à égalité de score ne peuvent pas être départagés automatiquement pour l'entrée dans le tableau de duels : il faut un <b>barrage</b> (ou un tirage au sort selon le règlement).</p><p>ianseo <b>liste ici les ex-aequo à départager</b>. Tant qu'ils ne le sont pas, le tableau de duels ne peut pas être figé correctement.</p><p class=\"guide-tip\">⚠️ Le menu <b>Finales individuelles</b> n'apparaît qu'une fois le premier tour défini. Si vous ne le voyez pas, revenez à l'étape « premier tour ».</p>",
+            "title": {
+                "fr": "Contrôler les ex-aequo AVANT les phases finales",
+                "en": "Resolving ties BEFORE the final phases",
+                "it": "Risolvere gli spareggi PRIMA delle fasi finali",
+                "de": "Gleichstände VOR den Finalrunden auflösen",
+                "es": "Resolver los empates ANTES de las fases finales"
+            },
+            "content": {
+                "fr": "<p>Étape <b>indispensable le jour J</b>, une fois les qualifications terminées : <b>Finales individuelles &gt; Contrôler les ex-aequo avant les phases finales</b>.</p><p>Deux archers à égalité de score ne peuvent pas être départagés automatiquement pour l'entrée dans le tableau de duels : il faut un <b>barrage</b> (ou un tirage au sort selon le règlement).</p><p>ianseo <b>liste ici les ex-aequo à départager</b>. Tant qu'ils ne le sont pas, le tableau de duels ne peut pas être figé correctement.</p><p class=\"guide-tip\">⚠️ Le menu <b>Finales individuelles</b> n'apparaît qu'une fois le premier tour défini. Si vous ne le voyez pas, revenez à l'étape « premier tour ».</p>",
+                "en": "<p>An <b>essential step on the day</b>, once qualification is over: <b>Individual Finals &gt; Check shoot-off before final phases</b>.</p><p>Two archers on the same score cannot be separated automatically for entry into the bracket: a <b>shoot-off</b> is needed (or a draw, depending on the rules).</p><p>ianseo <b>lists the ties to be resolved</b> here. Until they are, the bracket cannot be fixed correctly.</p><p class=\"guide-tip\">⚠️ The <b>Individual Finals</b> menu only appears once the first phase has been set. If you cannot see it, go back to the \"first phase\" step.</p>",
+                "it": "<p>Passo <b>indispensabile il giorno di gara</b>, finite le qualificazioni: <b>Finali Individuali &gt; Spareggi per l'ingresso alle Finali</b>.</p><p>Due arcieri a pari punteggio non possono essere separati automaticamente per l'ingresso nel tabellone: serve uno <b>spareggio</b> (o un sorteggio, secondo il regolamento).</p><p>ianseo <b>elenca qui gli spareggi da risolvere</b>. Finché non lo sono, il tabellone non può essere fissato correttamente.</p><p class=\"guide-tip\">⚠️ Il menu <b>Finali Individuali</b> compare solo dopo aver definito la fase di partenza. Se non lo vedi, torna al passo «fase di partenza».</p>",
+                "de": "<p>Ein am Turniertag <b>unverzichtbarer Schritt</b>, sobald die Qualifikation vorbei ist: <b>Einzelfinale &gt; Kontrolle des Stechens vor der Teilnahme am Finale</b>.</p><p>Zwei Schützen mit gleichem Ergebnis lassen sich für den Einzug in den Duellbaum nicht automatisch trennen: es braucht ein <b>Stechen</b> (oder ein Los, je nach Reglement).</p><p>ianseo <b>führt hier die zu klärenden Gleichstände auf</b>. Solange sie offen sind, lässt sich der Duellbaum nicht korrekt festlegen.</p><p class=\"guide-tip\">⚠️ Das Menü <b>Einzelfinale</b> erscheint erst, wenn die Startphase festgelegt ist. Sehen Sie es nicht, gehen Sie zurück zum Schritt „Startphase\".</p>",
+                "es": "<p>Paso <b>imprescindible el día de la competición</b>, terminada la calificación: <b>Finales Individuales &gt; Resolver Desempates antes de las Fases Finales</b>.</p><p>Dos arqueros con la misma puntuación no pueden separarse automáticamente para entrar en el cuadro: hace falta un <b>desempate</b> (o un sorteo, según el reglamento).</p><p>ianseo <b>enumera aquí los empates por resolver</b>. Mientras no lo estén, el cuadro no puede fijarse correctamente.</p><p class=\"guide-tip\">⚠️ El menú <b>Finales Individuales</b> solo aparece una vez definida la primera fase. Si no lo ve, vuelva al paso «primera fase».</p>"
+            },
             "page": "/Final/Individual/AbsIndividual.php",
             "triggers": [
                 {
@@ -218,8 +411,20 @@
         },
         {
             "id": "saisie-grille",
-            "title": "Saisir les duels (vue Grille)",
-            "content": "<p>Allez dans <b>Finales individuelles &gt; Saisie des données (Grille)</b>.</p><p>C'est la vue la plus lisible : vous voyez le <b>tableau de duels complet</b> (l'arbre), et vous saisissez le résultat de chaque match directement dans la grille. Le <b>vainqueur avance automatiquement</b> au tour suivant.</p><p>Saisissez au moins un match pour voir la propagation.</p><p class=\"guide-tip\">💡 La vue <b>Tableau</b> (Saisie des données (Tableau)) affiche la même chose sous forme de liste — pratique pour saisir vite au clavier. La <b>vue Grille</b> est idéale pour suivre l'avancement et vérifier.</p>",
+            "title": {
+                "fr": "Saisir les duels (vue Grille)",
+                "en": "Entering the matches (bracket view)",
+                "it": "Inserire gli scontri (vista a griglie)",
+                "de": "Die Duelle eingeben (Ansicht nach Finalpaarungen)",
+                "es": "Introducir los enfrentamientos (modo cuadros)"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Finales individuelles &gt; Saisie des données (Grille)</b>.</p><p>C'est la vue la plus lisible : vous voyez le <b>tableau de duels complet</b> (l'arbre), et vous saisissez le résultat de chaque match directement dans la grille. Le <b>vainqueur avance automatiquement</b> au tour suivant.</p><p>Saisissez au moins un match pour voir la propagation.</p><p class=\"guide-tip\">💡 La vue <b>Tableau</b> (Saisie des données (Tableau)) affiche la même chose sous forme de liste — pratique pour saisir vite au clavier. La <b>vue Grille</b> est idéale pour suivre l'avancement et vérifier.</p>",
+                "en": "<p>Go to <b>Individual Finals &gt; Data insert (Bracket view)</b>.</p><p>This is the clearest view: you see the <b>whole bracket</b>, and you enter the result of each match straight into it. The <b>winner moves on automatically</b> to the next round.</p><p>Enter at least one match to see it propagate.</p><p class=\"guide-tip\">💡 The <b>Data insert (Table view)</b> shows the same thing as a list — handy for entering quickly from the keyboard. The <b>bracket view</b> is the one for following progress and checking.</p>",
+                "it": "<p>Vai in <b>Finali Individuali &gt; Inserimento dati con griglie</b>.</p><p>È la vista più leggibile: vedi il <b>tabellone completo</b> e inserisci il risultato di ogni scontro direttamente nella griglia. Il <b>vincitore avanza automaticamente</b> alla fase successiva.</p><p>Inserisci almeno uno scontro per vedere la propagazione.</p><p class=\"guide-tip\">💡 La vista <b>Inserimento dati con tabella</b> mostra la stessa cosa in forma di elenco — comoda per inserire in fretta da tastiera. La <b>vista a griglie</b> è ideale per seguire l'avanzamento e verificare.</p>",
+                "de": "<p>Gehen Sie zu <b>Einzelfinale &gt; Eingabe von Daten nach Finalpaarungen</b>.</p><p>Das ist die übersichtlichste Ansicht: Sie sehen den <b>ganzen Duellbaum</b> und tragen das Ergebnis jedes Duells direkt darin ein. Der <b>Sieger rückt automatisch</b> in die nächste Runde vor.</p><p>Geben Sie mindestens ein Duell ein, um zu sehen, wie es weiterwandert.</p><p class=\"guide-tip\">💡 Die Ansicht <b>Eingabe von Daten nach Tabellen</b> zeigt dasselbe als Liste — praktisch, um schnell über die Tastatur einzugeben. Die <b>Ansicht nach Finalpaarungen</b> eignet sich zum Verfolgen und Prüfen.</p>",
+                "es": "<p>Vaya a <b>Finales Individuales &gt; Introducción de Puntuaciones (Modo Cuadros)</b>.</p><p>Es la vista más legible: ve el <b>cuadro completo</b> e introduce el resultado de cada enfrentamiento directamente en él. El <b>ganador avanza automáticamente</b> a la ronda siguiente.</p><p>Introduzca al menos un enfrentamiento para ver la propagación.</p><p class=\"guide-tip\">💡 La vista <b>Introducción de Puntuaciones (Modo Tablas)</b> muestra lo mismo en forma de lista — práctica para introducir rápido con el teclado. El <b>modo cuadros</b> es ideal para seguir el avance y comprobar.</p>"
+            },
             "page": "/Final/Individual/InsertPoint_Bra.php",
             "triggers": [
                 {
@@ -234,8 +439,20 @@
         },
         {
             "id": "impression",
-            "title": "Imprimer le classement final",
-            "content": "<p>Dernière étape : <b>Impressions &gt; Tours finaux</b>.</p><p>Vous y trouvez les documents des phases finales :</p><ul><li>les <b>grilles de duels</b> (à afficher pour le public),</li><li>le <b>classement final</b> de chaque épreuve, une fois les duels terminés.</li></ul><p>Sélectionnez votre épreuve, puis générez le PDF.</p><p class=\"guide-tip\">💡 Le classement final tient compte des duels ; le classement de qualification reste disponible séparément dans le menu <b>Qualification</b>.</p>",
+            "title": {
+                "fr": "Imprimer le classement final",
+                "en": "Printing the final ranking",
+                "it": "Stampare la classifica finale",
+                "de": "Die Endplatzierung drucken",
+                "es": "Imprimir la clasificación final"
+            },
+            "content": {
+                "fr": "<p>Dernière étape : <b>Impressions &gt; Tours finaux</b>.</p><p>Vous y trouvez les documents des phases finales :</p><ul><li>les <b>grilles de duels</b> (à afficher pour le public),</li><li>le <b>classement final</b> de chaque épreuve, une fois les duels terminés.</li></ul><p>Sélectionnez votre épreuve, puis générez le PDF.</p><p class=\"guide-tip\">💡 Le classement final tient compte des duels ; le classement de qualification reste disponible séparément dans le menu <b>Qualification</b>.</p>",
+                "en": "<p>The last step: <b>Printout &gt; Final Rounds</b>.</p><p>Here you find the documents for the final phases:</p><ul><li>the <b>brackets</b> (to put up for the public),</li><li>the <b>final ranking</b> of each event, once the matches are over.</li></ul><p>Select your event, then produce the PDF.</p><p class=\"guide-tip\">💡 The final ranking takes the matches into account; the qualification ranking stays available separately under the <b>Qualification</b> menu.</p>",
+                "it": "<p>Ultimo passo: <b>Stampe &gt; Fasi Finali</b>.</p><p>Qui trovi i documenti delle fasi finali:</p><ul><li>i <b>tabelloni degli scontri</b> (da esporre per il pubblico),</li><li>la <b>classifica finale</b> di ogni evento, una volta finiti gli scontri.</li></ul><p>Seleziona il tuo evento, poi genera il PDF.</p><p class=\"guide-tip\">💡 La classifica finale tiene conto degli scontri; la classifica di qualificazione resta disponibile a parte nel menu <b>Qualificazione</b>.</p>",
+                "de": "<p>Der letzte Schritt: <b>Druck &gt; Finalrunde</b>.</p><p>Hier finden Sie die Unterlagen der Finalrunden:</p><ul><li>die <b>Duellbäume</b> (zum Aushang für das Publikum),</li><li>die <b>Endplatzierung</b> jeder Begegnung, sobald die Duelle vorbei sind.</li></ul><p>Wählen Sie Ihre Begegnung und erzeugen Sie das PDF.</p><p class=\"guide-tip\">💡 Die Endplatzierung berücksichtigt die Duelle; die Qualifikationsplatzierung bleibt getrennt im Menü <b>Qualifikation</b> verfügbar.</p>",
+                "es": "<p>Último paso: <b>Listados para imprimir &gt; Series Finales</b>.</p><p>Aquí encontrará los documentos de las fases finales:</p><ul><li>los <b>cuadros de enfrentamientos</b> (para exponerlos al público),</li><li>la <b>clasificación final</b> de cada prueba, una vez terminados los enfrentamientos.</li></ul><p>Seleccione su prueba y genere el PDF.</p><p class=\"guide-tip\">💡 La clasificación final tiene en cuenta los enfrentamientos; la clasificación de calificación sigue disponible aparte, en el menú <b>Calificación</b>.</p>"
+            },
             "page": "/Final/PrintOut.php",
             "triggers": [
                 {
@@ -250,8 +467,20 @@
         },
         {
             "id": "fin",
-            "title": "C'est terminé !",
-            "content": "<p>Vous savez configurer les <b>duels</b> d'une compétition 18 m de bout en bout.</p><p><b>À retenir :</b></p><ul><li>La <b>participation aux épreuves individuelles</b> doit être à <b>Oui</b> — sinon pas de duel.</li><li>Le <b>premier tour</b> (1/4 = 8 archers) déclenche tout le reste.</li><li>Cibles + horaires + entraînements = un plan de cible et un programme complets.</li><li>Les <b>ex-aequo</b> se contrôlent <b>avant</b> les phases finales.</li><li>Aucun paramétrage ne se modifie <b>après</b> le début des qualifications.</li></ul><p>Testez vos connaissances avec le <b>QCM</b>, puis relevez le <b>défi</b> !</p>",
+            "title": {
+                "fr": "C'est terminé !",
+                "en": "That's it!",
+                "it": "Finito!",
+                "de": "Fertig!",
+                "es": "¡Terminado!"
+            },
+            "content": {
+                "fr": "<p>Vous savez configurer les <b>duels</b> d'une compétition 18 m de bout en bout.</p><p><b>À retenir :</b></p><ul><li>La <b>participation aux épreuves individuelles</b> doit être à <b>Oui</b> — sinon pas de duel.</li><li>Le <b>premier tour</b> (1/4 = 8 archers) déclenche tout le reste.</li><li>Cibles + horaires + entraînements = un plan de cible et un programme complets.</li><li>Les <b>ex-aequo</b> se contrôlent <b>avant</b> les phases finales.</li><li>Aucun paramétrage ne se modifie <b>après</b> le début des qualifications.</li></ul><p>Testez vos connaissances avec le <b>QCM</b>, puis relevez le <b>défi</b> !</p>",
+                "en": "<p>You can now set up the <b>matches</b> of an 18 m competition from start to finish.</p><p><b>What to remember:</b></p><ul><li><b>Participation in the individual events</b> must be set to <b>Yes</b> — no tick, no match.</li><li>The <b>first phase</b> (1/4 = 8 archers) sets everything else going.</li><li>Targets + times + warm-ups = a complete target plan and schedule.</li><li><b>Ties</b> are resolved <b>before</b> the final phases.</li><li>No setting is changed <b>after</b> qualification has started.</li></ul><p>Test what you know with the <b>quiz</b>, then take on the <b>challenge</b>!</p>",
+                "it": "<p>Ora sai configurare gli <b>scontri</b> di una gara 18 m dall'inizio alla fine.</p><p><b>Da ricordare:</b></p><ul><li>La <b>partecipazione agli eventi individuali</b> deve essere su <b>Sì</b> — altrimenti niente scontri.</li><li>La <b>fase di partenza</b> (1/4 = 8 arcieri) mette in moto tutto il resto.</li><li>Bersagli + orari + riscaldamenti = un piano dei bersagli e un programma completi.</li><li>Gli <b>spareggi</b> si risolvono <b>prima</b> delle fasi finali.</li><li>Nessuna impostazione si cambia <b>dopo</b> l'inizio delle qualificazioni.</li></ul><p>Metti alla prova quello che sai con il <b>quiz</b>, poi affronta la <b>sfida</b>!</p>",
+                "de": "<p>Sie können die <b>Duelle</b> eines 18-m-Turniers nun von A bis Z einrichten.</p><p><b>Zum Merken:</b></p><ul><li>Die <b>Teilnahme an den Einzelbegegnungen</b> muss auf <b>Ja</b> stehen — sonst kein Duell.</li><li>Die <b>Startphase</b> (1/4 = 8 Schützen) setzt alles Weitere in Gang.</li><li>Scheiben + Zeiten + Aufwärmen = ein vollständiger Scheibenplan und Zeitplan.</li><li><b>Gleichstände</b> werden <b>vor</b> den Finalrunden geklärt.</li><li>Keine Einstellung wird <b>nach</b> dem Beginn der Qualifikation geändert.</li></ul><p>Prüfen Sie Ihr Wissen im <b>Quiz</b> und stellen Sie sich dann der <b>Aufgabe</b>!</p>",
+                "es": "<p>Ya sabe configurar los <b>enfrentamientos</b> de una competición de 18 m de principio a fin.</p><p><b>Para recordar:</b></p><ul><li>La <b>participación en las pruebas individuales</b> debe estar en <b>Sí</b> — si no, no hay enfrentamiento.</li><li>La <b>primera fase</b> (1/4 = 8 arqueros) pone en marcha todo lo demás.</li><li>Dianas + horarios + calentamientos = un plano de dianas y un programa completos.</li><li>Los <b>empates</b> se resuelven <b>antes</b> de las fases finales.</li><li>Ningún ajuste se cambia <b>después</b> de empezada la calificación.</li></ul><p>¡Ponga a prueba lo que sabe con el <b>cuestionario</b> y luego acepte el <b>reto</b>!</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -263,70 +492,297 @@
         "shuffle": true,
         "questions": [
             {
-                "q": "Un archer a le meilleur score de qualification mais n'apparaît pas dans le tableau de duels. Quelle est la cause la plus probable ?",
+                "q": {
+                    "fr": "Un archer a le meilleur score de qualification mais n'apparaît pas dans le tableau de duels. Quelle est la cause la plus probable ?",
+                    "en": "An archer has the best qualification score but does not appear in the bracket. What is the most likely cause?",
+                    "it": "Un arciere ha il miglior punteggio di qualificazione ma non compare nel tabellone. Qual è la causa più probabile?",
+                    "de": "Ein Schütze hat das beste Qualifikationsergebnis, erscheint aber nicht im Duellbaum. Was ist die wahrscheinlichste Ursache?",
+                    "es": "Un arquero tiene la mejor puntuación de calificación pero no aparece en el cuadro. ¿Cuál es la causa más probable?"
+                },
                 "choices": [
-                    "Sa participation aux épreuves individuelles n'est pas à « Oui »",
-                    "Son score n'a pas été validé par un arbitre",
-                    "Il faut relancer le calcul du classement",
-                    "Sa cible n'a pas été attribuée"
+                    {
+                        "fr": "Sa participation aux épreuves individuelles n'est pas à « Oui »",
+                        "en": "Their participation in the individual events is not set to \"Yes\"",
+                        "it": "La sua partecipazione agli eventi individuali non è su «Sì»",
+                        "de": "Seine Teilnahme an den Einzelbegegnungen steht nicht auf „Ja\"",
+                        "es": "Su participación en las pruebas individuales no está en «Sí»"
+                    },
+                    {
+                        "fr": "Son score n'a pas été validé par un arbitre",
+                        "en": "Their score has not been approved by a judge",
+                        "it": "Il suo punteggio non è stato convalidato da un giudice",
+                        "de": "Sein Ergebnis wurde von keinem Kampfrichter bestätigt",
+                        "es": "Su puntuación no ha sido validada por un juez"
+                    },
+                    {
+                        "fr": "Il faut relancer le calcul du classement",
+                        "en": "The ranking needs to be recalculated",
+                        "it": "Bisogna rilanciare il calcolo della classifica",
+                        "de": "Die Platzierung muss neu berechnet werden",
+                        "es": "Hay que recalcular la clasificación"
+                    },
+                    {
+                        "fr": "Sa cible n'a pas été attribuée",
+                        "en": "Their target has not been assigned",
+                        "it": "Il suo bersaglio non è stato assegnato",
+                        "de": "Seine Scheibe wurde nicht zugeteilt",
+                        "es": "No se le ha asignado diana"
+                    }
                 ],
                 "correct": 0,
-                "explain": "C'est l'erreur la plus fréquente : sans la participation aux épreuves individuelles cochée, l'archer reste au classement de qualification mais est exclu des duels."
+                "explain": {
+                    "fr": "C'est l'erreur la plus fréquente : sans la participation aux épreuves individuelles cochée, l'archer reste au classement de qualification mais est exclu des duels.",
+                    "en": "This is the commonest mistake: without participation in the individual events ticked, the archer stays in the qualification ranking but is left out of the matches.",
+                    "it": "È l'errore più frequente: senza la partecipazione agli eventi individuali spuntata, l'arciere resta nella classifica di qualificazione ma è escluso dagli scontri.",
+                    "de": "Das ist der häufigste Fehler: ohne angehakte Teilnahme an den Einzelbegegnungen bleibt der Schütze in der Qualifikationsplatzierung, ist aber von den Duellen ausgeschlossen.",
+                    "es": "Es el error más frecuente: sin la participación en las pruebas individuales marcada, el arquero sigue en la clasificación de calificación pero queda excluido de los enfrentamientos."
+                }
             },
             {
-                "q": "Combien d'archers faut-il, dans une même catégorie, pour démarrer les duels en 1/4 de finale ?",
-                "choices": ["4", "8", "16", "32"],
+                "q": {
+                    "fr": "Combien d'archers faut-il, dans une même catégorie, pour démarrer les duels en 1/4 de finale ?",
+                    "en": "How many archers do you need, within one class, to start the matches at the quarter-finals?",
+                    "it": "Quanti arcieri servono, in una stessa classe, per partire con gli scontri dai quarti di finale?",
+                    "de": "Wie viele Schützen braucht es in einer Klasse, um die Duelle im Viertelfinale zu beginnen?",
+                    "es": "¿Cuántos arqueros hacen falta, dentro de una misma clase, para empezar los enfrentamientos en cuartos de final?"
+                },
+                "choices": [
+                    {
+                        "fr": "4",
+                        "en": "4",
+                        "it": "4",
+                        "de": "4",
+                        "es": "4"
+                    },
+                    {
+                        "fr": "8",
+                        "en": "8",
+                        "it": "8",
+                        "de": "8",
+                        "es": "8"
+                    },
+                    {
+                        "fr": "16",
+                        "en": "16",
+                        "it": "16",
+                        "de": "16",
+                        "es": "16"
+                    },
+                    {
+                        "fr": "32",
+                        "en": "32",
+                        "it": "32",
+                        "de": "32",
+                        "es": "32"
+                    }
+                ],
                 "correct": 1,
-                "explain": "Le 1/4 de finale, c'est 4 matchs, donc 8 archers."
+                "explain": {
+                    "fr": "Le 1/4 de finale, c'est 4 matchs, donc 8 archers.",
+                    "en": "The quarter-finals are 4 matches, so 8 archers.",
+                    "it": "I quarti di finale sono 4 scontri, quindi 8 arcieri.",
+                    "de": "Das Viertelfinale sind 4 Duelle, also 8 Schützen.",
+                    "es": "Los cuartos de final son 4 enfrentamientos, es decir 8 arqueros."
+                }
             },
             {
-                "q": "Dans la Gestion des Épreuves, que signifie « - - - » dans la colonne du premier tour ?",
+                "q": {
+                    "fr": "Dans la Gestion des Épreuves, que signifie « - - - » dans la colonne du premier tour ?",
+                    "en": "In Manage Events, what does \"- - -\" mean in the first phase column?",
+                    "it": "Nella Gestione degli Eventi, che cosa significa «- - -» nella colonna della fase di partenza?",
+                    "de": "Was bedeutet in der Verwaltung der Begegnungen „- - -\" in der Spalte der Startphase?",
+                    "es": "En Definir las pruebas, ¿qué significa «- - -» en la columna de la primera fase?"
+                },
                 "choices": [
-                    "Pas de duels pour cette épreuve, mais la catégorie reste au classement",
-                    "L'épreuve est supprimée",
-                    "Le premier tour sera calculé automatiquement",
-                    "L'épreuve est réservée aux équipes"
+                    {
+                        "fr": "Pas de duels pour cette épreuve, mais la catégorie reste au classement",
+                        "en": "No matches for this event, but the class stays in the ranking",
+                        "it": "Nessuno scontro per questo evento, ma la classe resta in classifica",
+                        "de": "Keine Duelle für diese Begegnung, die Klasse bleibt aber in der Platzierung",
+                        "es": "Sin enfrentamientos para esta prueba, pero la clase sigue en la clasificación"
+                    },
+                    {
+                        "fr": "L'épreuve est supprimée",
+                        "en": "The event is deleted",
+                        "it": "L'evento viene cancellato",
+                        "de": "Die Begegnung wird gelöscht",
+                        "es": "La prueba se elimina"
+                    },
+                    {
+                        "fr": "Le premier tour sera calculé automatiquement",
+                        "en": "The first phase will be worked out automatically",
+                        "it": "La fase di partenza sarà calcolata automaticamente",
+                        "de": "Die Startphase wird automatisch berechnet",
+                        "es": "La primera fase se calculará automáticamente"
+                    },
+                    {
+                        "fr": "L'épreuve est réservée aux équipes",
+                        "en": "The event is for teams only",
+                        "it": "L'evento è riservato alle squadre",
+                        "de": "Die Begegnung ist Mannschaften vorbehalten",
+                        "es": "La prueba está reservada a los equipos"
+                    }
                 ],
                 "correct": 0,
-                "explain": "« - - - » désactive les duels tout en conservant la catégorie dans les classements. Il ne faut surtout pas supprimer l'épreuve."
+                "explain": {
+                    "fr": "« - - - » désactive les duels tout en conservant la catégorie dans les classements. Il ne faut surtout pas supprimer l'épreuve.",
+                    "en": "\"- - -\" turns the matches off while keeping the class in the rankings. Never delete the event itself.",
+                    "it": "«- - -» disattiva gli scontri mantenendo la classe nelle classifiche. L'evento non va mai cancellato.",
+                    "de": "„- - -\" schaltet die Duelle ab und behält die Klasse in den Platzierungen. Die Begegnung selbst darf keinesfalls gelöscht werden.",
+                    "es": "«- - -» desactiva los enfrentamientos conservando la clase en las clasificaciones. Nunca hay que borrar la prueba."
+                }
             },
             {
-                "q": "Quand peut-on modifier le paramétrage des duels ?",
+                "q": {
+                    "fr": "Quand peut-on modifier le paramétrage des duels ?",
+                    "en": "When may the match settings be changed?",
+                    "it": "Quando si possono modificare le impostazioni degli scontri?",
+                    "de": "Wann dürfen die Einstellungen der Duelle geändert werden?",
+                    "es": "¿Cuándo se pueden cambiar los ajustes de los enfrentamientos?"
+                },
                 "choices": [
-                    "Avant le début des qualifications",
-                    "À tout moment, ianseo recalcule",
-                    "Pendant les qualifications uniquement",
-                    "Après la remise des récompenses"
+                    {
+                        "fr": "Avant le début des qualifications",
+                        "en": "Before qualification starts",
+                        "it": "Prima dell'inizio delle qualificazioni",
+                        "de": "Vor dem Beginn der Qualifikation",
+                        "es": "Antes de que empiece la calificación"
+                    },
+                    {
+                        "fr": "À tout moment, ianseo recalcule",
+                        "en": "At any time, ianseo recalculates",
+                        "it": "In qualsiasi momento, ianseo ricalcola",
+                        "de": "Jederzeit, ianseo rechnet neu",
+                        "es": "En cualquier momento, ianseo recalcula"
+                    },
+                    {
+                        "fr": "Pendant les qualifications uniquement",
+                        "en": "During qualification only",
+                        "it": "Soltanto durante le qualificazioni",
+                        "de": "Nur während der Qualifikation",
+                        "es": "Solo durante la calificación"
+                    },
+                    {
+                        "fr": "Après la remise des récompenses",
+                        "en": "After the prize giving",
+                        "it": "Dopo la premiazione",
+                        "de": "Nach der Siegerehrung",
+                        "es": "Después de la entrega de premios"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Aucun paramétrage de duel ne doit être modifié après le début des qualifications, sous peine d'incohérences."
+                "explain": {
+                    "fr": "Aucun paramétrage de duel ne doit être modifié après le début des qualifications, sous peine d'incohérences.",
+                    "en": "No match setting may be changed once qualification has started, on pain of inconsistencies.",
+                    "it": "Nessuna impostazione degli scontri va modificata dopo l'inizio delle qualificazioni, pena incoerenze.",
+                    "de": "Keine Einstellung der Duelle darf nach dem Beginn der Qualifikation geändert werden, sonst entstehen Widersprüche.",
+                    "es": "Ningún ajuste de los enfrentamientos debe cambiarse una vez empezada la calificación, so pena de incoherencias."
+                }
             },
             {
-                "q": "Dans la page des numéros de cibles, que signale une case rouge ?",
+                "q": {
+                    "fr": "Dans la page des numéros de cibles, que signale une case rouge ?",
+                    "en": "On the target numbers page, what does a red box mean?",
+                    "it": "Nella pagina dei numeri dei bersagli, che cosa segnala una casella rossa?",
+                    "de": "Was zeigt ein rotes Feld auf der Seite der Scheibennummern an?",
+                    "es": "En la página de los números de dianas, ¿qué indica una casilla roja?"
+                },
                 "choices": [
-                    "Deux matchs sur la même cible à la même heure (ou sans heure)",
-                    "Un archer est absent",
-                    "La cible n'existe pas dans la compétition",
-                    "Le score est en attente de validation"
+                    {
+                        "fr": "Deux matchs sur la même cible à la même heure (ou sans heure)",
+                        "en": "Two matches on the same target at the same time (or with no time)",
+                        "it": "Due scontri sullo stesso bersaglio alla stessa ora (o senza ora)",
+                        "de": "Zwei Duelle auf derselben Scheibe zur selben Zeit (oder ohne Zeit)",
+                        "es": "Dos enfrentamientos en la misma diana a la misma hora (o sin hora)"
+                    },
+                    {
+                        "fr": "Un archer est absent",
+                        "en": "An archer is absent",
+                        "it": "Un arciere è assente",
+                        "de": "Ein Schütze fehlt",
+                        "es": "Falta un arquero"
+                    },
+                    {
+                        "fr": "La cible n'existe pas dans la compétition",
+                        "en": "The target does not exist in the competition",
+                        "it": "Il bersaglio non esiste nella gara",
+                        "de": "Die Scheibe gibt es im Turnier nicht",
+                        "es": "La diana no existe en la competición"
+                    },
+                    {
+                        "fr": "Le score est en attente de validation",
+                        "en": "The score is waiting to be approved",
+                        "it": "Il punteggio è in attesa di convalida",
+                        "de": "Das Ergebnis wartet auf Bestätigung",
+                        "es": "La puntuación está pendiente de validación"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Le rouge signale un conflit : deux matchs partagent la même cible au même moment, ou l'heure n'est pas définie."
+                "explain": {
+                    "fr": "Le rouge signale un conflit : deux matchs partagent la même cible au même moment, ou l'heure n'est pas définie.",
+                    "en": "Red means a clash: two matches share the same target at the same moment, or no time has been set.",
+                    "it": "Il rosso segnala un conflitto: due scontri condividono lo stesso bersaglio nello stesso momento, oppure l'ora non è definita.",
+                    "de": "Rot zeigt einen Konflikt an: zwei Duelle teilen sich dieselbe Scheibe zur selben Zeit, oder es ist keine Zeit festgelegt.",
+                    "es": "El rojo indica un conflicto: dos enfrentamientos comparten la misma diana al mismo tiempo, o no se ha definido la hora."
+                }
             },
             {
-                "q": "Que doit-on faire une fois les qualifications terminées, avant de lancer les duels ?",
+                "q": {
+                    "fr": "Que doit-on faire une fois les qualifications terminées, avant de lancer les duels ?",
+                    "en": "What must be done once qualification is over, before starting the matches?",
+                    "it": "Che cosa si deve fare una volta finite le qualificazioni, prima di lanciare gli scontri?",
+                    "de": "Was ist nach dem Ende der Qualifikation zu tun, bevor die Duelle beginnen?",
+                    "es": "¿Qué hay que hacer una vez terminada la calificación, antes de lanzar los enfrentamientos?"
+                },
                 "choices": [
-                    "Contrôler les ex-aequo avant les phases finales",
-                    "Supprimer les épreuves inutilisées",
-                    "Réimporter les licenciés",
-                    "Changer le format des duels"
+                    {
+                        "fr": "Contrôler les ex-aequo avant les phases finales",
+                        "en": "Check shoot-off before final phases",
+                        "it": "Risolvere gli spareggi per l'ingresso alle finali",
+                        "de": "Das Stechen vor der Teilnahme am Finale kontrollieren",
+                        "es": "Resolver los desempates antes de las fases finales"
+                    },
+                    {
+                        "fr": "Supprimer les épreuves inutilisées",
+                        "en": "Delete the unused events",
+                        "it": "Cancellare gli eventi inutilizzati",
+                        "de": "Die nicht genutzten Begegnungen löschen",
+                        "es": "Borrar las pruebas no utilizadas"
+                    },
+                    {
+                        "fr": "Réimporter les licenciés",
+                        "en": "Import the licence holders again",
+                        "it": "Reimportare i tesserati",
+                        "de": "Die Lizenzinhaber neu importieren",
+                        "es": "Volver a importar a los licenciados"
+                    },
+                    {
+                        "fr": "Changer le format des duels",
+                        "en": "Change the match format",
+                        "it": "Cambiare il formato degli scontri",
+                        "de": "Das Duellformat ändern",
+                        "es": "Cambiar el formato de los enfrentamientos"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Les archers à égalité doivent être départagés (barrage) avant que le tableau de duels ne soit figé."
+                "explain": {
+                    "fr": "Les archers à égalité doivent être départagés (barrage) avant que le tableau de duels ne soit figé.",
+                    "en": "Archers on the same score have to be separated (a shoot-off) before the bracket is fixed.",
+                    "it": "Gli arcieri a pari punteggio devono essere separati (spareggio) prima che il tabellone venga fissato.",
+                    "de": "Schützen mit gleichem Ergebnis müssen (durch ein Stechen) getrennt werden, bevor der Duellbaum festgelegt wird.",
+                    "es": "Los arqueros empatados deben separarse (desempate) antes de que el cuadro quede fijado."
+                }
             }
         ]
     },
     "challenge": {
-        "intro": "<p>À vous de jouer, <b>sans aide</b> cette fois.</p><p>Sur votre compétition 18 m ouverte :</p><ol><li>Assurez-vous d'avoir <b>8 archers d'une même catégorie</b>, avec la <b>participation aux épreuves individuelles à Oui</b> et un <b>score</b> saisi.</li><li>Configurez cette épreuve avec un <b>premier tour en 1/4 de finale</b>.</li><li>Attribuez au moins <b>une cible et un horaire</b> à un duel.</li></ol><p>Cliquez sur <b>Vérifier</b> quand vous pensez avoir terminé.</p>",
+        "intro": {
+            "fr": "<p>À vous de jouer, <b>sans aide</b> cette fois.</p><p>Sur votre compétition 18 m ouverte :</p><ol><li>Assurez-vous d'avoir <b>8 archers d'une même catégorie</b>, avec la <b>participation aux épreuves individuelles à Oui</b> et un <b>score</b> saisi.</li><li>Configurez cette épreuve avec un <b>premier tour en 1/4 de finale</b>.</li><li>Attribuez au moins <b>une cible et un horaire</b> à un duel.</li></ol><p>Cliquez sur <b>Vérifier</b> quand vous pensez avoir terminé.</p>",
+            "en": "<p>Your turn, <b>unaided</b> this time.</p><p>On your open 18 m competition:</p><ol><li>Make sure you have <b>8 archers in one class</b>, with <b>participation in the individual events set to Yes</b> and a <b>score</b> entered.</li><li>Set that event up with a <b>first phase at the quarter-finals</b>.</li><li>Give at least <b>one target and one time</b> to a match.</li></ol><p>Click <b>Check</b> when you think you are done.</p>",
+            "it": "<p>Tocca a te, <b>senza aiuto</b> questa volta.</p><p>Sulla tua gara 18 m aperta:</p><ol><li>Assicurati di avere <b>8 arcieri di una stessa classe</b>, con la <b>partecipazione agli eventi individuali su Sì</b> e un <b>punteggio</b> inserito.</li><li>Configura questo evento con una <b>fase di partenza ai quarti di finale</b>.</li><li>Assegna almeno <b>un bersaglio e un orario</b> a uno scontro.</li></ol><p>Clicca su <b>Verifica</b> quando pensi di aver finito.</p>",
+            "de": "<p>Sie sind dran, diesmal <b>ohne Hilfe</b>.</p><p>In Ihrem geöffneten 18-m-Turnier:</p><ol><li>Sorgen Sie für <b>8 Schützen einer Klasse</b>, mit der <b>Teilnahme an den Einzelbegegnungen auf Ja</b> und einem eingetragenen <b>Ergebnis</b>.</li><li>Richten Sie diese Begegnung mit einer <b>Startphase im Viertelfinale</b> ein.</li><li>Geben Sie einem Duell mindestens <b>eine Scheibe und eine Zeit</b>.</li></ol><p>Klicken Sie auf <b>Prüfen</b>, wenn Sie meinen, fertig zu sein.</p>",
+            "es": "<p>Le toca a usted, <b>sin ayuda</b> esta vez.</p><p>En su competición de 18 m abierta:</p><ol><li>Asegúrese de tener <b>8 arqueros de una misma clase</b>, con la <b>participación en las pruebas individuales en Sí</b> y una <b>puntuación</b> introducida.</li><li>Configure esa prueba con una <b>primera fase en cuartos de final</b>.</li><li>Asigne al menos <b>una diana y un horario</b> a un enfrentamiento.</li></ol><p>Haga clic en <b>Verificar</b> cuando crea haber terminado.</p>"
+        },
         "conditions": [
             "has_8_archers_same_category",
             "has_quarter_final_event",

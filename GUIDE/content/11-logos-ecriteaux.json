@@ -1,16 +1,47 @@
 {
-    "id": "logos-ecriteaux",
+    "lang": "fr",
+    "id": "909qweo299fcw4peo0z9",
     "type": "formation",
-    "title": "Logos et écriteaux (~10min)",
-    "description": "Habillez votre compétition : logos de la compétition, récupération automatique des logos des clubs depuis l'extranet FFTA, et impression d'écriteaux (fléchage, QR-codes, affichages).",
-    "version": "1.0",
-    "group": "Pour aller plus loin",
+    "title": {
+        "fr": "Logos et écriteaux (~10min)",
+        "en": "Logos and signs (~10 min)",
+        "it": "Loghi e cartelli (~10 min)",
+        "de": "Logos und Schilder (~10 Min.)",
+        "es": "Logotipos y señalizaciones (~10 min)"
+    },
+    "description": {
+        "fr": "Habillez votre compétition : logos de la compétition, récupération automatique des logos des clubs depuis l'extranet FFTA, et impression d'écriteaux (fléchage, QR-codes, affichages).",
+        "en": "Dress your competition: the competition logos, the club logos fetched automatically from the federation extranet, and printed signs (direction signs, QR codes, notices).",
+        "it": "Dai un'immagine alla tua gara: i loghi della gara, i loghi delle società recuperati automaticamente dall'extranet federale e la stampa dei cartelli (segnaletica, QR-code, avvisi).",
+        "de": "Geben Sie Ihrem Turnier ein Gesicht: die Turnierlogos, die Vereinslogos, die automatisch aus dem Verbands-Extranet geholt werden, und der Druck von Schildern (Wegweiser, QR-Codes, Aushänge).",
+        "es": "Dé imagen a su competición: los logotipos de la competición, los logotipos de los clubes recuperados automáticamente desde el extranet federativo, y la impresión de señalizaciones (indicaciones, códigos QR, avisos)."
+    },
+    "version": "1.1",
+    "group": {
+        "fr": "Pour aller plus loin",
+        "en": "Going further",
+        "it": "Per approfondire",
+        "de": "Weiterführendes",
+        "es": "Para ir más lejos"
+    },
     "order": 11,
     "steps": [
         {
             "id": "intro",
-            "title": "Trois choses différentes",
-            "content": "<p>Nous allons voir trois éléments visuels :<\/p><ul><li>les <b>logos de la compétition<\/b> : votre en-tête et votre bandeau, sur tous les documents PDF ;<\/li><li>les <b>logos des clubs<\/b> : récupérés automatiquement depuis l'<b>extranet FFTA<\/b>, ils s'affichent à côté de chaque archer ;<\/li><li>les <b>écriteaux<\/b> : les affiches que vous imprimez pour le gymnase (fléchage, accueil, QR-codes).<\/li><\/ul><p>Cliquez sur <b>Suivant<\/b>.<\/p>",
+            "title": {
+                "fr": "Trois choses différentes",
+                "en": "Three different things",
+                "it": "Tre cose diverse",
+                "de": "Drei verschiedene Dinge",
+                "es": "Tres cosas distintas"
+            },
+            "content": {
+                "fr": "<p>Nous allons voir trois éléments visuels :</p><ul><li>les <b>logos de la compétition</b> : votre en-tête et votre bandeau, sur tous les documents PDF ;</li><li>les <b>logos des clubs</b> : récupérés automatiquement depuis l'<b>extranet FFTA</b>, ils s'affichent à côté de chaque archer ;</li><li>les <b>écriteaux</b> : les affiches que vous imprimez pour le gymnase (fléchage, accueil, QR-codes).</li></ul><p>Cliquez sur <b>Suivant</b>.</p>",
+                "en": "<p>We are going to look at three visual elements:</p><ul><li>the <b>competition logos</b>: your header and your banner, on every PDF;</li><li>the <b>club logos</b>: fetched automatically from the <b>federation extranet</b>, they appear beside each archer;</li><li>the <b>signs</b>: the notices you print for the hall (direction signs, welcome desk, QR codes).</li></ul><p>Click <b>Next</b>.</p>",
+                "it": "<p>Vedremo tre elementi visivi:</p><ul><li>i <b>loghi della gara</b>: la tua intestazione e il tuo striscione, su tutti i PDF;</li><li>i <b>loghi delle società</b>: recuperati automaticamente dall'<b>extranet federale</b>, compaiono accanto a ogni arciere;</li><li>i <b>cartelli</b>: gli avvisi che stampi per il palazzetto (segnaletica, accoglienza, QR-code).</li></ul><p>Clicca su <b>Avanti</b>.</p>",
+                "de": "<p>Wir sehen uns drei sichtbare Bestandteile an:</p><ul><li>die <b>Turnierlogos</b>: Ihre Kopfzeile und Ihr Banner, auf allen PDF-Unterlagen;</li><li>die <b>Vereinslogos</b>: automatisch aus dem <b>Verbands-Extranet</b> geholt, erscheinen sie neben jedem Schützen;</li><li>die <b>Schilder</b>: die Aushänge, die Sie für die Halle drucken (Wegweiser, Empfang, QR-Codes).</li></ul><p>Klicken Sie auf <b>Weiter</b>.</p>",
+                "es": "<p>Vamos a ver tres elementos visuales:</p><ul><li>los <b>logotipos de la competición</b>: su encabezado y su banda, en todos los PDF;</li><li>los <b>logotipos de los clubes</b>: recuperados automáticamente desde el <b>extranet federativo</b>, aparecen junto a cada arquero;</li><li>las <b>señalizaciones</b>: los carteles que imprime para el pabellón (indicaciones, acogida, códigos QR).</li></ul><p>Haga clic en <b>Siguiente</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -18,8 +49,20 @@
         },
         {
             "id": "ouvrir",
-            "title": "Ouvrir une compétition",
-            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte<\/b>.<\/p>",
+            "title": {
+                "fr": "Ouvrir une compétition",
+                "en": "Open a competition",
+                "it": "Apri una gara",
+                "de": "Ein Turnier öffnen",
+                "es": "Abra una competición"
+            },
+            "content": {
+                "fr": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p>",
+                "en": "<p>The guide is waiting for a <b>competition to be open</b>.</p>",
+                "it": "<p>La guida attende che una <b>gara sia aperta</b>.</p>",
+                "de": "<p>Die Anleitung wartet darauf, dass ein <b>Turnier geöffnet</b> ist.</p>",
+                "es": "<p>La guía espera a que haya una <b>competición abierta</b>.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -33,15 +76,27 @@
         },
         {
             "id": "logos-competition",
-            "title": "Les logos de la compétition",
-            "content": "<p>Allez dans <b>Compétition &gt; Paramètres de la compétition &gt; Images<\/b>.<\/p><p>Vous pouvez charger <b>trois images<\/b> :<\/p><ul><li>le <b>logo de gauche<\/b> (souvent celui du club organisateur),<\/li><li>le <b>logo de droite<\/b> (souvent celui du comité ou de la FFTA),<\/li><li>la <b>bannière de pied de page<\/b> (partenaires, sponsors).<\/li><\/ul><p>Ces images apparaîtront sur <b>tous les documents PDF<\/b> générés : programme, plan de cible, feuilles de marque, classements.<\/p><p class=\"guide-tip\">💡 Une fois une image chargée, une case <b>Supprimer<\/b> apparaît à sa place pour la remplacer.<\/p>",
-            "page": "\/Tournament\/ManLogo.php",
+            "title": {
+                "fr": "Les logos de la compétition",
+                "en": "The competition logos",
+                "it": "I loghi della gara",
+                "de": "Die Turnierlogos",
+                "es": "Los logotipos de la competición"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Compétition &gt; Paramètres de la compétition &gt; Images</b>.</p><p>Vous pouvez charger <b>trois images</b> :</p><ul><li>le <b>logo de gauche</b> (souvent celui du club organisateur),</li><li>le <b>logo de droite</b> (souvent celui du comité ou de la FFTA),</li><li>la <b>bannière de pied de page</b> (partenaires, sponsors).</li></ul><p>Ces images apparaîtront sur <b>tous les documents PDF</b> générés : programme, plan de cible, feuilles de marque, classements.</p><p class=\"guide-tip\">💡 Une fois une image chargée, une case <b>Supprimer</b> apparaît à sa place pour la remplacer.</p>",
+                "en": "<p>Go to <b>Competition &gt; Edit Competition Info &gt; Images</b>.</p><p>You can load <b>three images</b>:</p><ul><li>the <b>left-hand logo</b> (often the organising club's),</li><li>the <b>right-hand logo</b> (often the regional body's or the federation's),</li><li>the <b>footer banner</b> (partners, sponsors).</li></ul><p>These images will appear on <b>every PDF</b> produced: the schedule, the target plan, the score sheets, the rankings.</p><p class=\"guide-tip\">💡 Once an image is loaded, a <b>Delete</b> box appears in its place so you can replace it.</p>",
+                "it": "<p>Vai in <b>Gara &gt; Modifica Dati Gara &gt; Immagini</b>.</p><p>Puoi caricare <b>tre immagini</b>:</p><ul><li>il <b>logo di sinistra</b> (spesso quello della società organizzatrice),</li><li>il <b>logo di destra</b> (spesso quello del comitato o della federazione),</li><li>lo <b>striscione a piè di pagina</b> (partner, sponsor).</li></ul><p>Queste immagini compariranno su <b>tutti i PDF</b> generati: programma, piano dei bersagli, score, classifiche.</p><p class=\"guide-tip\">💡 Una volta caricata un'immagine, al suo posto compare una casella <b>Elimina</b> per sostituirla.</p>",
+                "de": "<p>Gehen Sie zu <b>Turnier &gt; Turnierdaten ändern &gt; Logos</b>.</p><p>Sie können <b>drei Bilder</b> laden:</p><ul><li>das <b>linke Logo</b> (oft das des ausrichtenden Vereins),</li><li>das <b>rechte Logo</b> (oft das des Bezirks oder des Verbandes),</li><li>das <b>Fussbanner</b> (Partner, Sponsoren).</li></ul><p>Diese Bilder erscheinen auf <b>allen erzeugten PDF-Unterlagen</b>: Zeitplan, Scheibenplan, Scorekarten, Platzierungen.</p><p class=\"guide-tip\">💡 Ist ein Bild geladen, erscheint an seiner Stelle ein Feld <b>Löschen</b>, um es zu ersetzen.</p>",
+                "es": "<p>Vaya a <b>Competición &gt; Editar Datos de la Competición &gt; Imágenes</b>.</p><p>Puede cargar <b>tres imágenes</b>:</p><ul><li>el <b>logotipo de la izquierda</b> (a menudo el del club organizador),</li><li>el <b>logotipo de la derecha</b> (a menudo el del comité o el de la federación),</li><li>la <b>banda de pie de página</b> (socios, patrocinadores).</li></ul><p>Estas imágenes aparecerán en <b>todos los PDF</b> generados: programa, plano de dianas, hojas de puntuación, clasificaciones.</p><p class=\"guide-tip\">💡 Una vez cargada una imagen, en su lugar aparece una casilla <b>Eliminar</b> para sustituirla.</p>"
+            },
+            "page": "/Tournament/ManLogo.php",
             "triggers": [
                 {
                     "kind": "etat",
                     "condition": "__page",
                     "required": true,
-                    "page": "\/Tournament\/ManLogo.php"
+                    "page": "/Tournament/ManLogo.php"
                 },
                 {
                     "kind": "etat",
@@ -54,15 +109,27 @@
         },
         {
             "id": "logos-clubs",
-            "title": "Les logos des clubs (extranet FFTA)",
-            "content": "<p>ianseo sait récupérer <b>automatiquement<\/b> le logo de chaque club présent dans votre compétition.<\/p><p><b>Prérequis :<\/b> le club doit avoir <b>déposé son logo<\/b> sur l'espace extranet FFTA. Vous ne pouvez rien faire à sa place.<\/p><p><b>Comment faire :<\/b> allez dans <b>Participants &gt; Synchronisation des compétiteurs<\/b>, cochez la case <b>logo<\/b>, puis lancez la <b>synchronisation des données des athlètes<\/b>.<\/p><p>Le résultat s'affiche en <b>fin de ligne<\/b> pour chaque club :<\/p><ul><li><b>OK<\/b> → le logo a été trouvé et importé,<\/li><li><b>None<\/b> (Aucun) → le club n'a pas déposé de logo sur l'extranet.<\/li><\/ul><p class=\"guide-tip\">💡 Un <b>None<\/b> n'est pas une erreur de votre part : c'est au club de déposer son logo sur l'extranet FFTA. Rien à corriger dans ianseo.<\/p>",
-            "page": "\/Partecipants\/LookupTableLoad.php",
+            "title": {
+                "fr": "Les logos des clubs (extranet FFTA)",
+                "en": "The club logos (federation extranet)",
+                "it": "I loghi delle società (extranet federale)",
+                "de": "Die Vereinslogos (Verbands-Extranet)",
+                "es": "Los logotipos de los clubes (extranet federativo)"
+            },
+            "content": {
+                "fr": "<p>ianseo sait récupérer <b>automatiquement</b> le logo de chaque club présent dans votre compétition.</p><p><b>Prérequis :</b> le club doit avoir <b>déposé son logo</b> sur l'espace extranet FFTA. Vous ne pouvez rien faire à sa place.</p><p><b>Comment faire :</b> allez dans <b>Participants &gt; Synchronisation des compétiteurs</b>, cochez la case <b>logo</b>, puis lancez la <b>synchronisation des données des athlètes</b>.</p><p>Le résultat s'affiche en <b>fin de ligne</b> pour chaque club :</p><ul><li><b>OK</b> → le logo a été trouvé et importé,</li><li><b>None</b> (Aucun) → le club n'a pas déposé de logo sur l'extranet.</li></ul><p class=\"guide-tip\">💡 Un <b>None</b> n'est pas une erreur de votre part : c'est au club de déposer son logo sur l'extranet FFTA. Rien à corriger dans ianseo.</p>",
+                "en": "<p>ianseo can fetch the logo of every club taking part in your competition <b>automatically</b>.</p><p><b>What it needs:</b> the club must have <b>uploaded its logo</b> to the federation extranet. You cannot do it on their behalf.</p><p><b>How:</b> go to <b>Participants &gt; Athletes Sync.</b>, tick the <b>logo</b> box, then run the <b>athlete data synchronisation</b>.</p><p>The result appears at the <b>end of the line</b> for each club:</p><ul><li><b>OK</b> → the logo was found and imported,</li><li><b>None</b> → the club has not uploaded a logo to the extranet.</li></ul><p class=\"guide-tip\">💡 A <b>None</b> is not a mistake on your side: it is up to the club to upload its logo to the federation extranet. Nothing to fix in ianseo.</p>",
+                "it": "<p>ianseo sa recuperare <b>automaticamente</b> il logo di ogni società presente nella tua gara.</p><p><b>Requisito:</b> la società deve aver <b>caricato il proprio logo</b> sull'extranet federale. Non puoi farlo al suo posto.</p><p><b>Come fare:</b> vai in <b>Partecipanti &gt; Aggiornamento Arcieri</b>, spunta la casella <b>logo</b>, poi avvia la <b>sincronizzazione dei dati degli atleti</b>.</p><p>Il risultato compare a <b>fine riga</b> per ogni società:</p><ul><li><b>OK</b> → il logo è stato trovato e importato,</li><li><b>None</b> (Nessuno) → la società non ha caricato alcun logo sull'extranet.</li></ul><p class=\"guide-tip\">💡 Un <b>None</b> non è un tuo errore: tocca alla società caricare il proprio logo sull'extranet federale. Nulla da correggere in ianseo.</p>",
+                "de": "<p>ianseo kann das Logo jedes Vereins, der an Ihrem Turnier teilnimmt, <b>automatisch</b> holen.</p><p><b>Voraussetzung:</b> der Verein muss sein <b>Logo hochgeladen</b> haben, im Verbands-Extranet. Sie können das nicht an seiner Stelle tun.</p><p><b>So geht es:</b> gehen Sie zu <b>Teilnehmer &gt; Aktualisierung der Schützen</b>, haken Sie das Feld <b>Logo</b> an und starten Sie dann den <b>Abgleich der Schützendaten</b>.</p><p>Das Ergebnis steht am <b>Ende der Zeile</b> jedes Vereins:</p><ul><li><b>OK</b> → das Logo wurde gefunden und übernommen,</li><li><b>None</b> (keines) → der Verein hat kein Logo ins Extranet gestellt.</li></ul><p class=\"guide-tip\">💡 Ein <b>None</b> ist kein Fehler auf Ihrer Seite: es ist Sache des Vereins, sein Logo ins Verbands-Extranet zu stellen. In ianseo gibt es nichts zu korrigieren.</p>",
+                "es": "<p>ianseo sabe recuperar <b>automáticamente</b> el logotipo de cada club presente en su competición.</p><p><b>Requisito:</b> el club debe haber <b>subido su logotipo</b> al extranet federativo. Usted no puede hacerlo en su lugar.</p><p><b>Cómo hacerlo:</b> vaya a <b>Participantes &gt; Sincronización Archivo de Arqueros</b>, marque la casilla <b>logo</b> y lance la <b>sincronización de los datos de los atletas</b>.</p><p>El resultado aparece al <b>final de la línea</b> de cada club:</p><ul><li><b>OK</b> → el logotipo se ha encontrado e importado,</li><li><b>None</b> (Ninguno) → el club no ha subido ningún logotipo al extranet.</li></ul><p class=\"guide-tip\">💡 Un <b>None</b> no es un error suyo: le corresponde al club subir su logotipo al extranet federativo. Nada que corregir en ianseo.</p>"
+            },
+            "page": "/Partecipants/LookupTableLoad.php",
             "triggers": [
                 {
                     "kind": "etat",
                     "condition": "__page",
                     "required": true,
-                    "page": "\/Partecipants\/LookupTableLoad.php"
+                    "page": "/Partecipants/LookupTableLoad.php"
                 }
             ],
             "optional": false,
@@ -70,23 +137,41 @@
         },
         {
             "id": "ecriteaux-simple",
-            "title": "Les écriteaux — page simple",
-            "content": "<p>Allez dans <b>Impressions &gt; Écriteau<\/b>.<\/p><p>Les écriteaux reprennent automatiquement l'<b>en-tête et le pied de page<\/b> de votre compétition (vos logos !). Vous obtenez donc des affiches <b>à votre charte<\/b>, sans travail de mise en page.<\/p><p>La <b>première partie<\/b> de la page produit une <b>page simple<\/b> :<\/p><ul><li>une <b>première ligne<\/b> (grand texte),<\/li><li>une <b>seconde ligne<\/b> — utilisez ici des <b>flèches de direction<\/b> pour le fléchage,<\/li><li>un <b>QR-Code<\/b> (par exemple le lien vers les résultats en ligne).<\/li><\/ul><p class=\"guide-tip\">💡 Idéal pour : « Accueil \/ Greffe → », « Vestiaires → », « Résultats en direct » avec le QR-code.<\/p>",
-            "page": "\/Common\/Sign\/",
+            "title": {
+                "fr": "Les écriteaux — page simple",
+                "en": "Signs — the simple page",
+                "it": "I cartelli — pagina semplice",
+                "de": "Schilder — die einfache Seite",
+                "es": "Las señalizaciones — página sencilla"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Impressions &gt; Écriteau</b>.</p><p>Les écriteaux reprennent automatiquement l'<b>en-tête et le pied de page</b> de votre compétition (vos logos !). Vous obtenez donc des affiches <b>à votre charte</b>, sans travail de mise en page.</p><p>La <b>première partie</b> de la page produit une <b>page simple</b> :</p><ul><li>une <b>première ligne</b> (grand texte),</li><li>une <b>seconde ligne</b> — utilisez ici des <b>flèches de direction</b> pour le fléchage,</li><li>un <b>QR-Code</b> (par exemple le lien vers les résultats en ligne).</li></ul><p class=\"guide-tip\">💡 Idéal pour : « Accueil / Greffe → », « Vestiaires → », « Résultats en direct » avec le QR-code.</p>",
+                "en": "<p>Go to <b>Printout &gt; Print Sign</b>.</p><p>Signs automatically pick up the <b>header and footer</b> of your competition (your logos!). So you get notices <b>in your own house style</b>, with no layout work.</p><p>The <b>first part</b> of the page produces a <b>simple page</b>:</p><ul><li>a <b>first line</b> (large text),</li><li>a <b>second line</b> — use <b>direction arrows</b> here for signposting,</li><li>a <b>QR code</b> (the link to the online results, for instance).</li></ul><p class=\"guide-tip\">💡 Ideal for: \"Welcome / Registration →\", \"Changing rooms →\", \"Live results\" with the QR code.</p>",
+                "it": "<p>Vai in <b>Stampe &gt; Cartelli</b>.</p><p>I cartelli riprendono automaticamente l'<b>intestazione e il piè di pagina</b> della tua gara (i tuoi loghi!). Ottieni quindi avvisi <b>nella tua veste grafica</b>, senza alcun lavoro di impaginazione.</p><p>La <b>prima parte</b> della pagina produce una <b>pagina semplice</b>:</p><ul><li>una <b>prima riga</b> (testo grande),</li><li>una <b>seconda riga</b> — usa qui delle <b>frecce direzionali</b> per la segnaletica,</li><li>un <b>QR-Code</b> (per esempio il collegamento ai risultati online).</li></ul><p class=\"guide-tip\">💡 Ideale per: «Accoglienza / Segreteria →», «Spogliatoi →», «Risultati in diretta» con il QR-code.</p>",
+                "de": "<p>Gehen Sie zu <b>Druck &gt; Schilder</b>.</p><p>Schilder übernehmen automatisch <b>Kopf- und Fusszeile</b> Ihres Turniers (Ihre Logos!). Sie erhalten also Aushänge <b>in Ihrem eigenen Erscheinungsbild</b>, ganz ohne Layoutarbeit.</p><p>Der <b>erste Teil</b> der Seite erzeugt eine <b>einfache Seite</b>:</p><ul><li>eine <b>erste Zeile</b> (grosser Text),</li><li>eine <b>zweite Zeile</b> — nehmen Sie hier <b>Richtungspfeile</b> für die Wegweisung,</li><li>einen <b>QR-Code</b> (etwa den Link zu den Ergebnissen im Netz).</li></ul><p class=\"guide-tip\">💡 Ideal für: „Empfang / Meldestelle →\", „Umkleiden →\", „Ergebnisse live\" mit dem QR-Code.</p>",
+                "es": "<p>Vaya a <b>Listados para imprimir &gt; Imprimir Señalizaciones</b>.</p><p>Las señalizaciones recogen automáticamente el <b>encabezado y el pie de página</b> de su competición (¡sus logotipos!). Obtiene así carteles <b>con su imagen</b>, sin ningún trabajo de maquetación.</p><p>La <b>primera parte</b> de la página produce una <b>página sencilla</b>:</p><ul><li>una <b>primera línea</b> (texto grande),</li><li>una <b>segunda línea</b> — use aquí <b>flechas de dirección</b> para la señalización,</li><li>un <b>código QR</b> (por ejemplo el enlace a los resultados en línea).</li></ul><p class=\"guide-tip\">💡 Ideal para: «Acogida / Secretaría →», «Vestuarios →», «Resultados en directo» con el código QR.</p>"
+            },
+            "page": "/Common/Sign/",
             "triggers": [
                 {
                     "kind": "etat",
                     "condition": "__page",
                     "required": true,
-                    "page": "\/Common\/Sign\/"
+                    "page": "/Common/Sign/"
                 },
                 {
                     "kind": "action",
                     "trigger": "focus",
                     "selector": "input[name=\"First\"]",
                     "required": true,
-                    "page": "\/Common\/Sign\/",
-                    "hint": "Le grand texte de votre écriteau"
+                    "page": "/Common/Sign/",
+                    "hint": {
+                        "fr": "Le grand texte de votre écriteau",
+                        "en": "The large text of your sign",
+                        "it": "Il testo grande del tuo cartello",
+                        "de": "Der grosse Text Ihres Schildes",
+                        "es": "El texto grande de su cartel"
+                    }
                 }
             ],
             "optional": false,
@@ -94,17 +179,35 @@
         },
         {
             "id": "ecriteaux-document",
-            "title": "Les écriteaux — document long",
-            "content": "<p>La <b>seconde partie<\/b> de la même page permet de produire des <b>textes plus longs<\/b>, avec un <b>Titre<\/b>, un <b>Sujet<\/b> et un <b>corps de texte<\/b>.<\/p><p>Le corps accepte une <b>mise en forme HTML<\/b> : vous pouvez donc utiliser gras, listes, sauts de ligne…<\/p><p class=\"guide-tip\">💡 Parfait pour afficher le <b>règlement intérieur<\/b>, les <b>consignes de sécurité<\/b> ou le <b>mot d'accueil<\/b> du président, toujours à l'en-tête de la compétition.<\/p>",
-            "page": "\/Common\/Sign\/",
+            "title": {
+                "fr": "Les écriteaux — document long",
+                "en": "Signs — the long document",
+                "it": "I cartelli — documento lungo",
+                "de": "Schilder — das lange Dokument",
+                "es": "Las señalizaciones — documento largo"
+            },
+            "content": {
+                "fr": "<p>La <b>seconde partie</b> de la même page permet de produire des <b>textes plus longs</b>, avec un <b>Titre</b>, un <b>Sujet</b> et un <b>corps de texte</b>.</p><p>Le corps accepte une <b>mise en forme HTML</b> : vous pouvez donc utiliser gras, listes, sauts de ligne…</p><p class=\"guide-tip\">💡 Parfait pour afficher le <b>règlement intérieur</b>, les <b>consignes de sécurité</b> ou le <b>mot d'accueil</b> du président, toujours à l'en-tête de la compétition.</p>",
+                "en": "<p>The <b>second part</b> of the same page produces <b>longer texts</b>, with a <b>Title</b>, a <b>Subject</b> and a <b>body</b>.</p><p>The body accepts <b>HTML formatting</b>: you can use bold, lists, line breaks and so on.</p><p class=\"guide-tip\">💡 Perfect for displaying the <b>house rules</b>, the <b>safety instructions</b> or the president's <b>welcome message</b>, always with the competition header.</p>",
+                "it": "<p>La <b>seconda parte</b> della stessa pagina permette di produrre <b>testi più lunghi</b>, con un <b>Titolo</b>, un <b>Oggetto</b> e un <b>corpo del testo</b>.</p><p>Il corpo accetta la <b>formattazione HTML</b>: puoi quindi usare grassetto, elenchi, interruzioni di riga…</p><p class=\"guide-tip\">💡 Perfetto per esporre il <b>regolamento interno</b>, le <b>norme di sicurezza</b> o il <b>saluto</b> del presidente, sempre con l'intestazione della gara.</p>",
+                "de": "<p>Der <b>zweite Teil</b> derselben Seite erzeugt <b>längere Texte</b>, mit einem <b>Titel</b>, einem <b>Betreff</b> und einem <b>Textkörper</b>.</p><p>Der Textkörper nimmt <b>HTML-Formatierung</b> an: Sie können also Fettdruck, Listen, Zeilenumbrüche verwenden.</p><p class=\"guide-tip\">💡 Ideal, um die <b>Hausordnung</b>, die <b>Sicherheitshinweise</b> oder das <b>Grusswort</b> des Präsidenten auszuhängen, immer mit der Kopfzeile des Turniers.</p>",
+                "es": "<p>La <b>segunda parte</b> de la misma página permite producir <b>textos más largos</b>, con un <b>Título</b>, un <b>Asunto</b> y un <b>cuerpo de texto</b>.</p><p>El cuerpo admite <b>formato HTML</b>: puede usar negrita, listas, saltos de línea…</p><p class=\"guide-tip\">💡 Perfecto para exponer el <b>reglamento interno</b>, las <b>normas de seguridad</b> o el <b>saludo</b> del presidente, siempre con el encabezado de la competición.</p>"
+            },
+            "page": "/Common/Sign/",
             "triggers": [
                 {
                     "kind": "action",
                     "trigger": "focus",
                     "selector": "textarea[name=\"Body\"]",
                     "required": true,
-                    "page": "\/Common\/Sign\/",
-                    "hint": "Corps du document (mise en forme HTML acceptée)"
+                    "page": "/Common/Sign/",
+                    "hint": {
+                        "fr": "Corps du document (mise en forme HTML acceptée)",
+                        "en": "Body of the document (HTML formatting accepted)",
+                        "it": "Corpo del documento (formattazione HTML accettata)",
+                        "de": "Textkörper des Dokuments (HTML-Formatierung erlaubt)",
+                        "es": "Cuerpo del documento (se admite formato HTML)"
+                    }
                 }
             ],
             "optional": true,
@@ -112,8 +215,20 @@
         },
         {
             "id": "fin",
-            "title": "C'est terminé !",
-            "content": "<p>Votre compétition a une identité visuelle.<\/p><p><b>À retenir :<\/b><\/p><ul><li><b>Compétition &gt; Paramètres de la compétition &gt; Images<\/b> : vos deux logos + la bannière, repris sur tous les PDF.<\/li><li>Les <b>logos des clubs<\/b> se récupèrent via la <b>synchronisation<\/b> (case « logo ») — <b>None<\/b> = le club n'en a pas déposé sur l'extranet FFTA.<\/li><li><b>Impressions &gt; Écriteau<\/b> : affiches et fléchage, à votre charte, avec QR-code possible.<\/li><\/ul><p>Place au <b>QCM<\/b> et au <b>défi<\/b> !<\/p>",
+            "title": {
+                "fr": "C'est terminé !",
+                "en": "That's it!",
+                "it": "Finito!",
+                "de": "Fertig!",
+                "es": "¡Terminado!"
+            },
+            "content": {
+                "fr": "<p>Votre compétition a une identité visuelle.</p><p><b>À retenir :</b></p><ul><li><b>Compétition &gt; Paramètres de la compétition &gt; Images</b> : vos deux logos + la bannière, repris sur tous les PDF.</li><li>Les <b>logos des clubs</b> se récupèrent via la <b>synchronisation</b> (case « logo ») — <b>None</b> = le club n'en a pas déposé sur l'extranet FFTA.</li><li><b>Impressions &gt; Écriteau</b> : affiches et fléchage, à votre charte, avec QR-code possible.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+                "en": "<p>Your competition has a visual identity.</p><p><b>What to remember:</b></p><ul><li><b>Competition &gt; Edit Competition Info &gt; Images</b>: your two logos and the banner, carried onto every PDF.</li><li>The <b>club logos</b> are fetched through the <b>synchronisation</b> (the \"logo\" box) — <b>None</b> = the club has not uploaded one to the federation extranet.</li><li><b>Printout &gt; Print Sign</b>: notices and signposting, in your house style, with an optional QR code.</li></ul><p>Now for the <b>quiz</b> and the <b>challenge</b>!</p>",
+                "it": "<p>La tua gara ha un'identità visiva.</p><p><b>Da ricordare:</b></p><ul><li><b>Gara &gt; Modifica Dati Gara &gt; Immagini</b>: i tuoi due loghi e lo striscione, ripresi su tutti i PDF.</li><li>I <b>loghi delle società</b> si recuperano con la <b>sincronizzazione</b> (casella «logo») — <b>None</b> = la società non ne ha caricato alcuno sull'extranet federale.</li><li><b>Stampe &gt; Cartelli</b>: avvisi e segnaletica, nella tua veste grafica, con QR-code possibile.</li></ul><p>Spazio al <b>quiz</b> e alla <b>sfida</b>!</p>",
+                "de": "<p>Ihr Turnier hat ein eigenes Erscheinungsbild.</p><p><b>Zum Merken:</b></p><ul><li><b>Turnier &gt; Turnierdaten ändern &gt; Logos</b>: Ihre zwei Logos und das Banner, auf allen PDF-Unterlagen übernommen.</li><li>Die <b>Vereinslogos</b> kommen über den <b>Abgleich</b> (Feld „Logo\") — <b>None</b> = der Verein hat keines ins Verbands-Extranet gestellt.</li><li><b>Druck &gt; Schilder</b>: Aushänge und Wegweiser, in Ihrem Erscheinungsbild, wahlweise mit QR-Code.</li></ul><p>Weiter zum <b>Quiz</b> und zur <b>Aufgabe</b>!</p>",
+                "es": "<p>Su competición tiene una identidad visual.</p><p><b>Para recordar:</b></p><ul><li><b>Competición &gt; Editar Datos de la Competición &gt; Imágenes</b>: sus dos logotipos y la banda, recogidos en todos los PDF.</li><li>Los <b>logotipos de los clubes</b> se recuperan mediante la <b>sincronización</b> (casilla «logo») — <b>None</b> = el club no ha subido ninguno al extranet federativo.</li><li><b>Listados para imprimir &gt; Imprimir Señalizaciones</b>: carteles e indicaciones, con su imagen y con código QR opcional.</li></ul><p>¡Adelante con el <b>cuestionario</b> y el <b>reto</b>!</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -124,54 +239,204 @@
         "pass_score": 70,
         "questions": [
             {
-                "q": "Le logo d'un club affiche « None » après la synchronisation. Que faut-il faire ?",
+                "q": {
+                    "fr": "Le logo d'un club affiche « None » après la synchronisation. Que faut-il faire ?",
+                    "en": "A club's logo shows \"None\" after the synchronisation. What should you do?",
+                    "it": "Il logo di una società mostra «None» dopo la sincronizzazione. Che cosa bisogna fare?",
+                    "de": "Das Logo eines Vereins zeigt nach dem Abgleich „None\". Was ist zu tun?",
+                    "es": "El logotipo de un club muestra «None» después de la sincronización. ¿Qué hay que hacer?"
+                },
                 "choices": [
-                    "Rien dans ianseo : c'est au club de déposer son logo sur l'extranet FFTA",
-                    "Recharger la page de synchronisation",
-                    "Charger le logo manuellement dans Images",
-                    "Supprimer puis réinscrire les archers de ce club"
+                    {
+                        "fr": "Rien dans ianseo : c'est au club de déposer son logo sur l'extranet FFTA",
+                        "en": "Nothing in ianseo: it is up to the club to upload its logo to the federation extranet",
+                        "it": "Nulla in ianseo: tocca alla società caricare il proprio logo sull'extranet federale",
+                        "de": "Nichts in ianseo: es ist Sache des Vereins, sein Logo ins Verbands-Extranet zu stellen",
+                        "es": "Nada en ianseo: le corresponde al club subir su logotipo al extranet federativo"
+                    },
+                    {
+                        "fr": "Recharger la page de synchronisation",
+                        "en": "Reload the synchronisation page",
+                        "it": "Ricaricare la pagina di sincronizzazione",
+                        "de": "Die Abgleichseite neu laden",
+                        "es": "Recargar la página de sincronización"
+                    },
+                    {
+                        "fr": "Charger le logo manuellement dans Images",
+                        "en": "Load the logo by hand under Images",
+                        "it": "Caricare il logo a mano in Immagini",
+                        "de": "Das Logo von Hand unter Logos laden",
+                        "es": "Cargar el logotipo a mano en Imágenes"
+                    },
+                    {
+                        "fr": "Supprimer puis réinscrire les archers de ce club",
+                        "en": "Delete and re-enter the archers of that club",
+                        "it": "Cancellare e reiscrivere gli arcieri di quella società",
+                        "de": "Die Schützen dieses Vereins löschen und neu melden",
+                        "es": "Borrar y volver a inscribir a los arqueros de ese club"
+                    }
                 ],
                 "correct": 0,
-                "explain": "ianseo ne fait que récupérer le logo mis à disposition sur l'extranet FFTA. Sans dépôt, il n'y a rien à importer."
+                "explain": {
+                    "fr": "ianseo ne fait que récupérer le logo mis à disposition sur l'extranet FFTA. Sans dépôt, il n'y a rien à importer.",
+                    "en": "ianseo only fetches the logo made available on the federation extranet. With nothing uploaded, there is nothing to import.",
+                    "it": "ianseo si limita a recuperare il logo messo a disposizione sull'extranet federale. Senza caricamento, non c'è nulla da importare.",
+                    "de": "ianseo holt lediglich das Logo, das im Verbands-Extranet bereitsteht. Ist keines hochgeladen, gibt es nichts zu übernehmen.",
+                    "es": "ianseo solo recupera el logotipo puesto a disposición en el extranet federativo. Sin subida, no hay nada que importar."
+                }
             },
             {
-                "q": "Comment récupère-t-on les logos des clubs ?",
+                "q": {
+                    "fr": "Comment récupère-t-on les logos des clubs ?",
+                    "en": "How are the club logos fetched?",
+                    "it": "Come si recuperano i loghi delle società?",
+                    "de": "Wie werden die Vereinslogos geholt?",
+                    "es": "¿Cómo se recuperan los logotipos de los clubes?"
+                },
                 "choices": [
-                    "En cochant la case « logo » puis en lançant la synchronisation des athlètes",
-                    "Dans Compétition > Paramètres de la compétition > Images",
-                    "Dans Impressions > Écriteau",
-                    "En les téléchargeant un par un sur le site du club"
+                    {
+                        "fr": "En cochant la case « logo » puis en lançant la synchronisation des athlètes",
+                        "en": "By ticking the \"logo\" box and then running the athlete synchronisation",
+                        "it": "Spuntando la casella «logo» e poi avviando la sincronizzazione degli atleti",
+                        "de": "Indem man das Feld „Logo\" anhakt und dann den Schützenabgleich startet",
+                        "es": "Marcando la casilla «logo» y lanzando después la sincronización de los atletas"
+                    },
+                    {
+                        "fr": "Dans Compétition > Paramètres de la compétition > Images",
+                        "en": "Under Competition > Edit Competition Info > Images",
+                        "it": "In Gara > Modifica Dati Gara > Immagini",
+                        "de": "Unter Turnier > Turnierdaten ändern > Logos",
+                        "es": "En Competición > Editar Datos de la Competición > Imágenes"
+                    },
+                    {
+                        "fr": "Dans Impressions > Écriteau",
+                        "en": "Under Printout > Print Sign",
+                        "it": "In Stampe > Cartelli",
+                        "de": "Unter Druck > Schilder",
+                        "es": "En Listados para imprimir > Imprimir Señalizaciones"
+                    },
+                    {
+                        "fr": "En les téléchargeant un par un sur le site du club",
+                        "en": "By downloading them one by one from the club's website",
+                        "it": "Scaricandoli uno per uno dal sito della società",
+                        "de": "Indem man sie einzeln von der Website des Vereins lädt",
+                        "es": "Descargándolos uno a uno de la web del club"
+                    }
                 ],
                 "correct": 0,
-                "explain": "C'est la synchronisation des compétiteurs qui va chercher les logos sur l'extranet."
+                "explain": {
+                    "fr": "C'est la synchronisation des compétiteurs qui va chercher les logos sur l'extranet.",
+                    "en": "It is the competitor synchronisation that goes and gets the logos from the extranet.",
+                    "it": "È la sincronizzazione degli arcieri che va a prendere i loghi sull'extranet.",
+                    "de": "Der Abgleich der Schützen ist es, der die Logos aus dem Extranet holt.",
+                    "es": "Es la sincronización de los arqueros la que va a buscar los logotipos al extranet."
+                }
             },
             {
-                "q": "Où charge-t-on les logos de la compétition (en-tête et bannière) ?",
+                "q": {
+                    "fr": "Où charge-t-on les logos de la compétition (en-tête et bannière) ?",
+                    "en": "Where do you load the competition logos (header and banner)?",
+                    "it": "Dove si caricano i loghi della gara (intestazione e striscione)?",
+                    "de": "Wo lädt man die Turnierlogos (Kopfzeile und Banner)?",
+                    "es": "¿Dónde se cargan los logotipos de la competición (encabezado y banda)?"
+                },
                 "choices": [
-                    "Compétition > Paramètres de la compétition > Images",
-                    "Participants > Impressions",
-                    "Sorties > Sorties TV",
-                    "Impressions > Écriteau"
+                    {
+                        "fr": "Compétition > Paramètres de la compétition > Images",
+                        "en": "Competition > Edit Competition Info > Images",
+                        "it": "Gara > Modifica Dati Gara > Immagini",
+                        "de": "Turnier > Turnierdaten ändern > Logos",
+                        "es": "Competición > Editar Datos de la Competición > Imágenes"
+                    },
+                    {
+                        "fr": "Participants > Impressions",
+                        "en": "Participants > Printout",
+                        "it": "Partecipanti > Stampe",
+                        "de": "Teilnehmer > Druck",
+                        "es": "Participantes > Listados para imprimir"
+                    },
+                    {
+                        "fr": "Sorties > Sorties TV",
+                        "en": "Outputs > TV outputs",
+                        "it": "Uscite > Uscite TV",
+                        "de": "Ausgaben > TV-Ausgaben",
+                        "es": "Salidas > Salidas de TV"
+                    },
+                    {
+                        "fr": "Impressions > Écriteau",
+                        "en": "Printout > Print Sign",
+                        "it": "Stampe > Cartelli",
+                        "de": "Druck > Schilder",
+                        "es": "Listados para imprimir > Imprimir Señalizaciones"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Trois images : logo gauche, logo droit et bannière de pied de page."
+                "explain": {
+                    "fr": "Trois images : logo gauche, logo droit et bannière de pied de page.",
+                    "en": "Three images: the left logo, the right logo and the footer banner.",
+                    "it": "Tre immagini: logo di sinistra, logo di destra e striscione a piè di pagina.",
+                    "de": "Drei Bilder: linkes Logo, rechtes Logo und Fussbanner.",
+                    "es": "Tres imágenes: logotipo izquierdo, logotipo derecho y banda de pie de página."
+                }
             },
             {
-                "q": "Quel est l'intérêt principal des écriteaux de ianseo ?",
+                "q": {
+                    "fr": "Quel est l'intérêt principal des écriteaux de ianseo ?",
+                    "en": "What is the main point of ianseo's signs?",
+                    "it": "Qual è il vantaggio principale dei cartelli di ianseo?",
+                    "de": "Worin liegt der grösste Vorteil der Schilder von ianseo?",
+                    "es": "¿Cuál es la principal ventaja de las señalizaciones de ianseo?"
+                },
                 "choices": [
-                    "Ils reprennent automatiquement l'en-tête et le pied de page de la compétition",
-                    "Ils affichent les scores en direct",
-                    "Ils remplacent les feuilles de marque",
-                    "Ils envoient les résultats à la FFTA"
+                    {
+                        "fr": "Ils reprennent automatiquement l'en-tête et le pied de page de la compétition",
+                        "en": "They automatically pick up the header and footer of the competition",
+                        "it": "Riprendono automaticamente l'intestazione e il piè di pagina della gara",
+                        "de": "Sie übernehmen automatisch Kopf- und Fusszeile des Turniers",
+                        "es": "Recogen automáticamente el encabezado y el pie de página de la competición"
+                    },
+                    {
+                        "fr": "Ils affichent les scores en direct",
+                        "en": "They show the scores live",
+                        "it": "Mostrano i punteggi in diretta",
+                        "de": "Sie zeigen die Ergebnisse live an",
+                        "es": "Muestran las puntuaciones en directo"
+                    },
+                    {
+                        "fr": "Ils remplacent les feuilles de marque",
+                        "en": "They replace the score sheets",
+                        "it": "Sostituiscono gli score",
+                        "de": "Sie ersetzen die Scorekarten",
+                        "es": "Sustituyen a las hojas de puntuación"
+                    },
+                    {
+                        "fr": "Ils envoient les résultats à la FFTA",
+                        "en": "They send the results to the federation",
+                        "it": "Inviano i risultati alla federazione",
+                        "de": "Sie senden die Ergebnisse an den Verband",
+                        "es": "Envían los resultados a la federación"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Les écriteaux sont à la charte de votre compétition sans aucun travail de mise en page."
+                "explain": {
+                    "fr": "Les écriteaux sont à la charte de votre compétition sans aucun travail de mise en page.",
+                    "en": "The signs come out in your competition's house style with no layout work at all.",
+                    "it": "I cartelli escono nella veste grafica della tua gara senza alcun lavoro di impaginazione.",
+                    "de": "Die Schilder erscheinen im Erscheinungsbild Ihres Turniers, ganz ohne Layoutarbeit.",
+                    "es": "Las señalizaciones salen con la imagen de su competición sin ningún trabajo de maquetación."
+                }
             }
         ],
         "shuffle": true
     },
     "challenge": {
-        "intro": "<p>À vous de jouer.<\/p><ol><li>Ouvrez une compétition.<\/li><li>Chargez au moins <b>une image<\/b> (logo de gauche, de droite ou bannière) dans <b>Compétition &gt; Paramètres de la compétition &gt; Images<\/b>.<\/li><\/ol><p class=\"guide-tip\">💡 Profitez-en pour aller créer un écriteau de fléchage — même si le défi ne le vérifie pas, votre gymnase vous remerciera.<\/p><p>Cliquez sur <b>Vérifier<\/b> quand c'est fait.<\/p>",
+        "intro": {
+            "fr": "<p>À vous de jouer.</p><ol><li>Ouvrez une compétition.</li><li>Chargez au moins <b>une image</b> (logo de gauche, de droite ou bannière) dans <b>Compétition &gt; Paramètres de la compétition &gt; Images</b>.</li></ol><p class=\"guide-tip\">💡 Profitez-en pour aller créer un écriteau de fléchage — même si le défi ne le vérifie pas, votre gymnase vous remerciera.</p><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+            "en": "<p>Your turn.</p><ol><li>Open a competition.</li><li>Load at least <b>one image</b> (left logo, right logo or banner) under <b>Competition &gt; Edit Competition Info &gt; Images</b>.</li></ol><p class=\"guide-tip\">💡 While you are there, make a direction sign — the challenge does not check it, but your venue will thank you.</p><p>Click <b>Check</b> when it is done.</p>",
+            "it": "<p>Tocca a te.</p><ol><li>Apri una gara.</li><li>Carica almeno <b>un'immagine</b> (logo di sinistra, di destra o striscione) in <b>Gara &gt; Modifica Dati Gara &gt; Immagini</b>.</li></ol><p class=\"guide-tip\">💡 Approfittane per creare un cartello di segnaletica — anche se la sfida non lo verifica, il tuo palazzetto ti ringrazierà.</p><p>Clicca su <b>Verifica</b> quando è fatto.</p>",
+            "de": "<p>Sie sind dran.</p><ol><li>Öffnen Sie ein Turnier.</li><li>Laden Sie mindestens <b>ein Bild</b> (linkes Logo, rechtes Logo oder Banner) unter <b>Turnier &gt; Turnierdaten ändern &gt; Logos</b>.</li></ol><p class=\"guide-tip\">💡 Erstellen Sie bei der Gelegenheit gleich ein Wegweiserschild — die Aufgabe prüft es nicht, aber Ihre Halle wird es Ihnen danken.</p><p>Klicken Sie auf <b>Prüfen</b>, wenn es erledigt ist.</p>",
+            "es": "<p>Le toca a usted.</p><ol><li>Abra una competición.</li><li>Cargue al menos <b>una imagen</b> (logotipo izquierdo, derecho o banda) en <b>Competición &gt; Editar Datos de la Competición &gt; Imágenes</b>.</li></ol><p class=\"guide-tip\">💡 Aproveche para crear un cartel indicador — aunque el reto no lo compruebe, su pabellón se lo agradecerá.</p><p>Haga clic en <b>Verificar</b> cuando esté hecho.</p>"
+        },
         "conditions": [
             "has_image"
         ]

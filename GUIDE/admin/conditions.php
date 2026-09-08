@@ -1,16 +1,45 @@
 <?php
-define('HTDOCS', dirname(dirname(dirname(dirname(dirname(__FILE__))))));
+/**
+ * Condition builder of the Interactive Guide module.
+ *
+ * A condition asks the ianseo database whether something has been accomplished
+ * — a competition is open, archers are registered, targets are assigned. Course
+ * steps wait on them and challenges are graded by them, which is what makes the
+ * module able to check real work rather than just show slides.
+ *
+ * This screen builds them without writing SQL: each condition is a list of
+ * checks (a session value, a visited page, a COUNT over a table, a single
+ * column) and they are stored in conditions.json. Every check READS; none of
+ * them writes, and the evaluator itself is in the module library so that this
+ * screen and the runtime cannot drift apart.
+ *
+ * A condition can be tried before being saved, against the live database, which
+ * is the only reliable way to tell a correct condition from one that merely
+ * looks right.
+ */
+
+// Walk up to the ianseo root instead of counting directory levels, so the module
+// keeps working if it is installed somewhere other than Modules/Custom/.
+$_guide_root = __DIR__;
+while ($_guide_root !== dirname($_guide_root) && !is_file($_guide_root . '/config.php')) {
+    $_guide_root = dirname($_guide_root);
+}
+define('HTDOCS', $_guide_root);
+unset($_guide_root);
+
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib/guide-lib.inc.php');
 
 guide_check_admin();
 
-/* ---- Test AJAX d'une condition (définition posée, pas encore sauvegardée) ---- */
+/* ---- Try a condition that is still being written and has not been saved ----
+ * Admin only, like the whole page: the definition arrives from the request and
+ * reaches the query builder. */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'test') {
     header('Content-Type: application/json; charset=utf-8');
     $cond = json_decode($_POST['condition'] ?? '', true);
     if (!$cond || empty($cond['checks']) || !is_array($cond['checks'])) {
-        echo json_encode(['error' => 'Condition invalide (aucun check).']); exit;
+        echo json_encode(['error' => guide_text('CndErrNoCheck')]); exit;
     }
     $results = [];
     $met = true;
@@ -24,16 +53,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'test'
     exit;
 }
 
-/* ---- Sauvegarde de toutes les conditions ---- */
+/* ---- Save the whole catalogue at once ----
+ * The catalogue is written as a single file, so it is validated as a whole and
+ * either replaces the previous one entirely or is rejected: a half-written
+ * conditions.json would break every course that waits on a condition. */
 $error = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save') {
     $arr = json_decode($_POST['conditions_json'] ?? '', true);
     if (!is_array($arr)) {
-        $error = 'JSON invalide.';
+        $error = guide_text('CndErrJson');
     } else {
+        // Validated as a whole before anything is written: a half-valid
+        // conditions.json would break every course that waits on a condition.
         foreach ($arr as $c) {
             if (empty($c['id']) || empty($c['label']) || empty($c['checks'])) {
-                $error = 'Chaque condition doit avoir un id, un label et au moins un check.';
+                $error = guide_text('CndErrIncomplete');
                 break;
             }
         }
@@ -42,13 +76,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
                 header('Location: ' . $_SERVER['PHP_SELF'] . '?saved=1');
                 exit;
             }
-            $error = 'Erreur d\'écriture de conditions.json (droits ?).';
+            $error = guide_text('CndErrWrite');
         }
     }
 }
 
 $conditions = guide_load_conditions();
-$PAGE_TITLE = 'Guide interactif — Conditions';
+$adminUrl   = (function_exists('cmod_url') ? cmod_url(dirname(__DIR__)) : $CFG->ROOT_DIR . 'Modules/Custom/GUIDE/') . 'admin/';
+$PAGE_TITLE = guide_text('CndTitle');
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 
@@ -85,77 +120,163 @@ details.gc-raw summary { cursor: pointer; font-size: 12px; color: #666; padding:
 #gc-raw-ta { width: 100%; height: 260px; font-family: monospace; font-size: 12px; border: 1px solid #c8d4ec; border-radius: 6px; padding: 10px; box-sizing: border-box; }
 </style>
 
-<h1>Guide interactif — Constructeur de conditions</h1>
-<p><a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/GUIDE/admin/">← Retour à l'administration</a></p>
+<h1><?= htmlspecialchars(guide_text('CndHeading')) ?></h1>
+<p><a href="<?= htmlspecialchars($adminUrl) ?>">← <?= htmlspecialchars(guide_text('AdmBackAdmin')) ?></a></p>
 
 <div class="gc-wrap">
 
-<?php if (!empty($_GET['saved'])): ?><div class="gc-msg-ok">✓ Conditions enregistrées.</div><?php endif; ?>
-<?php if ($error): ?><div class="gc-msg-err">✗ <?= htmlspecialchars($error) ?></div><?php endif; ?>
+<?php
+// Feedback from the previous request: what was saved, or what went wrong.
+if (!empty($_GET['saved'])) {
+    echo '<div class="gc-msg-ok">✓ ' . htmlspecialchars(guide_text('CndSaved'), ENT_QUOTES, 'UTF-8') . '</div>';
+}
+if ($error) {
+    echo '<div class="gc-msg-err">✗ ' . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . '</div>';
+}
+?>
 
-<p style="font-size:13px;color:#555;max-width:760px">
-  Les conditions vérifient l'état de la compétition (session, tables ianseo, pages visitées — en lecture seule).
-  Elles servent aux <b>triggers d'état</b>, aux <b>branches conditionnelles</b>, aux <b>défis</b> et aux
-  <b>checklists auto-cochables</b>. Le bouton <b>Tester</b> évalue la condition sur la compétition ouverte,
-  pour l'utilisateur connecté.
-</p>
+<?php /* Carries deliberate <b> markup from the language file, so it is not escaped. */ ?>
+<p style="font-size:13px;color:#555;max-width:760px"><?= guide_text('CndIntro') ?></p>
 
-<!-- Liste -->
+<!-- The catalogue -->
 <table class="gc-table">
-  <thead><tr><th>ID</th><th>Label</th><th>Checks</th><th style="width:300px">Actions</th></tr></thead>
+  <thead><tr>
+    <th>ID</th>
+    <th><?= htmlspecialchars(guide_text('CndColLabel')) ?></th>
+    <th><?= htmlspecialchars(guide_text('CndColChecks')) ?></th>
+    <th style="width:300px"><?= htmlspecialchars(guide_text('AdmColActions')) ?></th>
+  </tr></thead>
   <tbody id="gc-list"></tbody>
 </table>
 
-<!-- Builder -->
+<!-- One condition being written -->
 <div class="gc-builder" id="gc-builder" style="display:none">
-  <h2 id="gc-builder-title">Nouvelle condition</h2>
+  <h2 id="gc-builder-title"><?= htmlspecialchars(guide_text('CndNew')) ?></h2>
   <div class="gc-field">
-    <label>ID <span style="text-transform:none;font-weight:400;color:#999">(minuscules, chiffres, _ )</span></label>
-    <input type="text" id="gc-id" placeholder="ma_condition">
+    <label>ID <span style="text-transform:none;font-weight:400;color:#999"><?= htmlspecialchars(guide_text('CndIdHint')) ?></span></label>
+    <input type="text" id="gc-id" placeholder="my_condition">
   </div>
   <div class="gc-field">
-    <label>Label (affiché à l'utilisateur)</label>
-    <input type="text" id="gc-label" placeholder="Au moins une session définie">
+    <label><?= htmlspecialchars(guide_text('CndLabelField')) ?></label>
+    <input type="text" id="gc-label" placeholder="<?= htmlspecialchars(guide_text('CndLabelPlaceholder')) ?>">
   </div>
   <div class="gc-field">
-    <label>Checks (tous doivent être vrais)</label>
+    <label><?= htmlspecialchars(guide_text('CndChecksField')) ?></label>
     <div id="gc-checks"></div>
-    <button type="button" class="gc-btn gc-btn-test" onclick="addCheck()">+ Ajouter un check</button>
+    <button type="button" class="gc-btn gc-btn-test" onclick="addCheck()">+ <?= htmlspecialchars(guide_text('CndAddCheck')) ?></button>
   </div>
   <div style="margin-top:12px">
-    <button type="button" class="gc-btn gc-btn-test" onclick="testBuilder()">🔍 Tester maintenant</button>
+    <button type="button" class="gc-btn gc-btn-test" onclick="testBuilder()">🔍 <?= htmlspecialchars(guide_text('CndTestNow')) ?></button>
     <span class="gc-test-res" id="gc-builder-res"></span>
     <br><br>
-    <button type="button" class="gc-btn gc-btn-edit" onclick="applyBuilder()">✓ Valider cette condition</button>
-    <button type="button" class="gc-btn" style="background:#eee" onclick="closeBuilder()">Annuler</button>
+    <button type="button" class="gc-btn gc-btn-edit" onclick="applyBuilder()">✓ <?= htmlspecialchars(guide_text('CndApply')) ?></button>
+    <button type="button" class="gc-btn" style="background:#eee" onclick="closeBuilder()"><?= htmlspecialchars(guide_text('Cancel')) ?></button>
   </div>
 </div>
 
 <p>
-  <button type="button" class="gc-btn gc-btn-add" onclick="openBuilder(-1)">+ Nouvelle condition</button>
+  <button type="button" class="gc-btn gc-btn-add" onclick="openBuilder(-1)">+ <?= htmlspecialchars(guide_text('CndNew')) ?></button>
 </p>
 
-<!-- Sauvegarde globale -->
+<!-- The catalogue is saved as a whole, never one condition at a time -->
 <form method="post" onsubmit="return prepareSave()">
   <input type="hidden" name="action" value="save">
   <input type="hidden" name="conditions_json" id="gc-json">
-  <button type="submit" class="gc-btn gc-btn-save">💾 Enregistrer toutes les conditions</button>
-  <span id="gc-dirty" style="display:none;color:#b8860b;font-size:12px;margin-left:10px">● modifications non enregistrées</span>
+  <button type="submit" class="gc-btn gc-btn-save">💾 <?= htmlspecialchars(guide_text('CndSaveAll')) ?></button>
+  <span id="gc-dirty" style="display:none;color:#b8860b;font-size:12px;margin-left:10px">● <?= htmlspecialchars(guide_text('CndDirty')) ?></span>
 </form>
 
 <details class="gc-raw" style="margin-top:18px">
-  <summary>JSON brut (experts)</summary>
+  <summary><?= htmlspecialchars(guide_text('CndRawJson')) ?></summary>
   <textarea id="gc-raw-ta" spellcheck="false"></textarea>
-  <button type="button" class="gc-btn gc-btn-test" style="margin-top:6px" onclick="applyRaw()">↺ Appliquer le JSON</button>
+  <button type="button" class="gc-btn gc-btn-test" style="margin-top:6px" onclick="applyRaw()">↺ <?= htmlspecialchars(guide_text('CndApplyRaw')) ?></button>
 </details>
 
 </div>
 
 <script>
 var CONDS = <?= json_encode(array_values($conditions), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
+
+/* The builder renders its widgets in JavaScript, so its wording travels here
+   rather than through guide_text() at render time. */
+var GC_T = <?= json_encode([
+    'new'          => guide_text('CndNew'),
+    'editTitle'    => guide_text('CndEditTitle'),
+    'test'         => guide_text('CndTest'),
+    'edit'         => guide_text('AdmEdit'),
+    'none'         => guide_text('CndNone'),
+    'delConfirm'   => guide_text('CndDelConfirm'),
+    'met'          => guide_text('CndMet'),
+    'notMet'       => guide_text('CndNotMet'),
+    'network'      => guide_text('CndNetwork'),
+    'noCheck'      => guide_text('CndNoCheck'),
+    'typeSession'  => guide_text('CndTypeSession'),
+    'typeCount'    => guide_text('CndTypeCount'),
+    'typeColumn'   => guide_text('CndTypeColumn'),
+    'typeVisited'  => guide_text('CndTypeVisited'),
+    'key'          => guide_text('CndKey'),
+    'table'        => guide_text('CndTable'),
+    'rowCount'     => guide_text('CndRowCount'),
+    'joinOptional' => guide_text('CndJoinOptional'),
+    'joinOn'       => guide_text('CndJoinOn'),
+    'addWhere'     => guide_text('CndAddWhere'),
+    'whereHint'    => guide_text('CndWhereHint'),
+    'pagePath'     => guide_text('CndPagePath'),
+    'anyTournament'=> guide_text('CndAnyTournament'),
+    'visitedHint'  => guide_text('CndVisitedHint'),
+    'column'       => guide_text('CndColumn'),
+    'join'         => guide_text('CndJoin'),
+    'whereColumn'  => guide_text('CndWhereColumn'),
+    'opInList'     => guide_text('CndOpInList'),
+    'opSession'    => guide_text('CndOpSession'),
+    'errIdLabel'   => guide_text('CndErrIdLabel'),
+    'errNoChecks'  => guide_text('CndErrNoChecks'),
+    'errIdExists'  => guide_text('CndErrIdExists'),
+    'errArray'     => guide_text('CndErrArrayExpected'),
+    'errRawJson'   => guide_text('CndErrRawJson'),
+], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
+/* The interface language, so a label that carries several languages is shown —
+   and edited — in the one the administrator is reading. */
+var GC_LANG = <?= json_encode(guide_lang_code()) ?>;
+
 var OPS = [['eq','='],['neq','≠'],['gt','>'],['gte','≥'],['lt','<'],['lte','≤']];
+
+/* ===== Labels carrying several languages =====
+   A condition label is translatable like any other text. It is stored as a map
+   of language code to string. Editing one language must never discard the
+   others, which is what condLabelSet() is for: the builder shows one language
+   and merges the edit back, rather than replacing the whole field. */
+
+function isLangMap(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  var keys = Object.keys(v);
+  return keys.length > 0 && keys.every(function (k) {
+    return /^[a-z]{2}(-[a-z]{2})?$/.test(k) && typeof v[k] === 'string';
+  });
+}
+
+// The text to show: the reader's language, then its base language, then English,
+// then whatever the label does have — never an empty cell.
+function condLabel(v) {
+  if (!isLangMap(v)) return v || '';
+  var tries = [GC_LANG, GC_LANG.slice(0, 2), 'en'];
+  for (var i = 0; i < tries.length; i++) if (v[tries[i]]) return v[tries[i]];
+  var first = Object.keys(v)[0];
+  return first ? v[first] : '';
+}
+
+// Merge an edited label back, keeping the languages that were already there.
+function condLabelSet(existing, text) {
+  if (!isLangMap(existing)) return text;
+  var out = {};
+  Object.keys(existing).forEach(function (k) { out[k] = existing[k]; });
+  out[GC_LANG.slice(0, 2)] = text;
+  return out;
+}
 var TABLES = ['Tournament','Entries','Individuals','Teams','Events','Classes','Divisions','Qualifications','Session','DistanceInformation','TournamentInvolved'];
 var _editIdx = -1;
+var _editLabel = '';   // the label as stored, so its other languages survive an edit
 
 /* ===== Liste ===== */
 
@@ -166,24 +287,26 @@ function renderList() {
     var tr = document.createElement('tr');
     tr.innerHTML =
       '<td style="font-family:monospace;font-size:12px">' + esc(c.id) + '</td>' +
-      '<td>' + esc(c.label) + '</td>' +
+      '<td>' + esc(condLabel(c.label)) + '</td>' +
       '<td>' + (c.checks || []).length + '</td>' +
       '<td>' +
-        '<button class="gc-btn gc-btn-test" onclick="testCond(' + i + ', this)">🔍 Tester</button> ' +
-        '<button class="gc-btn gc-btn-edit" onclick="openBuilder(' + i + ')">Éditer</button> ' +
+        '<button class="gc-btn gc-btn-test" onclick="testCond(' + i + ', this)">🔍 ' + esc(GC_T.test) + '</button> ' +
+        '<button class="gc-btn gc-btn-edit" onclick="openBuilder(' + i + ')">' + esc(GC_T.edit) + '</button> ' +
         '<button class="gc-btn gc-btn-del" onclick="delCond(' + i + ')">✕</button>' +
         '<span class="gc-test-res"></span>' +
       '</td>';
     tb.appendChild(tr);
   });
-  if (!CONDS.length) tb.innerHTML = '<tr><td colspan="4" style="color:#999;font-style:italic">Aucune condition.</td></tr>';
+  if (!CONDS.length) tb.innerHTML = '<tr><td colspan="4" style="color:#999;font-style:italic">' + esc(GC_T.none) + '</td></tr>';
   document.getElementById('gc-raw-ta').value = JSON.stringify(CONDS, null, 2);
 }
 
 function markDirty() { document.getElementById('gc-dirty').style.display = 'inline'; }
 
 function delCond(i) {
-  if (!confirm('Supprimer la condition « ' + CONDS[i].id + ' » ?\nVérifiez qu\'aucune formation/défi ne l\'utilise.')) return;
+  // Nothing here knows which courses use a condition, so the confirmation says
+  // to check rather than pretending it could.
+  if (!confirm(GC_T.delConfirm.replace('{$a}', CONDS[i].id))) return;
   CONDS.splice(i, 1);
   renderList(); markDirty();
 }
@@ -192,7 +315,8 @@ function testCond(i, btn) {
   var span = btn.parentNode.querySelector('.gc-test-res');
   span.textContent = '⏳';
   postTest(CONDS[i], function (data) {
-    span.textContent = data.error ? ('⚠ ' + data.error) : (data.met ? '✅ remplie' : '❌ non remplie');
+    span.textContent = data.error ? ('⚠ ' + data.error)
+                                  : (data.met ? '✅ ' + GC_T.met : '❌ ' + GC_T.notMet);
   });
 }
 
@@ -203,7 +327,7 @@ function postTest(cond, cb) {
   fetch('', { method: 'POST', body: fd })
     .then(function (r) { return r.json(); })
     .then(cb)
-    .catch(function () { cb({ error: 'réseau' }); });
+    .catch(function () { cb({ error: GC_T.network }); });
 }
 
 /* ===== Builder ===== */
@@ -211,9 +335,13 @@ function postTest(cond, cb) {
 function openBuilder(i) {
   _editIdx = i;
   var c = i >= 0 ? CONDS[i] : { id: '', label: '', checks: [] };
-  document.getElementById('gc-builder-title').textContent = i >= 0 ? 'Éditer : ' + c.id : 'Nouvelle condition';
+  document.getElementById('gc-builder-title').textContent =
+    i >= 0 ? GC_T.editTitle.replace('{$a}', c.id) : GC_T.new;
   document.getElementById('gc-id').value    = c.id || '';
-  document.getElementById('gc-label').value = c.label || '';
+  document.getElementById('gc-label').value = condLabel(c.label);
+  // Remembered so captureBuilder() can merge the edit back into it rather than
+  // replacing a multilingual label with a single string.
+  _editLabel = (_editIdx >= 0) ? CONDS[_editIdx].label : '';
   document.getElementById('gc-checks').innerHTML = '';
   (c.checks || []).forEach(function (ch) { addCheck(ch); });
   document.getElementById('gc-builder-res').textContent = '';
@@ -247,10 +375,10 @@ function addCheck(ch) {
   div.innerHTML =
     '<div class="gc-check-head">' +
       '<select class="gc-type" onchange="retype(this)">' +
-        '<option value="session"' + (type === 'session' ? ' selected' : '') + '>Variable de session</option>' +
-        '<option value="count"'   + (type === 'count'   ? ' selected' : '') + '>Nombre de lignes (COUNT)</option>' +
-        '<option value="column"'  + (type === 'column'  ? ' selected' : '') + '>Valeur d\'une colonne</option>' +
-        '<option value="visited"' + (type === 'visited' ? ' selected' : '') + '>Page visitée</option>' +
+        '<option value="session"' + (type === 'session' ? ' selected' : '') + '>' + esc(GC_T.typeSession) + '</option>' +
+        '<option value="count"'   + (type === 'count'   ? ' selected' : '') + '>' + esc(GC_T.typeCount)   + '</option>' +
+        '<option value="column"'  + (type === 'column'  ? ' selected' : '') + '>' + esc(GC_T.typeColumn)  + '</option>' +
+        '<option value="visited"' + (type === 'visited' ? ' selected' : '') + '>' + esc(GC_T.typeVisited) + '</option>' +
       '</select>' +
       '<button type="button" class="gc-btn gc-btn-del" onclick="this.closest(\'.gc-check\').remove()">✕</button>' +
       '<span class="gc-res-icons"></span>' +
@@ -269,7 +397,7 @@ function buildCheckBody(div, type, ch) {
   var b = div.querySelector('.gc-check-body');
   var dl = '<datalist id="gc-tables">' + TABLES.map(function (t) { return '<option value="' + t + '">'; }).join('') + '</datalist>';
   if (type === 'session') {
-    b.innerHTML = 'Clé <input type="text" class="gc-skey" list="gc-skeys" value="' + esc(ch.key || 'TourId') + '" style="width:110px">' +
+    b.innerHTML = esc(GC_T.key) + ' <input type="text" class="gc-skey" list="gc-skeys" value="' + esc(ch.key || 'TourId') + '" style="width:110px">' +
       '<datalist id="gc-skeys"><option value="TourId"></datalist>' +
       opSelect('gc-op', ch.op || 'gt') +
       '<input type="text" class="gc-val" value="' + esc(ch.value !== undefined ? String(ch.value) : '0') + '" style="width:70px">';
@@ -277,26 +405,24 @@ function buildCheckBody(div, type, ch) {
     var whereRows = '';
     ((ch.where) || []).forEach(function (w) { whereRows += whereRowHtml(w); });
     var jn = ch.join || {};
-    b.innerHTML = 'Table <input type="text" class="gc-table-in" list="gc-tables" value="' + esc(ch.table || '') + '" style="width:150px">' + dl +
-      ' — nombre de lignes ' + opSelect('gc-op', ch.op || 'gt') +
+    b.innerHTML = esc(GC_T.table) + ' <input type="text" class="gc-table-in" list="gc-tables" value="' + esc(ch.table || '') + '" style="width:150px">' + dl +
+      ' — ' + esc(GC_T.rowCount) + ' ' + opSelect('gc-op', ch.op || 'gt') +
       '<input type="text" class="gc-val" value="' + esc(ch.value !== undefined ? String(ch.value) : '0') + '" style="width:70px">' +
-      '<div style="width:100%">jointure (option) : table <input type="text" class="gc-jtable" list="gc-tables" value="' + esc(jn.table || '') + '" style="width:130px" placeholder="Entries">' +
-      ' sur <input type="text" class="gc-jon" value="' + esc(jn.on || '') + '" style="width:130px" placeholder="QuId = EnId" title="Colonne = Colonne"></div>' +
+      '<div style="width:100%">' + esc(GC_T.joinOptional) + ' <input type="text" class="gc-jtable" list="gc-tables" value="' + esc(jn.table || '') + '" style="width:130px" placeholder="Entries">' +
+      ' ' + esc(GC_T.joinOn) + ' <input type="text" class="gc-jon" value="' + esc(jn.on || '') + '" style="width:130px" placeholder="QuId = EnId"></div>' +
       '<div class="gc-where" style="width:100%">' +
         '<div class="gc-where-list">' + whereRows + '</div>' +
-        '<button type="button" class="gc-btn gc-btn-test" onclick="addWhere(this)">+ critère WHERE</button>' +
-        '<p class="gc-hint">Op « = session » : compare la colonne à une variable de session (valeur = nom de la clé, ex. TourId). ' +
-        'Op « ∈ liste » : la colonne doit être dans une liste de valeurs séparées par des virgules (ex. 1,5,20).</p>' +
+        '<button type="button" class="gc-btn gc-btn-test" onclick="addWhere(this)">+ ' + esc(GC_T.addWhere) + '</button>' +
+        '<p class="gc-hint">' + esc(GC_T.whereHint) + '</p>' +
       '</div>';
   } else if (type === 'visited') {
-    b.innerHTML = 'Chemin de la page <input type="text" class="gc-vpath" value="' + esc(ch.path || '') + '" style="width:280px" placeholder="/Modules/Sets/FR/exports/">' +
-      ' <label style="font-size:12px"><input type="checkbox" class="gc-vany"' + (ch.any_tournament ? ' checked' : '') + '> n\'importe quelle compétition</label>' +
-      '<p class="gc-hint" style="width:100%">Vraie si l\'utilisateur a ouvert cette page (relative à la racine ianseo, sans paramètres ; /index.php final facultatif). ' +
-      'Par défaut la visite doit avoir eu lieu sur la compétition actuellement ouverte. Les visites sont enregistrées par utilisateur à partir du moment où la condition existe.</p>';
+    b.innerHTML = esc(GC_T.pagePath) + ' <input type="text" class="gc-vpath" value="' + esc(ch.path || '') + '" style="width:280px" placeholder="/Modules/Sets/FR/exports/">' +
+      ' <label style="font-size:12px"><input type="checkbox" class="gc-vany"' + (ch.any_tournament ? ' checked' : '') + '> ' + esc(GC_T.anyTournament) + '</label>' +
+      '<p class="gc-hint" style="width:100%">' + esc(GC_T.visitedHint) + '</p>';
   } else {
-    b.innerHTML = 'Table <input type="text" class="gc-table-in" list="gc-tables" value="' + esc(ch.table || '') + '" style="width:140px">' + dl +
-      ' colonne <input type="text" class="gc-col" value="' + esc(ch.column || '') + '" style="width:120px">' +
-      ' jointure <input type="text" class="gc-join" value="' + esc(ch.join || 'ToId = TourId') + '" style="width:130px" title="Colonne = CléSession">' +
+    b.innerHTML = esc(GC_T.table) + ' <input type="text" class="gc-table-in" list="gc-tables" value="' + esc(ch.table || '') + '" style="width:140px">' + dl +
+      ' ' + esc(GC_T.column) + ' <input type="text" class="gc-col" value="' + esc(ch.column || '') + '" style="width:120px">' +
+      ' ' + esc(GC_T.join) + ' <input type="text" class="gc-join" value="' + esc(ch.join || 'ToId = TourId') + '" style="width:130px">' +
       opSelect('gc-op', ch.op || 'eq') +
       '<input type="text" class="gc-val" value="' + esc(ch.value !== undefined ? String(ch.value) : '') + '" style="width:80px">';
   }
@@ -306,11 +432,11 @@ function whereRowHtml(w) {
   w = w || {};
   var isSess = (w.source === 'session');
   var isIn   = (!isSess && w.op === 'in');
-  var h = '<div class="gc-where-row">Colonne <input type="text" class="gc-wcol" value="' + esc(w.column || '') + '" style="width:130px">';
+  var h = '<div class="gc-where-row">' + esc(GC_T.whereColumn) + ' <input type="text" class="gc-wcol" value="' + esc(w.column || '') + '" style="width:130px">';
   h += '<select class="gc-wop">';
   OPS.forEach(function (o) { h += '<option value="' + o[0] + '"' + (!isSess && !isIn && o[0] === (w.op || 'eq') ? ' selected' : '') + '>' + o[1] + '</option>'; });
-  h += '<option value="in"' + (isIn ? ' selected' : '') + '>∈ liste</option>';
-  h += '<option value="session"' + (isSess ? ' selected' : '') + '>= session</option></select>';
+  h += '<option value="in"' + (isIn ? ' selected' : '') + '>' + esc(GC_T.opInList) + '</option>';
+  h += '<option value="session"' + (isSess ? ' selected' : '') + '>' + esc(GC_T.opSession) + '</option></select>';
   h += '<input type="text" class="gc-wval" value="' + esc(isSess ? (w.key || 'TourId') : (w.value !== undefined ? String(w.value) : '')) + '" style="width:90px">';
   h += '<button type="button" class="gc-btn gc-btn-del" onclick="this.parentNode.remove()">✕</button></div>';
   return h;
@@ -367,19 +493,20 @@ function captureBuilder() {
       });
     }
   });
-  return { id: id, label: label, checks: checks };
+  return { id: id, label: condLabelSet(_editLabel, label), checks: checks };
 }
 
 function testBuilder() {
   var c = captureBuilder();
   var span = document.getElementById('gc-builder-res');
-  if (!c.checks.length) { span.textContent = '⚠ aucun check'; return; }
+  if (!c.checks.length) { span.textContent = '⚠ ' + GC_T.noCheck; return; }
   span.textContent = '⏳';
   postTest(c, function (data) {
     if (data.error) { span.textContent = '⚠ ' + data.error; return; }
-    span.textContent = (data.met ? '✅ remplie' : '❌ non remplie') + '  (' +
+    span.textContent = (data.met ? '✅ ' + GC_T.met : '❌ ' + GC_T.notMet) + '  (' +
       data.results.map(function (r) { return r ? '✓' : '✗'; }).join(' ') + ')';
-    // Icônes par check
+    // One icon per check, so a condition that fails says WHICH check failed
+    // rather than only that it did.
     var divs = document.querySelectorAll('#gc-checks .gc-check .gc-res-icons');
     data.results.forEach(function (r, i) { if (divs[i]) divs[i].textContent = r ? '✅' : '❌'; });
   });
@@ -387,11 +514,15 @@ function testBuilder() {
 
 function applyBuilder() {
   var c = captureBuilder();
-  if (!c.id || !c.label) { alert('ID et label obligatoires.'); return; }
-  if (!c.checks.length) { alert('Ajoutez au moins un check.'); return; }
-  // Unicité de l'id (hors ligne en cours d'édition)
+  // condLabel() rather than the raw field: a language map is an object, and an
+  // object is always truthy, so an empty label would slip through.
+  if (!c.id || !condLabel(c.label)) { alert(GC_T.errIdLabel); return; }
+  if (!c.checks.length) { alert(GC_T.errNoChecks); return; }
+
+  // The id is the key courses refer to, so it has to stay unique. The row being
+  // edited is skipped, otherwise a condition would clash with itself.
   for (var i = 0; i < CONDS.length; i++) {
-    if (i !== _editIdx && CONDS[i].id === c.id) { alert('Cet ID existe déjà.'); return; }
+    if (i !== _editIdx && CONDS[i].id === c.id) { alert(GC_T.errIdExists); return; }
   }
   if (_editIdx >= 0) CONDS[_editIdx] = c;
   else CONDS.push(c);
@@ -408,10 +539,10 @@ function prepareSave() {
 function applyRaw() {
   try {
     var arr = JSON.parse(document.getElementById('gc-raw-ta').value);
-    if (!Array.isArray(arr)) throw new Error('tableau attendu');
+    if (!Array.isArray(arr)) throw new Error(GC_T.errArray);
     CONDS = arr;
     renderList(); markDirty();
-  } catch (e) { alert('JSON invalide : ' + e.message); }
+  } catch (e) { alert(GC_T.errRawJson.replace('{$a}', e.message)); }
 }
 
 function esc(s) {

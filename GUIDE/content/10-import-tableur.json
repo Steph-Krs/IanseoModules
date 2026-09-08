@@ -1,16 +1,47 @@
 {
-    "id": "import-tableur",
+    "lang": "fr",
+    "id": "5foza8hhqyrhkd14as7x",
     "type": "formation",
-    "title": "Importer les participants par tableur (~10min)",
-    "description": "Inscrivez des dizaines d'archers d'un coup : par copier/coller depuis votre tableur, ou par import d'un fichier CSV. Structure des colonnes et pièges à éviter.",
-    "version": "1.0",
-    "group": "Pour aller plus loin",
+    "title": {
+        "fr": "Importer les participants par tableur (~10min)",
+        "en": "Importing participants from a spreadsheet (~10 min)",
+        "it": "Importare i partecipanti da un foglio di calcolo (~10 min)",
+        "de": "Teilnehmer aus einer Tabelle importieren (~10 Min.)",
+        "es": "Importar los participantes desde una hoja de cálculo (~10 min)"
+    },
+    "description": {
+        "fr": "Inscrivez des dizaines d'archers d'un coup : par copier/coller depuis votre tableur, ou par import d'un fichier CSV. Structure des colonnes et pièges à éviter.",
+        "en": "Enter dozens of archers at once: by copy and paste from your spreadsheet, or by importing a CSV file. The column layout and the traps to avoid.",
+        "it": "Iscrivi decine di arcieri in una volta sola: con copia e incolla dal tuo foglio di calcolo, oppure importando un file CSV. Struttura delle colonne e trappole da evitare.",
+        "de": "Melden Sie Dutzende Schützen auf einmal: durch Kopieren und Einfügen aus Ihrer Tabelle oder durch den Import einer CSV-Datei. Der Spaltenaufbau und die Fallen, die es zu vermeiden gilt.",
+        "es": "Inscriba a decenas de arqueros de una vez: copiando y pegando desde su hoja de cálculo, o importando un archivo CSV. Estructura de las columnas y trampas que evitar."
+    },
+    "version": "1.1",
+    "group": {
+        "fr": "Pour aller plus loin",
+        "en": "Going further",
+        "it": "Per approfondire",
+        "de": "Weiterführendes",
+        "es": "Para ir más lejos"
+    },
     "order": 10,
     "steps": [
         {
             "id": "intro",
-            "title": "Deux façons d'importer en masse",
-            "content": "<p>Saisir 150 archers un par un, c'est long. ianseo sait les avaler <b>en une fois</b>, de deux manières :</p><ul><li>par <b>copier/coller</b> depuis votre tableur directement dans une zone de texte,</li><li>par <b>import d'un fichier</b> (au format <b>.csv</b>).</li></ul><p>Dans les deux cas, c'est la <b>même structure de colonnes</b> qui est attendue.</p><p class=\"guide-tip\">⚠️ Prérequis : la <b>base des licenciés</b> doit être synchronisée (Participants &gt; Synchronisation des compétiteurs). C'est elle qui permet à ianseo de retrouver un archer à partir de son numéro de licence.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+            "title": {
+                "fr": "Deux façons d'importer en masse",
+                "en": "Two ways to import in bulk",
+                "it": "Due modi per importare in blocco",
+                "de": "Zwei Wege, in einem Zug zu importieren",
+                "es": "Dos formas de importar en bloque"
+            },
+            "content": {
+                "fr": "<p>Saisir 150 archers un par un, c'est long. ianseo sait les avaler <b>en une fois</b>, de deux manières :</p><ul><li>par <b>copier/coller</b> depuis votre tableur directement dans une zone de texte,</li><li>par <b>import d'un fichier</b> (au format <b>.csv</b>).</li></ul><p>Dans les deux cas, c'est la <b>même structure de colonnes</b> qui est attendue.</p><p class=\"guide-tip\">⚠️ Prérequis : la <b>base des licenciés</b> doit être synchronisée (Participants &gt; Synchronisation des compétiteurs). C'est elle qui permet à ianseo de retrouver un archer à partir de son numéro de licence.</p><p>Cliquez sur <b>Suivant</b>.</p>",
+                "en": "<p>Typing 150 archers one by one takes a long time. ianseo can swallow them <b>in one go</b>, in two ways:</p><ul><li>by <b>copy and paste</b> from your spreadsheet straight into a text box,</li><li>by <b>importing a file</b> (in <b>.csv</b> format).</li></ul><p>Both expect the <b>same column layout</b>.</p><p class=\"guide-tip\">⚠️ What you need first: the <b>licence database</b> must be synchronised (Participants &gt; Athletes Sync.). That is what lets ianseo find an archer from their licence number.</p><p>Click <b>Next</b>.</p>",
+                "it": "<p>Inserire 150 arcieri uno per uno è lungo. ianseo sa ingoiarli <b>in una volta sola</b>, in due modi:</p><ul><li>con <b>copia e incolla</b> dal tuo foglio di calcolo direttamente in una casella di testo,</li><li>con l'<b>importazione di un file</b> (in formato <b>.csv</b>).</li></ul><p>In entrambi i casi ci si aspetta la <b>stessa struttura di colonne</b>.</p><p class=\"guide-tip\">⚠️ Requisito: l'<b>archivio dei tesserati</b> deve essere sincronizzato (Partecipanti &gt; Aggiornamento Arcieri). È esso che permette a ianseo di ritrovare un arciere dal suo numero di tessera.</p><p>Clicca su <b>Avanti</b>.</p>",
+                "de": "<p>150 Schützen einzeln einzutragen dauert lange. ianseo kann sie <b>auf einmal</b> schlucken, auf zwei Wegen:</p><ul><li>durch <b>Kopieren und Einfügen</b> aus Ihrer Tabelle direkt in ein Textfeld,</li><li>durch den <b>Import einer Datei</b> (im Format <b>.csv</b>).</li></ul><p>Beide erwarten denselben <b>Spaltenaufbau</b>.</p><p class=\"guide-tip\">⚠️ Voraussetzung: die <b>Lizenzdatenbank</b> muss abgeglichen sein (Teilnehmer &gt; Aktualisierung der Schützen). Sie ist es, die ianseo erlaubt, einen Schützen anhand seiner Lizenznummer zu finden.</p><p>Klicken Sie auf <b>Weiter</b>.</p>",
+                "es": "<p>Introducir 150 arqueros uno a uno es largo. ianseo sabe tragárselos <b>de una vez</b>, de dos maneras:</p><ul><li>copiando y pegando desde su hoja de cálculo directamente en un cuadro de texto,</li><li>importando un <b>archivo</b> (en formato <b>.csv</b>).</li></ul><p>En ambos casos se espera la <b>misma estructura de columnas</b>.</p><p class=\"guide-tip\">⚠️ Requisito: la <b>base de licencias</b> debe estar sincronizada (Participantes &gt; Sincronización Archivo de Arqueros). Es la que permite a ianseo encontrar a un arquero a partir de su número de licencia.</p><p>Haga clic en <b>Siguiente</b>.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -18,8 +49,20 @@
         },
         {
             "id": "ouvrir",
-            "title": "Ouvrir une compétition",
-            "content": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p><p>Allez dans <b>Compétition &gt; Ouvrir</b>.</p>",
+            "title": {
+                "fr": "Ouvrir une compétition",
+                "en": "Open a competition",
+                "it": "Apri una gara",
+                "de": "Ein Turnier öffnen",
+                "es": "Abra una competición"
+            },
+            "content": {
+                "fr": "<p>Le guide attend qu'une <b>compétition soit ouverte</b>.</p><p>Allez dans <b>Compétition &gt; Ouvrir</b>.</p>",
+                "en": "<p>The guide is waiting for a <b>competition to be open</b>.</p><p>Go to <b>Competition &gt; Open</b>.</p>",
+                "it": "<p>La guida attende che una <b>gara sia aperta</b>.</p><p>Vai in <b>Gara &gt; Apri</b>.</p>",
+                "de": "<p>Die Anleitung wartet darauf, dass ein <b>Turnier geöffnet</b> ist.</p><p>Gehen Sie zu <b>Turnier &gt; Öffnen</b>.</p>",
+                "es": "<p>La guía espera a que haya una <b>competición abierta</b>.</p><p>Vaya a <b>Competición &gt; Abrir</b>.</p>"
+            },
             "page": "*",
             "triggers": [
                 {
@@ -27,7 +70,13 @@
                     "condition": "tournament_open",
                     "required": true,
                     "page": "*",
-                    "hint": "En attente : ouvrez une compétition."
+                    "hint": {
+                        "fr": "En attente : ouvrez une compétition.",
+                        "en": "Waiting: open a competition.",
+                        "it": "In attesa: apri una gara.",
+                        "de": "Es wird gewartet: öffnen Sie ein Turnier.",
+                        "es": "En espera: abra una competición."
+                    }
                 }
             ],
             "optional": false,
@@ -35,8 +84,20 @@
         },
         {
             "id": "page-import",
-            "title": "La page d'importation tableur",
-            "content": "<p>Allez dans <b>Participants &gt; Synchronisation des compétiteurs &gt; Chargement de liste (importation tableur)</b>.</p><p>La page se divise en deux :</p><ul><li>à gauche, une grande <b>zone de texte</b> (pour le copier/coller) et un bouton de <b>choix de fichier</b>,</li><li>à droite, la <b>liste numérotée des colonnes</b> attendues — votre aide-mémoire.</li></ul>",
+            "title": {
+                "fr": "La page d'importation tableur",
+                "en": "The spreadsheet import page",
+                "it": "La pagina di importazione da foglio di calcolo",
+                "de": "Die Seite für den Tabellenimport",
+                "es": "La página de importación desde hoja de cálculo"
+            },
+            "content": {
+                "fr": "<p>Allez dans <b>Participants &gt; Synchronisation des compétiteurs &gt; Chargement de liste (importation tableur)</b>.</p><p>La page se divise en deux :</p><ul><li>à gauche, une grande <b>zone de texte</b> (pour le copier/coller) et un bouton de <b>choix de fichier</b>,</li><li>à droite, la <b>liste numérotée des colonnes</b> attendues — votre aide-mémoire.</li></ul>",
+                "en": "<p>Go to <b>Participants &gt; Athletes Sync. &gt; List Load (SpreadSheet Import)</b>.</p><p>The page has two halves:</p><ul><li>on the left, a large <b>text box</b> (for the copy and paste) and a <b>file chooser</b> button,</li><li>on the right, the <b>numbered list of the columns</b> expected — your crib sheet.</li></ul>",
+                "it": "<p>Vai in <b>Partecipanti &gt; Aggiornamento Arcieri &gt; Carica Elenco (da foglio di calcolo)</b>.</p><p>La pagina si divide in due:</p><ul><li>a sinistra, una grande <b>casella di testo</b> (per il copia e incolla) e un pulsante di <b>scelta del file</b>,</li><li>a destra, l'<b>elenco numerato delle colonne</b> attese — il tuo promemoria.</li></ul>",
+                "de": "<p>Gehen Sie zu <b>Teilnehmer &gt; Aktualisierung der Schützen &gt; Import Schützenliste (.csv Semikolon-getrennt)</b>.</p><p>Die Seite hat zwei Hälften:</p><ul><li>links ein grosses <b>Textfeld</b> (für das Einfügen) und eine Schaltfläche zur <b>Dateiauswahl</b>,</li><li>rechts die <b>nummerierte Liste der erwarteten Spalten</b> — Ihr Spickzettel.</li></ul>",
+                "es": "<p>Vaya a <b>Participantes &gt; Sincronización Archivo de Arqueros &gt; Cargar Lista (Importar Hoja de Cálculo)</b>.</p><p>La página se divide en dos:</p><ul><li>a la izquierda, un gran <b>cuadro de texto</b> (para pegar) y un botón de <b>selección de archivo</b>,</li><li>a la derecha, la <b>lista numerada de las columnas</b> esperadas — su chuleta.</li></ul>"
+            },
             "page": "/Partecipants/ListLoad.php",
             "triggers": [
                 {
@@ -51,8 +112,20 @@
         },
         {
             "id": "structure",
-            "title": "La structure du tableur",
-            "content": "<p>Vos colonnes, <b>dans cet ordre</b>, <b>sans ligne d'en-tête</b> :</p><ol><li><b>Numéro de licence</b></li><li><b>Départ</b> (session)</li><li><b>Division</b> (arme : CL, CO, BB…)</li><li><b>Classe</b> (catégorie d'âge/sexe)</li><li><b>Cible</b></li><li><b>Qualification individuelle</b> (1 = oui, 0 = non)</li><li><b>Qualification par équipe</b></li><li><b>Finale individuelle</b> (les duels !)</li><li><b>Finale par équipe</b></li><li><b>Double mixte</b></li></ol><p class=\"guide-tip\">⚠️ <b>Attention à l'ordre des 4 colonnes de participation</b> : c'est <b>Qualif Indiv, Qualif Équipe, Finale Indiv, Finale Équipe</b>. On inverse souvent « Qualif Équipe » et « Finale Indiv » — et on se retrouve avec des archers absents des duels.</p><p class=\"guide-tip\">💡 La colonne <b>Finale individuelle</b> (8) correspond exactement à la case « participation aux épreuves individuelles ». Mettez <b>1</b> pour que l'archer puisse faire des duels.</p>",
+            "title": {
+                "fr": "La structure du tableur",
+                "en": "The spreadsheet layout",
+                "it": "La struttura del foglio di calcolo",
+                "de": "Der Aufbau der Tabelle",
+                "es": "La estructura de la hoja de cálculo"
+            },
+            "content": {
+                "fr": "<p>Vos colonnes, <b>dans cet ordre</b>, <b>sans ligne d'en-tête</b> :</p><ol><li><b>Numéro de licence</b></li><li><b>Départ</b> (session)</li><li><b>Division</b> (arme : CL, CO, BB…)</li><li><b>Classe</b> (catégorie d'âge/sexe)</li><li><b>Cible</b></li><li><b>Qualification individuelle</b> (1 = oui, 0 = non)</li><li><b>Qualification par équipe</b></li><li><b>Finale individuelle</b> (les duels !)</li><li><b>Finale par équipe</b></li><li><b>Double mixte</b></li></ol><p class=\"guide-tip\">⚠️ <b>Attention à l'ordre des 4 colonnes de participation</b> : c'est <b>Qualif Indiv, Qualif Équipe, Finale Indiv, Finale Équipe</b>. On inverse souvent « Qualif Équipe » et « Finale Indiv » — et on se retrouve avec des archers absents des duels.</p><p class=\"guide-tip\">💡 La colonne <b>Finale individuelle</b> (8) correspond exactement à la case « participation aux épreuves individuelles ». Mettez <b>1</b> pour que l'archer puisse faire des duels.</p>",
+                "en": "<p>Your columns, <b>in this order</b>, <b>with no header row</b>:</p><ol><li><b>Licence number</b></li><li><b>Session</b></li><li><b>Division</b> (CL, CO, BB…)</li><li><b>Class</b> (age and gender)</li><li><b>Target</b></li><li><b>Individual qualification</b> (1 = yes, 0 = no)</li><li><b>Team qualification</b></li><li><b>Individual final</b> (the matches!)</li><li><b>Team final</b></li><li><b>Mixed team</b></li></ol><p class=\"guide-tip\">⚠️ <b>Mind the order of the four participation columns</b>: it is <b>Ind. qualification, Team qualification, Ind. final, Team final</b>. \"Team qualification\" and \"Ind. final\" are often swapped — and archers then go missing from the matches.</p><p class=\"guide-tip\">💡 Column <b>Individual final</b> (8) is exactly the \"participation in the individual events\" box. Put <b>1</b> so the archer can shoot the matches.</p>",
+                "it": "<p>Le tue colonne, <b>in quest'ordine</b>, <b>senza riga di intestazione</b>:</p><ol><li><b>Numero di tessera</b></li><li><b>Turno</b></li><li><b>Divisione</b> (CL, CO, BB…)</li><li><b>Classe</b> (età e sesso)</li><li><b>Piazzola</b></li><li><b>Qualificazione individuale</b> (1 = sì, 0 = no)</li><li><b>Qualificazione a squadre</b></li><li><b>Finale individuale</b> (gli scontri!)</li><li><b>Finale a squadre</b></li><li><b>Squadra mista</b></li></ol><p class=\"guide-tip\">⚠️ <b>Attenzione all'ordine delle quattro colonne di partecipazione</b>: è <b>Qualif. Individuale, Qualif. Squadre, Finale Individuale, Finale Squadre</b>. Spesso si invertono «Qualif. Squadre» e «Finale Individuale» — e ci si ritrova con arcieri assenti dagli scontri.</p><p class=\"guide-tip\">💡 La colonna <b>Finale individuale</b> (8) corrisponde esattamente alla casella «partecipazione agli eventi individuali». Metti <b>1</b> perché l'arciere possa fare gli scontri.</p>",
+                "de": "<p>Ihre Spalten, <b>in dieser Reihenfolge</b>, <b>ohne Kopfzeile</b>:</p><ol><li><b>Lizenznummer</b></li><li><b>Durchgang</b></li><li><b>Bogenart</b> (CL, CO, BB…)</li><li><b>Klasse</b> (Alter und Geschlecht)</li><li><b>Scheibe</b></li><li><b>Einzelqualifikation</b> (1 = ja, 0 = nein)</li><li><b>Mannschaftsqualifikation</b></li><li><b>Einzelfinale</b> (die Duelle!)</li><li><b>Mannschaftsfinale</b></li><li><b>Mixed-Mannschaft</b></li></ol><p class=\"guide-tip\">⚠️ <b>Achten Sie auf die Reihenfolge der vier Teilnahmespalten</b>: sie lautet <b>Einzelqualifikation, Mannschaftsqualifikation, Einzelfinale, Mannschaftsfinale</b>. „Mannschaftsqualifikation\" und „Einzelfinale\" werden oft vertauscht — und dann fehlen Schützen in den Duellen.</p><p class=\"guide-tip\">💡 Die Spalte <b>Einzelfinale</b> (8) entspricht genau dem Feld „Teilnahme an den Einzelbegegnungen\". Tragen Sie <b>1</b> ein, damit der Schütze Duelle schiessen kann.</p>",
+                "es": "<p>Sus columnas, <b>en este orden</b>, <b>sin fila de encabezado</b>:</p><ol><li><b>Número de licencia</b></li><li><b>Turno</b></li><li><b>División</b> (CL, CO, BB…)</li><li><b>Clase</b> (edad y sexo)</li><li><b>Diana</b></li><li><b>Calificación individual</b> (1 = sí, 0 = no)</li><li><b>Calificación por equipos</b></li><li><b>Final individual</b> (¡los enfrentamientos!)</li><li><b>Final por equipos</b></li><li><b>Equipo mixto</b></li></ol><p class=\"guide-tip\">⚠️ <b>Atención al orden de las cuatro columnas de participación</b>: es <b>Calif. individual, Calif. equipos, Final individual, Final equipos</b>. A menudo se invierten «Calif. equipos» y «Final individual» — y aparecen arqueros ausentes de los enfrentamientos.</p><p class=\"guide-tip\">💡 La columna <b>Final individual</b> (8) corresponde exactamente a la casilla «participación en las pruebas individuales». Ponga <b>1</b> para que el arquero pueda disputar los enfrentamientos.</p>"
+            },
             "page": "/Partecipants/ListLoad.php",
             "triggers": [],
             "optional": false,
@@ -60,8 +133,20 @@
         },
         {
             "id": "copier-coller",
-            "title": "Méthode 1 — Le copier/coller",
-            "content": "<p>Dans votre tableur, <b>sélectionnez vos lignes</b> (sans l'en-tête) et copiez-les (<code>Ctrl+C</code>).</p><p>Cliquez dans la <b>grande zone de texte</b> de ianseo et collez (<code>Ctrl+V</code>).</p><p>Les colonnes de votre tableur deviennent des colonnes séparées par des tabulations — c'est exactement ce que ianseo attend.</p><p class=\"guide-tip\">💡 C'est la méthode la plus rapide pour un ajout ponctuel de quelques archers, sans passer par un fichier.</p>",
+            "title": {
+                "fr": "Méthode 1 — Le copier/coller",
+                "en": "Method 1 — Copy and paste",
+                "it": "Metodo 1 — Il copia e incolla",
+                "de": "Weg 1 — Kopieren und Einfügen",
+                "es": "Método 1 — Copiar y pegar"
+            },
+            "content": {
+                "fr": "<p>Dans votre tableur, <b>sélectionnez vos lignes</b> (sans l'en-tête) et copiez-les (<code>Ctrl+C</code>).</p><p>Cliquez dans la <b>grande zone de texte</b> de ianseo et collez (<code>Ctrl+V</code>).</p><p>Les colonnes de votre tableur deviennent des colonnes séparées par des tabulations — c'est exactement ce que ianseo attend.</p><p class=\"guide-tip\">💡 C'est la méthode la plus rapide pour un ajout ponctuel de quelques archers, sans passer par un fichier.</p>",
+                "en": "<p>In your spreadsheet, <b>select your rows</b> (without the header) and copy them (<code>Ctrl+C</code>).</p><p>Click in ianseo's <b>large text box</b> and paste (<code>Ctrl+V</code>).</p><p>Your spreadsheet columns become columns separated by tabs — exactly what ianseo expects.</p><p class=\"guide-tip\">💡 This is the quickest way to add a few archers on the spot, without going through a file.</p>",
+                "it": "<p>Nel tuo foglio di calcolo, <b>seleziona le righe</b> (senza l'intestazione) e copiale (<code>Ctrl+C</code>).</p><p>Clicca nella <b>grande casella di testo</b> di ianseo e incolla (<code>Ctrl+V</code>).</p><p>Le colonne del tuo foglio diventano colonne separate da tabulazioni — esattamente ciò che ianseo si aspetta.</p><p class=\"guide-tip\">💡 È il metodo più rapido per aggiungere al volo qualche arciere, senza passare da un file.</p>",
+                "de": "<p>Markieren Sie in Ihrer Tabelle <b>Ihre Zeilen</b> (ohne die Kopfzeile) und kopieren Sie sie (<code>Strg+C</code>).</p><p>Klicken Sie in das <b>grosse Textfeld</b> von ianseo und fügen Sie ein (<code>Strg+V</code>).</p><p>Die Spalten Ihrer Tabelle werden zu Spalten, die durch Tabulatoren getrennt sind — genau das, was ianseo erwartet.</p><p class=\"guide-tip\">💡 Der schnellste Weg, um kurzfristig ein paar Schützen zu ergänzen, ohne den Umweg über eine Datei.</p>",
+                "es": "<p>En su hoja de cálculo, <b>seleccione sus filas</b> (sin el encabezado) y cópielas (<code>Ctrl+C</code>).</p><p>Haga clic en el <b>gran cuadro de texto</b> de ianseo y pegue (<code>Ctrl+V</code>).</p><p>Las columnas de su hoja se convierten en columnas separadas por tabuladores — exactamente lo que ianseo espera.</p><p class=\"guide-tip\">💡 Es el método más rápido para añadir unos pocos arqueros sobre la marcha, sin pasar por un archivo.</p>"
+            },
             "page": "/Partecipants/ListLoad.php",
             "triggers": [
                 {
@@ -70,7 +155,13 @@
                     "selector": "#txtList",
                     "required": true,
                     "page": "/Partecipants/ListLoad.php",
-                    "hint": "Collez ici les lignes copiées depuis votre tableur (Ctrl+V)"
+                    "hint": {
+                        "fr": "Collez ici les lignes copiées depuis votre tableur (Ctrl+V)",
+                        "en": "Paste the rows copied from your spreadsheet here (Ctrl+V)",
+                        "it": "Incolla qui le righe copiate dal tuo foglio di calcolo (Ctrl+V)",
+                        "de": "Fügen Sie hier die aus Ihrer Tabelle kopierten Zeilen ein (Strg+V)",
+                        "es": "Pegue aquí las filas copiadas de su hoja de cálculo (Ctrl+V)"
+                    }
                 }
             ],
             "optional": false,
@@ -78,8 +169,20 @@
         },
         {
             "id": "fichier",
-            "title": "Méthode 2 — L'import d'un fichier",
-            "content": "<p>Pour une liste complète, enregistrez votre tableur au format <b>.csv</b>.</p><p>Cliquez sur <b>Choisir un fichier</b>, sélectionnez votre <b>.csv</b> : son nom s'affiche alors dans la zone.</p><p class=\"guide-tip\">⚠️ Le format <b>.csv</b> est obligatoire pour être compatible avec l'import ianseo. Un <b>.xlsx</b> ne sera pas lu — pensez à « Enregistrer sous » dans votre tableur.</p>",
+            "title": {
+                "fr": "Méthode 2 — L'import d'un fichier",
+                "en": "Method 2 — Importing a file",
+                "it": "Metodo 2 — L'importazione di un file",
+                "de": "Weg 2 — Der Import einer Datei",
+                "es": "Método 2 — La importación de un archivo"
+            },
+            "content": {
+                "fr": "<p>Pour une liste complète, enregistrez votre tableur au format <b>.csv</b>.</p><p>Cliquez sur <b>Choisir un fichier</b>, sélectionnez votre <b>.csv</b> : son nom s'affiche alors dans la zone.</p><p class=\"guide-tip\">⚠️ Le format <b>.csv</b> est obligatoire pour être compatible avec l'import ianseo. Un <b>.xlsx</b> ne sera pas lu — pensez à « Enregistrer sous » dans votre tableur.</p>",
+                "en": "<p>For a complete list, save your spreadsheet in <b>.csv</b> format.</p><p>Click <b>Choose a file</b> and select your <b>.csv</b>: its name then appears in the box.</p><p class=\"guide-tip\">⚠️ The <b>.csv</b> format is required for the ianseo import. An <b>.xlsx</b> will not be read — remember to \"Save as\" in your spreadsheet program.</p>",
+                "it": "<p>Per un elenco completo, salva il tuo foglio in formato <b>.csv</b>.</p><p>Clicca su <b>Scegli un file</b>, seleziona il tuo <b>.csv</b>: il suo nome compare allora nella casella.</p><p class=\"guide-tip\">⚠️ Il formato <b>.csv</b> è obbligatorio per l'importazione in ianseo. Un <b>.xlsx</b> non verrà letto — ricordati di fare «Salva con nome» nel tuo foglio di calcolo.</p>",
+                "de": "<p>Für eine vollständige Liste speichern Sie Ihre Tabelle im Format <b>.csv</b>.</p><p>Klicken Sie auf <b>Datei auswählen</b> und wählen Sie Ihre <b>.csv</b>: ihr Name erscheint dann im Feld.</p><p class=\"guide-tip\">⚠️ Das Format <b>.csv</b> ist für den Import in ianseo Pflicht. Eine <b>.xlsx</b> wird nicht gelesen — denken Sie an „Speichern unter\" in Ihrem Tabellenprogramm.</p>",
+                "es": "<p>Para un listado completo, guarde su hoja en formato <b>.csv</b>.</p><p>Haga clic en <b>Elegir un archivo</b> y seleccione su <b>.csv</b>: su nombre aparece entonces en el cuadro.</p><p class=\"guide-tip\">⚠️ El formato <b>.csv</b> es obligatorio para la importación en ianseo. Un <b>.xlsx</b> no se leerá — acuérdese de «Guardar como» en su programa de hoja de cálculo.</p>"
+            },
             "page": "/Partecipants/ListLoad.php",
             "triggers": [
                 {
@@ -88,7 +191,13 @@
                     "selector": "input[name=\"UploadedFile\"]",
                     "required": true,
                     "page": "/Partecipants/ListLoad.php",
-                    "hint": "Sélectionnez votre fichier .csv"
+                    "hint": {
+                        "fr": "Sélectionnez votre fichier .csv",
+                        "en": "Select your .csv file",
+                        "it": "Seleziona il tuo file .csv",
+                        "de": "Wählen Sie Ihre .csv-Datei",
+                        "es": "Seleccione su archivo .csv"
+                    }
                 }
             ],
             "optional": false,
@@ -96,8 +205,20 @@
         },
         {
             "id": "options",
-            "title": "Les cases dangereuses",
-            "content": "<p>Avant de valider, regardez bien les <b>cases à cocher</b> proposées :</p><ul><li>l'une <b>efface les archers</b> déjà présents dans la compétition <b>qui ne figurent pas dans le fichier</b>,</li><li>l'autre <b>efface les archers</b> qui apparaissent <b>plusieurs fois</b>.</li></ul><p class=\"guide-tip\">⚠️ <b>Ces cases doivent rester décochées par défaut.</b> Cochées par erreur sur un import partiel, elles suppriment des inscriptions déjà saisies. Ne les utilisez qu'en connaissance de cause, sur un fichier qui fait référence.</p><p>Validez ensuite l'import : ianseo affiche un <b>récapitulatif des modifications</b> avant d'écrire.</p>",
+            "title": {
+                "fr": "Les cases dangereuses",
+                "en": "The dangerous boxes",
+                "it": "Le caselle pericolose",
+                "de": "Die gefährlichen Felder",
+                "es": "Las casillas peligrosas"
+            },
+            "content": {
+                "fr": "<p>Avant de valider, regardez bien les <b>cases à cocher</b> proposées :</p><ul><li>l'une <b>efface les archers</b> déjà présents dans la compétition <b>qui ne figurent pas dans le fichier</b>,</li><li>l'autre <b>efface les archers</b> qui apparaissent <b>plusieurs fois</b>.</li></ul><p class=\"guide-tip\">⚠️ <b>Ces cases doivent rester décochées par défaut.</b> Cochées par erreur sur un import partiel, elles suppriment des inscriptions déjà saisies. Ne les utilisez qu'en connaissance de cause, sur un fichier qui fait référence.</p><p>Validez ensuite l'import : ianseo affiche un <b>récapitulatif des modifications</b> avant d'écrire.</p>",
+                "en": "<p>Before confirming, look carefully at the <b>tick boxes</b> offered:</p><ul><li>one <b>deletes the archers</b> already in the competition <b>who are not in the file</b>,</li><li>the other <b>deletes the archers</b> who appear <b>more than once</b>.</li></ul><p class=\"guide-tip\">⚠️ <b>These boxes must stay unticked by default.</b> Ticked by mistake on a partial import, they delete entries that were already made. Use them only knowingly, on a file that is the reference.</p><p>Then confirm the import: ianseo shows a <b>summary of the changes</b> before writing anything.</p>",
+                "it": "<p>Prima di confermare, guarda bene le <b>caselle</b> proposte:</p><ul><li>una <b>cancella gli arcieri</b> già presenti nella gara <b>che non figurano nel file</b>,</li><li>l'altra <b>cancella gli arcieri</b> che compaiono <b>più di una volta</b>.</li></ul><p class=\"guide-tip\">⚠️ <b>Queste caselle devono restare non spuntate per impostazione predefinita.</b> Spuntate per errore su un'importazione parziale, cancellano iscrizioni già inserite. Usale solo con cognizione di causa, su un file che fa testo.</p><p>Conferma poi l'importazione: ianseo mostra un <b>riepilogo delle modifiche</b> prima di scrivere.</p>",
+                "de": "<p>Sehen Sie sich vor dem Bestätigen die angebotenen <b>Kästchen</b> genau an:</p><ul><li>eines <b>löscht die Schützen</b>, die schon im Turnier stehen und <b>nicht in der Datei vorkommen</b>,</li><li>das andere <b>löscht die Schützen</b>, die <b>mehrfach</b> erscheinen.</li></ul><p class=\"guide-tip\">⚠️ <b>Diese Kästchen müssen standardmässig leer bleiben.</b> Versehentlich bei einem Teilimport angehakt, löschen sie bereits erfasste Meldungen. Nutzen Sie sie nur bewusst, mit einer Datei, die massgeblich ist.</p><p>Bestätigen Sie dann den Import: ianseo zeigt eine <b>Übersicht der Änderungen</b>, bevor es schreibt.</p>",
+                "es": "<p>Antes de confirmar, fíjese bien en las <b>casillas</b> propuestas:</p><ul><li>una <b>borra a los arqueros</b> ya presentes en la competición <b>que no figuran en el archivo</b>,</li><li>la otra <b>borra a los arqueros</b> que aparecen <b>varias veces</b>.</li></ul><p class=\"guide-tip\">⚠️ <b>Estas casillas deben permanecer sin marcar de forma predeterminada.</b> Marcadas por error en una importación parcial, eliminan inscripciones ya realizadas. Úselas solo con conocimiento de causa, sobre un archivo que sea la referencia.</p><p>Confirme después la importación: ianseo muestra un <b>resumen de los cambios</b> antes de escribir.</p>"
+            },
             "page": "/Partecipants/ListLoad.php",
             "triggers": [],
             "optional": false,
@@ -105,8 +226,20 @@
         },
         {
             "id": "autres-tirs",
-            "title": "Le cas des « autres tirs »",
-            "content": "<p>Un archer qui tire <b>plusieurs départs</b> doit être <b>inscrit plusieurs fois</b> (comme dans Result'Arc).</p><p>Mais pour ses inscriptions supplémentaires, il faut mettre la <b>Finale individuelle à 0</b> (colonne 8), sinon il apparaîtrait <b>plusieurs fois dans le tableau de duels</b>.</p><p class=\"guide-tip\">💡 En saisie manuelle, c'est le champ <b>Finale Ind.</b> qu'on passe à <b>Non</b> sur la fiche de l'archer.</p>",
+            "title": {
+                "fr": "Le cas des « autres tirs »",
+                "en": "The case of \"other shoots\"",
+                "it": "Il caso degli «altri tiri»",
+                "de": "Der Fall der „anderen Schüsse\"",
+                "es": "El caso de los «otros tiros»"
+            },
+            "content": {
+                "fr": "<p>Un archer qui tire <b>plusieurs départs</b> doit être <b>inscrit plusieurs fois</b> (comme dans Result'Arc).</p><p>Mais pour ses inscriptions supplémentaires, il faut mettre la <b>Finale individuelle à 0</b> (colonne 8), sinon il apparaîtrait <b>plusieurs fois dans le tableau de duels</b>.</p><p class=\"guide-tip\">💡 En saisie manuelle, c'est le champ <b>Finale Ind.</b> qu'on passe à <b>Non</b> sur la fiche de l'archer.</p>",
+                "en": "<p>An archer shooting <b>several sessions</b> has to be <b>entered several times</b> (as in Result'Arc).</p><p>But for the extra entries, the <b>Individual final</b> must be set to <b>0</b> (column 8), otherwise they would appear <b>several times in the bracket</b>.</p><p class=\"guide-tip\">💡 When entering by hand, it is the <b>Ind. event</b> field that is set to <b>No</b> on the archer's record.</p>",
+                "it": "<p>Un arciere che tira <b>più turni</b> va <b>iscritto più volte</b> (come in Result'Arc).</p><p>Ma per le iscrizioni supplementari bisogna mettere la <b>Finale individuale a 0</b> (colonna 8), altrimenti comparirebbe <b>più volte nel tabellone</b>.</p><p class=\"guide-tip\">💡 Nell'inserimento a mano, è il campo <b>Evento ind.</b> che si porta a <b>No</b> nella scheda dell'arciere.</p>",
+                "de": "<p>Ein Schütze, der <b>mehrere Durchgänge</b> schiesst, muss <b>mehrfach gemeldet</b> werden (wie in Result'Arc).</p><p>Für die zusätzlichen Meldungen muss das <b>Einzelfinale auf 0</b> stehen (Spalte 8), sonst erschiene er <b>mehrfach im Duellbaum</b>.</p><p class=\"guide-tip\">💡 Bei der Eingabe von Hand ist es das Feld <b>Einzelwertung</b>, das im Datensatz des Schützen auf <b>Nein</b> gesetzt wird.</p>",
+                "es": "<p>Un arquero que tira <b>varios turnos</b> debe <b>inscribirse varias veces</b> (como en Result'Arc).</p><p>Pero en sus inscripciones adicionales hay que poner la <b>Final individual a 0</b> (columna 8), o aparecería <b>varias veces en el cuadro</b>.</p><p class=\"guide-tip\">💡 En la introducción manual, es el campo <b>Prueba ind.</b> el que se pone en <b>No</b> en la ficha del arquero.</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -114,8 +247,20 @@
         },
         {
             "id": "fin",
-            "title": "C'est terminé !",
-            "content": "<p>Vous savez inscrire en masse.</p><p><b>À retenir :</b></p><ul><li>Copier/coller <b>ou</b> fichier <b>.csv</b> — même structure de colonnes.</li><li>Ordre des participations : <b>Qualif Indiv, Qualif Équipe, Finale Indiv, Finale Équipe, Double mixte</b>.</li><li>Les cases de suppression restent <b>décochées</b>.</li><li>Deuxième départ d'un archer = <b>Finale individuelle à 0</b>.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+            "title": {
+                "fr": "C'est terminé !",
+                "en": "That's it!",
+                "it": "Finito!",
+                "de": "Fertig!",
+                "es": "¡Terminado!"
+            },
+            "content": {
+                "fr": "<p>Vous savez inscrire en masse.</p><p><b>À retenir :</b></p><ul><li>Copier/coller <b>ou</b> fichier <b>.csv</b> — même structure de colonnes.</li><li>Ordre des participations : <b>Qualif Indiv, Qualif Équipe, Finale Indiv, Finale Équipe, Double mixte</b>.</li><li>Les cases de suppression restent <b>décochées</b>.</li><li>Deuxième départ d'un archer = <b>Finale individuelle à 0</b>.</li></ul><p>Place au <b>QCM</b> et au <b>défi</b> !</p>",
+                "en": "<p>You can now enter archers in bulk.</p><p><b>What to remember:</b></p><ul><li>Copy and paste <b>or</b> a <b>.csv</b> file — the same column layout.</li><li>Order of the participations: <b>Ind. qualification, Team qualification, Ind. final, Team final, Mixed team</b>.</li><li>The deletion boxes stay <b>unticked</b>.</li><li>An archer's second session = <b>Individual final at 0</b>.</li></ul><p>Now for the <b>quiz</b> and the <b>challenge</b>!</p>",
+                "it": "<p>Sai iscrivere in blocco.</p><p><b>Da ricordare:</b></p><ul><li>Copia e incolla <b>oppure</b> file <b>.csv</b> — stessa struttura di colonne.</li><li>Ordine delle partecipazioni: <b>Qualif. Individuale, Qualif. Squadre, Finale Individuale, Finale Squadre, Squadra mista</b>.</li><li>Le caselle di cancellazione restano <b>non spuntate</b>.</li><li>Secondo turno di un arciere = <b>Finale individuale a 0</b>.</li></ul><p>Spazio al <b>quiz</b> e alla <b>sfida</b>!</p>",
+                "de": "<p>Sie können Schützen in einem Zug melden.</p><p><b>Zum Merken:</b></p><ul><li>Kopieren und Einfügen <b>oder</b> eine <b>.csv</b>-Datei — derselbe Spaltenaufbau.</li><li>Reihenfolge der Teilnahmen: <b>Einzelqualifikation, Mannschaftsqualifikation, Einzelfinale, Mannschaftsfinale, Mixed-Mannschaft</b>.</li><li>Die Löschkästchen bleiben <b>leer</b>.</li><li>Zweiter Durchgang eines Schützen = <b>Einzelfinale auf 0</b>.</li></ul><p>Weiter zum <b>Quiz</b> und zur <b>Aufgabe</b>!</p>",
+                "es": "<p>Ya sabe inscribir en bloque.</p><p><b>Para recordar:</b></p><ul><li>Copiar y pegar <b>o</b> archivo <b>.csv</b> — la misma estructura de columnas.</li><li>Orden de las participaciones: <b>Calif. individual, Calif. equipos, Final individual, Final equipos, Equipo mixto</b>.</li><li>Las casillas de borrado se quedan <b>sin marcar</b>.</li><li>Segundo turno de un arquero = <b>Final individual a 0</b>.</li></ul><p>¡Adelante con el <b>cuestionario</b> y el <b>reto</b>!</p>"
+            },
             "page": "*",
             "triggers": [],
             "optional": false,
@@ -127,48 +272,203 @@
         "shuffle": true,
         "questions": [
             {
-                "q": "Quel format de fichier faut-il pour l'import tableur de ianseo ?",
-                "choices": [".csv", ".xlsx", ".pdf", ".txt uniquement"],
-                "correct": 0,
-                "explain": "Le tableur doit être enregistré au format .csv pour être lu par ianseo."
-            },
-            {
-                "q": "Dans quel ordre sont les colonnes de participation ?",
+                "q": {
+                    "fr": "Quel format de fichier faut-il pour l'import tableur de ianseo ?",
+                    "en": "Which file format does the ianseo spreadsheet import need?",
+                    "it": "Quale formato di file serve per l'importazione da foglio di calcolo di ianseo?",
+                    "de": "Welches Dateiformat braucht der Tabellenimport von ianseo?",
+                    "es": "¿Qué formato de archivo hace falta para la importación desde hoja de cálculo de ianseo?"
+                },
                 "choices": [
-                    "Qualif Indiv, Qualif Équipe, Finale Indiv, Finale Équipe, Double mixte",
-                    "Finale Indiv, Finale Équipe, Qualif Indiv, Qualif Équipe, Double mixte",
-                    "Double mixte, Qualif Indiv, Finale Indiv, Qualif Équipe, Finale Équipe",
-                    "Qualif Indiv, Finale Indiv, Qualif Équipe, Finale Équipe, Double mixte"
+                    {
+                        "fr": ".csv",
+                        "en": ".csv",
+                        "it": ".csv",
+                        "de": ".csv",
+                        "es": ".csv"
+                    },
+                    {
+                        "fr": ".xlsx",
+                        "en": ".xlsx",
+                        "it": ".xlsx",
+                        "de": ".xlsx",
+                        "es": ".xlsx"
+                    },
+                    {
+                        "fr": ".pdf",
+                        "en": ".pdf",
+                        "it": ".pdf",
+                        "de": ".pdf",
+                        "es": ".pdf"
+                    },
+                    {
+                        "fr": ".txt uniquement",
+                        "en": ".txt only",
+                        "it": "soltanto .txt",
+                        "de": "nur .txt",
+                        "es": "solo .txt"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Les deux qualifications d'abord, puis les deux finales, puis le double mixte. C'est une source classique d'erreur."
+                "explain": {
+                    "fr": "Le tableur doit être enregistré au format .csv pour être lu par ianseo.",
+                    "en": "The spreadsheet has to be saved in .csv format for ianseo to read it.",
+                    "it": "Il foglio di calcolo va salvato in formato .csv perché ianseo possa leggerlo.",
+                    "de": "Die Tabelle muss im Format .csv gespeichert werden, damit ianseo sie lesen kann.",
+                    "es": "La hoja de cálculo debe guardarse en formato .csv para que ianseo pueda leerla."
+                }
             },
             {
-                "q": "Les cases « effacer les archers absents du fichier » et « effacer les doublons » doivent être…",
+                "q": {
+                    "fr": "Dans quel ordre sont les colonnes de participation ?",
+                    "en": "In what order do the participation columns come?",
+                    "it": "In quale ordine stanno le colonne di partecipazione?",
+                    "de": "In welcher Reihenfolge stehen die Teilnahmespalten?",
+                    "es": "¿En qué orden están las columnas de participación?"
+                },
                 "choices": [
-                    "décochées par défaut",
-                    "toujours cochées",
-                    "cochées au premier import seulement",
-                    "sans effet sur les données"
+                    {
+                        "fr": "Qualif Indiv, Qualif Équipe, Finale Indiv, Finale Équipe, Double mixte",
+                        "en": "Ind. qualification, Team qualification, Ind. final, Team final, Mixed team",
+                        "it": "Qualif. Individuale, Qualif. Squadre, Finale Individuale, Finale Squadre, Squadra mista",
+                        "de": "Einzelqualifikation, Mannschaftsqualifikation, Einzelfinale, Mannschaftsfinale, Mixed-Mannschaft",
+                        "es": "Calif. individual, Calif. equipos, Final individual, Final equipos, Equipo mixto"
+                    },
+                    {
+                        "fr": "Finale Indiv, Finale Équipe, Qualif Indiv, Qualif Équipe, Double mixte",
+                        "en": "Ind. final, Team final, Ind. qualification, Team qualification, Mixed team",
+                        "it": "Finale Individuale, Finale Squadre, Qualif. Individuale, Qualif. Squadre, Squadra mista",
+                        "de": "Einzelfinale, Mannschaftsfinale, Einzelqualifikation, Mannschaftsqualifikation, Mixed-Mannschaft",
+                        "es": "Final individual, Final equipos, Calif. individual, Calif. equipos, Equipo mixto"
+                    },
+                    {
+                        "fr": "Double mixte, Qualif Indiv, Finale Indiv, Qualif Équipe, Finale Équipe",
+                        "en": "Mixed team, Ind. qualification, Ind. final, Team qualification, Team final",
+                        "it": "Squadra mista, Qualif. Individuale, Finale Individuale, Qualif. Squadre, Finale Squadre",
+                        "de": "Mixed-Mannschaft, Einzelqualifikation, Einzelfinale, Mannschaftsqualifikation, Mannschaftsfinale",
+                        "es": "Equipo mixto, Calif. individual, Final individual, Calif. equipos, Final equipos"
+                    },
+                    {
+                        "fr": "Qualif Indiv, Finale Indiv, Qualif Équipe, Finale Équipe, Double mixte",
+                        "en": "Ind. qualification, Ind. final, Team qualification, Team final, Mixed team",
+                        "it": "Qualif. Individuale, Finale Individuale, Qualif. Squadre, Finale Squadre, Squadra mista",
+                        "de": "Einzelqualifikation, Einzelfinale, Mannschaftsqualifikation, Mannschaftsfinale, Mixed-Mannschaft",
+                        "es": "Calif. individual, Final individual, Calif. equipos, Final equipos, Equipo mixto"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Cochées par erreur, elles suppriment des inscriptions déjà saisies. On les laisse décochées."
+                "explain": {
+                    "fr": "Les deux qualifications d'abord, puis les deux finales, puis le double mixte. C'est une source classique d'erreur.",
+                    "en": "The two qualifications first, then the two finals, then the mixed team. A classic source of mistakes.",
+                    "it": "Prima le due qualificazioni, poi le due finali, poi la squadra mista. È una fonte classica di errore.",
+                    "de": "Zuerst die beiden Qualifikationen, dann die beiden Finals, dann die Mixed-Mannschaft. Eine klassische Fehlerquelle.",
+                    "es": "Primero las dos calificaciones, luego las dos finales, y después el equipo mixto. Es una fuente clásica de error."
+                }
             },
             {
-                "q": "Un archer tire deux départs. Que faut-il faire pour sa deuxième inscription ?",
+                "q": {
+                    "fr": "Les cases « effacer les archers absents du fichier » et « effacer les doublons » doivent être…",
+                    "en": "The boxes \"delete the archers absent from the file\" and \"delete the duplicates\" must be…",
+                    "it": "Le caselle «cancella gli arcieri assenti dal file» e «cancella i doppioni» devono essere…",
+                    "de": "Die Kästchen „Schützen löschen, die in der Datei fehlen\" und „Doppelte löschen\" müssen…",
+                    "es": "Las casillas «borrar a los arqueros ausentes del archivo» y «borrar los duplicados» deben estar…"
+                },
                 "choices": [
-                    "Mettre la Finale individuelle à 0 (colonne 8)",
-                    "Ne rien changer",
-                    "Lui donner un autre numéro de licence",
-                    "Le supprimer du premier départ"
+                    {
+                        "fr": "décochées par défaut",
+                        "en": "unticked by default",
+                        "it": "non spuntate per impostazione predefinita",
+                        "de": "standardmässig leer bleiben",
+                        "es": "sin marcar de forma predeterminada"
+                    },
+                    {
+                        "fr": "toujours cochées",
+                        "en": "always ticked",
+                        "it": "sempre spuntate",
+                        "de": "immer angehakt sein",
+                        "es": "siempre marcadas"
+                    },
+                    {
+                        "fr": "cochées au premier import seulement",
+                        "en": "ticked on the first import only",
+                        "it": "spuntate solo alla prima importazione",
+                        "de": "nur beim ersten Import angehakt sein",
+                        "es": "marcadas solo en la primera importación"
+                    },
+                    {
+                        "fr": "sans effet sur les données",
+                        "en": "harmless to the data",
+                        "it": "ininfluenti sui dati",
+                        "de": "keine Wirkung auf die Daten haben",
+                        "es": "sin efecto sobre los datos"
+                    }
                 ],
                 "correct": 0,
-                "explain": "Sans cela, il apparaîtrait deux fois dans le tableau de duels."
+                "explain": {
+                    "fr": "Cochées par erreur, elles suppriment des inscriptions déjà saisies. On les laisse décochées.",
+                    "en": "Ticked by mistake, they delete entries that were already made. Leave them unticked.",
+                    "it": "Spuntate per errore, cancellano iscrizioni già inserite. Si lasciano non spuntate.",
+                    "de": "Versehentlich angehakt löschen sie bereits erfasste Meldungen. Man lässt sie leer.",
+                    "es": "Marcadas por error, eliminan inscripciones ya realizadas. Se dejan sin marcar."
+                }
+            },
+            {
+                "q": {
+                    "fr": "Un archer tire deux départs. Que faut-il faire pour sa deuxième inscription ?",
+                    "en": "An archer shoots two sessions. What has to be done for the second entry?",
+                    "it": "Un arciere tira due turni. Che cosa bisogna fare per la sua seconda iscrizione?",
+                    "de": "Ein Schütze schiesst zwei Durchgänge. Was ist für seine zweite Meldung zu tun?",
+                    "es": "Un arquero tira dos turnos. ¿Qué hay que hacer en su segunda inscripción?"
+                },
+                "choices": [
+                    {
+                        "fr": "Mettre la Finale individuelle à 0 (colonne 8)",
+                        "en": "Set the Individual final to 0 (column 8)",
+                        "it": "Mettere la Finale individuale a 0 (colonna 8)",
+                        "de": "Das Einzelfinale auf 0 setzen (Spalte 8)",
+                        "es": "Poner la Final individual a 0 (columna 8)"
+                    },
+                    {
+                        "fr": "Ne rien changer",
+                        "en": "Change nothing",
+                        "it": "Non cambiare nulla",
+                        "de": "Nichts ändern",
+                        "es": "No cambiar nada"
+                    },
+                    {
+                        "fr": "Lui donner un autre numéro de licence",
+                        "en": "Give them another licence number",
+                        "it": "Dargli un altro numero di tessera",
+                        "de": "Ihm eine andere Lizenznummer geben",
+                        "es": "Darle otro número de licencia"
+                    },
+                    {
+                        "fr": "Le supprimer du premier départ",
+                        "en": "Remove them from the first session",
+                        "it": "Toglierlo dal primo turno",
+                        "de": "Ihn aus dem ersten Durchgang entfernen",
+                        "es": "Quitarlo del primer turno"
+                    }
+                ],
+                "correct": 0,
+                "explain": {
+                    "fr": "Sans cela, il apparaîtrait deux fois dans le tableau de duels.",
+                    "en": "Without that, they would appear twice in the bracket.",
+                    "it": "Senza questo, comparirebbe due volte nel tabellone degli scontri.",
+                    "de": "Sonst erschiene er zweimal im Duellbaum.",
+                    "es": "Sin eso, aparecería dos veces en el cuadro de enfrentamientos."
+                }
             }
         ]
     },
     "challenge": {
-        "intro": "<p>À vous de jouer.</p><ol><li>Ouvrez une compétition.</li><li>Rendez-vous sur la page d'<b>importation tableur</b>.</li><li>Importez (ou collez) au moins <b>un archer</b> pour qu'il soit inscrit à la compétition.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+        "intro": {
+            "fr": "<p>À vous de jouer.</p><ol><li>Ouvrez une compétition.</li><li>Rendez-vous sur la page d'<b>importation tableur</b>.</li><li>Importez (ou collez) au moins <b>un archer</b> pour qu'il soit inscrit à la compétition.</li></ol><p>Cliquez sur <b>Vérifier</b> quand c'est fait.</p>",
+            "en": "<p>Your turn.</p><ol><li>Open a competition.</li><li>Go to the <b>spreadsheet import</b> page.</li><li>Import (or paste) at least <b>one archer</b> so that they are entered in the competition.</li></ol><p>Click <b>Check</b> when it is done.</p>",
+            "it": "<p>Tocca a te.</p><ol><li>Apri una gara.</li><li>Vai sulla pagina di <b>importazione da foglio di calcolo</b>.</li><li>Importa (o incolla) almeno <b>un arciere</b> perché risulti iscritto alla gara.</li></ol><p>Clicca su <b>Verifica</b> quando è fatto.</p>",
+            "de": "<p>Sie sind dran.</p><ol><li>Öffnen Sie ein Turnier.</li><li>Gehen Sie auf die Seite für den <b>Tabellenimport</b>.</li><li>Importieren (oder fügen Sie ein) mindestens <b>einen Schützen</b>, damit er im Turnier gemeldet ist.</li></ol><p>Klicken Sie auf <b>Prüfen</b>, wenn es erledigt ist.</p>",
+            "es": "<p>Le toca a usted.</p><ol><li>Abra una competición.</li><li>Vaya a la página de <b>importación desde hoja de cálculo</b>.</li><li>Importe (o pegue) al menos <b>un arquero</b> para que quede inscrito en la competición.</li></ol><p>Haga clic en <b>Verificar</b> cuando esté hecho.</p>"
+        },
         "conditions": [
             "listload_visited",
             "has_participant"

@@ -1,11 +1,18 @@
 {
-    "version": "1.0.1",
-    "date": "2026-07-21",
-    "notes": "Désinstallation : plus de sauvegarde ZIP par défaut (les fichiers sont récupérables depuis GitHub, et une archive dans le dossier temporaire dupliquait d'éventuels secrets). Un module peut demander une sauvegarde via version.json \"uninstall_backup\": true — elle est alors proposée en téléchargement à usage unique et supprimée du serveur dès le téléchargement. Purge automatique des archives résiduelles.",
+    "version": "1.3.3",
+    "date": "2026-09-08",
+    "notes": "Shared machinery brought up to the standard asked of published modules.\n\nThe update and uninstall screens are translated once for every module, in English, French, Italian, German and Spanish, through upd_text() and languages/ — a module no longer carries its own copy of that wording.\n\npaths.php discovers the ianseo root and a module's URL instead of counting directory levels, so a module keeps working wherever it is installed. schema-lib.php offers existence tests that cannot be fatal, non-fatal column additions, and idempotent table and column renames that leave a compatibility view under the old name; uninstalling now removes those views too.\n\nBoth screens are written in PHP rather than woven out of template tags, which is what ianseo asks: a file should be in one language at a time. Every value passes through one short escaping helper. One display bug fell out of that rewrite — the uninstall page listed a module's tables by joining them with markup and then escaping the whole string, so the reader saw the tags as text between each table name.\n\nCode and comments in English. upd_current_user() cut the user name with substr(), which counts bytes and can split a character in half; it uses mb_substr() now.",
     "files": [
         "update-lib.php",
         "update-ui.php",
         "uninstall.php",
+        "paths.php",
+        "schema-lib.php",
+        "languages/en.php",
+        "languages/fr.php",
+        "languages/it.php",
+        "languages/de.php",
+        "languages/es.php",
         "version.json"
     ]
 }

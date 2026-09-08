@@ -1,46 +1,79 @@
 <?php
 /**
- * Guide interactif — menu.php
- * Inclus sur TOUTES les pages par get_which_menu() dans Common/Menu.php.
+ * Menu entries and page furniture of the Interactive Guide module.
+ *
+ * get_which_menu() in Common/Menu.php includes this file on EVERY ianseo page,
+ * which is what lets the guide panel follow the user through the software. It is
+ * also what makes this the most dangerous file in the module: an SQL error here
+ * does not break the guide, it makes the whole installation unreachable, because
+ * safe_error() answers 404 and calls exit() with nothing able to catch it.
+ *
+ * The rules this file follows, none of which may be relaxed:
+ *   - it never creates a table (guide_ensure_schema() is for the module's own
+ *     pages), and never reads one without knowing it exists;
+ *   - its single write, the page-visit record, is guarded and non-fatal — see
+ *     guide_track_visit();
+ *   - the panel markup is emitted once per page, guarded by a global flag,
+ *     because get_which_menu() can be reached more than once.
+ *
+ * What it emits: the Modules menu entries, the side panel, the floating button,
+ * the trigger recorder used by the course editor, and — for an account that has
+ * no competition yet — a banner inviting the user to learn ianseo.
  */
 
 require_once(dirname(__FILE__) . '/lib/guide-lib.inc.php');
 
-/* ---- Menu Modules ---- */
-$ret['MODS']['GUIDE'][] = 'Guide interactif';
-$ret['MODS']['GUIDE'][] = 'Formations disponibles|' . $CFG->ROOT_DIR . 'Modules/Custom/GUIDE/';
-// Avec un module de comptes, l'entrée Administration est réservée à la vue
-// Administrateur serveur (authCheckACL accorde AclRoot à tout connecté)
+$_guideUrl = function_exists('cmod_url')
+    ? cmod_url(__DIR__)
+    : $CFG->ROOT_DIR . 'Modules/Custom/GUIDE/';
+
+/* ---- Modules menu ---- */
+
+$ret['MODS']['GUIDE'][] = guide_text('ModuleName');
+$ret['MODS']['GUIDE'][] = guide_text('MenuCourses') . '|' . $_guideUrl;
+
+// Administration is restricted to the server administrator view when an account
+// module is installed: its authCheckACL() grants AclRoot to every signed-in
+// organiser on pages outside a competition, so subFeatureAcl alone would show
+// this entry to all of them. Reading $_SESSION directly keeps the module
+// independent of any particular account module.
 if (isset($acl) && subFeatureAcl($acl, AclRoot, '') == AclReadWrite
     && (guide_current_user() === '' || !empty($_SESSION['AUTH_ROOT']))) {
-    $ret['MODS']['GUIDE'][] = 'Administration|' . $CFG->ROOT_DIR . 'Modules/Custom/GUIDE/admin/';
+    $ret['MODS']['GUIDE'][] = guide_text('MenuAdmin') . '|' . $_guideUrl . 'admin/';
 }
 
-/* ---- Injection du panneau (une seule fois par page) ---- */
+/* ---- Page furniture, once per page ---- */
+
 if (!empty($GLOBALS['_guide_panel_done'])) return;
 $GLOBALS['_guide_panel_done'] = true;
 
-guide_track_visit();   // conditions « page visitée » (ne touche la DB que sur les pages surveillées)
+// Records the visit only when a course condition watches this page, and only
+// when the module's tables already exist.
+guide_track_visit();
 
-$_gr   = $CFG->ROOT_DIR;
-$_gdir = dirname(__FILE__) . '/assets/';
-$_gvc  = filemtime($_gdir . 'guide.css');
-$_gvj  = filemtime($_gdir . 'guide.js');
+$_gAssets = __DIR__ . '/assets/';
+$_gCss    = $_guideUrl . 'assets/guide.css' . cmod_asset_version($_gAssets . 'guide.css');
+$_gJs     = $_guideUrl . 'assets/guide.js'  . cmod_asset_version($_gAssets . 'guide.js');
 ?>
 <script>
+/* Published for assets/guide.js: the whole course player runs in the browser, so
+   its wording cannot go through guide_text() at render time. */
 window.GUIDE_USER = <?= json_encode(guide_current_user(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-window.GUIDE_CTX  = <?= guide_current_user() !== '' ? (int)guide_pref_ctx() : 'null' ?>; // null = pas de compte → préférence localStorage
+window.GUIDE_T    = <?= json_encode(guide_js_strings(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+/* null means "no account module": the client then keeps the preference in
+   localStorage instead of on the server. */
+window.GUIDE_CTX  = <?= guide_current_user() !== '' ? (int)guide_pref_ctx() : 'null' ?>;
 </script>
-<link rel="stylesheet" href="<?= $_gr ?>Modules/Custom/GUIDE/assets/guide.css?v=<?= $_gvc ?>">
+<link rel="stylesheet" href="<?= htmlspecialchars($_gCss) ?>">
 
 <div id="guide-panel" style="display:none">
   <div id="guide-panel-header">
-    <button id="guide-panel-toggle-side" title="Déplacer">←</button>
-    <span id="guide-panel-header-title">Guide interactif</span>
+    <button id="guide-panel-toggle-side" title="<?= htmlspecialchars(guide_text('PanelMove')) ?>">←</button>
+    <span id="guide-panel-header-title"><?= htmlspecialchars(guide_text('ModuleName')) ?></span>
     <span id="guide-panel-header-btns">
-      <button id="guide-panel-min"   title="Réduire">▁</button>
-      <button id="guide-panel-max"   title="Agrandir">▢</button>
-      <button id="guide-panel-close" title="Fermer la formation">✕</button>
+      <button id="guide-panel-min"   title="<?= htmlspecialchars(guide_text('PanelMinimise')) ?>">▁</button>
+      <button id="guide-panel-max"   title="<?= htmlspecialchars(guide_text('PanelMaximise')) ?>">▢</button>
+      <button id="guide-panel-close" title="<?= htmlspecialchars(guide_text('PanelCloseCourse')) ?>">✕</button>
     </span>
   </div>
   <div id="guide-panel-formation-name"></div>
@@ -58,38 +91,43 @@ window.GUIDE_CTX  = <?= guide_current_user() !== '' ? (int)guide_pref_ctx() : 'n
     <div id="guide-panel-condition-wait" style="display:none"></div>
   </div>
   <div id="guide-panel-validate">
-    <button id="guide-btn-validate">☐ Marquer comme fait</button>
+    <button id="guide-btn-validate">☐ <?= htmlspecialchars(guide_text('CmdMarkDone')) ?></button>
   </div>
   <div id="guide-panel-nav">
-    <button id="guide-btn-prev" disabled>◀ Préc.</button>
-    <button id="guide-btn-restart" title="Recommencer les indications de cette étape">🔄</button>
-    <button id="guide-btn-back" title="Revenir à l'indication précédente">↶</button>
-    <button id="guide-btn-next">Suivant ▶</button>
+    <button id="guide-btn-prev" disabled>◀ <?= htmlspecialchars(guide_text('CmdPrev')) ?></button>
+    <button id="guide-btn-restart" title="<?= htmlspecialchars(guide_text('CmdRestartHints')) ?>">🔄</button>
+    <button id="guide-btn-back"    title="<?= htmlspecialchars(guide_text('CmdBackHint')) ?>">↶</button>
+    <button id="guide-btn-next"><?= htmlspecialchars(guide_text('CmdNextStep')) ?> ▶</button>
   </div>
 </div>
 
-<button id="guide-fab" style="display:none">🎯 Guide interactif</button>
+<button id="guide-fab" style="display:none">🎯 <?= htmlspecialchars(guide_text('ModuleName')) ?></button>
 
 <?php
-/* Bannière "Apprendre" : page d'accueil ianseo + AUCUNE compétition visible (nouvel utilisateur).
-   Avec le module de comptes, chaque compte ne voit que ses compétitions → la bannière s'adresse
-   au compte qui n'en a encore aucune. Dès qu'une compétition est visible, elle disparaît. */
+/* Banner shown on the ianseo home page when the current account can see NO
+   competition at all — the sign of a brand new user. That is not the same test
+   as "no competition is currently open": an organiser between two events must
+   not be told to start learning. With an account module the visibility follows
+   AUTH_COMP, so each account is judged on its own competitions. The COUNT runs
+   on the home page only. */
 $_gIsHome = isset($_SERVER['SCRIPT_NAME'])
     && $_SERVER['SCRIPT_NAME'] === rtrim($CFG->ROOT_DIR, '/') . '/index.php';
-$_gNoTour = $_gIsHome && guide_visible_tournament_count() === 0;
-if ($_gNoTour):
+
+if ($_gIsHome && guide_visible_tournament_count() === 0):
 ?>
 <div id="guide-learn-banner" style="display:none">
-  <a href="<?= $_gr ?>Modules/Custom/GUIDE/">
+  <a href="<?= htmlspecialchars($_guideUrl) ?>">
     <span class="glb-emoji">🎯</span>
     <span class="glb-txt">
-      <b>Apprendre à utiliser ianseo</b>
-      <span>Formations interactives pas-à-pas, QCM et défis — Guide interactif</span>
+      <b><?= htmlspecialchars(guide_text('BannerTitle')) ?></b>
+      <span><?= htmlspecialchars(guide_text('BannerText')) ?></span>
     </span>
     <span class="glb-arrow">→</span>
   </a>
 </div>
 <script>
+/* Moved to the top of #Content once the page exists: the banner is emitted here,
+   where the menu is included, which is not where it has to appear. */
 document.addEventListener('DOMContentLoaded', function () {
   var b = document.getElementById('guide-learn-banner');
   if (!b) return;
@@ -103,20 +141,21 @@ document.addEventListener('DOMContentLoaded', function () {
 <div id="guide-rec" style="display:none">
   <div id="guide-rec-header">
     <span class="guide-rec-dot"></span>
-    <span id="guide-rec-title">Enregistrement</span>
-    <button id="guide-rec-close" title="Abandonner l'enregistrement">✕</button>
+    <span id="guide-rec-title"><?= htmlspecialchars(guide_text('RecTitle')) ?></span>
+    <button id="guide-rec-close" title="<?= htmlspecialchars(guide_text('RecAbort')) ?>">✕</button>
   </div>
-  <div id="guide-rec-hint">Cliquez sur les éléments à enregistrer comme triggers. La navigation est conservée.</div>
+  <div id="guide-rec-hint"><?= htmlspecialchars(guide_text('RecHint')) ?></div>
   <div id="guide-rec-list"></div>
   <div id="guide-rec-actions">
-    <button id="guide-rec-pause" class="guide-rec-btn">⏸ Pause</button>
-    <button id="guide-rec-page"  class="guide-rec-btn" title="Enregistrer la page courante comme condition d'état">📍 Page active</button>
-    <button id="guide-rec-undo"  class="guide-rec-btn" title="Annuler le dernier trigger enregistré">↶ Annuler</button>
-    <button id="guide-rec-done"  class="guide-rec-btn guide-rec-btn-done">✓ Terminer</button>
+    <button id="guide-rec-pause" class="guide-rec-btn">⏸ <?= htmlspecialchars(guide_text('RecPause')) ?></button>
+    <button id="guide-rec-page"  class="guide-rec-btn"
+            title="<?= htmlspecialchars(guide_text('RecCurrentPageHint')) ?>">📍 <?= htmlspecialchars(guide_text('RecCurrentPage')) ?></button>
+    <button id="guide-rec-undo"  class="guide-rec-btn"
+            title="<?= htmlspecialchars(guide_text('RecUndoHint')) ?>">↶ <?= htmlspecialchars(guide_text('RecUndo')) ?></button>
+    <button id="guide-rec-done"  class="guide-rec-btn guide-rec-btn-done">✓ <?= htmlspecialchars(guide_text('RecDone')) ?></button>
   </div>
 </div>
 
-<script src="<?= $_gr ?>Modules/Custom/GUIDE/assets/guide.js?v=<?= $_gvj ?>"></script>
+<script src="<?= htmlspecialchars($_gJs) ?>"></script>
 <?php
-unset($_gr, $_gdir, $_gvc, $_gvj);
-?>
+unset($_guideUrl, $_gAssets, $_gCss, $_gJs, $_gIsHome);
