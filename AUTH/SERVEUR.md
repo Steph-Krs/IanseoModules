@@ -509,12 +509,62 @@ sudo install -d -o www-data -g www-data -m 0700 /var/www/.config
 sudo -u www-data rclone config
 ```
 
-⚠️ **La base contient les données personnelles des licenciés** : déclarer une destination
-`crypt` (chiffrée) par-dessus le stockage, et conserver sa phrase secrète hors du serveur.
-Exemple : `gdrive` (type `drive`, autorisation via `rclone authorize "drive"` sur un PC), puis
-`gdrive-chiffre` (type `crypt`, sur `gdrive:ianseo`). Saisir `gdrive-chiffre:` dans la page de
-configuration et cliquer « Tester la destination en ligne ». Un échec de la copie en ligne ne
-bloque pas la mise à jour (la copie locale suffit pour revenir en arrière).
+⚠️ **La base contient les données personnelles des licenciés** : on déclare **deux**
+destinations — le stockage, puis une couche `crypt` (chiffrée) par-dessus. ianseo n'écrit que
+dans la seconde : l'hébergeur ne voit que des fichiers illisibles.
+
+⚠️ À l'écran d'accueil de `rclone config`, **ne pas** choisir `s) Set configuration password` :
+la sauvegarde tourne la nuit, sans personne pour saisir ce mot de passe — elle échouerait.
+
+**Destination 1 — le stockage** (exemple Google Drive ; `dropbox`, `onedrive`… se déroulent pareil) :
+
+| Question | Réponse |
+|---|---|
+| `n/s/q>` | `n` |
+| `name>` | `gdrive` |
+| `Storage>` | `drive` |
+| `client_id>` / `client_secret>` | Entrée (vides) |
+| `scope>` | `drive.file` — rclone ne voit **que les fichiers qu'il a créés**, rien d'autre du Drive |
+| `service_account_file>` | Entrée |
+| `Edit advanced config?` | `n` |
+| `Use web browser to automatically authenticate?` | `n` — le serveur n'a pas de navigateur |
+
+rclone affiche alors une commande `rclone authorize "drive" "…"`. La lancer **sur un ordinateur
+avec navigateur** où rclone est installé (Windows : `winget install Rclone.Rclone`), se connecter
+au compte Google choisi, puis recopier le jeton affiché dans `config_token>` sur le serveur.
+Ensuite : `Shared Drive?` → `n`, `Keep this remote?` → `y`.
+
+**Destination 2 — la couche chiffrée** :
+
+| Question | Réponse |
+|---|---|
+| `n/s/q>` | `n` |
+| `name>` | `gdrive-chiffre` |
+| `Storage>` | `crypt` |
+| `remote>` | `gdrive:ianseo` (dossier `ianseo` du Drive, créé au premier envoi) |
+| `filename_encryption>` | `standard` |
+| `directory_name_encryption>` | `true` |
+| `password` | `g` pour en générer un (ou `y` pour le saisir) |
+| `password2` (sel) | `g` |
+| `Edit advanced config?` | `n` ; `Keep this remote?` → `y` ; puis `q` |
+
+🔑 **Recopier les deux mots de passe affichés dans un coffre-fort ou un gestionnaire de mots de
+passe, hors du serveur.** Sans eux, les sauvegardes en ligne sont **irrécupérables** — par
+exemple si le serveur lui-même est perdu, qui est justement le cas où l'on en a besoin.
+
+Vérifier depuis le serveur, puis dans ianseo :
+
+```bash
+sudo -u www-data rclone mkdir gdrive-chiffre:ianseo   # crée le dossier (sans effet s'il existe)
+sudo -u www-data rclone lsf gdrive-chiffre:ianseo     # aucune erreur = accès ok (vide au début)
+```
+
+(Sans le `mkdir`, une destination qui n'a encore jamais rien reçu répond
+`directory not found` : ce n'est pas une panne, le premier envoi créerait le dossier.)
+
+**Multi-comptes › Configuration du serveur** → Copie en ligne : `gdrive-chiffre:` → Enregistrer →
+**Tester la destination en ligne**. Un échec de la copie en ligne ne bloque pas la mise à jour
+(la copie locale suffit pour revenir en arrière).
 
 ### Restaurer
 

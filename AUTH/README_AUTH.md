@@ -38,6 +38,13 @@ des espaces en ligne (le module est prêt à basculer le jour venu).
 - 👥 Inscription groupée d'un camarade de club ; suivi des paiements ; boutique
 - 🧾 Mandat, documents et feuilles de marque de la compétition consultables par les archers
 
+### Côté administrateur du serveur
+- 🌙 Maintenance nocturne automatique : mise à jour d'ianseo et des modules, synchronisations
+- 💾 Sauvegarde nocturne de la base et des fichiers, avec copie en ligne facultative
+  (Google Drive, Dropbox, OneDrive, NAS…) — sans sauvegarde valide, ianseo n'est pas mis à jour
+- ⚙️ Page **Configuration du serveur** : réglages modifiables sans ligne de commande
+  (mots de passe jamais affichés ; commandes et chemins réservés à la ligne de commande)
+
 ## Base de données
 
 Tables internes créées automatiquement : préfixe `AUT_` (comptes organisateurs) et `BK_`

@@ -265,11 +265,19 @@ function aut_backup_rclone($args, &$out)
     return $rc;
 }
 
-/** Checks that the rclone destination is reachable (web test button and nightly run). */
+/**
+ * Checks that the rclone destination is reachable AND writable (web test button).
+ * mkdir first: a destination that never received a backup does not exist yet, and a
+ * bare listing then fails with "directory not found" (rclone exit code 3) although
+ * everything is fine — seen on the first real setup. mkdir is a no-op when the folder
+ * exists, and proves the write permission the nightly upload needs.
+ */
 function aut_backup_remote_test($remote, &$out)
 {
     if (!aut_backup_remote_valid($remote)) { $out = array('Destination invalide (format attendu : nom:dossier).'); return false; }
-    return aut_backup_rclone('lsf --max-depth 1 --contimeout 20s --timeout 60s ' . escapeshellarg($remote), $out) === 0;
+    $opt = ' --contimeout 20s --timeout 60s ';
+    if (aut_backup_rclone('mkdir' . $opt . escapeshellarg($remote), $out) !== 0) return false;
+    return aut_backup_rclone('lsf --max-depth 1' . $opt . escapeshellarg($remote), $out) === 0;
 }
 
 /**
