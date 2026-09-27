@@ -496,3 +496,127 @@ demande explicite, les tables `PRONO_*`.
 
 Le vhost Apache et le tunnel Cloudflare ayant été créés à la main, ils doivent être
 retirés séparément.
+
+<!-- BEGIN DATABASE WRITES (generated — do not edit by hand) -->
+## Database writes
+
+### ianseo core tables
+
+None. This module never writes to a core ianseo table.
+
+### Tables owned by this module
+
+| Statement | Table | Location | Notes |
+|---|---|---|---|
+| `UPDATE` | `PRONO_Config` | `admin/markets.php:42` | — |
+| `UPDATE` | `PRONO_Config` | `admin/markets.php:58` | — |
+| `UPDATE` | `PRONO_Config` | `admin/markets.php:70` | — |
+| `UPDATE` | `PRONO_Config` | `admin/qrcode.php:35` | — |
+| `UPDATE` | `PRONO_Config` | `index.php:34` | — |
+| `UPDATE` | `PRONO_Config` | `index.php:54` | — |
+| `UPDATE` | `PRONO_Config` | `index.php:62` | — |
+| `UPDATE` | `PRONO_Config` | `index.php:77` | — |
+| `UPDATE` | `PRONO_Config` | `index.php:82` | — |
+| `UPDATE` | `PRONO_Config` | `index.php:87` | — |
+| `DELETE FROM` | `PRONO_Markets` | `index.php:103` | — |
+| `DELETE FROM` | `PRONO_Scores` | `index.php:106` | — |
+| `INSERT INTO` | `PRONO_Config` | `lib/engine.php:160` | — |
+| `UPDATE` | `PRONO_Config` | `lib/engine.php:164` | — |
+| `DELETE FROM` | `PRONO_Markets` | `lib/engine.php:208` | — |
+| `DELETE FROM` | `PRONO_Config` | `lib/engine.php:209` | — |
+| `DELETE FROM` | `PRONO_Scores` | `lib/engine.php:210` | — |
+| `UPDATE` | `PRONO_Markets` | `lib/engine.php:212` | — |
+| `UPDATE` | `PRONO_Scores` | `lib/engine.php:215` | — |
+| `UPDATE` | `PRONO_Config` | `lib/engine.php:216` | — |
+| `UPDATE` | `PRONO_Markets` | `lib/engine.php:310` | — |
+| `INSERT INTO` | `PRONO_Markets` | `lib/engine.php:315` | — |
+| `UPDATE` | `PRONO_Selections` | `lib/engine.php:336` | — |
+| `UPDATE` | `PRONO_Selections` | `lib/engine.php:379` | — |
+| `INSERT INTO` | `PRONO_Selections` | `lib/engine.php:384` | — |
+| `DELETE FROM` | `PRONO_Selections` | `lib/engine.php:405` | — |
+| `DELETE FROM` | `PRONO_Markets` | `lib/engine.php:406` | — |
+| `UPDATE` | `PRONO_Selections` | `lib/engine.php:486` | — |
+| `UPDATE` | `PRONO_Markets` | `lib/engine.php:494` | — |
+| `UPDATE` | `PRONO_Selections` | `lib/engine.php:509` | — |
+| `DELETE FROM` | `PRONO_Tokens` | `lib/engine.php:533` | — |
+| `DELETE FROM` | `PRONO_Bets` | `lib/engine.php:534` | — |
+| `DELETE FROM` | `PRONO_Scores` | `lib/engine.php:535` | — |
+| `DELETE FROM` | `PRONO_Users` | `lib/engine.php:536` | — |
+| `UPDATE` | `PRONO_Bets` | `lib/engine.php:612` | — |
+| `INSERT INTO` | `PRONO_Scores` | `lib/engine.php:618` | — |
+| `UPDATE` | `PRONO_Markets` | `lib/engine.php:626` | — |
+| `UPDATE` | `PRONO_Bets` | `lib/engine.php:679` | — |
+| `INSERT INTO` | `PRONO_Scores` | `lib/engine.php:683` | — |
+| `UPDATE` | `PRONO_Config` | `lib/engine.php:1021` | — |
+| `INSERT INTO` | `PRONO_Groups` | `lib/groups.php:48` | — |
+| `INSERT INTO` | `PRONO_GroupMembers` | `lib/groups.php:51` | — |
+| `INSERT IGNORE INTO` | `PRONO_GroupMembers` | `lib/groups.php:79` | — |
+| `DELETE FROM` | `PRONO_GroupMembers` | `lib/groups.php:88` | — |
+| `DELETE FROM` | `PRONO_GroupMembers` | `lib/groups.php:104` | — |
+| `DELETE FROM` | `PRONO_Groups` | `lib/groups.php:105` | — |
+| `UPDATE` | `PRONO_Groups` | `lib/groups.php:133` | — |
+| `DELETE FROM` | `PRONO_Groups` | `lib/groups.php:135` | — |
+| `DELETE FROM` | `PRONO_GroupMembers` | `lib/groups.php:148` | — |
+| `DELETE FROM` | `PRONO_GroupMembers` | `lib/groups.php:152` | — |
+| `ALTER TABLE` | `PRONO_Config` | `lib/schema.php:181` | — |
+| `UPDATE` | `PRONO_Config` | `lib/schema.php:202` | — |
+| `ALTER TABLE` | `PRONO_Config` | `lib/schema.php:205` | — |
+| `UPDATE` | `PRONO_Config` | `lib/schema.php:223` | — |
+| `DELETE FROM` | `PRONO_Markets` | `lib/schema.php:236` | — |
+| `ALTER TABLE` | `PRONO_Bets` | `lib/schema.php:245` | — |
+| `ALTER TABLE` | `PRONO_Bets` | `lib/schema.php:246` | — |
+| `ALTER TABLE` | `PRONO_Markets` | `lib/schema.php:254` | — |
+| `ALTER TABLE` | `PRONO_Markets` | `lib/schema.php:255` | — |
+| `ALTER TABLE` | `PRONO_Markets` | `lib/schema.php:256` | — |
+| `ALTER TABLE` | `PRONO_Users` | `lib/schema.php:263` | — |
+| `INSERT IGNORE INTO` | `PRONO_Tokens` | `lib/schema.php:267` | — |
+| `ALTER TABLE` | `PRONO_Users` | `lib/schema.php:270` | — |
+| `ALTER TABLE` | `PRONO_Users` | `lib/schema.php:277` | — |
+| `ALTER TABLE` | `PRONO_Bets` | `lib/schema.php:285` | — |
+| `UPDATE` | `PRONO_Bets` | `lib/schema.php:286` | — |
+| `ALTER TABLE` | `PRONO_Bets` | `lib/schema.php:290` | — |
+| `ALTER TABLE` | `PRONO_Users` | `lib/schema.php:295` | — |
+| `UPDATE` | `PRONO_Users` | `lib/schema.php:296` | — |
+| `ALTER TABLE` | `PRONO_Users` | `lib/schema.php:300` | — |
+| `ALTER TABLE` | `PRONO_Config` | `lib/schema.php:305` | — |
+| `UPDATE` | `PRONO_Selections` | `lib/schema.php:311` | — |
+| `UPDATE` | `PRONO_Markets` | `lib/schema.php:312` | — |
+| `ALTER TABLE` | `PRONO_Selections` | `lib/schema.php:320` | — |
+| `ALTER TABLE` | `PRONO_Bets` | `lib/schema.php:324` | — |
+| `UPDATE` | `PRONO_Selections` | `lib/schema.php:341` | — |
+| `UPDATE` | `PRONO_Bets` | `lib/schema.php:342` | — |
+| `DELETE FROM` | `PRONO_Markets` | `lib/schema.php:343` | — |
+| `DELETE FROM` | `PRONO_Markets` | `lib/schema.php:351` | — |
+| `UPDATE` | `PRONO_Users` | `lib/schema.php:353` | — |
+| `INSERT IGNORE INTO` | `PRONO_Scores` | `lib/schema.php:365` | — |
+| `UPDATE` | `PRONO_Bets` | `lib/schema.php:396` | — |
+| `UPDATE` | `PRONO_Tokens` | `lib/schema.php:397` | — |
+| `UPDATE IGNORE` | `PRONO_Scores` | `lib/schema.php:398` | — |
+| `DELETE FROM` | `PRONO_Scores` | `lib/schema.php:399` | — |
+| `UPDATE` | `PRONO_Users` | `lib/schema.php:401` | — |
+| `DELETE FROM` | `PRONO_Users` | `lib/schema.php:405` | — |
+| `ALTER TABLE` | `PRONO_Users` | `lib/schema.php:409` | — |
+| `ALTER TABLE` | `PRONO_Users` | `lib/schema.php:410` | — |
+| `ALTER TABLE` | `PRONO_Users` | `lib/schema.php:412` | — |
+| `UPDATE` | `PRONO_Config` | `lib/schema.php:446` | — |
+| `UPDATE` | `PRONO_Config` | `lib/schema.php:454` | — |
+| `INSERT INTO` | `PRONO_Tokens` | `public/api.php:66` | — |
+| `UPDATE` | `PRONO_Users` | `public/api.php:164` | — |
+| `INSERT INTO` | `PRONO_Users` | `public/api.php:182` | — |
+| `UPDATE` | `PRONO_Users` | `public/api.php:206` | — |
+| `UPDATE` | `PRONO_Users` | `public/api.php:225` | — |
+| `UPDATE` | `PRONO_Users` | `public/api.php:248` | — |
+| `DELETE FROM` | `PRONO_Tokens` | `public/api.php:258` | — |
+| `UPDATE` | `PRONO_Selections` | `public/api.php:326` | — |
+| `UPDATE` | `PRONO_Bets` | `public/api.php:328` | — |
+| `INSERT INTO` | `PRONO_Bets` | `public/api.php:332` | — |
+| `INSERT INTO` | `PRONO_Scores` | `public/api.php:335` | — |
+| `UPDATE` | `PRONO_Selections` | `public/api.php:339` | — |
+| `UPDATE` | `PRONO_Selections` | `public/api.php:430` | — |
+| `UPDATE` | `PRONO_Bets` | `public/api.php:433` | — |
+| `INSERT INTO` | `PRONO_Bets` | `public/api.php:438` | — |
+| `INSERT INTO` | `PRONO_Scores` | `public/api.php:442` | — |
+| `UPDATE` | `PRONO_Selections` | `public/api.php:446` | — |
+| `UPDATE` | `PRONO_Users` | `public/api.php:518` | — |
+
+<!-- END DATABASE WRITES -->

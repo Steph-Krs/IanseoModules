@@ -186,7 +186,10 @@ function prono_archers(int $tid, string $event, array $tour): array
                 q.QuScore, q.QuClRank, q.QuIrmType $arrowCols
          FROM Individuals i
          INNER JOIN Entries e ON e.EnId = i.IndId AND e.EnTournament = i.IndTournament
-         LEFT  JOIN Qualifications q ON q.QuId = i.IndId
+         /* Qualifications est en 1:1 avec Entries (le cœur répare la relation en
+            tête de Partecipants/index.php) → INNER JOIN : un archer inscrit a
+            toujours sa ligne, flèches tirées ou non. Countries reste facultatif. */
+         INNER JOIN Qualifications q ON q.QuId = i.IndId
          LEFT  JOIN Countries c ON c.CoId = e.EnCountry AND c.CoTournament = e.EnTournament
          WHERE i.IndTournament = ? AND i.IndEvent = ? AND e.EnAthlete = 1",
         [$tid, $event]
@@ -263,6 +266,13 @@ function prono_teams(int $tid, string $event, array $tour): array
     $members = prono_all(
         "SELECT tc.TcCoId, tc.TcSubTeam, tc.TcId, e.EnDivision, e.EnClass $arrowCols
          FROM TeamComponent tc
+         /* ⚠ LEFT JOIN VOULU, malgré la règle « Qualifications est en 1:1 avec
+            Entries ». Cette règle porte sur une inscription qui EXISTE ; ici on
+            part de TeamComponent, dont les lignes survivent à un réimport et
+            pointent alors vers des EnId disparus. Mesuré sur le tournoi 156 :
+            390 des 782 lignes n'ont plus d'inscription. En INNER JOIN elles
+            disparaîtraient, la taille de l'équipe changerait, et avec elle le
+            nombre de flèches par volée (prono_format) — donc tout le modèle. */
          LEFT JOIN Qualifications q ON q.QuId = tc.TcId
          LEFT JOIN Entries e ON e.EnId = tc.TcId
          WHERE tc.TcTournament = ? AND tc.TcEvent = ?", [$tid, $event]);

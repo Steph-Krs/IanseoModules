@@ -499,7 +499,11 @@ function renderMarket(m) {
   }
 
   const wins   = m.sels.filter(s => s.grp !== 'S');
-  const scores = m.sels.filter(s => s.grp === 'S');
+  // Un pronostic de score posé avant que « score exact » ne soit décoché en console
+  // reste en base (il se réglera normalement une fois le duel joué) mais ne doit plus
+  // être PROPOSÉ à qui que ce soit d'autre : S.score reflète le réglage actuel,
+  // indépendamment de ce qui traîne encore côté sélections.
+  const scores = S.score ? m.sels.filter(s => s.grp === 'S') : [];
   // Deux formes de score : points de set (« 6-2 ») en arc classique, tranches de
   // total (« A138 ») à l'arc à poulies, qui se joue au cumul.
   const isSets  = scores.length > 0 && scores.every(s => /^\d+-\d+$/.test(s.code));

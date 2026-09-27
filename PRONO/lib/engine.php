@@ -339,22 +339,26 @@ function prono_sync(int $tid, array $cfg): void
                 array_merge([$mid], $codes));
         }
 
-        // Tranches devenues caduques — typiquement après un changement de largeur, ou
-        // simplement parce que la fourchette plausible s'est déplacée d'un passage à
-        // l'autre. Celles qui portent un pronostic sont conservées : leur code inscrit
-        // ses propres bornes, elles resteront jugées sur la tranche promise au joueur.
-        // Format du code différent selon le marché : « A138-140 »/« B138-140 » pour
-        // un duel à l'arc à poulies (lettre = archer) ; « LO:432 »/« MID:281:328 »/
-        // « HI:328 » pour le score du premier qualifié / du cut (3 issues fixes,
-        // ancrées sur le classement national — v5.0.3 ; l'ancien format numérique
-        // « 705-709 » sans préfixe, encore présent sur des lignes antérieures à cette
-        // version, reste reconnu pour que la purge continue de les nettoyer).
+        // Scores exacts devenus caducs — typiquement après un changement de largeur de
+        // tranche (arc à poulies), une compétition qui décoche « score exact » en
+        // cours de route (ex. campagne, où les scores de sets classiques n'ont pas de
+        // sens), ou simplement un duel passé en direct (les scores classiques ne se
+        // proposent qu'avant le début du match, voir prono_build_elims()). Celles qui
+        // portent un pronostic sont conservées : leur code inscrit ses propres bornes,
+        // elles resteront jugées sur la tranche promise au joueur. Pas de distinction
+        // de format ici (poulies « A138-140 »/« B138-140 » vs sets classiques
+        // « 6-0 »/« 7-3 ») : toute sélection de groupe 'S' absente de cette
+        // reconstruction n'a plus lieu d'être proposée, quel que soit son code. Bug
+        // réel corrigé mi-août 2026 : un filtre restreint aux seuls codes poulies
+        // (REGEXP '^[AB][0-9]') laissait les scores de sets classiques orphelins en
+        // base après désactivation de « score exact » — toujours affichés et pariables
+        // malgré la case décochée dans la console.
         if ($mk['type'] === 'MATCH_WINNER' && $mk['sels']) {
             $codes = array_column($mk['sels'], 'code');
             $ph    = implode(',', array_fill(0, count($codes), '?'));
             prono_q("DELETE s FROM PRONO_Selections s
                      WHERE s.PaSeMarket = ? AND s.PaSeGroup = 'S'
-                       AND s.PaSeCode REGEXP '^[AB][0-9]' AND s.PaSeCode NOT IN ($ph)
+                       AND s.PaSeCode NOT IN ($ph)
                        AND NOT EXISTS (SELECT 1 FROM PRONO_Bets b WHERE b.PaBeSelection = s.PaSeId)",
                 array_merge([$mid], $codes));
         }
@@ -790,6 +794,14 @@ function prono_build_snapshot(int $tid, array $cfg): array
         // prono_points()/prono_tierce_points_from() — pas une approximation.
         'cap'     => prono_points_cap($cfg),
         'scoring' => (string) ($cfg['PaCfScoring'] ?? 'ODDS'),
+        // Le client s'en sert pour ne plus PROPOSER le score exact d'un duel une fois
+        // décoché en console — indépendamment de ce qui traîne encore en base pour un
+        // pronostic déjà posé avant le décochage (celui-ci reste valable et se réglera
+        // normalement une fois le duel joué, voir prono_build_elims() : le réglage ne
+        // dépend plus de ce réglage, seule la PROPOSITION de nouveaux choix en dépend).
+        'score'   => in_array('SET_SCORE',
+                        array_filter(array_map('trim', explode('|', (string) ($cfg['PaCfMarkets'] ?? ''))), 'strlen'),
+                        true) ? 1 : 0,
         'events'  => $events,
         'markets' => array_values($markets),
         'recent'  => $recent,

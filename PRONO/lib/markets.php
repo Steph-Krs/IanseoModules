@@ -342,8 +342,16 @@ function prono_build_elims(array $ctx): array
         // Arc à poulies : pas de sets, un total de points. On propose des tranches du
         // total du vainqueur — un total exact sur 150 points serait injouable, une
         // tranche reste devinable et sa valeur suit sa probabilité réelle.
-        if (!$ctx['ev']['sets'] && prono_market_allowed($ctx, 'SET_SCORE')) {
-            if ($state === 'todo') {
+        //
+        // Le réglage (branche « done » ci-dessous) ne dépend PAS de « score exact »
+        // étant toujours activé : un pronostic déjà posé avant que l'organisateur ne
+        // décoche l'option doit quand même se régler une fois le duel joué, sans quoi
+        // il resterait bloqué PENDING pour toujours (même défaut que celui corrigé sur
+        // le score du 1er qualifié / du cut — voir CLAUDE.md). Seule la proposition de
+        // NOUVELLES tranches (branche « todo », un duel pas encore commencé) doit
+        // respecter le réglage.
+        if (!$ctx['ev']['sets']) {
+            if ($state === 'todo' && prono_market_allowed($ctx, 'SET_SCORE')) {
                 $tot = $fmt['perEnd'] * $fmt['ends'];
                 foreach ([0, 1] as $w) {
                     foreach (prono_total_bands($prof[$ids[$w]]['arrow'], $prof[$ids[1 - $w]]['arrow'],
@@ -391,8 +399,13 @@ function prono_build_elims(array $ctx): array
         }
 
         // Le score n'est proposé qu'en sets, et seulement avant le début du match :
-        // en cours, la plupart des scores sont déjà impossibles.
-        if ($ctx['ev']['sets'] && prono_market_allowed($ctx, 'SET_SCORE') && $state !== 'live') {
+        // en cours, la plupart des scores sont déjà impossibles. Une fois le duel
+        // joué (« done »), la liste est reconstruite quel que soit le réglage
+        // « score exact » : c'est ce qui juge un pronostic déjà posé (même principe
+        // que la branche poulies ci-dessus) — le marché est de toute façon déjà
+        // SETTLED à ce stade, personne ne peut plus parier dessus.
+        if ($ctx['ev']['sets'] && $state !== 'live'
+            && ($state === 'done' || prono_market_allowed($ctx, 'SET_SCORE'))) {
             $so = prono_shootoff($prof[$ids[0]]['so'], $prof[$ids[1]]['so']);
             $r  = prono_match_sets($prof[$ids[0]]['end'], $prof[$ids[1]]['end'], 0, 0, 0, $so,
                                    $fmt['target'], $fmt['maxSets']);
@@ -557,7 +570,7 @@ function prono_build_quals(array $ctx): array
     // flèche tirée : attendre un score pour ouvrir le marché prive les pronostics
     // les plus précoces de tout intérêt, et biaise le champ vers les premiers partis.
     // prono_archers()/prono_teams() énumèrent déjà tous les inscrits de l'épreuve
-    // (LEFT JOIN Qualifications), flèches tirées ou non.
+    // (INNER JOIN Qualifications, 1:1 avec Entries), flèches tirées ou non.
     $left = 0;
     foreach ($archers as $a) $left += $a['left'];
     $running = $left > 0;
@@ -670,24 +683,26 @@ function prono_build_quals(array $ctx): array
     foreach ($qualBandTargets as $type => $rank) {
         if (!prono_market_allowed($ctx, $type)) continue;
 
-        // Simplifié à 3 issues (« - de X1 », « X1-X2 », « + de X2 »), ancrées sur le
-        // classement national plutôt que construites par tranches de largeur fixe
-        // autour d'une projection du modèle interne : X1/X2 sont des points de repère
-        // réels (meilleurs scores individuels de la catégorie — prono_rep_anchor_top1/
-        // cut() dans data.php), lisibles pour un joueur qui suit le classement, et
-        // adaptés d'eux-mêmes à toute catégorie/arme/discipline puisqu'ils viennent
-        // des scores RÉELS de CETTE catégorie. Sans classement national résolu pour
-        // cette épreuve, le marché n'existe pas : il n'y a pas de repère fiable pour
-        // fixer X1/X2 autrement qu'arbitrairement.
-        if (!$repClassement) continue;
-        $anchor = $type === 'QUAL_TOP1'
-            ? prono_rep_anchor_top1($repClassement, $archers)
-            : prono_rep_anchor_cut($repClassement, $archers, $rank);
-        if (!$anchor) continue;
-        $x1 = $anchor['lo'];
-        $x2 = $anchor['hi'];
-
         if ($running) {
+            // Simplifié à 3 issues (« - de X1 », « X1-X2 », « + de X2 »), ancrées sur
+            // le classement national plutôt que construites par tranches de largeur
+            // fixe autour d'une projection du modèle interne : X1/X2 sont des points
+            // de repère réels (meilleurs scores individuels de la catégorie —
+            // prono_rep_anchor_top1/cut() dans data.php), lisibles pour un joueur qui
+            // suit le classement, et adaptés d'eux-mêmes à toute catégorie/arme/
+            // discipline puisqu'ils viennent des scores RÉELS de CETTE catégorie. Sans
+            // classement national résolu pour cette épreuve, le marché n'existe pas :
+            // il n'y a pas de repère fiable pour fixer X1/X2 autrement qu'arbitrairement.
+            // Ce garde-fou ne s'applique qu'ICI, tant que le marché tourne encore : le
+            // régler (branche ci-dessous) n'en a plus besoin, voir son commentaire.
+            if (!$repClassement) continue;
+            $anchor = $type === 'QUAL_TOP1'
+                ? prono_rep_anchor_top1($repClassement, $archers)
+                : prono_rep_anchor_cut($repClassement, $archers, $rank);
+            if (!$anchor) continue;
+            $x1 = $anchor['lo'];
+            $x2 = $anchor['hi'];
+
             // Répartition entre les 3 issues : voir prono_qual_three_way() (lib/model.php)
             // pour le principe retenu — rester dans l'intervalle déjà réalisé est le plus
             // probable, un record individuel (un seul candidat suffit) plus probable
@@ -703,13 +718,20 @@ function prono_build_quals(array $ctx): array
                  'athlete' => 0, 'prob' => $p['hi'], 'result' => -1, 'sort' => 2],
             ];
         } else {
+            // Réglé : les seuils déjà proposés viennent du PaSeCode déjà en base (lu
+            // ci-dessous), jamais recalculés — pas besoin d'un classement national
+            // résolu à cet instant précis. Important : un marché déjà ouvert avec de
+            // vraies sélections doit toujours pouvoir se régler, même si le classement
+            // national devient introuvable ENTRE-TEMPS (REPARTITION_EPREUVES désinstallé,
+            // ou — cas réel rencontré — une compétition réimportée change de ToId et
+            // REP_Config.RcTournament reste sur l'ancien : prono_rep_classement() ne
+            // retrouve alors plus rien pour CE tournoi). Avant ce correctif, le même
+            // garde-fou que ci-dessus bloquait aussi le règlement, laissant le marché
+            // bloqué OPEN indéfiniment malgré une qualification terminée.
             $actualId = $actualRank[$rank] ?? null;
             if ($actualId === null || !isset($archers[$actualId])) continue;
             $actualScore = (int) $archers[$actualId]['score'];
 
-            // Les seuils déjà proposés restent ceux du règlement (même principe que les
-            // tranches poulies) : relus depuis la base plutôt que recalculés, au cas où
-            // le classement national aurait changé depuis (mise à jour REPARTITION_EPREUVES).
             $sels = [];
             foreach (prono_all(
                 "SELECT s.PaSeCode, s.PaSeLabel

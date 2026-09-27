@@ -304,6 +304,17 @@ try {
                     $db->rollBack();
                     prono_out(['ok' => true, 'me' => prono_user_payload($user), 'same' => true]);
                 }
+                // Un pronostic de score déjà posé se règle normalement même après que
+                // « score exact » a été décoché (voir prono_build_elims()) — mais ça ne
+                // doit pas rouvrir la porte à un NOUVEAU pronostic sur une sélection
+                // orpheline restée en base pour cette seule raison. Le cas "je reconfirme
+                // mon propre pick déjà posé" est déjà sorti ci-dessus.
+                if ($sel['PaSeGroup'] === 'S' && !in_array('SET_SCORE',
+                        array_filter(array_map('trim', explode('|', (string) ($cfg['PaCfMarkets'] ?? ''))), 'strlen'),
+                        true)) {
+                    $db->rollBack();
+                    prono_fail('Le score exact n\'est plus proposé sur ce duel.');
+                }
                 if ($old && !prono_changeable($sel['PaMkType'])) {
                     $db->rollBack();
                     prono_fail('Ton pronostic est définitif sur ce marché : il reste ouvert '
