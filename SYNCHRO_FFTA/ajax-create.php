@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * SYNCHRO_FFTA — endpoints AJAX du flux « création depuis l'extranet ».
  * Fonctionne SANS compétition ouverte. Ne crée rien lui-même : la création

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Modules/Custom/SYNCHRO_FFTA/licences-sync.php
  * Endpoint de synchronisation des licenciés depuis l'Espace Dirigeant FFTA

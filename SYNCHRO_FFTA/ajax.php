@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Endpoint AJAX du module SYNCHRO_FFTA — flux « dépôt ».
  * Une action par étape de l'assistant. Aucun dépôt n'est effectué ici :

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Client HTTP de l'extranet FFTA (gsportive / intégration TXT).
  *
