@@ -1,0 +1,250 @@
+/* Styles of the two screens of the live draw module: the public screen and the
+   commentators' screen. Neither page carries ianseo's furniture, so these rules
+   own the whole document.
+
+   The public screen sizes everything from the viewport height (the root font
+   size is a share of it), so the same draw looks the same on a 1080p TV, a 4K
+   projector and the reduced preview of the control page. Colours, fonts and
+   sizes come from CSS variables set by display.js from the show's look. */
+
+html, body { margin: 0; padding: 0; height: 100%; }
+
+/* ======================================================= public screen */
+
+html.tir-html-display { font-size: 1.6vh; }
+body.tir-display { overflow: hidden; background: #000; }
+
+#tir-screen {
+    --bg: #02215e; --accent: #fff; --text: #fff; --overlay: transparent; --margin: 10vh;
+    --font-title: Impact, sans-serif; --font-body: Arial, sans-serif;
+    --size-title: 3.2rem; --size-team: 1.6rem; --size-rank: 1.5rem;
+    --rank-space: 2.6em; --stats-space: .6rem; --stat-gap: 1.1em; --stat-width: 3.8em;
+    position: fixed; inset: 0; overflow: hidden;
+    background: var(--bg); color: var(--text); font-family: var(--font-body);
+}
+#tir-screen * { box-sizing: border-box; }
+
+.tir-bg { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.tir-bg::after { content: ''; position: absolute; inset: 0; background: var(--overlay); }
+
+/* Background animation: a slowly turning target, a drifting glow, a light sweep. */
+.tir-ambient { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+.tir-ambient i { position: absolute; display: block; }
+.tir-ambient i:nth-child(1) {
+    width: 150vh; height: 150vh; right: -45vh; bottom: -60vh; border-radius: 50%;
+    background: repeating-radial-gradient(circle, rgba(255,255,255,.075) 0 2.4vh, transparent 2.4vh 6vh);
+    animation: tirSpin 140s linear infinite, tirBreath 14s ease-in-out infinite alternate;
+}
+.tir-ambient i:nth-child(2) {
+    width: 90vh; height: 90vh; left: -30vh; top: -35vh; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.13), transparent 65%);
+    animation: tirDrift 36s ease-in-out infinite alternate;
+}
+.tir-ambient i:nth-child(3) {
+    inset: 0 -100% 0 -100%;
+    background: linear-gradient(110deg, transparent 42%, rgba(255,255,255,.06) 50%, transparent 58%);
+    animation: tirSweep 16s linear infinite;
+}
+.tir-no-ambient .tir-ambient { display: none; }
+@keyframes tirSpin { to { transform: rotate(360deg); } }
+@keyframes tirBreath { from { opacity: .55; } to { opacity: 1; } }
+@keyframes tirDrift { from { transform: translate(0, 0); } to { transform: translate(60vw, 45vh); } }
+@keyframes tirSweep { from { transform: translateX(-35%); } to { transform: translateX(35%); } }
+
+#tir-stage { position: relative; z-index: 2; height: 100%; padding: var(--margin) 4vw; display: flex; flex-direction: column; }
+
+.tir-title {
+    font-family: var(--font-title); font-size: var(--size-title); color: var(--accent); text-align: center;
+    letter-spacing: .06em; text-transform: uppercase; margin: 0; line-height: 1.08; font-weight: normal;
+    text-shadow: 0 .08em .5em rgba(0,0,0,.55); border-bottom: .05em solid var(--accent); padding-bottom: .08em;
+}
+.tir-sub { text-align: center; font-size: 1.2rem; opacity: .72; letter-spacing: .18em; text-transform: uppercase; margin: .5em 0 1.4em; }
+
+/* A category being drawn */
+/* Columns of strictly equal width: minmax(0, …) stops a long name from widening
+   its column, and min-width: 0 lets a slot shrink below its content. A name that
+   is still too long is condensed by display.js (fitNames), never cut. */
+.tir-grid { flex: 1; display: grid; grid-auto-flow: column; gap: .8vh 4vw; align-content: start; grid-template-columns: minmax(0, 1fr); }
+.tir-grid.tir-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Spacing inside a slot comes from the look: --rank-space is the width given to
+   the place number (so names line up whatever the number of digits), --stats-space
+   separates the name from its statistics. */
+.tir-slot {
+    display: flex; align-items: center; min-height: calc(var(--size-team) * 1.85); min-width: 0;
+    padding: .15em .9em; border-radius: .35rem; background: rgba(255,255,255,.08);
+}
+.tir-slot.tir-alt { background: rgba(255,255,255,.15); }
+.tir-rank { font-family: var(--font-title); font-size: var(--size-rank); color: var(--accent); min-width: var(--rank-space); flex: none; }
+.tir-team { flex: 1 1 0; min-width: 0; font-size: var(--size-team); font-weight: bold; letter-spacing: .02em; white-space: nowrap; overflow: hidden; }
+.tir-stats { flex: none; margin-left: var(--stats-space); }
+.tir-fit { display: inline-block; white-space: nowrap; transform-origin: left center; vertical-align: middle; }
+.tir-slot.tir-empty { background: rgba(255,255,255,.035); }
+.tir-slot.tir-empty .tir-team, .tir-slot.tir-pending .tir-team { opacity: .22; }
+.tir-stats { display: flex; gap: var(--stat-gap); font-size: calc(var(--size-team) * .5); opacity: .85; }
+.tir-stat { display: flex; flex-direction: column; align-items: center; min-width: var(--stat-width); line-height: 1.1; }
+.tir-stat small { font-size: .72em; text-transform: uppercase; letter-spacing: .08em; opacity: .75; }
+.tir-stat b { font-size: 1.5em; color: var(--accent); }
+
+.tir-enter .tir-slot, .tir-enter .tir-sum-col, .tir-enter .tir-title, .tir-enter .tir-sub { animation: tirSlide .5s ease both; }
+.tir-slot.tir-new { animation: tirFlash 1.8s ease both; }
+@keyframes tirSlide { from { opacity: 0; transform: translateX(-2vw); } to { opacity: 1; transform: none; } }
+@keyframes tirFlash {
+    0%   { background: rgba(255,255,255,.55); transform: scale(1.04); }
+    100% { transform: none; }
+}
+
+/* The season's stages, one card each, turned over one after the other */
+.tir-stages { flex: 1; display: grid; gap: 3vw; align-content: center; perspective: 160vh; padding-bottom: 4vh; }
+.tir-stagecard {
+    min-height: 40vh; padding: 3vh 1.5vw; border-radius: 2vh; text-align: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border: .35vh dashed rgba(255,255,255,.35); background: rgba(255,255,255,.05);
+}
+.tir-stages.tir-many .tir-stagecard { min-height: 22vh; }
+.tir-stagecard.tir-shown {
+    border-style: solid; border-color: var(--accent); background: rgba(0,0,0,.38); box-shadow: 0 0 7vh rgba(0,0,0,.45);
+}
+.tir-stage-num { font-family: var(--font-title); color: var(--accent); text-transform: uppercase; letter-spacing: .14em; font-size: calc(var(--size-title) * .5); }
+.tir-stage-name {
+    font-family: var(--font-title); text-transform: uppercase; line-height: 1.05; margin: .25em 0;
+    font-size: calc(var(--size-title) * 1.1); overflow-wrap: anywhere;
+}
+.tir-stage-name.tir-stage-q { font-size: calc(var(--size-title) * 2); opacity: .22; }
+.tir-stage-detail { font-size: calc(var(--size-team) * 1.05); opacity: .88; letter-spacing: .04em; }
+.tir-enter .tir-stagecard { animation: tirSlide .5s ease both; }
+.tir-stagecard.tir-flip { animation: tirFlip 1.1s cubic-bezier(.2,.9,.3,1.15) both; }
+@keyframes tirFlip {
+    0%   { transform: rotateY(90deg) scale(.92); opacity: .2; }
+    60%  { transform: rotateY(-8deg) scale(1.05); opacity: 1; box-shadow: 0 0 10vh var(--accent); }
+    100% { transform: none; }
+}
+
+/* The card revealing a team just drawn */
+#tir-reveal { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.tir-card {
+    text-align: center; padding: 4vh 6vw; min-width: 50vw; max-width: 92vw; border-radius: 1.6vh;
+    background: rgba(0,0,0,.45); border: .35vh solid var(--accent); box-shadow: 0 0 9vh rgba(0,0,0,.65);
+    animation: tirCardIn .7s cubic-bezier(.2,1.35,.4,1) both;
+}
+.tir-card.tir-out { animation: tirCardOut .6s ease both; }
+.tir-card-pos { font-family: var(--font-title); color: var(--accent); font-size: calc(var(--size-title) * 1.1); letter-spacing: .12em; text-transform: uppercase; }
+.tir-card-name { font-family: var(--font-title); font-size: calc(var(--size-title) * 1.6); text-transform: uppercase; line-height: 1.05; margin: .12em 0; }
+.tir-card-cat { font-size: 1.5rem; opacity: .75; letter-spacing: .2em; text-transform: uppercase; }
+@keyframes tirCardIn { from { opacity: 0; transform: scale(.55); } to { opacity: 1; transform: none; } }
+@keyframes tirCardOut { to { opacity: 0; transform: scale(1.08) translateY(-3vh); } }
+
+/* Waiting loop */
+.tir-idle { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.tir-idle-kicker { font-size: 1.8rem; letter-spacing: .4em; text-transform: uppercase; opacity: .8; animation: tirPulse 3.2s ease-in-out infinite; }
+.tir-idle-title {
+    font-family: var(--font-title); font-size: calc(var(--size-title) * 1.5); color: var(--accent); text-transform: uppercase;
+    margin: .2em 0 .1em; line-height: 1.05; font-weight: normal; text-shadow: 0 .08em .6em rgba(0,0,0,.55);
+}
+.tir-idle .tir-sub { margin: .3em 0 0; font-size: 1.6rem; }
+@keyframes tirPulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+
+/* Final summary */
+.tir-sum-cols { flex: 1; display: grid; gap: 2vw; align-content: start; }
+.tir-sum-col h2 {
+    font-family: var(--font-title); font-weight: normal; color: var(--accent); font-size: calc(var(--size-title) * .42);
+    text-transform: uppercase; letter-spacing: .04em; border-bottom: .12em solid var(--accent); margin: 0 0 .5em; line-height: 1.15;
+}
+.tir-sum-col ol { list-style: none; margin: 0; padding: 0; }
+.tir-sum-col li { display: flex; gap: .6em; font-size: calc(var(--size-team) * .6); padding: .16em .4em; border-radius: .2rem; font-weight: bold; }
+.tir-sum-col li:nth-child(odd) { background: rgba(255,255,255,.08); }
+.tir-sum-col li b { font-family: var(--font-title); font-weight: normal; color: var(--accent); min-width: 1.7em; text-align: right; }
+.tir-sum-col { min-width: 0; }
+.tir-sum-col li b { flex: none; }
+.tir-sum-col li > span { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+    .tir-ambient i { animation: none !important; }
+    .tir-card, .tir-card.tir-out, .tir-enter .tir-slot, .tir-slot.tir-new, .tir-stagecard.tir-flip { animation-name: tirFadeIn; }
+    .tir-card.tir-out { animation-direction: reverse; }
+}
+@keyframes tirFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ================================================= commentators' screen */
+
+body.tir-speaker {
+    background: #0b1733; color: #e8edf7; font-family: 'Segoe UI', Verdana, Arial, sans-serif; font-size: 15px;
+}
+body.tir-speaker * { box-sizing: border-box; }
+.tir-sp-head {
+    position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px;
+    padding: 8px 16px; background: #02215e; box-shadow: 0 2px 6px rgba(0,0,0,.4);
+}
+.tir-sp-head h1 { margin: 0; font-size: 16px; font-weight: 600; flex: 1 1 240px; }
+.tir-sp-head .tir-sp-cat { font-size: 18px; font-weight: 700; color: #a7d6ff; }
+.tir-sp-head .tir-sp-next { font-size: 15px; }
+.tir-sp-head .tir-sp-next b { font-size: 22px; color: #fff; }
+.tir-sp-onair { font-size: 12px; padding: 2px 9px; border-radius: 9px; background: #ff5043; color: #fff; font-weight: 700; letter-spacing: .05em; }
+.tir-sp-clock { font-variant-numeric: tabular-nums; opacity: .8; }
+/* Shown only once the commentator has left the live view. */
+.tir-sp-live {
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 16px; cursor: pointer;
+    background: #fff; color: #c0392b; border: 2px solid #ff5043; font: inherit; font-size: 14px; font-weight: 700;
+    box-shadow: 0 1px 4px rgba(0,0,0,.4);
+}
+.tir-sp-live:hover { background: #ffe9e7; }
+.tir-sp-live i { width: 9px; height: 9px; border-radius: 50%; background: #ff5043; animation: tirSpBlink 1.2s ease-in-out infinite; }
+@keyframes tirSpBlink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .tir-sp-live i { animation: none; } }
+
+.tir-sp-body { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; padding: 14px 16px 40px; align-items: start; }
+@media (max-width: 900px) { .tir-sp-body { grid-template-columns: 1fr; } }
+
+.tir-sp-card { background: #13254d; border: 1px solid #22386a; border-radius: 6px; padding: 12px 14px; margin: 0 0 14px; }
+.tir-sp-card h2 {
+    margin: -12px -14px 10px; padding: 7px 14px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+    color: #a7d6ff; background: #0f1f42; border-bottom: 1px solid #22386a; border-radius: 6px 6px 0 0;
+}
+.tir-sp-hero { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.tir-sp-hero .tir-sp-pos { font-size: 42px; font-weight: 800; color: #a7d6ff; line-height: 1; }
+.tir-sp-hero .tir-sp-name { font-size: 34px; font-weight: 800; line-height: 1.1; }
+.tir-sp-hero .tir-sp-tag { font-size: 12px; padding: 2px 8px; border-radius: 5px; background: #22386a; color: #a7d6ff; }
+.tir-sp-hero .tir-sp-tag.tir-sp-newteam { background: #2ad56e; color: #04260f; font-weight: 700; }
+
+.tir-sp-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin: 12px 0 4px; }
+.tir-sp-kpi { background: #0f1f42; border-radius: 6px; padding: 8px 10px; }
+.tir-sp-kpi small { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #8fa3c9; }
+.tir-sp-kpi b { font-size: 24px; color: #fff; }
+.tir-sp-kpi span { font-size: 12px; color: #8fa3c9; margin-left: 4px; white-space: nowrap; }
+
+/* A figure that ranks among the three best of its category. Light metal tones
+   carry dark text, so the value reads as clearly as on the default tile. */
+.tir-sp-kpi.tir-sp-gold   { background: linear-gradient(135deg, #fbe7a1, #d9a93a); }
+.tir-sp-kpi.tir-sp-silver { background: linear-gradient(135deg, #f4f6f9, #b9c1cc); }
+.tir-sp-kpi.tir-sp-bronze { background: linear-gradient(135deg, #f1c9a0, #c07a3f); }
+.tir-sp-kpi.tir-sp-gold b   { color: #2b1d00; }
+.tir-sp-kpi.tir-sp-gold small, .tir-sp-kpi.tir-sp-gold span { color: #5a4100; }
+.tir-sp-kpi.tir-sp-silver b { color: #161c24; }
+.tir-sp-kpi.tir-sp-silver small, .tir-sp-kpi.tir-sp-silver span { color: #3d4652; }
+.tir-sp-kpi.tir-sp-bronze b { color: #261103; }
+.tir-sp-kpi.tir-sp-bronze small, .tir-sp-kpi.tir-sp-bronze span { color: #4d2a0f; }
+.tir-sp-detail { font-size: 22px; margin: 8px 0 0; color: #a7d6ff; }
+
+.tir-sp-note { white-space: pre-wrap; background: #2b2410; border-left: 4px solid #e57b10; padding: 8px 12px; border-radius: 4px; margin: 10px 0 0; color: #ffe6c2; }
+.tir-sp-muted { color: #8fa3c9; font-size: 13px; }
+.tir-sp-form { display: inline-flex; gap: 3px; vertical-align: middle; }
+.tir-sp-form i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; background: #ff5043; }
+.tir-sp-form i.tir-w { background: #2ad56e; }
+
+table.tir-sp-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.tir-sp-table th { text-align: left; font-size: 11px; text-transform: uppercase; color: #8fa3c9; padding: 4px 6px; border-bottom: 1px solid #22386a; }
+table.tir-sp-table td { padding: 5px 6px; border-bottom: 1px solid #1b2f5c; }
+table.tir-sp-table td.tir-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.tir-sp-list { list-style: none; margin: 0; padding: 0; }
+.tir-sp-list li { display: flex; gap: 8px; align-items: center; padding: 5px 6px; border-bottom: 1px solid #1b2f5c; cursor: pointer; border-radius: 4px; }
+.tir-sp-list li:hover { background: #1b2f5c; }
+.tir-sp-list li.tir-sp-sel { background: #0254a8; }
+.tir-sp-list li b { min-width: 24px; text-align: right; color: #a7d6ff; }
+.tir-sp-list li .tir-sp-grow { flex: 1; }
+.tir-sp-list li small { color: #8fa3c9; }
+.tir-sp-cats { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 10px; }
+.tir-sp-cats button { background: #0f1f42; color: #e8edf7; border: 1px solid #22386a; border-radius: 5px; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 13px; }
+.tir-sp-cats button.tir-sp-cur { background: #a7d6ff; color: #02215e; border-color: #a7d6ff; font-weight: 700; }
+.tir-sp-flash { animation: tirSpFlash 1.5s ease; }
+@keyframes tirSpFlash { 0% { box-shadow: 0 0 0 3px #ff5043; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .tir-sp-flash { animation: none; } }

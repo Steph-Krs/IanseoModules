@@ -42,6 +42,10 @@ Modules pour le projet I@nseo :
   des cibles en masse pour les grandes compétitions : téléchargement des classements nationaux,
   plan des départs par blocs d'épreuve, règles de placement (classement, ordre des clubs, serpentin)
   et contrôles avant affectation.
+- [Tirage au sort en direct](TIRAGE/README_TIRAGE_FR.md) — Écrans d'un tirage au sort en public
+  (ordre des équipes d'une division…), sans compétition ouverte : écran public animé qui révèle
+  chaque équipe tirée, régie, et écran des commentateurs avec l'historique de chaque équipe et sa
+  saison N-1 lue dans ianseo (classement, matchs, archers et leur classement national).
 
 ## Installation automatique (Mac / Linux)
 

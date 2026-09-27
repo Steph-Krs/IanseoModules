@@ -1,0 +1,134 @@
+/* Styles of the preparation, control and home pages of the live draw module.
+   Every rule is scoped under #tir so nothing leaks into ianseo's own pages.
+   Colours follow the shared palette: blue carries the structure, coral and
+   green are signals only. */
+
+#tir { font-size: 13px; color: #20263d; padding: 8px 4px 40px; }
+#tir * { box-sizing: border-box; }
+#tir .tir-h1 { color: #01367c; font-size: 20px; margin: 4px 0 2px; }
+#tir .tir-lead { color: #4c4e50; margin: 0 0 12px; }
+#tir .tir-hint { color: #7d8183; font-size: 12px; }
+#tir .tir-nowrap { white-space: nowrap; }
+#tir a.tir-showlink { color: #0254a8; text-decoration: none; }
+#tir a.tir-showlink:hover { text-decoration: underline; }
+
+#tir .tir-card { background: #fff; border: 1px solid #d2d4d6; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    padding: 12px 14px; margin: 0 0 14px; }
+#tir .tir-card > h2 { margin: -12px -14px 10px; padding: 8px 14px; background: #f0f4ff; color: #01367c; font-size: 13px;
+    text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #d2d4d6; border-radius: 6px 6px 0 0;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#tir .tir-card > h2 .tir-grow { flex: 1; }
+#tir .tir-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 14px; }
+
+#tir .tir-btn { display: inline-block; padding: 5px 11px; border: 1px solid #d2d4d6; background: #f7f7f7; color: #20263d;
+    border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap;
+    line-height: 1.4; }
+#tir .tir-btn:hover { background: #e2ecfb; border-color: #a7d6ff; }
+#tir .tir-btn:disabled { opacity: .45; cursor: default; }
+#tir .tir-btn-primary { background: #0254a8; border-color: #0254a8; color: #fff; }
+#tir .tir-btn-primary:hover { background: #01367c; border-color: #01367c; }
+#tir .tir-btn-danger { color: #c0392b; border-color: #e8b4ae; background: #fdf0ef; }
+#tir .tir-btn-danger:hover { background: #ff5043; border-color: #ff5043; color: #fff; }
+#tir .tir-btn-big { padding: 8px 16px; font-size: 14px; }
+#tir .tir-actions { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+#tir .tir-actions form { margin: 0; }
+
+#tir .tir-table { width: 100%; border-collapse: collapse; }
+#tir .tir-table th { text-align: left; font-size: 11px; text-transform: uppercase; color: #7d8183; border-bottom: 2px solid #d2d4d6;
+    padding: 5px 6px; white-space: nowrap; }
+#tir .tir-table td { border-bottom: 1px solid #eef0f4; padding: 4px 6px; vertical-align: middle; }
+#tir .tir-table tr:hover td { background: #f7faff; }
+#tir .tir-scroll { overflow-x: auto; }
+
+#tir .tir-form label { display: block; margin: 0 0 8px; font-weight: 600; color: #4c4e50; }
+#tir .tir-form label input[type=text], #tir .tir-form label select, #tir .tir-form label textarea { display: block; width: 100%;
+    margin-top: 3px; font-weight: normal; }
+#tir input[type=text], #tir input[type=number], #tir select, #tir textarea { border: 1px solid #d2d4d6; border-radius: 5px;
+    padding: 4px 6px; font: inherit; background: #fff; color: #20263d; }
+#tir input:focus, #tir select:focus, #tir textarea:focus { outline: none; border-color: #0254a8; box-shadow: 0 0 0 2px #a7d6ff; }
+#tir input.tir-num { width: 58px; }
+#tir textarea.tir-note { width: 100%; min-width: 180px; height: 28px; resize: vertical; }
+#tir input.tir-saved { border-color: #2ad56e; }
+#tir input.tir-failed, #tir textarea.tir-failed { border-color: #ff5043; }
+
+#tir .tir-msg { padding: 8px 12px; border-radius: 6px; margin: 0 0 12px; border: 1px solid; }
+#tir .tir-msg-err { background: #ffd6db; border-color: #bb7575; color: #a80000; }
+#tir .tir-msg-ok { background: #d2f4cd; border-color: #75ae77; color: #04ac0b; }
+
+#tir .tir-bar { height: 6px; background: #eef0f4; border-radius: 3px; overflow: hidden; min-width: 90px; margin: 2px 0; }
+#tir .tir-bar i { display: block; height: 100%; background: #0254a8; }
+
+#tir .tir-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 0 0 8px; }
+#tir .tir-row > label { font-weight: 600; color: #4c4e50; display: flex; flex-direction: column; gap: 3px; }
+#tir .tir-row > label.tir-wide { flex: 1 1 260px; }
+#tir .tir-row > label.tir-wide input, #tir .tir-row > label.tir-wide select { width: 100%; }
+#tir .tir-link { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+#tir .tir-link input { flex: 1; font-family: Consolas, monospace; font-size: 12px; }
+#tir .tir-link b { min-width: 130px; }
+#tir .tir-pill { display: inline-block; padding: 1px 7px; border-radius: 5px; background: #f0f4ff; color: #01367c; font-size: 11px;
+    font-weight: 700; }
+#tir .tir-pill-ok { background: #d2f4cd; color: #04ac0b; }
+#tir .tir-pill-warn { background: #fbe9d6; color: #cb8137; }
+
+/* Loading indicator shared by the modules: three bouncing dots. */
+#tir .tir-dots { display: inline-flex; gap: 6px; vertical-align: middle; margin-left: 4px; }
+#tir .tir-dots i { width: 8px; height: 8px; border-radius: 50%; background: #0254a8; opacity: .4;
+    animation: tirBounce 1s ease-in-out infinite; }
+#tir .tir-dots i:nth-child(2) { animation-delay: .16s; }
+#tir .tir-dots i:nth-child(3) { animation-delay: .32s; }
+@keyframes tirBounce { 0%, 80%, 100% { transform: translateY(0); opacity: .4; } 40% { transform: translateY(-7px); opacity: 1; } }
+@keyframes tirFade { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #tir .tir-dots i { animation-name: tirFade; } }
+
+#tir-toast { position: fixed; right: 16px; bottom: 16px; z-index: 99999; max-width: 420px; padding: 9px 14px; border-radius: 6px;
+    background: #01367c; color: #fff; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.3); opacity: 0; transform: translateY(8px);
+    transition: opacity .2s, transform .2s; pointer-events: none; }
+#tir-toast.tir-on { opacity: 1; transform: none; }
+#tir-toast.tir-err { background: #a80000; }
+
+/* ---- Control page ---- */
+#tir .tir-ctl { display: grid; grid-template-columns: 260px minmax(360px, 1fr) minmax(300px, 420px); gap: 14px; align-items: start; }
+@media (max-width: 1200px) { #tir .tir-ctl { grid-template-columns: 240px 1fr; } #tir .tir-ctl-side { grid-column: 1 / -1; } }
+@media (max-width: 760px) { #tir .tir-ctl { grid-template-columns: 1fr; } }
+#tir .tir-cats { display: flex; flex-direction: column; gap: 5px; }
+#tir .tir-cat { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px;
+    border: 1px solid #d2d4d6; background: #f7f7f7; cursor: pointer; font-weight: 600; text-align: left; width: 100%; font-size: 13px; }
+#tir .tir-cat:hover { background: #e2ecfb; }
+#tir .tir-cat.tir-cur { background: #0254a8; border-color: #0254a8; color: #fff; }
+#tir .tir-cat .tir-count { font-size: 11px; background: rgba(0,0,0,.08); padding: 1px 7px; border-radius: 9px; }
+#tir .tir-cat.tir-cur .tir-count { background: rgba(255,255,255,.25); }
+#tir .tir-scenes { display: grid; grid-template-columns: 1fr; gap: 5px; }
+#tir .tir-scene.tir-cur { background: #01367c; border-color: #01367c; color: #fff; }
+#tir .tir-toggles label { display: flex; align-items: center; gap: 6px; margin: 4px 0; font-weight: 600; }
+
+#tir .tir-next { font-size: 14px; }
+#tir .tir-next b { font-size: 22px; color: #0254a8; }
+#tir .tir-search { width: 100%; margin: 0 0 8px; padding: 7px 10px !important; font-size: 14px !important; }
+#tir .tir-teams { display: flex; flex-direction: column; gap: 4px; }
+#tir .tir-team { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid #d2d4d6; border-radius: 6px; background: #fff; }
+#tir .tir-team .tir-name { flex: 1; font-size: 14px; font-weight: 600; }
+#tir .tir-team .tir-pos { min-width: 34px; text-align: center; font-weight: 700; color: #04ac0b; font-size: 15px; }
+#tir .tir-team.tir-done { background: #f3faf2; border-color: #b9dfb5; }
+#tir .tir-team.tir-done .tir-name { color: #7d8183; }
+#tir .tir-team .tir-draw { min-width: 110px; }
+#tir .tir-team .tir-pos.tir-stage-num { min-width: 80px; text-align: left; color: #0254a8; font-size: 13px; }
+#tir .tir-team.tir-done .tir-pos.tir-stage-num { color: #04ac0b; }
+#tir textarea.tir-paste { width: 100%; font-family: Consolas, monospace; font-size: 13px; resize: vertical; background: #f7faff; }
+#tir .tir-order { counter-reset: none; margin: 0; padding: 0; list-style: none; }
+#tir .tir-order li { display: flex; gap: 8px; padding: 3px 0; border-bottom: 1px solid #eef0f4; }
+#tir .tir-order li b { min-width: 26px; text-align: right; color: #0254a8; }
+#tir .tir-preview { position: relative; width: 100%; padding-top: 56.25%; background: #000; border-radius: 6px; overflow: hidden; }
+#tir .tir-preview iframe { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; }
+
+/* ---- Preparation page ---- */
+#tir .tir-catcard .tir-table td input[type=text] { width: 100%; min-width: 120px; }
+#tir .tir-catcard .tir-table td.tir-club input { width: 90px; min-width: 90px; }
+#tir .tir-catcard .tir-hintcell { color: #7d8183; text-align: center; }
+#tir .tir-catcard > h2 input[type=text] { flex: 0 1 420px; min-width: 220px; font-weight: 700; }
+#tir .tir-look { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 10px 24px; }
+#tir .tir-look label { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-weight: 600; color: #4c4e50; }
+#tir .tir-look input[type=range] { flex: 1; max-width: 160px; }
+#tir .tir-look select { max-width: 180px; }
+#tir .tir-look output { min-width: 56px; text-align: right; color: #7d8183; font-weight: normal; white-space: nowrap; }
+#tir .tir-events { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0; }
+#tir .tir-events label { font-weight: 600; }
