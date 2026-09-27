@@ -18,6 +18,16 @@
  * un passage de ce banc, les nouvelles inscriptions de la base portent des
  * identifiants à 7 chiffres. Ne jamais chercher les résidus de test par
  * « QuId > 9000000 » : ce critère attrape désormais des lignes légitimes.
+ *
+ * ⚠ Même effet sur `Tournament`, et il se voit davantage : la compétition jetable
+ * est créée à `ToId = 999901`, donc l'auto-increment reste à 999 902 après le
+ * nettoyage et TOUTES les compétitions créées ensuite portent des numéros à
+ * 6 chiffres. C'est ce qui a fait chercher un bug de module en septembre 2026 —
+ * et qui a révélé que TNM tronquait l'identifiant en `SMALLINT`. Le compteur a
+ * été ramené à 750 ; relancer ce banc le repoussera à 999 902.
+ * Pour l'éviter : faire tourner le banc sur une base jetable (`root` de XAMPP),
+ * cf. « Un banc de test ne fixe un identifiant que sur une base jetable » dans le
+ * CLAUDE.md racine.
  */
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
