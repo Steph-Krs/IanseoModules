@@ -1,0 +1,10 @@
+# Données internes du module (snapshots, verrous, configuration locale).
+# Jamais servi par le web : le vhost public a pour racine public/, mais le vhost
+# ianseo, lui, verrait ce dossier sans cette protection.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
