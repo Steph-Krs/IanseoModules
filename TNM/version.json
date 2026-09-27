@@ -1,7 +1,7 @@
 {
-  "version": "1.0.19",
-  "date": "2026-07-21",
-  "notes": "README au format commun et ajouté au manifeste.",
+  "version": "1.0.20",
+  "date": "2026-09-07",
+  "notes": "BcTournament et BvTournament passent de SMALLINT à INT UNSIGNED : au-delà de 32 767, l'identifiant de compétition était tronqué en silence et plusieurs compétitions partageaient la même configuration BSO. Migration automatique à l'ouverture de la page de configuration.",
   "files": [
     "admin/update.php",
     "bso-action.php",

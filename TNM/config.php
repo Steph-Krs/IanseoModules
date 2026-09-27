@@ -22,8 +22,10 @@ unset($_lvJson);
 // S'il vaut false ici, les tables n'existent pas encore → fraîche installation.
 $tnmFreshInstall = !($GLOBALS['_tnm_tables_ok'] ?? false);
 
+// BcTournament/BvTournament mirror Tournament.ToId, which is INT UNSIGNED. They
+// must never be narrower than the column they copy — see the migration below.
 safe_r_sql("CREATE TABLE IF NOT EXISTS TNM_BsoConfig (
-    BcTournament  SMALLINT    NOT NULL,
+    BcTournament  INT UNSIGNED NOT NULL,
     BcEvent       VARCHAR(10) NOT NULL,
     BcBsoCount    SMALLINT    NOT NULL DEFAULT 10,
     BcStartTarget SMALLINT    NOT NULL DEFAULT 1,
@@ -34,7 +36,7 @@ safe_r_sql("CREATE TABLE IF NOT EXISTS TNM_BsoConfig (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
 safe_r_sql("CREATE TABLE IF NOT EXISTS TNM_BsoVolee (
-    BvTournament  SMALLINT    NOT NULL,
+    BvTournament  INT UNSIGNED NOT NULL,
     BvEvent       VARCHAR(10) NOT NULL,
     BvRound       TINYINT     NOT NULL,
     BvTeam        INT         NOT NULL,
@@ -48,6 +50,32 @@ safe_r_sql("CREATE TABLE IF NOT EXISTS TNM_BsoVolee (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
 if ($tnmFreshInstall) $GLOBALS['_tnm_tables_ok'] = true;
+
+// ── Migration: competition columns widened to INT UNSIGNED (1.0.20) ───────────
+// They used to be SMALLINT, i.e. 32 767 at most, on the assumption that a database
+// never holds that many competitions. It is the wrong assumption: Tournament.ToId
+// is an AUTO_INCREMENT counter, and a counter only ever goes up. Deleting rows does
+// not lower it, and a single INSERT carrying an explicit high ToId — a test bench
+// building a disposable competition, an import keeping the source ids — leaves it
+// above 32 767 for good.
+// What made this worth fixing rather than watching: ianseo runs without
+// STRICT_TRANS_TABLES, so MySQL/MariaDB does not reject the oversized value, it
+// silently clamps it to 32 767. And since the column is part of the primary key,
+// every competition past that point would quietly share one BSO configuration and
+// one set of ends.
+// Both tables are created just above, so information_schema always answers here.
+foreach (array('TNM_BsoConfig' => 'BcTournament', 'TNM_BsoVolee' => 'BvTournament') as $tnmTable => $tnmCol) {
+    $tnmRs  = safe_r_sql("SELECT DATA_TYPE, COLUMN_TYPE FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=" . StrSafe_DB($tnmTable) . "
+          AND COLUMN_NAME=" . StrSafe_DB($tnmCol));
+    $tnmRow = safe_fetch($tnmRs);
+    if (!$tnmRow) continue;
+    $tnmHas = strtolower($tnmRow->DATA_TYPE)
+            . (stripos($tnmRow->COLUMN_TYPE, 'unsigned') !== false ? ' unsigned' : '');
+    if ($tnmHas !== 'int unsigned')
+        safe_r_sql("ALTER TABLE `$tnmTable` MODIFY `$tnmCol` INT UNSIGNED NOT NULL");
+}
+unset($tnmTable, $tnmCol, $tnmRs, $tnmRow, $tnmHas);
 
 // ── Template migration future ─────────────────────────────────────────────────
 // $rs = safe_r_sql("SELECT 1 FROM information_schema.COLUMNS

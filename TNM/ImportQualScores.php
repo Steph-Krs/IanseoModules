@@ -227,7 +227,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             <strong>Importer des scores</strong>
             <p style="margin:4px 0">Collez les données du tableur (une ligne par archer)&nbsp;:</p>
             <pre style="background:#f5f5f5;padding:4px 10px;border:1px solid #ccc;font-size:12px;display:inline-block;margin:0 0 8px">Licence[tab]Score
-1062728W[tab]92
+0123456A[tab]92
 0987654Z[tab]285</pre>
             <form method="post">
                 <input type="hidden" name="act" value="import">
