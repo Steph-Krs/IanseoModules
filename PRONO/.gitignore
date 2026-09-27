@@ -1,0 +1,6 @@
+# Secrets et fichiers locaux — ne JAMAIS committer
+data/db.local.json
+data/poll.key
+data/model.local.json
+data/*.lock
+data/snapshot_*.json

@@ -1,0 +1,26 @@
+# What must not reach the module repository.
+#
+# The repository is the distribution channel: whatever is published there is
+# downloaded by the installations. Anything listed here is local to this
+# installation, or of no use to whoever installs the module.
+
+# Editor and operating-system leftovers.
+*.bak
+*.orig
+*.tmp
+*~
+.DS_Store
+Thumbs.db
+
+# NOT ignored, deliberately:
+#   module.json  — this is what identifies a folder of Custom/ as a managed
+#                  module, and every module of the repository must carry one:
+#                  upd_load_config() reads it, upd_list_modules() and
+#                  upd_valid_module() use its presence as the test, and
+#                  upd_install_module() downloads it from the repository when
+#                  installing a sibling module. It holds no secret here: its
+#                  github_token MUST stay empty in the committed copy. An
+#                  administrator can set one locally without it ever coming
+#                  back, because an existing module.json is never overwritten.
+#   content/     — the courses are distributed, and have their own update
+#                  channel on the administration screen.

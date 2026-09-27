@@ -1,0 +1,45 @@
+# Configuration locale d'une installation (peut contenir des secrets).
+*.local.json
+config.local.*
+legal.local.*
+.env
+.env.*
+
+# Clés, certificats, empreintes.
+*.key
+*.pem
+*.p12
+*.pfx
+.htpasswd
+
+# Données d'exploitation : verrous, caches, instantanés, journaux. Contiennent
+# des données d'utilisateurs (pseudos, scores, inscriptions).
+*.lock
+*.log
+*.cache
+snapshot_*.json
+
+# Sauvegardes et archives (une archive d'installation embarque tout le reste).
+*.bak
+*.orig
+*.tmp
+*~
+*.zip
+*.tar.gz
+*.sql
+
+# Résidus de système de fichiers.
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------------------
+
+# Les .htaccess protègent les dossiers de données SUR L'INSTALLATION. Sans eux,
+# Apache sert data/ — clés et instantanés compris. Ils DOIVENT être distribués.
+!**/.htaccess
+
+# module.json identifie un dossier de Custom/ comme module géré : jamais ignoré
+# (upd_install_module le télécharge pour installer un module frère). Son
+# github_token reste vide dans la copie poussée.
+!**/module.json

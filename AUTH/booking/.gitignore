@@ -1,0 +1,9 @@
+# Trace du relais FFTA : activation ponctuelle, jamais versionnée
+ffta-debug.on
+ffta-debug.log
+
+# Configuration locale du serveur (base SSO, activation)
+config.local.json
+
+# Cache du fond de carte (régénéré depuis departements.geojson)
+public/assets/france-map.cache

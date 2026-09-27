@@ -1,0 +1,12 @@
+# Line endings. Nothing is normalised by default: what is on disk is exactly
+# what the repository distributes, byte for byte, through raw.githubusercontent.
+* -text
+
+# Except what a Linux server executes. A CRLF here breaks the script outright
+# ("bash: \r: command not found"), and the failure only shows up in production.
+*.sh              text eol=lf
+AUTH/serveur/bin/*        text eol=lf
+AUTH/serveur/cron/*       text eol=lf
+AUTH/serveur/logrotate/*  text eol=lf
+AUTH/serveur/sudoers/*    text eol=lf
+AUTH/serveur/**/*.conf    text eol=lf

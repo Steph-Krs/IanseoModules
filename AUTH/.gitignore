@@ -1,0 +1,10 @@
+# Secrets et fichiers locaux — ne JAMAIS committer
+config.local.json
+config.local.tmp.json
+legal.local.json
+cron/.maintenance.lock
+*.bak
+cron/.sync.lock
+ffta-debug.on
+ffta-debug.log
+cron/*.lock

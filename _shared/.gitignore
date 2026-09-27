@@ -1,0 +1,12 @@
+# What must not reach the module repository.
+#
+# _shared is published like a module: every module's update re-downloads it from
+# version.json files[], so the repository copy has to stay clean.
+
+# Editor and operating-system leftovers.
+*.bak
+*.orig
+*.tmp
+*~
+.DS_Store
+Thumbs.db
