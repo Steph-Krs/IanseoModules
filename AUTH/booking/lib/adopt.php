@@ -435,6 +435,13 @@ function bk_adopt($newId)
     $importByLic = array();
     $q = safe_r_sql("SELECT e.EnId, e.EnCode, e.EnDivision, e.EnClass, e.EnTargetFace,
                 e.EnFirstName, e.EnName, q.QuSession, q.QuTarget
+        /* ⚠ Le SEUL endroit du module où Qualifications se joint en LEFT, et il
+           faut le garder. Ailleurs la relation est 1:1 (INNER JOIN) parce que le
+           cœur la répare en tête de Partecipants/index.php — mais ici la
+           compétition VIENT d'être importée et cet écran n'a encore jamais été
+           ouvert. Un INNER JOIN ferait disparaître de $importByLic un archer sans
+           ligne de placement : la réconciliation le croirait absent de l'import et
+           ré-injecterait un doublon. */
         FROM Entries e LEFT JOIN Qualifications q ON q.QuId = e.EnId
         WHERE e.EnTournament = $newId");
     while ($e = safe_fetch($q)) {

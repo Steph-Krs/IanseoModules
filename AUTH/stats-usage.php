@@ -49,11 +49,23 @@ function aut_stats_tz() {
 function aut_stats_seen_days()  { return function_exists('aut_log_retention_days') ? aut_log_retention_days() : 180; }
 function aut_stats_agg_days()   { return 760; }   // ~25 mois
 
+/**
+ * Erreurs SQL tolérées par la mesure d'audience.
+ *
+ * ⚠️ `try/catch` ne protège de RIEN ici : `safe_w_sql()` appelle `safe_error()`, qui
+ * fait `header('HTTP/1.0 404')` + `exit` — aucune exception n'est levée, donc rien à
+ * rattraper. Le seul filet est le 3ᵉ argument de `safe_w_sql()` : la liste des numéros
+ * d'erreur ACCEPTÉS. 0 = pas d'erreur, 1146 = table absente, 1142/1044 = droits
+ * insuffisants. Une mesure d'audience ne doit jamais faire tomber une page.
+ */
+function aut_stats_soft() { return array(0, 1044, 1142, 1146); }
+
 /** Crée les tables de mesure (idempotent, statique). Sûr en tout contexte. */
 function aut_stats_ensure_schema() {
     static $done = false;
     if ($done) return;
     $done = true;
+    $soft = aut_stats_soft();
     try {
         safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_Usage (
             UsDay   DATE            NOT NULL,
@@ -62,13 +74,13 @@ function aut_stats_ensure_schema() {
             UsPage  VARCHAR(48)     NOT NULL,
             UsViews INT UNSIGNED    NOT NULL DEFAULT 0,
             PRIMARY KEY (UsDay, UsHour, UsSpace, UsPage)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", false, $soft);
         safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_UsageSeen (
             UzDay   DATE        NOT NULL,
             UzSpace VARCHAR(8)  NOT NULL,
             UzRef   VARCHAR(64) NOT NULL,
             PRIMARY KEY (UzDay, UzSpace, UzRef)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", false, $soft);
     } catch (\Throwable $e) { /* mesure non critique */ }
 }
 
@@ -138,26 +150,41 @@ function aut_track($space, $uid = null) {
         $page = aut_stats_page_key($space);
         $sp   = StrSafe_DB($space);
 
+        // 3ᵉ argument = erreurs tolérées : c'est le SEUL filet (le catch ci-dessous ne
+        // rattrape pas safe_error(), qui sort par exit).
+        $soft = aut_stats_soft();
         safe_w_sql("INSERT INTO AUT_Usage (UsDay, UsHour, UsSpace, UsPage, UsViews)
             VALUES (" . StrSafe_DB($day) . ", $hour, $sp, " . StrSafe_DB($page) . ", 1)
-            ON DUPLICATE KEY UPDATE UsViews = UsViews + 1");
+            ON DUPLICATE KEY UPDATE UsViews = UsViews + 1", false, $soft);
 
         $ref = ($uid !== null && $uid !== '') ? ('u:' . $uid) : ('a:' . aut_stats_audience_id());
         safe_w_sql("INSERT IGNORE INTO AUT_UsageSeen (UzDay, UzSpace, UzRef)
-            VALUES (" . StrSafe_DB($day) . ", $sp, " . StrSafe_DB(substr($ref, 0, 64)) . ")");
+            VALUES (" . StrSafe_DB($day) . ", $sp, " . StrSafe_DB(substr($ref, 0, 64)) . ")", false, $soft);
     } catch (\Throwable $e) {
-        // la mesure d'audience ne doit jamais interrompre une page
+        // erreurs PHP seulement (date, cookie…) : les erreurs SQL, elles, sont
+        // neutralisées par $soft — safe_error() ne lève rien, il sort.
     }
 }
 
-/** Purge de la mesure : UsageSeen à la rétention des journaux, agrégats à 25 mois. */
+/**
+ * Purge de la mesure : UsageSeen à la rétention des journaux, agrégats à 25 mois.
+ *
+ * ⚠️ PANNE RÉELLE (serveur d'un utilisateur, sept. 2026) : « Error 1146: Table
+ * 'xxx.AUT_UsageSeen' doesn't exist » en pleine page. Une installation mise à jour
+ * depuis une version antérieure à la mesure d'audience n'a pas ces tables ; elles
+ * n'étaient créées que par aut_track(), et la purge — appelée AVANT, depuis
+ * aut_log_purge() — tombait donc sur une table absente. safe_w_sql() a alors fait
+ * safe_error() → 404 + exit : page morte, malgré le try/catch (voir aut_stats_soft).
+ * Symptôme trompeur : une seule requête par jour échoue (le marqueur de
+ * aut_log_purge_daily est posé AVANT la purge), la suivante passe.
+ */
 function aut_stats_purge() {
-    try {
-        $seen = (int) aut_stats_seen_days();
-        $agg  = (int) aut_stats_agg_days();
-        safe_w_sql("DELETE FROM AUT_UsageSeen WHERE UzDay < DATE_SUB(CURDATE(), INTERVAL $seen DAY) LIMIT 50000");
-        safe_w_sql("DELETE FROM AUT_Usage     WHERE UsDay < DATE_SUB(CURDATE(), INTERVAL $agg DAY)  LIMIT 50000");
-    } catch (\Throwable $e) { /* non critique */ }
+    aut_stats_ensure_schema();          // d'abord créer, ensuite purger
+    $soft = aut_stats_soft();
+    $seen = (int) aut_stats_seen_days();
+    $agg  = (int) aut_stats_agg_days();
+    safe_w_sql("DELETE FROM AUT_UsageSeen WHERE UzDay < DATE_SUB(CURDATE(), INTERVAL $seen DAY) LIMIT 50000", false, $soft);
+    safe_w_sql("DELETE FROM AUT_Usage     WHERE UsDay < DATE_SUB(CURDATE(), INTERVAL $agg DAY)  LIMIT 50000", false, $soft);
 }
 
 /* ------------------------------------------------------------------ */

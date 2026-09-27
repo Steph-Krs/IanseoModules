@@ -474,7 +474,8 @@ function bk_pending_registrations($tourId)
                 c.CoName, c.CoCode, q.QuSession
         FROM BK_Registrations r
         INNER JOIN Entries e        ON e.EnId = r.BrEnId
-        LEFT  JOIN Qualifications q ON q.QuId = e.EnId
+        /* 1:1 avec Entries → INNER JOIN, jamais LEFT + IS NULL. */
+        INNER JOIN Qualifications q ON q.QuId = e.EnId
         LEFT  JOIN Divisions d      ON d.DivTournament = e.EnTournament AND d.DivId = e.EnDivision
         LEFT  JOIN Classes cl       ON cl.ClTournament = e.EnTournament AND cl.ClId = e.EnClass
         LEFT  JOIN Countries c      ON c.CoId = e.EnCountry

@@ -716,8 +716,7 @@ function bk_ffta_is_connected($html)
  * doit donc renvoyer une réponse CERTAINE ou aucune : l'appelant refuse la
  * connexion s'il n'obtient pas exactement une licence.
  *
- * Motifs par fiabilité décroissante, relevés sur une page d'accueil réelle
- * (« Exemples pour Claude/FFTA - Accueil espace licencié.html ») :
+ * Motifs par fiabilité décroissante, relevés sur une page d'accueil réelle :
  *   1. fiche profil : « Licencié N°0000001B »
  *   2. barre de nav : <span class="badge …">0000001B</span>
  *   3. repli        : n'importe quel motif de licence de la page

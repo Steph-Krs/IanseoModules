@@ -465,6 +465,83 @@ l'admin peut l'attribuer/corriger via la page « Compétitions & partage ».
 - **Mise à jour du module** : menu Multi-comptes → Mise à jour module, puis
   redéployer si `dist/` a changé.
 
+## 9 bis. Sauvegardes nocturnes
+
+Chaque nuit, dans la fenêtre de maintenance (site fermé, donc copie cohérente) et **juste avant
+la mise à jour du cœur**, `cron/backup.php` produit :
+
+- `ianseo-db-AAAAMMJJ-HHMMSS.sql.gz` — dump complet de la base (`mysqldump`) ;
+- `ianseo-files-AAAAMMJJ-HHMMSS.tar.gz` — archive du site (sans `TV/Photos`) : revenir en
+  arrière demande la base **et** le code qui va avec.
+
+**Sans sauvegarde valide, le cœur n'est pas mis à jour cette nuit-là** (réglable :
+`backup.required_for_core`). Tout se règle dans **Multi-comptes › Configuration du serveur**,
+ou dans `config.local.json` :
+
+```json
+"backup": {
+  "enabled": true,
+  "dir": "/var/backups/ianseo",
+  "keep_days": 14,
+  "files": true,
+  "required_for_core": true,
+  "remote": "",
+  "remote_keep_days": 30
+}
+```
+
+**Une fois par serveur** — le dossier par défaut est sous `/var/backups`, qui appartient à root :
+
+```bash
+sudo install -d -o www-data -g www-data -m 0700 /var/backups/ianseo
+```
+
+Le dossier est toujours **hors du site web** (refusé sinon : Apache ne bloque pas les `.gz`).
+La dernière sauvegarde de chaque type est gardée même au-delà de `keep_days`.
+
+Lancer une sauvegarde à la main : `sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/backup.php`
+
+### Copie en ligne (Google Drive, Dropbox, OneDrive, NAS…) — rclone
+
+```bash
+sudo apt install rclone
+sudo install -d -o www-data -g www-data -m 0700 /var/www/.config
+sudo -u www-data rclone config
+```
+
+⚠️ **La base contient les données personnelles des licenciés** : déclarer une destination
+`crypt` (chiffrée) par-dessus le stockage, et conserver sa phrase secrète hors du serveur.
+Exemple : `gdrive` (type `drive`, autorisation via `rclone authorize "drive"` sur un PC), puis
+`gdrive-chiffre` (type `crypt`, sur `gdrive:ianseo`). Saisir `gdrive-chiffre:` dans la page de
+configuration et cliquer « Tester la destination en ligne ». Un échec de la copie en ligne ne
+bloque pas la mise à jour (la copie locale suffit pour revenir en arrière).
+
+### Restaurer
+
+```bash
+sudo /usr/local/bin/ianseo-maintenance-on
+gunzip -c /var/backups/ianseo/ianseo-db-XXXX.sql.gz | sudo mysql ianseo
+sudo tar -xzf /var/backups/ianseo/ianseo-files-XXXX.tar.gz -C /var/www   # remet /var/www/ianseo
+sudo /usr/local/bin/ianseo-maintenance-off
+```
+
+## 9 ter. Configuration depuis ianseo (`admin/config.php`)
+
+`config.local.json` se modifie depuis **Multi-comptes › Configuration du serveur** (administrateur
+serveur uniquement). Règles appliquées côté serveur :
+
+- les mots de passe ne sont **jamais** affichés (remplacés par `••••••••`, qui veut dire « inchangé ») ;
+- **verrouillés** — modifiables seulement en ligne de commande : les commandes de maintenance
+  (`maintenance.on/off/lock/unlock`), les chemins (`*file`, `*dir`, `*path`, `*bin`…) et les
+  adresses de serveurs (`*base`, `*url`, `*host`, toute valeur `https://…`). Une session
+  administrateur volée ne doit permettre ni d'exécuter une commande sur le serveur, ni d'écrire un
+  `.php` dans le site (`log_file`), ni de détourner les identifiants des organisateurs (`sso.base`).
+  Seule exception : `backup.dir`, contrôlé (jamais dans le site) ;
+- écriture atomique, version précédente dans `config.local.json.bak`, événement `CONFIG_EDIT`
+  dans le journal.
+
+Le fichier doit appartenir au serveur web : `sudo chown www-data:www-data …/AUTH/config.local.json && sudo chmod 600 …`
+
 ## 10. Procédure de secours
 
 Si `USERAUTH` est actif mais `Modules/Authentication/BlockFunction.php`
@@ -630,8 +707,8 @@ verrouillage → maintenance OFF.
 { "maintenance": {
     "on":     "sudo /usr/local/bin/ianseo-maintenance-on",
     "off":    "sudo /usr/local/bin/ianseo-maintenance-off",
-    "unlock": "sudo /usr/local/bin/ianseo-unlock",
-    "lock":   "sudo /usr/local/bin/ianseo-lock",
+    "unlock": "",
+    "lock":   "",
     "steps":  { "core": false, "modules": true, "licences": true, "logos": true },
     "notice": { "at": "03:15", "lead_minutes": 15 }
 } }
@@ -648,8 +725,18 @@ verrouillage → maintenance OFF.
   pas l'un de l'autre. Heure locale (`timezone`, défaut `Europe/Paris`) — ianseo
   forçant PHP en UTC, un réglage naïf annoncerait l'horaire avec 2 h d'écart.
 
-  `www-data` doit pouvoir lancer ces quatre commandes sans mot de passe (`sudoers`,
-  `NOPASSWD`, limité à ces chemins).
+  `www-data` doit pouvoir lancer `on`/`off` sans mot de passe (`sudoers`, `NOPASSWD`,
+  limité à ces deux chemins).
+
+  **`unlock`/`lock` restent VIDES** : le déverrouillage des fichiers du cœur est fait par
+  **root, autour du script**, dans la ligne cron elle-même (`serveur/cron/ianseo-nightly`) :
+  `ianseo-unlock && su www-data -c maintenance.php ; ianseo-lock`. Le compte web ne reçoit
+  ainsi jamais le droit de rendre le code d'ianseo modifiable — lui donner `ianseo-unlock`
+  en sudo annulerait la protection apportée par `ianseo-lock` (une faille du site pourrait
+  réécrire le cœur). Le `;` garantit le reverrouillage même si la maintenance échoue.
+  *(Incident réel du 2026-09-27 : `unlock` renseigné sans `sudo` ni chemin → « not found »,
+  fichiers restés verrouillés, MàJ du cœur refusée. Depuis, un déverrouillage en échec fait
+  sauter la MàJ du cœur au lieu de la tenter pour rien.)*
 - Options : `--dry-run` (affiche le plan sans rien faire — à lancer en premier),
   `--core` / `--no-core`, `--only=modules,licences,logos`.
 
@@ -664,8 +751,9 @@ base sont appliquées au passage.
 
 > ⚠️ **Désactivée par défaut** (`steps.core: false`). Elle réécrit des fichiers du cœur
 > et migre la base **sans retour arrière possible**. Ne l'activer qu'avec une sauvegarde
-> automatique de la base et des fichiers, et après un essai en `--dry-run`. Elle exige
-> aussi que `unlock`/`lock` soient configurés.
+> automatique de la base et des fichiers (§ 9 bis — sans sauvegarde valide la nuit, elle
+> est sautée), et après un essai en `--dry-run`. Elle exige que les fichiers soient
+> déverrouillés pendant la fenêtre : c'est le rôle de la ligne cron lancée par root.
 
 > ⚠️ **Piège vérifié** : un **BOM UTF-8** en tête de `config.local.json` (Bloc-notes,
 > `Set-Content -Encoding utf8`…) faisait échouer la lecture JSON et **toute** la

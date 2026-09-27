@@ -12,13 +12,11 @@
 www-data ALL=(root) NOPASSWD: /usr/local/bin/ianseo-maintenance-on, /usr/local/bin/ianseo-maintenance-off
 
 # ---------------------------------------------------------------------------
-# NE PAS décommenter les deux lignes suivantes sans y avoir réfléchi.
+# ianseo-unlock / ianseo-lock ne sont PAS accordés à www-data, et ne doivent pas
+# l'être : ce serait donner au compte web le pouvoir de rendre TOUT l'arbre ianseo
+# inscriptible, donc à une faille du site celui de réécrire le code du cœur — ce
+# qui annule la protection apportée par ianseo-lock.
 #
-# Elles ne servent QU'À la mise à jour automatique du cœur ianseo (désactivée
-# par défaut : config.local.json → maintenance.steps.core = false). Or accorder
-# « ianseo-unlock » à www-data revient à lui donner le pouvoir de rendre TOUT
-# l'arbre ianseo inscriptible : une faille du serveur web permettrait alors de
-# réécrire le code du cœur, ce qui annule précisément la protection apportée par
-# ianseo-lock. Tant que la MàJ du cœur reste manuelle, ne pas les accorder.
-#
-# www-data ALL=(root) NOPASSWD: /usr/local/bin/ianseo-unlock, /usr/local/bin/ianseo-lock
+# La mise à jour automatique du cœur n'en a pas besoin : c'est la ligne cron,
+# lancée par root, qui déverrouille avant et reverrouille après le script
+# (voir serveur/cron/ianseo-nightly).

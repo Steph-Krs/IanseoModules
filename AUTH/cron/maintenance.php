@@ -4,7 +4,7 @@
  *
  * Enchaîne, chaque étape n'étant lancée qu'une fois la précédente terminée :
  *
- *   maintenance ON → déverrouillage → MàJ cœur ianseo → MàJ des modules Custom
+ *   maintenance ON → SAUVEGARDE → déverrouillage → MàJ cœur ianseo → MàJ des modules Custom
  *   → redéploiement AUTH → synchro licences → synchro logos → verrouillage
  *   → maintenance OFF
  *
@@ -32,13 +32,15 @@
  *   { "maintenance": {
  *       "on":     "sudo /usr/local/bin/ianseo-maintenance-on",
  *       "off":    "sudo /usr/local/bin/ianseo-maintenance-off",
- *       "unlock": "sudo /usr/local/bin/ianseo-unlock",
- *       "lock":   "sudo /usr/local/bin/ianseo-lock",
+ *       "unlock": "",   ← vides : déverrouillage fait par root dans la ligne cron
+ *       "lock":   "",   ← (serveur/cron/ianseo-nightly), jamais en sudo pour www-data
  *       "steps":  { "core": false, "modules": true, "licences": true, "logos": true }
- *   } }
+ *   },
+ *   "backup": { "enabled": true, "dir": "/var/backups/ianseo", "keep_days": 14, … } }
+ *   (détail : backup-lib.php ; réglable depuis admin/config.php)
  *
  * Options : --dry-run (n'exécute rien, affiche le plan), --core (force la MàJ cœur
- * pour cette exécution), --no-core, --only=modules,licences,logos
+ * pour cette exécution), --no-core, --no-backup, --only=backup,modules,licences,logos
  */
 
 if (php_sapi_name() !== 'cli') {
@@ -84,6 +86,12 @@ function mt_want($name, $default) {
 $doCore     = mt_want('core', false);
 if (in_array('--core', $args, true))    $doCore = true;
 if (in_array('--no-core', $args, true)) $doCore = false;
+// Sauvegarde : pilotée par config.local.json → backup.enabled (défaut : oui), et non
+// par steps — c'est une fonction à part entière, réglable depuis admin/config.php.
+require_once(dirname(__DIR__) . '/backup-lib.php');
+$bkCfg      = aut_backup_config();
+$doBackup   = $bkCfg['enabled'] && ($only === null || in_array('backup', $only, true));
+if (in_array('--no-backup', $args, true)) $doBackup = false;
 $doModules  = mt_want('modules',  true);
 $doLicences = mt_want('licences', true);
 $doLogos    = mt_want('logos',    true);
@@ -137,12 +145,12 @@ if (function_exists('pcntl_signal') && function_exists('pcntl_async_signals')) {
     }
 }
 
-/** Lance un script PHP du module dans un processus NEUF. */
-function mt_php($script, $args = '') {
+/** Lance un script PHP du module dans un processus NEUF. $rc reçoit son code de sortie. */
+function mt_php($script, $args = '', &$rc = 0) {
     global $dryRun;
     $bin = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
     $cmd = escapeshellarg($bin) . ' ' . escapeshellarg($script) . ($args !== '' ? ' ' . $args : '');
-    if ($dryRun) { mt_log('  [dry-run] ' . $cmd); return true; }
+    if ($dryRun) { mt_log('  [dry-run] ' . $cmd); $rc = 0; return true; }
     $out = array(); $rc = 0;
     exec($cmd . ' 2>&1', $out, $rc);
     // Les avertissements « libpng warning: iCCP … » viennent de la bibliothèque C
@@ -162,13 +170,13 @@ function mt_php($script, $args = '') {
 /* Déroulé                                                             */
 /* ================================================================== */
 mt_log('Fenêtre de maintenance — début' . ($dryRun ? ' [DRY-RUN]' : ''));
-mt_log('Étapes : cœur=' . ($doCore ? 'oui' : 'non') . ', modules=' . ($doModules ? 'oui' : 'non')
+mt_log('Étapes : sauvegarde=' . ($doBackup ? 'oui' : 'non') . ', cœur=' . ($doCore ? 'oui' : 'non') . ', modules=' . ($doModules ? 'oui' : 'non')
     . ', licences=' . ($doLicences ? 'oui' : 'non') . ', logos=' . ($doLogos ? 'oui' : 'non'));
 
 $echecs = array();
 
 /* ---- 1. Maintenance ON ---- */
-mt_step('1/7 Mise en maintenance');
+mt_step('1/8 Mise en maintenance');
 if (trim((string) ($cfg['on'] ?? '')) !== '' && !$dryRun) $GLOBALS['MT_ON'] = true;
 if (!mt_exec($cfg['on'] ?? '', 'maintenance ON')) {
     // Si l'activation échoue, ne pas enchaîner des MàJ sur un serveur ouvert au public.
@@ -178,15 +186,48 @@ if (!mt_exec($cfg['on'] ?? '', 'maintenance ON')) {
     exit(1);
 }
 
-/* ---- 2. Déverrouillage des fichiers (nécessaire à la MàJ du cœur) ---- */
-if ($doCore) {
-    mt_step('2/7 Déverrouillage des fichiers');
-    if (!mt_exec($cfg['unlock'] ?? '', 'unlock')) $echecs[] = 'unlock';
+/* ---- 2. Sauvegarde base + fichiers ---- */
+// Site fermé → copie cohérente. Prise AVANT la MàJ du cœur : c'est elle qui permet
+// de revenir en arrière si une migration de base tourne mal (aucun retour arrière
+// n'existe dans ianseo). Pas de sauvegarde locale ⇒ pas de MàJ du cœur cette nuit
+// (réglable : backup.required_for_core). Un échec de la seule copie EN LIGNE ne
+// bloque rien : la copie locale suffit à revenir en arrière.
+$backupOk = false;
+if ($doBackup) {
+    mt_step('2/8 Sauvegarde de la base et des fichiers');
+    $bkRc = 1;
+    mt_php(__DIR__ . '/backup.php', '', $bkRc);
+    $backupOk = ($bkRc === 0 || $bkRc === 2);
+    if ($bkRc === 0)      mt_log('  sauvegarde : ok');
+    elseif ($bkRc === 2)  { $echecs[] = 'sauvegarde en ligne'; mt_log('  sauvegarde locale : ok — copie en ligne : ÉCHEC'); }
+    else                  { $echecs[] = 'sauvegarde'; mt_log('  sauvegarde : ÉCHEC' . ($bkRc !== 1 ? " (code $bkRc)" : '')); }
+}
+if ($doCore && !$dryRun && !$backupOk && $bkCfg['required_for_core']) {
+    $doCore = false;
+    $echecs[] = 'cœur (non lancé)';
+    mt_log('');
+    mt_log('!! MàJ du cœur NON lancée cette nuit : pas de sauvegarde valide pour revenir en arrière.'
+        . ($bkCfg['enabled'] ? '' : ' (sauvegarde désactivée)')
+        . ' Réglage : config.local.json → backup.required_for_core.');
 }
 
-/* ---- 3. Mise à jour du cœur ianseo ---- */
+/* ---- 3. Déverrouillage des fichiers (nécessaire à la MàJ du cœur) ---- */
 if ($doCore) {
-    mt_step('3/7 Mise à jour du cœur ianseo');
+    mt_step('3/8 Déverrouillage des fichiers');
+    if (!mt_exec($cfg['unlock'] ?? '', 'unlock')) {
+        // Fichiers du cœur toujours en lecture seule : la MàJ échouerait à coup sûr
+        // (« … must be writable by the server »). Rien n'ayant été déverrouillé, le
+        // reverrouillage final est sauté aussi.
+        $echecs[] = 'unlock';
+        $doCore = false;
+        mt_log('!! MàJ du cœur NON lancée : les fichiers n\'ont pas pu être déverrouillés.'
+            . ' maintenance.unlock doit rester vide : le déverrouillage se fait par root dans /etc/cron.d/ianseo-nightly.');
+    }
+}
+
+/* ---- 4. Mise à jour du cœur ianseo ---- */
+if ($doCore) {
+    mt_step('4/8 Mise à jour du cœur ianseo');
     $statusFile = HTDOCS . '/TV/Photos/updating.json';
     @unlink($statusFile);
     mt_php(__DIR__ . '/update-core.php');
@@ -202,9 +243,9 @@ if ($doCore) {
     }
 }
 
-/* ---- 4. Mise à jour des modules Custom ---- */
+/* ---- 5. Mise à jour des modules Custom ---- */
 if ($doModules) {
-    mt_step('4/7 Mise à jour des modules');
+    mt_step('5/8 Mise à jour des modules');
     $shared = HTDOCS . '/Modules/Custom/_shared/update-lib.php';
     if (!is_file($shared)) {
         mt_log('  _shared/update-lib.php absent — étape ignorée.');
@@ -235,12 +276,12 @@ if ($doModules) {
     }
 }
 
-/* ---- 5. Redéploiement de l'authentification ---- */
+/* ---- 6. Redéploiement de l'authentification ---- */
 // Une MàJ du cœur efface Modules/Authentication/, et une MàJ du module AUTH peut
 // modifier dist/. L'auto-réparation le referait à la première requête web, mais
 // autant repartir d'un serveur cohérent avant les synchros.
 if (($doCore || $doModules) && !$dryRun) {
-    mt_step('5/7 Redéploiement de l\'authentification');
+    mt_step('6/8 Redéploiement de l\'authentification');
     if (function_exists('aut_dist_status') && function_exists('aut_deploy')) {
         $st = aut_dist_status();
         if (!$st['deployed'] || $st['drift']) {
@@ -254,22 +295,22 @@ if (($doCore || $doModules) && !$dryRun) {
     }
 }
 
-/* ---- 6. Synchros (licences puis logos) ---- */
+/* ---- 7. Synchros (licences puis logos) ---- */
 if ($doLicences) {
-    mt_step('6a/7 Synchronisation des licences');
+    mt_step('7a/8 Synchronisation des licences');
     if (!mt_php(__DIR__ . '/sync-licences.php')) { $echecs[] = 'licences'; mt_log('  licences : ÉCHEC'); }
     else mt_log('  licences : ok');
 }
 if ($doLogos) {
     // Volontairement APRÈS les licences : la liste des clubs en est déduite.
-    mt_step('6b/7 Synchronisation des logos de club');
+    mt_step('7b/8 Synchronisation des logos de club');
     if (!mt_php(__DIR__ . '/sync-logos.php')) { $echecs[] = 'logos'; mt_log('  logos : ÉCHEC'); }
     else mt_log('  logos : ok');
 }
 
-/* ---- 7. Reverrouillage + sortie de maintenance ---- */
+/* ---- 8. Reverrouillage + sortie de maintenance ---- */
 if ($doCore) {
-    mt_step('7/7 Reverrouillage des fichiers');
+    mt_step('8/8 Reverrouillage des fichiers');
     if (!mt_exec($cfg['lock'] ?? '', 'lock')) $echecs[] = 'lock';
 }
 

@@ -56,7 +56,8 @@ $rs = safe_r_sql("SELECT r.BrEnId, r.BrLicence,
             c.CoCode, c.CoName, q.QuSession
     FROM BK_Registrations r
     INNER JOIN Entries e        ON e.EnId = r.BrEnId
-    LEFT  JOIN Qualifications q ON q.QuId = e.EnId
+    /* 1:1 avec Entries → INNER JOIN, jamais LEFT + IS NULL. */
+    INNER JOIN Qualifications q ON q.QuId = e.EnId
     LEFT  JOIN Countries c      ON c.CoId = e.EnCountry
     WHERE r.BrTournament = $TOUR
     ORDER BY r.BrCreated, r.BrId");

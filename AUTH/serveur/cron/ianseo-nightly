@@ -8,8 +8,15 @@
 #   - le fichier ne doit pas être exécutable ni inscriptible par le groupe.
 #
 # Ce seul appel remplace les crons séparés de synchro : maintenance.php enchaîne
-# maintenance ON → MàJ modules → licences → logos → maintenance OFF, et garantit
-# la sortie de maintenance même en cas d'échec.
+# maintenance ON → sauvegarde → MàJ cœur → MàJ modules → licences → logos →
+# maintenance OFF, et garantit la sortie de maintenance même en cas d'échec.
+#
+# Lancée par ROOT, uniquement pour déverrouiller les fichiers du cœur avant, et les
+# reverrouiller après : le script lui-même tourne sous www-data (su). Ainsi le compte
+# web n'a jamais le droit de rendre le code d'ianseo modifiable — ne PAS donner
+# ianseo-unlock à www-data en sudo. Dans config.local.json, maintenance.unlock et
+# maintenance.lock restent donc VIDES. Le « ; » (et non « && ») avant ianseo-lock
+# garantit le reverrouillage même si la maintenance échoue.
 #
 # ⚠️ Si un préavis est configuré (config.local.json → maintenance.notice.at),
 # il doit correspondre à l'HEURE CI-DESSOUS. Les deux ne se déduisent pas l'un
@@ -18,4 +25,4 @@
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-15 3 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php >> /var/log/ianseo-maintenance.log 2>&1
+15 3 * * * root /usr/local/bin/ianseo-unlock >/dev/null && su -s /bin/sh www-data -c '/usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php >> /var/log/ianseo-maintenance.log 2>&1'; /usr/local/bin/ianseo-lock >/dev/null

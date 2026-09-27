@@ -139,6 +139,9 @@ if ($msgErr) echo '<tr><td colspan="3" class="Center" style="background:#fde8e8;
     vers <code>Modules/Authentication/</code>, ou passez <code>$CFG-&gt;USERAUTH = false;</code>.
     Détail dans <code>Modules/Custom/AUTH/SERVEUR.md</code>.
 </td></tr>
+<tr><td colspan="3" class="Center">
+    <a href="config.php">Configuration du serveur (sauvegardes, nuit de maintenance, config.local.json) →</a>
+</td></tr>
 </table>
 <?php
 include('Common/Templates/tail.php');

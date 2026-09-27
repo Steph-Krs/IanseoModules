@@ -178,7 +178,9 @@ function bk_due_total($tourId, $licence)
         FROM BK_Registrations r
         INNER JOIN Entries e        ON e.EnId = r.BrEnId
         LEFT  JOIN Countries c      ON c.CoId = e.EnCountry
-        LEFT  JOIN Qualifications q ON q.QuId = e.EnId
+        /* 1:1 avec Entries → INNER JOIN (le cœur répare la relation en tête de
+           Partecipants/index.php). Countries, lui, est bien facultatif. */
+        INNER JOIN Qualifications q ON q.QuId = e.EnId
         WHERE r.BrTournament = $tourId AND r.BrLicence = " . StrSafe_DB($licence));
     $reg = 0.0; $count = 0;
     while ($r = safe_fetch($rs)) {

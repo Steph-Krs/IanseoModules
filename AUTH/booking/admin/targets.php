@@ -260,7 +260,8 @@ $demandes = array();
 $rs = safe_r_sql("SELECT e.EnFirstName, e.EnName, e.EnCode, r.BrRequest, q.QuSession
     FROM BK_Registrations r
     INNER JOIN Entries e ON e.EnId = r.BrEnId AND e.EnTournament = $TOUR
-    LEFT JOIN Qualifications q ON q.QuId = e.EnId
+    /* 1:1 avec Entries → INNER JOIN, jamais LEFT + IS NULL. */
+    INNER JOIN Qualifications q ON q.QuId = e.EnId
     WHERE r.BrTournament = $TOUR AND TRIM(COALESCE(r.BrRequest, '')) <> ''
     ORDER BY q.QuSession, e.EnFirstName, e.EnName");
 while ($r = safe_fetch($rs)) $demandes[] = $r;

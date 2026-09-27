@@ -19,7 +19,9 @@ $rs = safe_r_sql("SELECT t.ToId, t.ToName, t.ToWhere, t.ToWhenFrom, t.ToWhenTo,
             q.QuScore, q.QuClRank
     FROM Entries e
     INNER JOIN Tournament t ON t.ToId = e.EnTournament
-    LEFT  JOIN Qualifications q ON q.QuId = e.EnId
+    /* Qualifications est en 1:1 avec Entries (le cœur répare la relation en tête
+       de Partecipants/index.php) → INNER JOIN, jamais LEFT + IS NULL. */
+    INNER JOIN Qualifications q ON q.QuId = e.EnId
     LEFT  JOIN Divisions d  ON d.DivTournament = t.ToId AND d.DivId = e.EnDivision
     LEFT  JOIN Classes cl   ON cl.ClTournament = t.ToId AND cl.ClId = e.EnClass
     LEFT  JOIN BK_Competitions o ON o.BcTournament = t.ToId
