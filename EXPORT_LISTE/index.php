@@ -51,10 +51,14 @@ if (isset($_REQUEST['download'])) {
                 EnTeamMixEvent          AS DoubleMixte,
                 IFNULL(CoCode, '')      AS Agrement,
                 IFNULL(CoName, '')      AS Club
-            FROM Entries e
-            LEFT JOIN Qualifications q ON e.EnId = q.QuId
-            LEFT JOIN Countries c ON e.EnCountry = c.CoId AND e.EnTournament = c.CoTournament
-            WHERE e.EnTournament = " . StrSafe_DB($tourId);
+            /* Qualifications est en 1:1 avec Entries (le cœur répare la relation
+               en tête de Partecipants/index.php) → INNER JOIN. Countries, lui,
+               est facultatif : un participant peut n'avoir aucun club.
+               Pas d'alias : les noms de champs de ianseo sont uniques. */
+            FROM Entries
+            INNER JOIN Qualifications ON EnId = QuId
+            LEFT  JOIN Countries ON EnCountry = CoId AND EnTournament = CoTournament
+            WHERE EnTournament = " . StrSafe_DB($tourId);
     if ($session !== null) {
         $sql .= " AND QuSession = " . StrSafe_DB($session);
     }

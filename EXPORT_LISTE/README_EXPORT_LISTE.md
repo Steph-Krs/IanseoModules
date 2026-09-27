@@ -31,3 +31,16 @@ réservée à l'administrateur. L'entrée n'apparaît que si une compétition es
 Voir le [README général](../README.md). En résumé : copier le dossier `EXPORT_LISTE/` et `_shared/`
 dans `Modules/Custom/` (ou `install.sh` / `install.ps1`). Mises à jour et désinstallation depuis
 ianseo : menu du module → **Mise à jour**.
+
+<!-- BEGIN DATABASE WRITES (generated — do not edit by hand) -->
+## Database writes
+
+### ianseo core tables
+
+None. This module never writes to a core ianseo table.
+
+### Tables owned by this module
+
+None. This module creates no table of its own.
+
+<!-- END DATABASE WRITES -->
