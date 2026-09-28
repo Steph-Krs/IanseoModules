@@ -1,0 +1,29 @@
+{
+    "version": "0.1.0",
+    "date": "2026-09-28",
+    "notes": "Version 0.1.0.\n\nFirst version. The scorecards of the open competition, split into files: one PDF per club, holding all its archers, or one PDF per archer, downloaded together as a ZIP archive, or one club at a time from the list of clubs.\n\nOnly the pages that carry at least one archer are printed, however many positions a target has: a target of eight positions holding three archers prints one page, not two. The free positions of a printed page stay as blank grids. The target number can be hidden, for competitions where positions only serve to give each archer their own scorecards.\n\nScorecards are drawn by the core's own scorecard class, with the options of the core's printout (sessions, distances, header, flags, barcode). ianseo's own scorecard printout is not changed. The module creates no table and writes nothing to the database.",
+    "files": [
+        "menu.php",
+        "index.php",
+        "pdf.php",
+        "download.php",
+        "credits.php",
+        "version.json",
+        "README_SCORECARD_SPLITTER.md",
+        "README_SCORECARD_SPLITTER_FR.md",
+        "api/build.php",
+        "admin/update.php",
+        "lib/boot.php",
+        "lib/lang.php",
+        "lib/cards.php",
+        "lib/render.php",
+        "lib/jobs.php",
+        "assets/splitter.css",
+        "assets/splitter.js",
+        "languages/en.php",
+        "languages/fr.php",
+        "languages/it.php",
+        "languages/de.php",
+        "languages/es.php"
+    ]
+}

@@ -46,6 +46,10 @@ Modules pour le projet I@nseo :
   (ordre des équipes d'une division…), sans compétition ouverte : écran public animé qui révèle
   chaque équipe tirée, régie, et écran des commentateurs avec l'historique de chaque équipe et sa
   saison N-1 lue dans ianseo (classement, matchs, archers et leur classement national).
+- [Feuilles de marque par club ou archer](SCORECARD_SPLITTER/README_SCORECARD_SPLITTER_FR.md) —
+  Impression des feuilles de marque découpée en fichiers, un PDF par club ou un par archer, réunis
+  dans une archive ZIP : aucune page vide même avec plus de quatre emplacements par cible, numéro
+  de cible masquable. L'impression du cœur n'est pas modifiée. Lecture seule.
 
 ## Installation automatique (Mac / Linux)
 

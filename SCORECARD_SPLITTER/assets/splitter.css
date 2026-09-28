@@ -1,0 +1,38 @@
+/*
+ * Scorecard splitter page. Every rule is scoped to #scs so that nothing leaks
+ * into the ianseo page around it. Colours from the shared palette of the
+ * custom modules: blue carries the structure, coral and orange are signals.
+ */
+
+#scs { color: #20263d; font-size: 13px; }
+#scs h1 { color: #01367c; font-size: 20px; margin: 8px 0 4px; }
+#scs h2 { color: #01367c; font-size: 15px; margin: 0 0 8px; }
+#scs .scs-lead { color: #4c4e50; margin: 0 0 12px; }
+#scs .scs-hint { color: #7d8183; font-size: 12px; }
+
+#scs .scs-card { background: #fff; border: 1px solid #d2d4d6; border-radius: 6px; padding: 12px 14px; margin: 0 0 12px; }
+#scs .scs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px 16px; margin-bottom: 12px; }
+#scs fieldset { border: 1px solid #d2d4d6; border-radius: 4px; margin: 0; padding: 6px 10px 8px; }
+#scs legend { color: #0254a8; font-weight: bold; padding: 0 4px; }
+#scs .scs-check { display: block; margin: 3px 0; cursor: pointer; }
+#scs .scs-modes .scs-check { display: inline-block; margin-right: 24px; }
+
+#scs .scs-run { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+#scs .scs-btn { border: 1px solid #d2d4d6; background: #f7f7f7; color: #20263d; border-radius: 4px; padding: 6px 14px; cursor: pointer; font-size: 13px; }
+#scs .scs-btn-primary { background: #0254a8; border-color: #0254a8; color: #fff; }
+#scs .scs-btn-primary:hover { background: #01367c; }
+#scs .scs-btn:disabled { opacity: .6; cursor: wait; }
+#scs progress { width: 260px; height: 14px; }
+#scs .scs-error { color: #ff5043; font-weight: bold; }
+
+#scs .scs-msg { border: 1px solid #d2d4d6; background: #f0f4ff; border-radius: 4px; padding: 8px 12px; margin: 0 0 10px; }
+#scs .scs-msg-warn { border-color: #e57b10; background: #fff5ea; }
+
+#scs .scs-scroll { overflow-x: auto; }
+#scs .scs-table { border-collapse: collapse; width: 100%; }
+#scs .scs-table th, #scs .scs-table td { border-bottom: 1px solid #d2d4d6; padding: 4px 8px; text-align: left; white-space: nowrap; }
+#scs .scs-table thead th { background: #0254a8; color: #fff; font-weight: bold; }
+#scs .scs-table tbody tr:hover { background: #f0f4ff; }
+#scs .scs-table tfoot td { font-weight: bold; border-top: 2px solid #0254a8; }
+#scs .scs-table .scs-num { text-align: right; }
+#scs .scs-pdf img { vertical-align: middle; }
