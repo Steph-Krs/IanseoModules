@@ -3,16 +3,19 @@
  * Common bootstrap of every page and endpoint of the scorecard splitter.
  *
  * Finds the ianseo root by walking up to config.php instead of counting
- * directory levels, then loads the core's scorecard drawing class and the
- * module's libraries. The module owns no table and writes nothing to the
+ * directory levels, then loads the core's scorecard drawing class and library
+ * (the latter for its personal QR code) and the module's libraries. The module owns no table and writes nothing to the
  * database, so there is no schema to create here.
  *
  * Access follows the core's own scorecard printout: a competition must be open,
  * and the visitor needs read access to the qualification round.
  */
 
+// Modules/ and Modules/Custom/ each hold a config.php that only relays to the
+// real one, hence the Common/ folder that tells the ianseo root apart.
 $_scs_root = dirname(__DIR__);
-while ($_scs_root !== dirname($_scs_root) && !is_file($_scs_root . '/config.php')) {
+while ($_scs_root !== dirname($_scs_root)
+       && !(is_file($_scs_root . '/config.php') && is_dir($_scs_root . '/Common'))) {
     $_scs_root = dirname($_scs_root);
 }
 if (!defined('HTDOCS')) define('HTDOCS', $_scs_root);
@@ -20,6 +23,7 @@ unset($_scs_root);
 
 require_once HTDOCS . '/config.php';
 require_once 'Common/pdf/ScorePDF.inc.php';
+require_once 'Common/Lib/ScorecardsLib.php';
 require_once 'Common/Fun_FormatText.inc.php';
 require_once 'Common/Fun_Sessions.inc.php';
 require_once __DIR__ . '/lang.php';

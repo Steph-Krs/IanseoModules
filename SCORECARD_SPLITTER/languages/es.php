@@ -18,6 +18,7 @@ $lang['OptionsTitle'] = 'Hojas de puntuación';
 $lang['SessionsTitle'] = 'Turnos';
 $lang['SessionCards'] = '({$a} hojas)';
 $lang['LayoutTitle'] = 'Diseño';
+$lang['HideHeaderText'] = 'Ocultar el texto del encabezado de página (título, organizador, lugar, fechas): solo sus imágenes, cuando la imagen del encabezado ya lo dice todo';
 $lang['HideTarget'] = 'Ocultar el número de diana';
 $lang['HideTargetHint'] = 'Para una competición en la que las posiciones solo sirven para dar a cada arquero sus propias hojas, como un desafío tirado en los clubes: el número no le dice nada al arquero.';
 

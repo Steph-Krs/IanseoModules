@@ -20,6 +20,7 @@ $lang['OptionsTitle'] = 'Scorecards';
 $lang['SessionsTitle'] = 'Sessions';
 $lang['SessionCards'] = '({$a} scorecards)';
 $lang['LayoutTitle'] = 'Layout';
+$lang['HideHeaderText'] = 'Hide the text of the page header (title, organiser, place, dates): its images only, for a header image that already says it all';
 $lang['HideTarget'] = 'Hide the target number';
 $lang['HideTargetHint'] = 'For a competition where the positions only serve to give each archer their own scorecards, such as a challenge shot in the clubs: the number means nothing to the archer.';
 

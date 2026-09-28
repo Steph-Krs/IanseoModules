@@ -50,6 +50,26 @@ function scs_competition() {
 }
 
 /**
+ * The scoring applications whose QR code can be printed on the scorecards.
+ *
+ * The core's printout offers the same list: every API installed, set up for the
+ * open competition, and not in a results-only ("live") mode.
+ *
+ * @return string[] API folder names, such as 'ISK-NG'.
+ */
+function scs_qr_apis() {
+    global $CFG;
+    $out = [];
+    foreach (AvailableApis() as $api) {
+        $mode = getModuleParameter($api, 'Mode');
+        if (!$mode || strpos((string)$mode, 'live') !== false) continue;
+        if (!is_file($CFG->DOCUMENT_PATH . 'Api/' . $api . '/DrawQRCode.php')) continue;
+        $out[] = $api;
+    }
+    return $out;
+}
+
+/**
  * The print options of a request, checked against the open competition.
  *
  * The field names are the core's printout's own wherever an option is the same
@@ -79,17 +99,22 @@ function scs_options(array $src, array $sessions, $numDist) {
     if (!$distances || isset($distances[0])) $distances = [0 => 0];
 
     return [
-        'sessions'  => array_values($chosen),
-        'distances' => array_values($distances),
-        'mode'      => (($src['Mode'] ?? '') === 'archer') ? 'archer' : 'club',
-        'page'      => !empty($src['ScorePageHeaderFooter']),
-        'header'    => !empty($src['ScoreHeader']),
-        'logos'     => !empty($src['ScoreLogos']),
-        'flags'     => !empty($src['ScoreFlags']),
-        'info'      => !empty($src['GetArcInfo']),
+        'sessions'       => array_values($chosen),
+        'distances'      => array_values($distances),
+        'mode'           => (($src['Mode'] ?? '') === 'archer') ? 'archer' : 'club',
+        'page'           => !empty($src['ScorePageHeaderFooter']),
+        // Only meaningful with the full-page header, whose text it removes.
+        'hideHeaderText' => !empty($src['ScorePageHeaderFooter']) && !empty($src['HideHeaderText']),
+        'header'         => !empty($src['ScoreHeader']),
+        'logos'          => !empty($src['ScoreLogos']),
+        'flags'          => !empty($src['ScoreFlags']),
+        'info'           => !empty($src['GetArcInfo']),
         // The core offers the barcode only with its Barcodes module, which reads it.
-        'barcode'   => !empty($src['ScoreBarcode']) && module_exists('Barcodes'),
-        'hide'      => !empty($src['HideTarget']),
+        'barcode'        => !empty($src['ScoreBarcode']) && module_exists('Barcodes'),
+        // Only APIs from the list: the name ends up in a file path.
+        'qr'             => array_values(array_intersect(scs_qr_apis(), array_map('strval', (array)($src['QRCode'] ?? [])))),
+        'qrPersonal'     => !empty($src['ScoreQrPersonal']) && getModuleParameter('ISK-NG', 'UsePersonalDevices', ''),
+        'hide'           => !empty($src['HideTarget']),
     ];
 }
 

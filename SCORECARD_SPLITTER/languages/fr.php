@@ -17,6 +17,7 @@ $lang['OptionsTitle'] = 'Feuilles de marque';
 $lang['SessionsTitle'] = 'Départs';
 $lang['SessionCards'] = '({$a} feuilles)';
 $lang['LayoutTitle'] = 'Mise en page';
+$lang['HideHeaderText'] = 'Masquer le texte de l\'en-tête de page (titre, organisateur, lieu, dates) : seulement ses images, quand l\'image d\'en-tête dit déjà tout';
 $lang['HideTarget'] = 'Masquer le numéro de cible';
 $lang['HideTargetHint'] = 'Pour une compétition où les emplacements servent seulement à donner à chaque archer ses propres feuilles, comme un challenge tiré dans les clubs : le numéro ne dit rien à l\'archer.';
 

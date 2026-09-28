@@ -18,6 +18,7 @@ $lang['OptionsTitle'] = 'Score';
 $lang['SessionsTitle'] = 'Turni';
 $lang['SessionCards'] = '({$a} score)';
 $lang['LayoutTitle'] = 'Impaginazione';
+$lang['HideHeaderText'] = 'Nascondi il testo dell\'intestazione di pagina (titolo, organizzatore, luogo, date): solo le sue immagini, quando l\'immagine di intestazione dice già tutto';
 $lang['HideTarget'] = 'Nascondi il numero di piazzola';
 $lang['HideTargetHint'] = 'Per una gara in cui le posizioni servono solo a dare a ogni arciere i propri score, come una sfida tirata nelle società: il numero non dice nulla all\'arciere.';
 

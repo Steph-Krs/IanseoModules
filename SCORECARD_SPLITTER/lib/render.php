@@ -14,6 +14,11 @@
  * when it carries a card of the file's owner, so a target of eight positions
  * holding three archers prints one page, not two. And the target number can be
  * left out, when positions only serve to give each archer their own scorecards.
+ *
+ * The QR codes of the scoring applications are drawn by the core's own functions,
+ * at the place the core gives them: between the two rows, which move apart to
+ * make room. The core draws them once per target, on its last page; here every
+ * page gets them, since a club's or an archer's page may travel on its own.
  */
 
 /**
@@ -36,11 +41,43 @@
  * the header alone — eleven minutes over the archers of a large challenge. So a
  * JPEG is reduced once, by scs_print_image(), and the copy is reused by every
  * document; TCPDF then finds it small enough already and embeds it as it is.
+ *
+ * The full-page header can also leave out its text (title, organiser, place,
+ * dates), for a competition whose header image already says all of it.
  */
 class ScorecardSplitterPdf extends ScorePDF {
+    /**
+     * Draw the images of the full-page header without its text.
+     * @var bool
+     */
+    public $HideHeaderText = false;
+
     public function __construct($Portrait = true) {
         parent::__construct($Portrait);
         $this->setJPEGQuality(90);
+    }
+
+    /**
+     * The full-page header, as IanseoPdf::Header() draws it, or its images alone.
+     *
+     * The images are placed exactly as the core places them; only the lines of
+     * text between them are left out. The core's method cannot be asked for that:
+     * emptying the fields it prints still leaves the comma between place and dates.
+     */
+    public function Header() {
+        if (!$this->HideHeaderText) {
+            parent::Header();
+            return;
+        }
+        $this->SetDefaultColor();
+        $size = 15 + (count($this->StaffCategories) > 0 ? 5 : 0);
+        if ($this->ToPaths['ToLeft']) {
+            $this->Image($this->ToPaths['ToLeft'], IanseoPdf::sideMargin, 5, 0, $size);
+        }
+        if ($this->ToPaths['ToRight']) {
+            $im = getimagesize($this->ToPaths['ToRight']);
+            $this->Image($this->ToPaths['ToRight'], ($this->w - IanseoPdf::sideMargin) - ($im[0] * $size / $im[1]), 5, 0, $size);
+        }
     }
 
     public function Image($file, $x = null, $y = null, $w = 0, $h = 0, $type = '', $link = '', $align = '', $resize = false,
@@ -128,21 +165,33 @@ function scs_print_image($file, $w, $h, $dpi, $fitbox = false) {
  */
 function scs_new_pdf(array $opts) {
     $pdf = new ScorecardSplitterPdf(true);
+    // QR codes first, as in the core: FullHeaderShow() leaves a different bottom
+    // margin when they are printed, and they take the place of the sponsors' image.
+    if (!empty($opts['qr'])) {
+        $pdf->QRCode      = $opts['qr'];
+        $pdf->BottomImage = false;
+    }
+    if (!empty($opts['qrPersonal'])) {
+        $pdf->ScoreQrPersonal = true;
+        $pdf->BottomImage     = false;
+    }
     $pdf->FillWithArrows = false;
     if (!$opts['header']) $pdf->HideHeader();
     if (!$opts['logos'])  $pdf->HideLogo();
     if (!$opts['flags'])  $pdf->HideFlags();
     $pdf->FullHeaderShow($opts['page']);
-    $pdf->PrintBarcode = $opts['barcode'];
-    $pdf->GetArcInfo   = $opts['info'];
+    $pdf->HideHeaderText = !empty($opts['hideHeaderText']);
+    $pdf->PrintBarcode   = $opts['barcode'];
+    $pdf->GetArcInfo     = $opts['info'];
     return $pdf;
 }
 
 /**
- * Size of a scorecard and the corner of each of the four places of a page.
+ * Size of a scorecard, the corner of each of the four places of a page, and the
+ * place of the QR codes.
  *
  * @param ScorePDF $pdf
- * @return array [w, h, slots => four [x, y]].
+ * @return array [w, h, slots => four [x, y], qr => [x, y] or null].
  */
 function scs_geometry(ScorePDF $pdf) {
     $m  = $pdf->getSideMargin();
@@ -151,7 +200,43 @@ function scs_geometry(ScorePDF $pdf) {
     $x2 = $m + $m + $w;
     // The full-page header and footer take their room from the lower row.
     $y2 = $m + $m + $h - ($pdf->PrintFullHeader ? 10 + (empty($pdf->QRCode) ? 5 : 0) : 0);
-    return ['w' => $w, 'h' => $h, 'slots' => [[$m, $m], [$x2, $m], [$m, $y2], [$x2, $y2]]];
+    $qr = null;
+    if ($pdf->QRCode || $pdf->ScoreQrPersonal) {
+        // The codes sit between the two rows, which move apart to make room.
+        $h  -= 8;
+        $y2 += 8;
+        // One code alone is centred by the core's drawing function, given x = 0.
+        $count = count($pdf->QRCode) + ($pdf->ScoreQrPersonal ? 1 : 0);
+        $qr = [
+            'x' => (count($pdf->QRCode) > 1 || $pdf->ScoreQrPersonal) ? ($pdf->GetPageWidth() + 5 - 30 * $count) / 2 : 0,
+            'y' => ($pdf->GetPageHeight() - 25) / 2 - 0.5,
+        ];
+    }
+    return ['w' => $w, 'h' => $h, 'slots' => [[$m, $m], [$x2, $m], [$m, $y2], [$x2, $y2]], 'qr' => $qr];
+}
+
+/**
+ * The QR codes of one page: one per scoring application, then the personal one.
+ *
+ * Each code opens this target, in this session and at this distance, in the
+ * scoring application, whatever the archers' positions on the page.
+ *
+ * @param ScorePDF $pdf
+ * @param array $qr Place of the codes, from scs_geometry().
+ * @param int $session
+ * @param int $target
+ * @param int $dist
+ */
+function scs_draw_qr(ScorePDF $pdf, array $qr, $session, $target, $dist) {
+    $k = -1;
+    foreach ($pdf->QRCode as $k => $api) {
+        require_once 'Api/' . $api . '/DrawQRCode.php';
+        $draw = 'DrawQRCode_' . preg_replace('/[^a-z0-9]/i', '_', $api);
+        $draw($pdf, $qr['x'] + 30 * $k, $qr['y'], $session, $dist, $target, '', 'Q', false);
+    }
+    if ($pdf->ScoreQrPersonal) {
+        DrawScoreQrPersonal($pdf, $target, $qr['x'] + 30 * ($k + 1), $qr['y']);
+    }
 }
 
 /**
@@ -241,6 +326,7 @@ function scs_draw(ScorePDF $pdf, array $targets, array $opts, array $sessions) {
                     [$x, $y] = $g['slots'][$slot % 4];
                     $pdf->DrawScoreNew($x, $y, $g['w'], $g['h'], $dist, $card);
                 }
+                if ($g['qr']) scs_draw_qr($pdf, $g['qr'], $t['session'], $t['target'], $dist);
             }
         }
     }

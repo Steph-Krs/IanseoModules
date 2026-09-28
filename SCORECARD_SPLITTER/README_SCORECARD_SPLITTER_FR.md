@@ -18,13 +18,22 @@ L'impression des feuilles de marque de ianseo n'est pas modifiée : le module es
 - 📄 **Aucune page vide**, quel que soit le nombre d'emplacements par cible : une cible de huit
   emplacements qui porte trois archers imprime une page, pas deux. Sur une page imprimée, les
   emplacements libres restent des **grilles vierges**, qu'un club peut toujours utiliser.
+- 📱 **QR codes des applications de saisie** (Ianseo ScoreKeeper), cochés par défaut : scanné sur
+  une tablette, le code d'une page ouvre sa cible, dans son départ et à sa distance. Dessinés par
+  les fonctions du cœur, à la place que leur donne le cœur — entre les deux rangées de feuilles —
+  et sur chaque page, puisque la page d'un club ou d'un archer peut circuler seule. Le QR code
+  personnel de demande de cible est proposé aussi quand la compétition utilise des appareils
+  personnels.
 - 🙈 **Numéro de cible masqué** au besoin, pour les compétitions où l'emplacement ne dit rien à
   l'archer.
+- 🖼️ **En-tête de page sans son texte** au besoin (titre, organisateur, lieu, dates) : seules les
+  images de la compétition restent, quand l'image d'en-tête dit déjà tout.
 - 🏷️ **Le PDF d'un club** s'ouvre seul depuis la liste des clubs, pour le réimprimer ou le renvoyer
   sans reconstruire toute l'archive.
 - ⚙️ **Les options de l'impression du cœur**, sous ses propres libellés : départs, distances,
   en-tête et pied de page, en-tête et logos de la compétition, drapeaux, informations de l'archer,
-  code-barres (avec le module Barcodes).
+  code-barres (avec le module Barcodes ; décoché par défaut, ces feuilles étant saisies sur
+  tablette).
 - 📊 **Les comptes avant d'imprimer** : archers et feuilles par club et par départ, et un
   avertissement pour quiconque ne serait pas imprimé (archer sans cible, emplacement hors du plan
   du départ, emplacement donné deux fois).

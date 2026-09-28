@@ -92,12 +92,21 @@ if ($comp['field']) {
 
     $html .= '<fieldset><legend>' . scs_t('LayoutTitle') . '</legend>';
     $html .= scs_checkbox('ScorePageHeaderFooter', scs_core_t('ScorePageHeaderFooter', 'Tournament'), true);
+    $html .= '<div class="scs-sub">' . scs_checkbox('HideHeaderText', scs_t('HideHeaderText'), false) . '</div>';
     $html .= scs_checkbox('ScoreHeader', scs_core_t('ScoreTournament', 'Tournament'), false);
     $html .= scs_checkbox('ScoreLogos', scs_core_t('ScoreLogos', 'Tournament'), false);
     $html .= scs_checkbox('ScoreFlags', scs_core_t('ScoreFlags', 'Tournament'), true);
     $html .= scs_checkbox('GetArcInfo', scs_core_t('GetArcInfo', 'Tournament'), false);
+    // Unlike the core, the barcode is off and the QR codes on by default: these
+    // scorecards are handed out to be scored on a device, not read by a scanner.
     if (module_exists('Barcodes')) {
-        $html .= scs_checkbox('ScoreBarcode', scs_core_t('ScoreBarcode', 'Tournament'), true);
+        $html .= scs_checkbox('ScoreBarcode', scs_core_t('ScoreBarcode', 'Tournament'), false);
+    }
+    if (getModuleParameter('ISK-NG', 'UsePersonalDevices', '')) {
+        $html .= scs_checkbox('ScoreQrPersonal', scs_core_t('UsePersonalDevices-Print', 'Api'), true);
+    }
+    foreach (scs_qr_apis() as $api) {
+        $html .= scs_checkbox('QRCode[]', scs_core_t($api . '-QRCode', 'Api'), true, $api);
     }
     $html .= scs_checkbox('HideTarget', scs_t('HideTarget'), true);
     $html .= '<p class="scs-hint">' . scs_t('HideTargetHint') . '</p>';

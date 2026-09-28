@@ -8,7 +8,8 @@
  *
  * The option boxes behave as on the core's printout: "no distance" and the
  * numbered distances exclude each other, and the full-page header excludes the
- * competition header and images, which it replaces.
+ * competition header and images, which it replaces. Hiding the text of the
+ * header only means something with the full-page header, so it follows it.
  */
 (function () {
     'use strict';
@@ -72,6 +73,12 @@
         var form = document.getElementById('scs-form');
         if (!root || !form) return;
 
+        // The text of the full-page header can only be hidden when there is one.
+        function syncHeaderText() {
+            form.elements.HideHeaderText.disabled = !form.elements.ScorePageHeaderFooter.checked;
+        }
+        syncHeaderText();
+
         // Distances: "no distance" (value 0) and the numbered ones exclude each other.
         form.addEventListener('change', function (ev) {
             var box = ev.target;
@@ -89,6 +96,7 @@
             if ((box.name === 'ScoreHeader' || box.name === 'ScoreLogos') && box.checked) {
                 form.elements.ScorePageHeaderFooter.checked = false;
             }
+            syncHeaderText();
         });
 
         // A club's PDF, with the options as they are when the link is clicked.

@@ -16,6 +16,8 @@
 #scs legend { color: #0254a8; font-weight: bold; padding: 0 4px; }
 #scs .scs-check { display: block; margin: 3px 0; cursor: pointer; }
 #scs .scs-modes .scs-check { display: inline-block; margin-right: 24px; }
+#scs .scs-sub { margin-left: 22px; }
+#scs .scs-check:has(input:disabled) { color: #7d8183; cursor: default; }
 
 #scs .scs-run { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
 #scs .scs-btn { border: 1px solid #d2d4d6; background: #f7f7f7; color: #20263d; border-radius: 4px; padding: 6px 14px; cursor: pointer; font-size: 13px; }

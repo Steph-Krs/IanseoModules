@@ -18,6 +18,7 @@ $lang['OptionsTitle'] = 'Scorekarten';
 $lang['SessionsTitle'] = 'Durchgänge';
 $lang['SessionCards'] = '({$a} Scorekarten)';
 $lang['LayoutTitle'] = 'Layout';
+$lang['HideHeaderText'] = 'Text der Seitenkopfzeile ausblenden (Titel, Veranstalter, Ort, Daten): nur ihre Bilder, wenn das Kopfbild schon alles zeigt';
 $lang['HideTarget'] = 'Scheibennummer ausblenden';
 $lang['HideTargetHint'] = 'Für ein Turnier, in dem die Positionen nur dazu dienen, jedem Schützen seine eigenen Scorekarten zu geben, etwa bei einem in den Vereinen geschossenen Wettbewerb: Die Nummer sagt dem Schützen nichts.';
 

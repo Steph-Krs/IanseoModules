@@ -10,8 +10,11 @@
  * when the module itself is broken, since updating is how it gets repaired.
  */
 
+// Modules/ and Modules/Custom/ each hold a config.php that only relays to the
+// real one, hence the Common/ folder that tells the ianseo root apart.
 $_scs_root = dirname(__DIR__);
-while ($_scs_root !== dirname($_scs_root) && !is_file($_scs_root . '/config.php')) {
+while ($_scs_root !== dirname($_scs_root)
+       && !(is_file($_scs_root . '/config.php') && is_dir($_scs_root . '/Common'))) {
     $_scs_root = dirname($_scs_root);
 }
 define('HTDOCS', $_scs_root);

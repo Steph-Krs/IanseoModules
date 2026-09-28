@@ -17,13 +17,20 @@ ianseo's own scorecard printout is not changed: the module is a separate page.
 - 📄 **No empty page**, however many positions a target has: a target of eight positions holding
   three archers prints one page, not two. On a printed page, the free positions stay as **blank
   grids**, which a club can still use.
+- 📱 **QR codes of the scoring applications** (Ianseo ScoreKeeper), on by default: scanned on a
+  device, the code of a page opens its target, in its session and at its distance. Drawn by the
+  core's own functions, at the core's place — between the two rows of scorecards — and on every
+  page, since a club's or an archer's page may travel on its own. The personal target-request QR
+  code is offered too when the competition uses personal devices.
 - 🙈 **Target number hidden** if wanted, for competitions where positions mean nothing to the
   archer.
+- 🖼️ **Page header without its text** if wanted (title, organiser, place, dates): only the
+  competition's images remain, for a header image that already carries all of it.
 - 🏷️ **The PDF of one club** can be opened on its own from the list of clubs, to print or send it
   again without building the whole archive.
 - ⚙️ **The options of the core's printout**, under the core's own labels: sessions, distances,
   full-page header and footer, competition header and images, flags, archer information, barcode
-  (with the Barcodes module).
+  (with the Barcodes module; off by default, these scorecards being scored on a device).
 - 📊 **Counts before printing**: archers and scorecards per club and per session, and a warning
   for anyone who would not be printed (archer without a target, position outside the session's
   layout, position given twice).
