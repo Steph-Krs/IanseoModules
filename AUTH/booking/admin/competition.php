@@ -149,6 +149,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $save['ianseo_present'] = 1;
                 $save['show_ianseo'] = !empty($_POST['show_ianseo']);
             }
+            // Satisfaction survey: the checkbox only exists at level 3.
+            if (!empty($_POST['survey_present'])) {
+                $save['survey'] = !empty($_POST['survey']);
+            }
             bk_comp_save($TOUR, $save);
             safe_w_sql("UPDATE BK_Competitions SET BcPublishLevel = 3 WHERE BcTournament = $TOUR");
             $msg = 'Configuration enregistrée.';
@@ -449,6 +453,7 @@ if ($openConf):
       <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/field.php">Contraintes d'affectation du terrain →</a>
       <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/shop.php">Boutique →</a>
       <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/dues.php">Sommes dues →</a>
+      <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/survey.php">Satisfaction des archers →</a>
     </p>
   </div>
 <?php endif; ?>
@@ -583,6 +588,14 @@ if ($openConf):
     « Sur la même cible que… » (un archer de son club déjà inscrit)</label>
   <label class="bk-chk"><input type="checkbox" name="wish_free" value="1" <?= $cfg->BcWishFree ? 'checked' : '' ?>>
     Champ libre « Autre demande » (transmis à l'organisateur)</label>
+
+  <h3 class="bk-h3">Après la compétition</h3>
+  <input type="hidden" name="survey_present" value="1">
+  <label class="bk-chk"><input type="checkbox" name="survey" value="1" <?= !isset($cfg->BcSurvey) || !empty($cfg->BcSurvey) ? 'checked' : '' ?>>
+    Proposer le <b>questionnaire de satisfaction</b> aux archers classés, pendant 30 jours à partir du lendemain
+    (<a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/survey.php">voir les réponses</a>)</label>
+  <p class="bk-hint">Moins de 2 minutes, rien d'obligatoire. Vous ne voyez que des résultats anonymes et des
+     graphiques simples, comparés à la moyenne des autres compétitions du serveur.</p>
 </div>
 
 <div class="bk-sec">

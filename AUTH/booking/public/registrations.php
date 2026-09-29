@@ -55,6 +55,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 }
 
 $regs = bk_my_registrations($archer->BaLicence);
+// Open satisfaction surveys of this archer, one query for the whole page.
+require_once dirname(__DIR__) . '/lib/survey.php';
+$svOpen = bk_survey_open_for($archer->BaLicence);
 // Inscriptions que l'archer a faites POUR des camarades de son club (groupe).
 $authored = bk_authored_registrations($archer->BaId, $archer->BaLicence);
 
@@ -219,6 +222,9 @@ bk_head('Mes inscriptions');
       </div>
 
       <div class="bk-item-act">
+        <?php if (isset($svOpen[$t])): ?>
+          <p><a class="bk-btn bk-btn-primary" href="<?= bk_e(bk_public_url('survey.php?t=' . $t)) ?>"><?= intval($svOpen[$t]->Answered) ? '🗳 Modifier mon avis' : '🗳 Donner mon avis' ?></a></p>
+        <?php endif; ?>
         <?php if (!$free): ?>
           <p class="bk-due">Montant : <b><?= bk_e(number_format($due['total'], 2, ',', ' ')) ?> €</b>
             <?php if ($paid): ?><span class="bk-tag bk-tag-on">paiement validé</span>

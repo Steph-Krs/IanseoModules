@@ -24,6 +24,17 @@ if ($r = safe_fetch($q)) {
 bk_head('Mon espace');
 ?>
 <h1>Bonjour <?= bk_e($archer->BaName) ?></h1>
+<?php
+// Satisfaction surveys waiting for this archer (open, not answered yet), newest first.
+require_once dirname(__DIR__) . '/lib/survey.php';
+$svWaiting = array_filter(bk_survey_open_for($archer->BaLicence), function ($s) { return !intval($s->Answered); });
+foreach (array_slice($svWaiting, 0, 2) as $sv) {
+    echo '<div class="bk-sv-banner"><span class="bk-sv-banner-txt">🗳 <b>Votre avis sur « ' . bk_e($sv->ToName) . ' »</b>'
+       . ' — moins de 2 minutes pour aider l\'organisateur à préparer ses prochaines compétitions'
+       . ' (jusqu\'au ' . bk_e(bk_date_fr($sv->CloseOn)) . ').</span>'
+       . '<a class="bk-btn bk-btn-primary" style="width:auto" href="' . bk_e(bk_public_url('survey.php?t=' . intval($sv->ToId))) . '">Donner mon avis</a></div>';
+}
+?>
 
 <div class="bk-grid">
   <section class="bk-block">

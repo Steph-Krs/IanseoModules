@@ -526,3 +526,32 @@ body.bk-modal-open { overflow:hidden; }
 #bk .bk-doc-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
 #bk .bk-doc-scroll table { min-width:520px; }
 @media print { #bk .bk-doc-scroll { overflow:visible; } #bk .bk-doc-scroll table { min-width:0; } }
+
+/* ==== Satisfaction survey (survey.php, invitation on index.php) ==== */
+#bk .bk-sv-banner { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; margin:0 0 16px;
+  padding:12px 14px; background:#eef4fb; border:1px solid #b9d3f0; border-left:5px solid #0254a8;
+  border-radius:8px; font-size:14px; color:#123a63; }
+#bk .bk-sv-banner-txt { flex:1 1 260px; }
+#bk .bk-sv-banner .bk-btn { margin:0; white-space:nowrap; }
+#bk .bk-sv-where { margin:-6px 0 14px; }
+#bk .bk-sv-intro { margin:0 0 16px; padding:10px 12px; background:#f4f8fc; border:1px solid #d5e2f0;
+  border-radius:6px; font-size:13px; color:#33506f; }
+#bk .bk-sv-secintro { margin:-6px 0 14px; }
+#bk .bk-sv-q { border:0; margin:0 0 16px; padding:0; min-width:0; }
+#bk .bk-sv-q legend { padding:0; margin:0 0 8px; font-weight:600; font-size:14px; color:#01367c; }
+#bk .bk-sv-q legend .bk-hint { display:block; font-weight:400; margin-top:2px; }
+#bk .bk-sv-scale { display:grid; grid-template-columns:repeat(5, 44px); gap:8px; }
+#bk .bk-sv-scale label { position:relative; margin:0; }
+#bk .bk-sv-scale input { position:absolute; opacity:0; width:1px; height:1px; margin:0; }
+#bk .bk-sv-scale label span { display:flex; width:44px; height:44px; align-items:center; justify-content:center;
+  border:2px solid #c9d4df; border-radius:50%; background:#fff; color:#33506f; font-weight:700; font-size:16px;
+  cursor:pointer; user-select:none; }
+#bk .bk-sv-scale label:hover span { border-color:#0254a8; }
+#bk .bk-sv-scale input:checked + span { background:#0254a8; border-color:#0254a8; color:#fff; }
+#bk .bk-sv-scale input:focus-visible + span { outline:3px solid #9dbbe0; outline-offset:2px; }
+#bk .bk-sv-ends { display:flex; justify-content:space-between; width:252px; margin-top:4px; font-size:12px; color:#7d8183; }
+#bk .bk-sv-t { display:block; margin:6px 0 12px; }
+#bk .bk-sv-t span { display:block; margin:0 0 4px; font-size:13px; font-weight:600; color:#33506f; }
+#bk .bk-sv-t textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #c9d4df;
+  border-radius:6px; font:inherit; font-size:14px; resize:vertical; }
+#bk .bk-sv-send { margin:4px 0 20px; }

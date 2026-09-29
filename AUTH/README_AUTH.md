@@ -37,6 +37,8 @@ des espaces en ligne (le module est prêt à basculer le jour venu).
 - 🧩 Attribution automatique départ/cible selon les règles fédérales (dont cohabitation des blasons)
 - 👥 Inscription groupée d'un camarade de club ; suivi des paiements ; boutique
 - 🧾 Mandat, documents et feuilles de marque de la compétition consultables par les archers
+- 🗳️ Questionnaire de satisfaction après la compétition (moins de 2 minutes, rien d'obligatoire) ;
+  l'organisateur en voit les résultats anonymes, en graphiques simples, comparés aux autres compétitions
 
 ### Côté administrateur du serveur
 - 🌙 Maintenance nocturne automatique : mise à jour d'ianseo et des modules, synchronisations

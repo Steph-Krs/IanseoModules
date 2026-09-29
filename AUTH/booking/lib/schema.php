@@ -13,7 +13,7 @@
  * installation neuve et interrompt toute la fonction (safe_w_sql lève).
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 19);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 21);
 
 /** Suffixe de collation à coller derrière une colonne BK_ jointe à du ianseo. */
 function bk_coll()
@@ -24,6 +24,11 @@ function bk_coll()
 /** Ajoute une colonne si elle manque (MySQL < 8.0.29 n'a pas ADD COLUMN IF NOT EXISTS). */
 function bk_colonne($table, $colonne, $definition)
 {
+    // Never fatal: on a missing table the ALTER would kill the whole schema function
+    // (safe_error exits). Returning false self-heals: the body replays next session.
+    $t = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = " . StrSafe_DB($table)));
+    if (!$t || intval($t->n) === 0) return false;
     $rs = safe_r_sql("SELECT COUNT(*) AS n FROM information_schema.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE()
           AND TABLE_NAME = " . StrSafe_DB($table) . "
@@ -212,6 +217,11 @@ function bk_schema()
     bk_colonne('BK_Competitions', 'BcLng',    "DECIMAL(9,6) NULL AFTER BcLat");
     bk_colonne('BK_Competitions', 'BcGeoSrc', "VARCHAR(160) NULL AFTER BcLng");
 
+    // v20: satisfaction survey offered to the archers after the competition. On by
+    // default (existing competitions included); forced on at level 2; only a level-3
+    // organiser can switch it off. See lib/survey.php.
+    bk_colonne('BK_Competitions', 'BcSurvey', "TINYINT NOT NULL DEFAULT 1 AFTER BcShowDossard");
+
     // Une inscription = une ligne Entries de ianseo + cette ligne de traçage
     // (qui a inscrit, quand, avec quelles demandes spéciales). Entries n'a
     // aucune notion d'auteur d'inscription.
@@ -395,6 +405,46 @@ function bk_schema()
         KEY RcTourIdx (RcTournament),
         KEY RcOpenIdx (RcTournament, RcResolved)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // v20: one row per answer to the satisfaction survey. Ratings 1-5 (NULL = not
+    // answered: nothing is mandatory), three free texts. BqLicence identifies the
+    // archer only while the survey is open (no double answers, answers can be
+    // edited); it is then replaced by "#<BqId>" every night (aut_log_purge).
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BK_Surveys (
+        BqId          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        BqTournament  INT UNSIGNED NOT NULL,
+        BqLicence     VARCHAR(25)  NOT NULL,
+        BqWelcome     TINYINT NULL,
+        BqAccess      TINYINT NULL,
+        BqBar         TINYINT NULL,
+        BqBarValue    TINYINT NULL,
+        BqVenue       TINYINT NULL,
+        BqFacilities  TINYINT NULL,
+        BqOrgComment  TEXT NULL,
+        BqOrgIdeas    TEXT NULL,
+        BqDuration    TINYINT NULL,
+        BqSchedule    TINYINT NULL,
+        BqResults     TINYINT NULL,
+        BqAnimation   TINYINT NULL,
+        BqCompComment TEXT NULL,
+        BqCreated     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        BqUpdated     DATETIME NULL,
+        UNIQUE KEY BqTourLicence (BqTournament, BqLicence)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // v21: who has answered, kept APART from the answers (an electoral roll next to the
+    // ballot box). Never detached: it is what guarantees ONE answer per archer and per
+    // competition for good — even once the answers are anonymised, if the dates are
+    // changed and the window reopens, or after a re-import. Deliberately no timestamp
+    // and no auto-increment: nothing (order, time) can link a row here to an answer.
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BK_SurveyVoters (
+        BvTournament INT UNSIGNED NOT NULL,
+        BvLicence    VARCHAR(25)  NOT NULL,
+        PRIMARY KEY (BvTournament, BvLicence)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    // Answers given before this table existed (idempotent: IGNORE on the primary key).
+    safe_w_sql("INSERT IGNORE INTO BK_SurveyVoters (BvTournament, BvLicence)
+        SELECT BqTournament, BqLicence FROM BK_Surveys WHERE BqLicence NOT LIKE '#%'");
 
     $_SESSION[$flag] = true;
 }

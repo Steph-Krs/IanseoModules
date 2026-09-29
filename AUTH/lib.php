@@ -377,6 +377,12 @@ function aut_log_purge() {
     $r = safe_fetch(safe_r_sql("SELECT 1 AS x FROM information_schema.TABLES
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Log'"));
     if ($r) safe_w_sql("DELETE FROM BK_Log WHERE BlWhen < DATE_SUB(NOW(), INTERVAL $days DAY) LIMIT 20000");
+    // Satisfaction survey: the licence is only needed while the survey is open.
+    $sv = __DIR__ . '/booking/lib/survey.php';
+    if (is_file($sv)) {
+        require_once $sv;
+        if (function_exists('bk_survey_anonymise')) bk_survey_anonymise();
+    }
     // Mesure d'audience : UsageSeen suit la rétention des journaux, agrégats à 25 mois.
     require_once __DIR__ . '/stats-usage.php';
     if (function_exists('aut_stats_purge')) aut_stats_purge();

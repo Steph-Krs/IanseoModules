@@ -83,7 +83,7 @@ function bk_comp_defaults($tourId)
         'BcFee' => '0.00', 'BcPricing' => null, 'BcShopUntil' => null, 'BcExcludeStats' => 0,
         'BcPayInfo' => null, 'BcManualValidation' => 0, 'BcMandate' => null, 'BcShowMandate' => null,
         'BcIanseoUrl' => null, 'BcShowProgram' => 0, 'BcShowParticipants' => 0, 'BcShowResults' => 0,
-        'BcShowDossard' => 0,
+        'BcShowDossard' => 0, 'BcSurvey' => 1,
         'BcPublishLevel' => 1, 'BcAdvancedBackup' => null,
         'BcIsOpen' => 0, 'BcAllOpen' => 1,
     );
@@ -104,7 +104,7 @@ function bk_comp_advanced_cols()
         'BcMaxPerClubPerTarget', 'BcMinClubsPerSession', 'BcShowAssignment', 'BcShowGauges', 'BcAllowScoresheet',
         'BcWishLetter', 'BcWishWith', 'BcWishFree', 'BcPricing', 'BcManualValidation',
         'BcShowMandate', 'BcMandate', 'BcIanseoUrl', 'BcShowProgram', 'BcShowParticipants', 'BcShowResults',
-        'BcShowDossard', 'BcPayInfo', 'BcShopUntil');
+        'BcShowDossard', 'BcSurvey', 'BcPayInfo', 'BcShopUntil');
 }
 
 /**
@@ -243,7 +243,7 @@ function bk_comp_copy_from($destTour, $srcTour)
         d.BcPayInfo = s.BcPayInfo, d.BcManualValidation = s.BcManualValidation, d.BcMandate = s.BcMandate,
         d.BcShowMandate = s.BcShowMandate, d.BcShowProgram = s.BcShowProgram,
         d.BcShowParticipants = s.BcShowParticipants, d.BcShowResults = s.BcShowResults,
-        d.BcShowDossard = s.BcShowDossard
+        d.BcShowDossard = s.BcShowDossard, d.BcSurvey = s.BcSurvey
         WHERE d.BcTournament = $destTour");
 
     bk_comp_copy_shop($destTour, $srcTour);
@@ -388,6 +388,10 @@ function bk_comp_save($tourId, $in)
               . ", BcShowResults = "      . (empty($in['show_results']) ? 0 : 1)
               . ", BcShowDossard = "      . (empty($in['show_dossard']) ? 0 : 1);
     }
+    // Satisfaction survey: written only when the caller showed the checkbox (level 3).
+    if (array_key_exists('survey', $in)) {
+        $set .= ", BcSurvey = " . (empty($in['survey']) ? 0 : 1);
+    }
 
     // Tarification avancée : JSON déjà normalisé par l'appelant, ou NULL (tarif plat).
     if (array_key_exists('pricing', $in)) {
@@ -457,6 +461,7 @@ function bk_comp_apply_auto($tourId)
         . ", BcMaxPerClubPerTarget = 2, BcMinClubsPerSession = 3"
         . ", BcShowGauges = 1, BcShowAssignment = 1, BcAllowScoresheet = 1"
         . ", BcShowMandate = 1, BcShowProgram = 1, BcShowParticipants = 1, BcShowResults = 1, BcShowDossard = 1"
+        . ", BcSurvey = 1"   // survey always offered at level 2: only level 3 can switch it off
         // Lien ianseo.net proposé d'office quand la compétition y est publiée ; sinon rien
         // à montrer. Reconstruit, comme partout, depuis ToOnlineId.
         . ", BcIanseoUrl = " . (($u = bk_ianseo_url($tourId)) === '' ? 'NULL' : StrSafe_DB($u))

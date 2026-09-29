@@ -29,6 +29,10 @@ if (!empty($on) && isset($acl)) {
         $bkEntries[] = 'Mandat de compétition|'
             . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/mandate.php';
     }
+    if (subFeatureAcl($acl, AclParticipants, 'pEntries') >= AclReadOnly) {
+        $bkEntries[] = 'Satisfaction des archers|'
+            . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/survey.php';
+    }
     if (subFeatureAcl($acl, AclParticipants, 'pTarget') >= AclReadWrite) {
         $bkEntries[] = "Contraintes d'affectation du terrain|"
             . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/field.php';

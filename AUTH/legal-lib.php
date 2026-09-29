@@ -256,6 +256,11 @@ function aut_legal_gen_confid($op)
         . '<li>Inscriptions et documents : compétitions, départs, cibles, souhaits de placement, paiements déclarés, reçus.</li>'
         . '<li>Compte et connexion : jeton de session (haché), adresse IP et navigateur (journal de sécurité), horodatage '
         . 'des connexions et de l\'acceptation des CGU.</li>'
+        . '<li>Questionnaire de satisfaction (facultatif) : vos notes et commentaires sur une compétition à laquelle '
+        . 'vous avez participé. L\'organisateur ne voit que des résultats <b>anonymes</b>. Le lien entre votre licence '
+        . 'et vos réponses n\'existe que pendant l\'ouverture du questionnaire (pour que vous puissiez les modifier), '
+        . 'puis il est supprimé. Seul le fait que vous avez répondu est conservé, séparément et sans vos réponses, '
+        . 'pour garantir un seul avis par archer et par compétition.</li>'
         . '</ul>';
     $h .= '<p><b>Le mot de passe n\'est jamais conservé ni journalisé</b> : il transite uniquement le temps de vous '
         . 'authentifier auprès de la fédération. Aucun cookie de pistage ou de publicité n\'est utilisé (voir '

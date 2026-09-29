@@ -421,6 +421,8 @@ function bk_adopt($newId)
     safe_w_sql("UPDATE BK_ShopOrders     SET SoTournament = $newId WHERE SoTournament = $old");
     safe_w_sql("UPDATE BK_Payments       SET PyTournament = $newId WHERE PyTournament = $old");
     safe_w_sql("UPDATE BK_Registrations  SET BrTournament = $newId WHERE BrTournament = $old");
+    safe_w_sql("UPDATE BK_Surveys        SET BqTournament = $newId WHERE BqTournament = $old");
+    safe_w_sql("UPDATE BK_SurveyVoters   SET BvTournament = $newId WHERE BvTournament = $old");
     safe_w_sql("COMMIT");
 
     // ---- Phase B : réconcilier les inscriptions avec le nouvel import ----
