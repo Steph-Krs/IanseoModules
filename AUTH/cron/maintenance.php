@@ -145,6 +145,28 @@ if (function_exists('pcntl_signal') && function_exists('pcntl_async_signals')) {
     }
 }
 
+/**
+ * Runs a module PHP script in the BACKGROUND, detached, its output appended to the same
+ * log as this script. Used for the off-site copy of the backups, which can take far
+ * longer than the maintenance itself (17 min for 125 MB on the first server): it must
+ * neither keep the site closed nor delay the re-locking of the files by root (the cron
+ * line locks as soon as this script ends). Returns false when detaching is impossible
+ * (not Linux, output not redirected to a file — manual run in a terminal): the caller
+ * then uploads in the foreground.
+ */
+function mt_php_detached($script, $args = '') {
+    global $dryRun;
+    $bin = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
+    $cmd = escapeshellarg($bin) . ' ' . escapeshellarg($script) . ($args !== '' ? ' ' . $args : '');
+    if ($dryRun) { mt_log('  [dry-run] en arrière-plan : ' . $cmd); return true; }
+    if (DIRECTORY_SEPARATOR !== '/') return false;
+    $log = @readlink('/proc/self/fd/1');   // the file cron redirected this script's output to
+    if ($log === false || $log === '' || $log[0] !== '/' || !is_file($log) || !is_writable($log)) return false;
+    $setsid = is_executable('/usr/bin/setsid') ? '/usr/bin/setsid ' : '';
+    exec($setsid . 'nohup ' . $cmd . ' >> ' . escapeshellarg($log) . ' 2>&1 < /dev/null &');
+    return true;
+}
+
 /** Lance un script PHP du module dans un processus NEUF. $rc reçoit son code de sortie. */
 function mt_php($script, $args = '', &$rc = 0) {
     global $dryRun;
@@ -196,11 +218,11 @@ $backupOk = false;
 if ($doBackup) {
     mt_step('2/8 Sauvegarde de la base et des fichiers');
     $bkRc = 1;
-    mt_php(__DIR__ . '/backup.php', '', $bkRc);
-    $backupOk = ($bkRc === 0 || $bkRc === 2);
-    if ($bkRc === 0)      mt_log('  sauvegarde : ok');
-    elseif ($bkRc === 2)  { $echecs[] = 'sauvegarde en ligne'; mt_log('  sauvegarde locale : ok — copie en ligne : ÉCHEC'); }
-    else                  { $echecs[] = 'sauvegarde'; mt_log('  sauvegarde : ÉCHEC' . ($bkRc !== 1 ? " (code $bkRc)" : '')); }
+    // LOCAL copy only: the off-site upload waits until the site has reopened (end of script).
+    mt_php(__DIR__ . '/backup.php', '--local', $bkRc);
+    $backupOk = ($bkRc === 0);
+    if ($backupOk) mt_log('  sauvegarde locale : ok');
+    else           { $echecs[] = 'sauvegarde'; mt_log('  sauvegarde : ÉCHEC' . ($bkRc !== 1 ? " (code $bkRc)" : '')); }
 }
 if ($doCore && !$dryRun && !$backupOk && $bkCfg['required_for_core']) {
     $doCore = false;
@@ -234,7 +256,18 @@ if ($doCore) {
     // Le cœur sort par un exit(0) même en erreur : le verdict est dans le fichier d'état.
     if (!$dryRun) {
         $d = is_file($statusFile) ? @json_decode((string) @file_get_contents($statusFile)) : null;
-        if (!$d || !empty($d->error) || empty($d->finished)) {
+        // "Already up to date": ianseo.net answers "NothingToDo" and the core files it as
+        // error=1 — yet it is the NORMAL outcome of almost every night. Counting it as a
+        // failure raised a false alarm every night (seen for real on 2026-09-29).
+        // Recognised by the text of the language key, in the current language, with the
+        // English wording as a fallback.
+        $coreMsg     = trim(strip_tags((string) ($d->msg ?? '')));
+        $nothingToDo = function_exists('get_text') ? trim(strip_tags((string) get_text('NothingToDo', 'Install'))) : '';
+        $upToDate    = $d && $coreMsg !== ''
+            && (($nothingToDo !== '' && $coreMsg === $nothingToDo) || stripos($coreMsg, 'is up to date') !== false);
+        if ($upToDate) {
+            mt_log('  MàJ cœur : déjà à jour');
+        } elseif (!$d || !empty($d->error) || empty($d->finished)) {
             $echecs[] = 'cœur';
             mt_log('  MàJ cœur : ÉCHEC ou inachevée' . ($d && !empty($d->msg) ? ' — ' . strip_tags((string) $d->msg) : ''));
         } else {
@@ -316,6 +349,19 @@ if ($doCore) {
 
 mt_step('Sortie de maintenance');
 mt_maintenance_off();
+
+/* ---- Site reopened: off-site copy of the backups ---- */
+if ($doBackup && ($backupOk || $dryRun) && $bkCfg['remote'] !== '') {
+    mt_step('Copie en ligne des sauvegardes (site rouvert)');
+    if (mt_php_detached(__DIR__ . '/backup.php', '--upload')) {
+        if (!$dryRun) mt_log('  lancée en arrière-plan : son résultat s\'ajoute à la suite de ce journal (« Copie en ligne : … »).');
+    } else {
+        $upRc = 0;
+        mt_php(__DIR__ . '/backup.php', '--upload', $upRc);
+        if ($upRc === 0) mt_log('  copie en ligne : ok');
+        else { $echecs[] = 'sauvegarde en ligne'; mt_log('  copie en ligne : ÉCHEC' . ($upRc !== 2 ? " (code $upRc)" : '')); }
+    }
+}
 
 $duree = round(microtime(true) - $T0);
 if ($echecs) {

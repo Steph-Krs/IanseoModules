@@ -2337,7 +2337,7 @@ function aut_sso_sync($username, $structures, &$error) {
 /* l'autre. Les identifiants étant synchronisés, AUTH ouvre au login    */
 /* une SECONDE session, sur l'extranet, et n'en garde que le cookie.    */
 /*                                                                      */
-/* Convention publiée pour les autres modules (voir CLAUDE.md racine) : */
+/* Convention de session publiée pour les autres modules :              */
 /*   $_SESSION['FFTA_EXTRANET_COOKIE'] = chemin du cookie jar (0600)    */
 /*   $_SESSION['FFTA_EXTRANET_BASE']   = URL de base de l'extranet      */
 /* Les modules consommateurs les utilisent SI elles existent, et gardent*/

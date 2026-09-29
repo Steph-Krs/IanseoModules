@@ -16,12 +16,17 @@
  *       d'audience de première partie, opaque, non partagé entre sites, de durée
  *       ≤ 13 mois, jamais lu côté client (HttpOnly). C'est le SEUL cookie non
  *       essentiel, et il relève de l'exemption ci-dessus.
+ *  3. Le TYPE D'APPAREIL (téléphone / tablette / ordinateur) est déduit du navigateur
+ *     à chaque page et seul ce mot est conservé (AUT_UsageDevice) — jamais la chaîne
+ *     User-Agent elle-même. Il sert à adapter l'ergonomie à l'usage réel. Les robots
+ *     (moteurs de recherche, supervision…) ne sont plus comptés du tout : sans cookie,
+ *     chacun de leurs passages créait un « visiteur unique » de plus.
  *
  * Le tracking ne doit JAMAIS interrompre une page : stats-usage.php est chargé
- * depuis des chemins critiques (bootstrap organisateur, bk_require_archer). Toute
- * la partie écriture est donc enveloppée dans un try/catch(\Throwable) — une
- * table absente ou une panne DB rend la mesure muette, pas le site (cf. la règle
- * « une requête SQL en erreur tue la page » du CLAUDE.md racine).
+ * depuis des chemins critiques (bootstrap organisateur, bk_require_archer). Le seul
+ * filet réel est la liste d'erreurs tolérées passée à safe_w_sql() (aut_stats_soft) :
+ * le try/catch ne rattrape PAS safe_error(), qui sort par exit : une requête SQL en
+ * erreur tue la page.
  */
 
 if (!function_exists('safe_r_sql')) return;   // hors contexte ianseo : ne rien faire
@@ -81,6 +86,16 @@ function aut_stats_ensure_schema() {
             UzRef   VARCHAR(64) NOT NULL,
             PRIMARY KEY (UzDay, UzSpace, UzRef)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", false, $soft);
+        // Device class per day and visitor: views AND unique visitors per device, with
+        // the same pseudonymous reference (and retention) as AUT_UsageSeen.
+        safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_UsageDevice (
+            UdDay    DATE         NOT NULL,
+            UdSpace  VARCHAR(8)   NOT NULL,
+            UdDevice VARCHAR(8)   NOT NULL,
+            UdRef    VARCHAR(64)  NOT NULL,
+            UdViews  INT UNSIGNED NOT NULL DEFAULT 0,
+            PRIMARY KEY (UdDay, UdSpace, UdDevice, UdRef)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", false, $soft);
     } catch (\Throwable $e) { /* mesure non critique */ }
 }
 
@@ -95,6 +110,28 @@ function aut_stats_is_page() {
     $base = basename($s);
     if (preg_match('/(ajax|autocomplete|tourlogo|logo|barcode|qrcode)/i', $base)) return false;
     return true;
+}
+
+/**
+ * Device class of the current request: 'mobile' | 'tablet' | 'desktop' | 'bot'.
+ * Only this word is ever stored, never the User-Agent string.
+ *
+ * Order matters: robots first (not users); then tablets, because an Android tablet
+ * says "Android" without "Mobile"; then phones, using the Chromium client hint
+ * Sec-CH-UA-Mobile when present (sent by default, more reliable than the UA string).
+ * Known limit: iPadOS 13+ in its default "desktop" mode announces itself as a Mac and
+ * is counted as a computer — telling them apart needs JavaScript (touch points).
+ */
+function aut_stats_device($ua = null, $chMobile = null) {
+    $ua = (string) ($ua ?? ($_SERVER['HTTP_USER_AGENT'] ?? ''));
+    $chMobile = (string) ($chMobile ?? ($_SERVER['HTTP_SEC_CH_UA_MOBILE'] ?? ''));
+    if ($ua === '') return 'bot';
+    if (preg_match('/bot\b|crawl|spider|slurp|facebookexternalhit|bingpreview|preview|monitor|uptime|curl\/|wget|python-|go-http|java\/|libwww|httpclient|headless|lighthouse/i', $ua)) return 'bot';
+    if (preg_match('/iPad|Tablet|PlayBook|Kindle|Silk\/|Nexus (7|9|10)\b|SM-[TX]\d|Lenovo Tab|\bTab [A-Z0-9]/i', $ua)) return 'tablet';
+    if (stripos($ua, 'Android') !== false && stripos($ua, 'Mobile') === false) return 'tablet';
+    if ($chMobile === '?1') return 'mobile';
+    if (preg_match('/Mobi|iPhone|iPod|Windows Phone|BlackBerry|BB10|Opera Mini|IEMobile/i', $ua)) return 'mobile';
+    return 'desktop';
 }
 
 /** Clé de page normalisée. Pour l'espace organisateur (cœur ianseo, beaucoup de
@@ -142,6 +179,8 @@ function aut_stats_audience_id() {
 function aut_track($space, $uid = null) {
     try {
         if (!aut_stats_enabled() || !aut_stats_is_page()) return;
+        $device = aut_stats_device();
+        if ($device === 'bot') return;   // pas un utilisateur : ni vue, ni visiteur, ni cookie
         aut_stats_ensure_schema();
 
         $now  = new DateTime('now', aut_stats_tz());
@@ -158,8 +197,13 @@ function aut_track($space, $uid = null) {
             ON DUPLICATE KEY UPDATE UsViews = UsViews + 1", false, $soft);
 
         $ref = ($uid !== null && $uid !== '') ? ('u:' . $uid) : ('a:' . aut_stats_audience_id());
+        // $ref is ASCII (u:<id> or a:<32 hex>): cutting at 64 bytes is safe.
+        $refDb = StrSafe_DB(substr($ref, 0, 64));
         safe_w_sql("INSERT IGNORE INTO AUT_UsageSeen (UzDay, UzSpace, UzRef)
-            VALUES (" . StrSafe_DB($day) . ", $sp, " . StrSafe_DB(substr($ref, 0, 64)) . ")", false, $soft);
+            VALUES (" . StrSafe_DB($day) . ", $sp, $refDb)", false, $soft);
+        safe_w_sql("INSERT INTO AUT_UsageDevice (UdDay, UdSpace, UdDevice, UdRef, UdViews)
+            VALUES (" . StrSafe_DB($day) . ", $sp, " . StrSafe_DB($device) . ", $refDb, 1)
+            ON DUPLICATE KEY UPDATE UdViews = UdViews + 1", false, $soft);
     } catch (\Throwable $e) {
         // erreurs PHP seulement (date, cookie…) : les erreurs SQL, elles, sont
         // neutralisées par $soft — safe_error() ne lève rien, il sort.
@@ -184,6 +228,7 @@ function aut_stats_purge() {
     $seen = (int) aut_stats_seen_days();
     $agg  = (int) aut_stats_agg_days();
     safe_w_sql("DELETE FROM AUT_UsageSeen WHERE UzDay < DATE_SUB(CURDATE(), INTERVAL $seen DAY) LIMIT 50000", false, $soft);
+    safe_w_sql("DELETE FROM AUT_UsageDevice WHERE UdDay < DATE_SUB(CURDATE(), INTERVAL $seen DAY) LIMIT 50000", false, $soft);
     safe_w_sql("DELETE FROM AUT_Usage     WHERE UsDay < DATE_SUB(CURDATE(), INTERVAL $agg DAY)  LIMIT 50000", false, $soft);
 }
 
@@ -205,6 +250,27 @@ function aut_stats_views($space, $days) {
         WHERE UsSpace=" . StrSafe_DB($space) . " AND UsDay >= " . StrSafe_DB(aut_stats_from($days)), false, true);
     $r = $q ? safe_fetch($q) : null;
     return $r ? (int) $r->v : 0;
+}
+
+/**
+ * Device split over the window: ['since' => 'YYYY-MM-DD'|null (first measured day),
+ * 'rows' => ['mobile' => ['views' => n, 'uniques' => n], 'tablet' => …, 'desktop' => …]].
+ * A person seen on both a phone and a computer counts once in each row: the shares
+ * are shares of "visitor × device" pairs, which is what ergonomics needs.
+ */
+function aut_stats_devices($space, $days) {
+    $out = array('since' => null, 'rows' => array());
+    foreach (array('mobile', 'tablet', 'desktop') as $d) $out['rows'][$d] = array('views' => 0, 'uniques' => 0);
+    $q = safe_r_sql("SELECT UdDevice AS d, SUM(UdViews) AS v, COUNT(DISTINCT UdRef) AS u FROM AUT_UsageDevice
+        WHERE UdSpace=" . StrSafe_DB($space) . " AND UdDay >= " . StrSafe_DB(aut_stats_from($days)) . "
+        GROUP BY UdDevice", false, true);
+    while ($q && ($r = safe_fetch($q))) {
+        if (isset($out['rows'][$r->d])) $out['rows'][$r->d] = array('views' => (int) $r->v, 'uniques' => (int) $r->u);
+    }
+    $q = safe_r_sql("SELECT MIN(UdDay) AS m FROM AUT_UsageDevice", false, true);
+    $r = $q ? safe_fetch($q) : null;
+    if ($r && $r->m) $out['since'] = $r->m;
+    return $out;
 }
 
 /** Visiteurs uniques (distincts) sur la fenêtre. */

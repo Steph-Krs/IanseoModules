@@ -54,8 +54,8 @@ function bk_local_config()
 /* ------------------------------------------------------------------ */
 /* Session espace licencié conservée (attestation de licence)           */
 /*                                                                      */
-/* Même principe que AUTH pour extranet/dirigeant (convention FFTA_* du  */
-/* CLAUDE.md racine) : on garde le COOKIE de session monespace ouvert au  */
+/* Même principe que AUTH pour extranet/dirigeant (convention de session */
+/* FFTA_* entre modules) : on garde le COOKIE de session monespace ouvert au */
 /* login (jamais le mot de passe) dans un fichier 0600 dérivé du jeton    */
 /* BK, détruit au logout. Il sert à relayer côté serveur le PDF de        */
 /* l'attestation sans redemander les identifiants ; s'il a expiré, on     */

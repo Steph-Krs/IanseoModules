@@ -281,15 +281,74 @@ function aut_backup_remote_test($remote, &$out)
 }
 
 /**
- * Full run. $say is called with each log line. Returns
- *   ['local_ok' => bool, 'remote' => 'off'|'ok'|'fail', 'files' => [paths]].
+ * Uploads the given local backup files to the rclone destination, then prunes the
+ * remote. Returns 'off' (no destination configured), 'ok' or 'fail'.
+ */
+function aut_backup_upload($c, $files, $say)
+{
+    if ($c['remote'] === '') return 'off';
+    if (!aut_backup_remote_valid($c['remote'])) {
+        $say('ÉCHEC copie en ligne : destination invalide « ' . $c['remote'] . ' ».');
+        return 'fail';
+    }
+    $dest = escapeshellarg($c['remote']);
+    $ok = true;
+    foreach ($files as $f) {
+        $out = array();
+        $rc = aut_backup_rclone('copy --retries 3 --contimeout 30s ' . escapeshellarg($f) . ' ' . $dest, $out);
+        foreach ($out as $l) $say('  | ' . $l);
+        if ($rc !== 0) { $ok = false; $say('ÉCHEC copie en ligne de ' . basename($f) . " (rclone, code $rc)"); }
+    }
+    if (!$ok) return 'fail';
+    $say('Copie en ligne : ok → ' . $c['remote']);
+    // Prune only after tonight's copy succeeded: the remote is never left empty.
+    $out = array();
+    aut_backup_rclone('delete ' . $dest . ' --min-age ' . $c['remote_keep_days'] . 'd'
+        . ' --include ' . escapeshellarg('ianseo-db-*.sql.gz')
+        . ' --include ' . escapeshellarg('ianseo-files-*.tar.gz'), $out);
+    foreach ($out as $l) $say('  | ' . $l);
+    $say('Rotation en ligne (' . $c['remote_keep_days'] . ' j) : faite.');
+    return 'ok';
+}
+
+/** Newest local backup set (one db dump, plus the files archive of the same run). */
+function aut_backup_latest_set($dir)
+{
+    $set = array(); $stamp = null;
+    foreach (aut_backup_list($dir) as $b) {
+        $s = date('YmdHis', $b['time']);
+        if ($stamp === null) $stamp = $s;
+        if ($s !== $stamp) break;
+        $set[] = $b['file'];
+    }
+    return $set;
+}
+
+/**
+ * Backup run. $say is called with each log line. $mode:
+ *   'all'    — local backup, then off-site copy (manual run);
+ *   'local'  — local backup only (inside the maintenance window, site closed);
+ *   'upload' — off-site copy of the newest local set only (after the site reopened:
+ *              a slow uplink took 17 min for 125 MB on the first real server, and the
+ *              site does not need to stay closed for that).
+ * Returns ['local_ok' => bool, 'remote' => 'off'|'ok'|'fail'|'skip', 'files' => [paths]].
  * 'local_ok' is what the core update depends on.
  */
-function aut_backup_run($say)
+function aut_backup_run($say, $mode = 'all')
 {
     $c = aut_backup_config();
-    $res = array('local_ok' => false, 'remote' => 'off', 'files' => array());
+    $res = array('local_ok' => false, 'remote' => 'skip', 'files' => array());
     if (!$c['enabled']) { $say('Sauvegarde désactivée (config.local.json → backup.enabled).'); return $res; }
+
+    if ($mode === 'upload') {
+        $res['files'] = aut_backup_latest_set($c['dir']);
+        $res['local_ok'] = (bool) $res['files'];
+        if (!$res['files']) { $say('Copie en ligne : aucune sauvegarde locale à envoyer.'); return $res; }
+        if ($c['remote'] === '') { $res['remote'] = 'off'; return $res; }
+        $say('Copie en ligne de ' . implode(', ', array_map('basename', $res['files'])) . '…');
+        $res['remote'] = aut_backup_upload($c, $res['files'], $say);
+        return $res;
+    }
 
     $fix = '';
     if ($p = aut_backup_dir_problem($c['dir'], $fix)) {
@@ -329,31 +388,6 @@ function aut_backup_run($say)
     $gone = aut_backup_rotate($c['dir'], $c['keep_days']);
     $say('Rotation locale (' . $c['keep_days'] . ' j) : ' . ($gone ? count($gone) . ' ancienne(s) copie(s) supprimée(s)' : 'rien à supprimer'));
 
-    if ($c['remote'] !== '') {
-        if (!aut_backup_remote_valid($c['remote'])) {
-            $say('ÉCHEC copie en ligne : destination invalide « ' . $c['remote'] . ' ».');
-            $res['remote'] = 'fail';
-            return $res;
-        }
-        $dest = escapeshellarg($c['remote']);
-        $ok = true;
-        foreach ($res['files'] as $f) {
-            $out = array();
-            $rc = aut_backup_rclone('copy --retries 3 --contimeout 30s ' . escapeshellarg($f) . ' ' . $dest, $out);
-            foreach ($out as $l) $say('  | ' . $l);
-            if ($rc !== 0) { $ok = false; $say('ÉCHEC copie en ligne de ' . basename($f) . " (rclone, code $rc)"); }
-        }
-        if ($ok) {
-            $say('Copie en ligne : ok → ' . $c['remote']);
-            // Prune only after tonight's copy succeeded: the remote is never left empty.
-            $out = array();
-            aut_backup_rclone('delete ' . $dest . ' --min-age ' . $c['remote_keep_days'] . 'd'
-                . ' --include ' . escapeshellarg('ianseo-db-*.sql.gz')
-                . ' --include ' . escapeshellarg('ianseo-files-*.tar.gz'), $out);
-            foreach ($out as $l) $say('  | ' . $l);
-            $say('Rotation en ligne (' . $c['remote_keep_days'] . ' j) : faite.');
-        }
-        $res['remote'] = $ok ? 'ok' : 'fail';
-    }
+    if ($mode === 'all') $res['remote'] = aut_backup_upload($c, $res['files'], $say);
     return $res;
 }

@@ -42,6 +42,7 @@ foreach (array('org', 'archer') as $sp) {
         'daily'   => aut_stats_daily($sp, $days),
         'hourly'  => aut_stats_hourly($sp, $days),
         'top'     => aut_stats_top_pages($sp, $days, 8),
+        'devices' => aut_stats_devices($sp, $days),
     );
 }
 $orgBiz = aut_stats_org_business($days);
@@ -84,6 +85,31 @@ function st_hbars($items) {
     echo '</div>';
 }
 
+/** Split by device: one bar per device class, share of visitors (views in the detail). */
+function st_devices($dev) {
+    $labels = array('mobile' => 'Téléphone', 'tablet' => 'Tablette', 'desktop' => 'Ordinateur');
+    $totU = 0; $totV = 0;
+    foreach ($dev['rows'] as $r) { $totU += $r['uniques']; $totV += $r['views']; }
+    echo '<h3 class="st-h3">Appareils utilisés';
+    if ($dev['since']) {
+        echo ' <span class="st-note">(mesuré depuis le ' . st_h(substr($dev['since'], 8, 2) . '/' . substr($dev['since'], 5, 2)
+            . '/' . substr($dev['since'], 0, 4)) . ' ; iPad récents comptés comme ordinateurs)</span>';
+    }
+    echo '</h3>';
+    if ($totU === 0) { echo '<p class="st-empty">Aucune donnée sur la période.</p>'; return; }
+    echo '<div class="st-hb">';
+    foreach ($labels as $k => $lab) {
+        $r = $dev['rows'][$k];
+        $pc = round(100 * $r['uniques'] / $totU);
+        $pv = $totV ? round(100 * $r['views'] / $totV) : 0;
+        echo '<div class="st-row"><span class="st-rl">' . st_h($lab) . '</span>'
+           . '<span class="st-track"><span class="st-fill" style="width:' . $pc . '%"></span></span>'
+           . '<span class="st-rv" style="min-width:210px" title="' . st_h($r['views'] . ' pages vues') . '">'
+           . $pc . ' % des visiteurs · ' . $pv . ' % des vues</span></div>';
+    }
+    echo '</div>';
+}
+
 /** Prépare les items d'une série quotidienne. */
 function st_daily_items($daily) {
     $out = array(); $i = 0;
@@ -114,6 +140,7 @@ function st_render_traffic($d, $days) {
         <?php st_kpi($d['views'],   'Pages vues',       "sur $days j"); ?>
         <?php st_kpi($d['uniques'], 'Visiteurs uniques', "sur $days j"); ?>
     </div>
+    <?php st_devices($d['devices']); ?>
     <h3 class="st-h3">Fréquentation — pages vues par jour</h3>
     <?php st_vbars(st_daily_items($d['daily'])); ?>
     <h3 class="st-h3">Charge — pages vues par heure <span class="st-note">(cumul de la période : repérer les pics)</span></h3>

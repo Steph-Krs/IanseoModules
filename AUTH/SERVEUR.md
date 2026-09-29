@@ -566,6 +566,15 @@ sudo -u www-data rclone lsf gdrive-chiffre:ianseo     # aucune erreur = accès o
 **Tester la destination en ligne**. Un échec de la copie en ligne ne bloque pas la mise à jour
 (la copie locale suffit pour revenir en arrière).
 
+**L'envoi part après la réouverture du site**, en arrière-plan : seul le dump a besoin du site
+fermé. Sur le premier serveur, 125 Mo ont mis 17 min à partir (liaison montante lente) — en
+restant dans la fenêtre, le site serait resté fermé 22 min au lieu de 5, et les fichiers du cœur
+déverrouillés d'autant. Le résultat s'ajoute à la fin du journal de la nuit
+(`Copie en ligne : ok → …`), après la ligne `Terminé en … s`. Lancé à la main dans un terminal,
+l'envoi se fait sur place.
+
+Taille à prévoir en ligne : ≈ (taille d'une nuit) × `remote_keep_days` — ici 125 Mo × 30 ≈ 3,7 Go.
+
 ### Restaurer
 
 ```bash

@@ -8,8 +8,8 @@
  *      C'est le repli qui rend la fonctionnalité utilisable sans aucun module
  *      de comptes.
  *   2. La session ianseo, SI un module de comptes en a posé une : lecture seule
- *      de $_SESSION['AUTH_ROLE'] / ['AUTH_SCOPE'] (convention documentée dans le
- *      CLAUDE.md racine). Aucune fonction d'AUTH n'est appelée.
+ *      de $_SESSION['AUTH_ROLE'] / ['AUTH_SCOPE'] (convention de session commune aux
+ *      modules). Aucune fonction d'AUTH n'est appelée.
  */
 
 if (defined('BK_CLUB_LOADED')) return;
