@@ -20,6 +20,9 @@
  *   (bk_survey_anonymise); the roll alone cannot be linked back to an answer.
  */
 
+// Loaded on its own by the nightly purge (aut_log_purge): bring the clock along.
+require_once __DIR__ . '/clock.php';
+
 if (!defined('BK_SURVEY_DAYS')) define('BK_SURVEY_DAYS', 30);
 if (!defined('BK_SURVEY_TEXT_MAX')) define('BK_SURVEY_TEXT_MAX', 2000);
 
@@ -75,10 +78,14 @@ function bk_survey_cols()
     return array('ratings' => $r, 'texts' => $t);
 }
 
-/** SQL condition: the survey of Tournament row is open today (dates computed by MySQL). */
+/**
+ * SQL condition: the survey of the Tournament row is open today — "today" being the local
+ * date OF THAT COMPETITION (lib/clock.php), identical on organiser and archer pages.
+ */
 function bk_survey_open_sql()
 {
-    return "CURDATE() > ToWhenTo AND CURDATE() <= DATE_ADD(ToWhenTo, INTERVAL " . intval(BK_SURVEY_DAYS) . " DAY)";
+    $today = bk_local_today_sql('ToTimeZone');
+    return "$today > ToWhenTo AND $today <= DATE_ADD(ToWhenTo, INTERVAL " . intval(BK_SURVEY_DAYS) . " DAY)";
 }
 
 /** SQL condition: the licence has a qualification score in the Tournament row. */
@@ -122,12 +129,15 @@ function bk_survey_access($tourId, $licence)
     $tourId = intval($tourId);
     $licence = bk_clean_licence($licence);
     $res = array('ok' => false, 'reason' => 'unknown', 'comp' => null, 'answer' => null);
+    $today = bk_local_today_sql('ToTimeZone');
+    // OpenOn = first open day, CloseOn = LAST open day, ClosedOn = first closed day.
     $comp = safe_fetch(safe_r_sql("SELECT ToId, ToName, ToWhere, ToWhenFrom, ToWhenTo,
             DATE_ADD(ToWhenTo, INTERVAL 1 DAY) AS OpenOn,
             DATE_ADD(ToWhenTo, INTERVAL " . intval(BK_SURVEY_DAYS) . " DAY) AS CloseOn,
+            DATE_ADD(ToWhenTo, INTERVAL " . (intval(BK_SURVEY_DAYS) + 1) . " DAY) AS ClosedOn,
             COALESCE(BcPublishLevel, 1) AS Level, COALESCE(BcSurvey, 1) AS SurveyOn,
-            (CURDATE() > ToWhenTo) AS Started,
-            (CURDATE() > DATE_ADD(ToWhenTo, INTERVAL " . intval(BK_SURVEY_DAYS) . " DAY)) AS Ended,
+            ($today > ToWhenTo) AS Started,
+            ($today > DATE_ADD(ToWhenTo, INTERVAL " . intval(BK_SURVEY_DAYS) . " DAY)) AS Ended,
             " . bk_survey_participant_sql($licence) . " AS Participant
         FROM Tournament LEFT JOIN BK_Competitions ON BcTournament = ToId
         WHERE ToId = $tourId"));
@@ -268,5 +278,5 @@ function bk_survey_anonymise()
     safe_w_sql("UPDATE BK_Surveys LEFT JOIN Tournament ON ToId = BqTournament
         SET BqLicence = CONCAT('#', BqId)
         WHERE BqLicence NOT LIKE '#%'
-          AND (ToId IS NULL OR CURDATE() > DATE_ADD(ToWhenTo, INTERVAL " . intval(BK_SURVEY_DAYS) . " DAY))");
+          AND (ToId IS NULL OR " . bk_local_today_sql('ToTimeZone') . " > DATE_ADD(ToWhenTo, INTERVAL " . intval(BK_SURVEY_DAYS) . " DAY))");
 }

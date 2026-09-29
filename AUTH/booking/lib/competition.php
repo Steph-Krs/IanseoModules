@@ -6,9 +6,10 @@
  * (Session, DistanceInformation, TargetFaces, TournamentDistances) et lue telle
  * quelle. BK_Competitions ne porte que ce qui relève des inscriptions en ligne.
  *
- * ⚠️ Dates : toutes les comparaisons se font côté SQL (NOW()), jamais avec
- * time() PHP. ianseo force PHP en UTC (config.php) et change le time_zone MySQL
- * par compétition : MySQL est la seule horloge commune aux deux faces.
+ * ⚠️ Dates: NOW()/CURDATE() are NOT a clock shared by both faces — the MySQL
+ * connection is in UTC on the archer pages and in the competition's zone on the
+ * organiser pages (real bug, 2026-09-30). Any time typed by the organiser is compared
+ * with the competition's LOCAL time: see lib/clock.php.
  */
 
 if (defined('BK_COMP_LOADED')) return;
@@ -63,11 +64,14 @@ function bk_scope_error($kind, $code)
  */
 function bk_comp_calc_sql($a = 'o')
 {
+    // The organiser typed these times in the competition's local time: compare them with
+    // the competition's local "now", identical whatever the page (lib/clock.php).
+    $now = bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $a.BcTournament)");
     return "($a.BcOpen = 1
-              AND ($a.BcOpenFrom IS NULL OR $a.BcOpenFrom <= NOW())
-              AND ($a.BcOpenTo   IS NULL OR $a.BcOpenTo   >= NOW())) AS BcIsOpen,
+              AND ($a.BcOpenFrom IS NULL OR $a.BcOpenFrom <= $now)
+              AND ($a.BcOpenTo   IS NULL OR $a.BcOpenTo   >= $now)) AS BcIsOpen,
             ($a.BcRestrictKind = ''
-              OR ($a.BcRestrictTo IS NOT NULL AND $a.BcRestrictTo <= NOW())) AS BcAllOpen";
+              OR ($a.BcRestrictTo IS NOT NULL AND $a.BcRestrictTo <= $now)) AS BcAllOpen";
 }
 
 /** Valeurs par défaut d'une compétition jamais configurée. */
@@ -319,15 +323,15 @@ function bk_comp_copy_caps($destTour, $srcTour)
 }
 
 /**
- * Une compétition est-elle terminée ? (date de fin < aujourd'hui). Comparaison de
- * chaînes AAAA-MM-JJ, robuste au fuseau — même approche que le calendrier/les stats.
- * Une compétition finie n'est plus inscriptible, même si la fenêtre d'inscription
- * a été laissée ouverte au-delà (erreur/manipulation de l'organisateur).
+ * Is the competition over? (last day < today). YYYY-MM-DD string comparison, "today"
+ * taken in the server's zone (bk_today) — date('Y-m-d') alone gave the UTC date, two
+ * hours late every night. A finished competition cannot be registered for, even if its
+ * registration window was left open beyond it (organiser's mistake).
  */
 function bk_is_finished($toWhenTo)
 {
     $d = substr((string) $toWhenTo, 0, 10);
-    return $d !== '' && strpos($d, '0000') !== 0 && $d < date('Y-m-d');
+    return $d !== '' && strpos($d, '0000') !== 0 && $d < bk_today();
 }
 
 /** Idem à partir d'un identifiant de compétition (lit ToWhenTo). */
@@ -448,10 +452,13 @@ function bk_comp_restore($tourId, $snap)
 function bk_comp_apply_auto($tourId)
 {
     $tourId = intval($tourId);
-    $t = safe_fetch(safe_r_sql("SELECT ToWhenTo FROM Tournament WHERE ToId = $tourId"));
+    $t = safe_fetch(safe_r_sql("SELECT ToWhenTo, DATE_FORMAT(" . bk_local_now_sql()
+        . ", '%Y-%m-%d %H:%i:%s') AS LocalNow FROM Tournament WHERE ToId = $tourId"));
     $end = ($t && substr((string) $t->ToWhenTo, 0, 4) > '0000')
         ? substr((string) $t->ToWhenTo, 0, 10) . ' 23:59:59' : '';
-    $now = date('Y-m-d H:i:s');
+    // "Open from now", in the competition's local time like every other window time.
+    $now = ($t && $t->LocalNow) ? (string) $t->LocalNow
+        : (new DateTime('now', bk_server_tz()))->format('Y-m-d H:i:s');
 
     $set = "BcOpen = 1"
         . ", BcOpenFrom = " . StrSafe_DB($now)

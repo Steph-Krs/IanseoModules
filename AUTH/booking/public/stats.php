@@ -32,7 +32,7 @@ $rs = safe_r_sql("SELECT t.ToId, t.ToName, t.ToWhere, t.ToWhenFrom, t.ToWhenTo,
 $rows = array();
 $comps = array();          // ToId distincts
 $best = null;
-$today = date('Y-m-d');    // comparaison de chaînes AAAA-MM-JJ (sûr vis-à-vis du fuseau)
+$today = bk_today();    // YYYY-MM-DD string comparison, server-zone date (date() alone is UTC)
 while ($r = safe_fetch($rs)) {
     // Les statistiques ne concernent que des compétitions EN COURS ou PASSÉES :
     // on écarte celles pas encore déroulées (date de début postérieure à aujourd'hui).

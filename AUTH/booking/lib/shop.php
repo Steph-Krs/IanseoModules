@@ -23,8 +23,11 @@ function bk_shop_open($cfg)
 {
     $until = trim((string) ($cfg->BcShopUntil ?? ''));
     if ($until === '' || strpos($until, '0000') === 0) return !empty($cfg->BcIsOpen);
-    // Comparaison en temps SQL (le fuseau MySQL peut différer de PHP selon la compétition).
-    $rs = safe_r_sql("SELECT (" . StrSafe_DB($until) . " >= NOW()) AS o");
+    // Deadline typed in the competition's local time: compare with its local "now"
+    // (lib/clock.php) — NOW() alone is UTC on the archer pages.
+    $tour = intval($cfg->BcTournament ?? 0);
+    $rs = safe_r_sql("SELECT (" . StrSafe_DB($until) . " >= "
+        . bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tour)") . ") AS o");
     $r = safe_fetch($rs);
     return $r ? (bool) $r->o : false;
 }

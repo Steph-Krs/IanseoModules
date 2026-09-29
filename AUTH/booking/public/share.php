@@ -28,10 +28,11 @@ $tour = $data['tour'];
 $m    = bk_mandate_get($data['cfg']);
 $pal  = bk_mandate_palette($m['color']);
 
-// J-X calculé côté SQL (jamais time() PHP : ianseo force UTC et change le
-// time_zone MySQL par compétition — DATEDIFF sur des dates est robuste).
-$dd = safe_fetch(safe_r_sql("SELECT DATEDIFF(ToWhenFrom, CURDATE()) AS d,
-    DATEDIFF(ToWhenTo, CURDATE()) AS dEnd FROM Tournament WHERE ToId = $t"));
+// Countdown against the competition's local date (lib/clock.php): CURDATE() is UTC on
+// these pages, which gave a wrong "J-X" for two hours every night.
+$lt = bk_local_today_sql('ToTimeZone');
+$dd = safe_fetch(safe_r_sql("SELECT DATEDIFF(ToWhenFrom, $lt) AS d,
+    DATEDIFF(ToWhenTo, $lt) AS dEnd FROM Tournament WHERE ToId = $t"));
 $daysTo  = $dd ? intval($dd->d) : 0;
 $daysEnd = $dd ? intval($dd->dEnd) : 0;
 

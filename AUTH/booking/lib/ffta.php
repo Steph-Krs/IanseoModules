@@ -26,6 +26,8 @@
 if (defined('BK_FFTA_LOADED')) return;
 define('BK_FFTA_LOADED', true);
 
+require_once __DIR__ . '/clock.php';
+
 /** Base par défaut, surchargeable par config.local.json → "sso": {"base": "..."} */
 function bk_ffta_base()
 {
@@ -65,8 +67,10 @@ function bk_local_config()
 /** Saison FFTA (1er sept → 31 août, désignée par l'année de fin). En août → année courante. */
 function bk_ffta_season()
 {
-    $y = (int) date('Y');
-    return ((int) date('n') >= 9) ? $y + 1 : $y;
+    // Server-zone date: in UTC the season would only roll over at 02:00 on 1 September.
+    $d = new DateTime('now', bk_server_tz());
+    $y = (int) $d->format('Y');
+    return ((int) $d->format('n') >= 9) ? $y + 1 : $y;
 }
 
 /** Chemin du cookie jar monespace, dérivé du jeton de session BK (0600). Vide si pas de session. */

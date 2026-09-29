@@ -117,7 +117,7 @@ function bk_is_major($dob)
     $dob = trim((string) $dob);
     if ($dob === '' || $dob === '0000-00-00') return false;
     $r = safe_fetch(safe_r_sql("SELECT (" . StrSafe_DB($dob)
-        . " <= DATE_SUB(CURDATE(), INTERVAL 18 YEAR)) AS major"));
+        . " <= DATE_SUB(" . StrSafe_DB(bk_today()) . ", INTERVAL 18 YEAR)) AS major"));
     return $r ? (bool) intval($r->major) : false;
 }
 

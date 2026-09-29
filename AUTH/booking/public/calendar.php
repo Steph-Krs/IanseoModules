@@ -56,8 +56,8 @@ $deja = array();
 foreach (bk_my_registrations($archer->BaLicence) as $r) $deja[intval($r->BrTournament)] = true;
 
 // Mois affiché : mois courant, ou le mois de la 1re compétition à venir
-$today = date('Y-m-d');
-$ym = date('Y-m');
+$today = bk_today();   // server-zone date (date() alone is UTC on these pages)
+$ym = (new DateTime($today))->format('Y-m');
 if (isset($_GET['month']) && preg_match('/^\d{4}-\d{2}$/', (string) $_GET['month'])) {
     $ym = $_GET['month'];
 } else {

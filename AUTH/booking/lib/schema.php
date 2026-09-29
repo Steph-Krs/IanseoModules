@@ -15,6 +15,9 @@
 
 if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 21);
 
+// Every library of the module loads this file: the right "now" comes with it.
+require_once __DIR__ . '/clock.php';
+
 /** Suffixe de collation à coller derrière une colonne BK_ jointe à du ianseo. */
 function bk_coll()
 {

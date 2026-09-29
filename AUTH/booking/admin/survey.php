@@ -56,7 +56,8 @@ if ($comp) {
         $st = 'Questionnaire <b>ouvert</b> jusqu\'au <b>' . bk_e(bk_date_fr($comp->CloseOn)) . '</b> : chaque archer classé '
             . 'le trouve dans son espace licencié.';
     } else {
-        $st = 'Questionnaire <b>clos</b> depuis le ' . bk_e(bk_date_fr($comp->CloseOn)) . '.';
+        $st = 'Questionnaire <b>clos</b> depuis le ' . bk_e(bk_date_fr($comp->ClosedOn)) . ' (dernier jour : '
+            . bk_e(bk_date_fr($comp->CloseOn)) . ').';
     }
     $h .= '<div class="sv-status">' . $st . '</div>';
 }

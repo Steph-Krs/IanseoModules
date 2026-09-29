@@ -14,7 +14,7 @@ $archer = bk_require_archer();
 
 $facets = bk_comp_facets();
 $labels = bk_disc_labels();
-$today  = date('Y-m-d');
+$today  = bk_today();   // server-zone date (date() alone is UTC on these pages)
 
 // Filtres (URL). Défaut dates : aujourd'hui → J+14. (Pas de filtre région : la carte le montre.)
 $disc = (string) ($_GET['disc'] ?? '');

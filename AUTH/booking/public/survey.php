@@ -54,7 +54,7 @@ if (!$acc['ok']) {
     $why = array(
         'off'             => 'L\'organisateur ne propose pas de questionnaire pour cette compétition.',
         'not_yet'         => 'Le questionnaire ouvrira le ' . bk_date_fr($comp->OpenOn) . ', au lendemain de la compétition.',
-        'closed'          => 'Le questionnaire est clos depuis le ' . bk_date_fr($comp->CloseOn) . '. Merci !',
+        'closed'          => 'Le questionnaire est clos depuis le ' . bk_date_fr($comp->ClosedOn) . '. Merci !',
         'not_participant' => 'Ce questionnaire est réservé aux archers classés dans cette compétition.',
         'already'         => 'Vous avez déjà donné votre avis sur cette compétition : un seul avis par archer. Merci !',
     );
