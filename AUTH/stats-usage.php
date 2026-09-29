@@ -17,8 +17,9 @@
  *       ≤ 13 mois, jamais lu côté client (HttpOnly). C'est le SEUL cookie non
  *       essentiel, et il relève de l'exemption ci-dessus.
  *  3. Le TYPE D'APPAREIL (téléphone / tablette / ordinateur) est déduit du navigateur
- *     à chaque page et seul ce mot est conservé (AUT_UsageDevice) — jamais la chaîne
- *     User-Agent elle-même. Il sert à adapter l'ergonomie à l'usage réel. Les robots
+ *     à chaque page et seul ce mot est conservé, dans la clé des deux tables — jamais
+ *     la chaîne User-Agent elle-même. Il sert à adapter l'ergonomie à l'usage réel, et
+ *     chaque chiffre de la page de statistiques peut être filtré par appareil. Les robots
  *     (moteurs de recherche, supervision…) ne sont plus comptés du tout : sans cookie,
  *     chacun de leurs passages créait un « visiteur unique » de plus.
  *
@@ -63,40 +64,81 @@ function aut_stats_agg_days()   { return 760; }   // ~25 mois
  * d'erreur ACCEPTÉS. 0 = pas d'erreur, 1146 = table absente, 1142/1044 = droits
  * insuffisants. Une mesure d'audience ne doit jamais faire tomber une page.
  */
-function aut_stats_soft() { return array(0, 1044, 1142, 1146); }
+function aut_stats_soft() { return array(0, 1044, 1054, 1142, 1146); }   // 1054 = column not migrated yet
 
-/** Crée les tables de mesure (idempotent, statique). Sûr en tout contexte. */
+/** Device classes that are stored and can be filtered on ('' = measured before v1.1.8). */
+function aut_stats_devices_list() { return array('mobile', 'tablet', 'desktop'); }
+
+/** Validated device filter: one of aut_stats_devices_list(), or '' for all devices. */
+function aut_stats_dev($device) {
+    $device = (string) $device;
+    return in_array($device, aut_stats_devices_list(), true) ? $device : '';
+}
+
+/** SQL fragment restricting a query to one device ('' = no restriction). */
+function aut_stats_dev_sql($col, $device) {
+    $d = aut_stats_dev($device);
+    return $d === '' ? '' : " AND $col = " . StrSafe_DB($d);
+}
+
+function aut_stats_has_column($table, $column) {
+    $q = safe_r_sql("SELECT COUNT(*) AS n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = " . StrSafe_DB($table) . " AND COLUMN_NAME = " . StrSafe_DB($column), false, true);
+    $r = $q ? safe_fetch($q) : null;
+    return $r && (int) $r->n > 0;
+}
+
+/**
+ * Creates the measurement tables and migrates them (idempotent). Safe in any context.
+ *
+ * The device class is PART OF THE KEY of both tables, so that every figure of the
+ * statistics page (views, visitors, days, hours, top pages) can be filtered by device.
+ * Rows recorded before v1.1.8 keep an empty device: they count in "all devices" only.
+ * Runs once per session (flag with a version, replayed after an update): this is
+ * called on every tracked page, and the checks cost a few metadata queries.
+ */
 function aut_stats_ensure_schema() {
     static $done = false;
     if ($done) return;
     $done = true;
+    $flag = '_aut_stats_schema_v2';
+    if (!empty($_SESSION[$flag])) return;
     $soft = aut_stats_soft();
+    // Two first requests may migrate at the same time: the loser gets "duplicate column"
+    // (1060), "multiple primary key" (1068) or "can't drop" (1091) — all harmless.
+    $mig = array_merge($soft, array(1060, 1068, 1091));
     try {
         safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_Usage (
-            UsDay   DATE            NOT NULL,
-            UsHour  TINYINT UNSIGNED NOT NULL,
-            UsSpace VARCHAR(8)      NOT NULL,
-            UsPage  VARCHAR(48)     NOT NULL,
-            UsViews INT UNSIGNED    NOT NULL DEFAULT 0,
-            PRIMARY KEY (UsDay, UsHour, UsSpace, UsPage)
+            UsDay    DATE             NOT NULL,
+            UsHour   TINYINT UNSIGNED NOT NULL,
+            UsSpace  VARCHAR(8)       NOT NULL,
+            UsPage   VARCHAR(48)      NOT NULL,
+            UsDevice VARCHAR(8)       NOT NULL DEFAULT '',
+            UsViews  INT UNSIGNED     NOT NULL DEFAULT 0,
+            PRIMARY KEY (UsDay, UsHour, UsSpace, UsPage, UsDevice)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", false, $soft);
         safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_UsageSeen (
-            UzDay   DATE        NOT NULL,
-            UzSpace VARCHAR(8)  NOT NULL,
-            UzRef   VARCHAR(64) NOT NULL,
-            PRIMARY KEY (UzDay, UzSpace, UzRef)
+            UzDay    DATE        NOT NULL,
+            UzSpace  VARCHAR(8)  NOT NULL,
+            UzRef    VARCHAR(64) NOT NULL,
+            UzDevice VARCHAR(8)  NOT NULL DEFAULT '',
+            PRIMARY KEY (UzDay, UzSpace, UzRef, UzDevice)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", false, $soft);
-        // Device class per day and visitor: views AND unique visitors per device, with
-        // the same pseudonymous reference (and retention) as AUT_UsageSeen.
-        safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_UsageDevice (
-            UdDay    DATE         NOT NULL,
-            UdSpace  VARCHAR(8)   NOT NULL,
-            UdDevice VARCHAR(8)   NOT NULL,
-            UdRef    VARCHAR(64)  NOT NULL,
-            UdViews  INT UNSIGNED NOT NULL DEFAULT 0,
-            PRIMARY KEY (UdDay, UdSpace, UdDevice, UdRef)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci", false, $soft);
-    } catch (\Throwable $e) { /* mesure non critique */ }
+        if (!aut_stats_has_column('AUT_Usage', 'UsDevice')) {
+            safe_w_sql("ALTER TABLE AUT_Usage ADD COLUMN UsDevice VARCHAR(8) NOT NULL DEFAULT '' AFTER UsPage,
+                DROP PRIMARY KEY, ADD PRIMARY KEY (UsDay, UsHour, UsSpace, UsPage, UsDevice)", false, $mig);
+        }
+        if (!aut_stats_has_column('AUT_UsageSeen', 'UzDevice')) {
+            safe_w_sql("ALTER TABLE AUT_UsageSeen ADD COLUMN UzDevice VARCHAR(8) NOT NULL DEFAULT '' AFTER UzRef,
+                DROP PRIMARY KEY, ADD PRIMARY KEY (UzDay, UzSpace, UzRef, UzDevice)", false, $mig);
+        }
+        // v1.1.8 kept the device in a separate table, without hour nor page: it could not
+        // be filtered on, and its few days of data cannot be spread over hours and pages.
+        safe_w_sql("DROP TABLE IF EXISTS AUT_UsageDevice", false, $mig);
+        if (aut_stats_has_column('AUT_Usage', 'UsDevice') && aut_stats_has_column('AUT_UsageSeen', 'UzDevice')) {
+            $_SESSION[$flag] = true;
+        }
+    } catch (\Throwable $e) { /* PHP errors only: SQL errors are neutralised by $soft */ }
 }
 
 /** Cette requête est-elle une consultation de page à mesurer ? (GET, pas XHR,
@@ -192,18 +234,15 @@ function aut_track($space, $uid = null) {
         // 3ᵉ argument = erreurs tolérées : c'est le SEUL filet (le catch ci-dessous ne
         // rattrape pas safe_error(), qui sort par exit).
         $soft = aut_stats_soft();
-        safe_w_sql("INSERT INTO AUT_Usage (UsDay, UsHour, UsSpace, UsPage, UsViews)
-            VALUES (" . StrSafe_DB($day) . ", $hour, $sp, " . StrSafe_DB($page) . ", 1)
+        $dev  = StrSafe_DB($device);
+        safe_w_sql("INSERT INTO AUT_Usage (UsDay, UsHour, UsSpace, UsPage, UsDevice, UsViews)
+            VALUES (" . StrSafe_DB($day) . ", $hour, $sp, " . StrSafe_DB($page) . ", $dev, 1)
             ON DUPLICATE KEY UPDATE UsViews = UsViews + 1", false, $soft);
 
         $ref = ($uid !== null && $uid !== '') ? ('u:' . $uid) : ('a:' . aut_stats_audience_id());
         // $ref is ASCII (u:<id> or a:<32 hex>): cutting at 64 bytes is safe.
-        $refDb = StrSafe_DB(substr($ref, 0, 64));
-        safe_w_sql("INSERT IGNORE INTO AUT_UsageSeen (UzDay, UzSpace, UzRef)
-            VALUES (" . StrSafe_DB($day) . ", $sp, $refDb)", false, $soft);
-        safe_w_sql("INSERT INTO AUT_UsageDevice (UdDay, UdSpace, UdDevice, UdRef, UdViews)
-            VALUES (" . StrSafe_DB($day) . ", $sp, " . StrSafe_DB($device) . ", $refDb, 1)
-            ON DUPLICATE KEY UPDATE UdViews = UdViews + 1", false, $soft);
+        safe_w_sql("INSERT IGNORE INTO AUT_UsageSeen (UzDay, UzSpace, UzRef, UzDevice)
+            VALUES (" . StrSafe_DB($day) . ", $sp, " . StrSafe_DB(substr($ref, 0, 64)) . ", $dev)", false, $soft);
     } catch (\Throwable $e) {
         // erreurs PHP seulement (date, cookie…) : les erreurs SQL, elles, sont
         // neutralisées par $soft — safe_error() ne lève rien, il sort.
@@ -228,7 +267,6 @@ function aut_stats_purge() {
     $seen = (int) aut_stats_seen_days();
     $agg  = (int) aut_stats_agg_days();
     safe_w_sql("DELETE FROM AUT_UsageSeen WHERE UzDay < DATE_SUB(CURDATE(), INTERVAL $seen DAY) LIMIT 50000", false, $soft);
-    safe_w_sql("DELETE FROM AUT_UsageDevice WHERE UdDay < DATE_SUB(CURDATE(), INTERVAL $seen DAY) LIMIT 50000", false, $soft);
     safe_w_sql("DELETE FROM AUT_Usage     WHERE UsDay < DATE_SUB(CURDATE(), INTERVAL $agg DAY)  LIMIT 50000", false, $soft);
 }
 
@@ -244,55 +282,61 @@ function aut_stats_from($days) {
     return $d->format('Y-m-d');
 }
 
-/** Total des pages vues sur la fenêtre. */
-function aut_stats_views($space, $days) {
+/** Page views over the window ($device: '' = all devices). */
+function aut_stats_views($space, $days, $device = '') {
     $q = safe_r_sql("SELECT COALESCE(SUM(UsViews),0) AS v FROM AUT_Usage
-        WHERE UsSpace=" . StrSafe_DB($space) . " AND UsDay >= " . StrSafe_DB(aut_stats_from($days)), false, true);
+        WHERE UsSpace=" . StrSafe_DB($space) . " AND UsDay >= " . StrSafe_DB(aut_stats_from($days))
+        . aut_stats_dev_sql('UsDevice', $device), false, true);
     $r = $q ? safe_fetch($q) : null;
     return $r ? (int) $r->v : 0;
 }
 
 /**
- * Device split over the window: ['since' => 'YYYY-MM-DD'|null (first measured day),
- * 'rows' => ['mobile' => ['views' => n, 'uniques' => n], 'tablet' => …, 'desktop' => …]].
- * A person seen on both a phone and a computer counts once in each row: the shares
- * are shares of "visitor × device" pairs, which is what ergonomics needs.
+ * Device split over the window: ['since' => 'YYYY-MM-DD'|null (first day measured with
+ * a device), 'rows' => ['mobile' => ['views' => n, 'uniques' => n], 'tablet' => …,
+ * 'desktop' => …]]. A person seen on a phone and on a computer counts in both rows: the
+ * shares are shares of "visitor × device" pairs, which is what ergonomics needs.
  */
 function aut_stats_devices($space, $days) {
     $out = array('since' => null, 'rows' => array());
-    foreach (array('mobile', 'tablet', 'desktop') as $d) $out['rows'][$d] = array('views' => 0, 'uniques' => 0);
-    $q = safe_r_sql("SELECT UdDevice AS d, SUM(UdViews) AS v, COUNT(DISTINCT UdRef) AS u FROM AUT_UsageDevice
-        WHERE UdSpace=" . StrSafe_DB($space) . " AND UdDay >= " . StrSafe_DB(aut_stats_from($days)) . "
-        GROUP BY UdDevice", false, true);
-    while ($q && ($r = safe_fetch($q))) {
-        if (isset($out['rows'][$r->d])) $out['rows'][$r->d] = array('views' => (int) $r->v, 'uniques' => (int) $r->u);
-    }
-    $q = safe_r_sql("SELECT MIN(UdDay) AS m FROM AUT_UsageDevice", false, true);
+    foreach (aut_stats_devices_list() as $d) $out['rows'][$d] = array('views' => 0, 'uniques' => 0);
+    $sp = StrSafe_DB($space);
+    $from = StrSafe_DB(aut_stats_from($days));
+    $q = safe_r_sql("SELECT UsDevice AS d, SUM(UsViews) AS v FROM AUT_Usage
+        WHERE UsSpace=$sp AND UsDay >= $from AND UsDevice <> '' GROUP BY UsDevice", false, true);
+    while ($q && ($r = safe_fetch($q))) if (isset($out['rows'][$r->d])) $out['rows'][$r->d]['views'] = (int) $r->v;
+    $q = safe_r_sql("SELECT UzDevice AS d, COUNT(DISTINCT UzRef) AS u FROM AUT_UsageSeen
+        WHERE UzSpace=$sp AND UzDay >= $from AND UzDevice <> '' GROUP BY UzDevice", false, true);
+    while ($q && ($r = safe_fetch($q))) if (isset($out['rows'][$r->d])) $out['rows'][$r->d]['uniques'] = (int) $r->u;
+    $q = safe_r_sql("SELECT MIN(UsDay) AS m FROM AUT_Usage WHERE UsDevice <> ''", false, true);
     $r = $q ? safe_fetch($q) : null;
     if ($r && $r->m) $out['since'] = $r->m;
     return $out;
 }
 
 /** Visiteurs uniques (distincts) sur la fenêtre. */
-function aut_stats_uniques($space, $days) {
+function aut_stats_uniques($space, $days, $device = '') {
     $q = safe_r_sql("SELECT COUNT(DISTINCT UzRef) AS u FROM AUT_UsageSeen
-        WHERE UzSpace=" . StrSafe_DB($space) . " AND UzDay >= " . StrSafe_DB(aut_stats_from($days)), false, true);
+        WHERE UzSpace=" . StrSafe_DB($space) . " AND UzDay >= " . StrSafe_DB(aut_stats_from($days))
+        . aut_stats_dev_sql('UzDevice', $device), false, true);
     $r = $q ? safe_fetch($q) : null;
     return $r ? (int) $r->u : 0;
 }
 
 /** Série quotidienne : [ ['day'=>..., 'views'=>..., 'uniques'=>...], ... ] pour tous
  *  les jours de la fenêtre (jours sans trafic inclus à 0). */
-function aut_stats_daily($space, $days) {
+function aut_stats_daily($space, $days, $device = '') {
     $from = aut_stats_from($days);
     $sp = StrSafe_DB($space);
     $views = array();
     $q = safe_r_sql("SELECT UsDay AS d, SUM(UsViews) AS v FROM AUT_Usage
-        WHERE UsSpace=$sp AND UsDay >= " . StrSafe_DB($from) . " GROUP BY UsDay", false, true);
+        WHERE UsSpace=$sp AND UsDay >= " . StrSafe_DB($from) . aut_stats_dev_sql('UsDevice', $device)
+        . " GROUP BY UsDay", false, true);
     while ($q && ($r = safe_fetch($q))) $views[$r->d] = (int) $r->v;
     $uniq = array();
     $q = safe_r_sql("SELECT UzDay AS d, COUNT(DISTINCT UzRef) AS u FROM AUT_UsageSeen
-        WHERE UzSpace=$sp AND UzDay >= " . StrSafe_DB($from) . " GROUP BY UzDay", false, true);
+        WHERE UzSpace=$sp AND UzDay >= " . StrSafe_DB($from) . aut_stats_dev_sql('UzDevice', $device)
+        . " GROUP BY UzDay", false, true);
     while ($q && ($r = safe_fetch($q))) $uniq[$r->d] = (int) $r->u;
 
     $out = array();
@@ -307,22 +351,22 @@ function aut_stats_daily($space, $days) {
 }
 
 /** Répartition horaire (0..23) des pages vues sur la fenêtre — « pics d'usage ». */
-function aut_stats_hourly($space, $days) {
+function aut_stats_hourly($space, $days, $device = '') {
     $out = array_fill(0, 24, 0);
     $q = safe_r_sql("SELECT UsHour AS h, SUM(UsViews) AS v FROM AUT_Usage
-        WHERE UsSpace=" . StrSafe_DB($space) . " AND UsDay >= " . StrSafe_DB(aut_stats_from($days)) . "
-        GROUP BY UsHour", false, true);
+        WHERE UsSpace=" . StrSafe_DB($space) . " AND UsDay >= " . StrSafe_DB(aut_stats_from($days))
+        . aut_stats_dev_sql('UsDevice', $device) . " GROUP BY UsHour", false, true);
     while ($q && ($r = safe_fetch($q))) { $h = (int) $r->h; if ($h >= 0 && $h < 24) $out[$h] = (int) $r->v; }
     return $out;
 }
 
 /** Pages les plus consultées : [ ['page'=>..., 'views'=>...], ... ]. */
-function aut_stats_top_pages($space, $days, $limit = 8) {
+function aut_stats_top_pages($space, $days, $limit = 8, $device = '') {
     $out = array();
     $limit = max(1, min(30, (int) $limit));
     $q = safe_r_sql("SELECT UsPage AS p, SUM(UsViews) AS v FROM AUT_Usage
-        WHERE UsSpace=" . StrSafe_DB($space) . " AND UsDay >= " . StrSafe_DB(aut_stats_from($days)) . "
-        GROUP BY UsPage ORDER BY v DESC LIMIT $limit", false, true);
+        WHERE UsSpace=" . StrSafe_DB($space) . " AND UsDay >= " . StrSafe_DB(aut_stats_from($days))
+        . aut_stats_dev_sql('UsDevice', $device) . " GROUP BY UsPage ORDER BY v DESC LIMIT $limit", false, true);
     while ($q && ($r = safe_fetch($q))) $out[] = array('page' => $r->p, 'views' => (int) $r->v);
     return $out;
 }

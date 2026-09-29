@@ -29,20 +29,22 @@ $hasArchers = (bool) safe_fetch(safe_r_sql("SELECT 1 FROM information_schema.TAB
 $days = intval($_GET['days'] ?? 30);
 if (!in_array($days, array(7, 30, 90), true)) $days = 30;
 $activeTab = (($_REQUEST['tab'] ?? '') === 'archers' && $hasArchers) ? 'archers' : 'org';
+// Device filter: every figure of the page (both tabs) is restricted to that device.
+$dev = aut_stats_dev($_GET['dev'] ?? '');
 
 /* ---- Données ---- */
-$publicUniq  = aut_stats_uniques('public', $days);
-$publicViews = aut_stats_views('public', $days);
+$publicUniq  = aut_stats_uniques('public', $days, $dev);
+$publicViews = aut_stats_views('public', $days, $dev);
 
 $data = array();
 foreach (array('org', 'archer') as $sp) {
     $data[$sp] = array(
-        'views'   => aut_stats_views($sp, $days),
-        'uniques' => aut_stats_uniques($sp, $days),
-        'daily'   => aut_stats_daily($sp, $days),
-        'hourly'  => aut_stats_hourly($sp, $days),
-        'top'     => aut_stats_top_pages($sp, $days, 8),
-        'devices' => aut_stats_devices($sp, $days),
+        'views'   => aut_stats_views($sp, $days, $dev),
+        'uniques' => aut_stats_uniques($sp, $days, $dev),
+        'daily'   => aut_stats_daily($sp, $days, $dev),
+        'hourly'  => aut_stats_hourly($sp, $days, $dev),
+        'top'     => aut_stats_top_pages($sp, $days, 8, $dev),
+        'devices' => aut_stats_devices($sp, $days),   // never filtered: it is the selector
     );
 }
 $orgBiz = aut_stats_org_business($days);
@@ -85,27 +87,34 @@ function st_hbars($items) {
     echo '</div>';
 }
 
-/** Split by device: one bar per device class, share of visitors (views in the detail). */
-function st_devices($dev) {
-    $labels = array('mobile' => 'Téléphone', 'tablet' => 'Tablette', 'desktop' => 'Ordinateur');
+function st_dev_labels() { return array('mobile' => 'Téléphone', 'tablet' => 'Tablette', 'desktop' => 'Ordinateur'); }
+
+/** '2026-09-29' → '29/09/2026'. */
+function st_dmy($d) { return substr($d, 8, 2) . '/' . substr($d, 5, 2) . '/' . substr($d, 0, 4); }
+
+/**
+ * Split by device, one bar per device class. Each row is a link that filters the whole
+ * page on that device; clicking the selected row again removes the filter.
+ */
+function st_devices($dev, $tab, $days, $sel) {
     $totU = 0; $totV = 0;
     foreach ($dev['rows'] as $r) { $totU += $r['uniques']; $totV += $r['views']; }
-    echo '<h3 class="st-h3">Appareils utilisés';
-    if ($dev['since']) {
-        echo ' <span class="st-note">(mesuré depuis le ' . st_h(substr($dev['since'], 8, 2) . '/' . substr($dev['since'], 5, 2)
-            . '/' . substr($dev['since'], 0, 4)) . ' ; iPad récents comptés comme ordinateurs)</span>';
-    }
-    echo '</h3>';
+    echo '<h3 class="st-h3">Appareils utilisés <span class="st-note">(cliquez un appareil pour n\'afficher que ses chiffres'
+       . ($dev['since'] ? ' ; mesuré depuis le ' . st_h(st_dmy($dev['since'])) : '')
+       . ' ; iPad récents comptés comme ordinateurs)</span></h3>';
     if ($totU === 0) { echo '<p class="st-empty">Aucune donnée sur la période.</p>'; return; }
     echo '<div class="st-hb">';
-    foreach ($labels as $k => $lab) {
+    foreach (st_dev_labels() as $k => $lab) {
         $r = $dev['rows'][$k];
         $pc = round(100 * $r['uniques'] / $totU);
         $pv = $totV ? round(100 * $r['views'] / $totV) : 0;
-        echo '<div class="st-row"><span class="st-rl">' . st_h($lab) . '</span>'
+        $on = ($sel === $k);
+        $href = '?tab=' . $tab . '&days=' . (int) $days . ($on ? '' : '&dev=' . $k);
+        echo '<a class="st-row st-devrow' . ($on ? ' on' : '') . '" href="' . st_h($href) . '"'
+           . ' title="' . st_h($on ? 'Retirer le filtre' : 'N\'afficher que : ' . $lab) . '">'
+           . '<span class="st-rl">' . ($on ? '✓ ' : '') . st_h($lab) . '</span>'
            . '<span class="st-track"><span class="st-fill" style="width:' . $pc . '%"></span></span>'
-           . '<span class="st-rv" style="min-width:210px" title="' . st_h($r['views'] . ' pages vues') . '">'
-           . $pc . ' % des visiteurs · ' . $pv . ' % des vues</span></div>';
+           . '<span class="st-rv" style="min-width:210px">' . $pc . ' % des visiteurs · ' . $pv . ' % des vues</span></a>';
     }
     echo '</div>';
 }
@@ -134,13 +143,14 @@ function st_hourly_items($hours) {
 }
 
 /** Rend un onglet complet (graphiques d'audience communs org/archer). */
-function st_render_traffic($d, $days) {
+function st_render_traffic($d, $days, $tab, $sel) {
+    $on = $sel !== '' ? ' · ' . mb_strtolower(st_dev_labels()[$sel]) : '';
     ?>
     <div class="st-cards">
-        <?php st_kpi($d['views'],   'Pages vues',       "sur $days j"); ?>
-        <?php st_kpi($d['uniques'], 'Visiteurs uniques', "sur $days j"); ?>
+        <?php st_kpi($d['views'],   'Pages vues',       "sur $days j" . $on); ?>
+        <?php st_kpi($d['uniques'], 'Visiteurs uniques', "sur $days j" . $on); ?>
     </div>
-    <?php st_devices($d['devices']); ?>
+    <?php st_devices($d['devices'], $tab, $days, $sel); ?>
     <h3 class="st-h3">Fréquentation — pages vues par jour</h3>
     <?php st_vbars(st_daily_items($d['daily'])); ?>
     <h3 class="st-h3">Charge — pages vues par heure <span class="st-note">(cumul de la période : repérer les pics)</span></h3>
@@ -189,6 +199,13 @@ $cookieUrl = function_exists('aut_legal_url') ? aut_legal_url('cookies') : '';
 .st-empty { color:#8a97a5; font-size:13px; font-style:italic; }
 .st-roles { font-size:12.5px; color:#4c4e50; margin:6px 0 0; }
 .st-roles code { background:#eef2f6; padding:1px 5px; border-radius:4px; }
+.st-devrow { text-decoration:none; color:inherit; border-radius:6px; padding:3px 6px; margin:0 -6px; }
+.st-devrow:hover { background:#eef4fb; }
+.st-devrow.on { background:#e2ecf8; box-shadow:inset 0 0 0 1px #9dbbe0; }
+.st-devrow.on .st-rl { color:#01367c; font-weight:600; }
+.st-filter { font-size:13px; color:#123a63; background:#fdf6e3; border:1px solid #ecd9a4;
+    border-radius:6px; padding:8px 12px; margin:0 0 14px; }
+.st-filter a { font-weight:600; margin-left:6px; }
 @media (max-width:600px){ .st-rl { flex-basis:120px; } }
 </style>
 
@@ -201,10 +218,19 @@ $cookieUrl = function_exists('aut_legal_url') ? aut_legal_url('cookies') : '';
 
 <div class="st-period">Période :
     <?php foreach (array(7 => '7 jours', 30 => '30 jours', 90 => '90 jours') as $k => $lab): ?>
-        <a href="?tab=<?= st_h($activeTab) ?>&amp;days=<?= $k ?>" class="<?= $days === $k ? 'on' : '' ?>"><?= st_h($lab) ?></a>
+        <a href="?tab=<?= st_h($activeTab) ?>&amp;days=<?= $k ?><?= $dev !== '' ? '&amp;dev=' . st_h($dev) : '' ?>" class="<?= $days === $k ? 'on' : '' ?>"><?= st_h($lab) ?></a>
     <?php endforeach; ?>
     &nbsp;·&nbsp; <span class="st-note">Accueil (anonyme) : <?= (int) $publicUniq ?> visiteurs · <?= (int) $publicViews ?> vues</span>
 </div>
+<?php
+if ($dev !== '') {
+    $since = aut_stats_devices('org', $days)['since'];
+    echo '<div class="st-filter">Filtre : <b>' . st_h(st_dev_labels()[$dev]) . '</b> — les chiffres de la page '
+       . '(les deux onglets) ne concernent que ce type d\'appareil.'
+       . ($since && $since > aut_stats_from($days) ? ' Mesure par appareil disponible depuis le ' . st_h(st_dmy($since)) . '.' : '')
+       . ' <a href="?tab=' . st_h($activeTab) . '&amp;days=' . (int) $days . '">✕ Tous les appareils</a></div>';
+}
+?>
 
 <div id="aut-tabs">
   <button type="button" data-pane="org" class="<?= $activeTab === 'org' ? 'on' : '' ?>">🏹 Organisateurs</button>
@@ -227,7 +253,7 @@ $cookieUrl = function_exists('aut_legal_url') ? aut_legal_url('cookies') : '';
         echo $parts ? implode(' ', $parts) : '<span class="st-empty">aucun compte</span>';
         ?>
     </p>
-    <?php st_render_traffic($data['org'], $days); ?>
+    <?php st_render_traffic($data['org'], $days, 'org', $dev); ?>
 </div>
 
 <?php if ($hasArchers): ?>
@@ -240,7 +266,7 @@ $cookieUrl = function_exists('aut_legal_url') ? aut_legal_url('cookies') : '';
         st_kpi($arcBiz['registrars'], 'Inscrivent d’autres archers');
         ?>
     </div>
-    <?php st_render_traffic($data['archer'], $days); ?>
+    <?php st_render_traffic($data['archer'], $days, 'archers', $dev); ?>
 </div>
 <?php endif; ?>
 
