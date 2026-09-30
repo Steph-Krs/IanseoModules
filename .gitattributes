@@ -9,4 +9,6 @@ AUTH/serveur/bin/*        text eol=lf
 AUTH/serveur/cron/*       text eol=lf
 AUTH/serveur/logrotate/*  text eol=lf
 AUTH/serveur/sudoers/*    text eol=lf
+AUTH/serveur/apt/*        text eol=lf
+AUTH/serveur/mysql/*      text eol=lf
 AUTH/serveur/**/*.conf    text eol=lf
