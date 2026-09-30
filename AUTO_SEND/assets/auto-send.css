@@ -1,0 +1,64 @@
+/* Styles of the scheduled upload page. Every rule is scoped under #aus so
+   nothing leaks into ianseo's own pages. Colours follow the shared palette:
+   blue carries the structure, coral and green are signals only. */
+
+#aus { font-size: 13px; color: #20263d; padding: 8px 4px 40px; }
+#aus * { box-sizing: border-box; }
+#aus .aus-h1 { color: #01367c; font-size: 20px; margin: 4px 0 2px; }
+#aus .aus-h3 { color: #01367c; font-size: 13px; margin: 14px 0 6px; }
+#aus .aus-lead { color: #4c4e50; margin: 0 0 12px; }
+#aus .aus-hint { color: #7d8183; font-size: 12px; margin: 4px 0; }
+#aus .aus-nowrap { white-space: nowrap; }
+
+#aus .aus-card { background: #fff; border: 1px solid #d2d4d6; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    padding: 12px 14px; margin: 0 0 14px; }
+#aus .aus-card h2 { margin: -12px -14px 10px; padding: 8px 14px; background: #f0f4ff; color: #01367c; font-size: 13px;
+    text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #d2d4d6; border-radius: 6px 6px 0 0; }
+#aus details.aus-card > summary { list-style: none; cursor: pointer; }
+#aus details.aus-card > summary::-webkit-details-marker { display: none; }
+#aus details.aus-card:not([open]) > summary h2 { margin-bottom: -12px; border-bottom: 0; border-radius: 6px; }
+
+#aus .aus-row { display: flex; flex-wrap: wrap; gap: 12px 18px; margin: 8px 0; }
+#aus .aus-row label, #aus label.aus-wide { display: block; font-weight: 600; color: #4c4e50; }
+#aus .aus-row label input, #aus .aus-row label select { display: block; margin-top: 3px; font-weight: normal; }
+#aus label.aus-wide input { display: block; width: 100%; max-width: 640px; margin-top: 3px; font-weight: normal; }
+#aus input[type=text], #aus input[type=number], #aus input[type=datetime-local], #aus select {
+    border: 1px solid #d2d4d6; border-radius: 5px; padding: 4px 6px; font: inherit; background: #fff; color: #20263d; }
+#aus input:focus, #aus select:focus { outline: none; border-color: #0254a8; box-shadow: 0 0 0 2px #a7d6ff; }
+#aus .aus-row label input.aus-num { display: inline-block; width: 70px; }
+
+#aus label.aus-check { display: block; margin: 3px 0; font-weight: normal; cursor: pointer; }
+#aus .aus-list { margin-top: 6px; }
+#aus .aus-families { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 10px; }
+#aus fieldset.aus-family { border: 1px solid #d2d4d6; border-radius: 6px; padding: 6px 10px 8px; margin: 0; }
+#aus fieldset.aus-family legend { font-weight: 600; color: #01367c; padding: 0 4px; }
+#aus button.aus-link { border: 0; background: none; color: #0254a8; cursor: pointer; font-size: 11px; padding: 0 2px; }
+#aus button.aus-link:hover { text-decoration: underline; }
+
+#aus .aus-btn { display: inline-block; padding: 5px 11px; border: 1px solid #d2d4d6; background: #f7f7f7; color: #20263d;
+    border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; white-space: nowrap; line-height: 1.4; }
+#aus .aus-btn:hover { background: #e2ecfb; border-color: #a7d6ff; }
+#aus .aus-btn:disabled { opacity: .45; cursor: default; }
+#aus .aus-btn-primary { background: #0254a8; border-color: #0254a8; color: #fff; padding: 8px 16px; font-size: 14px; }
+#aus .aus-btn-primary:hover { background: #01367c; border-color: #01367c; }
+
+#aus .aus-msg { padding: 8px 12px; border-radius: 6px; margin: 0 0 12px; border: 1px solid; }
+#aus .aus-msg ul { margin: 0; padding-left: 18px; }
+#aus .aus-msg-err { background: #ffd6db; border-color: #bb7575; color: #a80000; }
+#aus .aus-msg-ok { background: #d2f4cd; border-color: #75ae77; color: #04ac0b; }
+#aus .aus-msg-warn { background: #fff1e0; border-color: #e57b10; color: #8a4a00; }
+
+#aus .aus-line { margin: 4px 0; }
+#aus .aus-badge { display: inline-block; padding: 1px 7px; border-radius: 9px; border: 1px solid; font-size: 11px;
+    font-weight: 600; white-space: nowrap; }
+#aus .aus-badge-ok { background: #d2f4cd; border-color: #75ae77; color: #04ac0b; }
+#aus .aus-badge-ko { background: #ffd6db; border-color: #bb7575; color: #a80000; }
+#aus .aus-badge-warn { background: #fff1e0; border-color: #e57b10; color: #8a4a00; }
+
+#aus .aus-scroll { overflow-x: auto; }
+#aus .aus-table { width: 100%; border-collapse: collapse; }
+#aus .aus-table th { text-align: left; font-size: 11px; text-transform: uppercase; color: #7d8183; border-bottom: 2px solid #d2d4d6;
+    padding: 5px 6px; white-space: nowrap; }
+#aus .aus-table td { border-bottom: 1px solid #eef0f4; padding: 4px 6px; vertical-align: top; }
+#aus .aus-code { background: #f7f7f7; border: 1px solid #d2d4d6; border-radius: 5px; padding: 8px; white-space: pre-wrap;
+    word-break: break-all; font-size: 12px; }

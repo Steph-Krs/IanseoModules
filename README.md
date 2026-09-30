@@ -51,6 +51,11 @@ Modules pour le projet I@nseo :
   dans une archive ZIP : aucune page vide même avec plus de quatre emplacements par cible, QR code
   de saisie ISK sur chaque page, numéro de cible et texte d'en-tête masquables. L'impression du
   cœur n'est pas modifiée. Lecture seule.
+- [Envoi automatique](AUTO_SEND/README_AUTO_SEND_FR.md) — Ouverture et fermeture de la saisie
+  ISK-NG et envoi des résultats sur ianseo.net à heures fixées, sans navigateur ouvert : tâche
+  planifiée du serveur, changements d'heure gérés, mêmes listes que la page d'envoi du cœur, mode
+  simulation, historique, et surveillance extérieure (healthchecks.io) qui prévient quand les
+  envois s'arrêtent.
 
 ## Installation automatique (Mac / Linux)
 

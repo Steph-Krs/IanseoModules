@@ -1,0 +1,40 @@
+{
+    "version": "0.1.0",
+    "date": "2026-09-30",
+    "notes": "First version.\n\nOpens and closes the ISK-NG scoring and uploads the results to ianseo.net on a schedule, with no browser left open: a start and an end (date and time, clock changes handled through a named time zone), an upload interval of 5 minutes or more, the scoring sessions to open and close, and the same result lists as on the core's upload page. Items that ianseo does not offer yet (brackets before the shoot-offs, medals) are sent from the moment it does.\n\nThe work is done by a task the server runs every minute (cron on Linux, Task Scheduler on Windows); the page shows the exact line to install and says when the task is not running. Each upload runs the core's own upload code in a separate process, with a time limit; a failure is retried after 1, 2, 4… minutes, and the next success publishes everything, since each upload carries the complete results. At the end, the scoring is closed before a last upload.\n\nA simulation mode builds everything as for a real upload and sends nothing to ianseo.net. An optional monitoring address (healthchecks.io or compatible) is called after each upload, so that an outside service raises the alarm when the uploads stop — including when the server or its network is down.",
+    "files": [
+        "menu.php",
+        "index.php",
+        "cron.php",
+        "worker.php",
+        "credits.php",
+        "version.json",
+        "README_AUTO_SEND.md",
+        "README_AUTO_SEND_FR.md",
+        "api/state.php",
+        "admin/update.php",
+        "lib/boot.php",
+        "lib/cli.php",
+        "lib/lang.php",
+        "lib/schema.php",
+        "lib/plan.php",
+        "lib/items.php",
+        "lib/sessions.php",
+        "lib/settings.php",
+        "lib/status.php",
+        "lib/runner.php",
+        "lib/dryrun.php",
+        "assets/auto-send.css",
+        "assets/auto-send.js",
+        "languages/en.php",
+        "languages/fr.php",
+        "languages/it.php",
+        "languages/de.php",
+        "languages/es.php"
+    ],
+    "tables": [
+        "AutoSendPlans",
+        "AutoSendRuns"
+    ],
+    "uninstall_warning": "Remove the scheduled task from the server as well (the line in /etc/cron.d/ianseo-autosend, or the Windows scheduled task \"ianseo AUTO_SEND\"): once the module is gone it can only log errors every minute."
+}
