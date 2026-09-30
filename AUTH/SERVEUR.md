@@ -78,6 +78,9 @@ ancien, avec un historique de vulnérabilités corrigées au fil de l'eau
   alors que USERAUTH est actif, le site tombe en erreur, il ne s'ouvre pas.
 - Journal complet (connexions, échecs, actions admin) en DB + fichier optionnel
   pour fail2ban.
+- **Exploitation** : sauvegarde nocturne + copies à chaud de la base, copie en ligne chiffrée,
+  restauration guidée (`ianseo-restore`), alertes à l'administrateur et page « État du serveur »
+  (§§ 9, 9 bis, 16).
 
 ## 4. Durcissement système (Debian/Ubuntu)
 
@@ -104,7 +107,15 @@ ancien, avec un historique de vulnérabilités corrigées au fil de l'eau
 - Firewall : `ufw default deny incoming ; ufw allow 80,443/tcp ; ufw allow from <IP_admin_FFTA> to any port 22 ; ufw enable`
 - SSH : clés uniquement (`PasswordAuthentication no`), pas de root direct,
   si possible restreint aux IP FFTA ou derrière VPN.
-- `unattended-upgrades` activé (MaJ sécurité automatiques).
+- `unattended-upgrades` activé (MaJ sécurité automatiques) — **mais à heure fixe, la nuit, et
+  en dehors de la fenêtre de maintenance**. Par défaut, Debian/Ubuntu installent vers 6 h avec
+  un délai aléatoire d'une heure, et l'installation redémarre la base et Apache au passage : sur
+  un autre serveur ianseo, c'est tombé **trois fois en pleine compétition** en un semestre
+  (samedis matin). Gabarits `serveur/apt/` : téléchargement à 04:00, installation à **04:30**,
+  redémarrage automatique à 04:45 **seulement** si une mise à jour l'exige (facultatif) — après la
+  maintenance de 03:15 (§ 12), jamais pendant : un redémarrage de la base en pleine sauvegarde la
+  ferait échouer, et la mise à jour du cœur serait sautée cette nuit-là. Vérifier :
+  `systemctl list-timers 'apt-daily*'`. Si vous déplacez l'un des horaires, déplacez l'autre.
 - Utilisateur applicatif dédié (www-data), fichiers ianseo en `root:www-data`,
   écriture limitée aux dossiers qui en ont besoin (`TourData/`, `Common/` pour
   config.inc.php lors de l'activation, `Modules/`).
@@ -146,6 +157,33 @@ apt install modsecurity-crs   # OWASP Core Rule Set
 Commencer en `DetectionOnly` une semaine, analyser les faux positifs (ianseo
 poste beaucoup de HTML/valeurs brutes), créer les exclusions nécessaires, puis
 passer `On`. C'est la principale compensation du risque « code du cœur ».
+
+⚠️ **Avant de passer `On`** : `SecRequestBodyLimit` vaut **12,5 Mo** dans le fichier livré, alors
+que PHP accepte 64 Mo (§ 6.1). En blocage, l'import d'une compétition plus lourde serait refusé
+(erreur 413) sans que rien dans ianseo ne l'explique. L'aligner sur PHP dans
+`/etc/modsecurity/modsecurity.conf` : `SecRequestBodyLimit 67108864`.
+
+### 4.4 Limiteurs de débit (mod_evasive, proxy, pare-feu applicatif)
+Ce guide n'en installe pas : fail2ban (§ 4.2) et l'anti-bourrage du module ciblent les **échecs
+de connexion**, pas le volume de requêtes. Si vous en ajoutez un, il doit laisser passer les
+**rafales de la saisie ISK-NG** : chaque téléphone envoie un `OPTIONS` et environ **8 `POST`**
+vers `/Api/ISK-NG/index.php` **dans la même seconde**, et tous les téléphones d'un club sortent
+par la même adresse. Vécu sur un autre serveur ianseo : mod_evasive réglé à 5 requêtes par
+seconde et par adresse a bloqué **144 adresses** en 18 mois, presque toutes des tablettes de
+marque pendant des compétitions. Réglages qui ont fonctionné (`/etc/apache2/mods-available/evasive.conf`) :
+
+```apache
+DOSPageCount      30
+DOSSiteCount      150
+DOSBlockingPeriod 10
+DOSWhitelist      127.0.0.1
+DOSWhitelist      192.168.*.*
+# et ne pas laisser DOSSystemCommand sur l'exemple de la documentation
+```
+
+Symptôme trompeur à connaître : derrière une authentification HTTP (htdigest), le refus
+s'affiche en **401** (demande de mot de passe) et non en 403 — chercher les 403 dans les
+journaux ne trouve rien.
 
 ## 5. Apache — vhost durci
 
@@ -226,7 +264,7 @@ session.cookie_httponly = 1
 session.cookie_secure   = 1
 session.cookie_samesite = Lax
 session.use_strict_mode = 1
-session.gc_maxlifetime  = 28800
+session.gc_maxlifetime  = 43200
 allow_url_include = Off
 disable_functions = exec,passthru,shell_exec,system,proc_open,popen,pcntl_exec
 open_basedir = /var/www/ianseo:/tmp
@@ -236,6 +274,16 @@ post_max_size = 64M
 > Tester après coup : l'export/import ianseo et les impressions PDF doivent
 > fonctionner (TCPDF n'a pas besoin des fonctions désactivées).
 
+`session.gc_maxlifetime = 43200` : **12 h**, la durée d'inactivité que prévoit le module (§ 3).
+La valeur par défaut de PHP (1440 s) efface une session inactive au bout de **24 minutes** :
+l'organisateur parti déjeuner est déconnecté et perd la compétition ouverte — vu sur un autre
+serveur. Sous Debian/Ubuntu, c'est une tâche système (`phpsessionclean`) qui efface les sessions,
+d'après ce réglage **du php.ini** : un `ini_set()` dans le code n'y changerait rien. Même chose
+pour `upload_max_filesize`/`post_max_size` : les deux fichiers `php.ini` à modifier sont ceux
+d'Apache (`/etc/php/8.x/apache2/php.ini`) ou de PHP-FPM — pas celui de la ligne de commande.
+**Multi-comptes › Configuration du serveur › État du serveur** affiche les valeurs réellement
+appliquées au site.
+
 ### 6.2 MySQL
 - `bind-address = 127.0.0.1` (jamais exposé).
 - Utilisateur dédié `ianseo` limité à la base `ianseo`
@@ -243,6 +291,45 @@ post_max_size = 64M
   **pas** de `FILE`, `SUPER`, `GRANT`. Mot de passe long généré.
 - Pas de phpMyAdmin accessible depuis Internet (voir vhost).
 - `Common/config.inc.php` (identifiants DB) : permissions `640 root:www-data`.
+
+### 6.3 MySQL — performances (leçons d'un serveur en production)
+
+Sur un autre serveur ianseo en ligne (septembre 2026), **ajouter un archer bloquait la page 5 à
+10 minutes**. Les réglages ci-dessous en sont tirés ; gabarit : `serveur/mysql/ianseo.cnf`.
+**Multi-comptes › Configuration du serveur › État du serveur** contrôle chacun d'eux.
+
+- **MariaDB (installé au § 8.0) et MySQL 8 ne se comportent pas pareil.** Pour vérifier un numéro
+  de cible, le cœur (`createAvailableTargetSQL()`) fabrique une requête d'**une ligne `UNION` par
+  place** du départ, qu'il filtre ensuite. MySQL 8.0.22+ recopie ce filtre dans chaque branche
+  (optimisation `derived_condition_pushdown`) : le temps devient quadratique. Mesuré sur un
+  départ de 9 999 cibles × 8 = 80 000 places : **~10 min** sous MySQL 8.0.46, **1,2 s** une fois
+  l'optimisation coupée, 1,5 s sous MariaDB. Pendant ce temps, le verrou de session PHP bloque
+  toutes les autres pages du même utilisateur, et le processeur est saturé pour tout le monde.
+  **Sous MySQL 8 seulement** :
+  ```bash
+  sudo mysql -e "SET PERSIST optimizer_switch='derived_condition_pushdown=off';"
+  ```
+  Réglage de vitesse uniquement (résultats identiques, comportement de MySQL 5.7), conservé au
+  redémarrage, réversible (`=on`). **Pas dans un fichier `.cnf` commun** : MariaDB ne connaît pas
+  cette option et refuserait de démarrer.
+- **Dimensionner les départs au besoin réel**, jamais « 9 999 cibles par sécurité » : même
+  réglage appliqué, 80 000 places coûtent plus d'une seconde par vérification. Le module
+  signale les départs de plus de 5 000 places (à l'organisateur dans « Inscriptions en ligne »,
+  à l'administrateur dans « État du serveur »). Conseil aux opérateurs : choisir le **départ**
+  de l'archer AVANT sa cible — sans départ, la vérification porte sur tous les départs à la fois.
+- **Connexions** : ianseo ouvre **deux** connexions à la base par page (lecture + écriture).
+  `max_connections` doit donc valoir au moins **2 × le nombre de processus PHP** (Apache
+  `MaxRequestWorkers` en prefork — 150 sous Debian —, ou `pm.max_children` en PHP-FPM), plus une
+  marge pour les crons. La valeur par défaut (151) ne couvre que 75 processus : au-delà, la
+  base refuse la connexion et l'utilisateur tombe sur une page d'erreur.
+- **Mémoire** : `innodb_buffer_pool_size` au moins égal à la taille de la base (128 Mo par
+  défaut) — § 15 pour la cible d'un gros serveur. Et `MaxRequestWorkers` à la mesure de la RAM :
+  150 processus Apache d'environ 65 Mo chacun dépassaient les 8 Go de l'autre serveur.
+- **Journal des requêtes lentes** (seuil 2 s) : c'est lui qui a désigné la requête en cause.
+  Fichier : `/var/lib/mysql/<nom-du-serveur>-slow.log` ; résumé : `sudo mysqldumpslow -s t <fichier>`.
+- **Tester sous le moteur de production.** Un poste de développement XAMPP tourne sous MariaDB :
+  ce problème y était invisible. Si le serveur est sous MySQL 8, faire au moins un essai
+  (création de compétition, ajout d'archers, saisie) sur un MySQL 8.
 
 ## 7. Données personnelles & RGPD
 
@@ -266,20 +353,15 @@ y donne accès. Compensations obligatoires :
 - ne demander aux clubs que les champs nécessaires aux inscriptions.
 
 ### 7.2 Sauvegardes — chiffrées et hors serveur
-```bash
-# /etc/cron.daily/ianseo-backup
-#!/bin/sh
-set -e
-F=/var/backups/ianseo-$(date +%F).sql.gz.gpg
-mysqldump --single-transaction ianseo | gzip \
-  | gpg --batch --yes -r ADRESSE-CLE-GPG -e -o "$F"
-find /var/backups -name 'ianseo-*.gpg' -mtime +30 -delete
-# copie hors serveur (stockage FFTA) :
-rsync -a /var/backups/ COMPTE@STOCKAGE-DISTANT:/backups/ianseo/
-```
-+ `Common/config.inc.php`, `Modules/Custom/`, `TourData/`.
-**Tester une restauration** au moins une fois avant l'ouverture, puis
-périodiquement. La clé GPG privée n'est PAS sur le serveur.
+Intégrées au module (§ 9 bis) : chaque nuit la base et les fichiers, dans la journée des copies
+« à chaud » de la base, et une copie en ligne **chiffrée** (rclone `crypt`). Principes, qui valent
+quel que soit l'outil :
+- **dès le premier jour** — l'autre serveur ianseo en ligne a tourné des mois sans aucune sauvegarde ;
+- **chiffrées hors du serveur**, et les secrets qui permettent de les relire (mots de passe
+  `crypt`) rangés **ailleurs** que sur le serveur : c'est justement le jour où il est perdu qu'on
+  en a besoin ;
+- **au moins un test de restauration** avant l'ouverture, puis périodiquement — sans toucher au
+  site : `sudo ianseo-restore --test <copie>` (§ 9 bis).
 
 ### 7.3 Conformité (à traiter avec le DPO FFTA)
 - Inscrire le traitement au **registre** (finalité : gestion sportive des
@@ -353,10 +435,18 @@ sudo visudo -c                                   # DOIT afficher « parsed OK »
 sudo install -m 0644 -o root -g root logrotate/ianseo          /etc/logrotate.d/
 sudo install -m 0644 -o root -g root fail2ban/filter-ianseo-auth.conf /etc/fail2ban/filter.d/ianseo-auth.conf
 sudo install -m 0644 -o root -g root fail2ban/jail-ianseo.conf        /etc/fail2ban/jail.d/ianseo.conf
-sudo touch /var/log/ianseo-maintenance.log /var/log/ianseo-auth.log
+sudo touch /var/log/ianseo-maintenance.log /var/log/ianseo-auth.log /var/log/ianseo-backup.log
 sudo chown www-data:adm /var/log/ianseo-*.log && sudo chmod 0640 /var/log/ianseo-*.log
 sudo systemctl restart fail2ban
 sudo apache2ctl configtest && sudo systemctl reload apache2
+# mises à jour du système à heure fixe, après la maintenance (§ 4.1)
+sudo install -D -m 0644 apt/apt-daily.timer.conf         /etc/systemd/system/apt-daily.timer.d/ianseo.conf
+sudo install -D -m 0644 apt/apt-daily-upgrade.timer.conf /etc/systemd/system/apt-daily-upgrade.timer.d/ianseo.conf
+sudo install -m 0644 -o root -g root apt/51ianseo-auto-reboot /etc/apt/apt.conf.d/   # facultatif
+sudo systemctl daemon-reload
+# base de données (§ 6.3) — MySQL 8 : /etc/mysql/mysql.conf.d/ et le réglage SET PERSIST
+sudo install -m 0644 -o root -g root mysql/ianseo.cnf /etc/mysql/mariadb.conf.d/99-ianseo.cnf
+sudo systemctl restart mariadb
 
 # ── 7. Module AUTH ────────────────────────────────────────────────────
 # Copier Modules/Custom/AUTH/ et Modules/Custom/_shared/ dans /var/www/ianseo/
@@ -379,10 +469,13 @@ lecture JSON et **toute** la configuration serait ignorée en silence) :
     "unlock": "",
     "lock":   "",
     "steps":  { "core": false, "modules": true, "licences": true, "logos": true },
-    "notice": { "at": "03:15", "lead_minutes": 15 }
+    "notice": { "at": "03:15", "lead_minutes": 15 },
+    "ping_url": ""
   }
 }
 ```
+
+(`ping_url` : facultatif, adresse d'un contrôle de supervision — voir § 9, « Alertes ».)
 
 ```bash
 # ── 8. Comptes, déploiement, verrouillage ─────────────────────────────
@@ -398,9 +491,13 @@ sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php --
 # (le site doit répondre 503 pendant l'exécution, puis revenir)
 sudo install -m 0644 -o root -g root \
      /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-nightly /etc/cron.d/
+# copies à chaud de la base, toutes les 6 heures (§ 9 bis)
+sudo install -m 0644 -o root -g root \
+     /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-backup-live /etc/cron.d/
 ```
 
-**Le lendemain**, vérifier : `tail -n 40 /var/log/ianseo-maintenance.log`.
+**Le lendemain**, vérifier : `tail -n 40 /var/log/ianseo-maintenance.log`, puis
+`sudo ianseo-restore --test <la sauvegarde de la nuit>` — premier test de restauration.
 
 ### 8.1 Rappel des étapes fonctionnelles
 
@@ -440,6 +537,23 @@ l'admin peut l'attribuer/corriger via la page « Compétitions & partage ».
   (`fail2ban-client status ianseo-auth`), l'espace disque, les MaJ ianseo. Le journal admin
   (Multi-comptes › Utilisateurs, un onglet Organisateurs / Archers avec chacun son journal
   filtrable + paginé) donne une vue rapide.
+- **Alertes** : un bandeau rouge s'affiche sur toutes les pages de l'administrateur quand la
+  maintenance de la nuit a échoué (avec les étapes en cause), quand elle **n'a pas tourné** depuis
+  plus de 30 h (tâche planifiée arrêtée : plus aucune sauvegarde), ou quand la copie en ligne ou
+  une copie à chaud a échoué. Pour être prévenu **même serveur éteint**, renseigner en ligne de
+  commande `maintenance.ping_url` dans `config.local.json` : l'adresse d'un contrôle
+  [healthchecks.io](https://healthchecks.io) (gratuit), appelée à la fin de chaque nuit (et
+  `…/fail` en cas d'échec). Régler le contrôle sur « une fois par jour, tolérance 2 h » : le
+  service envoie un e-mail en cas d'échec **et** quand rien n'arrive.
+- **État du serveur** (Multi-comptes › Configuration du serveur) : contrôles en lecture seule des
+  pièges vécus sur un serveur en production — réglage MySQL 8 (§ 6.3), connexions et mémoire de la
+  base, journal des requêtes lentes, durée des sessions et taille des imports (§ 6.1), limite
+  ModSecurity (§ 4.3), OPcache, heure des mises à jour du système (§ 4.1), départs surdimensionnés,
+  âge des sauvegardes — chacun avec la commande de correction.
+- **Journaux système : 60 jours.** Par défaut Apache ne garde que 14 jours : trop court pour
+  analyser une compétition après coup (l'autre serveur n'a pu remonter qu'à deux semaines).
+  `sudo sed -i 's/^\s*rotate 14/\trotate 60/' /etc/logrotate.d/apache2`. Même durée pour
+  l'historique de charge si le paquet `sysstat` est installé (`HISTORY=60` dans `/etc/sysstat/sysstat`).
 - **Rétention des journaux** : `AUT_Log` et `BK_Log` sont purgés automatiquement au-delà de
   **180 jours** (au plus une fois par jour, via le bootstrap ; aussi jouable dans le cron).
   Durée modulable : `config.local.json` → `"log_retention_days": <jours>` (borne 7 à 3650).
@@ -465,12 +579,12 @@ l'admin peut l'attribuer/corriger via la page « Compétitions & partage ».
 - **Mise à jour du module** : menu Multi-comptes → Mise à jour module, puis
   redéployer si `dist/` a changé.
 
-## 9 bis. Sauvegardes nocturnes
+## 9 bis. Sauvegardes (nuit + copies à chaud)
 
 Chaque nuit, dans la fenêtre de maintenance (site fermé, donc copie cohérente) et **juste avant
 la mise à jour du cœur**, `cron/backup.php` produit :
 
-- `ianseo-db-AAAAMMJJ-HHMMSS.sql.gz` — dump complet de la base (`mysqldump`) ;
+- `ianseo-db-AAAAMMJJ-HHMMSS.sql.gz` — dump de la base (`mysqldump`) ;
 - `ianseo-files-AAAAMMJJ-HHMMSS.tar.gz` — archive du site (sans `TV/Photos`) : revenir en
   arrière demande la base **et** le code qui va avec.
 
@@ -484,11 +598,37 @@ ou dans `config.local.json` :
   "dir": "/var/backups/ianseo",
   "keep_days": 14,
   "files": true,
+  "logos": false,
   "required_for_core": true,
   "remote": "",
-  "remote_keep_days": 30
+  "remote_keep_days": 30,
+  "live": true,
+  "live_keep_hours": 48
 }
 ```
+
+**Logos des clubs hors des dumps (`logos: false`, défaut).** Sur le serveur de test, le cache
+des logos pesait 59 % de la base : dump de **57,6 Mo en 11,6 s** avec, **4,1 Mo en 2,6 s** sans.
+Leurs deux tables (`Flags`, `AUT_ClubLogos`) restent dans le fichier, mais en **structure seule,
+créée seulement si elle manque** : restaurer sur ce serveur laisse les logos en place ; sur un
+serveur neuf, les tables sont créées vides et la synchro des logos les remplit (celle de la nuit,
+ou tout de suite `sudo -u www-data php …/cron/sync-logos.php --full` — pour les compétitions non
+terminées ; les compétitions terminées restent sans logo).
+
+**Copies à chaud de la base** (`ianseo-live-AAAAMMJJ-HHMMSS.sql.gz`), toutes les 6 heures avec
+la nuit : 09:05, 15:05, 21:05. Site ouvert, sans rien bloquer : `--single-transaction` sur des
+tables InnoDB lit un instantané cohérent sans verrouiller aucune table — une page qui enregistre
+une volée pendant la copie n'attend pas. Quelques secondes (2,6 s sur le serveur de test).
+Elles limitent la perte à quelques heures de saisie au lieu d'une journée, sont envoyées en ligne
+comme la nuit, gardées 48 h (`live_keep_hours`) et se sautent d'elles-mêmes pendant la fenêtre de
+maintenance ou une restauration. Installation, une fois :
+
+```bash
+sudo touch /var/log/ianseo-backup.log && sudo chown www-data:adm /var/log/ianseo-backup.log
+sudo install -m 0644 -o root -g root /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-backup-live /etc/cron.d/
+```
+
+(Suspendre sans toucher au serveur : case « Copies à chaud » de la page de configuration.)
 
 **Une fois par serveur** — le dossier par défaut est sous `/var/backups`, qui appartient à root :
 
@@ -524,7 +664,7 @@ la sauvegarde tourne la nuit, sans personne pour saisir ce mot de passe — elle
 | `name>` | `gdrive` |
 | `Storage>` | `drive` |
 | `client_id>` / `client_secret>` | Entrée (vides) |
-| `scope>` | `drive.file` — rclone ne voit **que les fichiers qu'il a créés**, rien d'autre du Drive |
+| `scope>` | `drive.file` — rclone ne voit **que les fichiers qu'il a créés**, rien d'autre du Drive (voir ci-dessous pour un dossier partagé) |
 | `service_account_file>` | Entrée |
 | `Edit advanced config?` | `n` |
 | `Use web browser to automatically authenticate?` | `n` — le serveur n'a pas de navigateur |
@@ -533,6 +673,18 @@ rclone affiche alors une commande `rclone authorize "drive" "…"`. La lancer **
 avec navigateur** où rclone est installé (Windows : `winget install Rclone.Rclone`), se connecter
 au compte Google choisi, puis recopier le jeton affiché dans `config_token>` sur le serveur.
 Ensuite : `Shared Drive?` → `n`, `Keep this remote?` → `y`.
+
+**Déposer dans un dossier partagé par quelqu'un d'autre** (vécu sur l'autre serveur) : `drive.file`
+ne voit ni les drives partagés ni un dossier créé par un autre compte. Il faut alors le scope
+`drive`, et désigner le dossier par son identifiant — la fin de son adresse dans le navigateur,
+`https://drive.google.com/drive/folders/<identifiant>` — à la question `root_folder_id>` (options
+avancées : `Edit advanced config?` → `y`).
+
+**Bon à savoir sur Google Drive** : les fichiers appartiennent au compte Google qui a autorisé
+rclone et en dépendent (compte supprimé = sauvegardes perdues) — préférer un compte de la
+structure à un compte personnel. Ne jamais les supprimer depuis l'interface de Drive (les noms y
+sont chiffrés, on ne sait pas ce qu'on efface) : la rotation du module s'en charge, et supprime
+**définitivement** (sans passer par la corbeille de Drive, qui compterait dans le quota).
 
 **Destination 2 — la couche chiffrée** :
 
@@ -573,14 +725,44 @@ déverrouillés d'autant. Le résultat s'ajoute à la fin du journal de la nuit
 (`Copie en ligne : ok → …`), après la ligne `Terminé en … s`. Lancé à la main dans un terminal,
 l'envoi se fait sur place.
 
-Taille à prévoir en ligne : ≈ (taille d'une nuit) × `remote_keep_days` — ici 125 Mo × 30 ≈ 3,7 Go.
+Taille à prévoir en ligne : ≈ (taille d'une nuit) × `remote_keep_days` + (taille d'une copie à
+chaud) × 8 — sans les logos, la base compte peu ; c'est l'archive des fichiers qui domine.
+Un seul envoi à la fois : si le précédent traîne encore, la copie locale est faite quand même et
+l'échec de l'envoi est signalé (bandeau administrateur).
 
 ### Restaurer
+
+Script `serveur/bin/ianseo-restore` (installé dans `/usr/local/bin/`, à lancer en root) :
+
+```bash
+sudo ianseo-restore                                   # liste les sauvegardes, les plus récentes d'abord
+sudo ianseo-restore --test ianseo-db-XXXX.sql.gz      # VÉRIFIE une copie sans toucher au site
+sudo ianseo-restore ianseo-db-XXXX.sql.gz             # restaure la base (ou un ianseo-files-… : les fichiers)
+```
+
+⚠️ Restaurer la base ramène **toutes les compétitions du serveur** au moment de la copie : tout
+ce qui a été saisi depuis est perdu, pour tout le monde. Le script demande de taper `OUI`, empêche
+la maintenance nocturne et les copies à chaud de démarrer, met le site en maintenance, **sauvegarde
+l'état actuel** (on peut vouloir y revenir : c'est la copie en tête de liste), restaure, remet le
+cœur en lecture seule (fichiers) et rouvre le site. Si la restauration elle-même échoue, le site
+**reste fermé** — une base à moitié restaurée ne doit pas être servie — et le message dit quoi faire.
+Pour revenir en arrière après une mise à jour du cœur qui a mal tourné : la base **et** les
+fichiers de la même nuit (même horodatage), la base d'abord.
+
+**Tester une restauration** avant l'ouverture, puis de temps en temps : `--test` restaure la copie
+dans une base jetable, compte tables, compétitions et inscriptions, affiche les compétitions les
+plus récentes, puis supprime la base jetable. Pour une copie en ligne, la rapatrier d'abord
+(`DESTINATION` = la valeur du champ « Copie en ligne », par exemple `gdrive-chiffre:ianseo`) :
+`sudo -u www-data rclone copy DESTINATION/ianseo-db-XXXX.sql.gz /tmp/` puis
+`sudo ianseo-restore --test /tmp/ianseo-db-XXXX.sql.gz`.
+
+Sans le script (par exemple sur une machine neuve où le module n'est pas encore là) :
 
 ```bash
 sudo /usr/local/bin/ianseo-maintenance-on
 gunzip -c /var/backups/ianseo/ianseo-db-XXXX.sql.gz | sudo mysql ianseo
 sudo tar -xzf /var/backups/ianseo/ianseo-files-XXXX.tar.gz -C /var/www   # remet /var/www/ianseo
+sudo /usr/local/bin/ianseo-lock                                          # cœur en lecture seule
 sudo /usr/local/bin/ianseo-maintenance-off
 ```
 
@@ -937,7 +1119,9 @@ week-ends, revenir ensuite (~30–60 €/mois pour le profil recommandé).
 
 Leviers (comptent plus que la taille de VM) :
 1. **PHP-FPM + OPcache** (jamais mod_php prefork) — ×3–5 sur le débit PHP d'ianseo. Non négociable.
-2. **`innodb_buffer_pool_size` = 8 Go** : tout le jeu actif tient en RAM.
+2. **`innodb_buffer_pool_size` = 8 Go** : tout le jeu actif tient en RAM. Et **`max_connections`
+   ≥ 2 × workers PHP + marge** : ianseo ouvre deux connexions par page (§ 6.3) — avec 100
+   workers FPM, 220 au moins ; la valeur par défaut (151) ferait refuser des pages au pic.
 3. **Cache des pages de résultats publiques** (Apache mod_cache/Varnish, TTL court) : absorbe le
    pic de spectateurs des finales — souvent LE pic.
 4. **Workers FPM (50–100)** : ⚠️ le login compétiteur **relaie de façon SYNCHRONE** vers
@@ -946,3 +1130,34 @@ Leviers (comptent plus que la taille de VM) :
    sur `/Api/` pour ne pas casser le scoring ISK.
 6. **Chemin de montée en charge** si dépassement : séparer **MySQL sur sa propre VM** (web/DB split),
    puis répliques de lecture pour les résultats, puis CDN devant les pages publiques.
+7. **Un seul processeur ne suffit pas**, même pour 3 opérateurs : sur l'autre serveur (1 vCPU),
+   une seule requête lente (§ 6.3) saturait le processeur et ralentissait tout le monde, y compris
+   la saisie des scores sur téléphone. Et tout limiteur de débit placé devant doit laisser passer
+   les rafales d'ISK-NG (§ 4.4).
+
+## 16. Autour d'une compétition — routine d'exploitation
+
+Tirée des week-ends de saisie en ligne de l'autre serveur. Commandes à lancer sur le serveur.
+
+**Avant**
+- Départs dimensionnés au besoin réel (État du serveur : « Départs surdimensionnés ») ; les
+  opérateurs choisissent le **départ** d'un archer avant sa cible.
+- Saisie ISK-NG essayée avec **plusieurs téléphones sur le même wifi** (même adresse publique :
+  c'est ce qui déclenche les limiteurs de débit, § 4.4).
+- Sauvegardes de la nuit et copies à chaud présentes (État du serveur, ou `sudo ianseo-restore`),
+  aucun bandeau rouge chez l'administrateur ; certificat valide
+  (`sudo certbot certificates`).
+- Mises à jour du système bien programmées la nuit (`systemctl list-timers 'apt-daily*'`).
+
+**Pendant**
+- Charge : `top` (qui consomme — `mysqld`, `apache2`/`php-fpm`) ;
+- Requêtes en cours, les plus longues d'abord :
+  `sudo mysql -e "SELECT ID, TIME, LEFT(INFO, 80) FROM information_schema.PROCESSLIST WHERE COMMAND <> 'Sleep' ORDER BY TIME DESC"` ;
+- Erreurs : `sudo tail -f /var/log/apache2/error.log` ; blocages : `sudo fail2ban-client status ianseo-auth`
+  (et, si mod_evasive est installé, `ls -lt /var/log/mod_evasive | head`).
+
+**Après**
+- Requêtes lentes : `sudo mysqldumpslow -s t /var/lib/mysql/*-slow.log | grep "^Count" | head` ;
+- Secondes les plus chargées :
+  `sudo zcat -f /var/log/apache2/access.log* | awk '{print $4}' | sort | uniq -c | sort -rn | head` ;
+- Journal du module : Multi-comptes › Utilisateurs (pics de `LOGIN_FAIL`).

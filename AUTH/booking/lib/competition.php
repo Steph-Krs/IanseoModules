@@ -863,6 +863,14 @@ function bk_disc_icon_para($size = 16)
  * par une jointure sur Entries (EnTournament), sinon il agrège les archers de
  * toutes les compétitions de la base.
  */
+/**
+ * Places per departure above which the organiser is warned (admin/competition.php). To
+ * check a target number, the core builds one UNION branch per place of the departure
+ * (createAvailableTargetSQL): 9 999 targets × 8 = 80 000 branches, up to 10 minutes per
+ * archer on a MySQL 8 server. Same value as AUT_BIG_SESSION_PLACES (AUTH health-lib.php).
+ */
+if (!defined('BK_BIG_SESSION_PLACES')) define('BK_BIG_SESSION_PLACES', 5000);
+
 function bk_comp_sessions($tourId)
 {
     $tourId = intval($tourId);

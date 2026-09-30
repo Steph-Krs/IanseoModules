@@ -11,6 +11,7 @@ require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
 require_once(dirname(__DIR__) . '/config-lib.php');
 require_once(dirname(__DIR__) . '/backup-lib.php');
+require_once(dirname(__DIR__) . '/health-lib.php');
 
 checkFullACL(AclRoot, '', AclReadWrite);
 if (!empty($_SESSION['AUTH_ENABLE']) && empty($_SESSION['AUTH_ROOT'])) {
@@ -38,9 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cfg !== null) {
             'dir'               => trim((string) ($_POST['bk_dir'] ?? $d['dir'])),
             'keep_days'         => acf_int($_POST['bk_keep'] ?? '', 1, 3650, $d['keep_days']),
             'files'             => !empty($_POST['bk_files']),
+            'logos'             => !empty($_POST['bk_logos']),
             'required_for_core' => !empty($_POST['bk_required']),
             'remote'            => trim((string) ($_POST['bk_remote'] ?? '')),
             'remote_keep_days'  => acf_int($_POST['bk_rkeep'] ?? '', 1, 3650, $d['remote_keep_days']),
+            'live'              => !empty($_POST['bk_live']),
+            'live_keep_hours'   => acf_int($_POST['bk_lkeep'] ?? '', 6, 720, $d['live_keep_hours']),
         ));
     } elseif ($action === 'save_maint') {
         $new = $cfg;
@@ -117,6 +121,23 @@ echo '<tr><td colspan="2" class="hint">Réglages propres à ce serveur. Les mots
     . 'identifiants des organisateurs. Chaque enregistrement garde la version précédente '
     . '(<code>config.local.json.bak</code>) et est journalisé.</td></tr>';
 
+/* ---------------- Server health ---------------- */
+echo '<tr><th class="Title" colspan="2">État du serveur</th></tr>';
+echo '<tr><td colspan="2" class="hint">Contrôles en lecture seule, tirés d\'incidents réels sur un serveur ianseo en '
+    . 'production (détails : <code>Modules/Custom/AUTH/SERVEUR.md</code>). Rien n\'est modifié ici : les corrections '
+    . 'proposées se font en ligne de commande sur le serveur.</td></tr>';
+$acfIcon = array('ok' => '<span class="ok">✔</span>', 'warn' => '<span class="ko">⚠</span>', 'info' => '<span class="warn">ℹ</span>');
+foreach (aut_health_checks() as $h) {
+    echo '<tr><td class="lbl">' . $acfIcon[$h['level']] . ' ' . acf_h($h['title']) . '</td><td>' . acf_h($h['text']);
+    if ($h['list']) {
+        echo '<ul style="margin:4px 0 0 18px">';
+        foreach ($h['list'] as $x) echo '<li>' . acf_h($x) . '</li>';
+        echo '</ul>';
+    }
+    if ($h['fix'] !== '') echo '<code class="cmd">' . acf_h($h['fix']) . '</code>';
+    echo '</td></tr>';
+}
+
 /* ---------------- Backup ---------------- */
 $fix = '';
 $dirPb = aut_backup_dir_problem($bk['dir'], $fix, false);
@@ -124,9 +145,12 @@ $dump = aut_backup_mysqldump_bin();
 $rcl  = aut_backup_rclone_bin();
 $list = aut_backup_list($bk['dir']);
 
-echo '<tr><th class="Title" colspan="2">Sauvegarde nocturne (base + fichiers)</th></tr>';
-echo '<tr><td colspan="2" class="hint">Prise chaque nuit dans la fenêtre de maintenance, site fermé, juste avant '
-    . 'la mise à jour du cœur ianseo — c\'est elle qui permet de revenir en arrière si une migration se passe mal.</td></tr>';
+echo '<tr><th class="Title" colspan="2">Sauvegardes (nuit + copies à chaud)</th></tr>';
+echo '<tr><td colspan="2" class="hint">La sauvegarde nocturne est prise dans la fenêtre de maintenance, site fermé, juste '
+    . 'avant la mise à jour du cœur ianseo — c\'est elle qui permet de revenir en arrière si une migration se passe mal. '
+    . 'Les copies à chaud (base seule, site ouvert, quelques secondes sans rien bloquer) limitent la perte à quelques '
+    . 'heures de saisie en cas de sinistre ; elles tournent si la tâche <code>/etc/cron.d/ianseo-backup-live</code> est '
+    . 'installée (gabarit <code>serveur/cron/ianseo-backup-live</code>).</td></tr>';
 
 echo '<tr><td class="lbl">État</td><td>';
 echo $dirPb === '' ? '<span class="ok">✔ Dossier utilisable</span>' : '<span class="ko">✘ ' . acf_h($dirPb) . '</span>';
@@ -138,9 +162,13 @@ if ($dirPb === '') {
     if ($free !== false) echo '<br>Espace libre : ' . round($free / 1073741824, 1) . ' Go';
 }
 if ($list) {
-    echo '<br><br><b>Dernières sauvegardes :</b><br>';
-    foreach (array_slice($list, 0, 6) as $b) {
-        echo acf_h(basename($b['file'])) . ' — ' . round($b['size'] / 1048576, 1) . ' Mo<br>';
+    $acfNight = array_values(array_filter($list, function ($b) { return $b['kind'] !== 'live'; }));
+    $acfLive  = array_values(array_filter($list, function ($b) { return $b['kind'] === 'live'; }));
+    foreach (array('Dernières sauvegardes nocturnes' => array_slice($acfNight, 0, 4),
+                   'Dernières copies à chaud' => array_slice($acfLive, 0, 4)) as $acfT => $acfL) {
+        if (!$acfL) continue;
+        echo '<br><br><b>' . $acfT . ' :</b><br>';
+        foreach ($acfL as $b) echo acf_h(basename($b['file'])) . ' — ' . round($b['size'] / 1048576, 1) . ' Mo<br>';
     }
 } elseif ($dirPb === '') {
     echo '<br><br>Aucune sauvegarde pour l\'instant (première à la prochaine nuit).';
@@ -158,6 +186,16 @@ echo '<tr><td class="lbl">Conserver (jours)</td><td><input type="number" name="b
 echo '<tr><td class="lbl">Inclure les fichiers</td><td><label><input type="checkbox" name="bk_files" value="1"'
     . ($bk['files'] ? ' checked' : '') . $dis . '> archive du site ianseo (code + modules), en plus de la base</label>'
     . '<div class="hint">Pour revenir en arrière après une mise à jour, il faut la base ET le code qui va avec.</div></td></tr>';
+echo '<tr><td class="lbl">Inclure les logos des clubs</td><td><label><input type="checkbox" name="bk_logos" value="1"'
+    . ($bk['logos'] ? ' checked' : '') . $dis . '> sauvegarder aussi les logos (tables Flags et AUT_ClubLogos)</label>'
+    . '<div class="hint">Décoché (conseillé) : copie jusqu\'à 14 fois plus légère et plus rapide. Une restauration laisse '
+    . 'les logos en place ; sur un serveur neuf, la synchro des logos les remet pour les compétitions non terminées '
+    . '(<code>cron/sync-logos.php --full</code>).</div></td></tr>';
+echo '<tr><td class="lbl">Copies à chaud</td><td><label><input type="checkbox" name="bk_live" value="1"'
+    . ($bk['live'] ? ' checked' : '') . $dis . '> actives (si la tâche planifiée est installée)</label>, conservées '
+    . '<input type="number" name="bk_lkeep" min="6" max="720" style="width:5em" value="' . intval($bk['live_keep_hours']) . '"' . $dis . '> heures'
+    . '<div class="hint">Décocher suspend les copies à chaud sans toucher au serveur. Elles sont aussi envoyées en ligne si '
+    . 'une copie en ligne est configurée, avec la même durée de conservation.</div></td></tr>';
 echo '<tr><td class="lbl">Mise à jour du cœur</td><td><label><input type="checkbox" name="bk_required" value="1"'
     . ($bk['required_for_core'] ? ' checked' : '') . $dis . '> ne pas mettre ianseo à jour si la sauvegarde a échoué (recommandé)</label></td></tr>';
 echo '<tr><td class="lbl">Copie en ligne (rclone)</td><td><input type="text" name="bk_remote" placeholder="ex. gdrive-chiffre:ianseo" value="'
@@ -217,6 +255,11 @@ foreach (array('on', 'off', 'unlock', 'lock') as $k) {
     echo '<code>' . $k . '</code> : ' . (trim((string) ($mt[$k] ?? '')) !== '' ? '<code>' . acf_h($mt[$k]) . '</code>' : '<i>aucune</i>') . '<br>';
 }
 echo 'Modifiables uniquement en ligne de commande.</td></tr>';
+echo '<tr><td class="lbl">Signal de vie (supervision)</td><td class="hint">'
+    . (trim((string) ($mt['ping_url'] ?? '')) !== '' ? '<code>' . acf_h($mt['ping_url']) . '</code>' : '<i>aucun</i>')
+    . '<br>Adresse appelée à la fin de chaque nuit, et en cas d\'échec d\'une copie (<code>…/fail</code>) — par exemple un '
+    . 'contrôle healthchecks.io, qui prévient aussi quand <b>rien</b> n\'arrive (tâche arrêtée, serveur éteint). '
+    . 'Clé <code>maintenance.ping_url</code>, modifiable uniquement en ligne de commande.</td></tr>';
 echo '<tr><td colspan="2" class="Center"><button type="submit"' . $dis . '>Enregistrer</button></td></tr></table></form><table class="Tabella">';
 
 /* ---------------- Raw editor ---------------- */

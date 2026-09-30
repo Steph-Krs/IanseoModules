@@ -367,6 +367,25 @@ if ($openConf):
 </div>
 <?php endif; ?>
 
+<?php
+// Oversized departures (BK_BIG_SESSION_PLACES): slow for the whole server, whatever the level.
+$bigSes = array();
+foreach ($sessions as $s) {
+    if (intval($s->Places) > BK_BIG_SESSION_PLACES) {
+        $bigSes[] = 'départ ' . intval($s->SesOrder) . ' — ' . intval($s->SesTar4Session) . ' cibles × '
+            . intval($s->SesAth4Target) . ' = ' . number_format(intval($s->Places), 0, ',', ' ') . ' places';
+    }
+}
+if ($bigSes) {
+    echo '<div class="bk-msg" style="background:#fff8e1;border:1px solid #e0a800;color:#5b4300;text-align:left">'
+        . '<b>' . (count($bigSes) > 1 ? 'Départs surdimensionnés' : 'Départ surdimensionné') . '</b> : '
+        . bk_e(implode(' ; ', $bigSes)) . '. Pour contrôler un numéro de cible, ianseo fabrique une requête d\'une '
+        . 'ligne par place du départ : au-delà de quelques milliers de places, ajouter ou déplacer un archer devient '
+        . 'lent pour tout le serveur (jusqu\'à plusieurs minutes par archer). Si ce n\'est pas le besoin réel, '
+        . 'réduisez le nombre de cibles dans <b>Compétition › Départs</b>.</div>';
+}
+?>
+
 <div class="bk-sec">
   <div class="bk-sec-head">
     <h2>Ouverture des inscriptions sur ce serveur</h2>

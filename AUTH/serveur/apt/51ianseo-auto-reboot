@@ -1,0 +1,15 @@
+// /etc/apt/apt.conf.d/51ianseo-auto-reboot — redémarrage automatique, la nuit seulement.
+//
+// Certaines mises à jour (noyau, bibliothèques de base) ne prennent effet qu'au
+// redémarrage. Sans ceci, la machine attend qu'on y pense ; avec, elle redémarre à 04:45 —
+// après l'installation de 04:30 et la maintenance de 03:15, jamais en journée — et
+// UNIQUEMENT quand une mise à jour l'exige. Compter une à deux minutes d'indisponibilité.
+//
+//   sudo install -m 0644 51ianseo-auto-reboot /etc/apt/apt.conf.d/51ianseo-auto-reboot
+//
+// Pour ne jamais redémarrer tout seul : ne pas installer ce fichier, et surveiller
+// /var/run/reboot-required (présent quand un redémarrage est en attente).
+
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+Unattended-Upgrade::Automatic-Reboot-Time "04:45";

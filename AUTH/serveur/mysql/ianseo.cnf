@@ -1,0 +1,26 @@
+# Réglages MariaDB / MySQL d'un serveur ianseo en ligne — voir SERVEUR.md § 6.3.
+#
+#   MariaDB : sudo install -m 0644 ianseo.cnf /etc/mysql/mariadb.conf.d/99-ianseo.cnf
+#   MySQL 8 : sudo install -m 0644 ianseo.cnf /etc/mysql/mysql.conf.d/99-ianseo.cnf
+#   puis    : sudo systemctl restart mariadb     (ou mysql) — hors compétition
+#
+# Multi-comptes › Configuration du serveur › État du serveur indique ce qu'il faut ajuster.
+#
+# ⚠ N'ajoutez PAS « optimizer_switch=derived_condition_pushdown=off » ici : MariaDB ne
+#   connaît pas cette option et refuserait de démarrer. Sous MySQL 8 SEULEMENT, une fois :
+#   sudo mysql -e "SET PERSIST optimizer_switch='derived_condition_pushdown=off';"
+
+[mysqld]
+# ianseo ouvre DEUX connexions par page (lecture + écriture) : au moins 2 × le nombre de
+# processus PHP (Apache MaxRequestWorkers, ou pm.max_children avec PHP-FPM), plus une marge.
+# 320 = 2 × 150 (MaxRequestWorkers de Debian) + 20. Au-delà, la base refuse la connexion et
+# l'utilisateur tombe sur une page d'erreur.
+max_connections         = 320
+
+# Au moins la taille de la base ; jusqu'à 50-70 % de la RAM sur une machine dédiée à ianseo.
+innodb_buffer_pool_size = 1G
+
+# Requêtes de plus de 2 s : c'est ce journal qui désigne la requête en cause quand le
+# serveur ralentit. Fichier : /var/lib/mysql/<nom-du-serveur>-slow.log
+slow_query_log          = 1
+long_query_time         = 2

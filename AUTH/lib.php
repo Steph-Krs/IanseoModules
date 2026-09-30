@@ -1550,6 +1550,7 @@ function aut_admin_only_paths() {
         '/Modules/Help/RepairTables.php',      // REPAIR + OPTIMIZE de toutes les tables
         '/Modules/Help/LoadDebug.php',
         '/RepairXAMPP.php',                    // aria_chk + redémarrage mysqld
+        '/info.php',                           // phpinfo(): versions, paths, and the visitor's own cookies
     );
     foreach ((aut_local_config()['admin_only_paths'] ?? array()) as $p) {
         if (is_string($p) && $p !== '') $paths[] = $p;

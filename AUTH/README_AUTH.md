@@ -42,8 +42,15 @@ des espaces en ligne (le module est prêt à basculer le jour venu).
 
 ### Côté administrateur du serveur
 - 🌙 Maintenance nocturne automatique : mise à jour d'ianseo et des modules, synchronisations
-- 💾 Sauvegarde nocturne de la base et des fichiers, avec copie en ligne facultative
-  (Google Drive, Dropbox, OneDrive, NAS…) — sans sauvegarde valide, ianseo n'est pas mis à jour
+- 💾 Sauvegarde nocturne de la base et des fichiers, plus une copie de la base toutes les
+  6 heures sans rien bloquer, avec copie en ligne chiffrée facultative (Google Drive, Dropbox,
+  OneDrive, NAS…) — sans sauvegarde valide, ianseo n'est pas mis à jour
+- ♻️ Restauration guidée, et vérification d'une copie sans toucher au site
+- 🚨 Alerte à l'administrateur quand la nuit échoue ou ne tourne plus ; signal de vie facultatif
+  vers un service de supervision
+- 🩺 Page **État du serveur** : signale les réglages qui ralentissent ou bloquent un serveur ianseo
+  en ligne (MySQL 8, connexions, mémoire, sessions, taille des imports, départs surdimensionnés…),
+  avec la correction à appliquer
 - ⚙️ Page **Configuration du serveur** : réglages modifiables sans ligne de commande
   (mots de passe jamais affichés ; commandes et chemins réservés à la ligne de commande)
 

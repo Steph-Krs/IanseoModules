@@ -34,7 +34,8 @@
  *       "off":    "sudo /usr/local/bin/ianseo-maintenance-off",
  *       "unlock": "",   ← vides : déverrouillage fait par root dans la ligne cron
  *       "lock":   "",   ← (serveur/cron/ianseo-nightly), jamais en sudo pour www-data
- *       "steps":  { "core": false, "modules": true, "licences": true, "logos": true }
+ *       "steps":  { "core": false, "modules": true, "licences": true, "logos": true },
+ *       "ping_url": ""   ← optional heartbeat (healthchecks.io…), see aut_backup_ping()
  *   },
  *   "backup": { "enabled": true, "dir": "/var/backups/ianseo", "keep_days": 14, … } }
  *   (détail : backup-lib.php ; réglable depuis admin/config.php)
@@ -204,7 +205,8 @@ if (!mt_exec($cfg['on'] ?? '', 'maintenance ON')) {
     // Si l'activation échoue, ne pas enchaîner des MàJ sur un serveur ouvert au public.
     $GLOBALS['MT_ON'] = false;
     mt_log('ARRÊT : impossible d\'activer le mode maintenance — aucune mise à jour lancée.');
-    aut_log('MAINT_FAIL', 'cron', 'cli');
+    aut_log('MAINT_FAIL', 'cron: maintenance ON', 'cli');
+    if (!$dryRun) aut_backup_ping(true);
     exit(1);
 }
 
@@ -364,10 +366,19 @@ if ($doBackup && ($backupOk || $dryRun) && $bkCfg['remote'] !== '') {
 }
 
 $duree = round(microtime(true) - $T0);
+// The failed steps travel in the journal's user column (64 bytes, cut on a character
+// boundary): the administrator banner (menu.php) names them without reading this log.
+// A dry run is not a night: it must not tell the banner that the nightly job works.
 if ($echecs) {
     mt_log('Terminé en ' . $duree . ' s — ÉCHECS : ' . implode(', ', $echecs));
-    aut_log('MAINT_PARTIAL', 'cron', 'cli');
+    if (!$dryRun) {
+        aut_log('MAINT_PARTIAL', mb_strcut('cron: ' . implode(', ', $echecs), 0, 64, 'UTF-8'), 'cli');
+        aut_backup_ping(true);
+    }
     exit(1);
 }
 mt_log('Terminé en ' . $duree . ' s — tout est ok.');
-aut_log('MAINT_OK', 'cron', 'cli');
+if (!$dryRun) {
+    aut_log('MAINT_OK', 'cron', 'cli');
+    aut_backup_ping(false);
+}

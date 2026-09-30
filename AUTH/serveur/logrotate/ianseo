@@ -16,6 +16,17 @@
     create 0640 www-data adm
 }
 
+# Copies à chaud de la base (cron/ianseo-backup-live) : une dizaine de lignes par copie.
+/var/log/ianseo-backup.log {
+    monthly
+    rotate 6
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 www-data adm
+}
+
 # Journal d'authentification lu par fail2ban.
 # ⚠️ « copytruncate » et non « create » : le module garde le fichier ouvert en
 # append ; un simple renommage le ferait écrire dans le fichier tourné, et

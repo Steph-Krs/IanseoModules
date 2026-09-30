@@ -258,14 +258,26 @@ document.addEventListener('DOMContentLoaded', function () {
 // alerte admin (compte ADMIN connecté OU navigation localhost) : fichiers
 // déployés absents ou différents de dist/ (ex. après une MaJ du module/ianseo)
 if ($_aut_on && $_aut_admin) {
+    $_aut_w = array();
     $_aut_st = aut_dist_status();
     if (!$_aut_st['deployed'] || $_aut_st['drift']) {
-        echo '<style>#aut-warn { position:fixed; top:30px; right:8px; z-index:99990; background:#8b1a1a;'
-            . ' color:#fff; font:11px Verdana,Arial,sans-serif; border-radius:4px; padding:4px 12px; }'
-            . ' #aut-warn a { color:#ffd7d7; }</style>'
-            . '<div id="aut-warn">⚠ Fichiers d\'authentification à redéployer — '
-            . '<a href="' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/deploy.php">Déploiement</a></div>';
+        $_aut_w[] = 'Fichiers d\'authentification à redéployer — '
+            . '<a href="' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/deploy.php">Déploiement</a>';
     }
-    unset($_aut_st);
+    // A failed or missing night (backup, updates) must not go unnoticed until the day a
+    // restore is needed. Read-only and guarded (aut_backup_alerts passes $force).
+    require_once(__DIR__ . '/backup-lib.php');
+    foreach (aut_backup_alerts() as $_aut_a) {
+        $_aut_w[] = htmlspecialchars($_aut_a) . ' — <a href="' . $CFG->ROOT_DIR
+            . 'Modules/Custom/AUTH/admin/config.php">Configuration du serveur</a>';
+    }
+    if ($_aut_w) {
+        echo '<style>#aut-warn { position:fixed; top:30px; right:8px; z-index:99990; background:#8b1a1a;'
+            . ' color:#fff; font:11px Verdana,Arial,sans-serif; border-radius:4px; padding:4px 12px;'
+            . ' max-width:560px; line-height:1.5; }'
+            . ' #aut-warn a { color:#ffd7d7; }</style>'
+            . '<div id="aut-warn">⚠ ' . implode('<br>⚠ ', $_aut_w) . '</div>';
+    }
+    unset($_aut_st, $_aut_w, $_aut_a);
 }
 unset($_aut_on, $_aut_logged, $_aut_root, $_aut_admin);

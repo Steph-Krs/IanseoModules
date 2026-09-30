@@ -20,6 +20,15 @@
  *  - binaries (mysqldump, tar, rclone) are looked up, never read from the config:
  *    the config is editable from the web, a binary path there would be a way to run
  *    arbitrary commands from a stolen admin session.
+ *
+ * Club logos are left out of the dumps by default (backup.logos): on the first real
+ * server the logo cache was 59 % of the database and the dump went from 57.6 MB / 11.6 s
+ * to 4.1 MB / 2.6 s without it. They are rebuilt by cron/sync-logos.php. What makes this
+ * safe is how they are left out — see aut_backup_db().
+ *
+ * "Live" copies (cron/backup.php --live, every 6 hours, site open) are database dumps
+ * only. InnoDB + --single-transaction: a consistent snapshot, no table lock, so nothing
+ * waits on them.
  */
 
 /** Default settings. */
@@ -30,9 +39,12 @@ function aut_backup_defaults()
         'dir'               => '/var/backups/ianseo',
         'keep_days'         => 14,
         'files'             => true,
+        'logos'             => false,
         'required_for_core' => true,
         'remote'            => '',
         'remote_keep_days'  => 30,
+        'live'              => true,
+        'live_keep_hours'   => 48,
     );
 }
 
@@ -43,11 +55,14 @@ function aut_backup_config($all = null)
     $c = array_merge(aut_backup_defaults(), is_array($all['backup'] ?? null) ? $all['backup'] : array());
     $c['enabled']           = !empty($c['enabled']);
     $c['files']             = !empty($c['files']);
+    $c['logos']             = !empty($c['logos']);
+    $c['live']              = !empty($c['live']);
     $c['required_for_core'] = !empty($c['required_for_core']);
     $c['dir']               = rtrim(str_replace('\\', '/', trim((string) $c['dir'])), '/');
     $c['remote']            = trim((string) $c['remote']);
     $c['keep_days']         = max(1, min(3650, intval($c['keep_days'])));
     $c['remote_keep_days']  = max(1, min(3650, intval($c['remote_keep_days'])));
+    $c['live_keep_hours']   = max(6, min(720, intval($c['live_keep_hours'])));
     return $c;
 }
 
@@ -124,15 +139,23 @@ function aut_backup_remote_valid($remote)
     return (bool) preg_match('#^[A-Za-z0-9_][A-Za-z0-9_\-.]*:[A-Za-z0-9_\-./ ]*$#', (string) $remote);
 }
 
-/** Backup file name pattern → [kind, timestamp] or null. Only our files match. */
+/**
+ * Backup file name pattern → [kind, timestamp] or null. Only our files match.
+ * Kinds: db + files = the nightly set, live = daytime database copy.
+ */
 function aut_backup_parse_name($name)
 {
-    if (!preg_match('/^ianseo-(db|files)-(\d{8})-(\d{6})\.(sql\.gz|tar\.gz)$/', $name, $m)) return null;
-    // The two groups above are fixed-width runs of ASCII digits, so bytes and
-    // characters are the same thing here and the byte functions are exact.
-    $ts = mktime(intval(substr($m[3], 0, 2)), intval(substr($m[3], 2, 2)), intval(substr($m[3], 4, 2)),
-        intval(substr($m[2], 4, 2)), intval(substr($m[2], 6, 2)), intval(substr($m[2], 0, 4)));
-    return array($m[1], $ts);
+    if (!preg_match('/^ianseo-(db|files|live)-(\d{8})-(\d{6})\.(sql\.gz|tar\.gz)$/', $name, $m)) return null;
+    // The stamp is written in the server's local time (aut_log_time): read it back in the
+    // same zone, or every age (rotation, health page) would be off by one or two hours.
+    static $tz = null;
+    if ($tz === null) {
+        $all = function_exists('aut_local_config') ? aut_local_config() : array();
+        try { $tz = new DateTimeZone((string) ($all['timezone'] ?? 'Europe/Paris')); }
+        catch (\Throwable $e) { $tz = new DateTimeZone('UTC'); }
+    }
+    $d = DateTime::createFromFormat('Ymd His', $m[2] . ' ' . $m[3], $tz);
+    return array($m[1], $d ? $d->getTimestamp() : 0);
 }
 
 /** Existing backups in $dir, newest first: [['file','kind','time','size'], …]. */
@@ -150,9 +173,44 @@ function aut_backup_list($dir)
 }
 
 /**
- * Database dump → $dir/ianseo-db-<stamp>.sql.gz. Returns the path, or false with $err.
+ * Exact names, as stored, of the logo tables present in the database: Flags (the copies
+ * the core prints from, per competition) and AUT_ClubLogos (this module's cache). The
+ * stored name matters: mysqldump matches --ignore-table literally, and a Windows server
+ * may store them in lower case.
  */
-function aut_backup_db($dir, $stamp, &$err, &$log)
+function aut_backup_logo_tables()
+{
+    $out = array();
+    $rs = safe_r_sql("SELECT TABLE_NAME AS t FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'
+          AND TABLE_NAME IN ('Flags', 'AUT_ClubLogos')", false, true);
+    while ($rs && ($r = safe_fetch($rs))) $out[] = $r->t;
+    return $out;
+}
+
+/** Does this dump end with mysqldump's "-- Dump completed" line? A truncated one does not. */
+function aut_backup_dump_complete($file)
+{
+    if (!is_file($file) || filesize($file) === 0) return false;
+    $fh = fopen($file, 'rb');
+    fseek($fh, max(0, filesize($file) - 200));
+    $ok = strpos((string) fread($fh, 200), 'Dump completed') !== false;
+    fclose($fh);
+    return $ok;
+}
+
+/**
+ * Database dump → $dir/ianseo-<kind>-<stamp>.sql.gz. Returns the path, or false with $err.
+ * $kind: 'db' (nightly) or 'live' (daytime copy). $logos: dump the club logos too.
+ *
+ * Without the logos, their tables still appear in the file, as STRUCTURE ONLY and as
+ * "CREATE TABLE IF NOT EXISTS", placed before everything else. So:
+ *  - restoring on this server leaves the logos in place (no DROP, no data for them);
+ *  - restoring on a new server creates the tables empty, and cron/sync-logos.php --full
+ *    fills them again. Leaving the tables out altogether would break ianseo there
+ *    (a missing table is a fatal SQL error).
+ */
+function aut_backup_db($dir, $stamp, &$err, &$log, $kind = 'db', $logos = true)
 {
     global $CFG;
     $err = ''; $log = array();
@@ -170,38 +228,53 @@ function aut_backup_db($dir, $stamp, &$err, &$log)
     @chmod($optFile, 0600);
     file_put_contents($optFile, $opt);
 
-    $part  = $dir . '/.ianseo-db-' . $stamp . '.sql.part';
-    $final = $dir . '/ianseo-db-' . $stamp . '.sql.gz';
-    $cmd = escapeshellarg($bin)
-        . ' --defaults-extra-file=' . escapeshellarg($optFile)
-        . ' --single-transaction --quick --no-tablespaces --default-character-set=utf8mb4'
-        . ' --result-file=' . escapeshellarg($part)
-        . ' ' . escapeshellarg($CFG->DB_NAME) . ' 2>&1';
-    $rc = 1;
-    exec($cmd, $log, $rc);
+    $skip  = $logos ? array() : aut_backup_logo_tables();
+    $base  = escapeshellarg($bin) . ' --defaults-extra-file=' . escapeshellarg($optFile)
+        . ' --single-transaction --quick --no-tablespaces --default-character-set=utf8mb4';
+    $parts = array();
+    $rc    = 0;
+    if ($skip) {
+        $p = $dir . '/.ianseo-' . $kind . '-' . $stamp . '.logos.part';
+        $cmd = $base . ' --no-data --skip-add-drop-table --result-file=' . escapeshellarg($p)
+            . ' ' . escapeshellarg($CFG->DB_NAME);
+        foreach ($skip as $t) $cmd .= ' ' . escapeshellarg($t);
+        exec($cmd . ' 2>&1', $log, $rc);
+        $parts[] = $p;
+    }
+    if ($rc === 0) {
+        $p = $dir . '/.ianseo-' . $kind . '-' . $stamp . '.sql.part';
+        $cmd = $base . ' --result-file=' . escapeshellarg($p);
+        foreach ($skip as $t) $cmd .= ' --ignore-table=' . escapeshellarg($CFG->DB_NAME . '.' . $t);
+        exec($cmd . ' ' . escapeshellarg($CFG->DB_NAME) . ' 2>&1', $log, $rc);
+        $parts[] = $p;
+    }
     @unlink($optFile);
 
-    // mysqldump ends a complete dump with "-- Dump completed": a truncated one does not.
-    $ok = $rc === 0 && is_file($part) && filesize($part) > 0;
-    if ($ok) {
-        $fh = fopen($part, 'rb');
-        fseek($fh, max(0, filesize($part) - 200));
-        $ok = strpos((string) fread($fh, 200), 'Dump completed') !== false;
-        fclose($fh);
-    }
+    $ok = $rc === 0;
+    foreach ($parts as $p) $ok = $ok && aut_backup_dump_complete($p);
     if (!$ok) {
-        @unlink($part);
+        foreach ($parts as $p) @unlink($p);
         $err = 'mysqldump a échoué' . ($rc !== 0 ? " (code $rc)" : ' (dump incomplet)') . '.';
         return false;
     }
 
-    // Streamed compression: the dump may be far bigger than memory_limit.
-    $in = fopen($part, 'rb');
+    // Streamed compression: the dump may be far bigger than memory_limit. The logo tables'
+    // structure comes first, turned into "create only if missing" (see above).
+    $final = $dir . '/ianseo-' . $kind . '-' . $stamp . '.sql.gz';
     $gz = gzopen($final, 'wb6');
-    while (!feof($in)) gzwrite($gz, fread($in, 1048576));
-    fclose($in);
+    foreach ($parts as $i => $p) {
+        $in = fopen($p, 'rb');
+        if ($skip && $i === 0) {
+            while (($line = fgets($in)) !== false) {
+                gzwrite($gz, preg_replace('/^CREATE TABLE(?= `)/', '$0 IF NOT EXISTS', $line));
+            }
+        } else {
+            while (!feof($in)) gzwrite($gz, fread($in, 1048576));
+        }
+        fclose($in);
+        @unlink($p);
+    }
     gzclose($gz);
-    @unlink($part);
     @chmod($final, 0600);
     if (!is_file($final) || filesize($final) === 0) { $err = 'Compression du dump impossible.'; return false; }
     return $final;
@@ -238,20 +311,52 @@ function aut_backup_files($dir, $stamp, &$err, &$log)
 }
 
 /**
- * Deletes local backups older than $days. The newest backup of each kind is always
- * kept, whatever its age: if the nightly job stopped for a month, the last good copy
- * must not disappear with the others.
+ * Deletes local backups older than $days (live copies: older than $liveHours). The newest
+ * backup of each kind is always kept, whatever its age: if the nightly job stopped for a
+ * month, the last good copy must not disappear with the others.
  */
-function aut_backup_rotate($dir, $days)
+function aut_backup_rotate($dir, $days, $liveHours = 48)
 {
     $removed = array();
-    $limit = time() - $days * 86400;
     $seen = array();
     foreach (aut_backup_list($dir) as $b) {
         if (empty($seen[$b['kind']])) { $seen[$b['kind']] = true; continue; }
+        $limit = time() - ($b['kind'] === 'live' ? $liveHours * 3600 : $days * 86400);
         if ($b['time'] < $limit && @unlink($b['file'])) $removed[] = basename($b['file']);
     }
     return $removed;
+}
+
+/**
+ * Named lock (cron/.<name>.lock), held until the process ends. Non-blocking: false when
+ * another process holds it. "backup" = one dump at a time; "upload" = one off-site copy
+ * at a time (a slow uplink must never stack uploads).
+ */
+function aut_backup_lock($name)
+{
+    static $held = array();
+    if (isset($held[$name])) return true;
+    $fh = @fopen(__DIR__ . '/cron/.' . $name . '.lock', 'c');
+    if (!$fh || !flock($fh, LOCK_EX | LOCK_NB)) {
+        if ($fh) fclose($fh);
+        return false;
+    }
+    $held[$name] = $fh;
+    return true;
+}
+
+/**
+ * Is the nightly maintenance window running (or a restore, which holds the same lock)?
+ * Only tests the lock, never keeps it: holding it would stop the night from starting.
+ */
+function aut_backup_night_running()
+{
+    $fh = @fopen(__DIR__ . '/cron/.maintenance.lock', 'c');
+    if (!$fh) return false;
+    $free = flock($fh, LOCK_SH | LOCK_NB);
+    if ($free) flock($fh, LOCK_UN);
+    fclose($fh);
+    return !$free;
 }
 
 /** Runs rclone with the given arguments (already escaped). Returns the exit code. */
@@ -282,14 +387,19 @@ function aut_backup_remote_test($remote, &$out)
 
 /**
  * Uploads the given local backup files to the rclone destination, then prunes the
- * remote. Returns 'off' (no destination configured), 'ok' or 'fail'.
+ * remote. Returns 'off' (no destination configured), 'ok', 'busy' (another upload is
+ * still running) or 'fail'.
  */
-function aut_backup_upload($c, $files, $say)
+function aut_backup_upload($c, $files, $say, $live = false)
 {
     if ($c['remote'] === '') return 'off';
     if (!aut_backup_remote_valid($c['remote'])) {
         $say('ÉCHEC copie en ligne : destination invalide « ' . $c['remote'] . ' ».');
         return 'fail';
+    }
+    if (!aut_backup_lock('upload')) {
+        $say('Copie en ligne non lancée : un envoi précédent est encore en cours (la copie locale est faite).');
+        return 'busy';
     }
     $dest = escapeshellarg($c['remote']);
     $ok = true;
@@ -301,21 +411,27 @@ function aut_backup_upload($c, $files, $say)
     }
     if (!$ok) return 'fail';
     $say('Copie en ligne : ok → ' . $c['remote']);
-    // Prune only after tonight's copy succeeded: the remote is never left empty.
+    // Prune only after this copy succeeded: the remote is never left empty. Deleted for
+    // good: on Google Drive a plain delete only moves to the bin, which still counts
+    // against the quota (and with encrypted names, nobody can tell the files apart there).
+    // The flag is ignored by every other kind of storage.
+    $inc = $live
+        ? ' --min-age ' . $c['live_keep_hours'] . 'h --include ' . escapeshellarg('ianseo-live-*.sql.gz')
+        : ' --min-age ' . $c['remote_keep_days'] . 'd --include ' . escapeshellarg('ianseo-db-*.sql.gz')
+          . ' --include ' . escapeshellarg('ianseo-files-*.tar.gz');
     $out = array();
-    aut_backup_rclone('delete ' . $dest . ' --min-age ' . $c['remote_keep_days'] . 'd'
-        . ' --include ' . escapeshellarg('ianseo-db-*.sql.gz')
-        . ' --include ' . escapeshellarg('ianseo-files-*.tar.gz'), $out);
+    aut_backup_rclone('delete ' . $dest . ' --drive-use-trash=false' . $inc, $out);
     foreach ($out as $l) $say('  | ' . $l);
-    $say('Rotation en ligne (' . $c['remote_keep_days'] . ' j) : faite.');
+    $say('Rotation en ligne (' . ($live ? $c['live_keep_hours'] . ' h' : $c['remote_keep_days'] . ' j') . ') : faite.');
     return 'ok';
 }
 
-/** Newest local backup set (one db dump, plus the files archive of the same run). */
+/** Newest local NIGHTLY set (one db dump, plus the files archive of the same run). */
 function aut_backup_latest_set($dir)
 {
     $set = array(); $stamp = null;
     foreach (aut_backup_list($dir) as $b) {
+        if ($b['kind'] === 'live') continue;
         $s = date('YmdHis', $b['time']);
         if ($stamp === null) $stamp = $s;
         if ($s !== $stamp) break;
@@ -330,15 +446,28 @@ function aut_backup_latest_set($dir)
  *   'local'  — local backup only (inside the maintenance window, site closed);
  *   'upload' — off-site copy of the newest local set only (after the site reopened:
  *              a slow uplink took 17 min for 125 MB on the first real server, and the
- *              site does not need to stay closed for that).
- * Returns ['local_ok' => bool, 'remote' => 'off'|'ok'|'fail'|'skip', 'files' => [paths]].
- * 'local_ok' is what the core update depends on.
+ *              site does not need to stay closed for that);
+ *   'live'   — daytime database copy, site open, then its off-site copy (cron every
+ *              6 hours). Skipped while the nightly window or a restore runs.
+ * Returns ['local_ok' => bool, 'remote' => 'off'|'ok'|'busy'|'fail'|'skip',
+ * 'files' => [paths], 'skipped' => bool]. 'local_ok' is what the core update depends on.
  */
 function aut_backup_run($say, $mode = 'all')
 {
     $c = aut_backup_config();
-    $res = array('local_ok' => false, 'remote' => 'skip', 'files' => array());
+    $res = array('local_ok' => false, 'remote' => 'skip', 'files' => array(), 'skipped' => false);
     if (!$c['enabled']) { $say('Sauvegarde désactivée (config.local.json → backup.enabled).'); return $res; }
+
+    if ($mode === 'live') {
+        $why = !$c['live'] ? 'copies à chaud désactivées (backup.live)'
+            : (aut_backup_night_running() ? 'maintenance nocturne ou restauration en cours' : '');
+        if ($why !== '') { $say('Copie à chaud non lancée : ' . $why . '.'); $res['skipped'] = true; return $res; }
+    }
+    if ($mode !== 'upload' && !aut_backup_lock('backup')) {
+        $say('Sauvegarde non lancée : une autre sauvegarde est en cours.');
+        $res['skipped'] = ($mode === 'live');
+        return $res;
+    }
 
     if ($mode === 'upload') {
         $res['files'] = aut_backup_latest_set($c['dir']);
@@ -370,13 +499,16 @@ function aut_backup_run($say, $mode = 'all')
     $stamp = function_exists('aut_log_time') ? aut_log_time('Ymd-His') : date('Ymd-His');
     $err = ''; $log = array();
 
-    $db = aut_backup_db($c['dir'], $stamp, $err, $log);
+    $live = ($mode === 'live');
+    $t0 = microtime(true);
+    $db = aut_backup_db($c['dir'], $stamp, $err, $log, $live ? 'live' : 'db', $c['logos']);
     foreach ($log as $l) $say('  | ' . $l);
     if (!$db) { $say('ÉCHEC base : ' . $err); return $res; }
-    $say('Base : ' . basename($db) . ' (' . round(filesize($db) / 1048576, 1) . ' Mo)');
+    $say('Base : ' . basename($db) . ' (' . round(filesize($db) / 1048576, 1) . ' Mo, '
+        . round(microtime(true) - $t0, 1) . ' s' . ($c['logos'] ? '' : ', sans les logos') . ')');
     $res['files'][] = $db;
 
-    if ($c['files']) {
+    if ($c['files'] && !$live) {
         $fa = aut_backup_files($c['dir'], $stamp, $err, $log);
         foreach ($log as $l) $say('  | ' . $l);
         if (!$fa) { $say('ÉCHEC fichiers : ' . $err); return $res; }
@@ -385,9 +517,83 @@ function aut_backup_run($say, $mode = 'all')
     }
     $res['local_ok'] = true;
 
-    $gone = aut_backup_rotate($c['dir'], $c['keep_days']);
-    $say('Rotation locale (' . $c['keep_days'] . ' j) : ' . ($gone ? count($gone) . ' ancienne(s) copie(s) supprimée(s)' : 'rien à supprimer'));
+    $gone = aut_backup_rotate($c['dir'], $c['keep_days'], $c['live_keep_hours']);
+    $say('Rotation locale (' . $c['keep_days'] . ' j, copies à chaud ' . $c['live_keep_hours'] . ' h) : '
+        . ($gone ? count($gone) . ' ancienne(s) copie(s) supprimée(s)' : 'rien à supprimer'));
 
-    if ($mode === 'all') $res['remote'] = aut_backup_upload($c, $res['files'], $say);
+    if ($mode === 'all' || $live) $res['remote'] = aut_backup_upload($c, $res['files'], $say, $live);
     return $res;
+}
+
+/**
+ * Optional heartbeat to a monitoring service (healthchecks.io or alike):
+ * config.local.json → maintenance.ping_url, set on the command line only (a URL: locked
+ * in the web editor). The nightly run pings its verdict; a failed off-site copy or live
+ * copy pings a failure. The service raises the alarm on a failure AND when no ping comes
+ * at all — a stopped cron or a dead server, which nothing on the server itself can report.
+ */
+function aut_backup_ping($fail = false)
+{
+    $all = function_exists('aut_local_config') ? aut_local_config() : array();
+    $url = trim((string) (($all['maintenance'] ?? array())['ping_url'] ?? ''));
+    if ($url === '' || !preg_match('#^https://[^\s"\'<>]+$#i', $url)) return false;
+    if ($fail) $url = rtrim($url, '/') . '/fail';
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, array(CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10,
+            CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_FOLLOWLOCATION => false));
+        $ok = curl_exec($ch) !== false && curl_getinfo($ch, CURLINFO_HTTP_CODE) < 400;
+        curl_close($ch);
+        return $ok;
+    }
+    return @file_get_contents($url, false, stream_context_create(array('http' => array('timeout' => 10)))) !== false;
+}
+
+/**
+ * Problems of the recent nights and live copies, for the administrator banner (menu.php):
+ * short sentences, [] when all is well. Silent on a machine without the nightly job
+ * (maintenance.on empty: development, fresh install). Never fatal: $force on the query.
+ * The events are written by the command-line scripts, whose MySQL session is in UTC —
+ * hence UTC_TIMESTAMP() for their age.
+ */
+function aut_backup_alerts($all = null)
+{
+    if ($all === null) $all = function_exists('aut_local_config') ? aut_local_config() : array();
+    if (trim((string) (($all['maintenance'] ?? array())['on'] ?? '')) === '') return array();
+    $rs = safe_r_sql("SELECT AlEvent, AlUser, AlWhen, TIMESTAMPDIFF(HOUR, AlWhen, UTC_TIMESTAMP()) AS Age
+        FROM AUT_Log
+        WHERE AlWhen > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 3 DAY)
+          AND AlEvent IN ('MAINT_OK', 'MAINT_PARTIAL', 'MAINT_FAIL', 'BACKUP_REMOTE_OK',
+                          'BACKUP_REMOTE_FAIL', 'BACKUP_LIVE_OK', 'BACKUP_LIVE_FAIL')
+        ORDER BY AlId DESC LIMIT 60", false, true);
+    $last = array();   // newest event of each family
+    while ($rs && ($r = safe_fetch($rs))) {
+        $family = strpos($r->AlEvent, 'MAINT_') === 0 ? 'night'
+            : (strpos($r->AlEvent, 'BACKUP_LIVE_') === 0 ? 'live' : 'remote');
+        if (!isset($last[$family])) $last[$family] = $r;
+    }
+    try { $tz = new DateTimeZone((string) ($all['timezone'] ?? 'Europe/Paris')); }
+    catch (\Throwable $e) { $tz = new DateTimeZone('Europe/Paris'); }
+    $at = function ($r) use ($tz) {
+        return (new DateTime($r->AlWhen, new DateTimeZone('UTC')))->setTimezone($tz)->format('d/m à H:i');
+    };
+
+    $out = array();
+    $m = $last['night'] ?? null;
+    if (!$m || $m->Age > 30) {
+        $out[] = 'Aucune maintenance nocturne depuis ' . ($m ? 'le ' . $at($m) : 'plus de 3 jours')
+            . ' : tâche planifiée arrêtée ? Pas de sauvegarde nocturne tant qu\'elle ne tourne pas.';
+    } elseif ($m->AlEvent !== 'MAINT_OK') {
+        $what = trim(preg_replace('/^cron:?/', '', (string) $m->AlUser));
+        $out[] = 'Maintenance de la nuit (' . $at($m) . ') : échec' . ($what !== '' ? ' — ' . $what : '') . '.';
+    }
+    $r = $last['remote'] ?? null;
+    if ($r && $r->AlEvent === 'BACKUP_REMOTE_FAIL' && $r->Age <= 30) {
+        $out[] = 'Copie en ligne des sauvegardes (' . $at($r) . ') : échec.';
+    }
+    $r = $last['live'] ?? null;
+    if ($r && $r->AlEvent === 'BACKUP_LIVE_FAIL' && $r->Age <= 12) {
+        $out[] = 'Copie à chaud de la base (' . $at($r) . ') : échec.';
+    }
+    return $out;
 }

@@ -1,0 +1,19 @@
+# /etc/cron.d/ianseo-backup-live — copies « à chaud » de la base, site ouvert.
+#
+# root:root, chmod 0644. Mêmes pièges que ianseo-nightly : nom de fichier SANS point,
+# SAUT DE LIGNE final obligatoire, champ UTILISATEUR (7 champs).
+#
+# Avec la sauvegarde nocturne de 03:15, une copie toutes les 6 heures : 09:05, 15:05, 21:05.
+# Base seule, sans les logos (réglage par défaut) : sur le premier serveur, 2,6 s et 4,1 Mo.
+# --single-transaction sur des tables InnoDB : aucune table verrouillée, aucune page du
+# site n'attend la copie ; « nice » lui laisse la priorité sur le processeur.
+# La copie se saute d'elle-même pendant la fenêtre de maintenance ou une restauration.
+# Envoyée en ligne si une copie en ligne est configurée (même destination que la nuit).
+#
+# Suspendre sans toucher au serveur : Multi-comptes › Configuration du serveur › Copies à chaud.
+# Journal : /var/log/ianseo-backup.log (à créer une fois, voir serveur/README.md).
+
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+5 9,15,21 * * * www-data nice -n 10 /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/backup.php --live >> /var/log/ianseo-backup.log 2>&1
