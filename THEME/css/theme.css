@@ -1,0 +1,16 @@
+/*
+ * Colours the core writes as fixed values where its own variables were meant,
+ * so that they follow the palette. Loaded for every palette other than ianseo's
+ * blue and in dark mode; the values only restate, in variables, what the core
+ * draws in blue.
+ */
+
+/* Common/Styles/Menu.css */
+#navigation ul li a:hover,
+#navigation a.submenu:hover { background-color: var(--bg-cell-header); }
+#navigation ul ul,
+#navigation ul ul li:hover > ul { background-color: var(--header-light); }
+
+/* Common/Styles/Blue_screen.css */
+.Button { border-color: var(--header-dark); border-top-color: var(--input-border); border-left-color: var(--input-border); }
+.Button:focus { border-color: var(--header-dark); border-bottom-color: var(--input-border); border-right-color: var(--input-border); }

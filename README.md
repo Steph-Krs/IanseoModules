@@ -56,6 +56,10 @@ Modules pour le projet I@nseo :
   planifiée du serveur, changements d'heure gérés, mêmes listes que la page d'envoi du cœur, mode
   simulation, historique, et surveillance extérieure (healthchecks.io) qui prévient quand les
   envois s'arrêtent.
+- [Thème](THEME/README_THEME_FR.md) — Mode sombre (automatique, clair ou sombre) et huit couleurs
+  pour distinguer ses installations d'un coup d'œil, chaque couleur en version claire et sombre.
+  Réglage propre à chaque navigateur, impressions inchangées, aucune modification du cœur. Aucune
+  table.
 
 ## Installation automatique (Mac / Linux)
 

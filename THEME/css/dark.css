@@ -1,0 +1,289 @@
+/*
+ * Dark mode.
+ *
+ * The palette's dark variables are sent next to this file (lib/palettes.php):
+ * here are the colours every palette shares, and the rules of the core whose
+ * colours are not variables. Each section names the core file it answers, so
+ * that a rule can be dropped the day the core moves that colour to a variable.
+ *
+ * Status colours keep their hue (green = may shoot, yellow = incomplete, red =
+ * error...) at a lightness that carries light text.
+ */
+
+:root {
+    color-scheme: dark;
+
+    --black: #E3E6EA;
+    --text-white: #15181C;
+
+    --text-primary: #6EA8FE;
+    --text-primary-hover: #9EC5FE;
+    --text-secondary: #A7ACB1;
+    --text-secondary-hover: #C4C8CB;
+    --text-success: #75B798;
+    --text-success-hover: #A3CFBB;
+    --text-info: #6EDFF6;
+    --text-info-hover: #9EEAF9;
+    --text-warning: #FFDA6A;
+    --text-warning-hover: #FFE69C;
+    --text-danger: #EA868F;
+    --text-danger-hover: #F1AEB5;
+    --text-light: #F8F9FA;
+    --text-light-hover: #DAE0E5;
+    --text-dark: #DEE2E6;
+    --text-dark-hover: #F8F9FA;
+    --text-muted: #9AA0A6;
+
+    --bg-green: #1F4A2A;
+    --bg-yellow: #3F3B1F;
+    --bg-pink: #4A2352;
+    --bg-orange: #5C3D0A;
+    --dark-red: #7A1F1F;
+    --light-red: #5A2327;
+    --light-pink: #5A3A22;
+    --light-grey: #33373C;
+    --dark-grey: #50555C;
+}
+
+/* Common/Styles/Blue_screen.css: --header-dark is the title bar colour, and the
+   core also uses it as the text of ordinary rows */
+table.Tabella tr,
+table.Tabella tr.OtherColor,
+table.Tabella tr.CanShoot,
+table.Tabella tr.CouldShoot,
+table.Tabella tr.UnknownShoot,
+table.Tabella .NoShoot,
+table.Tabella tr.Dsq,
+table.Tabella td.TargetOk,
+table.Tabella td.TargetNoComplete,
+table.Tabella td.TargetKo,
+table.Missing th.Title,
+table.Tabella th,
+table.Tabella td.Caption,
+table.Tabella2 th,
+table.Griglia th { color: var(--thm-text); }
+table.Tabella th.TitleNeg { background-color: var(--bg-cell-header); color: var(--thm-text); }
+table.Tabella tr.OtherColor { background-color: var(--header-light); }
+a { color: var(--thm-link); }
+
+/* --text-white is both a background (fields, white cells) and a text colour */
+.text-white { color: #FFFFFF !important; }
+.LinkRevert { color: #FFFFFF; }
+
+input[disabled],
+select[disabled] { background: #262A2F !important; color: #8E949A; }
+input.unsaved { background-color: #3A2A33; }
+.blue { background-color: #1B6A87; }
+.green { background-color: #2D6127; }
+.rowHover:hover { background-color: #2D5A24 !important; }
+.rowHover:hover input,
+.rowHover:hover select { background-color: #243D1F !important; }
+
+table.Content { border-color: var(--input-border); }
+table.Griglia td.Top,
+table.Griglia td.Bottom,
+table.Griglia td.Right,
+table.Griglia td.Left { border-color: var(--input-border); }
+table.Griglia td.wTop,
+table.Griglia td.wBottom,
+table.Griglia td.wRight,
+table.Griglia td.wLeft { border-color: var(--text-white); }
+
+.alert-warning { background-color: #4A3B10; border-color: #8A6D1F; }
+.alert-danger { background-color: #4A1F26; border-color: #9A3B4B; }
+.alert-success { background-color: #1F3D27; border-color: #3E7A4E; }
+.alert-info { background-color: #0E4F5C; border-color: #1C7E91; }
+.WhatIanseoDoes { background-color: rgba(255, 255, 255, .05); border-color: var(--table-background); }
+#NoAccess { color: #F1AEB5; background: #3A1C20; border-color: #7A2E38; }
+.modal { background-color: rgba(0, 0, 0, .6); }
+
+/* Common/Styles/Menu.css */
+#navigation { background-color: var(--row-background); }
+#navigation ul ul,
+#navigation ul ul ul { border-color: var(--table-background); box-shadow: rgba(0, 0, 0, .6) 0 3px 6px; }
+
+/* Common/css/jquery-confirm.min.css: the dialog boxes */
+.jconfirm .jconfirm-box,
+.jconfirm .jconfirm-box.loading:before { background: var(--row-background) !important; color: var(--black); }
+.jconfirm .jconfirm-bg { background-color: #000000 !important; }
+.jconfirm .jconfirm-box .jconfirm-buttons button.btn-default { background-color: var(--bg-cell-header) !important; color: var(--black) !important; }
+
+/* Modules/Speaker/speaker.css */
+.Speaker th { border-color: var(--header-light); }
+.Tabella .read-row { background-color: #3A3F45; }
+.Tabella .finished-now-col { background-color: #5A2D5A; }
+.Tabella .shootoff-now-col { background-color: #24452A; }
+.Tabella .Update0 { background-color: #8B1D1D; }
+.Tabella .Update1 { background-color: #6E6000; }
+.Tabella .Update2,
+.newData { background-color: #1F6B1F; }
+#tbody tr:hover { background-color: #5C4A00; }
+
+/*
+ * Stylesheets of single screens. Each light background gets its dark twin of
+ * the same hue; a text colour the core sets dark becomes light.
+ */
+
+/* Qualification/index.css */
+.btn { background-color: var(--text-white); color: var(--black); }
+.Irm-5 td, .Irm-5 td .btn { background-color: #324932; }
+.Irm-7 td, .Irm-7 td .btn { background-color: #4C4033; }
+.Irm-10 td, .Irm-10 td .btn { background-color: #48422F; }
+.Irm-15 td, .Irm-15 td .btn { background-color: #613524; }
+.Irm-20 td, .Irm-20 td .btn { background-color: #58383D; }
+
+/* Final/PhaseDetails.css, Modules/RoundRobin/RoundRobin.css */
+.opp-badge1, .opp-badge2 { background-color: #343637; color: var(--black); }
+.opp-badge1.active { background-color: #244D21; color: var(--black); }
+.opp-multimatch { background-color: var(--text-white); }
+.inactive { background-color: #343637; }
+.tab { background-color: var(--text-white); color: var(--black); }
+.danger { background-color: #5C3637; }
+.success { background-color: #334A25; }
+.warning { background-color: #464421; }
+
+/* Final/Spotting.css, Modules/RoundRobin/Spotting.css */
+.OpponentL { background-color: #054D4D; }
+.OpponentR { background-color: #464503; }
+#Spotting input[type="text"]:read-only { background-color: #343637; }
+.Live { background-color: #464507; }
+.Confirmed th { background-color: #244D21 !important; }
+.ActiveArrow { background-color: #682E2A; }
+.ActiveArrow input { background-color: #5F3434; }
+
+/* Final/Individual/AbsIndividual.css, Final/Team/ChangeComponents.css, Modules/RoundRobin/AbsRobin.css */
+.hover { background-color: #464600 !important; }
+.toSave { background-color: #623604; }
+
+/* Final/Viewer/index.css */
+.whiteBg { background-color: var(--text-white); }
+.winner { background-color: #334838; }
+
+/* Participants/index.css, Final/PhaseDetails.css */
+.updated { background-color: #224E23; }
+#PhotoFrame { background-color: #25475B; }
+
+/* Modules/Barcodes/barcode.css */
+.selected td { background-color: #343637; }
+.matchHighlight div.Score { background-color: var(--text-white); color: var(--black); }
+.matchHighlight div.warning { background-color: #523F16; }
+
+/* Modules/DragDropTarget/Qualification/qualification.css */
+.qp-search-wrap input[type="text"] { background-color: var(--text-white); }
+#qpSearchClear:hover { background-color: #4D3E3E; }
+.qp-cible-subtitle { color: var(--black); }
+.qp-bg-warning { color: var(--black); }
+.qp-blasons-row { background-color: #464236; }
+.qp-picker-item:not(.affected) .qp-src-card { background-color: #444339; color: var(--black); }
+/* One pastel per club (class bgstru<id>, written by the page): kept, since it tells the clubs apart */
+.disptrg[class*="bgstru"],
+.dispsrc[class*="bgstru"] { color: #111111; }
+.qp-unassigned-header { background-color: #474231 !important; color: var(--black); }
+.qp-unassigned-header:hover { background-color: #4D411E !important; }
+.pbr-print-table th { background-color: #343637; }
+
+/* Modules/Sets/FR/Manage/index.css */
+.itemOK { background-color: #264D27; }
+.itemKO { background-color: #5C3636; }
+
+/* Scheduler/Scheduler.css */
+.SchedDay div { background-color: #343637; }
+#TrueScheduler th.SchDay { background-color: #343637; }
+.active td { background-color: #2C4B2D; }
+
+/*
+ * Common/Styles/ext-2.2/css/ext-all.css: the ExtJS widgets of Partecipants-exp/.
+ * Their surfaces are white or light gradient images; images are dropped for
+ * plain colours, and the small image buttons (combo triggers, header menus) are
+ * turned dark with a filter.
+ */
+.x-panel, .x-panel-body, .x-grid-panel .x-panel-mc .x-panel-body,
+.x-panel-tbar .x-toolbar, .x-panel-bbar .x-toolbar { border-color: var(--table-background); }
+.x-panel-header { background: var(--header-dark); color: var(--row-main-text); border-color: var(--table-background); }
+.x-panel-body, .x-panel-mc, .x-panel-ml, .x-border-layout-ct,
+.x-grid3, .x-grid3-scroller { background: var(--header-light); }
+.x-toolbar { background: var(--bg-cell-header); border-color: var(--table-background); color: var(--black); }
+.x-btn button { color: var(--black); }
+.x-btn-left, .x-btn-center, .x-btn-right { background: var(--bg-cell-header); }
+.x-toolbar .x-btn-over .x-btn-left, .x-toolbar .x-btn-over .x-btn-center, .x-toolbar .x-btn-over .x-btn-right,
+.x-toolbar .x-btn-click .x-btn-left, .x-toolbar .x-btn-click .x-btn-center, .x-toolbar .x-btn-click .x-btn-right,
+.x-toolbar .x-btn-pressed .x-btn-left, .x-toolbar .x-btn-pressed .x-btn-center, .x-toolbar .x-btn-pressed .x-btn-right,
+.x-toolbar .x-btn-menu-active .x-btn-left, .x-toolbar .x-btn-menu-active .x-btn-center,
+.x-toolbar .x-btn-menu-active .x-btn-right { background: var(--table-background); }
+
+.x-grid3-header { background: var(--bg-cell-header); }
+.x-grid3-hd-row td { border-left-color: var(--header-light); border-right-color: var(--table-background); }
+.x-grid3-hd-inner, .x-grid3-hd-text { color: var(--thm-text); }
+td.x-grid3-hd-over .x-grid3-hd-inner, td.sort-desc .x-grid3-hd-inner,
+td.sort-asc .x-grid3-hd-inner, td.x-grid3-hd-menu-open .x-grid3-hd-inner { background: var(--table-background); }
+.x-grid3-hd-btn, .x-form-field-wrap .x-form-trigger { filter: invert(.88) hue-rotate(180deg); }
+.x-grid3-row { background-color: var(--row-background); border-color: var(--header-light); color: var(--black); }
+.x-grid3-row-alt { background-color: var(--header-light); }
+.x-grid3-row-over { background: var(--bg-cell-header); border-color: var(--table-background); }
+.x-grid3-row-selected { background: var(--header-dark) !important; border-color: var(--input-border); color: var(--row-main-text); }
+.x-grid3-cell-selected { background-color: var(--header-dark) !important; color: var(--row-main-text); }
+.x-grid3-cell-selected span,
+.x-grid3-cell-selected .x-grid3-cell-text { color: var(--row-main-text) !important; }
+.x-grid3-cell-text { color: var(--black); }
+.x-grid3-body .x-grid3-td-numberer, .x-grid3-body .x-grid3-td-checker,
+.x-grid3-body .x-grid3-td-expander { background-image: none; }
+.x-grid3-body .x-grid3-td-numberer .x-grid3-cell-inner { color: var(--text-muted); }
+
+.x-form-text, textarea.x-form-field { background: var(--text-white); border-color: var(--input-border); color: var(--black); }
+.x-combo-list, .x-combo-list-inner { background: var(--row-background); border-color: var(--input-border); }
+.x-combo-list-hd { background: var(--bg-cell-header); color: var(--thm-text); }
+.x-combo-list-item { border-color: var(--row-background); color: var(--black); }
+.x-combo-list .x-combo-selected { background: var(--bg-cell-header); border-color: var(--input-border) !important; }
+.x-menu, .x-menu-plain { background: var(--row-background) !important; border-color: var(--input-border); }
+.x-menu a.x-menu-item, .x-menu-item-active a.x-menu-item { color: var(--black); }
+.x-menu-item-active { background: var(--bg-cell-header); border-color: var(--input-border); }
+.x-menu-sep { background-color: var(--table-background); }
+
+.x-window-tl, .x-window-tc, .x-window-tr { background: var(--header-dark); }
+.x-window-tl .x-window-header { color: var(--row-main-text); }
+.x-window-ml, .x-window-mr, .x-window-bl, .x-window-bc, .x-window-br { background: var(--table-background); }
+.x-window-mc, .x-window-plain .x-window-mc { background: var(--row-background); border-color: var(--table-background); }
+.ext-el-mask { background-color: #000000; }
+.ext-el-mask-msg { background: var(--table-background); border-color: var(--input-border); }
+.ext-el-mask-msg div { background: var(--row-background); border-color: var(--input-border); color: var(--black); }
+
+/* Partecipants-exp/css/partecipants.css: the coloured column groups keep their hue */
+.x-grid3-col { border-left-color: var(--header-light); border-right-color: var(--table-background); }
+#photo-manager, #events-access { background-color: var(--text-white); }
+.x-grid3-hd-colCtrlCode, .x-grid3-hd-colGender, #btnHideColsGroup_0 { background-color: #275424; }
+.x-grid3-hd-colSubTeam, .x-grid3-hd-colCountryCode2, .x-grid3-hd-colCountryName2, #btnHideColsGroup_1 { background-color: #70322A; }
+.x-grid3-hd-colDiv, .x-grid3-hd-colAgeClass, .x-grid3-hd-colClass, .x-grid3-hd-colSubClass, #btnHideColsGroup_2 { background-color: #035065; }
+.x-grid3-hd-colCountryCode3, .x-grid3-hd-colCountryName3, #btnHideColsGroup_3 { background-color: #474C00; }
+
+/* Scheduler/Scheduler.css, Accreditation/IdCardEdit.css, Update/index.css, Common/Styles/Biographies.css */
+.detached,
+#DialogUpdate,
+tr.odd { background-color: var(--text-white); }
+
+/*
+ * Safety net for colours written straight into the HTML or set by a script,
+ * which no stylesheet can recolour: a light background keeps its colour, since
+ * it carries a meaning, and gets dark text so that it stays readable; black
+ * text becomes light. Scripts write "background-color: yellow" or
+ * "rgb(255, 255, 160)", pages write the colour as they please, hence the
+ * spellings. The light background rules come last: when an element sets both,
+ * the dark text must win.
+ */
+[style*="color:black" i], [style*="color: black" i],
+[style*="color:#000" i], [style*="color: #000" i],
+[style*="color: rgb(0, 0, 0)" i],
+[style*="color:navy" i], [style*="color:darkblue" i] { color: var(--black) !important; }
+
+[bgcolor],
+[style*="background:white" i], [style*="background: white" i],
+[style*="background-color:white" i], [style*="background-color: white" i],
+[style*="background:#f" i], [style*="background: #f" i],
+[style*="background-color:#f" i], [style*="background-color: #f" i],
+[style*="background:#e" i], [style*="background: #e" i],
+[style*="background-color:#e" i], [style*="background-color: #e" i],
+[style*="background-color:#d" i], [style*="background-color: #d" i],
+[style*="background-color: rgb(2" i], [style*="background: rgb(2" i],
+[style*="background-color:yellow" i], [style*="background-color: yellow" i],
+[style*="background-color:light" i], [style*="background-color: light" i],
+[style*="background-color:pink" i], [style*="background-color: pink" i],
+[style*="background:cornsilk" i], [style*="background: cornsilk" i] { color: #111111 !important; }

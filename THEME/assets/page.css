@@ -1,0 +1,33 @@
+/* Page of the theme module. Built on the core's colour variables, so the page
+   itself follows the mode and the palette it offers. */
+
+#thm { max-width: 60em; margin: 0 auto; padding: 0.5em 1em 2em; }
+#thm h1 { color: var(--main-text); font-size: 180%; margin: 0.3em 0 0.6em; }
+#thm h2 { color: var(--main-text); font-size: 130%; margin: 1.6em 0 0.5em; border-bottom: 1px solid var(--table-background); padding-bottom: 0.2em; }
+#thm .thm-lead { font-size: 115%; }
+#thm .thm-hint { color: var(--text-muted); }
+#thm .thm-note { padding: 0.6em 0.8em; border-left: 4px solid var(--border-dark); background: var(--row-background); }
+#thm .thm-msg { padding: 0.5em 0.8em; border-radius: 4px; font-weight: bold; }
+#thm .thm-ok { border: 1px solid var(--text-success); color: var(--text-success); }
+#thm .thm-ko { border: 1px solid var(--text-danger); color: var(--text-danger); }
+#thm .thm-code { background: var(--row-background); border: 1px solid var(--input-border); padding: 0.6em; white-space: pre-wrap; }
+
+#thm .thm-modes { display: flex; flex-wrap: wrap; gap: 0.5em; }
+#thm .thm-mode { padding: 0.5em 1.2em; border: 1px solid var(--input-border); border-radius: 4px; background: var(--row-background); font-size: 110%; }
+#thm .thm-mode:hover { text-decoration: none; background: var(--bg-cell-header); }
+#thm .thm-mode.thm-current { background: var(--header-dark); color: var(--row-main-text); border-color: var(--header-dark); font-weight: bold; }
+
+#thm .thm-palettes { display: grid; grid-template-columns: repeat(auto-fill, minmax(15em, 1fr)); gap: 0.8em; }
+#thm .thm-card { display: block; padding: 0.6em; border: 2px solid var(--table-background); border-radius: 6px; background: var(--row-background); }
+#thm .thm-card:hover { text-decoration: none; border-color: var(--input-border); }
+#thm .thm-card.thm-current { border-color: var(--border-dark); box-shadow: 0 0 0 2px var(--border-dark); }
+#thm .thm-card-name { display: block; font-weight: bold; font-size: 110%; margin-bottom: 0.4em; }
+#thm .thm-current .thm-card-name::after { content: " \2713"; }
+
+#thm .thm-previews { display: flex; gap: 0.4em; }
+#thm .thm-preview { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 4px; background: var(--p-page); border: 1px solid var(--p-grid); border-radius: 3px; }
+#thm .thm-p-bar { background: var(--p-bar); color: var(--p-bar-text); font-size: 85%; font-weight: bold; text-align: center; padding: 2px 0; }
+#thm .thm-p-th { background: var(--p-th); height: 8px; }
+#thm .thm-p-row { display: flex; gap: 4px; align-items: center; background: var(--p-row); height: 12px; padding: 0 4px; }
+#thm .thm-p-row i { display: block; height: 3px; background: var(--p-text); border-radius: 2px; width: 45%; }
+#thm .thm-p-row i + i { width: 25%; }
