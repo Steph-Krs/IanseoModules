@@ -21,6 +21,7 @@ require_once dirname(__DIR__) . '/lib/targets.php';  // bk_rules_check
 require_once dirname(__DIR__) . '/lib/archer.php';   // bk_csrf_*
 require_once dirname(__DIR__) . '/lib/adopt.php';    // bk_adopt_check (persistance réimport)
 require_once dirname(__DIR__) . '/lib/ui.php';       // bk_e
+require_once dirname(__DIR__) . '/lib/waitlist.php'; // liste d'attente
 
 bk_schema();
 
@@ -70,6 +71,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         bk_comp_set_level($TOUR, intval($_POST['set_level']));
         header('Location: ' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php');
         exit;
+    } elseif (isset($_POST['wait_action'])) {
+        // Waiting list, by hand: register now (even on a full departure) or remove.
+        $wid = intval($_POST['w'] ?? 0);
+        if ($_POST['wait_action'] === 'register') {
+            $r = bk_waitlist_register_now($TOUR, $wid, intval($_POST['wait_session'] ?? 0));
+            if (!empty($r['ok'])) $msg = "Archer inscrit depuis la liste d'attente.";
+            else $err = $r['msg'];
+        } elseif ($_POST['wait_action'] === 'remove') {
+            bk_waitlist_remove($TOUR, $wid);
+            $msg = "Archer retiré de la liste d'attente.";
+        }
     } elseif (isset($_POST['save_fee'])) {
         // Niveau 2 « publication simple » : tarif de base seul (sans la modulation avancée).
         $fee = number_format((float) str_replace(',', '.', (string) ($_POST['fee'] ?? 0)), 2, '.', '');
@@ -153,6 +165,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             if (!empty($_POST['survey_present'])) {
                 $save['survey'] = !empty($_POST['survey']);
             }
+            // Waiting list: same, level 3 only.
+            if (!empty($_POST['waitlist_present'])) {
+                $save['waitlist'] = !empty($_POST['waitlist']);
+            }
             bk_comp_save($TOUR, $save);
             safe_w_sql("UPDATE BK_Competitions SET BcPublishLevel = 3 WHERE BcTournament = $TOUR");
             $msg = 'Configuration enregistrée.';
@@ -173,6 +189,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && !empty($_POST['ajax'])) {
 }
 
 if (isset($_GET['copied'])) $msg = 'Configuration reprise depuis l\'autre compétition. Vérifiez les dates et les contraintes du terrain.';
+
+// Places freed in ianseo's own screens (a participant deleted, targets added) go to the
+// waiting list as soon as the organiser comes back here; the cron catches the rest.
+bk_waitlist_process($TOUR);
+$waitList = bk_waitlist_of_tournament($TOUR);
 
 $cfg      = bk_comp_config($TOUR);
 $sessions = bk_comp_sessions($TOUR);
@@ -608,6 +629,11 @@ if ($bigSes) {
   <label class="bk-chk"><input type="checkbox" name="wish_free" value="1" <?= $cfg->BcWishFree ? 'checked' : '' ?>>
     Champ libre « Autre demande » (transmis à l'organisateur)</label>
 
+  <input type="hidden" name="waitlist_present" value="1">
+  <label class="bk-chk"><input type="checkbox" name="waitlist" value="1" <?= !isset($cfg->BcWaitlist) || !empty($cfg->BcWaitlist) ? 'checked' : '' ?>>
+    Proposer une <b>liste d'attente</b> quand un départ est complet : dès qu'une place se libère, le premier
+    archer compatible de la liste est inscrit automatiquement</label>
+
   <h3 class="bk-h3">Après la compétition</h3>
   <input type="hidden" name="survey_present" value="1">
   <label class="bk-chk"><input type="checkbox" name="survey" value="1" <?= !isset($cfg->BcSurvey) || !empty($cfg->BcSurvey) ? 'checked' : '' ?>>
@@ -757,6 +783,57 @@ if ($bigSes) {
       blasons que chaque cible peut recevoir : l'attribution automatique s'y conformera.</span>
   </p>
 </div>
+
+<?php
+// Waiting list (lib/waitlist.php): order of arrival; register by hand (even on a full
+// departure: the organiser's call) or remove.
+if ($waitList['waiting'] || $waitList['done']) {
+    echo '<div class="bk-sec"><h2>Liste d\'attente</h2>';
+    if (!bk_waitlist_on($cfg)) {
+        echo '<p class="bk-hint">Liste d\'attente désactivée dans les réglages détaillés : plus personne ne peut s\'y inscrire.</p>';
+    }
+    if ($waitList['waiting']) {
+        echo '<p class="bk-hint">Ordre d\'arrivée. Dès qu\'une place se libère pour leur arme, leur catégorie et leur blason, '
+            . 'les premiers sont inscrits automatiquement et prévenus dans leur espace.'
+            . (empty($cfg->BcIsOpen) ? ' <b>Inscriptions closes : la liste est figée</b> — inscrivez à la main si une place se libère.' : '')
+            . '</p><table class="bk-t"><tr><th>#</th><th>Archer</th><th>Club</th><th>Arme / catégorie</th>'
+            . '<th>Départ souhaité</th><th>Paiement prévu</th><th>Depuis le</th><th></th></tr>';
+        foreach ($waitList['waiting'] as $i => $w) {
+            $pc = explode('|', (string) $w->BwPayChoice . '|', 3);   // "method|when", or empty
+            $opts = '';
+            foreach ($sessions as $s) {
+                $o = intval($s->SesOrder);
+                $opts .= '<option value="' . $o . '"' . (intval($w->BwSession) === $o ? ' selected' : '') . '>Départ ' . $o
+                    . ' (' . max(0, intval($s->Places) - intval($s->Pris)) . ' pl.)</option>';
+            }
+            echo '<tr><td>' . ($i + 1) . '</td><td>' . bk_e(trim($w->LueFamilyName . ' ' . $w->LueName)) . ' <span class="bk-hint">'
+                . bk_e($w->BwLicence) . '</span></td><td>' . bk_e($w->LueCoDescr) . '</td><td>'
+                . bk_e(($w->DivDescription ?: $w->BwDivision) . ' / ' . ($w->ClDescription ?: $w->BwClass)) . '</td><td>'
+                . (intval($w->BwSession) ? 'Départ ' . intval($w->BwSession) : 'N\'importe lequel') . '</td><td>'
+                . bk_e(bk_payment_decl_label($pc[0], $pc[1])) . '</td><td>'
+                . bk_e(bk_date_fr($w->BwCreated)) . '</td><td style="white-space:nowrap">'
+                . '<form method="post" style="display:inline" onsubmit="return confirm(\'Inscrire cet archer maintenant, même si le départ est complet ?\')">'
+                . bk_csrf_field() . '<input type="hidden" name="wait_action" value="register"><input type="hidden" name="w" value="' . intval($w->BwId) . '">'
+                . '<select name="wait_session">' . $opts . '</select> <button type="submit" class="bk-btn">Inscrire</button></form> '
+                . '<form method="post" style="display:inline" onsubmit="return confirm(\'Retirer cet archer de la liste d\\\'attente ?\')">'
+                . bk_csrf_field() . '<input type="hidden" name="wait_action" value="remove"><input type="hidden" name="w" value="' . intval($w->BwId) . '">'
+                . '<button type="submit" class="bk-btn">Retirer</button></form></td></tr>';
+        }
+        echo '</table>';
+    }
+    if ($waitList['done']) {
+        echo '<h3 class="bk-h3">Dernières suites</h3><table class="bk-t"><tr><th>Archer</th><th>Le</th><th>Résultat</th></tr>';
+        foreach ($waitList['done'] as $w) {
+            echo '<tr><td>' . bk_e(trim($w->LueFamilyName . ' ' . $w->LueName)) . ' <span class="bk-hint">' . bk_e($w->BwLicence)
+                . '</span></td><td>' . bk_e(bk_date_fr($w->BwDone)) . '</td><td>'
+                . (intval($w->BwStatus) === 1 ? 'Inscrit sur le départ ' . intval($w->BwSession) : 'Retiré : ' . bk_e($w->BwNote))
+                . '</td></tr>';
+        }
+        echo '</table>';
+    }
+    echo '</div>';
+}
+?>
 
 <div class="bk-sec">
   <h2>Contrôle du règlement</h2>

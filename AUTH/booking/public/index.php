@@ -34,6 +34,22 @@ foreach (array_slice($svWaiting, 0, 2) as $sv) {
        . ' (jusqu\'au ' . bk_e(bk_date_fr($sv->CloseOn)) . ').</span>'
        . '<a class="bk-btn bk-btn-primary" style="width:auto" href="' . bk_e(bk_public_url('survey.php?t=' . intval($sv->ToId))) . '">Donner mon avis</a></div>';
 }
+
+// Waiting lists: look for freed places in the competitions this archer waits on (the
+// archer is told on the site only), then announce what happened since their last visit.
+require_once dirname(__DIR__) . '/lib/waitlist.php';
+bk_waitlist_process_for($archer->BaId, $archer->BaLicence);
+foreach (bk_waitlist_for_archer($archer->BaId, $archer->BaLicence) as $w) {
+    if (intval($w->BwStatus) === 0 || intval($w->BwSeen)) continue;
+    $self = bk_clean_licence($w->BwLicence) === bk_clean_licence($archer->BaLicence);
+    $txt = intval($w->BwStatus) === 1
+        ? '🎯 <b>Une place s\'est libérée</b> pour « ' . bk_e($w->ToName) . ' » : '
+          . ($self ? 'vous êtes inscrit' : bk_e(trim($w->LueFamilyName . ' ' . $w->LueName)) . ' est inscrit')
+          . ' (départ ' . intval($w->BwSession) . ').'
+        : 'Liste d\'attente de « ' . bk_e($w->ToName) . ' » : demande retirée — ' . bk_e($w->BwNote);
+    echo '<div class="bk-sv-banner"><span class="bk-sv-banner-txt">' . $txt . '</span>'
+       . '<a class="bk-btn bk-btn-primary" style="width:auto" href="' . bk_e(bk_public_url('registrations.php')) . '">Mes inscriptions</a></div>';
+}
 ?>
 
 <div class="bk-grid">

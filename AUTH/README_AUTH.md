@@ -35,6 +35,9 @@ des espaces en ligne (le module est prêt à basculer le jour venu).
 ### Côté compétiteur (inscriptions en ligne — sous-module `booking/`)
 - 🎯 Espace licencié : calendrier des compétitions ouvertes, inscription en quelques clics
 - 🧩 Attribution automatique départ/cible selon les règles fédérales (dont cohabitation des blasons)
+- ⏳ Liste d'attente quand un départ est complet, depuis le formulaire d'inscription habituel :
+  dès qu'une place se libère, le premier archer compatible est inscrit automatiquement et prévenu
+  dans son espace
 - 👥 Inscription groupée d'un camarade de club ; suivi des paiements ; boutique
 - 🧾 Mandat, documents et feuilles de marque de la compétition consultables par les archers
 - 🗳️ Questionnaire de satisfaction après la compétition (moins de 2 minutes, rien d'obligatoire) ;
@@ -51,6 +54,10 @@ des espaces en ligne (le module est prêt à basculer le jour venu).
 - 🩺 Page **État du serveur** : signale les réglages qui ralentissent ou bloquent un serveur ianseo
   en ligne (MySQL 8, connexions, mémoire, sessions, taille des imports, départs surdimensionnés…),
   avec la correction à appliquer
+- 🕶️ **Anonymiser un licencié** sur toutes les compétitions du serveur (demande d'effacement) :
+  inscriptions à venir supprimées (l'organisateur est prévenu d'un remboursement à faire si le
+  paiement était validé) ; ailleurs, licence remplacée par « ANON », nom, prénom, date de naissance
+  et photo retirés, résultats sportifs conservés ; compte en ligne supprimé
 - ⚙️ Page **Configuration du serveur** : réglages modifiables sans ligne de commande
   (mots de passe jamais affichés ; commandes et chemins réservés à la ligne de commande)
 

@@ -383,6 +383,13 @@ function aut_log_purge() {
         require_once $sv;
         if (function_exists('bk_survey_anonymise')) bk_survey_anonymise();
     }
+    // Waiting lists of competitions over or deleted: a licence and choices with no use left.
+    // Plain SQL on purpose: booking/lib/waitlist.php pulls core files in, and this purge
+    // runs from the bootstrap of any page. A day's margin spares the time-zone question.
+    $wl = safe_fetch(safe_r_sql("SELECT 1 AS x FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Waitlist'"));
+    if ($wl) safe_w_sql("DELETE w FROM BK_Waitlist w LEFT JOIN Tournament ON ToId = w.BwTournament
+        WHERE ToId IS NULL OR ToWhenTo < DATE_SUB(UTC_DATE(), INTERVAL 1 DAY)");
     // Mesure d'audience : UsageSeen suit la rétention des journaux, agrégats à 25 mois.
     require_once __DIR__ . '/stats-usage.php';
     if (function_exists('aut_stats_purge')) aut_stats_purge();

@@ -370,6 +370,7 @@ quel que soit l'outil :
   les résultats nominatifs publiés sont un usage sportif standard mais doivent
   figurer dans la mention.
 - Durées de conservation alignées sur la purge (§ 7.1).
+- **Droit à l'effacement** : Multi-comptes › Anonymiser un licencié (§ 9).
 - **Violation de données** : procédure de notification CNIL sous 72 h —
   prévoir le contact et la marche à suivre AVANT l'incident.
 - Sous-traitance hébergeur (OVH…) : vérifier le DPA.
@@ -494,6 +495,9 @@ sudo install -m 0644 -o root -g root \
 # copies à chaud de la base, toutes les 6 heures (§ 9 bis)
 sudo install -m 0644 -o root -g root \
      /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-backup-live /etc/cron.d/
+# listes d'attente des inscriptions en ligne, toutes les 10 minutes (§ 11 bis)
+sudo install -m 0644 -o root -g root \
+     /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-waitlist /etc/cron.d/
 ```
 
 **Le lendemain**, vérifier : `tail -n 40 /var/log/ianseo-maintenance.log`, puis
@@ -550,6 +554,25 @@ l'admin peut l'attribuer/corriger via la page « Compétitions & partage ».
   base, journal des requêtes lentes, durée des sessions et taille des imports (§ 6.1), limite
   ModSecurity (§ 4.3), OPcache, heure des mises à jour du système (§ 4.1), départs surdimensionnés,
   âge des sauvegardes — chacun avec la commande de correction.
+- **Anonymiser un licencié** (Multi-comptes › Anonymiser un licencié, administrateur serveur) : pour
+  une demande d'effacement. Recherche par licence, nom ou prénom, aperçu de tout ce qui change,
+  confirmation en retapant la licence.
+  - **Compétitions à venir** (non terminées, et pas encore de score pour cette personne) :
+    inscriptions et rôles d'officiel **supprimés**, la place libérée va à la liste d'attente. Si le
+    paiement avait été validé, l'organisateur est prévenu d'un **remboursement à faire** (club et
+    montant, sans nom) sur sa page « Sommes dues », jusqu'à ce qu'il clique « Remboursement
+    effectué ». Une compétition dont
+    l'organisateur a verrouillé les participants est anonymisée à la place (la page le signale).
+  - **Compétitions tirées** : licence remplacée par `ANON`, nom et prénom vidés (participants et
+    officiels), date de naissance supprimée (la catégorie, enregistrée à l'inscription, ne change
+    pas), photo, légende et e-mail supprimés ; la licence disparaît aussi des inscriptions en ligne,
+    des paiements, de la boutique et du journal. Scores, classements, matchs, club et catégorie sont
+    conservés. Ces résultats ne sont plus rattachés à une licence (un export vers la fédération les
+    enverrait sous `ANON`).
+  - Partout : compte en ligne supprimé. Hors de portée : le fichier fédéral des licences (rechargé chaque nuit),
+  les données des autres modules, les résultats déjà publiés sur ianseo.net (la page liste les
+  compétitions à republier) ou transmis à la fédération, et les sauvegardes, jusqu'à la fin de leur
+  durée de conservation.
 - **Journaux système : 60 jours.** Par défaut Apache ne garde que 14 jours : trop court pour
   analyser une compétition après coup (l'autre serveur n'a pu remonter qu'à deux semaines).
   `sudo sed -i 's/^\s*rotate 14/\trotate 60/' /etc/logrotate.d/apache2`. Même durée pour
@@ -894,6 +917,17 @@ consultent le calendrier des compétitions ouvertes et s'inscrivent en ligne.
 - **Trace de débogage SSO** identique au § 11 : fichier vide
   `booking/ffta-debug.on` → `booking/ffta-debug.log` (jamais de mot de passe), à
   retirer après usage.
+- **Liste d'attente** : quand un départ est complet pour son profil (arme, catégorie, blason), il
+  reste sélectionnable dans le formulaire d'inscription, qui inscrit alors l'archer sur la liste
+  (avec ses souhaits et son moyen de paiement) ; dès qu'une place se libère, le premier compatible est
+  **inscrit automatiquement** (toutes les règles d'une inscription s'appliquent, validation
+  manuelle comprise) et prévenu sur le site. Les pages d'inscription en ligne servent la liste
+  dès qu'une place se libère chez elles ; pour les places libérées dans les écrans de ianseo
+  (participant supprimé, cibles ajoutées), une tâche planifiée passe toutes les 10 minutes :
+  ```bash
+  sudo install -m 0644 -o root -g root /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-waitlist /etc/cron.d/
+  ```
+  Les listes sont supprimées au lendemain de la compétition.
 
 ## 12. Synchro licences par cron
 

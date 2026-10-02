@@ -233,8 +233,9 @@ function bk_reg_session_left($tourId, $order)
  * Revérifié côté serveur au moment de l'écriture : le calendrier informe, il
  * n'autorise pas.
  */
-function bk_reg_blocked($tourId, $cfg, $licence, $clubCode, $division, $class, $sessionOrder, $lue = null)
+function bk_reg_blocked($tourId, $cfg, $licence, $clubCode, $division, $class, $sessionOrder, $lue = null, $ignoreFull = false)
 {
+    // $ignoreFull: every rule but "this departure is full" — used to join the waiting list.
     if (empty($cfg->BcIsOpen)) return "Les inscriptions ne sont pas ouvertes pour cette compétition.";
 
     // Une compétition terminée n'est plus inscriptible, même si la fenêtre
@@ -268,7 +269,7 @@ function bk_reg_blocked($tourId, $cfg, $licence, $clubCode, $division, $class, $
 
     $left = bk_reg_session_left($tourId, $sessionOrder);
     if ($left < 0)  return "Ce départ n'existe pas sur cette compétition.";
-    if ($left === 0) return "Ce départ est complet.";
+    if ($left === 0 && !$ignoreFull) return "Ce départ est complet.";
 
     // Règlement : pas deux tirs pour un même archer sur un même départ.
     foreach (bk_reg_existing($tourId, $licence) as $e) {

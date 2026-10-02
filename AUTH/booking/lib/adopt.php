@@ -423,6 +423,10 @@ function bk_adopt($newId)
     safe_w_sql("UPDATE BK_Registrations  SET BrTournament = $newId WHERE BrTournament = $old");
     safe_w_sql("UPDATE BK_Surveys        SET BqTournament = $newId WHERE BqTournament = $old");
     safe_w_sql("UPDATE BK_SurveyVoters   SET BvTournament = $newId WHERE BvTournament = $old");
+    // Waiting list: the archers keep their place in the queue across a re-import. A
+    // promoted row points at an Entry of the old version (BwEnId): the history stays.
+    safe_w_sql("UPDATE BK_Waitlist       SET BwTournament = $newId WHERE BwTournament = $old");
+    safe_w_sql("UPDATE BK_Refunds        SET BfTournament = $newId WHERE BfTournament = $old");
     safe_w_sql("COMMIT");
 
     // ---- Phase B : réconcilier les inscriptions avec le nouvel import ----

@@ -261,6 +261,10 @@ function aut_legal_gen_confid($op)
         . 'et vos réponses n\'existe que pendant l\'ouverture du questionnaire (pour que vous puissiez les modifier), '
         . 'puis il est supprimé. Seul le fait que vous avez répondu est conservé, séparément et sans vos réponses, '
         . 'pour garantir un seul avis par archer et par compétition.</li>'
+        . '<li>Liste d\'attente (facultative) : votre licence, l\'arme, la catégorie, le blason et le départ souhaités, '
+        . 'vos souhaits de placement et le moyen de paiement choisi, le temps de vous inscrire si une place se libère. '
+        . 'L\'organisateur voit la liste. '
+        . 'Elle est supprimée au lendemain de la compétition.</li>'
         . '</ul>';
     $h .= '<p><b>Le mot de passe n\'est jamais conservé ni journalisé</b> : il transite uniquement le temps de vous '
         . 'authentifier auprès de la fédération. Aucun cookie de pistage ou de publicité n\'est utilisé (voir '

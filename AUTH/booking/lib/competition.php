@@ -87,7 +87,7 @@ function bk_comp_defaults($tourId)
         'BcFee' => '0.00', 'BcPricing' => null, 'BcShopUntil' => null, 'BcExcludeStats' => 0,
         'BcPayInfo' => null, 'BcManualValidation' => 0, 'BcMandate' => null, 'BcShowMandate' => null,
         'BcIanseoUrl' => null, 'BcShowProgram' => 0, 'BcShowParticipants' => 0, 'BcShowResults' => 0,
-        'BcShowDossard' => 0, 'BcSurvey' => 1,
+        'BcShowDossard' => 0, 'BcSurvey' => 1, 'BcWaitlist' => 1,
         'BcPublishLevel' => 1, 'BcAdvancedBackup' => null,
         'BcIsOpen' => 0, 'BcAllOpen' => 1,
     );
@@ -108,7 +108,7 @@ function bk_comp_advanced_cols()
         'BcMaxPerClubPerTarget', 'BcMinClubsPerSession', 'BcShowAssignment', 'BcShowGauges', 'BcAllowScoresheet',
         'BcWishLetter', 'BcWishWith', 'BcWishFree', 'BcPricing', 'BcManualValidation',
         'BcShowMandate', 'BcMandate', 'BcIanseoUrl', 'BcShowProgram', 'BcShowParticipants', 'BcShowResults',
-        'BcShowDossard', 'BcSurvey', 'BcPayInfo', 'BcShopUntil');
+        'BcShowDossard', 'BcSurvey', 'BcWaitlist', 'BcPayInfo', 'BcShopUntil');
 }
 
 /**
@@ -247,7 +247,7 @@ function bk_comp_copy_from($destTour, $srcTour)
         d.BcPayInfo = s.BcPayInfo, d.BcManualValidation = s.BcManualValidation, d.BcMandate = s.BcMandate,
         d.BcShowMandate = s.BcShowMandate, d.BcShowProgram = s.BcShowProgram,
         d.BcShowParticipants = s.BcShowParticipants, d.BcShowResults = s.BcShowResults,
-        d.BcShowDossard = s.BcShowDossard, d.BcSurvey = s.BcSurvey
+        d.BcShowDossard = s.BcShowDossard, d.BcSurvey = s.BcSurvey, d.BcWaitlist = s.BcWaitlist
         WHERE d.BcTournament = $destTour");
 
     bk_comp_copy_shop($destTour, $srcTour);
@@ -396,6 +396,10 @@ function bk_comp_save($tourId, $in)
     if (array_key_exists('survey', $in)) {
         $set .= ", BcSurvey = " . (empty($in['survey']) ? 0 : 1);
     }
+    // Waiting list: same rule, written only when the checkbox was shown (level 3).
+    if (array_key_exists('waitlist', $in)) {
+        $set .= ", BcWaitlist = " . (empty($in['waitlist']) ? 0 : 1);
+    }
 
     // Tarification avancée : JSON déjà normalisé par l'appelant, ou NULL (tarif plat).
     if (array_key_exists('pricing', $in)) {
@@ -469,6 +473,7 @@ function bk_comp_apply_auto($tourId)
         . ", BcShowGauges = 1, BcShowAssignment = 1, BcAllowScoresheet = 1"
         . ", BcShowMandate = 1, BcShowProgram = 1, BcShowParticipants = 1, BcShowResults = 1, BcShowDossard = 1"
         . ", BcSurvey = 1"   // survey always offered at level 2: only level 3 can switch it off
+        . ", BcWaitlist = 1" // same for the waiting list
         // Lien ianseo.net proposé d'office quand la compétition y est publiée ; sinon rien
         // à montrer. Reconstruit, comme partout, depuis ToOnlineId.
         . ", BcIanseoUrl = " . (($u = bk_ianseo_url($tourId)) === '' ? 'NULL' : StrSafe_DB($u))

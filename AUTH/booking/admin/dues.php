@@ -29,6 +29,9 @@ $msg = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
         $msg = 'Session expirée — rechargez la page et réessayez.';
+    } elseif (isset($_POST['refund_done'])) {
+        bk_refund_done($TOUR, intval($_POST['refund_done']), $_SESSION['AUTH_User'] ?? 'organisateur');
+        $msg = 'Remboursement noté comme effectué.';
     } else {
         $who = $_SESSION['AUTH_User'] ?? 'organisateur';
         $paidArr = (array) ($_POST['paid'] ?? array());
@@ -154,6 +157,37 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
    (<?= $nPaid ?>/<?= count($rows) ?> payé<?= $nPaid > 1 ? 's' : '' ?>)</p>
 
 <?php if ($msg): ?><div class="bk-msg"><?= bk_e($msg) ?></div><?php endif; ?>
+
+<?php
+// Refunds owed after the server removed a paid registration (anonymisation of a licensee,
+// AUTH anonymise-lib.php). Club and amount only: the person has been anonymised.
+$refunds = bk_refunds_of($TOUR);
+if ($refunds) {
+    $pending = array_filter($refunds, function ($f) { return !intval($f->BfDone); });
+    echo '<div class="bk-msg" style="text-align:left;'
+        . ($pending ? 'background:#fdf0ef;border:1px solid #e8b4ae;color:#8b1a1a' : '') . '">'
+        . '<b>' . ($pending ? 'Remboursement à faire' : 'Remboursements effectués') . '</b> — archer(s) retiré(s) de cette '
+        . 'compétition à la suite d\'une demande d\'anonymisation de ses données ; son paiement avait été validé. '
+        . 'Son nom n\'est plus connu du serveur : le club et le montant permettent de retrouver le règlement.'
+        . '<ul style="margin:6px 0 0 18px">';
+    foreach ($refunds as $f) {
+        $what = 'Un archer du club <b>' . bk_e(trim($f->BfClubCode . ' ' . $f->BfClubName)) . '</b> : <b>'
+            . due_eur($f->BfAmount) . '</b>'
+            . (isset($methods[$f->BfMethod]) ? ' (' . bk_e($methods[$f->BfMethod]) . ')' : '')
+            . ' — signalé le ' . bk_e(bk_date_fr($f->BfCreated));
+        if (intval($f->BfDone)) {
+            echo '<li style="opacity:.75">' . $what . ' — remboursé le ' . bk_e(bk_date_fr($f->BfDoneAt))
+                . ($f->BfDoneBy !== '' ? ' (' . bk_e($f->BfDoneBy) . ')' : '') . '</li>';
+        } else {
+            echo '<li>' . $what . ' <form method="post" class="bk-noprint" style="display:inline"'
+                . ' onsubmit="return confirm(\'Ce remboursement a-t-il été fait ?\')">' . bk_csrf_field()
+                . '<button type="submit" name="refund_done" value="' . intval($f->BfId) . '" class="bk-btn" '
+                . 'style="padding:3px 10px;font-size:12px">Remboursement effectué</button></form></li>';
+        }
+    }
+    echo '</ul></div>';
+}
+?>
 
 <?php if (!$rows): ?>
   <p class="bk-empty">Aucune inscription en ligne pour l'instant sur cette compétition.</p>

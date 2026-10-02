@@ -14,6 +14,7 @@ require_once dirname(__DIR__) . '/lib/caps.php';
 require_once dirname(__DIR__) . '/lib/targets.php';
 require_once dirname(__DIR__) . '/lib/documents.php';   // bk_doc_distances
 require_once dirname(__DIR__) . '/lib/payment.php';     // moyens de paiement
+require_once dirname(__DIR__) . '/lib/waitlist.php';
 
 $archer = bk_require_archer();
 
@@ -42,6 +43,10 @@ if ($tour && bk_is_finished($tour->ToWhenTo)) {
     bk_foot();
     exit;
 }
+
+// A place freed since the last look belongs to the waiting list, not to whoever opens
+// this page first: the list is served BEFORE the places offered below are counted.
+bk_waitlist_process($tourId);
 
 // Identité fédérale de l'archer CONNECTÉ : source de son club (qui borne
 // l'inscription de groupe) et de sa majorité (seul un majeur inscrit un tiers).
@@ -151,6 +156,21 @@ foreach ($dejaMoi as $d) {
     $armesAvecEpreuve[$d->EnDivision] = true;
 }
 
+// Waiting list (lib/waitlist.php): with the list on, a departure full for this profile
+// stays selectable and the same form puts the archer on its list instead of registering.
+// One waiting request per weapon: a departure of a weapon already waited for is not offered.
+$waitOn = bk_waitlist_on($cfg);
+$myWait = array();   // weapon => waiting row of the subject of this form
+foreach (bk_waitlist_for_archer($archer->BaId, $archer->BaLicence) as $w) {
+    if (intval($w->BwTournament) === $tourId && intval($w->BwStatus) === 0
+        && bk_clean_licence($w->BwLicence) === $subjectLicence) $myWait[$w->BwDivision] = $w;
+}
+$sessionFull = array();   // departure => full for this profile
+foreach ($sessions as $s) {
+    $o = intval($s->SesOrder);
+    $sessionFull[$o] = bk_waitlist_full($s, $profileLeft[$o] ?? null);
+}
+
 // Tarification : provenance et rang sont fixes pour cette inscription (le club et
 // le nombre d'inscriptions déjà prises ne dépendent pas des choix du formulaire) ;
 // seuls catégorie et départ font varier le prix, recalculés en direct côté client.
@@ -221,6 +241,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1
     } elseif ($groupMode && !$canGroup) {
         // Défense côté écriture : un POST forgé ne doit pas contourner la majorité.
         $err = "Seul un licencié majeur peut inscrire un autre licencié de son club.";
+    } elseif ($waitOn && !empty($sessionFull[$sessionOrder])) {
+        // Full departure: the SERVER decides to queue, from the state seen after the list
+        // was served above — never the label of the button, which is only a display.
+        $res = bk_waitlist_join($tourId, $cfg, $lue, $division, $class, $curFace, $sessionOrder,
+            array('role' => $groupMode ? 'CLUB' : 'SELF', 'who' => $archer->BaLicence, 'archer' => $archer->BaId),
+            array('letter' => $_POST['letter'] ?? '', 'with' => $_POST['with'] ?? '', 'request' => $request,
+                  'pay' => $_POST['pay_choice'] ?? ''));
+        if (!empty($res['ok'])) {
+            bk_log('WAIT_JOIN', $subjectLicence);
+            bk_waitlist_process($tourId);   // a place may have freed meanwhile: then registered at once
+            bk_redirect('registrations.php?wait=1');
+        }
+        $err = $res['msg'];
     } else {
         $err = bk_reg_blocked($tourId, $cfg, $subjectLicence, $lue->LueCountry,
             $division, $class, $sessionOrder, $lue);
@@ -386,8 +419,18 @@ bk_head('Inscription');
     <p class="bk-fixed"><?= bk_e($lab) ?> <span class="bk-hint">(blason prévu pour votre catégorie)</span></p>
   <?php endif; ?>
 
+  <?php
+  // Waiting rows of this archer on this competition (one per weapon).
+  foreach ($myWait as $w) {
+      echo '<p class="bk-note">' . ($groupMode ? 'Ce licencié est' : 'Vous êtes') . ' sur la liste d\'attente ('
+          . bk_e($w->DivDescription ?: $w->BwDivision) . ', '
+          . (intval($w->BwSession) ? 'départ ' . intval($w->BwSession) : 'n\'importe quel départ')
+          . ') : position <b>' . bk_waitlist_position($w) . '</b> pour ce profil.</p>';
+  }
+  ?>
+
   <label for="session">Départ</label>
-  <?php $libres = 0; ?>
+  <?php $libres = 0; $attente = 0; $selWait = false; ?>
   <select id="session" name="session" required>
     <option value="">— choisir —</option>
     <?php foreach ($sessions as $s):
@@ -398,8 +441,13 @@ bk_head('Inscription');
       $pl = array_key_exists($o, $profileLeft) ? $profileLeft[$o] : null;
       $profFull = ($pl !== null && $pl < 1);
       $dispo = ($left > 0 && !$pris && !$profFull);
-      if ($dispo) $libres++; ?>
-      <option value="<?= $o ?>" <?= (!$dispo) ? 'disabled' : '' ?>
+      // Full departure: selectable when the waiting list is on and this weapon is not
+      // already waited for — the form then joins the list (data-wait, script below).
+      $wait = !$dispo && !$pris && $waitOn && !isset($myWait[$division]);
+      if ($dispo) $libres++;
+      if ($wait) $attente++;
+      if ($wait && $sessionOrder === $o) $selWait = true; ?>
+      <option value="<?= $o ?>" <?= (!$dispo && !$wait) ? 'disabled' : '' ?> <?= $wait ? 'data-wait="1"' : '' ?>
         <?= $sessionOrder === $o ? 'selected' : '' ?>>
         Départ <?= $o ?><?= $s->SesName ? ' — ' . bk_e($s->SesName) : '' ?>
         <?php $ss = bk_session_start($s); if ($ss !== ''): $sh = substr($ss, 11, 5); ?>
@@ -407,9 +455,11 @@ bk_head('Inscription');
         <?php endif; ?>
         — <?php
           if ($pris) echo 'déjà inscrit';
-          elseif ($left === 0) echo 'complet';
-          elseif ($profFull) echo 'complet pour votre blason';
-          else {
+          elseif (!$dispo) {
+            echo $left === 0 ? 'complet' : 'complet pour votre blason';
+            if ($wait) echo ' · liste d\'attente';
+            elseif ($waitOn && isset($myWait[$division])) echo ' · déjà sur la liste d\'attente';
+          } else {
             echo $left . ' place' . ($left > 1 ? 's' : '');
             if ($pl !== null) echo ' · ' . intval($pl) . ' pour votre blason';
           }
@@ -417,13 +467,25 @@ bk_head('Inscription');
       </option>
     <?php endforeach; ?>
   </select>
-  <?php if (!$libres): ?>
+  <?php if (!$libres && !$attente): ?>
     <p class="bk-blocked">Aucun départ disponible : ils sont complets (y compris pour votre blason), ou vous y êtes déjà inscrit.</p>
   <?php else: ?>
     <p class="bk-hint">« pour votre blason » = nombre d'archers comme vous (même catégorie, même blason)
-       que les cibles de ce départ peuvent encore accueillir. Un départ complet pour ce blason n'est pas
-       sélectionnable.</p>
+       que les cibles de ce départ peuvent encore accueillir.<?= $attente
+         ? ' Un départ complet reste sélectionnable : l\'inscription se fait alors sur sa liste d\'attente.'
+         : ' Un départ complet pour ce blason n\'est pas sélectionnable.' ?></p>
   <?php endif; ?>
+
+  <?php
+  // Shown when the departure chosen is full (script below; rendered visible already when
+  // the page comes back with such a departure selected, so it also reads without script).
+  echo '<div class="bk-note" id="bk-wait-note"' . ($selWait ? '' : ' hidden') . '><b>Départ complet</b> pour '
+      . ($groupMode ? 'son' : 'votre') . ' arme, ' . ($groupMode ? 'sa' : 'votre') . ' catégorie et '
+      . ($groupMode ? 'son' : 'votre') . ' blason. ' . ($groupMode ? 'Ce licencié sera inscrit' : 'Vous serez inscrit')
+      . ' sur la <b>liste d\'attente</b> : dès qu\'une place se libère, le premier de la liste est '
+      . '<b>inscrit automatiquement</b>, avec les choix de ce formulaire (souhaits, moyen de paiement), et prévenu dans '
+      . 'son espace (« Mes inscriptions »). S\'il ne vient plus, il annule son départ, et la place passe au suivant.</div>';
+  ?>
 
   <?php if ($dejaMoi): ?>
     <div class="bk-note">
@@ -513,9 +575,29 @@ bk_head('Inscription');
   </fieldset>
   <?php endif; ?>
 
-  <button type="submit" class="bk-btn bk-btn-primary" <?= (!$classes || !$libres) ? 'disabled' : '' ?>>
-    <?= $groupMode ? 'Confirmer son inscription' : 'Confirmer mon inscription' ?></button>
+  <?php
+  $lblReg  = $groupMode ? 'Confirmer son inscription' : 'Confirmer mon inscription';
+  $lblWait = $groupMode ? 'L\'inscrire sur la liste d\'attente' : 'Rejoindre la liste d\'attente';
+  echo '<button type="submit" class="bk-btn bk-btn-primary" id="bk-submit" data-reg="' . bk_e($lblReg)
+      . '" data-wait="' . bk_e($lblWait) . '"' . ((!$classes || (!$libres && !$attente)) ? ' disabled' : '') . '>'
+      . bk_e($selWait ? $lblWait : $lblReg) . '</button>';
+  ?>
 </form>
+<script>
+// Full departure chosen: the button says what will happen (the server decides anyway).
+(function () {
+  var sel = document.getElementById('session'), btn = document.getElementById('bk-submit'),
+      note = document.getElementById('bk-wait-note');
+  if (!sel || !btn) return;
+  function upd() {
+    var o = sel.options[sel.selectedIndex], wait = !!(o && o.getAttribute('data-wait'));
+    btn.textContent = btn.getAttribute(wait ? 'data-wait' : 'data-reg');
+    if (note) note.hidden = !wait;
+  }
+  sel.addEventListener('change', upd);
+  upd();
+})();
+</script>
 <?php endif; /* fin licence sans pratique */ ?>
 
 <?php if ($showPrice): ?>

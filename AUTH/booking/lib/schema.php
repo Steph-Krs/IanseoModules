@@ -13,7 +13,7 @@
  * installation neuve et interrompt toute la fonction (safe_w_sql lève).
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 21);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 24);
 
 // Every library of the module loads this file: the right "now" comes with it.
 require_once __DIR__ . '/clock.php';
@@ -224,6 +224,9 @@ function bk_schema()
     // default (existing competitions included); forced on at level 2; only a level-3
     // organiser can switch it off. See lib/survey.php.
     bk_colonne('BK_Competitions', 'BcSurvey', "TINYINT NOT NULL DEFAULT 1 AFTER BcShowDossard");
+    // v22: waiting list offered when a departure is full (lib/waitlist.php). Same rule as
+    // the survey: always on at level 2, a checkbox at level 3.
+    bk_colonne('BK_Competitions', 'BcWaitlist', "TINYINT NOT NULL DEFAULT 1 AFTER BcSurvey");
 
     // Une inscription = une ligne Entries de ianseo + cette ligne de traçage
     // (qui a inscrit, quand, avec quelles demandes spéciales). Entries n'a
@@ -448,6 +451,60 @@ function bk_schema()
     // Answers given before this table existed (idempotent: IGNORE on the primary key).
     safe_w_sql("INSERT IGNORE INTO BK_SurveyVoters (BvTournament, BvLicence)
         SELECT BqTournament, BqLicence FROM BK_Surveys WHERE BqLicence NOT LIKE '#%'");
+
+    // v22: waiting list. A departure full for an archer's profile (weapon, category,
+    // target face): the archer queues, and the first compatible one is registered
+    // automatically when a place frees (lib/waitlist.php). Kept apart from Entries on
+    // purpose: a queued archer must not appear in the organiser's lists and prints.
+    // BwStatus: 0 waiting, 1 registered (BwEnId), 2 closed (can no longer succeed, BwNote).
+    // BwSession 0 = any of the departures. BwSeen: the archer has seen the notice.
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BK_Waitlist (
+        BwId         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        BwTournament INT UNSIGNED NOT NULL,
+        BwLicence    VARCHAR(25)  NOT NULL,
+        BwArcher     INT NOT NULL DEFAULT 0,
+        BwByRole     VARCHAR(8)   NOT NULL DEFAULT 'SELF',
+        BwBy         VARCHAR(64)  NOT NULL DEFAULT '',
+        BwDivision   VARCHAR(8)   NOT NULL DEFAULT '',
+        BwClass      VARCHAR(8)   NOT NULL DEFAULT '',
+        BwFace       INT NOT NULL DEFAULT 0,
+        BwSession    SMALLINT NOT NULL DEFAULT 0,
+        BwWantLetter VARCHAR(2)   NOT NULL DEFAULT '',
+        BwWantWith   VARCHAR(25)  NOT NULL DEFAULT '',
+        BwRequest    TEXT NULL,
+        BwPayChoice  VARCHAR(32)  NOT NULL DEFAULT '',
+        BwCreated    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        BwStatus     TINYINT NOT NULL DEFAULT 0,
+        BwEnId       INT UNSIGNED NOT NULL DEFAULT 0,
+        BwDone       DATETIME NULL,
+        BwNote       VARCHAR(120) NOT NULL DEFAULT '',
+        BwSeen       TINYINT NOT NULL DEFAULT 0,
+        KEY BwQueueIdx (BwTournament, BwStatus, BwId),
+        KEY BwLicenceIdx (BwLicence),
+        KEY BwArcherIdx (BwArcher)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    // v23: payment choice made on the registration form ("method|when"), declared when
+    // the archer is registered from the list.
+    bk_colonne('BK_Waitlist', 'BwPayChoice', "VARCHAR(32) NOT NULL DEFAULT '' AFTER BwRequest");
+
+    // v24: refunds the organiser owes, when a registration already paid is removed by the
+    // server (anonymisation of a licensee, AUTH anonymise-lib.php). No name and no licence on
+    // purpose — the person has just been anonymised: the club and the amount are what the
+    // organiser needs to find the payment. BfDone: the organiser has refunded.
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BK_Refunds (
+        BfId         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        BfTournament INT UNSIGNED NOT NULL,
+        BfClubCode   VARCHAR(16)  NOT NULL DEFAULT '',
+        BfClubName   VARCHAR(80)  NOT NULL DEFAULT '',
+        BfAmount     DECIMAL(8,2) NOT NULL DEFAULT 0,
+        BfMethod     VARCHAR(16)  NOT NULL DEFAULT '',
+        BfReason     VARCHAR(16)  NOT NULL DEFAULT 'ANONYMISE',
+        BfCreated    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        BfDone       TINYINT NOT NULL DEFAULT 0,
+        BfDoneAt     DATETIME NULL,
+        BfDoneBy     VARCHAR(64)  NOT NULL DEFAULT '',
+        KEY BfTourIdx (BfTournament, BfDone)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     $_SESSION[$flag] = true;
 }

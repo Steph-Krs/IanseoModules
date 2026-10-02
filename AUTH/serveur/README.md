@@ -22,6 +22,7 @@ et ne peut pas les modifier. Vous les copiez une fois, à la main.
 | `apache/maintenance.html` | `/var/www/maintenance/index.html` | `root:root 0644` |
 | `cron/ianseo-nightly` | `/etc/cron.d/ianseo-nightly` | `root:root 0644` |
 | `cron/ianseo-backup-live` | `/etc/cron.d/ianseo-backup-live` | `root:root 0644` |
+| `cron/ianseo-waitlist` | `/etc/cron.d/ianseo-waitlist` | `root:root 0644` |
 | `sudoers/ianseo-maintenance` | `/etc/sudoers.d/ianseo-maintenance` | `root:root 0440` |
 | `logrotate/ianseo` | `/etc/logrotate.d/ianseo` | `root:root 0644` |
 | `fail2ban/filter-ianseo-auth.conf` | `/etc/fail2ban/filter.d/ianseo-auth.conf` | `root:root 0644` |
@@ -85,6 +86,8 @@ sudo systemctl restart fail2ban
 sudo install -m 0644 -o root -g root cron/ianseo-nightly /etc/cron.d/ianseo-nightly
 # Copies à chaud de la base, toutes les 6 heures (SERVEUR.md § 9 bis)
 sudo install -m 0644 -o root -g root cron/ianseo-backup-live /etc/cron.d/ianseo-backup-live
+# Listes d'attente des inscriptions en ligne, toutes les 10 minutes (SERVEUR.md § 11 bis)
+sudo install -m 0644 -o root -g root cron/ianseo-waitlist /etc/cron.d/ianseo-waitlist
 ```
 
 ## Vérifications

@@ -9,11 +9,13 @@ require_once dirname(__DIR__) . '/lib/targets.php';
 require_once dirname(__DIR__) . '/lib/shop.php';
 require_once dirname(__DIR__) . '/lib/payment.php';
 require_once dirname(__DIR__) . '/lib/mandate.php';   // bk_mandate_visible
+require_once dirname(__DIR__) . '/lib/waitlist.php';
 
 $archer = bk_require_archer();
 
 $err = '';
-$ok  = !empty($_GET['ok']) ? 'Votre inscription a bien été enregistrée.' : '';
+$ok  = !empty($_GET['ok']) ? 'Votre inscription a bien été enregistrée.'
+     : (!empty($_GET['wait']) ? "Demande enregistrée sur la liste d'attente." : '');
 
 // Confirmation d'inscription : montant + moyens de paiement de la compétition tout
 // juste validée, affichés en évidence (au moment où l'archer les attend).
@@ -46,13 +48,27 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $res = bk_unregister($enid, $archer->BaId, $archer->BaLicence);
         if (!empty($res['ok'])) {
             bk_log('REG_CANCEL', $archer->BaLicence);
-            if ($rT) bk_replan_all(intval($rT->BrTournament), bk_comp_config(intval($rT->BrTournament)));
+            if ($rT) {
+                bk_replan_all(intval($rT->BrTournament), bk_comp_config(intval($rT->BrTournament)));
+                bk_waitlist_process(intval($rT->BrTournament));   // the place goes to the waiting list
+            }
             $ok = 'Votre inscription a été annulée.';
         } else {
             $err = $res['msg'] ?? "L'annulation a échoué.";
         }
+    } elseif (($_POST['action'] ?? '') === 'leave_wait') {
+        if (bk_waitlist_leave(intval($_POST['w'] ?? 0), $archer->BaId, $archer->BaLicence)) {
+            bk_log('WAIT_LEAVE', $archer->BaLicence);
+            $ok = "Vous avez quitté la liste d'attente.";
+        } else {
+            $err = "Cette demande n'est plus sur la liste d'attente.";
+        }
     }
 }
+
+// Waiting lists of this archer (and those they put clubmates on): still waiting, or
+// what happened since their last visit — then marked as seen.
+$waits = bk_waitlist_for_archer($archer->BaId, $archer->BaLicence);
 
 $regs = bk_my_registrations($archer->BaLicence);
 // Open satisfaction surveys of this archer, one query for the whole page.
@@ -84,6 +100,36 @@ bk_head('Mes inscriptions');
   <p class="bk-confirm-share"><a class="bk-btn bk-btn-primary" href="<?= bk_e(bk_public_url('share.php?t=' . $okTour)) ?>">📣 Partager ma participation sur les réseaux</a></p>
 <?php endif; ?>
 <?= $err ? bk_msg('err', $err) : '' ?>
+
+<?php
+if ($waits) {
+    echo '<section class="bk-block bk-wait" style="margin-bottom:16px"><h2>Listes d\'attente</h2>';
+    foreach ($waits as $w) {
+        $self = bk_clean_licence($w->BwLicence) === bk_clean_licence($archer->BaLicence);
+        $who  = $self ? '' : ' — pour ' . trim($w->LueFamilyName . ' ' . $w->LueName) . ' (' . $w->BwLicence . ')';
+        $what = ($w->DivDescription ?: $w->BwDivision) . ', ' . ($w->ClDescription ?: $w->BwClass) . ', '
+              . (intval($w->BwSession) ? 'départ ' . intval($w->BwSession) : 'n\'importe quel départ');
+        echo '<div class="bk-reg"><p><b>' . bk_e($w->ToName) . '</b> <span class="bk-hint">'
+            . bk_e(bk_date_range($w->ToWhenFrom, $w->ToWhenTo) . $who) . '</span></p><p class="bk-tags">'
+            . '<span class="bk-tag">' . bk_e($what) . '</span>';
+        if (intval($w->BwStatus) === 0) {
+            echo '<span class="bk-tag bk-tag-wait">Position ' . bk_waitlist_position($w) . '</span></p>'
+                . '<form method="post" onsubmit="return confirm(\'Quitter la liste d\\\'attente ?\')">' . bk_csrf_field()
+                . '<input type="hidden" name="action" value="leave_wait"><input type="hidden" name="w" value="' . intval($w->BwId) . '">'
+                . '<button type="submit" class="bk-btn bk-btn-danger">Quitter la liste</button></form>';
+        } elseif (intval($w->BwStatus) === 1) {
+            echo '<span class="bk-tag bk-tag-on">Place obtenue</span></p><p class="bk-org">Une place s\'est libérée le '
+                . bk_e(bk_date_fr($w->BwDone)) . ' : inscription faite sur le départ ' . intval($w->BwSession)
+                . '. Si ' . ($self ? 'vous ne venez' : 'ce licencié ne vient') . ' plus, annulez ce départ pour libérer la place.</p>';
+        } else {
+            echo '<span class="bk-tag">Retiré de la liste</span></p><p class="bk-org">' . bk_e($w->BwNote) . '</p>';
+        }
+        echo '</div>';
+    }
+    echo '</section>';
+    bk_waitlist_mark_seen($archer->BaId, $archer->BaLicence);
+}
+?>
 
 <?php if (!$regs && !$authored): ?>
   <p class="bk-empty">Vous n'avez aucune inscription.

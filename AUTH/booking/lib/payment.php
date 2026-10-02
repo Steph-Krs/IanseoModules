@@ -159,6 +159,43 @@ function bk_payment_set($tourId, $licence, $paid, $method, $by)
 }
 
 /**
+ * Records a refund the organiser owes (BK_Refunds): a registration already paid was
+ * removed by the server. No name and no licence: club and amount only.
+ */
+function bk_refund_add($tourId, $clubCode, $clubName, $amount, $method, $reason = 'ANONYMISE')
+{
+    bk_schema();
+    $tourId = intval($tourId);
+    safe_w_sql("INSERT INTO BK_Refunds SET BfTournament = $tourId,
+        BfClubCode = " . StrSafe_DB(mb_substr((string) $clubCode, 0, 16)) . ",
+        BfClubName = " . StrSafe_DB(mb_substr((string) $clubName, 0, 80)) . ",
+        BfAmount = "   . StrSafe_DB(number_format((float) $amount, 2, '.', '')) . ",
+        BfMethod = "   . StrSafe_DB(array_key_exists($method, bk_payment_methods()) ? $method : '') . ",
+        BfReason = "   . StrSafe_DB($reason) . ",
+        BfCreated = "  . bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)"));
+}
+
+/** Refunds of a competition, the ones to make first. */
+function bk_refunds_of($tourId)
+{
+    bk_schema();
+    $out = array();
+    $rs = safe_r_sql("SELECT * FROM BK_Refunds WHERE BfTournament = " . intval($tourId) . " ORDER BY BfDone, BfId");
+    while ($r = safe_fetch($rs)) $out[] = $r;
+    return $out;
+}
+
+/** The organiser has refunded. */
+function bk_refund_done($tourId, $id, $by)
+{
+    bk_schema();
+    $tourId = intval($tourId);
+    safe_w_sql("UPDATE BK_Refunds SET BfDone = 1, BfDoneBy = " . StrSafe_DB(mb_substr((string) $by, 0, 64)) . ",
+        BfDoneAt = " . bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)") . "
+        WHERE BfId = " . intval($id) . " AND BfTournament = $tourId AND BfDone = 0");
+}
+
+/**
  * Montant dû par un archer sur une compétition : inscriptions (moteur de
  * tarification, comme le reçu) + boutique. Source unique utilisée par la page
  * « Sommes dues », l'espace compétiteur et la garde du reçu.
