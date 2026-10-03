@@ -555,3 +555,20 @@ body.bk-modal-open { overflow:hidden; }
 #bk .bk-sv-t textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #c9d4df;
   border-radius:6px; font:inherit; font-size:14px; resize:vertical; }
 #bk .bk-sv-send { margin:4px 0 20px; }
+/* ==== Accounts: receipt screen (receipt.php), balances (registrations.php, index.php) ==== */
+#bk .bk-acc { width:100%; border-collapse:collapse; font-size:14px; background:#fff; }
+#bk .bk-acc th, #bk .bk-acc td { padding:6px 8px; border-bottom:1px solid #e1e6ec; text-align:left; vertical-align:top; }
+#bk .bk-acc th { font-size:12px; color:#4c4e50; font-weight:600; }
+#bk .bk-acc .n { text-align:right; white-space:nowrap; }
+#bk .bk-acc tr.sub td { border-bottom:none; padding-top:0; font-size:12px; color:#7d8183; }
+#bk .bk-acc tr.tot td { font-weight:700; color:#01367c; border-bottom:2px solid #01367c; }
+#bk .bk-acc tr.off td { color:#9a9ea1; text-decoration:line-through; }
+#bk .bk-acc-h { margin:18px 0 6px; font-size:16px; color:#01367c; }
+#bk .bk-acc-bal { margin:16px 0 8px; padding:10px 14px; border-radius:8px; font-size:16px; font-weight:600; text-align:center; }
+#bk .bk-acc-bal.due { background:#fdf0e6; border:1px solid #cb8137; color:#8a5a26; }
+#bk .bk-acc-bal.ok { background:#d2f4cd; border:1px solid #75ae77; color:#1d6b21; }
+#bk .bk-acc-bal.over { background:#efe7fb; border:1px solid #a98bd8; color:#5b2a9e; }
+#bk .bk-owed { margin:0 0 16px; padding:12px 16px; border-radius:8px; background:#fdf0e6; border:1px solid #cb8137; color:#20263d; }
+#bk .bk-owed h2 { margin:0 0 6px; font-size:16px; color:#8a5a26; }
+#bk .bk-owed ul { margin:4px 0 0; padding-left:18px; }
+#bk .bk-owed li { margin:4px 0; }

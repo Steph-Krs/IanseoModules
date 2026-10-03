@@ -13,7 +13,7 @@
  * installation neuve et interrompt toute la fonction (safe_w_sql lève).
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 24);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 26);
 
 // Every library of the module loads this file: the right "now" comes with it.
 require_once __DIR__ . '/clock.php';
@@ -364,9 +364,9 @@ function bk_schema()
         KEY SoTourIdx (SoTournament)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // v7 — Suivi de paiement (organisateur) : une ligne par (compétition, licence).
-    // Tant que PyPaid=0, le reçu n'est pas disponible côté compétiteur ; le montant
-    // dû reste affiché comme non encaissé. Pas de facture (éléments légaux absents).
+    // v7 — payment of an archer on a competition, one row per (competition, licence). Since
+    // v25 it only holds the payment choice the archer declared (PyDecl*): what was paid lives
+    // in the journal BK_Ledger, and the former "paid" tick (PyPaid) is taken over there.
     safe_w_sql("CREATE TABLE IF NOT EXISTS BK_Payments (
         PyId         INT AUTO_INCREMENT PRIMARY KEY,
         PyTournament INT NOT NULL,
@@ -505,6 +505,44 @@ function bk_schema()
         BfDoneBy     VARCHAR(64)  NOT NULL DEFAULT '',
         KEY BfTourIdx (BfTournament, BfDone)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // v25: payment journal (lib/payment.php). One row per movement on an account — a
+    // competition and a licence ('#<EnId>' for a participant without licence). BlgAmount
+    // is SIGNED, its effect on what has been paid: payment > 0, refund < 0, cancel =
+    // minus the line it cancels (BlgCancels; the cancelled line gets BlgCancelled). Lines
+    // are never deleted nor edited: a mistake is cancelled, the history stays whole.
+    // BlgGroup ties the lines of one club payment. BlgWhen: date of the payment as entered;
+    // BlgCreated: when it was recorded.
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BK_Ledger (
+        BlgId         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        BlgTournament INT UNSIGNED NOT NULL,
+        BlgAccount    VARCHAR(25)  NOT NULL,
+        BlgKind       VARCHAR(12)  NOT NULL DEFAULT 'payment',
+        BlgAmount     DECIMAL(9,2) NOT NULL DEFAULT 0,
+        BlgMethod     VARCHAR(16)  NOT NULL DEFAULT '',
+        BlgLabel      VARCHAR(160) NOT NULL DEFAULT '',
+        BlgGroup      INT UNSIGNED NOT NULL DEFAULT 0,
+        BlgCancels    INT UNSIGNED NOT NULL DEFAULT 0,
+        BlgCancelled  INT UNSIGNED NOT NULL DEFAULT 0,
+        BlgWhen       DATETIME NULL,
+        BlgCreated    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        BlgBy         VARCHAR(64)  NOT NULL DEFAULT '',
+        KEY BlgAccountIdx (BlgTournament, BlgAccount)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    // The former "paid" tick (PyPaid) becomes a journal line (bk_ledger_migrate, which needs
+    // the pricing engine, hence not here); PyLedger marks the ticks already taken over.
+    bk_colonne('BK_Payments', 'PyLedger', "TINYINT NOT NULL DEFAULT 0 AFTER PyBy");
+
+    // v26 — a CLOSED competition (level 1) may still use the payments and the shop: imports
+    // from ianseo only, with tariffs and an account per participant. Existing closed ones that
+    // already have a shop or payments get it on, so that nothing they hold disappears from the
+    // menus (once: only when the column is new).
+    if (bk_colonne('BK_Competitions', 'BcPayments', "TINYINT NOT NULL DEFAULT 0 AFTER BcPublishLevel")) {
+        safe_w_sql("UPDATE BK_Competitions SET BcPayments = 1 WHERE BcPublishLevel = 1 AND (
+              BcTournament IN (SELECT SiTournament FROM BK_ShopItems)
+           OR BcTournament IN (SELECT BlgTournament FROM BK_Ledger)
+           OR BcTournament IN (SELECT PyTournament FROM BK_Payments WHERE PyPaid = 1))");
+    }
 
     $_SESSION[$flag] = true;
 }

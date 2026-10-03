@@ -200,6 +200,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 <?php if ($msg): ?><div class="bk-msg bk-ok"><?= bk_e($msg) ?></div><?php endif; ?>
 <?php if ($err): ?><div class="bk-msg bk-err"><?= bk_e($err) ?></div><?php endif; ?>
+<?= bk_comp_payments_on($cfg) ? '' : '<div class="bk-msg bk-err">Compétition fermée sans gestion des paiements : les archers ne voient '
+    . 'pas la boutique. Cochez « Utiliser la gestion des paiements et la boutique » dans <a href="' . $CFG->ROOT_DIR
+    . 'Modules/Custom/AUTH/booking/admin/competition.php">Inscriptions en ligne</a>.</div>' ?>
 
 <form method="post">
 <?= bk_csrf_field() ?>
@@ -211,8 +214,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
       <input type="datetime-local" name="shop_until" value="<?= bk_e(bk_shop_dtval($cfg->BcShopUntil ?? '')) ?>"></label>
     <span class="bk-tag <?= $open ? 'bk-on' : 'bk-off' ?>"><?= $open ? 'Boutique ouverte' : 'Boutique fermée' ?></span>
   </div>
-  <p class="bk-hint">Sans date, la boutique suit l'ouverture des inscriptions. Avec une date, elle
-     reste commandable jusque-là (même après la clôture des inscriptions, ou l'inverse).</p>
+  <p class="bk-hint">Sans date, la boutique suit l'ouverture des inscriptions — pour une compétition
+     fermée, elle reste ouverte jusqu'à la fin de la compétition. Avec une date, elle reste commandable
+     jusque-là (même après la clôture des inscriptions, ou l'inverse).</p>
 </div>
 
 <div class="bk-sec">

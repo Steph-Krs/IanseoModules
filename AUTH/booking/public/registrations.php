@@ -13,6 +13,20 @@ require_once dirname(__DIR__) . '/lib/waitlist.php';
 
 $archer = bk_require_archer();
 
+/**
+ * Due, paid and remaining of an account (bk_due_total), on one line. $known false: competition
+ * over and its organiser records no payment here (bk_ledger_tracked) — the amount only.
+ */
+function rg_balance($d, $known = true)
+{
+    $f = function ($v) { return bk_e(number_format((float) $v, 2, ',', ' ')) . ' €'; };
+    if (!$known) return 'Montant : <b>' . $f($d['total']) . '</b> <span class="bk-hint">(paiement non suivi en ligne)</span>';
+    if ($d['remaining'] < -0.005) $st = '<span class="bk-tag">Trop-perçu ' . $f(-$d['remaining']) . '</span>';
+    elseif ($d['remaining'] <= 0.005) $st = '<span class="bk-tag bk-tag-on">Soldé</span>';
+    else $st = '<span class="bk-due-wait">Reste ' . $f($d['remaining']) . '</span>';
+    return 'Dû : <b>' . $f($d['total']) . '</b> · Payé : ' . $f($d['paid']) . ' ' . $st;
+}
+
 $err = '';
 $ok  = !empty($_GET['ok']) ? 'Votre inscription a bien été enregistrée.'
      : (!empty($_GET['wait']) ? "Demande enregistrée sur la liste d'attente." : '');
@@ -32,7 +46,7 @@ if (!empty($_GET['ok']) && $okTour > 0) {
     }
     $okLic = $okSubject ? $okSubjectLic : $archer->BaLicence;
     $okDue = bk_due_total($okTour, $okLic);
-    if ($okDue['total'] > 0 && !bk_payment_is_paid($okTour, $okLic)) {
+    if ($okDue['remaining'] > 0.005) {
         $okPay = bk_payinfo_get(bk_comp_config($okTour));
     }
 }
@@ -79,11 +93,11 @@ $authored = bk_authored_registrations($archer->BaId, $archer->BaLicence);
 
 bk_head('Mes inscriptions');
 ?>
-<?php if ($ok && $okDue && $okDue['total'] > 0): ?>
+<?php if ($ok && $okDue && $okDue['remaining'] > 0.005): ?>
   <div class="bk-confirm">
     <p><b>Inscription enregistrée<?= $okSubject ? ' pour ' . bk_e(trim($okSubject->LueFamilyName . ' ' . $okSubject->LueName)) : '' ?>.</b>
-       Montant à régler : <b><?= bk_e(number_format($okDue['total'], 2, ',', ' ')) ?> €</b>
-       <span class="bk-hint">(paiement à valider par l'organisateur).</span></p>
+       Reste à régler sur cette compétition : <b><?= bk_e(number_format($okDue['remaining'], 2, ',', ' ')) ?> €</b>
+       <span class="bk-hint">(l'organisateur enregistre votre paiement quand il le reçoit).</span></p>
     <?php if ($okPay): ?>
       <p class="bk-confirm-h">Moyens de paiement :</p>
       <ul>
@@ -189,15 +203,16 @@ if ($waits) {
   </div>
   <div class="bk-list">
   <?php foreach ($groups as $t => $g): $c = $g['c']; $nb = count($g['regs']);
-      $due  = bk_due_total($t, $archer->BaLicence);
-      $paid = bk_payment_is_paid($t, $archer->BaLicence);
-      $free = $due['total'] <= 0;
-      $pay  = (!$free && !$paid) ? bk_payinfo_get(bk_comp_config($t)) : array();
+      $due  = bk_due_total($t, bk_clean_licence($archer->BaLicence));
+      $paid = $due['remaining'] <= 0.005;
+      $free = $due['total'] <= 0 && abs($due['paid']) < 0.005;
+      $pastG = bk_is_finished($c->ToWhenTo) ? 1 : 0;
+      $known = !$pastG || bk_ledger_tracked($t);   // over and not recorded here: nothing is claimed
+      $pay  = (!$free && !$paid && $known) ? bk_payinfo_get(bk_comp_config($t)) : array();
       $ddG  = bk_comp_discipline($c->ToType, $c->ToTypeSubRule, $c->ToTypeName);
       $declRow = (!$free && !$paid) ? bk_payment_get($t, $archer->BaLicence) : null;
       $declM = $declRow ? (string) $declRow->PyDeclMethod : '';
-      $declW = $declRow ? (string) $declRow->PyDeclWhen : '';
-      $pastG = bk_is_finished($c->ToWhenTo) ? 1 : 0; ?>
+      $declW = $declRow ? (string) $declRow->PyDeclWhen : ''; ?>
     <article class="bk-item" data-past="<?= $pastG ?>" data-disc="<?= bk_e($ddG['key']) ?>">
       <div class="bk-item-main">
         <h2 class="bk-item-h"><span class="bk-item-ic"><?= bk_disc_icon($ddG['key'], 24) ?></span><?= bk_e($c->ToName) ?></h2>
@@ -271,15 +286,9 @@ if ($waits) {
         <?php if (isset($svOpen[$t])): ?>
           <p><a class="bk-btn bk-btn-primary" href="<?= bk_e(bk_public_url('survey.php?t=' . $t)) ?>"><?= intval($svOpen[$t]->Answered) ? '🗳 Modifier mon avis' : '🗳 Donner mon avis' ?></a></p>
         <?php endif; ?>
-        <?php if (!$free): ?>
-          <p class="bk-due">Montant : <b><?= bk_e(number_format($due['total'], 2, ',', ' ')) ?> €</b>
-            <?php if ($paid): ?><span class="bk-tag bk-tag-on">paiement validé</span>
-            <?php else: ?><span class="bk-due-wait">paiement non validé</span><?php endif; ?></p>
-        <?php endif; ?>
-        <?php if ($free || $paid): ?>
-          <p><a class="bk-btn bk-btn-primary" href="<?= bk_e(bk_public_url('receipt.php?comp=' . $t)) ?>">Reçu</a></p>
-        <?php endif; ?>
-        <?php if (bk_shop_has_items($t)): ?>
+        <?= $free ? '' : '<p class="bk-due">' . rg_balance($due, $known) . '</p>' ?>
+          <p><a class="bk-btn" href="<?= bk_e(bk_public_url('receipt.php?comp=' . $t)) ?>">Mon compte et reçu</a></p>
+        <?php if (bk_shop_has_items($t) && bk_comp_payments_on(bk_comp_config($t))): ?>
           <p><a class="bk-btn" href="<?= bk_e(bk_public_url('shop.php?t=' . $t)) ?>">Boutique</a></p>
         <?php endif; ?>
         <?php if (bk_docs_list($c, $t) || bk_dossard_available($c, $t)): ?>
@@ -322,6 +331,29 @@ if ($waits) {
   })();
   </script>
 <?php endif; ?>
+<?php
+// Accounts on competitions without an online registration of this archer (entered by the
+// organiser in ianseo, shop only): their balance and receipt belong here too.
+$regTours = array();
+foreach ($regs as $r) $regTours[intval($r->BrTournament)] = true;
+$others = array_filter(bk_archer_accounts(bk_clean_licence($archer->BaLicence)), function ($x) use ($regTours) {
+    return !isset($regTours[$x['ToId']]);
+});
+if ($others) {
+    echo '<section class="bk-block" style="margin-top:16px"><h2>Autres compétitions</h2><p class="bk-hint">'
+        . 'Participations enregistrées par l\x27organisateur ou commandes, sans inscription en ligne.</p>';
+    foreach ($others as $x) {
+        echo '<div class="bk-reg"><p><b>' . bk_e($x['ToName']) . '</b> <span class="bk-hint">'
+            . bk_e(bk_date_range($x['ToWhenFrom'], $x['ToWhenTo']) . ($x['ToWhere'] ? ' — ' . $x['ToWhere'] : '')) . '</span></p>'
+            . '<p class="bk-due">' . rg_balance(array('total' => $x['due'], 'paid' => $x['paid'], 'remaining' => $x['remaining']), !$x['past'] || $x['tracked']) . '</p>'
+            . '<p><a class="bk-btn" href="' . bk_e(bk_public_url('receipt.php?comp=' . $x['ToId'])) . '">Mon compte et reçu</a>'
+            . (!$x['past'] && bk_shop_has_items($x['ToId']) && bk_comp_payments_on(bk_comp_config($x['ToId']))
+                ? ' <a class="bk-btn" href="' . bk_e(bk_public_url('shop.php?t=' . $x['ToId'])) . '">Boutique</a>' : '')
+            . '</p></div>';
+    }
+    echo '</section>';
+}
+?>
 </div><!-- /panel mine -->
 
 <?php if ($authored):
@@ -352,7 +384,7 @@ if ($waits) {
           <?php foreach ($g['regs'] as $r):
             $dueA  = bk_due_total($t, $r->BrLicence);
             $pyA   = bk_payment_get($t, $r->BrLicence);
-            $paidA = $pyA && intval($pyA->PyPaid) === 1;
+            $paidA = $dueA['remaining'] <= 0.005;
             $declA = $pyA ? bk_payment_decl_label($pyA->PyDeclMethod ?? '', $pyA->PyDeclWhen ?? '') : '';
             if ($dueA['total'] > 0 && !$paidA) $anyUnpaid = true; ?>
             <div class="bk-reg">
@@ -368,10 +400,8 @@ if ($waits) {
                   <span class="bk-tag bk-tag-on">Cible <?= intval($r->QuTarget) ?><?= bk_e($r->QuLetter) ?></span>
                 <?php endif; ?>
               </p>
-              <?php if ($dueA['total'] > 0): ?>
-                <p class="bk-org">Montant : <b><?= bk_e(number_format($dueA['total'], 2, ',', ' ')) ?> €</b>
-                  <?php if ($paidA): ?><span class="bk-tag bk-tag-on">paiement validé</span>
-                  <?php else: ?><span class="bk-due-wait">paiement non validé</span><?php endif; ?>
+              <?php if ($dueA['total'] > 0 || abs($dueA['paid']) >= 0.005): ?>
+                <p class="bk-org"><?= rg_balance($dueA, !bk_is_finished($c->ToWhenTo) || bk_ledger_tracked($t)) ?>
                   <?php if ($declA): ?>&nbsp;·&nbsp; Choix : <b><?= bk_e($declA) ?></b><?php endif; ?></p>
               <?php endif; ?>
               <?php if (!empty($r->BcAllowScoresheet) || !empty($c->BcIsOpen)): ?>

@@ -558,10 +558,10 @@ l'admin peut l'attribuer/corriger via la page « Compétitions & partage ».
   une demande d'effacement. Recherche par licence, nom ou prénom, aperçu de tout ce qui change,
   confirmation en retapant la licence.
   - **Compétitions à venir** (non terminées, et pas encore de score pour cette personne) :
-    inscriptions et rôles d'officiel **supprimés**, la place libérée va à la liste d'attente. Si le
-    paiement avait été validé, l'organisateur est prévenu d'un **remboursement à faire** (club et
-    montant, sans nom) sur sa page « Sommes dues », jusqu'à ce qu'il clique « Remboursement
-    effectué ». Une compétition dont
+    inscriptions et rôles d'officiel **supprimés**, la place libérée va à la liste d'attente. Si un
+    paiement avait été enregistré, l'organisateur est prévenu d'un **remboursement à faire** (club et
+    montant, sans nom) sur sa page « Paiements », jusqu'à ce qu'il clique « Remboursement
+    effectué » — ce qui inscrit le remboursement dans l'historique, où les paiements restent sous `ANON`. Une compétition dont
     l'organisateur a verrouillé les participants est anonymisée à la place (la page le signale).
   - **Compétitions tirées** : licence remplacée par `ANON`, nom et prénom vidés (participants et
     officiels), date de naissance supprimée (la catégorie, enregistrée à l'inscription, ne change

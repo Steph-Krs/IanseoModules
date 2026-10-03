@@ -17,12 +17,20 @@ if (defined('BK_SHOP_LOADED')) return;
 define('BK_SHOP_LOADED', true);
 
 require_once __DIR__ . '/schema.php';
+require_once __DIR__ . '/competition.php';   // bk_comp_payments_on, bk_comp_set_effective, bk_comp_finished
 
 /** La boutique accepte-t-elle des commandes ? Date limite propre, sinon suit les inscriptions. */
 function bk_shop_open($cfg)
 {
     $until = trim((string) ($cfg->BcShopUntil ?? ''));
-    if ($until === '' || strpos($until, '0000') === 0) return !empty($cfg->BcIsOpen);
+    if ($until === '' || strpos($until, '0000') === 0) {
+        if (!empty($cfg->BcIsOpen)) return true;
+        // Closed competition using the shop (level 1): no registration window to follow, the
+        // shop stays open until the competition is over.
+        return intval($cfg->BcPublishLevel ?? 1) === 1 && !empty($cfg->BcPayments)
+            && !bk_comp_finished(intval($cfg->BcTournament ?? 0));
+    }
+    if (!bk_comp_payments_on($cfg)) return false;
     // Deadline typed in the competition's local time: compare with its local "now"
     // (lib/clock.php) — NOW() alone is UTC on the archer pages.
     $tour = intval($cfg->BcTournament ?? 0);
@@ -200,9 +208,8 @@ function bk_shop_set_deadline($tourId, $dt)
     bk_schema();
     $tourId = intval($tourId);
     $dt = trim((string) $dt);
-    $val = $dt === '' ? 'NULL' : StrSafe_DB(str_replace('T', ' ', substr($dt, 0, 16)));
-    safe_w_sql("INSERT INTO BK_Competitions SET BcTournament = $tourId, BcShopUntil = $val
-        ON DUPLICATE KEY UPDATE BcShopUntil = $val");
+    // datetime-local value, ASCII: bytes are characters here.
+    bk_comp_set_effective($tourId, array('BcShopUntil' => $dt === '' ? null : str_replace('T', ' ', substr($dt, 0, 16))));
 }
 
 /* ----- CRUD organisateur ----- */

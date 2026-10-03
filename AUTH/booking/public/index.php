@@ -50,6 +50,26 @@ foreach (bk_waitlist_for_archer($archer->BaId, $archer->BaLicence) as $w) {
     echo '<div class="bk-sv-banner"><span class="bk-sv-banner-txt">' . $txt . '</span>'
        . '<a class="bk-btn bk-btn-primary" style="width:auto" href="' . bk_e(bk_public_url('registrations.php')) . '">Mes inscriptions</a></div>';
 }
+
+// Sums still owed to the organisers of competitions that are over, shown until paid: an
+// account is often opened on site and settled at the end, and easily forgotten. Only where
+// the organiser records payments here (bk_ledger_tracked).
+require_once dirname(__DIR__) . '/lib/payment.php';
+$owed = array_filter(bk_archer_accounts(bk_clean_licence($archer->BaLicence)), function ($x) {
+    return $x['past'] && $x['tracked'] && $x['remaining'] > 0.005;
+});
+if ($owed) {
+    echo '<div class="bk-owed"><h2>Reste à payer</h2><ul>';
+    foreach ($owed as $x) {
+        $ways = array();
+        foreach ($x['payinfo'] as $pi) $ways[] = $pi['label'] . ($pi['info'] !== '' ? ' (' . $pi['info'] . ')' : '');
+        echo '<li><b>' . bk_e(number_format($x['remaining'], 2, ',', ' ')) . ' €</b> à l\'organisateur de « '
+            . bk_e($x['ToName']) . ' » (' . bk_e(bk_date_range($x['ToWhenFrom'], $x['ToWhenTo'])) . ') — '
+            . '<a href="' . bk_e(bk_public_url('receipt.php?comp=' . $x['ToId'])) . '">détail</a>'
+            . ($ways ? '<br><span class="bk-hint">Moyens acceptés : ' . bk_e(implode(', ', $ways)) . '</span>' : '') . '</li>';
+    }
+    echo '</ul></div>';
+}
 ?>
 
 <div class="bk-grid">

@@ -112,6 +112,7 @@ bk_head('Inscrire mon club');
     <input type="text" name="q" value="<?= bk_e($search) ?>" placeholder="Nom ou licence"></label>
   <button type="submit" class="bk-btn">Filtrer</button>
 </form>
+<?= $tourId ? '<p><a class="bk-btn" href="' . bk_e(bk_public_url('receipt.php?club=1&t=' . $tourId)) . '">Relevé du club : dû, payé, reste à payer</a></p>' : '' ?>
 
 <?php if (!$tourId): ?>
   <p class="bk-empty">Choisissez une compétition pour inscrire vos archers.</p>

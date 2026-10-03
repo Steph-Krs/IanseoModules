@@ -7,9 +7,11 @@
  * treated differently:
  *  - TO COME (not over, and no score of this person yet): the registrations are DELETED,
  *    through the module's own removal path (core recalculation hooks), shop orders and
- *    payment too, official roles as well; the freed places go to the waiting list. If the
- *    payment had been validated, a refund (club + amount, no name) is recorded for the
- *    organiser (BK_Refunds), shown on the "Sommes dues" page of that competition. A competition
+ *    declared payment choice too, official roles as well; the freed places go to the waiting
+ *    list. If something had been paid (payments journal), a refund (club + amount, no name) is
+ *    recorded for the organiser (BK_Refunds), shown on the "Paiements" page of that
+ *    competition; the journal lines stay, under the anonymous code, and marking the refund as
+ *    done writes the matching refund line. A competition
  *    whose participants are locked by its organiser cannot be changed: it is anonymised
  *    as below instead, and the page says so.
  *  - SHOT (over, or the person has a score — never destroy a result): ANONYMISED.
@@ -182,9 +184,10 @@ function aut_anon_person($lic)
  * Competitions TO COME for this licence: not over (local date of each competition), where
  * the person has something (registration, payment, shop order, official role) and no score
  * yet. For each: [ToId => ['code', 'name', 'entries' => [EnId], 'officials' => n,
- * 'refund' => null | ['amount', 'method', 'club_code', 'club_name']]]. The refund is what was
- * paid and validated (bk_due_total, before anything is removed). Read-only: the preview and
- * aut_anon_apply() share it.
+ * 'refund' => null | ['amount', 'method', 'club_code', 'club_name']]]. The refund is what the
+ * payments journal holds for this licence (bk_account, before anything is removed), with the
+ * method of the last payment. Reads only — apart from bk_ledger_migrate(), which takes over
+ * the former "paid" ticks into the journal once. The preview and aut_anon_apply() share it.
  */
 function aut_anon_plan($lic)
 {
@@ -196,7 +199,8 @@ function aut_anon_plan($lic)
           AND ToId IN (SELECT EnTournament FROM Entries WHERE EnCode = $l
                  UNION SELECT TiTournament FROM TournamentInvolved WHERE TiCode = $l
                  UNION SELECT PyTournament FROM BK_Payments WHERE PyLicence = $l
-                 UNION SELECT SoTournament FROM BK_ShopOrders WHERE SoLicence = $l)
+                 UNION SELECT SoTournament FROM BK_ShopOrders WHERE SoLicence = $l
+                 UNION SELECT BlgTournament FROM BK_Ledger WHERE BlgAccount = $l)
           AND ToId NOT IN (SELECT EnTournament FROM Entries INNER JOIN Qualifications ON QuId = EnId
                  WHERE EnCode = $l AND (QuScore <> 0 OR QuHits <> 0))
         ORDER BY ToWhenFrom, ToId");
@@ -207,17 +211,16 @@ function aut_anon_plan($lic)
         while ($e = safe_fetch($q)) $out[$t]['entries'][] = intval($e->EnId);
         $o = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM TournamentInvolved WHERE TiTournament = $t AND TiCode = $l"));
         $out[$t]['officials'] = $o ? intval($o->n) : 0;
-        $py = bk_payment_get($t, $lic);
-        if ($py && intval($py->PyPaid) === 1) {
-            $due = bk_due_total($t, $lic);
-            if ($due['total'] > 0) {
-                $club = safe_fetch(safe_r_sql("SELECT CoCode AS c, CoName AS n FROM Entries
-                    INNER JOIN Countries ON CoId = EnCountry WHERE EnTournament = $t AND EnCode = $l LIMIT 1"))
-                    ?: safe_fetch(safe_r_sql("SELECT LueCountry AS c, LueCoDescr AS n FROM LookUpEntries
-                    WHERE LueCode = $l ORDER BY LueDefault DESC LIMIT 1"));
-                $out[$t]['refund'] = array('amount' => $due['total'], 'method' => (string) $py->PyMethod,
-                    'club_code' => $club ? (string) $club->c : '', 'club_name' => $club ? (string) $club->n : '');
-            }
+        $acc = bk_account($t, $lic);
+        if ($acc['paid'] > 0.005) {
+            $method = '';
+            foreach ($acc['moves'] as $m) if ($m->BlgKind === 'payment' && !intval($m->BlgCancelled)) $method = (string) $m->BlgMethod;
+            $club = safe_fetch(safe_r_sql("SELECT CoCode AS c, CoName AS n FROM Entries
+                INNER JOIN Countries ON CoId = EnCountry WHERE EnTournament = $t AND EnCode = $l LIMIT 1"))
+                ?: safe_fetch(safe_r_sql("SELECT LueCountry AS c, LueCoDescr AS n FROM LookUpEntries
+                WHERE LueCode = $l ORDER BY LueDefault DESC LIMIT 1"));
+            $out[$t]['refund'] = array('amount' => $acc['paid'], 'method' => $method,
+                'club_code' => $club ? (string) $club->c : '', 'club_name' => $club ? (string) $club->n : '');
         }
     }
     return $out;
@@ -225,7 +228,8 @@ function aut_anon_plan($lic)
 
 /**
  * Removes the person from a competition to come (see aut_anon_plan): registrations through
- * the module's removal path, then official roles, shop orders, payment; records the refund;
+ * the module's removal path, then official roles, shop orders, declared payment choice; records
+ * the refund (the journal lines are kept, aut_anon_bk_tables() gives them the anonymous code);
  * gives the freed places to the waiting list. false when the organiser has locked the
  * participants (nothing removed then: the caller anonymises instead).
  */
@@ -272,6 +276,9 @@ function aut_anon_bk_tables($lic)
         safe_w_sql("UPDATE BK_Registrations SET BrBy = $a WHERE BrBy = $l");   // registered others
         safe_w_sql("UPDATE BK_Registrations SET BrWantWith = '' WHERE BrWantWith = $l");
     }
+    // Payments journal: the money did come in (and, for a competition to come, is to be given
+    // back): the lines stay, under the anonymous code. No unique key there.
+    if (aut_anon_table('BK_Ledger')) safe_w_sql("UPDATE BK_Ledger SET BlgAccount = $a WHERE BlgAccount = $l");
     foreach (array('BK_Payments' => 'PyLicence', 'BK_ShopOrders' => 'SoLicence') as $t => $c) {
         if (!aut_anon_table($t)) continue;
         safe_w_sql("UPDATE IGNORE $t SET $c = $a WHERE $c = $l");

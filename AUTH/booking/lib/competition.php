@@ -88,7 +88,7 @@ function bk_comp_defaults($tourId)
         'BcPayInfo' => null, 'BcManualValidation' => 0, 'BcMandate' => null, 'BcShowMandate' => null,
         'BcIanseoUrl' => null, 'BcShowProgram' => 0, 'BcShowParticipants' => 0, 'BcShowResults' => 0,
         'BcShowDossard' => 0, 'BcSurvey' => 1, 'BcWaitlist' => 1,
-        'BcPublishLevel' => 1, 'BcAdvancedBackup' => null,
+        'BcPublishLevel' => 1, 'BcAdvancedBackup' => null, 'BcPayments' => 0,
         'BcIsOpen' => 0, 'BcAllOpen' => 1,
     );
 }
@@ -247,7 +247,8 @@ function bk_comp_copy_from($destTour, $srcTour)
         d.BcPayInfo = s.BcPayInfo, d.BcManualValidation = s.BcManualValidation, d.BcMandate = s.BcMandate,
         d.BcShowMandate = s.BcShowMandate, d.BcShowProgram = s.BcShowProgram,
         d.BcShowParticipants = s.BcShowParticipants, d.BcShowResults = s.BcShowResults,
-        d.BcShowDossard = s.BcShowDossard, d.BcSurvey = s.BcSurvey, d.BcWaitlist = s.BcWaitlist
+        d.BcShowDossard = s.BcShowDossard, d.BcSurvey = s.BcSurvey, d.BcWaitlist = s.BcWaitlist,
+        d.BcPayments = s.BcPayments
         WHERE d.BcTournament = $destTour");
 
     bk_comp_copy_shop($destTour, $srcTour);
@@ -444,6 +445,36 @@ function bk_comp_restore($tourId, $snap)
         safe_w_sql("UPDATE BK_Competitions SET " . implode(', ', $parts)
             . " WHERE BcTournament = " . intval($tourId));
     }
+}
+
+/**
+ * Are the payments and the shop in use? Always on a competition open on this server (levels
+ * 2 and 3); on a closed one (level 1, ianseo imports only) when the organiser ticked it.
+ */
+function bk_comp_payments_on($cfg)
+{
+    return intval($cfg->BcPublishLevel ?? 1) >= 2 || !empty($cfg->BcPayments);
+}
+
+/**
+ * Writes settings that are edited outside level 3 (tariffs and payment methods of a closed
+ * competition, shop deadline): the columns, and the level-2 snapshot when there is one —
+ * otherwise going back to the detailed settings would restore the older values over them.
+ */
+function bk_comp_set_effective($tourId, $cols)
+{
+    $tourId = intval($tourId);
+    if (!$cols) return;
+    safe_w_sql("INSERT INTO BK_Competitions (BcTournament) VALUES ($tourId) ON DUPLICATE KEY UPDATE BcTournament = BcTournament");
+    $parts = array();
+    foreach ($cols as $c => $v) $parts[] = "$c = " . ($v === null ? 'NULL' : StrSafe_DB((string) $v));
+    safe_w_sql("UPDATE BK_Competitions SET " . implode(', ', $parts) . " WHERE BcTournament = $tourId");
+    $r = safe_fetch(safe_r_sql("SELECT BcAdvancedBackup FROM BK_Competitions WHERE BcTournament = $tourId"));
+    $snap = $r ? json_decode((string) $r->BcAdvancedBackup, true) : null;
+    if (!is_array($snap)) return;
+    foreach ($cols as $c => $v) if (array_key_exists($c, $snap)) $snap[$c] = $v;
+    safe_w_sql("UPDATE BK_Competitions SET BcAdvancedBackup = "
+        . StrSafe_DB(json_encode($snap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) . " WHERE BcTournament = $tourId");
 }
 
 /**

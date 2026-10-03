@@ -43,6 +43,40 @@ $onlineId = $rOnline ? intval($rOnline->ToOnlineId) : 0;
 // rien (un SELECT indexé) hors de ce cas. Voir lib/adopt.php.
 $adoptReport = bk_adopt_check($TOUR);
 
+/**
+ * Detailed tariff rebuilt from the posted form, normalised: JSON for BcPricing, or '' when
+ * only the base fee is used. Same form at level 3 and on a closed competition.
+ */
+function bk_adm_pricing_from_post($post)
+{
+    $num = function ($x) { return floatval(str_replace(',', '.', trim((string) $x))); };
+    $pin = array(
+        'categories' => array(), 'departures' => array(), 'rank' => array(),
+        'prov' => array(
+            'deptCode'   => $post['prov_deptcode'] ?? '',
+            'regionCode' => $post['prov_regioncode'] ?? '',
+            'dept'       => $num($post['prov_dept'] ?? 0),
+            'region'     => $num($post['prov_region'] ?? 0),
+        ),
+    );
+    foreach ((array) ($post['cat'] ?? array()) as $row) {
+        if (!is_array($row)) continue;
+        $price = trim((string) ($row['price'] ?? ''));
+        $div   = array_values((array) ($row['div'] ?? array()));
+        $cls   = array_values((array) ($row['cls'] ?? array()));
+        if ($price === '' && !$div && !$cls) continue;     // empty rule ignored
+        $pin['categories'][] = array('label' => $row['label'] ?? '', 'div' => $div, 'cls' => $cls, 'price' => $num($price));
+    }
+    foreach ((array) ($post['dep'] ?? array()) as $ord => $val) {
+        $v = $num($val); if ($v != 0.0) $pin['departures'][(string) intval($ord)] = $v;
+    }
+    foreach ((array) ($post['rank'] ?? array()) as $th => $val) {
+        $v = $num($val); if ($v != 0.0 && intval($th) >= 2) $pin['rank'][(string) intval($th)] = $v;
+    }
+    $norm = bk_pricing_norm($pin);
+    return bk_pricing_is_advanced($norm) ? json_encode($norm) : '';
+}
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
         $err = 'Session expirée — rechargez la page et réessayez.';
@@ -87,39 +121,34 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $fee = number_format((float) str_replace(',', '.', (string) ($_POST['fee'] ?? 0)), 2, '.', '');
         safe_w_sql("UPDATE BK_Competitions SET BcFee = " . StrSafe_DB($fee) . " WHERE BcTournament = $TOUR");
         $msg = 'Tarif d\'inscription enregistré.';
+    } elseif (isset($_POST['set_payments'])) {
+        // Closed competition: use the payments and the shop (or stop showing them).
+        safe_w_sql("INSERT INTO BK_Competitions (BcTournament, BcPayments) VALUES ($TOUR, " . (empty($_POST['payments']) ? 0 : 1) . ")
+            ON DUPLICATE KEY UPDATE BcPayments = VALUES(BcPayments)");
+        header('Location: ' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php');
+        exit;
+    } elseif (isset($_POST['save_payments'])) {
+        // Closed competition using the payments: tariffs and payment methods only. Nothing
+        // here opens the competition to the archers.
+        $cur = bk_comp_config($TOUR);
+        if (intval($cur->BcPublishLevel ?? 1) !== 1 || empty($cur->BcPayments)) {
+            $err = 'La gestion des paiements n\'est pas activée pour cette compétition — rechargez la page.';
+        } else {
+            $pricingJson = bk_adm_pricing_from_post($_POST);
+            $payJson = bk_payinfo_from_post($_POST['pay'] ?? array());
+            bk_comp_set_effective($TOUR, array(
+                'BcFee' => number_format((float) str_replace(',', '.', (string) ($_POST['fee'] ?? 0)), 2, '.', ''),
+                'BcPricing' => $pricingJson === '' ? null : $pricingJson,
+                'BcPayInfo' => $payJson === '' ? null : $payJson,
+            ));
+            $msg = 'Tarifs et moyens de paiement enregistrés.';
+        }
     } else {
         $kind = (string) ($_POST['kind'] ?? '');
         if (!array_key_exists($kind, bk_restrict_kinds())) $kind = '';
         $err = bk_scope_error($kind, $_POST['code'] ?? '');
         if ($err === '') {
-            // Tarification avancée : reconstruite depuis le POST puis normalisée.
-            $num = function ($x) { return floatval(str_replace(',', '.', trim((string) $x))); };
-            $pin = array(
-                'categories' => array(), 'departures' => array(), 'rank' => array(),
-                'prov' => array(
-                    'deptCode'   => $_POST['prov_deptcode'] ?? '',
-                    'regionCode' => $_POST['prov_regioncode'] ?? '',
-                    'dept'       => $num($_POST['prov_dept'] ?? 0),
-                    'region'     => $num($_POST['prov_region'] ?? 0),
-                ),
-            );
-            foreach ((array) ($_POST['cat'] ?? array()) as $row) {
-                if (!is_array($row)) continue;
-                $price = trim((string) ($row['price'] ?? ''));
-                $div   = array_values((array) ($row['div'] ?? array()));
-                $cls   = array_values((array) ($row['cls'] ?? array()));
-                if ($price === '' && !$div && !$cls) continue;     // règle vide ignorée
-                $pin['categories'][] = array('label' => $row['label'] ?? '',
-                    'div' => $div, 'cls' => $cls, 'price' => $num($price));
-            }
-            foreach ((array) ($_POST['dep'] ?? array()) as $ord => $val) {
-                $v = $num($val); if ($v != 0.0) $pin['departures'][(string) intval($ord)] = $v;
-            }
-            foreach ((array) ($_POST['rank'] ?? array()) as $th => $val) {
-                $v = $num($val); if ($v != 0.0 && intval($th) >= 2) $pin['rank'][(string) intval($th)] = $v;
-            }
-            $norm = bk_pricing_norm($pin);
-            $pricingJson = bk_pricing_is_advanced($norm) ? json_encode($norm) : '';
+            $pricingJson = bk_adm_pricing_from_post($_POST);
 
             // Règles de placement : valeurs FFTA, modifiables seulement en DROM-TOM.
             $isDromPost = bk_is_dromtom(bk_org_agrement($TOUR));
@@ -465,12 +494,149 @@ if ($bigSes) {
   </div>
 </div>
 
+<?php
+// Tariffs and payment methods: the same blocks at level 3 and on a closed competition that
+// uses the payments and the shop (level 1, participants imported in ianseo).
+$showTariffs = $level == 3 || ($level == 1 && !empty($cfg->BcPayments));
+ob_start(); ?>
+<div class="bk-sec">
+  <h2>Tarifs</h2>
+  <div class="bk-row">
+    <label class="bk-f"><span>Tarif de base (€)</span>
+      <input type="text" name="fee" size="8" value="<?= bk_e(number_format((float) $cfg->BcFee, 2, ',', '')) ?>"></label>
+  </div>
+  <p class="bk-hint">Montant appliqué par défaut à une inscription. Laissez les tarifs avancés
+     repliés si un tarif unique suffit.</p>
+
+  <details class="bk-adv" <?= bk_pricing_is_advanced($pricing) ? 'open' : '' ?>>
+    <summary>Tarifs avancés (facultatif)</summary>
+
+    <p class="bk-hint" style="margin:0 0 6px">
+      <b>Comment le prix est calculé :</b> on part du <b>tarif de base</b> (remplacé par le
+      <b>prix fixe d'une catégorie</b> si une règle correspond à l'archer), puis on
+      <b>ajoute ou retire</b> l'ajustement du <b>départ</b>, celui de la <b>provenance</b>
+      (le plus local seul, sans cumul) et celui du <b>dégressif</b> multi-inscriptions ;
+      jamais en dessous de 0 €. L'<b>aperçu en bas</b> montre le résultat en direct.</p>
+
+    <h3>Par catégorie (prix fixe)</h3>
+    <p class="bk-hint">Une règle fixe le prix pour les armes et catégories cochées (vides = toutes).
+       La première règle correspondant à l'archer l'emporte ; sinon le tarif de base s'applique.</p>
+    <div id="bk-cat-list">
+      <?php foreach ($pricing['categories'] as $i => $rule) echo bk_cat_row($i, $rule, $divs, $classes); ?>
+    </div>
+    <button type="button" class="bk-btn bk-add" onclick="bkAddCat()">+ Ajouter une règle</button>
+    <template id="bk-cat-tpl"><?= bk_cat_row('__i__', array(), $divs, $classes) ?></template>
+
+    <h3>Par départ (ajustement +/−)</h3>
+    <p class="bk-hint">Écart appliqué au tarif selon le départ choisi (ex. −2 pour un 2ᵉ départ moins cher).
+       Laisser vide = pas d'écart.</p>
+    <?php if (!$sessions): ?>
+      <p class="bk-hint">Aucun départ configuré pour l'instant.</p>
+    <?php else: ?>
+      <div class="bk-row">
+        <?php foreach ($sessions as $s): $o = intval($s->SesOrder); $dv = $pricing['departures'][(string) $o] ?? ''; ?>
+          <label class="bk-f"><span>Départ <?= $o ?><?= $s->SesName ? ' — ' . bk_e($s->SesName) : '' ?> (Δ €)</span>
+            <input type="text" name="dep[<?= $o ?>]" size="6" value="<?= bk_e(bk_amt($dv)) ?>"></label>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+
+    <h3>Selon la provenance (favoriser les locaux)</h3>
+    <p class="bk-hint">Écart pour les archers du département / de la ligue de l'organisateur.
+       Le plus local l'emporte (pas de cumul). Codes pré-remplis d'après votre agrément — modifiables.</p>
+    <div class="bk-row">
+      <label class="bk-f"><span>Département local (2 chiffres)</span>
+        <input type="text" name="prov_deptcode" size="4" maxlength="2" value="<?= bk_e($provDeptDef) ?>"></label>
+      <label class="bk-f"><span>Δ départemental (€)</span>
+        <input type="text" name="prov_dept" size="6" value="<?= bk_e(bk_amt($pricing['prov']['dept'] ?: '')) ?>"></label>
+      <label class="bk-f"><span>Ligue locale (2 chiffres)</span>
+        <input type="text" name="prov_regioncode" size="4" maxlength="2" value="<?= bk_e($provRegionDef) ?>"></label>
+      <label class="bk-f"><span>Δ régional (€)</span>
+        <input type="text" name="prov_region" size="6" value="<?= bk_e(bk_amt($pricing['prov']['region'] ?: '')) ?>"></label>
+    </div>
+
+    <h3>Dégressif multi-inscriptions</h3>
+    <p class="bk-hint">Écart selon le rang de l'inscription de la personne sur cette compétition.</p>
+    <div class="bk-row">
+      <label class="bk-f"><span>À partir de la 2ᵉ (Δ €)</span>
+        <input type="text" name="rank[2]" size="6" value="<?= bk_e(bk_amt($pricing['rank']['2'] ?? '')) ?>"></label>
+      <label class="bk-f"><span>À partir de la 3ᵉ (Δ €)</span>
+        <input type="text" name="rank[3]" size="6" value="<?= bk_e(bk_amt($pricing['rank']['3'] ?? '')) ?>"></label>
+    </div>
+
+    <h3>Aperçu du tarif</h3>
+    <p class="bk-hint">Simulez un archer : le prix se met à jour en direct d'après votre configuration ci-dessus.</p>
+    <div class="bk-row bk-sim-in">
+      <label class="bk-f"><span>Arme</span>
+        <select id="sim-div"><?php foreach ($divs as $k => $v) echo '<option value="' . bk_e($k) . '">' . bk_e($v) . '</option>'; ?></select></label>
+      <label class="bk-f"><span>Catégorie</span>
+        <select id="sim-cls"><?php foreach ($classes as $k => $v) echo '<option value="' . bk_e($k) . '">' . bk_e($v) . '</option>'; ?></select></label>
+      <label class="bk-f"><span>Départ</span>
+        <select id="sim-ses"><option value="0">—</option><?php foreach ($sessions as $s) { $o = intval($s->SesOrder); echo '<option value="' . $o . '">Départ ' . $o . '</option>'; } ?></select></label>
+      <label class="bk-f"><span>Provenance</span>
+        <select id="sim-prov"><option value="">Hors zone</option><option value="region">Régional</option><option value="dept">Local départemental</option></select></label>
+      <label class="bk-f"><span>Inscription n°</span>
+        <select id="sim-rank"><option value="1">1re</option><option value="2">2e</option><option value="3">3e</option></select></label>
+    </div>
+    <div class="bk-sim-out">
+      <table class="bk-sim-t"><tbody id="sim-lines"></tbody></table>
+      <p class="bk-sim-tot">Total : <b id="sim-total">—</b></p>
+    </div>
+  </details>
+</div>
+
+<div class="bk-sec">
+  <h2>Moyens de paiement</h2>
+  <p class="bk-hint">Cochez les moyens acceptés, précisez quand ils le sont et l'info utile (ordre du
+     chèque, RIB, contact…). À la fin de son inscription, l'archer les voit.</p>
+  <?php foreach (bk_payment_methods() as $mk => $ml): $cur = $payByM[$mk] ?? null; ?>
+    <div class="bk-pay-row">
+      <label class="bk-chk bk-pay-name"><input type="checkbox" name="pay[<?= bk_e($mk) ?>][on]" value="1" <?= $cur ? 'checked' : '' ?>>
+        <b><?= bk_e($ml) ?></b></label>
+      <select name="pay[<?= bk_e($mk) ?>][when]">
+        <?php foreach (bk_payinfo_when_labels() as $wk => $wl): ?>
+          <option value="<?= bk_e($wk) ?>" <?= ($cur && $cur['when'] === $wk) ? 'selected' : '' ?>><?= bk_e($wl) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <input type="text" class="bk-pay-info" name="pay[<?= bk_e($mk) ?>][info]"
+             value="<?= bk_e($cur['info'] ?? '') ?>" placeholder="Info (ex. à l'ordre de…, RIB, contact)">
+    </div>
+  <?php endforeach; ?>
+</div>
+
+<?php $tariffBlocks = ob_get_clean(); ?>
+
 <?php if ($level == 1): ?>
   <div class="bk-sec">
     <p class="bk-hint" style="margin:0">Les inscriptions en ligne sont fermées : cette compétition
        n'apparaît pas dans le calendrier des archers connectés et ne compte pas dans leurs statistiques.
        Choisissez <b>Inscriptions ouvertes</b> pour la leur rendre visible en un clic.</p>
+    <form method="post" style="margin:12px 0 0">
+      <?= bk_csrf_field() ?>
+      <input type="hidden" name="set_payments" value="1">
+      <label class="bk-chk"><input type="checkbox" name="payments" value="1" onchange="this.form.submit()" <?= !empty($cfg->BcPayments) ? 'checked' : '' ?>>
+        <b>Utiliser la gestion des paiements et la boutique</b> pour les participants saisis ou importés dans ianseo</label>
+      <noscript><button type="submit" class="bk-btn">Appliquer</button></noscript>
+    </form>
+    <p class="bk-hint">Tarifs, moyens de paiement, boutique et suivi des paiements, comme pour une compétition
+       ouverte. Chaque archer retrouve son compte (dû, payé, reste) et son reçu dans son espace, et peut commander
+       dans la boutique ; la compétition reste invisible dans le calendrier et personne ne s'y inscrit en ligne.</p>
+    <?php if (!empty($cfg->BcPayments)): ?>
+      <p class="bk-shortcuts">
+        <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/shop.php">Boutique →</a>
+        <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/dues.php">Paiements →</a>
+      </p>
+    <?php endif; ?>
   </div>
+  <?php if (!empty($cfg->BcPayments)): ?>
+    <form method="post" id="bk-cfg" data-autosave="1">
+    <?= bk_csrf_field() ?>
+    <input type="hidden" name="save_payments" value="1">
+    <?= $tariffBlocks ?>
+    <button type="submit" class="bk-btn" data-manual-save="1">Enregistrer</button>
+    </form>
+    <div id="bk-pill" hidden></div>
+  <?php endif; ?>
 <?php endif; ?>
 
 <?php if ($level == 2): ?>
@@ -492,7 +658,7 @@ if ($bigSes) {
     <p class="bk-shortcuts">
       <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/field.php">Contraintes d'affectation du terrain →</a>
       <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/shop.php">Boutique →</a>
-      <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/dues.php">Sommes dues →</a>
+      <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/dues.php">Paiements →</a>
       <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/survey.php">Satisfaction des archers →</a>
     </p>
   </div>
@@ -643,110 +809,7 @@ if ($bigSes) {
      graphiques simples, comparés à la moyenne des autres compétitions du serveur.</p>
 </div>
 
-<div class="bk-sec">
-  <h2>Tarifs</h2>
-  <div class="bk-row">
-    <label class="bk-f"><span>Tarif de base (€)</span>
-      <input type="text" name="fee" size="8" value="<?= bk_e(number_format((float) $cfg->BcFee, 2, ',', '')) ?>"></label>
-  </div>
-  <p class="bk-hint">Montant appliqué par défaut à une inscription. Laissez les tarifs avancés
-     repliés si un tarif unique suffit.</p>
-
-  <details class="bk-adv" <?= bk_pricing_is_advanced($pricing) ? 'open' : '' ?>>
-    <summary>Tarifs avancés (facultatif)</summary>
-
-    <p class="bk-hint" style="margin:0 0 6px">
-      <b>Comment le prix est calculé :</b> on part du <b>tarif de base</b> (remplacé par le
-      <b>prix fixe d'une catégorie</b> si une règle correspond à l'archer), puis on
-      <b>ajoute ou retire</b> l'ajustement du <b>départ</b>, celui de la <b>provenance</b>
-      (le plus local seul, sans cumul) et celui du <b>dégressif</b> multi-inscriptions ;
-      jamais en dessous de 0 €. L'<b>aperçu en bas</b> montre le résultat en direct.</p>
-
-    <h3>Par catégorie (prix fixe)</h3>
-    <p class="bk-hint">Une règle fixe le prix pour les armes et catégories cochées (vides = toutes).
-       La première règle correspondant à l'archer l'emporte ; sinon le tarif de base s'applique.</p>
-    <div id="bk-cat-list">
-      <?php foreach ($pricing['categories'] as $i => $rule) echo bk_cat_row($i, $rule, $divs, $classes); ?>
-    </div>
-    <button type="button" class="bk-btn bk-add" onclick="bkAddCat()">+ Ajouter une règle</button>
-    <template id="bk-cat-tpl"><?= bk_cat_row('__i__', array(), $divs, $classes) ?></template>
-
-    <h3>Par départ (ajustement +/−)</h3>
-    <p class="bk-hint">Écart appliqué au tarif selon le départ choisi (ex. −2 pour un 2ᵉ départ moins cher).
-       Laisser vide = pas d'écart.</p>
-    <?php if (!$sessions): ?>
-      <p class="bk-hint">Aucun départ configuré pour l'instant.</p>
-    <?php else: ?>
-      <div class="bk-row">
-        <?php foreach ($sessions as $s): $o = intval($s->SesOrder); $dv = $pricing['departures'][(string) $o] ?? ''; ?>
-          <label class="bk-f"><span>Départ <?= $o ?><?= $s->SesName ? ' — ' . bk_e($s->SesName) : '' ?> (Δ €)</span>
-            <input type="text" name="dep[<?= $o ?>]" size="6" value="<?= bk_e(bk_amt($dv)) ?>"></label>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
-
-    <h3>Selon la provenance (favoriser les locaux)</h3>
-    <p class="bk-hint">Écart pour les archers du département / de la ligue de l'organisateur.
-       Le plus local l'emporte (pas de cumul). Codes pré-remplis d'après votre agrément — modifiables.</p>
-    <div class="bk-row">
-      <label class="bk-f"><span>Département local (2 chiffres)</span>
-        <input type="text" name="prov_deptcode" size="4" maxlength="2" value="<?= bk_e($provDeptDef) ?>"></label>
-      <label class="bk-f"><span>Δ départemental (€)</span>
-        <input type="text" name="prov_dept" size="6" value="<?= bk_e(bk_amt($pricing['prov']['dept'] ?: '')) ?>"></label>
-      <label class="bk-f"><span>Ligue locale (2 chiffres)</span>
-        <input type="text" name="prov_regioncode" size="4" maxlength="2" value="<?= bk_e($provRegionDef) ?>"></label>
-      <label class="bk-f"><span>Δ régional (€)</span>
-        <input type="text" name="prov_region" size="6" value="<?= bk_e(bk_amt($pricing['prov']['region'] ?: '')) ?>"></label>
-    </div>
-
-    <h3>Dégressif multi-inscriptions</h3>
-    <p class="bk-hint">Écart selon le rang de l'inscription de la personne sur cette compétition.</p>
-    <div class="bk-row">
-      <label class="bk-f"><span>À partir de la 2ᵉ (Δ €)</span>
-        <input type="text" name="rank[2]" size="6" value="<?= bk_e(bk_amt($pricing['rank']['2'] ?? '')) ?>"></label>
-      <label class="bk-f"><span>À partir de la 3ᵉ (Δ €)</span>
-        <input type="text" name="rank[3]" size="6" value="<?= bk_e(bk_amt($pricing['rank']['3'] ?? '')) ?>"></label>
-    </div>
-
-    <h3>Aperçu du tarif</h3>
-    <p class="bk-hint">Simulez un archer : le prix se met à jour en direct d'après votre configuration ci-dessus.</p>
-    <div class="bk-row bk-sim-in">
-      <label class="bk-f"><span>Arme</span>
-        <select id="sim-div"><?php foreach ($divs as $k => $v) echo '<option value="' . bk_e($k) . '">' . bk_e($v) . '</option>'; ?></select></label>
-      <label class="bk-f"><span>Catégorie</span>
-        <select id="sim-cls"><?php foreach ($classes as $k => $v) echo '<option value="' . bk_e($k) . '">' . bk_e($v) . '</option>'; ?></select></label>
-      <label class="bk-f"><span>Départ</span>
-        <select id="sim-ses"><option value="0">—</option><?php foreach ($sessions as $s) { $o = intval($s->SesOrder); echo '<option value="' . $o . '">Départ ' . $o . '</option>'; } ?></select></label>
-      <label class="bk-f"><span>Provenance</span>
-        <select id="sim-prov"><option value="">Hors zone</option><option value="region">Régional</option><option value="dept">Local départemental</option></select></label>
-      <label class="bk-f"><span>Inscription n°</span>
-        <select id="sim-rank"><option value="1">1re</option><option value="2">2e</option><option value="3">3e</option></select></label>
-    </div>
-    <div class="bk-sim-out">
-      <table class="bk-sim-t"><tbody id="sim-lines"></tbody></table>
-      <p class="bk-sim-tot">Total : <b id="sim-total">—</b></p>
-    </div>
-  </details>
-</div>
-
-<div class="bk-sec">
-  <h2>Moyens de paiement</h2>
-  <p class="bk-hint">Cochez les moyens acceptés, précisez quand ils le sont et l'info utile (ordre du
-     chèque, RIB, contact…). À la fin de son inscription, l'archer les voit.</p>
-  <?php foreach (bk_payment_methods() as $mk => $ml): $cur = $payByM[$mk] ?? null; ?>
-    <div class="bk-pay-row">
-      <label class="bk-chk bk-pay-name"><input type="checkbox" name="pay[<?= bk_e($mk) ?>][on]" value="1" <?= $cur ? 'checked' : '' ?>>
-        <b><?= bk_e($ml) ?></b></label>
-      <select name="pay[<?= bk_e($mk) ?>][when]">
-        <?php foreach (bk_payinfo_when_labels() as $wk => $wl): ?>
-          <option value="<?= bk_e($wk) ?>" <?= ($cur && $cur['when'] === $wk) ? 'selected' : '' ?>><?= bk_e($wl) ?></option>
-        <?php endforeach; ?>
-      </select>
-      <input type="text" class="bk-pay-info" name="pay[<?= bk_e($mk) ?>][info]"
-             value="<?= bk_e($cur['info'] ?? '') ?>" placeholder="Info (ex. à l'ordre de…, RIB, contact)">
-    </div>
-  <?php endforeach; ?>
-</div>
+<?= $tariffBlocks ?>
 
 <button type="submit" class="bk-btn" data-manual-save="1">Enregistrer</button>
 </form>
@@ -879,7 +942,7 @@ if ($waitList['waiting'] || $waitList['done']) {
 
 </div>
 
-<?php if ($level >= 2): ?>
+<?php if ($level >= 2 || $showTariffs): ?>
 <script>
 /* Enregistrement automatique — le bouton « Enregistrer » disparaît quand JS est
    disponible, et chaque modification est écrite au fil de l'eau.
@@ -957,7 +1020,7 @@ if ($waitList['waiting'] || $waitList['done']) {
 })();
 </script>
 <?php endif; ?>
-<?php if ($level == 3): ?>
+<?php if ($showTariffs): ?>
 <script>
 var bkCatN = <?= count($pricing['categories']) ?>;
 function bkAddCat() {

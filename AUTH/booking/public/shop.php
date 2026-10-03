@@ -17,7 +17,15 @@ $cfg    = bk_comp_config($tourId);
 $rs     = $tourId ? safe_r_sql("SELECT ToName, ToWhere, ToWhenFrom, ToWhenTo FROM Tournament WHERE ToId = $tourId") : null;
 $tour   = $rs ? safe_fetch($rs) : null;
 
-if (!$tourId || !$tour || !bk_shop_has_items($tourId)) {
+// A closed competition (level 1) using the shop is not in the calendar: its shop is for its
+// own participants (entered in ianseo), or whoever already ordered there.
+$member = true;
+if ($tourId && intval($cfg->BcPublishLevel ?? 1) === 1) {
+    $l = StrSafe_DB(bk_clean_licence($archer->BaLicence));
+    $member = (bool) safe_fetch(safe_r_sql("SELECT 1 FROM Entries WHERE EnTournament = $tourId AND EnCode = $l
+        UNION SELECT 1 FROM BK_ShopOrders WHERE SoTournament = $tourId AND SoLicence = $l LIMIT 1"));
+}
+if (!$tourId || !$tour || !bk_shop_has_items($tourId) || !bk_comp_payments_on($cfg) || !$member) {
     bk_head('Boutique', 'card');
     echo '<div class="bk-card"><h1>Boutique indisponible</h1>'
        . bk_msg('err', "Aucune boutique n'est proposée pour cette compétition.")

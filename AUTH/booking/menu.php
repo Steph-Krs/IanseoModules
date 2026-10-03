@@ -19,17 +19,31 @@ $bkEntries = array();
 // Écrans liés à la compétition ouverte : accessibles à l'organisateur qui gère
 // les participants, pas seulement à l'administrateur du serveur.
 if (!empty($on) && isset($acl)) {
+    // What this competition uses. Shop and payments: open on this server (levels 2-3), or
+    // closed with the payments ticked. Survey: open and switched on. Read-only and guarded
+    // ($force): the table or a column may not exist yet, then every entry is shown as before.
+    $bkShowPay = $bkShowSurvey = true;
+    $bkRs = safe_r_sql("SELECT BcPublishLevel, BcPayments, BcSurvey FROM BK_Competitions
+        WHERE BcTournament = " . intval($_SESSION['TourId'] ?? 0), false, true);
+    if ($bkRs) {
+        $bkC = safe_fetch($bkRs);
+        $bkLevel = $bkC ? intval($bkC->BcPublishLevel) : 1;
+        $bkShowPay = $bkLevel >= 2 || ($bkC && intval($bkC->BcPayments) === 1);
+        $bkShowSurvey = $bkLevel >= 2 && intval($bkC->BcSurvey) === 1;
+    }
     if (subFeatureAcl($acl, AclParticipants, 'pEntries') >= AclReadWrite) {
         $bkEntries[] = "Paramètres d'activation|"
             . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php';
-        $bkEntries[] = 'Boutique|'
-            . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/shop.php';
-        $bkEntries[] = 'Sommes dues|'
-            . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/dues.php';
+        if ($bkShowPay) {
+            $bkEntries[] = 'Boutique|'
+                . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/shop.php';
+            $bkEntries[] = 'Paiements|'
+                . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/dues.php';
+        }
         $bkEntries[] = 'Mandat de compétition|'
             . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/mandate.php';
     }
-    if (subFeatureAcl($acl, AclParticipants, 'pEntries') >= AclReadOnly) {
+    if ($bkShowSurvey && subFeatureAcl($acl, AclParticipants, 'pEntries') >= AclReadOnly) {
         $bkEntries[] = 'Satisfaction des archers|'
             . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/survey.php';
     }
@@ -51,4 +65,4 @@ if ($bkEntries) {
     }
 }
 
-unset($bkEntries, $bkE);
+unset($bkEntries, $bkE, $bkShowPay, $bkShowSurvey, $bkRs, $bkC, $bkLevel);

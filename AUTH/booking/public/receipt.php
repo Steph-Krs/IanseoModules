@@ -1,203 +1,151 @@
 <?php
 /**
- * public/receipt.php — reçu d'inscription, par archer ou pour tout un club.
+ * public/receipt.php — an archer's account on a competition, available at any time.
  *
- * `?enid=N`          : reçu d'une inscription (l'archer connecté uniquement).
- * `?club=1&t=<ToId>` : reçu groupé du club, réservé aux gestionnaires déclarés.
+ * `?comp=<ToId>`          : the connected archer's account: everything consumed (registrations
+ *                           with their tariff detail, shop), every payment movement, and what
+ *                           is left to pay. `&pdf=1` gives the printable receipt (core PDF class).
+ * `?club=1&t=<ToId>`      : accounts of the club(s) a declared manager looks after (`&pdf=1`).
+ * `?enid=N`               : former per-registration link, sent to its competition's account.
  */
 require_once __DIR__ . '/boot.php';
-require_once dirname(__DIR__) . '/lib/documents.php';
-require_once dirname(__DIR__) . '/lib/pricing.php';
-require_once dirname(__DIR__) . '/lib/shop.php';
 require_once dirname(__DIR__) . '/lib/payment.php';
 require_once dirname(__DIR__) . '/lib/club.php';
 
-$archer   = bk_require_archer();
-$lignes   = array();
-$titre    = '';
-$tour     = null;
-$erreur   = '';
-$shopTour = 0;          // >0 = reçu d'un archer sur une compétition → inclut sa boutique
-$shopLic  = '';
+$archer = bk_require_archer();
 
-if (!empty($_GET['club'])) {
-    $tourId = intval($_GET['t'] ?? 0);
-    $scopes = bk_manager_scopes($archer);
-    if (!$scopes) {
-        $erreur = "Votre compte n'est pas déclaré gestionnaire de club.";
-    } elseif (!$tourId) {
-        $erreur = "Compétition non précisée.";
-    } else {
-        $rs = safe_r_sql("SELECT r.BrEnId FROM BK_Registrations r
-            INNER JOIN Entries e ON e.EnId = r.BrEnId
-            LEFT  JOIN Countries c ON c.CoId = e.EnCountry
-            WHERE r.BrTournament = $tourId AND " . bk_scopes_sql($scopes, 'c.CoCode') . "
-            ORDER BY e.EnFirstName, e.EnName");
-        while ($r = safe_fetch($rs)) {
-            if ($e = bk_doc_entry(intval($r->BrEnId))) $lignes[] = $e;
-        }
-        if (!$lignes) $erreur = "Aucune inscription de votre club sur cette compétition.";
-        else { $tour = $lignes[0]; $titre = 'Reçu d\'inscriptions — club'; }
-    }
-} elseif (!empty($_GET['comp'])) {
-    // Reçu global : inscriptions + boutique de l'archer connecté sur une compétition.
-    $tourId = intval($_GET['comp']);
-    if (!$tourId) {
-        $erreur = "Compétition non précisée.";
-    } else {
-        $shopTour = $tourId; $shopLic = $archer->BaLicence;
-        $rs = safe_r_sql("SELECT r.BrEnId FROM BK_Registrations r
-            WHERE r.BrTournament = $tourId AND r.BrLicence = " . StrSafe_DB($archer->BaLicence) . "
-            ORDER BY r.BrEnId");
-        while ($r = safe_fetch($rs)) {
-            if (($e = bk_doc_entry(intval($r->BrEnId)))
-                && bk_clean_licence($e->BrLicence) === bk_clean_licence($archer->BaLicence)) {
-                $lignes[] = $e;
-            }
-        }
-        $hasShop = bk_shop_order_total($tourId, $archer->BaLicence) > 0;
-        if (!$lignes && !$hasShop) {
-            $erreur = "Vous n'avez aucune inscription ni commande sur cette compétition.";
-        } elseif ($lignes) {
-            usort($lignes, function ($a, $b) { return intval($a->QuSession) - intval($b->QuSession); });
-            $tour = $lignes[0]; $titre = "Reçu d'inscription" . (count($lignes) > 1 ? 's' : '');
-        } else {
-            // Que de la boutique (aucune inscription) : entête depuis la compétition.
-            $tour = safe_fetch(safe_r_sql("SELECT ToName, ToWhere, ToWhenFrom, ToWhenTo
-                FROM Tournament WHERE ToId = $tourId"));
-            $titre = "Reçu — boutique";
-        }
-    }
-} else {
-    $e = bk_doc_entry(intval($_GET['enid'] ?? 0));
-    if (!$e || bk_clean_licence($e->BrLicence) !== bk_clean_licence($archer->BaLicence)) {
-        $erreur = "Cette inscription n'est pas la vôtre.";
-    } else {
-        $lignes = array($e); $tour = $e; $titre = "Reçu d'inscription";
-    }
-}
+function rc_eur($n) { return bk_e(number_format((float) $n, 2, ',', ' ')) . ' €'; }
 
-if ($erreur) {
+function rc_fail($text)
+{
     bk_head('Reçu', 'card');
-    echo '<div class="bk-card"><h1>Indisponible</h1>' . bk_msg('err', $erreur)
-       . '<p class="bk-alt"><a href="' . bk_e(bk_public_url('registrations.php')) . '">Mes inscriptions</a></p></div>';
+    echo '<div class="bk-card"><h1>Indisponible</h1>' . bk_msg('err', $text)
+        . '<p class="bk-alt"><a href="' . bk_e(bk_public_url('registrations.php')) . '">Mes inscriptions</a></p></div>';
     bk_foot();
     exit;
 }
 
-// Reçu individuel : disponible seulement une fois le paiement encaissé par
-// l'organisateur (sauf compétition gratuite). Le montant dû, lui, reste visible
-// dans « Mes inscriptions » avec la mention « non encore encaissé ».
-if ($shopTour) {
-    $dueChk = bk_due_total($shopTour, $shopLic);
-    if ($dueChk['total'] > 0 && !bk_payment_is_paid($shopTour, $shopLic)) {
-        bk_head('Reçu', 'card');
-        echo '<div class="bk-card"><h1>Reçu indisponible</h1>'
-           . bk_msg('err', "Votre reçu sera disponible une fois le paiement validé par l'organisateur.")
-           . '<p class="bk-fee">Montant dû : ' . bk_e(number_format($dueChk['total'], 2, ',', ' ')) . ' €</p>'
-           . '<p class="bk-alt"><a href="' . bk_e(bk_public_url('registrations.php')) . '">Mes inscriptions</a></p></div>';
-        bk_foot();
-        exit;
+if (!empty($_GET['enid'])) {
+    $e = safe_fetch(safe_r_sql("SELECT EnTournament, EnCode FROM Entries WHERE EnId = " . intval($_GET['enid'])));
+    if (!$e || bk_clean_licence($e->EnCode) !== bk_clean_licence($archer->BaLicence)) rc_fail("Cette inscription n'est pas la vôtre.");
+    bk_redirect('receipt.php?comp=' . intval($e->EnTournament));
+}
+
+$club = !empty($_GET['club']);
+$tourId = intval($club ? ($_GET['t'] ?? 0) : ($_GET['comp'] ?? 0));
+$tour = $tourId ? safe_fetch(safe_r_sql("SELECT ToId, ToName, ToWhere, ToWhenFrom, ToWhenTo FROM Tournament WHERE ToId = $tourId")) : null;
+if (!$tour) rc_fail('Compétition non précisée.');
+$pdfWanted = !empty($_GET['pdf']);
+
+if ($club) {
+    $scopes = bk_manager_scopes($archer);
+    if (!$scopes) rc_fail("Votre compte n'est pas déclaré gestionnaire de club.");
+    $rows = array_filter(bk_accounts($tourId), function ($a) use ($scopes) {
+        return $a['club_code'] !== '' && bk_scope_covers($scopes, $a['club_code']) && ($a['due'] > 0 || $a['moves'] || $a['count']);
+    });
+    if (!$rows) rc_fail('Aucun archer de votre club sur cette compétition.');
+    uasort($rows, function ($x, $y) { return strcasecmp($x['club_code'] . $x['name'], $y['club_code'] . $y['name']); });
+    if ($pdfWanted) {
+        require_once dirname(__DIR__) . '/lib/ledger-pdf.php';
+        bk_ledger_pdf_send(bk_ledger_pdf_build($tourId, 'Club', function ($pdf) use ($rows) {
+            bk_ledger_pdf_list($pdf, $rows, 'Relevé du club', 'Situation au ' . bk_now_local_text());
+        }, false), 'club-' . $tourId . '.pdf');
+    }
+    bk_head('Relevé du club');
+    echo '<h1>Relevé du club</h1><p class="bk-hint"><b>' . bk_e($tour->ToName) . '</b> — '
+        . bk_e(bk_date_range($tour->ToWhenFrom, $tour->ToWhenTo)) . ($tour->ToWhere ? ' — ' . bk_e($tour->ToWhere) : '') . '</p>'
+        . '<p><a class="bk-btn bk-btn-primary" href="' . bk_e(bk_public_url('receipt.php?club=1&t=' . $tourId . '&pdf=1')) . '" target="_blank">'
+        . 'Télécharger le relevé (PDF)</a></p>'
+        . '<div class="bk-doc-scroll"><table class="bk-acc"><tr><th>Archer</th><th>Licence</th><th class="n">Dû</th>'
+        . '<th class="n">Payé</th><th class="n">Reste</th><th>État</th></tr>';
+    $t = array(0.0, 0.0, 0.0);
+    foreach ($rows as $a) {
+        echo '<tr><td>' . bk_e($a['name']) . '</td><td>' . bk_e($a['licence']) . '</td><td class="n">' . rc_eur($a['due']) . '</td>'
+            . '<td class="n">' . rc_eur($a['paid']) . '</td><td class="n"><b>' . rc_eur($a['remaining']) . '</b></td>'
+            . '<td>' . bk_e(bk_account_state_label(bk_account_state($a))) . '</td></tr>';
+        $t[0] += $a['due']; $t[1] += $a['paid']; $t[2] += $a['remaining'];
+    }
+    echo '<tr class="tot"><td colspan="2">Total — ' . count($rows) . ' archer' . (count($rows) > 1 ? 's' : '') . '</td>'
+        . '<td class="n">' . rc_eur($t[0]) . '</td><td class="n">' . rc_eur($t[1]) . '</td><td class="n">' . rc_eur($t[2]) . '</td><td></td></tr>'
+        . '</table></div><p class="bk-hint">Ce relevé n\'est pas une facture.</p>'
+        . '<p class="bk-alt"><a href="' . bk_e(bk_public_url('registrations.php')) . '">← Mes inscriptions</a></p>';
+    bk_foot();
+    exit;
+}
+
+$a = bk_account($tourId, $archer->BaLicence);
+if (!$a['registrations'] && !$a['shop_lines'] && !$a['moves']) {
+    rc_fail("Vous n'avez aucune inscription, commande ni paiement sur cette compétition.");
+}
+if ($a['name'] === '') $a['name'] = trim($archer->BaFamilyName . ' ' . $archer->BaName);
+// Over, and the organiser records no payment here: what was paid is unknown, nothing is claimed.
+$known = !bk_is_finished($tour->ToWhenTo) || bk_ledger_tracked($tourId);
+
+if ($pdfWanted) {
+    require_once dirname(__DIR__) . '/lib/ledger-pdf.php';
+    bk_ledger_pdf_send(bk_ledger_pdf_build($tourId, 'Reçu', function ($pdf) use ($a, $known) {
+        bk_ledger_pdf_account($pdf, $a, true, $known);
+    }), 'recu-' . $tourId . '.pdf');
+}
+
+$methods = bk_payment_methods();
+$kinds = bk_ledger_kinds();
+$state = bk_account_state($a);
+
+bk_head('Reçu');
+echo '<h1>Mon compte — ' . bk_e($tour->ToName) . '</h1><p class="bk-hint">'
+    . bk_e(bk_date_range($tour->ToWhenFrom, $tour->ToWhenTo)) . ($tour->ToWhere ? ' — ' . bk_e($tour->ToWhere) : '') . '</p>'
+    . '<p><a class="bk-btn bk-btn-primary" href="' . bk_e(bk_public_url('receipt.php?comp=' . $tourId . '&pdf=1')) . '" target="_blank">'
+    . 'Télécharger le reçu (PDF)</a></p>';
+
+echo '<h2 class="bk-acc-h">Consommations</h2><div class="bk-doc-scroll"><table class="bk-acc">';
+foreach ($a['registrations'] as $r) {
+    echo '<tr><td><b>Inscription — départ ' . intval($r['session']) . '</b><br>' . bk_e($r['category']) . '</td>'
+        . '<td class="n"><b>' . rc_eur($r['price']) . '</b></td></tr>';
+    foreach ($r['lines'] as $l) echo '<tr class="sub"><td>' . bk_e($l['label']) . '</td><td class="n">' . rc_eur($l['amount']) . '</td></tr>';
+}
+foreach ($a['shop_lines'] as $s) {
+    echo '<tr><td>' . bk_e(($s['section'] !== '' ? $s['section'] : 'Boutique') . ' — ' . $s['label'])
+        . ' <span class="bk-hint">' . intval($s['qty']) . ' × ' . rc_eur($s['unit']) . '</span></td>'
+        . '<td class="n">' . rc_eur($s['amount']) . '</td></tr>';
+}
+echo '<tr class="tot"><td>Total dû</td><td class="n">' . rc_eur($a['due']) . '</td></tr></table></div>';
+
+echo '<h2 class="bk-acc-h">Paiements</h2>';
+if (!$a['moves']) {
+    echo '<p class="bk-hint">Aucun paiement enregistré par l\'organisateur pour l\'instant.</p>';
+} else {
+    echo '<div class="bk-doc-scroll"><table class="bk-acc"><tr><th>Date</th><th>Mouvement</th><th class="n">Montant</th></tr>';
+    foreach ($a['moves'] as $m) {
+        $off = intval($m->BlgCancelled) > 0;
+        echo '<tr' . ($off ? ' class="off"' : '') . '><td>' . bk_e(bk_date_fr($m->BlgWhen)) . '</td><td>'
+            . bk_e(($kinds[$m->BlgKind] ?? $m->BlgKind) . (isset($methods[$m->BlgMethod]) ? ' — ' . $methods[$m->BlgMethod] : ''))
+            . ($m->BlgLabel !== '' ? '<br><span class="bk-hint">' . bk_e($m->BlgLabel) . '</span>' : '')
+            . ($off ? ' <span class="bk-hint">(annulé)</span>' : '') . '</td><td class="n">' . rc_eur($m->BlgAmount) . '</td></tr>';
+    }
+    echo '<tr class="tot"><td colspan="2">Total payé</td><td class="n">' . rc_eur($a['paid']) . '</td></tr></table></div>';
+}
+
+if (!$known) {
+    echo '<p class="bk-hint">L\x27organisateur de cette compétition n\x27enregistre pas les paiements sur ce site : ce '
+        . 'relevé indique ce qui était dû, pas ce qui a été réglé.</p>';
+} elseif ($state === 'over') {
+    echo '<p class="bk-acc-bal over">Trop-perçu : ' . rc_eur(-$a['remaining']) . ' — l\'organisateur vous doit cette somme</p>';
+} elseif ($state === 'settled' || $state === 'none') {
+    echo '<p class="bk-acc-bal ok">' . ($state === 'none' ? 'Rien à payer' : 'Soldé — merci !') . '</p>';
+} else {
+    echo '<p class="bk-acc-bal due">Reste à payer : ' . rc_eur($a['remaining']) . '</p>';
+    $pay = bk_payinfo_get(bk_comp_config($tourId));
+    if ($pay) {
+        echo '<div class="bk-payinfo"><b>Moyens de paiement</b><ul>';
+        foreach ($pay as $pi) {
+            echo '<li>' . bk_e($pi['label']) . ' <span class="bk-hint">(' . bk_e($pi['whenLabel']) . ')</span>'
+                . ($pi['info'] !== '' ? ' — ' . bk_e($pi['info']) : '') . '</li>';
+        }
+        echo '</ul></div>';
     }
 }
-
-// Prix par ligne via le moteur de tarification (le reçu est l'autorité).
-$total = 0;
-$pricCache = array();   // ToId => config normalisée
-$rankCache = array();   // "ToId|licence" => [EnId => rang]
-foreach ($lignes as $l) {
-    $tid = intval($l->ToId);
-    if (!isset($pricCache[$tid])) $pricCache[$tid] = bk_pricing_norm($l->BcPricing ?? '');
-    $key = $tid . '|' . $l->BrLicence;
-    if (!isset($rankCache[$key])) $rankCache[$key] = bk_rank_map($tid, $l->BrLicence);
-    $rank = $rankCache[$key][intval($l->EnId)] ?? 1;
-    $tier = bk_prov_tier($pricCache[$tid], $l->CoCode);
-    $l->_price = bk_price_of($l->BcFee, $pricCache[$tid], $l->EnDivision, $l->EnClass, $l->QuSession, $tier, $rank);
-    $total += $l->_price;
-}
-
-// Boutique de l'archer (uniquement sur un reçu individuel de compétition).
-$shopLines = array(); $shopTotal = 0;
-if ($shopTour) {
-    $shopLines = bk_shop_order_lines($shopTour, $shopLic);
-    $shopTotal = bk_shop_order_total($shopTour, $shopLic);
-}
-$grand = $total + $shopTotal;
-?><!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= bk_e($titre) ?></title>
-<link rel="stylesheet" href="<?= bk_e(bk_public_url('assets/bk.css')) ?>?v=<?= bk_e(bk_version()) ?>">
-<link rel="stylesheet" href="<?= bk_e(bk_public_url('assets/print.css')) ?>?v=<?= bk_e(bk_version()) ?>">
-</head>
-<body>
-<div id="bk" class="bk-doc">
-  <p class="bk-noprint"><a href="<?= bk_e(bk_public_url('registrations.php')) ?>">← Mes inscriptions</a>
-     &nbsp; <button onclick="window.print()" class="bk-btn bk-btn-primary">Imprimer</button></p>
-
-  <header class="bk-doc-head">
-    <h1><?= bk_e($titre) ?></h1>
-    <p class="bk-doc-comp"><b><?= bk_e($tour->ToName) ?></b><br>
-      <?= bk_e(bk_date_range($tour->ToWhenFrom, $tour->ToWhenTo)) ?>
-      <?= $tour->ToWhere ? ' — ' . bk_e($tour->ToWhere) : '' ?></p>
-    <p class="bk-doc-date">Édité le <?= bk_e(date('d/m/Y')) ?></p>
-  </header>
-
-  <?php if ($lignes): ?>
-  <div class="bk-doc-scroll">
-  <table class="bk-doc-grid bk-doc-lines">
-    <tr><th>Licence</th><th>Archer</th><th>Club</th><th>Catégorie</th><th>Départ</th><th>Montant</th></tr>
-    <?php foreach ($lignes as $l): ?>
-      <tr>
-        <td><?= bk_e($l->EnCode) ?></td>
-        <td><?= bk_e($l->EnFirstName . ' ' . $l->EnName) ?></td>
-        <td><?= bk_e($l->CoName ?: $l->CoCode) ?></td>
-        <td><?= bk_e(($l->DivDescription ?: $l->EnDivision) . ' / ' . ($l->ClDescription ?: $l->EnClass)) ?></td>
-        <td><?= intval($l->QuSession) ?></td>
-        <td class="bk-doc-num"><?= bk_e(number_format((float) $l->_price, 2, ',', ' ')) ?> €</td>
-      </tr>
-    <?php endforeach; ?>
-    <tr class="bk-doc-tot">
-      <td colspan="5"><?= $shopLines ? 'Sous-total inscriptions' : 'Total' ?> — <?= count($lignes) ?> inscription<?= count($lignes) > 1 ? 's' : '' ?></td>
-      <td class="bk-doc-num"><?= bk_e(number_format($total, 2, ',', ' ')) ?> €</td>
-    </tr>
-  </table>
-  </div>
-  <?php endif; ?>
-
-  <?php if ($shopLines): ?>
-  <div class="bk-doc-scroll"<?= $lignes ? ' style="margin-top:14px"' : '' ?>>
-  <table class="bk-doc-grid bk-doc-lines">
-    <tr><th colspan="5">Boutique</th><th>Montant</th></tr>
-    <?php foreach ($shopLines as $sl): ?>
-      <tr>
-        <td colspan="5"><?= bk_e($sl['label']) ?> <span class="bk-doc-mut">× <?= intval($sl['qty']) ?></span></td>
-        <td class="bk-doc-num"><?= bk_e(number_format((float) $sl['amount'], 2, ',', ' ')) ?> €</td>
-      </tr>
-    <?php endforeach; ?>
-    <tr class="bk-doc-tot">
-      <td colspan="5"><?= $lignes ? 'Sous-total boutique' : 'Total boutique' ?></td>
-      <td class="bk-doc-num"><?= bk_e(number_format($shopTotal, 2, ',', ' ')) ?> €</td>
-    </tr>
-  </table>
-  </div>
-  <?php endif; ?>
-
-  <?php if ($lignes && $shopLines): ?>
-  <p class="bk-doc-grand">Total général : <b><?= bk_e(number_format($grand, 2, ',', ' ')) ?> €</b></p>
-  <?php endif; ?>
-
-  <p class="bk-doc-foot">
-    <?php if ($grand <= 0): ?>
-      Aucun tarif n'a été renseigné par l'organisateur : ce document vaut confirmation
-      d'inscription, sans valeur comptable.
-    <?php else: ?>
-      Document de confirmation. Le règlement s'effectue selon les modalités indiquées par
-      l'organisateur ; ce reçu ne constitue pas une preuve de paiement.
-    <?php endif; ?>
-  </p>
-</div>
-</body>
-</html>
+echo '<p class="bk-hint">Relevé établi d\'après les tarifs de la compétition et les paiements enregistrés par '
+    . 'l\'organisateur. Ce document n\'est pas une facture.</p>'
+    . '<p class="bk-alt"><a href="' . bk_e(bk_public_url('registrations.php')) . '">← Mes inscriptions</a></p>';
+bk_foot();

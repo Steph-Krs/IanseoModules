@@ -58,7 +58,8 @@ function bk_has_booking_data($tourId)
     $r = safe_fetch(safe_r_sql("SELECT
         (SELECT COUNT(*) FROM BK_Competitions  WHERE BcTournament = $tourId)
       + (SELECT COUNT(*) FROM BK_Registrations WHERE BrTournament = $tourId)
-      + (SELECT COUNT(*) FROM BK_Payments      WHERE PyTournament = $tourId) AS n"));
+      + (SELECT COUNT(*) FROM BK_Payments      WHERE PyTournament = $tourId)
+      + (SELECT COUNT(*) FROM BK_Ledger        WHERE BlgTournament = $tourId) AS n"));
     return $r && intval($r->n) > 0;
 }
 
@@ -427,6 +428,9 @@ function bk_adopt($newId)
     // promoted row points at an Entry of the old version (BwEnId): the history stays.
     safe_w_sql("UPDATE BK_Waitlist       SET BwTournament = $newId WHERE BwTournament = $old");
     safe_w_sql("UPDATE BK_Refunds        SET BfTournament = $newId WHERE BfTournament = $old");
+    // Payments journal: accounts are licences, they follow as they are. An account "#<EnId>"
+    // (participant without a licence) keeps the old EnId and shows apart, with its payments.
+    safe_w_sql("UPDATE BK_Ledger         SET BlgTournament = $newId WHERE BlgTournament = $old");
     safe_w_sql("COMMIT");
 
     // ---- Phase B : réconcilier les inscriptions avec le nouvel import ----

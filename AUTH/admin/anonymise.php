@@ -165,7 +165,7 @@ if ($lic !== '') {
                 echo '<li>' . aan_h($x['code'] . ' — ' . $x['name']) . ' : paiement validé, <b>' . aan_h(aan_refund($x['refund']))
                     . '</b></li>';
             }
-            echo '</ul><div class="hint">Signalé à l\'organisateur de chaque compétition (page Sommes dues), '
+            echo '</ul><div class="hint">Signalé à l\'organisateur de chaque compétition (page Paiements), '
                 . 'sans le nom de la personne : il rembourse, puis le marque comme fait.</div></td></tr>';
         }
         echo '<tr><td class="Bold">Également</td><td><ul>'
