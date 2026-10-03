@@ -264,6 +264,19 @@ function bk_logout()
     unset($_SESSION['BK_Token']);
 }
 
+/**
+ * Archer page to open once signed in, relative to the public folder: the one asked for before
+ * signing in (bk_require_archer, within the last 30 minutes), else the archer's home. Read once.
+ */
+function bk_next_after_login()
+{
+    $n = $_SESSION['BK_NEXT'] ?? null;
+    unset($_SESSION['BK_NEXT']);
+    if (!is_array($n) || time() - intval($n['at'] ?? 0) > 1800) return 'index.php';
+    $page = (string) ($n['page'] ?? '');
+    return preg_match('/^[a-z0-9_-]+\.php(\?[^\r\n\\\\]*)?$/i', $page) ? $page : 'index.php';
+}
+
 /* ------------------------------------------------------------------ */
 /* CSRF                                                                */
 /* ------------------------------------------------------------------ */

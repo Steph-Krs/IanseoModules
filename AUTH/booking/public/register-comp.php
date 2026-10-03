@@ -150,11 +150,7 @@ if ($division !== '' && $class !== '' && $curFace > 0 && function_exists('bk_pro
 // un départ supplémentaire et annoncer l'effet sur la participation aux épreuves.
 $dejaMoi = bk_reg_existing($tourId, $subjectLicence);
 $dejaSessions = array();
-$armesAvecEpreuve = array();
-foreach ($dejaMoi as $d) {
-    $dejaSessions[intval($d->QuSession)] = true;
-    $armesAvecEpreuve[$d->EnDivision] = true;
-}
+foreach ($dejaMoi as $d) $dejaSessions[intval($d->QuSession)] = true;
 
 // Waiting list (lib/waitlist.php): with the list on, a departure full for this profile
 // stays selectable and the same form puts the archer on its list instead of registering.
@@ -487,18 +483,30 @@ bk_head('Inscription');
       . 'son espace (« Mes inscriptions »). S\'il ne vient plus, il annule son départ, et la place passe au suivant.</div>';
   ?>
 
-  <?php if ($dejaMoi): ?>
-    <div class="bk-note">
-      <b>Tir supplémentaire</b> — <?= $groupMode ? 'ce licencié a' : 'vous avez' ?> déjà
-      <?= count($dejaMoi) ?> inscription<?= count($dejaMoi) > 1 ? 's' : '' ?> sur cette compétition.
-      <?php if (isset($armesAvecEpreuve[$division])): ?>
-        Avec la même arme (<?= bk_e($divisions[$division] ?? $division) ?>), ce tir sera
-        <b>hors épreuve</b> : seule votre première inscription compte au classement.
-      <?php else: ?>
-        Avec une arme différente, ce tir comptera pour sa propre épreuve.
-      <?php endif; ?>
-    </div>
-  <?php endif; ?>
+  <?php
+  // Extra shoot: with the same weapon, only the first shoot OF THE COMPETITION counts for its
+  // ranking (lib/registration.php, bk_events_to_first_shoot) — an earlier departure added
+  // later takes the ranking over from the one already registered.
+  if ($dejaMoi) {
+      $sameWeapon = array();
+      foreach ($dejaMoi as $d) if ((string) $d->EnDivision === (string) $division) $sameWeapon[] = intval($d->QuSession);
+      sort($sameWeapon);
+      echo '<div class="bk-note"><b>Tir supplémentaire</b> — ' . ($groupMode ? 'ce licencié a' : 'vous avez') . ' déjà '
+          . count($dejaMoi) . ' inscription' . (count($dejaMoi) > 1 ? 's' : '') . ' sur cette compétition. ';
+      if ($sameWeapon) {
+          $last = array_pop($sameWeapon);
+          $where = $sameWeapon ? 'aux départs ' . implode(', ', $sameWeapon) . ' et ' . $last : 'au départ ' . $last;
+          echo 'Avec la même arme (' . bk_e($divisions[$division] ?? $division) . '), ' . ($groupMode ? 'il est' : 'vous êtes')
+              . ' déjà inscrit ' . $where . '. Seul le <b>premier tir de la compétition</b> (dans l\'ordre des départs) '
+              . 'compte pour son classement ; les suivants sont <b>hors épreuve</b>. Si ce nouveau départ a lieu avant, '
+              . 'c\'est lui qui comptera, et ' . ($sameWeapon ? 'les autres départs passeront' : 'le départ ' . $last . ' passera')
+              . ' hors épreuve.';
+      } else {
+          echo 'Avec une arme différente, ce tir comptera pour sa propre épreuve.';
+      }
+      echo '</div>';
+  }
+  ?>
 
   <?php if ($cfg->BcWishLetter || $cfg->BcWishWith || $cfg->BcWishFree): ?>
   <fieldset class="bk-wishes">

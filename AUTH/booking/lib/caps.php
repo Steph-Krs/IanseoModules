@@ -92,7 +92,45 @@ function bk_caps_faces($tourId)
             $out[$id]['label'] = $cm . ' cm · ' . ($type !== '' ? $type : '#' . ($n + 1));
         }
     }
+    // One colour per face, to tell them apart at a glance on the field page (two faces of the
+    // same size included); a peg keeps its own colour. Short text: the size, or the peg colour.
+    $palette = bk_face_palette();
+    $n = 0;
+    foreach ($out as $id => $f) {
+        $out[$id]['hue'] = $f['peg'] ? $f['color'] : $palette[$n++ % count($palette)];
+        $out[$id] += bk_face_tones($out[$id]['hue']);
+        $out[$id]['short'] = $f['peg'] ? (trim(preg_replace('/^\s*piquet\s*/iu', '', $f['name'])) ?: $f['label'])
+                                       : ($f['cm'] ? $f['cm'] . ' cm' : 'Blason');
+        // Tag on a target card (narrow): the number alone beside the picture of the face.
+        $out[$id]['tag'] = (!$f['peg'] && $f['cm']) ? (string) $f['cm'] : $out[$id]['short'];
+    }
     return $out;
+}
+
+/**
+ * Text, background and border of a face's chip and tags, from its colour — the same
+ * proportions as the former single red (#a8382c on #fdf0ef, border #f0b8b2): a dark text, a
+ * very light background, a mid border. A light colour (white peg) gets a darker text.
+ */
+function bk_face_tones($hex)
+{
+    $hex = ltrim((string) $hex, '#');
+    if (!preg_match('/^[0-9a-f]{6}$/i', $hex)) $hex = 'a8382c';
+    $rgb = array_map('hexdec', str_split($hex, 2));   // hex pairs: ASCII, bytes are characters
+    $mix = function ($to, $w) use ($rgb) {
+        $o = '#';
+        foreach ($rgb as $i => $c) $o .= sprintf('%02x', (int) round($c * (1 - $w) + $to * $w));
+        return $o;
+    };
+    $lum = (0.299 * $rgb[0] + 0.587 * $rgb[1] + 0.114 * $rgb[2]) / 255;
+    return array('fg' => $mix(0, $lum > 0.6 ? 0.6 : 0.2), 'bg' => $mix(255, 0.92), 'bd' => $mix(255, 0.65));
+}
+
+/** Colours given to the faces of a competition, in their order (bk_caps_faces). */
+function bk_face_palette()
+{
+    return array('#1f6fd1', '#d1452b', '#1e9e57', '#8e44ad', '#e08a00', '#0f9bb3', '#c2185b', '#6d7d12',
+        '#795548', '#546e7a');
 }
 
 /**

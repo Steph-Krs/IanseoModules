@@ -176,7 +176,7 @@ function bk_authored_registrations($archerId, $selfLicence)
     if ($archerId <= 0) return array();
 
     $rs = safe_r_sql("SELECT r.BrId, r.BrEnId, r.BrTournament, r.BrLicence, r.BrCreated, r.BrValidated,
-                e.EnFirstName, e.EnName, e.EnCode, e.EnDivision, e.EnClass,
+                e.EnFirstName, e.EnName, e.EnCode, e.EnDivision, e.EnClass, e.EnIndClEvent,
                 q.QuSession, q.QuTarget, q.QuLetter,
                 d.DivDescription, c.ClDescription,
                 t.ToName, t.ToWhere, t.ToVenue, t.ToWhenFrom, t.ToWhenTo,
@@ -322,6 +322,84 @@ function bk_reg_club_id($tourId, $code, $name)
     return $coId;
 }
 
+/* ------------------------------------------------------------------ */
+/* Several shoots of one archer with one weapon                        */
+/* ------------------------------------------------------------------ */
+// Only the FIRST SHOOT OF THE COMPETITION takes part in the events (ranking, teams, finals);
+// any other shoot with the same weapon is an extra shoot, out of the events — otherwise the
+// archer would be ranked twice. "First" is in the order of the competition, not of the
+// registrations: registered on departure 2, then adding departure 1, it is departure 1 that
+// counts and departure 2 becomes the extra shoot. Another weapon has its own events.
+
+/** Event flags of Entries, moved together from one shoot to another. */
+function bk_event_cols()
+{
+    return array('EnIndClEvent', 'EnTeamClEvent', 'EnIndFEvent', 'EnTeamFEvent', 'EnTeamMixEvent');
+}
+
+/**
+ * Shoots of an archer with a weapon, in the order of the competition: departure start (date
+ * and time, when the organiser gave one), then departure number. Qualifications in LEFT JOIN
+ * on purpose: an entry just imported may not have its row yet (the core adds it when the
+ * participants screen is opened); it then counts as a shoot without departure, last.
+ */
+function bk_shoots_in_order($tourId, $code, $division)
+{
+    $out = array();
+    $rs = safe_r_sql("SELECT EnId, " . implode(', ', bk_event_cols()) . "
+        FROM Entries
+        LEFT JOIN Qualifications ON QuId = EnId
+        LEFT JOIN Session ON SesTournament = EnTournament AND SesOrder = QuSession AND SesType = 'Q'
+        WHERE EnTournament = " . intval($tourId) . " AND EnCode = " . StrSafe_DB($code) . "
+          AND EnDivision = " . StrSafe_DB($division) . " AND EnAthlete = 1
+        ORDER BY (QuSession IS NULL OR QuSession = 0), (SesDtStart IS NULL OR SesDtStart < '1000-01-01'),
+                 SesDtStart, QuSession, EnId");
+    while ($r = safe_fetch($rs)) $out[] = $r;
+    return $out;
+}
+
+/** Sets the event flags of a shoot of competition $tourId (array col => 0/1). */
+function bk_event_flags_set($tourId, $enId, $flags)
+{
+    $set = array();
+    foreach (bk_event_cols() as $c) $set[] = "$c = " . (empty($flags[$c]) ? 0 : 1);
+    safe_w_sql("UPDATE Entries SET " . implode(', ', $set) . ", EnTimestamp = '" . date('Y-m-d H:i:s') . "'
+        WHERE EnId = " . intval($enId) . " AND EnTournament = " . intval($tourId));
+}
+
+/**
+ * Gives the events to the first shoot of the competition (see above). The shoot that took
+ * part hands its flags over as they are (the organiser may have taken the archer out of the
+ * team or final events) and becomes an extra shoot. Returns the EnId that lost the events,
+ * or 0 when nothing moved. When no shoot takes part (organiser's choice), nothing moves.
+ */
+function bk_events_to_first_shoot($tourId, $code, $division)
+{
+    $shoots = bk_shoots_in_order($tourId, $code, $division);
+    if (count($shoots) < 2 || intval($shoots[0]->EnIndClEvent) === 1) return 0;
+    foreach ($shoots as $s) {
+        if (intval($s->EnIndClEvent) !== 1) continue;
+        bk_event_flags_set($tourId, $shoots[0]->EnId, (array) $s);
+        bk_event_flags_set($tourId, $s->EnId, array());
+        return intval($s->EnId);
+    }
+    return 0;
+}
+
+/**
+ * A shoot is removed: if it took part in the events ($old: its EnCode, EnDivision and flags,
+ * read before removal), the first remaining shoot of the competition with the same weapon
+ * takes them over, with the same flags. Returns the EnId promoted, or 0.
+ */
+function bk_events_after_removal($tourId, $old)
+{
+    if (!$old || intval($old->EnIndClEvent ?? 0) !== 1) return 0;
+    $shoots = bk_shoots_in_order($tourId, $old->EnCode, $old->EnDivision);
+    if (!$shoots) return 0;
+    bk_event_flags_set($tourId, $shoots[0]->EnId, (array) $old);
+    return intval($shoots[0]->EnId);
+}
+
 /**
  * Inscrit un archer. Retourne ['ok'=>true,'enid'=>N] ou ['ok'=>false,'msg'=>…].
  *
@@ -382,10 +460,9 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
             }
         }
 
-        // Participation aux épreuves : seule la PREMIÈRE inscription d'un archer
-        // pour une arme donnée y compte. Un second départ avec la même arme est
-        // un tir supplémentaire, hors épreuve — sinon l'archer figurerait deux
-        // fois au classement. Une AUTRE arme ouvre en revanche sa propre épreuve.
+        // Events: with the same weapon, only the first shoot of the competition takes part
+        // (see bk_events_to_first_shoot). Inserted out of the events when another shoot
+        // already takes part; moved just below if this one comes first in the competition.
         $rs = safe_r_sql("SELECT COUNT(*) AS n FROM Entries
             WHERE EnTournament = $tourId
               AND EnCode = " . StrSafe_DB($lue->LueCode) . "
@@ -431,18 +508,22 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
         safe_w_sql("UPDATE Qualifications SET QuSession = " . intval($sessionOrder)
             . ", QuTarget = 0, QuLetter = '', QuTimestamp = QuTimestamp WHERE QuId = $enId");
 
-        // Hooks de recalcul du cœur — sans eux, classements et équipes restent
-        // obsolètes (voir PopEdit.php).
-        $p = Params4Recalc($enId);
-        if ($p !== false) {
+        // Registered on a departure before an existing shoot with the same weapon: this one
+        // now takes part in the events, the other becomes the extra shoot.
+        $lost = bk_events_to_first_shoot($tourId, $lue->LueCode, $division);
+
+        // Core recalculation hooks, as Partecipants/PopEdit.php does — without them rankings
+        // and teams stay out of date. Also for the shoot that lost the events.
+        $rs = safe_r_sql("SELECT ToNumDist FROM Tournament WHERE ToId = $tourId");
+        $t = safe_fetch($rs);
+        foreach (array_unique(array_filter(array($enId, $lost))) as $recalcId) {
+            $p = Params4Recalc($recalcId);
+            if ($p === false) continue;
             list($indF, $teamF, $country, $div, $cl, $subCl, $zero) = $p;
             RecalculateShootoffAndTeams($indF, $teamF, $country, $div, $cl, $subCl, $zero);
-            $rs = safe_r_sql("SELECT ToNumDist FROM Tournament WHERE ToId = $tourId");
-            if ($t = safe_fetch($rs)) {
-                for ($i = 0; $i < intval($t->ToNumDist); $i++) CalcQualRank($i, $div . $cl);
-            }
-            MakeIndAbs();
+            if ($t) for ($i = 0; $i < intval($t->ToNumDist); $i++) CalcQualRank($i, $div . $cl);
         }
+        MakeIndAbs();
         checkAgainstLUE($enId);
 
         // Souhaits : n'honorer que ceux que l'organisateur propose. Revérifié
@@ -527,27 +608,14 @@ function bk_unregister($enId, $archerId, $licence)
         // supprime l'inscription porteuse de l'épreuve alors que l'archer garde
         // d'autres tirs avec la même arme, il faut en promouvoir une, sinon il
         // disparaîtrait du classement tout en restant inscrit.
-        $rs = safe_r_sql("SELECT EnCode, EnDivision, EnIndClEvent FROM Entries WHERE EnId = $enId");
+        $rs = safe_r_sql("SELECT EnCode, EnDivision, " . implode(', ', bk_event_cols()) . " FROM Entries WHERE EnId = $enId");
         $old = safe_fetch($rs);
 
         $p = Params4Recalc($enId);
         deleteArcher($enId);
 
-        if ($old && intval($old->EnIndClEvent) === 1) {
-            $rs = safe_r_sql("SELECT e.EnId FROM Entries e
-                INNER JOIN Qualifications q ON q.QuId = e.EnId
-                WHERE e.EnTournament = $tourId
-                  AND e.EnCode = " . StrSafe_DB($old->EnCode) . "
-                  AND e.EnDivision = " . StrSafe_DB($old->EnDivision) . "
-                  AND e.EnAthlete = 1
-                ORDER BY q.QuSession, e.EnId LIMIT 1");
-            if ($n = safe_fetch($rs)) {
-                safe_w_sql("UPDATE Entries SET EnIndClEvent = 1, EnTeamClEvent = 1,
-                    EnIndFEvent = 1, EnTeamFEvent = 1, EnTeamMixEvent = 1,
-                    EnTimestamp = '" . date('Y-m-d H:i:s') . "'
-                    WHERE EnId = " . intval($n->EnId));
-            }
-        }
+        // The first remaining shoot of the competition takes the events over.
+        bk_events_after_removal($tourId, $old);
 
         if ($p !== false) {
             list($indF, $teamF, $country, $div, $cl, $subCl, $zero) = $p;

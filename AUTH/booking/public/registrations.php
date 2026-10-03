@@ -229,6 +229,7 @@ if ($waits) {
               <span class="bk-tag"><?= bk_e($r->DivDescription ?: $r->EnDivision) ?></span>
               <span class="bk-tag"><?= bk_e($r->ClDescription ?: $r->EnClass) ?></span>
               <span class="bk-tag">Départ <?= intval($r->QuSession) ?></span>
+              <?= isset($r->EnIndClEvent) && intval($r->EnIndClEvent) === 0 ? '<span class="bk-tag" title="Seul le premier tir de la compétition avec cette arme compte pour le classement">Hors épreuve</span>' : '' ?>
               <?php if (isset($r->BrValidated) && intval($r->BrValidated) === 0): ?>
                 <span class="bk-tag bk-tag-wait">En attente de validation</span>
               <?php elseif (!empty($r->BcShowAssignment) && intval($r->QuTarget) > 0): ?>
@@ -394,6 +395,7 @@ if ($others) {
                 <span class="bk-tag"><?= bk_e($r->DivDescription ?: $r->EnDivision) ?></span>
                 <span class="bk-tag"><?= bk_e($r->ClDescription ?: $r->EnClass) ?></span>
                 <span class="bk-tag">Départ <?= intval($r->QuSession) ?></span>
+                <?= isset($r->EnIndClEvent) && intval($r->EnIndClEvent) === 0 ? '<span class="bk-tag" title="Seul le premier tir de la compétition avec cette arme compte pour le classement">Hors épreuve</span>' : '' ?>
                 <?php if (isset($r->BrValidated) && intval($r->BrValidated) === 0): ?>
                   <span class="bk-tag bk-tag-wait">En attente de validation</span>
                 <?php elseif (!empty($r->BcShowAssignment) && intval($r->QuTarget) > 0): ?>

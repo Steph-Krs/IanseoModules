@@ -32,7 +32,7 @@ if ($hasCompetitor) {
     require_once($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/booking/lib/totp.php');   // 2FA licencié (optionnelle)
     bk_schema();
     $compEnabled = bk_ffta_enabled();
-    if (bk_current_archer()) { CD_redirect($root . 'Modules/Custom/AUTH/booking/public/index.php'); die(); }
+    if (bk_current_archer()) { CD_redirect($root . 'Modules/Custom/AUTH/booking/public/' . bk_next_after_login()); die(); }
 }
 
 $errO = $errC = '';
@@ -96,7 +96,7 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor
             bk_session_open($a);
             bk_ffta_espace_store((string) $pend['cookies'], (string) $pend['exalto'], $a->BaId);
             bk_log('LOGIN_OK', $a->BaLicence);
-            CD_redirect($root . 'Modules/Custom/AUTH/booking/public/index.php');
+            CD_redirect($root . 'Modules/Custom/AUTH/booking/public/' . bk_next_after_login());
             die();
         }
         // Échec : horloge serveur déréglée (diagnostic, jamais une acceptation) ou code faux.
@@ -160,7 +160,7 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor
                     // Conserve le cookie de session monespace + l'id Exalto (attestation de licence).
                     bk_ffta_espace_store($res['cookies'] ?? '', $res['exaltoId'] ?? '', $a->BaId);
                     bk_log('LOGIN_OK', $licence);
-                    CD_redirect($root . 'Modules/Custom/AUTH/booking/public/index.php');
+                    CD_redirect($root . 'Modules/Custom/AUTH/booking/public/' . bk_next_after_login());
                     die();
                 } else {
                     $errC = $a ? "Votre compte a été désactivé sur ce serveur." : "La création du compte a échoué.";

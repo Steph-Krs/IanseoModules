@@ -21,8 +21,9 @@
     var sel   = {};
     var H     = 120;
 
-    var faceLabel = {}, faceColor = {};
-    B.faces.forEach(function (f) { faceLabel[f.id] = f.label; if (f.peg && f.color) faceColor[f.id] = f.color; });
+    // One colour per face (lib/caps.php bk_caps_faces), shared by the palette and the tags.
+    var faceOf = {};
+    B.faces.forEach(function (f) { faceOf[f.id] = f; });
 
     // Sans distance chiffrée (parcours campagne : TdDist = 0), la plage n'a pas
     // de sens. On garde néanmoins l'éditeur pour les blasons — un palier fictif
@@ -129,17 +130,22 @@
                 var fl = document.createElement('div');
                 fl.className = 'bkf-faces';
                 c.f.forEach(function (id) {
+                    var f = faceOf[id] || { label: '#' + id, short: '#' + id };
                     var s = document.createElement('span');
                     s.className = 'bkf-tag bkf-tag-f';
-                    // Piquet : pastille de couleur devant le nom.
-                    if (faceColor[id]) {
-                        var dot = document.createElement('span');
-                        dot.className = 'bkf-peg-dot';
-                        dot.style.background = faceColor[id];
-                        s.appendChild(dot);
+                    // Colours of the face, as its chip in the palette (lib/caps.php bk_face_tones).
+                    if (f.fg) { s.style.setProperty('--fc', f.fg); s.style.setProperty('--fb', f.bg); s.style.setProperty('--fd', f.bd); }
+                    // Narrow card: picture and size only, the name of the face in the tooltip.
+                    // A peg: the tag is in its colour, its name only.
+                    if (!f.peg && f.svg) {
+                        var img = document.createElement('img');
+                        img.className = 'bkf-face-ic';
+                        img.src = B.img + f.svg;
+                        img.width = 14; img.height = 14; img.alt = ''; img.draggable = false;
+                        s.appendChild(img);
                     }
-                    s.appendChild(document.createTextNode(faceLabel[id] || ('#' + id)));
-                    s.title = 'Cliquer pour retirer';
+                    s.appendChild(document.createTextNode(f.tag || f.short || f.label));
+                    s.title = (f.name || f.label) + ' — cliquer pour retirer';
                     s.setAttribute('data-face', id);
                     s.setAttribute('data-target', t);
                     fl.appendChild(s);

@@ -64,6 +64,7 @@ $boot = array(
     'faces'    => array_values($faces),
     'token'    => bk_csrf_token(),
     'ajax'     => $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/ajax-field.php',
+    'img'      => $CFG->ROOT_DIR . 'Common/Images/Targets/',
     'sessions' => array_map(function ($s) { return intval($s->SesOrder); }, $sessions),
 );
 
@@ -133,21 +134,25 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         <h2><?= $hasPegs ? 'Piquets' : 'Blasons' ?> <span class="bkf-h2sub">(glisser sur une cible)</span></h2>
         <?php if (!$faces): ?><p class="bkf-none">Aucun <?= $hasPegs ? 'piquet' : 'blason' ?> défini.</p><?php endif; ?>
         <div class="bkf-chips">
-          <?php foreach ($faces as $f): ?>
-            <div class="bkf-chip bkf-chip-f" draggable="true" data-kind="f" data-val="<?= intval($f['id']) ?>">
-              <?php if (!empty($f['peg'])): ?>
-                <?= bk_piquet_svg($f['color'], 22) ?>
-                <span class="bkf-chip-txt"><span class="bkf-chip-main"><?= bk_e($f['name']) ?></span></span>
-              <?php else: ?>
-                <img class="bkf-face-ic" src="<?= bk_e($CFG->ROOT_DIR . 'Common/Images/Targets/' . $f['svg']) ?>"
-                     width="22" height="22" alt="" draggable="false">
-                <span class="bkf-chip-txt">
-                  <span class="bkf-chip-main"><?= bk_e($f['cm'] ? $f['cm'] . ' cm' : 'Blason') ?></span>
-                  <?php if ($f['name'] !== ''): ?><span class="bkf-chip-sub"><?= bk_e($f['name']) ?></span><?php endif; ?>
-                </span>
-              <?php endif; ?>
-            </div>
-          <?php endforeach; ?>
+          <?php
+          // One colour per face (bk_caps_faces: text, background, border), the same as its tags
+          // on the targets, given as CSS variables (field.css). Here there is room: picture, size
+          // and the name of the face.
+          foreach ($faces as $f) {
+              echo '<div class="bkf-chip bkf-chip-f" draggable="true" data-kind="f" data-val="' . intval($f['id']) . '"'
+                  . ' style="--fc:' . bk_e($f['fg']) . ';--fb:' . bk_e($f['bg']) . ';--fd:' . bk_e($f['bd']) . '">';
+              if (!empty($f['peg'])) {
+                  echo bk_piquet_svg($f['color'], 22)
+                      . '<span class="bkf-chip-txt"><span class="bkf-chip-main">' . bk_e($f['name']) . '</span></span>';
+              } else {
+                  echo '<img class="bkf-face-ic" src="' . bk_e($CFG->ROOT_DIR . 'Common/Images/Targets/' . $f['svg']) . '"'
+                      . ' width="22" height="22" alt="" draggable="false"><span class="bkf-chip-txt">'
+                      . '<span class="bkf-chip-main">' . bk_e($f['cm'] ? $f['cm'] . ' cm' : 'Blason') . '</span>'
+                      . ($f['name'] !== '' ? '<span class="bkf-chip-sub">' . bk_e($f['name']) . '</span>' : '') . '</span>';
+              }
+              echo '</div>';
+          }
+          ?>
         </div>
       </div>
 

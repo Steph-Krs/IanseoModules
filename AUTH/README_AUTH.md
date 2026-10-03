@@ -101,15 +101,14 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `ExtraData` | `anonymise-lib.php:358` | — |
 | `UPDATE` | `TournamentInvolved` | `anonymise-lib.php:363` | review scope by hand |
 | `UPDATE` | `Entries` | `booking/lib/adopt.php:225` | review scope by hand |
-| `UPDATE` | `Entries` | `booking/lib/adopt.php:314` | review scope by hand |
 | `UPDATE` | `IdCards` | `booking/lib/mandate.php:592` | review scope by hand |
 | `INSERT INTO` | `Countries` | `booking/lib/registration.php:305` | — |
 | `UPDATE` | `Countries` | `booking/lib/registration.php:309` | review scope by hand |
-| `INSERT INTO` | `Entries` | `booking/lib/registration.php:415` | — |
-| `UPDATE` | `Entries` | `booking/lib/registration.php:425` | review scope by hand |
-| `INSERT INTO` | `Qualifications` | `booking/lib/registration.php:430` | — |
-| `UPDATE` | `Qualifications` | `booking/lib/registration.php:431` | UNBOUNDED — must join Entries; review scope by hand |
-| `UPDATE` | `Entries` | `booking/lib/registration.php:545` | review scope by hand |
+| `UPDATE` | `Entries` | `booking/lib/registration.php:366` | review scope by hand |
+| `INSERT INTO` | `Entries` | `booking/lib/registration.php:492` | — |
+| `UPDATE` | `Entries` | `booking/lib/registration.php:502` | review scope by hand |
+| `INSERT INTO` | `Qualifications` | `booking/lib/registration.php:507` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/registration.php:508` | UNBOUNDED — must join Entries; review scope by hand |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:299` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:438` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:530` | — |
@@ -169,20 +168,20 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `BK_Registrations` | `booking/lib/adopt.php:244` | — |
 | `DELETE FROM` | `BK_Registrations` | `booking/lib/adopt.php:278` | — |
 | `DELETE FROM` | `BK_Registrations` | `booking/lib/adopt.php:299` | — |
-| `DELETE FROM` | `BK_Registrations` | `booking/lib/adopt.php:327` | — |
-| `UPDATE` | `BK_Competitions` | `booking/lib/adopt.php:419` | — |
-| `UPDATE` | `BK_TargetCaps` | `booking/lib/adopt.php:420` | — |
-| `UPDATE` | `BK_ShopItems` | `booking/lib/adopt.php:421` | — |
-| `UPDATE` | `BK_ShopOrders` | `booking/lib/adopt.php:422` | — |
-| `UPDATE` | `BK_Payments` | `booking/lib/adopt.php:423` | — |
-| `UPDATE` | `BK_Registrations` | `booking/lib/adopt.php:424` | — |
-| `UPDATE` | `BK_Surveys` | `booking/lib/adopt.php:425` | — |
-| `UPDATE` | `BK_SurveyVoters` | `booking/lib/adopt.php:426` | — |
-| `UPDATE` | `BK_Waitlist` | `booking/lib/adopt.php:429` | — |
-| `UPDATE` | `BK_Refunds` | `booking/lib/adopt.php:430` | — |
-| `UPDATE` | `BK_Ledger` | `booking/lib/adopt.php:433` | — |
-| `UPDATE` | `BK_Registrations` | `booking/lib/adopt.php:495` | — |
-| `INSERT INTO` | `BK_Registrations` | `booking/lib/adopt.php:549` | — |
+| `DELETE FROM` | `BK_Registrations` | `booking/lib/adopt.php:317` | — |
+| `UPDATE` | `BK_Competitions` | `booking/lib/adopt.php:409` | — |
+| `UPDATE` | `BK_TargetCaps` | `booking/lib/adopt.php:410` | — |
+| `UPDATE` | `BK_ShopItems` | `booking/lib/adopt.php:411` | — |
+| `UPDATE` | `BK_ShopOrders` | `booking/lib/adopt.php:412` | — |
+| `UPDATE` | `BK_Payments` | `booking/lib/adopt.php:413` | — |
+| `UPDATE` | `BK_Registrations` | `booking/lib/adopt.php:414` | — |
+| `UPDATE` | `BK_Surveys` | `booking/lib/adopt.php:415` | — |
+| `UPDATE` | `BK_SurveyVoters` | `booking/lib/adopt.php:416` | — |
+| `UPDATE` | `BK_Waitlist` | `booking/lib/adopt.php:419` | — |
+| `UPDATE` | `BK_Refunds` | `booking/lib/adopt.php:420` | — |
+| `UPDATE` | `BK_Ledger` | `booking/lib/adopt.php:423` | — |
+| `UPDATE` | `BK_Registrations` | `booking/lib/adopt.php:485` | — |
+| `INSERT INTO` | `BK_Registrations` | `booking/lib/adopt.php:539` | — |
 | `INSERT INTO` | `BK_Log` | `booking/lib/archer.php:37` | — |
 | `UPDATE` | `BK_Archers` | `booking/lib/archer.php:149` | — |
 | `INSERT INTO` | `BK_Archers` | `booking/lib/archer.php:153` | — |
@@ -193,9 +192,9 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `BK_Sessions` | `booking/lib/archer.php:245` | — |
 | `UPDATE` | `BK_Sessions` | `booking/lib/archer.php:250` | — |
 | `DELETE FROM` | `BK_Sessions` | `booking/lib/archer.php:262` | — |
-| `DELETE FROM` | `BK_TargetCaps` | `booking/lib/caps.php:174` | — |
-| `INSERT INTO` | `BK_TargetCaps` | `booking/lib/caps.php:179` | — |
-| `DELETE FROM` | `BK_TargetCaps` | `booking/lib/caps.php:187` | — |
+| `DELETE FROM` | `BK_TargetCaps` | `booking/lib/caps.php:212` | — |
+| `INSERT INTO` | `BK_TargetCaps` | `booking/lib/caps.php:217` | — |
+| `DELETE FROM` | `BK_TargetCaps` | `booking/lib/caps.php:225` | — |
 | `INSERT IGNORE INTO` | `BK_Competitions` | `booking/lib/competition.php:229` | — |
 | `UPDATE` | `BK_Competitions` | `booking/lib/competition.php:238` | — |
 | `DELETE FROM` | `BK_ShopOrders` | `booking/lib/competition.php:274` | — |
@@ -228,8 +227,8 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `BK_Ledger` | `booking/lib/payment.php:429` | — |
 | `INSERT INTO` | `BK_Refunds` | `booking/lib/payment.php:491` | — |
 | `UPDATE` | `BK_Refunds` | `booking/lib/payment.php:519` | — |
-| `INSERT INTO` | `BK_Registrations` | `booking/lib/registration.php:467` | — |
-| `DELETE FROM` | `BK_Registrations` | `booking/lib/registration.php:566` | — |
+| `INSERT INTO` | `BK_Registrations` | `booking/lib/registration.php:548` | — |
+| `DELETE FROM` | `BK_Registrations` | `booking/lib/registration.php:634` | — |
 | `UPDATE` | `BK_Competitions` | `booking/lib/schema.php:198` | — |
 | `UPDATE` | `BK_Competitions` | `booking/lib/schema.php:210` | — |
 | `ALTER TABLE` | `BK_Competitions` | `booking/lib/schema.php:214` | — |

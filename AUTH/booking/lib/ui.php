@@ -124,7 +124,10 @@ function bk_version()
 {
     static $v = null;
     if ($v === null) {
-        $j = json_decode((string) @file_get_contents(__DIR__ . '/../version.json'), true);
+        // The AUTH module's version.json: booking has had none of its own since it was merged
+        // into AUTH, and reading that missing file gave "0" forever — stylesheets and scripts
+        // then never changed address, and browsers kept the old ones after an update.
+        $j = json_decode((string) @file_get_contents(dirname(__DIR__, 2) . '/version.json'), true);
         $v = (is_array($j) && !empty($j['version'])) ? $j['version'] : '0';
     }
     return $v;
@@ -206,7 +209,18 @@ function bk_impersonation_block()
 function bk_require_archer()
 {
     $a = bk_current_archer();
-    if (!$a) bk_redirect('login.php');
+    if (!$a) {
+        // Back to this page after signing in (a link given to the archers, such as the page of a
+        // competition): AUTH's login.php reads it, see bk_next_after_login(). Only our own page
+        // name and its query are kept — the address is rebuilt from them, never taken as is.
+        $page = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+        $query = (string) ($_SERVER['QUERY_STRING'] ?? '');
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && preg_match('/^[a-z0-9_-]+\.php$/i', $page)
+            && !in_array($page, array('login.php', 'logout.php', 'index.php'), true) && mb_strlen($query) <= 300) {
+            $_SESSION['BK_NEXT'] = array('page' => $page . ($query !== '' ? '?' . $query : ''), 'at' => time());
+        }
+        bk_redirect('login.php');
+    }
     // Garde CGU : acceptation obligatoire (horodatée, versionnée), sauf sur la page
     // d'acceptation elle-même (anti-boucle). legal-lib.php vit dans le module AUTH parent.
     // Ignorée en observation admin : l'admin ne peut rien accepter au nom du licencié

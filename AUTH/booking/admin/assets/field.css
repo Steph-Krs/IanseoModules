@@ -42,14 +42,16 @@
 }
 #bkfield .bkf-chip:active { cursor: grabbing; }
 #bkfield .bkf-chip-d { background: #f0f4ff; border-color: #a7d6ff; color: #01367c; cursor: pointer; }
-#bkfield .bkf-chip-f { background: #fdf0ef; border-color: #f0b8b2; color: #a8382c;
+/* Face chips and their tags on the targets: one colour per face — text, background, border, given
+   by the page as --fc, --fb, --fd (lib/caps.php bk_face_tones); the red is only the fallback.
+   Variables rather than an inline background: the dark mode of the THEME module darkens the text
+   of any element whose inline style sets a light background. */
+#bkfield .bkf-chip-f { background: var(--fb, #fdf0ef); border-color: var(--fd, #f0b8b2); color: var(--fc, #a8382c);
     display: inline-flex; align-items: center; gap: 7px; }
 #bkfield .bkf-chip:hover { filter: brightness(.97); }
 #bkfield .bkf-chip-drag { opacity: .45; }
 #bkfield .bkf-face-ic { flex: 0 0 auto; }
 #bkfield .bkf-chip-f .bk-piquet { flex: 0 0 auto; }
-#bkfield .bkf-peg-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%;
-    border: 1px solid rgba(0,0,0,.35); margin-right: 4px; vertical-align: -1px; }
 #bkfield .bkf-chip-txt { display: inline-flex; flex-direction: column; line-height: 1.15; }
 #bkfield .bkf-chip-main { font-weight: 600; font-size: 12.5px; }
 #bkfield .bkf-chip-sub { display: block; font-weight: 400; font-size: 10.5px; opacity: .8;
@@ -155,7 +157,9 @@
     cursor: pointer; border: 1px solid transparent; white-space: nowrap;
 }
 #bkfield .bkf-tag-d { background: #f0f4ff; border-color: #a7d6ff; color: #01367c; }
-#bkfield .bkf-tag-f { background: #fdf0ef; border-color: #f0b8b2; color: #a8382c; }
+#bkfield .bkf-tag-f { background: var(--fb, #fdf0ef); border-color: var(--fd, #f0b8b2); color: var(--fc, #a8382c); }
+#bkfield .bkf-tag .bkf-face-ic { vertical-align: -3px; margin-right: 3px; }
+#bkfield .bkf-tag-f { max-width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; padding: 1px 4px; }
 #bkfield .bkf-tag:hover { filter: brightness(.92); text-decoration: line-through; }
 #bkfield .bkf-free { font-size: 11px; color: #c9ccce; font-style: italic; }
 

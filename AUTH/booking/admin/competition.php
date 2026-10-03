@@ -231,8 +231,10 @@ $copyAdmin  = bk_copy_is_admin();
 $copySources = $copyAdmin ? array() : bk_copy_sources($TOUR);
 $isDrom   = bk_is_dromtom(bk_org_agrement($TOUR));       // règles de placement modifiables
 $rules    = ($level >= 2) ? bk_rules_check($TOUR, $cfg) : array();
+// Address given to the archers: the page of this competition in their space. Not signed in,
+// they sign in first and come back to it (bk_require_archer / bk_next_after_login).
 $publicUrl = (empty($_SERVER['HTTPS']) ? 'http' : 'https') . '://'
-    . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/public/';
+    . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/public/competition.php?t=' . $TOUR;
 
 // Tarification : config existante + listes de catégories pour l'éditeur.
 $pricing = bk_pricing_get($cfg);
@@ -934,7 +936,9 @@ if ($waitList['waiting'] || $waitList['done']) {
 <div class="bk-sec">
   <h2>Lien pour les archers</h2>
   <p style="font-size:13px;margin:0">Communiquez cette adresse à vos licenciés :<br>
-     <span class="bk-url"><?= bk_e($publicUrl) ?></span></p>
+     <a class="bk-url" href="<?= bk_e($publicUrl) ?>" target="_blank" rel="noopener"><?= bk_e($publicUrl) ?></a></p>
+  <p class="bk-hint">Elle ouvre la page de cette compétition dans leur espace (départs, tarif, inscription).
+     Un archer pas encore connecté passe d'abord par la page de connexion, puis y revient.</p>
 </div>
 
 <div id="bk-pill" hidden></div>

@@ -294,27 +294,17 @@ function bk_reimport_remove_entry($tourId, $enId)
     return bk_with_tournament($tourId, function () use ($tourId, $enId) {
         if (IsBlocked(BIT_BLOCK_PARTICIPANT)) return array('ok' => false, 'msg' => 'compétition verrouillée');
 
-        $old = safe_fetch(safe_r_sql("SELECT EnCode, EnDivision, EnIndClEvent
+        $old = safe_fetch(safe_r_sql("SELECT EnCode, EnDivision, " . implode(', ', bk_event_cols()) . "
             FROM Entries WHERE EnId = $enId AND EnTournament = $tourId"));
         if (!$old) { safe_w_sql("DELETE FROM BK_Registrations WHERE BrEnId = $enId"); return array('ok' => true); }
 
         $p = Params4Recalc($enId);
         deleteArcher($enId);
 
-        // Promotion de l'épreuve si on retire la porteuse alors qu'un tir de la même
-        // arme subsiste (sinon l'archer disparaîtrait du classement tout en restant inscrit).
-        if (intval($old->EnIndClEvent) === 1) {
-            $n = safe_fetch(safe_r_sql("SELECT e.EnId FROM Entries e
-                INNER JOIN Qualifications q ON q.QuId = e.EnId
-                WHERE e.EnTournament = $tourId
-                  AND e.EnCode = " . StrSafe_DB($old->EnCode) . "
-                  AND e.EnDivision = " . StrSafe_DB($old->EnDivision) . "
-                  AND e.EnAthlete = 1
-                ORDER BY q.QuSession, e.EnId LIMIT 1"));
-            if ($n) safe_w_sql("UPDATE Entries SET EnIndClEvent = 1, EnTeamClEvent = 1,
-                EnIndFEvent = 1, EnTeamFEvent = 1, EnTeamMixEvent = 1,
-                EnTimestamp = '" . date('Y-m-d H:i:s') . "' WHERE EnId = " . intval($n->EnId));
-        }
+        // The shoot that took part in the events is removed while another shoot with the same
+        // weapon remains: the first remaining one of the competition takes them over, otherwise
+        // the archer would leave the ranking while still registered (lib/registration.php).
+        bk_events_after_removal($tourId, $old);
 
         if ($p !== false) {
             list($indF, $teamF, $country, $div, $cl, $subCl, $zero) = $p;
