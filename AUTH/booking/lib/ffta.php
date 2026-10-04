@@ -1,34 +1,30 @@
 <?php
 /**
- * lib/ffta.php — relais d'authentification vers l'Espace Licencié FFTA
- * (monespace.ffta.fr).
+ * lib/ffta.php — sign-in relay to the federation's licensee space (monespace.ffta.fr).
  *
- * PRINCIPE DE SÉCURITÉ — le rattachement ne vient PAS de l'identifiant saisi.
- * L'identifiant de l'espace licencié n'est pas toujours le numéro de licence
- * (ce peut être un identifiant nominatif choisi par le licencié). La licence est donc
- * lue sur la page servie APRÈS connexion, c'est-à-dire déclarée par la FFTA
- * elle-même pour la session ouverte : c'est la seule source qu'un utilisateur
- * ne peut pas choisir. Une licence saisie par l'archer ne doit JAMAIS être
- * utilisée pour rattacher un compte.
+ * SECURITY PRINCIPLE — the link to a licence does NOT come from the typed identifier. The
+ * identifier of the licensee space is not always the licence number (it may be a personal
+ * identifier chosen by the licensee). The licence is therefore read on the page served AFTER
+ * sign-in, that is declared by the federation itself for the open session: the only source a
+ * user cannot choose. A licence typed by the archer must NEVER be used to link an account.
  *
- * Corollaire : si la licence ne peut pas être lue de façon certaine, la
- * connexion est REFUSÉE. Mieux vaut un refus explicite qu'un compte rattaché
- * au mauvais archer.
+ * Corollary: when the licence cannot be read for certain, the sign-in is REFUSED. Better an
+ * explicit refusal than an account linked to the wrong archer.
  *
- * Ce n'est PAS un OAuth : c'est un relais de crédentiels (même technique que le
- * module AUTH pour dirigeant.ffta.fr, éprouvée en production). Le mot de passe
- * ne quitte jamais la mémoire de la requête : jamais stocké, jamais journalisé.
- * Recommandation long terme inchangée : demander un vrai OIDC à la fédération.
+ * This is NOT OAuth: it is a credentials relay (same technique as the AUTH module for
+ * dirigeant.ffta.fr, proven in production). The password never leaves the request's memory:
+ * never stored, never logged. Long-term advice unchanged: ask the federation for a real OIDC.
  *
- * Ce fichier ne dépend d'AUCUN autre module (AUTH peut être absent).
+ * This file depends on NO other module (AUTH may be absent).
  */
 
 if (defined('BK_FFTA_LOADED')) return;
 define('BK_FFTA_LOADED', true);
 
 require_once __DIR__ . '/clock.php';
+require_once __DIR__ . '/lang.php';
 
-/** Base par défaut, surchargeable par config.local.json → "sso": {"base": "..."} */
+/** Default base, can be overridden in config.local.json → "sso": {"base": "..."} */
 function bk_ffta_base()
 {
     $c = bk_local_config();
@@ -54,17 +50,17 @@ function bk_local_config()
 }
 
 /* ------------------------------------------------------------------ */
-/* Session espace licencié conservée (attestation de licence)           */
+/* Licensee-space session kept (licence certificate)                   */
 /*                                                                      */
-/* Même principe que AUTH pour extranet/dirigeant (convention de session */
-/* FFTA_* entre modules) : on garde le COOKIE de session monespace ouvert au */
-/* login (jamais le mot de passe) dans un fichier 0600 dérivé du jeton    */
-/* BK, détruit au logout. Il sert à relayer côté serveur le PDF de        */
-/* l'attestation sans redemander les identifiants ; s'il a expiré, on     */
-/* bascule sur un lien direct (l'archer se connecte à son espace).        */
+/* Same principle as AUTH for extranet/dirigeant (FFTA_* session        */
+/* convention between modules): the licensee-space session COOKIE opened */
+/* at sign-in (never the password) is kept in a 0600 file derived from  */
+/* the BK token, destroyed at sign-out. It lets the server relay the PDF */
+/* of the certificate without asking for the credentials again; once it */
+/* has expired, a direct link is used (the archer signs in to their space). */
 /* ------------------------------------------------------------------ */
 
-/** Saison FFTA (1er sept → 31 août, désignée par l'année de fin). En août → année courante. */
+/** Federation season (1 Sept → 31 Aug, named by its final year). In August → current year. */
 function bk_ffta_season()
 {
     // Server-zone date: in UTC the season would only roll over at 02:00 on 1 September.
@@ -73,7 +69,7 @@ function bk_ffta_season()
     return ((int) $d->format('n') >= 9) ? $y + 1 : $y;
 }
 
-/** Chemin du cookie jar monespace, dérivé du jeton de session BK (0600). Vide si pas de session. */
+/** Path of the licensee-space cookie jar, derived from the BK session token (0600). Empty without a session. */
 function bk_ffta_cookie_path()
 {
     $token = (string) ($_SESSION['BK_Token'] ?? '');
@@ -81,7 +77,7 @@ function bk_ffta_cookie_path()
     return sys_get_temp_dir() . '/ffta_esp_' . hash('sha256', 'espace|' . $token) . '.ck';
 }
 
-/** Publie la convention FFTA_ESPACE_* (cookie + base) si le fichier existe. */
+/** Publishes the FFTA_ESPACE_* convention (cookie + base) when the file exists. */
 function bk_ffta_espace_publish()
 {
     $path = bk_ffta_cookie_path();
@@ -94,10 +90,10 @@ function bk_ffta_espace_publish()
 }
 
 /**
- * Écrit le cookie de session monespace (contenu renvoyé par bk_ffta_login) dans
- * le fichier définitif, et mémorise l'id Exalto de l'archer. Appelé APRÈS
- * bk_session_open (le chemin dérive du jeton BK). Le fichier temporaire de login,
- * lui, est nettoyé normalement à la fin de la requête — aucun résidu.
+ * Writes the licensee-space session cookie (content returned by bk_ffta_login) into the final
+ * file, and remembers the archer's Exalto id. Called AFTER bk_session_open (the path derives
+ * from the BK token). The temporary sign-in file is cleaned normally at the end of the request —
+ * nothing left behind.
  */
 function bk_ffta_espace_store($cookies, $exaltoId, $archerId)
 {
@@ -110,16 +106,16 @@ function bk_ffta_espace_store($cookies, $exaltoId, $archerId)
         bk_ffta_debug('espace_store: cookie ECRIT (' . var_export($w, true) . ' o) len=' . $len
             . ' exists=' . (file_exists($path) ? '1' : '0'));
     } else {
-        bk_ffta_debug('espace_store: NON ECRIT path=' . ($path !== '' ? 'ok' : 'VIDE(BK_Token?)') . ' cookies_len=' . $len);
+        bk_ffta_debug('espace_store: NOT WRITTEN path=' . ($path !== '' ? 'ok' : 'VIDE(BK_Token?)') . ' cookies_len=' . $len);
     }
     $exalto = preg_replace('/\D/', '', (string) $exaltoId);
-    bk_ffta_debug('espace_store: exaltoId=' . ($exalto !== '' ? $exalto : 'VIDE') . ' archer=' . intval($archerId));
+    bk_ffta_debug('espace_store: exaltoId=' . ($exalto !== '' ? $exalto : 'EMPTY') . ' archer=' . intval($archerId));
     if ($exalto !== '' && intval($archerId) > 0) {
         safe_w_sql("UPDATE BK_Archers SET BaExaltoId = " . StrSafe_DB($exalto) . " WHERE BaId = " . intval($archerId));
     }
 }
 
-/** Déconnexion : détruit le cookie monespace conservé. */
+/** Sign-out: destroys the kept licensee-space cookie. */
 function bk_ffta_espace_forget()
 {
     $path = bk_ffta_cookie_path();
@@ -127,7 +123,7 @@ function bk_ffta_espace_forget()
     unset($_SESSION['FFTA_ESPACE_COOKIE'], $_SESSION['FFTA_ESPACE_BASE']);
 }
 
-/** URL de l'attestation de licence PDF (…/pdf/p/{idExalto}/{saison}). Vide si id manquant. */
+/** URL of the PDF licence certificate (…/pdf/p/{idExalto}/{season}). Empty when the id is missing. */
 function bk_ffta_attestation_url($exaltoId, $season = null)
 {
     $exaltoId = preg_replace('/\D/', '', (string) $exaltoId);
@@ -137,39 +133,38 @@ function bk_ffta_attestation_url($exaltoId, $season = null)
 }
 
 /**
- * Charge dans un handle curl les cookies conservés (une ligne Netscape par cookie, telles
- * que rendues par CURLINFO_COOKIELIST). On N'UTILISE PAS CURLOPT_COOKIEFILE (lecture de
- * fichier) : la même build curl qui ne sait pas ÉCRIRE le jar peut aussi mal le relire.
- * Le moteur de cookies est activé (COOKIEFILE='') puis alimenté cookie par cookie. Retourne
- * le nombre de cookies chargés.
+ * Loads the kept cookies into a curl handle (one Netscape line per cookie, as given by
+ * CURLINFO_COOKIELIST). CURLOPT_COOKIEFILE (file read) is NOT used: the curl build that cannot
+ * WRITE the jar may also read it badly. The cookie engine is turned on (COOKIEFILE='') then fed
+ * cookie by cookie. Returns the number of cookies loaded.
  */
 function bk_ffta_cookie_load($ch, $path)
 {
     $blob = ($path !== '' && is_file($path)) ? (string) @file_get_contents($path) : '';
     if (trim($blob) === '') return 0;
-    curl_setopt($ch, CURLOPT_COOKIEFILE, '');   // active le moteur, sans fichier
+    curl_setopt($ch, CURLOPT_COOKIEFILE, '');   // turns the engine on, without a file
     $n = 0;
     foreach (explode("\n", $blob) as $line) {
         $line = rtrim($line, "\r");
         if (trim($line) === '') continue;
-        curl_setopt($ch, CURLOPT_COOKIELIST, $line);   // gère aussi le préfixe #HttpOnly_
+        curl_setopt($ch, CURLOPT_COOKIELIST, $line);   // also handles the #HttpOnly_ prefix
         $n++;
     }
     return $n;
 }
 
 /**
- * Récupère un PDF de l'espace licencié via le cookie de session CONSERVÉ (chargé dans le
- * moteur, jamais réécrit → la session stockée n'est pas modifiée).
- * Retour : ['pdf'=>octets] si un vrai PDF revient, sinon ['expired'=>true] (cookie absent,
- * session expirée, ou page HTML de connexion renvoyée).
+ * Fetches a PDF of the licensee space through the KEPT session cookie (loaded into the engine,
+ * never written back → the stored session is not changed).
+ * Returns ['pdf'=>bytes] when a real PDF comes back, otherwise ['expired'=>true] (no cookie,
+ * session expired, or HTML sign-in page returned).
  */
 function bk_ffta_fetch_pdf($url)
 {
     $path = bk_ffta_cookie_path();
     if ($path === '' || !is_file($path) || !function_exists('curl_init') || (string) $url === '') {
-        bk_ffta_debug('fetch_pdf: pas de relais — cookie_path=' . ($path !== '' ? 'ok' : 'VIDE')
-            . ' cookie_exists=' . (($path !== '' && is_file($path)) ? '1' : '0') . ' url=' . ($url !== '' ? 'ok' : 'VIDE'));
+        bk_ffta_debug('fetch_pdf: no relay — cookie_path=' . ($path !== '' ? 'ok' : 'EMPTY')
+            . ' cookie_exists=' . (($path !== '' && is_file($path)) ? '1' : '0') . ' url=' . ($url !== '' ? 'ok' : 'EMPTY'));
         return array('expired' => true);
     }
     $ch = curl_init($url);
@@ -183,7 +178,7 @@ function bk_ffta_fetch_pdf($url)
         CURLOPT_CONNECTTIMEOUT => 8,
     ));
     $nck = bk_ffta_cookie_load($ch, $path);
-    if ($nck === 0) { curl_close($ch); bk_ffta_debug('fetch_pdf: 0 cookie chargé'); return array('expired' => true); }
+    if ($nck === 0) { curl_close($ch); bk_ffta_debug('fetch_pdf: 0 cookie loaded'); return array('expired' => true); }
     $body  = curl_exec($ch);
     $code  = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $ctype = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
@@ -192,14 +187,14 @@ function bk_ffta_fetch_pdf($url)
     $isPdf = ($body !== false && $code === 200)
         && ((stripos($ctype, 'pdf') !== false) || (substr((string) $body, 0, 4) === '%PDF'));
     bk_ffta_debug('fetch_pdf: cookies=' . $nck . ' http=' . $code . ' ctype=' . $ctype . ' url_finale=' . $eff
-        . ' taille=' . (is_string($body) ? strlen($body) : 'false') . ' => ' . ($isPdf ? 'PDF OK' : 'PAS un PDF (repli)'));
+        . ' taille=' . (is_string($body) ? strlen($body) : 'false') . ' => ' . ($isPdf ? 'PDF OK' : 'NOT a PDF (fallback)'));
     return $isPdf ? array('pdf' => $body) : array('expired' => true);
 }
 
 /**
- * Résout l'id Exalto À LA DEMANDE via le cookie conservé (GET /licences, lecture seule).
- * Sert quand l'id n'a pas été capté au login (compte connecté avant la fonctionnalité, ou
- * charte déjà acceptée) mais que la session monespace est encore valide. Vide si échec.
+ * Resolves the Exalto id ON DEMAND through the kept cookie (GET /licences, read only). Used when
+ * the id was not captured at sign-in (account signed in before the feature, or charter already
+ * accepted) while the licensee-space session is still valid. Empty on failure.
  */
 function bk_ffta_resolve_exalto()
 {
@@ -223,12 +218,12 @@ function bk_ffta_resolve_exalto()
 }
 
 /**
- * Id Exalto d'une page de l'espace licencié. Deux sources, par fiabilité décroissante :
- *  1) le LIEN D'ATTESTATION lui-même (…/attestations/pdf/p/{id}/{saison}) — présent en
- *     permanence sur l'onglet « Mes licences », c'est la source de référence ;
- *  2) le script « const personne_id = '…' » du bandeau d'acceptation de la charte — présent
- *     seulement tant que la charte n'est pas acceptée (repli, disparaît ensuite).
- * Vide si aucune ne répond.
+ * Exalto id from a page of the licensee space. Two sources, by decreasing reliability:
+ *  1) the CERTIFICATE LINK itself (…/attestations/pdf/p/{id}/{season}) — always on the "Mes
+ *     licences" tab, the reference source;
+ *  2) the script "const personne_id = '…'" of the charter acceptance banner — only there while
+ *     the charter is not accepted (fallback, disappears afterwards).
+ * Empty when neither answers.
  */
 function bk_ffta_extract_exalto($html)
 {
@@ -239,14 +234,14 @@ function bk_ffta_extract_exalto($html)
 }
 
 /* ------------------------------------------------------------------ */
-/* Débogage (désactivé par défaut)                                     */
+/* Debugging (off by default)                                          */
 /* ------------------------------------------------------------------ */
 
 /**
- * Activation SANS toucher au code : créer le fichier vide
- * Modules/Custom/AUTH/booking/ffta-debug.on (ou "sso":{"debug":true} dans
- * config.local.json). Indispensable le jour où la FFTA modifie ses pages.
- * Ne trace JAMAIS un mot de passe ni un code MFA — que des métadonnées.
+ * Turned on WITHOUT touching the code: create the empty file
+ * Modules/Custom/AUTH/booking/ffta-debug.on (or "sso":{"debug":true} in config.local.json).
+ * Essential the day the federation changes its pages. NEVER logs a password nor an MFA code —
+ * only metadata.
  */
 function bk_ffta_debug_enabled()
 {
@@ -265,19 +260,19 @@ function bk_ffta_debug($msg)
         date('Y-m-d H:i:s') . ' ' . $msg . "\n", FILE_APPEND | LOCK_EX);
 }
 
-/** Métadonnées d'une page (type, formulaire, champs) — jamais son contenu. */
+/** Metadata of a page (type, form, fields) — never its content. */
 function bk_ffta_debug_page($html)
 {
     if (!bk_ffta_debug_enabled()) return '';
     $html = (string) $html;
-    $kind = 'inconnue';
+    $kind = 'unknown';
     if (preg_match('#/auth/two-factor-challenge#i', $html) ||
         preg_match('/(two[-_]?factor|deux.?[ée]tapes|double.?authentification)/i', $html)) {
-        $kind = 'defi-mfa';
+        $kind = 'mfa-challenge';
     } elseif (preg_match('#name="password"#i', $html) && preg_match('#name="username"#i', $html)) {
-        $kind = 'formulaire-login';
+        $kind = 'login-form';
     } elseif (trim($html) !== '') {
-        $kind = 'page-connectee?';
+        $kind = 'signed-in-page?';
     }
     $action = '';
     if (preg_match('#<form[^>]*action=["\']([^"\']+)["\']#i', $html, $m)) $action = $m[1];
@@ -286,18 +281,18 @@ function bk_ffta_debug_page($html)
         $names = array_slice(array_unique($mm[1]), 0, 12);
     }
     return 'type=' . $kind . ' len=' . strlen($html)
-        . ' action=' . $action . ' champs=' . implode(',', $names);
+        . ' action=' . $action . ' fields=' . implode(',', $names);
 }
 
 /* ------------------------------------------------------------------ */
-/* Indisponibilité de l'espace licencié (maintenance, panne)           */
+/* Licensee space unavailable (maintenance, outage)                   */
 /* ------------------------------------------------------------------ */
-/* Même correctif que côté AUTH (aut_ffta_outage), volontairement dupliqué :
- * cette face tourne en $SKIP_AUTH, lib.php d'AUTH n'y est pas garantie. À
- * factoriser le jour où le socle FFTA passera dans _shared/.
- * Sans cela, une maintenance de la FFTA renvoie l'utilisateur sur /auth/login
- * et le module annonce « Identifiant ou mot de passe incorrect » — l'archer
- * cherche l'erreur de son côté alors que rien n'a pu être vérifié.        */
+/* Same fix as on the AUTH side (aut_ffta_outage), duplicated on purpose: this side runs with
+ * $SKIP_AUTH, AUTH's lib.php is not guaranteed here. To merge the day the federation base moves
+ * to _shared/.
+ * Without it, a federation maintenance sends the user back to /auth/login and the module says
+ * "Wrong identifier or password" — the archer looks for the mistake on their side although
+ * nothing could be checked.                                           */
 
 function bk_ffta_fold($s)
 {
@@ -306,78 +301,70 @@ function bk_ffta_fold($s)
                            'î'=>'i','ï'=>'i','ô'=>'o','ö'=>'o','ù'=>'u','û'=>'u','ü'=>'u','ç'=>'c'));
 }
 
-/** La page porte-t-elle un formulaire de connexion exploitable ? */
+/** Does the page carry a usable sign-in form? */
 function bk_ffta_is_login_page($html)
 {
     return (bool) preg_match('/(name|id)=["\']password["\']|type=["\']password["\']/i', (string) $html);
 }
 
 /**
- * '' si la réponse est exploitable, sinon un message affichable.
- * ⚠ Ne jamais appeler sur une page connectée (`bk_ffta_is_connected`) : le mot
- * « maintenance » peut figurer dans une page saine, et un faux positif
- * refuserait une connexion valide.
+ * '' when the answer is usable, otherwise a displayable message.
+ * ⚠ Never call on a signed-in page (`bk_ffta_is_connected`): the word "maintenance" may appear
+ * on a healthy page, and a false positive would refuse a valid sign-in.
  */
-function bk_ffta_outage($ch, $html, $attendu = '')
+function bk_ffta_outage($ch, $html, $expected = '')
 {
-    $espace = "L'espace licencié FFTA";
+    $space = bk_t('FfSpace');
     $code = intval(curl_getinfo($ch, CURLINFO_HTTP_CODE));
-    if ($code >= 500 || $code == 429 || $code == 408) return bk_ffta_outage_msg($espace, $code);
+    if ($code >= 500 || $code == 429 || $code == 408) return bk_ffta_outage_msg($space, $code);
 
     if (!bk_ffta_is_login_page($html)) {
         $t = bk_ffta_fold($html);
         foreach (array(
-            'be right back',                      // page 503 par défaut de Laravel
+            'be right back',                      // Laravel's default 503 page
             'service unavailable', 'temporarily unavailable', 'web server is down',
             'en maintenance', 'maintenance en cours', 'maintenance planifiee',
             'momentanement indisponible', 'temporairement indisponible',
             'site indisponible', 'service indisponible',
         ) as $m) {
-            if (strpos($t, $m) !== false) return bk_ffta_outage_msg($espace, $code);
+            if (strpos($t, $m) !== false) return bk_ffta_outage_msg($space, $code);
         }
-        if ($attendu === 'login') return bk_ffta_outage_msg($espace, $code, true);
+        if ($expected === 'login') return bk_ffta_outage_msg($space, $code, true);
     }
     return '';
 }
 
-function bk_ffta_outage_msg($espace, $code, $inattendu = false)
+function bk_ffta_outage_msg($space, $code, $unexpected = false)
 {
-    $fin = "Vos identifiants n'ont pas pu être vérifiés : ce n'est pas une erreur de votre part. "
-         . 'Réessayez dans quelques minutes.';
-    if ($inattendu) {
-        return $espace . " n'a pas renvoyé sa page de connexion habituelle (maintenance en cours, "
-             . 'ou page fédérale modifiée). ' . $fin;
-    }
-    if ($code == 429) {
-        return $espace . ' limite actuellement le nombre de connexions (réponse HTTP 429). ' . $fin;
-    }
+    $tail = ' ' . bk_t('FfNotYourFault');
+    if ($unexpected) return bk_t('FfNoLoginPage', $space) . $tail;
+    if ($code == 429) return bk_t('FfRateLimited', $space) . $tail;
     if ($code >= 400) {
-        return $espace . ' ' . ($code == 503 ? 'est en maintenance' : 'est momentanément indisponible')
-             . ' (réponse HTTP ' . $code . '). ' . $fin;
+        return bk_t($code == 503 ? 'FfMaintenanceHttp' : 'FfDownHttp', array('space' => $space, 'code' => $code)) . $tail;
     }
-    // Détection par le CONTENU (200 + page de maintenance) : « HTTP 200 » embrouillerait.
-    return $espace . " affiche une page d'indisponibilité (maintenance en cours). " . $fin;
+    // Detected by the CONTENT (200 + maintenance page): "HTTP 200" would confuse.
+    return bk_t('FfMaintenancePage', $space) . $tail;
 }
 
 /* ------------------------------------------------------------------ */
-/* Relais de connexion                                                 */
+/* Sign-in relay                                                       */
 /* ------------------------------------------------------------------ */
 
 /**
- * Tente la connexion d'un licencié sur l'Espace Licencié FFTA.
+ * Tries to sign a licensee in to the federation's licensee space.
  *
- * $identifiant : ce que l'archer saisit — numéro de licence OU identifiant
- * nominatif. Il sert uniquement à se connecter, JAMAIS à rattacher le compte.
+ * $identifier: what the archer types — licence number OR personal identifier. Only used to
+ * sign in, NEVER to link the account.
  *
- * Retour : tableau
- *   ['ok' => true, 'licence' => '0000001B', 'displayName' => 'M NOM Prenom']
- *   ['ok' => false, 'err' => <code>, 'msg' => <message affichable>]
- * Codes d'erreur : NETWORK, UNAVAILABLE (maintenance/panne FFTA), NO_CSRF,
- * BAD_CREDENTIALS, MFA_NEEDED, MFA_BAD_CODE, NO_LICENCE, AMBIGUOUS_LICENCE.
+ * Returns an array:
+ *   ['ok' => true, 'licence' => '0000001B', 'displayName' => 'M NAME Given']
+ *   ['ok' => false, 'err' => <code>, 'msg' => <displayable message>]
+ * Error codes: NETWORK, UNAVAILABLE (federation maintenance/outage), NO_CSRF, BAD_CREDENTIALS,
+ * MFA_NEEDED, MFA_BAD_CODE, NO_LICENCE, AMBIGUOUS_LICENCE.
  *
- * $otp : code de double authentification, vide si non demandé.
+ * $otp: two-factor authentication code, empty when not asked.
  */
-function bk_ffta_login($identifiant, $password, $otp = '')
+function bk_ffta_login($identifier, $password, $otp = '')
 {
     $base = bk_ffta_base();
 
@@ -400,9 +387,9 @@ function bk_ffta_login($identifiant, $password, $otp = '')
         CURLOPT_CONNECTTIMEOUT => 10,
     ));
 
-    bk_ffta_debug('--- login identifiant=' . $identifiant . ' otp=' . ($otp !== '' ? 'fourni' : 'vide') . ' ---');
+    bk_ffta_debug('--- login identifier=' . $identifier . ' otp=' . ($otp !== '' ? 'given' : 'empty') . ' ---');
 
-    // 1) Page de connexion : on récupère le jeton CSRF Laravel.
+    // 1) Sign-in page: the Laravel CSRF token is fetched.
     curl_setopt($ch, CURLOPT_URL, $base . '/auth/login');
     curl_setopt($ch, CURLOPT_HTTPGET, true);
     $loginPage = curl_exec($ch);
@@ -414,32 +401,32 @@ function bk_ffta_login($identifiant, $password, $otp = '')
         curl_close($ch);
         bk_ffta_debug('=> injoignable : ' . $e);
         return array('ok' => false, 'err' => 'NETWORK',
-            'msg' => "L'espace licencié FFTA est momentanément injoignable. Réessayez dans quelques instants.");
+            'msg' => bk_t('FfUnreachable'));
     }
 
     if (($out = bk_ffta_outage($ch, $loginPage, 'login')) !== '') {
         curl_close($ch);
-        bk_ffta_debug('=> indisponibilité détectée sur GET /auth/login');
+        bk_ffta_debug('=> unavailability detected on GET /auth/login');
         return array('ok' => false, 'err' => 'UNAVAILABLE', 'msg' => $out);
     }
 
     $csrf = bk_ffta_csrf($loginPage);
     if (!$csrf) {
         curl_close($ch);
-        bk_ffta_debug('=> CSRF INTROUVABLE');
+        bk_ffta_debug('=> CSRF NOT FOUND');
         return array('ok' => false, 'err' => 'NO_CSRF',
-            'msg' => "La page de connexion FFTA a changé : connexion impossible pour l'instant. Signalez-le à l'organisateur.");
+            'msg' => bk_t('FfPageChanged'));
     }
 
-    // 2) POST des identifiants.
-    $post = array('_token' => $csrf, 'username' => $identifiant, 'password' => $password);
+    // 2) POST of the credentials.
+    $post = array('_token' => $csrf, 'username' => $identifier, 'password' => $password);
     curl_setopt_array($ch, array(
         CURLOPT_URL        => $base . '/auth/login',
         CURLOPT_POST       => true,
         CURLOPT_POSTFIELDS => http_build_query($post),
     ));
     $landing = curl_exec($ch);
-    $post = null;                       // le mot de passe ne survit pas à l'appel
+    $post = null;                       // the password does not outlive the call
     $effUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
     bk_ffta_debug('POST /auth/login http=' . curl_getinfo($ch, CURLINFO_HTTP_CODE)
         . ' url=' . $effUrl . ' ' . bk_ffta_debug_page($landing));
@@ -447,76 +434,75 @@ function bk_ffta_login($identifiant, $password, $otp = '')
     if ($landing === false || curl_errno($ch)) {
         curl_close($ch);
         return array('ok' => false, 'err' => 'NETWORK',
-            'msg' => "La connexion à l'espace licencié FFTA a été interrompue. Réessayez.");
+            'msg' => bk_t('FfInterrupted'));
     }
 
-    // Succès : la page d'arrivée porte le lien « Me déconnecter » (vérifié sur
-    // une vraie page d'accueil de l'espace licencié). Ce marqueur POSITIF est
-    // plus sûr que la seule heuristique d'URL héritée d'AUTH, qu'on garde en
-    // repli au cas où la page changerait.
-    $connecte = bk_ffta_is_connected($landing);
-    if (!$connecte && ($out = bk_ffta_outage($ch, $landing)) !== '') {
+    // Success: the landing page carries the "Me déconnecter" link (checked on a real home page
+    // of the licensee space). This POSITIVE marker is safer than the URL heuristic inherited
+    // from AUTH, kept as a fallback should the page change.
+    $signedIn = bk_ffta_is_connected($landing);
+    if (!$signedIn && ($out = bk_ffta_outage($ch, $landing)) !== '') {
         curl_close($ch);
-        bk_ffta_debug('=> indisponibilité détectée sur POST /auth/login');
+        bk_ffta_debug('=> unavailability detected on POST /auth/login');
         return array('ok' => false, 'err' => 'UNAVAILABLE', 'msg' => $out);
     }
 
-    $stillOnLogin = !$connecte && (strpos($effUrl, '/auth/login') !== false);
+    $stillOnLogin = !$signedIn && (strpos($effUrl, '/auth/login') !== false);
     $isMfa = bk_ffta_is_mfa($landing, $effUrl);
 
     if ($isMfa) {
         if ($otp === '') {
             curl_close($ch);
-            bk_ffta_debug('=> défi MFA, code non saisi');
+            bk_ffta_debug('=> MFA challenge, no code typed');
             return array('ok' => false, 'err' => 'MFA_NEEDED',
-                'msg' => "Votre compte FFTA demande un code de double authentification.");
+                'msg' => bk_t('FfMfaNeeded'));
         }
         $landing = bk_ffta_mfa_step2($ch, $landing, $otp, $base);
         $effUrl  = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
         if (!bk_ffta_is_connected($landing) && ($out = bk_ffta_outage($ch, $landing)) !== '') {
             curl_close($ch);
-            bk_ffta_debug('=> indisponibilité détectée après la 2e étape MFA');
+            bk_ffta_debug('=> unavailability detected after the 2nd MFA step');
             return array('ok' => false, 'err' => 'UNAVAILABLE', 'msg' => $out);
         }
         if (bk_ffta_is_mfa($landing, $effUrl)) {
             curl_close($ch);
-            bk_ffta_debug('=> code MFA refusé');
+            bk_ffta_debug('=> MFA code refused');
             return array('ok' => false, 'err' => 'MFA_BAD_CODE',
-                'msg' => "Code de double authentification refusé ou expiré.");
+                'msg' => bk_t('FfMfaBad'));
         }
         $stillOnLogin = !bk_ffta_is_connected($landing) && (strpos($effUrl, '/auth/login') !== false);
-        bk_ffta_debug('=> seconde étape MFA acceptée');
+        bk_ffta_debug('=> second MFA step accepted');
     }
 
     if ($stillOnLogin) {
-        // Retour sur /auth/login SANS formulaire : Laravel réaffiche le formulaire
-        // quand le mot de passe est refusé — autre chose, ce n'est pas un refus
-        // d'identifiants (page d'erreur, maintenance, portail).
+        // Back on /auth/login WITHOUT a form: Laravel shows the form again when the password is
+        // refused — anything else is not a credentials refusal (error page, maintenance,
+        // portal).
         if (!bk_ffta_is_login_page($landing)) {
-            $msg = bk_ffta_outage_msg("L'espace licencié FFTA",
+            $msg = bk_ffta_outage_msg(bk_t('FfSpace'),
                 intval(curl_getinfo($ch, CURLINFO_HTTP_CODE)), true);
             curl_close($ch);
-            bk_ffta_debug('=> retour /auth/login sans formulaire : indisponibilité probable');
+            bk_ffta_debug('=> back on /auth/login without a form: unavailability likely');
             return array('ok' => false, 'err' => 'UNAVAILABLE', 'msg' => $msg);
         }
         curl_close($ch);
-        bk_ffta_debug('=> identifiants refusés');
+        bk_ffta_debug('=> credentials refused');
         return array('ok' => false, 'err' => 'BAD_CREDENTIALS',
-            'msg' => "Identifiant ou mot de passe incorrect.");
+            'msg' => bk_t('FfBadCredentials'));
     }
 
-    bk_ffta_debug('=> connexion acceptée, résolution de la licence');
+    bk_ffta_debug('=> sign-in accepted, resolving the licence');
 
-    // 3) Résolution de la licence SUR la session ouverte. C'est le rattachement :
-    //    seule la FFTA décide de quelle licence il s'agit.
+    // 3) The licence is resolved ON the open session. This is the link: only the federation
+    //    decides which licence it is.
     $found = bk_ffta_extract_licences($landing);
     $page  = (string) $landing;
 
-    // La page d'arrivée peut être une redirection intermédiaire sans identité :
-    // on tente alors explicitement l'accueil de l'espace licencié.
+    // The landing page may be an intermediate redirection without identity: the home page of
+    // the licensee space is then tried explicitly.
     if (count($found) !== 1) {
-        bk_ffta_debug('licence non résolue sur la page d\'arrivée (' . count($found)
-            . ' candidate(s)) — tentative sur l\'accueil');
+        bk_ffta_debug('licence not resolved on the landing page (' . count($found)
+            . ' candidate(s)) — trying the home page');
         curl_setopt_array($ch, array(
             CURLOPT_URL => $base . '/', CURLOPT_HTTPGET => true, CURLOPT_POST => false,
         ));
@@ -530,9 +516,9 @@ function bk_ffta_login($identifiant, $password, $otp = '')
         }
     }
 
-    // id Exalto (pour l'attestation de licence) — seulement sur le chemin de succès
-    // (licence résolue). D'abord sur la page connectée ; si absent (charte déjà acceptée),
-    // une requête sur l'onglet « Mes licences » où le lien d'attestation figure toujours.
+    // Exalto id (for the licence certificate) — only on the success path (licence resolved).
+    // First on the signed-in page; when missing (charter already accepted), a request on the
+    // "Mes licences" tab where the certificate link is always present.
     $exalto = '';
     $cookies = '';
     if (count($found) === 1) {
@@ -540,46 +526,44 @@ function bk_ffta_login($identifiant, $password, $otp = '')
         if ($exalto === '') {
             curl_setopt_array($ch, array(CURLOPT_URL => $base . '/licences', CURLOPT_HTTPGET => true, CURLOPT_POST => false));
             $lp = curl_exec($ch);
-            bk_ffta_debug('GET /licences http=' . curl_getinfo($ch, CURLINFO_HTTP_CODE) . ' (résolution id Exalto)');
+            bk_ffta_debug('GET /licences http=' . curl_getinfo($ch, CURLINFO_HTTP_CODE) . ' (resolving the Exalto id)');
             $exalto = bk_ffta_extract_exalto((string) $lp);
         }
-        // Cookies de session via le MOTEUR de curl (CURLINFO_COOKIELIST), un par ligne.
-        // ⚠️ L'écriture du cookie-jar en FICHIER est cassée sur curl 8.x Windows (jar à 0 o) ;
-        // le moteur, lui, rend bien les cookies — dont ffta_session (HttpOnly). C'est ce
-        // qui rend le relais d'attestation possible malgré ce bug de build.
+        // Session cookies through the curl ENGINE (CURLINFO_COOKIELIST), one per line.
+        // ⚠️ Writing the cookie jar to a FILE is broken on curl 8.x Windows (0-byte jar); the
+        // engine does return the cookies — ffta_session (HttpOnly) included. This is what
+        // makes the certificate relay possible despite that build bug.
         $cl = curl_getinfo($ch, CURLINFO_COOKIELIST);
         $cookies = is_array($cl) ? implode("\n", $cl) : '';
-        bk_ffta_debug('cookies capturés (moteur) : ' . (is_array($cl) ? count($cl) : 0) . ' entrée(s)');
+        bk_ffta_debug('cookies captured (engine): ' . (is_array($cl) ? count($cl) : 0) . ' entries');
     }
 
     curl_close($ch);
 
     if (!$found) {
-        bk_ffta_debug('=> AUCUNE licence lisible : refus');
+        bk_ffta_debug('=> NO readable licence: refused');
         return array('ok' => false, 'err' => 'NO_LICENCE',
-            'msg' => "Connexion réussie, mais votre numéro de licence n'a pas pu être lu sur "
-                   . "l'espace licencié. Signalez-le à l'organisateur.");
+            'msg' => bk_t('FfNoLicence'));
     }
     if (count($found) > 1) {
-        // Plusieurs licences distinctes : impossible de trancher sans risquer de
-        // rattacher le compte au mauvais archer. On refuse.
-        bk_ffta_debug('=> licences AMBIGUËS (' . implode(',', $found) . ') : refus');
+        // Several distinct licences: impossible to decide without risking linking the account
+        // to the wrong archer. Refused.
+        bk_ffta_debug('=> AMBIGUOUS licences (' . implode(',', $found) . '): refused');
         return array('ok' => false, 'err' => 'AMBIGUOUS_LICENCE',
-            'msg' => "Connexion réussie, mais plusieurs numéros de licence figurent sur la page. "
-                   . "Signalez-le à l'organisateur.");
+            'msg' => bk_t('FfAmbiguous'));
     }
 
     $lic = $found[0];
-    bk_ffta_debug('=> licence résolue : ' . $lic);
-    // Le cookie de session (pour l'attestation) et l'id Exalto ont été captés ci-dessus,
-    // sur le chemin de succès. Le mot de passe, lui, n'a jamais été conservé.
+    bk_ffta_debug('=> licence resolved: ' . $lic);
+    // The session cookie (for the certificate) and the Exalto id were captured above, on the
+    // success path. The password was never kept.
     return array('ok' => true, 'licence' => $lic, 'displayName' => bk_ffta_extract_name($page),
         'exaltoId' => $exalto, 'cookies' => $cookies);
 }
 
 /**
- * Nom affiché sur la page connectée (ex. « M NOM Prenom »), utilisé comme
- * contrôle de cohérence avec le fichier des licences. Chaîne vide si absent.
+ * Name shown on the signed-in page (e.g. "M NAME Given"), used as a consistency check against
+ * the licence file. Empty string when missing.
  */
 function bk_ffta_extract_name($html)
 {
@@ -589,7 +573,7 @@ function bk_ffta_extract_name($html)
         $n = trim(preg_replace('/\s+/', ' ', $m[1]));
         if ($n !== '') return $n;
     }
-    // Barre de navigation : texte précédant le badge de licence
+    // Navigation bar: text before the licence badge
     if (preg_match('#>\s*([^<>]{3,80}?)\s*<span[^>]*class=["\'][^"\']*\bbadge\b#u', $html, $m)) {
         $n = trim(preg_replace('/\s+/', ' ', $m[1]));
         if ($n !== '') return $n;
@@ -597,7 +581,7 @@ function bk_ffta_extract_name($html)
     return '';
 }
 
-/** Jeton CSRF Laravel, cherché dans le formulaire puis dans la balise meta. */
+/** Laravel CSRF token, looked for in the form then in the meta tag. */
 function bk_ffta_csrf($html)
 {
     foreach (array(
@@ -611,16 +595,15 @@ function bk_ffta_csrf($html)
 }
 
 /**
- * Page de défi MFA (Laravel Fortify) ?
+ * MFA challenge page (Laravel Fortify)?
  *
- * ⚠️ Piège vérifié sur une page réelle : l'accueil de l'espace licencié affiche
- * un badge « 2FA » et le texte « Authentification deux facteurs non confirmée »
- * quand la double authentification n'est pas activée. Une détection par simple
- * mot-clé prendrait donc une page CONNECTÉE pour un défi MFA, et la connexion
- * échouerait pour les comptes sans 2FA — soit la majorité. D'où :
- *  1. une page qui porte le lien de déconnexion est connectée, jamais un défi ;
- *  2. le motif exclut délibérément « 2fa », « otp » et « deux facteurs », trop
- *     présents dans l'habillage courant du site.
+ * ⚠️ Trap checked on a real page: the home page of the licensee space shows a "2FA" badge and
+ * the text "Authentification deux facteurs non confirmée" when two-factor authentication is
+ * NOT on. A plain keyword detection would take a SIGNED-IN page for an MFA challenge, and the
+ * sign-in would fail for accounts without 2FA — the majority. Hence:
+ *  1. a page carrying the sign-out link is signed in, never a challenge;
+ *  2. the pattern leaves out "2fa", "otp" and "deux facteurs" on purpose, too common in the
+ *     site's usual layout.
  */
 function bk_ffta_is_mfa($html, $url = '')
 {
@@ -631,9 +614,9 @@ function bk_ffta_is_mfa($html, $url = '')
 }
 
 /**
- * Seconde étape MFA : renvoie le code au formulaire du défi, en découvrant son
- * action et le nom de son champ. 'recovery_code' est explicitement EXCLU (codes
- * de secours, pas le code de l'application). Le code n'est jamais journalisé.
+ * Second MFA step: sends the code to the challenge form, discovering its action and the name of
+ * its field. 'recovery_code' is explicitly LEFT OUT (backup codes, not the app's code). The code
+ * is never logged.
  */
 function bk_ffta_mfa_step2($ch, $page, $otp, $base)
 {
@@ -663,7 +646,7 @@ function bk_ffta_mfa_step2($ch, $page, $otp, $base)
     }
     if ($field === '') $field = 'code';
 
-    bk_ffta_debug('MFA step2 action=' . $action . ' champ=' . $field . ' csrf=' . ($csrf ? 'oui' : 'non'));
+    bk_ffta_debug('MFA step2 action=' . $action . ' field=' . $field . ' csrf=' . ($csrf ? 'yes' : 'no'));
 
     $post = array($field => $otp);
     if ($csrf) $post['_token'] = $csrf;
@@ -680,13 +663,13 @@ function bk_ffta_mfa_step2($ch, $page, $otp, $base)
 }
 
 /**
- * Défense en profondeur : le nom affiché par la FFTA doit être cohérent avec la
- * fiche du fichier des licences pour la licence résolue. Attrape une lecture de
- * licence erronée, qui rattacherait le compte au mauvais archer.
+ * Defence in depth: the name shown by the federation must match the licence file's record for
+ * the resolved licence. Catches a wrong licence read, which would link the account to the wrong
+ * archer.
  *
- * Tolérant par conception : retourne true si le nom n'a pas pu être lu (on ne
- * bloque pas sur une structure de page inconnue) ; false uniquement si le nom de
- * famille du fichier fédéral est totalement absent du nom affiché.
+ * Tolerant by design: returns true when the name could not be read (no blocking on an unknown
+ * page structure); false only when the family name of the federation file is entirely missing
+ * from the name shown.
  */
 function bk_ffta_name_matches($displayName, $lue)
 {
@@ -695,16 +678,15 @@ function bk_ffta_name_matches($displayName, $lue)
     $family = bk_fold($lue->LueFamilyName);
     if ($family === '' || $shown === '') return true;
     $ok = (strpos($shown, $family) !== false);
-    bk_ffta_debug('cohérence nom : affiché=' . $displayName . ' fichier=' . $lue->LueFamilyName
+    bk_ffta_debug('name check: shown=' . $displayName . ' file=' . $lue->LueFamilyName
         . ' => ' . ($ok ? 'OK' : 'CONTRADICTION'));
     return $ok;
 }
 
 /**
- * Marqueur POSITIF de session ouverte : le lien « Me déconnecter » de l'espace
- * licencié. Vérifié sur une page d'accueil réelle. Ne jamais se contenter de
- * « la page n'est pas le formulaire de connexion » : une page d'erreur ou une
- * redirection intermédiaire passerait ce test-là.
+ * POSITIVE marker of an open session: the "Me déconnecter" link of the licensee space. Checked
+ * on a real home page. Never settle for "the page is not the sign-in form": an error page or an
+ * intermediate redirection would pass that test.
  */
 function bk_ffta_is_connected($html)
 {
@@ -712,24 +694,23 @@ function bk_ffta_is_connected($html)
 }
 
 /**
- * Extrait les numéros de licence d'une page de l'espace licencié.
- * Format FFTA : 6 à 7 chiffres suivis d'une lettre clé (ex. 0000001B).
+ * Extracts the licence numbers of a page of the licensee space.
+ * Federation format: 6 to 7 digits followed by a key letter (e.g. 0000001B).
  *
- * ⚠️ Fonction de SÉCURITÉ : c'est elle qui décide à quel archer un compte est
- * rattaché (l'identifiant saisi ne le dit pas — il peut être nominatif). Elle
- * doit donc renvoyer une réponse CERTAINE ou aucune : l'appelant refuse la
- * connexion s'il n'obtient pas exactement une licence.
+ * ⚠️ SECURITY function: it decides which archer an account is linked to (the typed identifier
+ * does not say — it may be a personal one). It must therefore give a CERTAIN answer or none:
+ * the caller refuses the sign-in unless it gets exactly one licence.
  *
- * Motifs par fiabilité décroissante, relevés sur une page d'accueil réelle :
- *   1. fiche profil : « Licencié N°0000001B »
- *   2. barre de nav : <span class="badge …">0000001B</span>
- *   3. repli        : n'importe quel motif de licence de la page
- * On s'arrête au PREMIER motif qui répond : les deux premiers désignent
- * explicitement le titulaire de la session, alors que le repli ramasserait
- * aussi une licence citée ailleurs dans la page (autre archer, exemple…).
+ * Patterns by decreasing reliability, taken from a real home page:
+ *   1. profile card: "Licencié N°0000001B"
+ *   2. nav bar     : <span class="badge …">0000001B</span>
+ *   3. fallback    : any licence pattern of the page
+ * Stops at the FIRST pattern that answers: the first two name the session's holder explicitly,
+ * whereas the fallback would also pick a licence quoted elsewhere on the page (another archer,
+ * an example…).
  *
- * Le format exclut naturellement l'agrément d'un club (`LLDDCCC`, 7 chiffres
- * SANS lettre finale) et sa variante corse (`052A005`).
+ * The format naturally excludes a club approval number (`LLDDCCC`, 7 digits WITHOUT a final
+ * letter) and its Corsican variant (`052A005`).
  */
 function bk_ffta_extract_licences($html)
 {

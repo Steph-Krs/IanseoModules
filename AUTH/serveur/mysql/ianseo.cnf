@@ -1,26 +1,26 @@
-# Réglages MariaDB / MySQL d'un serveur ianseo en ligne — voir SERVEUR.md § 6.3.
+# MariaDB / MySQL settings of an online ianseo server — see SERVEUR.md § 6.3.
 #
-#   MariaDB : sudo install -m 0644 ianseo.cnf /etc/mysql/mariadb.conf.d/99-ianseo.cnf
-#   MySQL 8 : sudo install -m 0644 ianseo.cnf /etc/mysql/mysql.conf.d/99-ianseo.cnf
-#   puis    : sudo systemctl restart mariadb     (ou mysql) — hors compétition
+#   MariaDB: sudo install -m 0644 ianseo.cnf /etc/mysql/mariadb.conf.d/99-ianseo.cnf
+#   MySQL 8: sudo install -m 0644 ianseo.cnf /etc/mysql/mysql.conf.d/99-ianseo.cnf
+#   then   : sudo systemctl restart mariadb     (or mysql) — outside a competition
 #
-# Multi-comptes › Configuration du serveur › État du serveur indique ce qu'il faut ajuster.
+# Multi-account hosting › Server configuration › Server state tells what to adjust.
 #
-# ⚠ N'ajoutez PAS « optimizer_switch=derived_condition_pushdown=off » ici : MariaDB ne
-#   connaît pas cette option et refuserait de démarrer. Sous MySQL 8 SEULEMENT, une fois :
+# ⚠ Do NOT add "optimizer_switch=derived_condition_pushdown=off" here: MariaDB does not know
+#   this option and would refuse to start. Under MySQL 8 ONLY, once:
 #   sudo mysql -e "SET PERSIST optimizer_switch='derived_condition_pushdown=off';"
 
 [mysqld]
-# ianseo ouvre DEUX connexions par page (lecture + écriture) : au moins 2 × le nombre de
-# processus PHP (Apache MaxRequestWorkers, ou pm.max_children avec PHP-FPM), plus une marge.
-# 320 = 2 × 150 (MaxRequestWorkers de Debian) + 20. Au-delà, la base refuse la connexion et
-# l'utilisateur tombe sur une page d'erreur.
+# ianseo opens TWO connections per page (reading + writing): at least 2 × the number of PHP
+# processes (Apache MaxRequestWorkers, or pm.max_children with PHP-FPM), plus a margin.
+# 320 = 2 × 150 (Debian's MaxRequestWorkers) + 20. Beyond it, the database refuses the
+# connection and the user lands on an error page.
 max_connections         = 320
 
-# Au moins la taille de la base ; jusqu'à 50-70 % de la RAM sur une machine dédiée à ianseo.
+# At least the size of the database; up to 50-70 % of the RAM on a machine dedicated to ianseo.
 innodb_buffer_pool_size = 1G
 
-# Requêtes de plus de 2 s : c'est ce journal qui désigne la requête en cause quand le
-# serveur ralentit. Fichier : /var/lib/mysql/<nom-du-serveur>-slow.log
+# Queries of more than 2 s: this log names the query at fault when the server slows down.
+# File: /var/lib/mysql/<server-name>-slow.log
 slow_query_log          = 1
 long_query_time         = 2

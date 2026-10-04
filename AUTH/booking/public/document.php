@@ -1,14 +1,14 @@
 <?php
 /**
- * public/document.php — relais vers un document OFFICIEL ianseo (programme,
- * participants, résultats), pour l'archer connecté.
+ * public/document.php — relay to an OFFICIAL ianseo document (programme, participants,
+ * results), for the connected archer.
  *
- * Garde stricte AVANT toute élévation (bk_doc_relay) :
- *  1. archer connecté (bk_require_archer) — ces documents ne sont pas anonymes ;
- *  2. document connu (bk_doc_defs) ;
- *  3. compétition existante ET organisateur ayant coché la case correspondante.
- * Seulement alors, le relais régénère le PDF officiel dans un contexte élevé BORNÉ
- * à cette compétition (voir bk_doc_relay).
+ * Strict guard BEFORE any elevation (bk_doc_relay):
+ *  1. connected archer (bk_require_archer) — these documents are not anonymous;
+ *  2. known document (bk_doc_defs);
+ *  3. existing competition AND the organiser ticked the matching box.
+ * Only then does the relay generate the official PDF in an elevated context LIMITED to this
+ * competition (see bk_doc_relay).
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
@@ -25,7 +25,7 @@ if (!$tourId || !isset($defs[$doc])) { http_response_code(404); exit; }
 $cfg  = bk_comp_config($tourId);
 $flag = $defs[$doc]['flag'];
 if (intval(is_object($cfg) ? ($cfg->$flag ?? 0) : 0) !== 1) { http_response_code(404); exit; }
-// Même garde de « matière » que la liste : ne pas régénérer un document vide via URL forgée.
+// Same "has content" guard as the list: no empty document generated from a forged URL.
 $has = $defs[$doc]['has'] ?? '';
 if ($has !== '' && function_exists($has) && !call_user_func($has, $tourId)) { http_response_code(404); exit; }
 

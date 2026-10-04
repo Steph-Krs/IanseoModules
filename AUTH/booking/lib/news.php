@@ -1,29 +1,29 @@
 <?php
 /**
- * lib/news.php — actualités de la FFTA (flux RSS public), pour « Mon espace ».
+ * lib/news.php — the federation's news (public RSS feed), for "My space".
  *
- * Le flux est récupéré et parsé CÔTÉ SERVEUR, mais SERVI VIA UN ENDPOINT JSON
- * (public/news.php) chargé en asynchrone : la page d'accueil de l'archer ne
- * déclenche jamais d'appel réseau. Résultat mis en cache dans le dossier temporaire
- * (TTL 30 min) avec protection anti-troupeau : à chaque issue (succès OU échec) on
- * réécrit le cache horodaté, donc les autres requêtes ne re-sollicitent pas la FFTA.
+ * The feed is fetched and parsed BY THE SERVER, but SERVED THROUGH A JSON ENDPOINT
+ * (public/news.php) loaded asynchronously: the archer's home page never makes a network call.
+ * The result is cached in the temporary folder (TTL 30 min) with a stampede guard: whatever
+ * the outcome (success OR failure) the timestamped cache is rewritten, so the other requests do
+ * not hit the federation again.
  *
- * Robustesse : timeout court, jamais fatal (retour [] en cas de souci), parsing XML
- * durci contre les entités externes (XXE), liens bornés à http(s), sortie échappée.
+ * Robustness: short timeout, never fatal ([] when anything goes wrong), XML parsing hardened
+ * against external entities (XXE), links limited to http(s), escaped output.
  */
 
 if (function_exists('bk_news_items')) return;
 
-/** URL du flux (surchargeable via config.local.json → "news":{"url":"…"}). */
+/** URL of the feed (can be overridden in config.local.json → "news":{"url":"…"}). */
 function bk_news_url()
 {
     static $u = null;
     if ($u === null) {
         $u = 'https://www.ffta.fr/rss.xml';
-        $f = dirname(__DIR__) . '/config.local.json';   // même fichier que le reste du module
+        $f = dirname(__DIR__) . '/config.local.json';   // same file as the rest of the module
         if (is_file($f)) {
             $raw = (string) @file_get_contents($f);
-            // BOM UTF-8 d'un éditeur Windows : json_decode échouerait en silence.
+            // UTF-8 BOM of a Windows editor: json_decode would fail silently.
             if (substr($raw, 0, 3) === "\xEF\xBB\xBF") $raw = substr($raw, 3);
             $c = json_decode($raw, true);
             $cu = is_array($c) ? (string) ($c['news']['url'] ?? '') : '';
@@ -38,17 +38,23 @@ function bk_news_cache_file()
     return sys_get_temp_dir() . '/bk_ffta_news.json';
 }
 
-/** Date « 28 août 2026 » sans dépendre de la locale du serveur. */
-function bk_news_date_fr($ts)
+/** Date "28 August 2026" in the visitor's language, whatever the server's locale. */
+function bk_news_date($ts)
 {
-    $mois = array('', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-        'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre');
-    return date('j', $ts) . ' ' . $mois[(int) date('n', $ts)] . ' ' . date('Y', $ts);
+    return bk_t('DateLong', array('d' => date('j', $ts), 'm' => bk_t('MonthL' . date('n', $ts)), 'y' => date('Y', $ts)));
+}
+
+/** Dates of the items in the visitor's language (the cache keeps the timestamp). */
+function bk_news_localise($items)
+{
+    foreach ($items as &$it) if (!empty($it['ts'])) $it['date'] = bk_news_date(intval($it['ts']));
+    unset($it);
+    return $items;
 }
 
 /**
- * Items du flux (titre/lien/date), depuis le cache si frais, sinon rafraîchis.
- * Ne lève jamais : retourne un tableau (éventuellement vide).
+ * Items of the feed (title/link/date), from the cache when fresh, refreshed otherwise.
+ * Never throws: returns an array (possibly empty).
  */
 function bk_news_items($limit = 6, $ttl = 1800)
 {
@@ -62,20 +68,20 @@ function bk_news_items($limit = 6, $ttl = 1800)
             if ((time() - intval($j['at'] ?? 0)) < $ttl) $fresh = true;
         }
     }
-    if ($fresh) return array_slice($cached, 0, $limit);
+    if ($fresh) return bk_news_localise(array_slice($cached, 0, $limit));
 
-    $new = bk_news_download();   // null en cas d'échec (réseau/parse), tableau sinon
+    $new = bk_news_download();   // null on failure (network/parse), an array otherwise
     if ($new !== null) {
         @file_put_contents($file, json_encode(array('items' => $new, 'at' => time())), LOCK_EX);
-        return array_slice($new, 0, $limit);
+        return bk_news_localise(array_slice($new, 0, $limit));
     }
-    // Échec : réécrire l'ancien contenu avec un horodatage qui autorise un nouvel essai
-    // dans ~5 min (pas avant), pour ne pas marteler la FFTA en cas de panne.
+    // Failure: write the old content back with a timestamp that allows a new try in ~5 min
+    // (not before), so as not to hammer the federation during an outage.
     @file_put_contents($file, json_encode(array('items' => $cached, 'at' => time() - $ttl + 300)), LOCK_EX);
-    return array_slice($cached, 0, $limit);
+    return bk_news_localise(array_slice($cached, 0, $limit));
 }
 
-/** Télécharge le flux et le parse. Retourne un tableau d'items, ou null en cas d'échec. */
+/** Downloads the feed and parses it. Returns an array of items, or null on failure. */
 function bk_news_download()
 {
     if (!function_exists('curl_init')) return null;
@@ -89,7 +95,7 @@ function bk_news_download()
         CURLOPT_USERAGENT      => 'ianseo-booking (actualites FFTA)',
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
-        CURLOPT_ACCEPT_ENCODING => '',   // gère gzip si proposé
+        CURLOPT_ACCEPT_ENCODING => '',   // handles gzip when offered
     ));
     $body = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -98,13 +104,13 @@ function bk_news_download()
     return bk_news_parse($body);
 }
 
-/** Parse un flux RSS 2.0. Durci contre XXE ; ne garde que les liens http(s). */
+/** Parses an RSS 2.0 feed. Hardened against XXE; keeps http(s) links only. */
 function bk_news_parse($xml)
 {
     if (!is_string($xml) || $xml === '') return null;
     $prev = libxml_use_internal_errors(true);
-    // PHP ≥ 8 : chargement d'entités externes désactivé par défaut. LIBXML_NONET
-    // interdit tout accès réseau du parseur ; on n'active JAMAIS LIBXML_NOENT.
+    // PHP ≥ 8: loading of external entities is off by default. LIBXML_NONET forbids any
+    // network access of the parser; LIBXML_NOENT is NEVER turned on.
     $sx = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA | LIBXML_NONET);
     libxml_clear_errors();
     libxml_use_internal_errors($prev);
@@ -114,12 +120,13 @@ function bk_news_parse($xml)
     foreach ($sx->channel->item as $it) {
         $title = trim(preg_replace('/\s+/', ' ', (string) $it->title));
         $link  = trim((string) $it->link);
-        if ($title === '' || !preg_match('#^https?://#i', $link)) continue;   // liens sûrs uniquement
+        if ($title === '' || !preg_match('#^https?://#i', $link)) continue;   // safe links only
         $ts = strtotime((string) $it->pubDate);
         $out[] = array(
             'title' => $title,
             'link'  => $link,
-            'date'  => $ts ? bk_news_date_fr($ts) : '',
+            'ts'    => $ts ?: 0,
+            'date'  => '',
         );
         if (count($out) >= 12) break;
     }

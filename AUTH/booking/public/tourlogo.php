@@ -1,26 +1,25 @@
 <?php
 /**
- * public/tourlogo.php — sert un logo de compétition (ToImgL/R/B) en accès PUBLIC,
- * pour le mandat consultable par les archers.
+ * public/tourlogo.php — serves a competition logo (ToImgL/R/B) PUBLICLY, for the mandate the
+ * archers can read.
  *
- * Common/TourLogo.php du cœur exige une session organisateur (CheckTourSession) :
- * inutilisable depuis la face publique. Cet endpoint lit le même BLOB, mais borné
- * aux compétitions dont le mandat est explicitement rendu VISIBLE (bk_mandate_visible)
- * → aucune image d'une compétition non publiée n'est exposée.
+ * The core's Common/TourLogo.php needs an organiser session (CheckTourSession): unusable from
+ * the public side. This endpoint reads the same BLOB, limited to competitions whose mandate is
+ * explicitly VISIBLE (bk_mandate_visible) → no image of an unpublished competition is exposed.
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
 require_once dirname(__DIR__) . '/lib/mandate.php';
-require_once dirname(__DIR__) . '/lib/registration.php';   // bk_reg_existing (visuel partageable)
+require_once dirname(__DIR__) . '/lib/registration.php';   // bk_reg_existing (shareable picture)
 
 $tourId = intval($_GET['t'] ?? 0);
 $type   = strtoupper((string) ($_GET['type'] ?? ''));
 if (!$tourId || !in_array($type, array('L', 'R', 'B'), true)) { http_response_code(404); exit; }
 
 $cfg = bk_comp_config($tourId);
-// Autorisé si le mandat est publié, OU si l'archer connecté est INSCRIT à cette
-// compétition (visuel partageable « J'y serai ») — il ne voit alors que les logos
-// de SA compétition, jamais ceux d'une compétition où il ne figure pas.
+// Allowed when the mandate is published, OR when the connected archer is REGISTERED on this
+// competition (shareable "I'll be there" picture) — they then see the logos of THEIR
+// competition only, never those of a competition they are not in.
 $ok = bk_mandate_visible($cfg);
 if (!$ok) {
     $a = bk_current_archer();

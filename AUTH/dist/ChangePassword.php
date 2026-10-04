@@ -1,10 +1,10 @@
 <?php
 /**
- * Déployé depuis Modules/Custom/AUTH/dist/ — changement de mot de passe.
+ * Deployed from Modules/Custom/AUTH/dist/ — password change.
  */
 if (basename(__DIR__) !== 'Authentication') {
     http_response_code(403);
-    die('Ce fichier doit être exécuté depuis Modules/Authentication/.');
+    die('This file must run from Modules/Authentication/.');
 }
 define('HTDOCS', dirname(__DIR__, 2));
 require_once(HTDOCS . '/config.php');
@@ -24,18 +24,17 @@ if (!$u) {
 $err = '';
 $done = false;
 $forced = !empty($u->AuMustChangePwd);
+$e = function ($s) { return htmlspecialchars((string) $s); };
 
-// Compte SSO (pas de mot de passe local) : le mot de passe se gère sur
-// l'Espace Dirigeant FFTA, pas ici.
+// SSO account (no local password): the password is managed on the FFTA officers' space, not
+// here.
 if ($u->AuPassword === '') {
-    $PAGE_TITLE = 'Mot de passe';
+    $PAGE_TITLE = aut_t('BarPassword');
     include('Common/Templates/head-min.php');
     echo '<div class="Center" style="padding:24px; font-family:Verdana,Arial,sans-serif;">'
-        . '<p>Votre compte utilise la connexion <b>Espace Dirigeant FFTA</b>.</p>'
-        . '<p>Votre mot de passe se modifie directement sur '
-        . '<a href="https://dirigeant.ffta.fr" target="_blank" rel="noopener">dirigeant.ffta.fr</a>, '
-        . 'pas sur ce serveur.</p>'
-        . '<p><a href="' . $CFG->ROOT_DIR . '">Retour à ianseo</a></p></div>';
+        . '<p>' . aut_t('CpSso') . '</p>'
+        . '<p>' . aut_t('CpSsoWhere', '<a href="https://dirigeant.ffta.fr" target="_blank" rel="noopener">dirigeant.ffta.fr</a>') . '</p>'
+        . '<p><a href="' . $CFG->ROOT_DIR . '">' . $e(aut_t('CpBack')) . '</a></p></div>';
     include('Common/Templates/tail-min.php');
     exit;
 }
@@ -45,30 +44,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $new1 = $_POST['new1'] ?? '';
     $new2 = $_POST['new2'] ?? '';
     if (!password_verify($old, $u->AuPassword)) {
-        $err = 'Mot de passe actuel incorrect.';
+        $err = aut_t('CpBadOld');
     } elseif ($new1 !== $new2) {
-        $err = 'Les deux saisies ne correspondent pas.';
+        $err = aut_t('CpMismatch');
     } elseif (!aut_password_ok($new1)) {
-        $err = 'Mot de passe trop faible : 10 caractères minimum, avec au moins une lettre et un chiffre.';
+        $err = aut_t('CpWeak');
     } elseif (password_verify($new1, $u->AuPassword)) {
-        $err = 'Le nouveau mot de passe doit être différent de l\'actuel.';
+        $err = aut_t('CpSame');
     } else {
         $hash = password_hash($new1, PASSWORD_DEFAULT);
         safe_w_sql("UPDATE AUT_Users SET AuPassword=" . StrSafe_DB($hash) . ", AuMustChangePwd=0 WHERE AuId={$u->AuId}");
-        // révoque toutes les autres sessions (le jeton courant reste valide)
+        // revokes every other session (the current token stays valid)
         aut_sessions_revoke($u->AuId, aut_current_token_hash());
         aut_log('PWD_CHANGE', $u->AuUsername);
         $done = true;
         $forced = false;
     }
 }
-?>
-<!DOCTYPE html>
-<html lang="fr">
+
+echo '<!DOCTYPE html>
+<html lang="' . $e(aut_lang_code()) . '">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ianseo — Mot de passe</title>
+<title>' . $e(aut_t('CpPageTitle')) . '</title>
+';
+?>
 <style>
 body { margin:0; font-family:Verdana,Arial,sans-serif; background:#eef2f6;
        display:flex; align-items:center; justify-content:center; min-height:100vh; }
@@ -90,26 +91,23 @@ button { margin-top:18px; width:100%; padding:9px; background:#1a4f8b; color:#ff
 .links { margin-top:14px; font-size:11px; text-align:center; }
 .links a { color:#1a4f8b; }
 </style>
-</head>
-<body>
-<div class="card">
-    <h1>Changement de mot de passe</h1>
-    <div class="sub">Compte : <b><?php echo htmlspecialchars($u->AuUsername); ?></b></div>
-    <?php if ($forced) echo '<div class="info">Première connexion (ou mot de passe réinitialisé) : vous devez définir un nouveau mot de passe avant de continuer.</div>'; ?>
-    <?php if ($err)  echo '<div class="err">' . $err . '</div>'; ?>
-    <?php if ($done) echo '<div class="ok">Mot de passe modifié. <a href="' . $CFG->ROOT_DIR . '">Accéder à ianseo</a></div>'; ?>
-    <?php if (!$done) { ?>
-    <form method="post" action="">
-        <label for="old">Mot de passe actuel</label>
-        <input type="password" id="old" name="old" autocomplete="current-password" autofocus>
-        <label for="new1">Nouveau mot de passe <small>(10 caractères min., lettres + chiffres)</small></label>
-        <input type="password" id="new1" name="new1" autocomplete="new-password">
-        <label for="new2">Confirmer le nouveau mot de passe</label>
-        <input type="password" id="new2" name="new2" autocomplete="new-password">
-        <button type="submit">Modifier</button>
-    </form>
-    <?php } ?>
-    <div class="links"><a href="LogOut.php">Se déconnecter</a></div>
-</div>
-</body>
-</html>
+<?php
+echo "</head>\n<body>\n" . '<div class="card">' . "\n"
+    . '<h1>' . $e(aut_t('CpTitle')) . "</h1>\n"
+    . '<div class="sub">' . aut_t('TfAccount', '<b>' . $e($u->AuUsername) . '</b>') . "</div>\n";
+if ($forced) echo '<div class="info">' . $e(aut_t('CpForced')) . "</div>\n";
+if ($err)  echo '<div class="err">' . $e($err) . "</div>\n";
+if ($done) echo '<div class="ok">' . $e(aut_t('CpDone')) . ' <a href="' . $CFG->ROOT_DIR . '">' . $e(aut_t('TfGoIanseo')) . "</a></div>\n";
+if (!$done) {
+    echo '<form method="post" action="">'
+        . '<label for="old">' . $e(aut_t('CpOld')) . '</label>'
+        . '<input type="password" id="old" name="old" autocomplete="current-password" autofocus>'
+        . '<label for="new1">' . $e(aut_t('CpNew')) . ' <small>(' . $e(aut_t('CpNewHint')) . ')</small></label>'
+        . '<input type="password" id="new1" name="new1" autocomplete="new-password">'
+        . '<label for="new2">' . $e(aut_t('CpNew2')) . '</label>'
+        . '<input type="password" id="new2" name="new2" autocomplete="new-password">'
+        . '<button type="submit">' . $e(aut_t('CpSubmit')) . '</button>'
+        . "</form>\n";
+}
+echo '<div class="links"><a href="LogOut.php">' . $e(aut_t('TfSignOut')) . "</a></div>\n"
+    . "</div>\n</body>\n</html>\n";

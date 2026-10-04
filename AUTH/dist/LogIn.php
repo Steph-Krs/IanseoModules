@@ -1,16 +1,15 @@
 <?php
 /**
- * Déployé depuis Modules/Custom/AUTH/dist/ — ALIAS de compatibilité.
+ * Deployed from Modules/Custom/AUTH/dist/ — compatibility ALIAS.
  *
- * La connexion est désormais UNIFIÉE : Modules/Custom/AUTH/login.php (onglet
- * Organisateur = Espace Dirigeant, onglet Compétiteur = Espace Licencié). Le
- * flux organisateur lui-même vit dans lib.php (aut_handle_org_login/…),
- * réutilisé par la page unifiée. Ce fichier ne fait plus que rediriger, pour
- * les anciens liens et les redirections du cœur ianseo.
+ * Signing in is now UNIFIED: Modules/Custom/AUTH/login.php (Organiser tab = officers' space,
+ * Competitor tab = licensee space). The organiser flow itself lives in lib.php
+ * (aut_handle_org_login/…), reused by the unified page. This file only redirects, for the
+ * old links and the redirections of the ianseo core.
  */
 if (basename(__DIR__) !== 'Authentication') {
     http_response_code(403);
-    die('Ce fichier doit être exécuté depuis Modules/Authentication/ (voir admin/deploy.php).');
+    die('This file must run from Modules/Authentication/ (see admin/deploy.php).');
 }
 define('HTDOCS', dirname(__DIR__, 2));
 require_once(HTDOCS . '/config.php');

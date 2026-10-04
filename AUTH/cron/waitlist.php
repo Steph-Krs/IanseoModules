@@ -13,7 +13,7 @@
 
 if (php_sapi_name() !== 'cli') {
     http_response_code(403);
-    die('Script cron : exécution en ligne de commande uniquement.');
+    die('Cron script: command line only.');
 }
 
 $SKIP_AUTH = 1;

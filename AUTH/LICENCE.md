@@ -1,37 +1,37 @@
-# Licence d'utilisation — modules custom (AUTH, booking : inscriptions, boutique, tickets, statistiques…)
+# Licence of use — custom modules (AUTH, booking: registrations, shop, tickets, statistics…)
 
-> Brouillon à valider / affiner par l'auteur.
+Other languages: [Français](LICENCE_FR.md) · [Italiano](LICENCE_IT.md) · [Español](LICENCE_ES.md) · [Deutsch](LICENCE_DE.md). The French text is the original.
 
-© Stéphane Kraus. Tous droits réservés.
+© Stéphane Kraus. All rights reserved.
 
-## Usage non commercial uniquement
+## Non-commercial use only
 
-Ce module, son code source et toute partie de celui-ci (même partielle) sont mis à
-disposition pour un **usage strictement non commercial**.
+This module, its source code and any part of it (even a partial one) are made available
+for **strictly non-commercial use**.
 
-Sont notamment interdits, sans l'accord écrit préalable de l'auteur :
+The following are in particular forbidden without the prior written consent of the author:
 
-- toute exploitation commerciale, directe ou indirecte (vente, location, prestation
-  payante, service en ligne payant, perception d'une commission…) ;
-- l'intégration, même partielle, de ce code dans un produit ou un service commercial ;
-- toute redistribution à des fins commerciales.
+- any commercial exploitation, direct or indirect (sale, rental, paid service, paid online
+  service, collection of a commission…);
+- the integration, even partial, of this code into a commercial product or service;
+- any redistribution for commercial purposes.
 
-L'usage par des structures à but non lucratif (clubs, comités, fédération) dans le
-cadre de leurs propres compétitions, sans finalité commerciale, est autorisé.
+Use by non-profit organisations (clubs, committees, federation) for their own
+competitions, without any commercial purpose, is permitted.
 
-## Réserve de l'auteur
+## Reservation by the author
 
-L'auteur (Stéphane Kraus) **se réserve seul** le droit d'exploiter ce module à des
-fins commerciales, ainsi que le droit de **concéder cette exploitation commerciale**
-à tout tiers de son choix, à sa **seule discrétion**. Cette réserve ne bénéficie à
-personne d'autre sans autorisation écrite de sa part.
+The author (Stéphane Kraus) **alone reserves** the right to exploit this module for
+commercial purposes, as well as the right to **grant such commercial exploitation**
+to any third party of their choice, at their **sole discretion**. This reservation benefits
+no one else without their written authorisation.
 
-## Portée
+## Scope
 
-Cette licence porte uniquement sur le code du **module AUTH** (et ses sous-modules tels que booking). Elle **ne modifie ni ne remplace** la licence du logiciel **ianseo**
-lui-même, ni celle de ses composants, qui restent régis par leurs licences propres.
+This licence covers only the code of the **AUTH module** (and its sub-modules such as booking). It **neither modifies nor replaces** the licence of the **ianseo** software
+itself, nor those of its components, which remain governed by their own licences.
 
-## Absence de garantie
+## No warranty
 
-Le module est fourni « en l'état », sans garantie d'aucune sorte. L'auteur ne saurait
-être tenu responsable d'un quelconque dommage résultant de son utilisation.
+The module is provided "as is", without warranty of any kind. The author cannot
+be held liable for any damage resulting from its use.

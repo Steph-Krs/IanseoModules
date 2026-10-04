@@ -1,45 +1,44 @@
 <?php
 /**
- * Module AUTH — Synchronisation des LOGOS DE CLUB par cron (CLI uniquement).
+ * AUTH module — synchronisation of the CLUB LOGOS by cron (command line only).
  *
- * Objectif : plus aucune manipulation côté organisateur. Nativement, chacun doit
- * ouvrir « Participants › Charger table de correspondance » et cocher « Drapeaux »
- * pour SA compétition ; ici, un seul passage quotidien alimente un cache global puis
- * le recopie dans toutes les compétitions en cours — les impressions du cœur
- * (dossards, badges, listes) trouvent les logos sans que personne n'ait rien fait.
+ * Goal: no more handling on the organiser side. Natively, each one has to open
+ * "Participants › Load lookup table" and tick "Flags" for THEIR competition; here, one daily
+ * pass fills a global cache then copies it into every competition under way — the core's
+ * printouts (bibs, badges, lists) find the logos without anyone doing anything.
  *
- * Deux étapes, volontairement séparées (voir logos-lib.php) :
- *   1. TÉLÉCHARGEMENT (réseau) : un logo par agrément dans AUT_ClubLogos ;
- *   2. PROPAGATION (local) : cache → table Flags + fichiers TV/Photos/{ToCode}-Fl-*.jpg
- *      pour chaque compétition non terminée.
- * Une panne réseau n'empêche donc jamais la propagation de ce qui est déjà en cache.
+ * Two steps, separate on purpose (see logos-lib.php):
+ *   1. DOWNLOAD (network): one logo per approval number in AUT_ClubLogos;
+ *   2. PROPAGATION (local): cache → Flags table + files TV/Photos/{ToCode}-Fl-*.jpg for each
+ *      competition not over yet.
+ * A network outage therefore never prevents the propagation of what is already cached.
  *
- * crontab (tous les jours à 04h15, après la synchro des licences de 03h15) :
+ * crontab (every day at 04:15, after the licence sync of 03:15):
  *   15 4 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/sync-logos.php >> /var/log/ianseo-logosync.log 2>&1
  *
- * Options :
- *   --propagate-only   n'effectue que l'étape 2 (aucun accès réseau)
- *   --full             retélécharge tout, même les logos déjà rafraîchis aujourd'hui
- *   --limit=N          s'arrête après N téléchargements (mise au point)
+ * Options:
+ *   --propagate-only   only runs step 2 (no network access)
+ *   --full             downloads everything again, even the logos already refreshed today
+ *   --limit=N          stops after N downloads (tuning)
  *
- * config.local.json (facultatif) :
+ * config.local.json (optional):
  *   { "logos": { "enabled": true, "delay_ms": 120, "refresh_days": 0, "timeout": 15 } }
- *   « url » et « ioc » sont déduits de ianseo (LookUpPaths) si absents.
+ *   "url" and "ioc" are taken from ianseo (LookUpPaths) when missing.
  *
- * CHANGEMENT DE LOGO : l'endpoint FFTA ne renvoie ni Last-Modified ni ETag (vérifié),
- * donc aucune requête conditionnelle n'est possible — il faut télécharger pour comparer.
- * D'où refresh_days = 0 par défaut (tout retélécharger). Le logo n'est réécrit que s'il
- * a VRAIMENT changé : comparaison d'empreinte md5 en cache (ClgHash) puis, à la
- * propagation, entre le fichier posé et le cache. Un logo modifié se répercute donc
- * automatiquement sur toutes les compétitions non terminées qui l'utilisent.
+ * LOGO CHANGE: the FFTA endpoint returns neither Last-Modified nor ETag (checked), so no
+ * conditional request is possible — the logo has to be downloaded to compare. Hence
+ * refresh_days = 0 by default (download everything again). A logo is only written again when
+ * it REALLY changed: md5 fingerprint compared in the cache (ClgHash) then, at propagation,
+ * between the file in place and the cache. A changed logo therefore reaches by itself every
+ * competition not over yet that uses it.
  */
 
 if (php_sapi_name() !== 'cli') {
     http_response_code(403);
-    die('Script cron : exécution en ligne de commande uniquement.');
+    die('Cron script: command line only.');
 }
 
-$SKIP_AUTH = 1;   // pas de bootstrap web en CLI
+$SKIP_AUTH = 1;   // no web bootstrap in CLI
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
@@ -48,10 +47,10 @@ require_once(dirname(__DIR__) . '/logos-lib.php');
 ini_set('memory_limit', '512M');
 @set_time_limit(0);
 
-// Heure LOCALE (ianseo force PHP en UTC) — voir aut_log_time().
+// LOCAL time (ianseo forces PHP to UTC) — see aut_log_time().
 function lg_log($msg) { echo '[' . aut_log_time() . '] ' . $msg . "\n"; }
 function lg_fail($msg) {
-    lg_log('ERREUR : ' . $msg);
+    lg_log('ERROR: ' . $msg);
     aut_log('LOGOSYNC_FAIL', 'cron', 'cli');
     exit(1);
 }
@@ -62,110 +61,109 @@ $propagateOnly  = strpos($argvAll, '--propagate-only') !== false;
 $full           = strpos($argvAll, '--full') !== false;
 $limit          = preg_match('/--limit=(\d+)/', $argvAll, $m) ? intval($m[1]) : 0;
 
-/* ---- Verrou anti-double-exécution (fichier distinct de la synchro licences) ---- */
+/* ---- Lock against a double run (file distinct from the licence sync) ---- */
 $lock = fopen(__DIR__ . '/.logos.lock', 'c');
 if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
-    lg_fail('une synchronisation des logos est déjà en cours.');
+    lg_fail('a logo synchronisation is already running.');
 }
 
 if (!aut_logos_enabled()) {
-    lg_log('Synchronisation des logos désactivée (config.local.json → logos.enabled = false).');
+    lg_log('Logo synchronisation turned off (config.local.json → logos.enabled = false).');
     exit(0);
 }
 
 aut_logos_schema();
 $cfg     = aut_logos_config();
 $delayMs = max(0, intval($cfg['delay_ms'] ?? 120));
-// refresh_days = 0 (DÉFAUT) : tout retélécharger à chaque passage.
+// refresh_days = 0 (DEFAULT): download everything again at each pass.
 //
-// C'est le seul réglage qui détecte un CHANGEMENT de logo : l'endpoint FFTA ne renvoie
-// ni Last-Modified ni ETag (vérifié), donc aucune requête conditionnelle n'est possible
-// — il faut télécharger pour comparer. Le coût est modeste (~1600 logos, ~50 Mo, ~7 min
-// une fois par nuit) et seuls les logos réellement MODIFIÉS sont réécrits ensuite.
+// It is the only setting that detects a CHANGE of logo: the FFTA endpoint returns neither
+// Last-Modified nor ETag (checked), so no conditional request is possible — the logo has to
+// be downloaded to compare. The cost is modest (~1600 logos, ~50 MB, ~7 min once a night)
+// and only the logos really CHANGED are written again afterwards.
 //
-// N > 0 : ne reprendre que ce qui date de plus de N jours (économie de bande passante,
-// au prix d'un délai de détection). ⚠️ Ne PAS mettre 1 avec un cron quotidien : le
-// club téléchargé quelques minutes après le début de la passe précédente serait jugé
-// « frais » à la passe suivante et sauté une nuit sur deux. Utiliser 0, ou 2 et plus.
+// N > 0: only take again what is older than N days (saves bandwidth, at the price of a
+// detection delay). ⚠️ Do NOT set 1 with a daily cron: the club downloaded a few minutes after
+// the start of the previous pass would be judged "fresh" at the next pass and skipped one
+// night out of two. Use 0, or 2 and more.
 $days    = max(0, intval($cfg['refresh_days'] ?? 0));
 $timeout = max(3, intval($cfg['timeout'] ?? 15));
 
 /* ================================================================= */
-/* Étape 1 — téléchargement des logos manquants ou périmés            */
+/* Step 1 — download of the missing or outdated logos                 */
 /* ================================================================= */
 $dl = array('ok' => 0, 'same' => 0, 'none' => 0, 'fail' => 0);
 
 if (!$propagateOnly) {
-    lg_log('Source : ' . aut_logos_url());
+    lg_log('Source: ' . aut_logos_url());
     $codes = aut_logos_club_codes();
-    lg_log(count($codes) . ' agrément(s) de club connus (fichier fédéral + compétitions).');
+    lg_log(count($codes) . ' club approval number(s) known (federation file + competitions).');
 
-    // Par défaut (refresh_days = 0) : TOUT est retéléchargé, seule façon de repérer un
-    // logo modifié. Le tri par ancienneté n'existe que si l'exploitant l'active.
+    // By default (refresh_days = 0): EVERYTHING is downloaded again, the only way to spot a
+    // changed logo. Sorting by age only exists when the operator turns it on.
     $todo = $codes;
     if (!$full && $days > 0) {
-        $frais = array();
+        $fresh = array();
         $rs = safe_r_sql("SELECT ClgCode FROM AUT_ClubLogos
             WHERE ClgFetched IS NOT NULL AND ClgFetched > DATE_SUB(NOW(), INTERVAL $days DAY)", false, true);
-        while ($rs && ($r = safe_fetch($rs))) $frais[trim($r->ClgCode)] = true;
-        $todo = array_values(array_filter($codes, function ($c) use ($frais) { return empty($frais[$c]); }));
-        lg_log(count($todo) . ' à rafraîchir (les autres datent de moins de ' . $days . ' j).');
+        while ($rs && ($r = safe_fetch($rs))) $fresh[trim($r->ClgCode)] = true;
+        $todo = array_values(array_filter($codes, function ($c) use ($fresh) { return empty($fresh[$c]); }));
+        lg_log(count($todo) . ' to refresh (the others are less than ' . $days . ' d old).');
     } else {
-        lg_log('Tous seront retéléchargés — seul moyen de repérer un logo MODIFIÉ, '
-            . 'la FFTA ne renvoyant ni Last-Modified ni ETag.');
+        lg_log('All will be downloaded again — the only way to spot a CHANGED logo, '
+            . 'the FFTA returning neither Last-Modified nor ETag.');
     }
 
     $n = 0;
     foreach ($todo as $code) {
-        if ($limit && $n >= $limit) { lg_log('Limite --limit=' . $limit . ' atteinte.'); break; }
+        if ($limit && $n >= $limit) { lg_log('Limit --limit=' . $limit . ' reached.'); break; }
         $r = aut_logos_fetch_one($code, $timeout);
         $dl[$r] = ($dl[$r] ?? 0) + 1;
         $n++;
         if ($n % 100 === 0) {
-            lg_log("  … $n/" . count($todo) . " (nouveaux/màj {$dl['ok']}, inchangés {$dl['same']}, sans logo {$dl['none']}, échecs {$dl['fail']})");
+            lg_log("  … $n/" . count($todo) . " (new/updated {$dl['ok']}, unchanged {$dl['same']}, no logo {$dl['none']}, failures {$dl['fail']})");
         }
-        if ($delayMs > 0) usleep($delayMs * 1000);   // rester poli avec le serveur fédéral
+        if ($delayMs > 0) usleep($delayMs * 1000);   // stay polite with the federation server
     }
-    lg_log("Téléchargement terminé : {$dl['ok']} nouveaux/mis à jour, {$dl['same']} inchangés, "
-        . "{$dl['none']} sans logo, {$dl['fail']} échecs.");
+    lg_log("Download done: {$dl['ok']} new/updated, {$dl['same']} unchanged, "
+        . "{$dl['none']} without logo, {$dl['fail']} failures.");
 
-    // Un échec TOTAL est anormal (réseau coupé, endpoint déplacé) : on le signale,
-    // mais on enchaîne quand même la propagation de ce qui est déjà en cache.
+    // A TOTAL failure is abnormal (network cut, endpoint moved): it is reported, but the
+    // propagation of what is already cached still follows.
     if ($n > 0 && $dl['fail'] === $n) {
-        lg_log('ATTENTION : aucun téléchargement n\'a abouti — vérifiez l\'accès à ' . aut_logos_url());
+        lg_log('WARNING: no download succeeded — check the access to ' . aut_logos_url());
     }
 }
 
 /* ================================================================= */
-/* Étape 2 — propagation locale vers les compétitions non terminées   */
+/* Step 2 — local propagation to the competitions not over yet        */
 /* ================================================================= */
 $tours = aut_logos_active_tournaments();
-lg_log(count($tours) . ' compétition(s) non terminée(s) à alimenter.');
-$tot = array('ecrits' => 0, 'deja' => 0, 'absents' => 0, 'echecs' => 0);
+lg_log(count($tours) . ' competition(s) not over yet to feed.');
+$tot = array('written' => 0, 'current' => 0, 'missing' => 0, 'failed' => 0);
 $dirPhotos = $CFG->DOCUMENT_PATH . 'TV/Photos';
 if (!is_writable($dirPhotos)) {
-    lg_log('ATTENTION : ' . $dirPhotos . ' n\'est PAS accessible en écriture par ce compte — '
-        . 'les logos ne pourront pas être posés (ianseo en a lui aussi besoin : drapeaux, '
-        . 'photos, badges, fichier d\'état des mises à jour).');
+    lg_log('WARNING: ' . $dirPhotos . ' is NOT writable by this account — the logos cannot be '
+        . 'set (ianseo needs it too: flags, photos, badges, update status file).');
 }
 foreach ($tours as $tid) {
     $r = aut_logos_sync_tournament($tid);
     foreach ($r as $k => $v) $tot[$k] = ($tot[$k] ?? 0) + $v;
-    if ($r['ecrits']) lg_log("  compétition $tid : {$r['ecrits']} logo(s) posé(s).");
-    if ($r['echecs']) lg_log("  compétition $tid : {$r['echecs']} ÉCHEC(S) d'écriture.");
+    if ($r['written']) lg_log("  competition $tid: {$r['written']} logo(s) set.");
+    if ($r['failed']) lg_log("  competition $tid: {$r['failed']} write FAILURE(S).");
 }
-lg_log("Propagation terminée : {$tot['ecrits']} fichier(s) écrit(s), {$tot['deja']} déjà à jour, "
-    . "{$tot['absents']} club(s) sans logo en cache"
-    . ($tot['echecs'] ? ", {$tot['echecs']} ÉCHEC(S) d'écriture (permissions de TV/Photos ?)" : '') . '.');
-if ($tot['echecs']) {
+lg_log("Propagation done: {$tot['written']} file(s) written, {$tot['current']} already up to date, "
+    . "{$tot['missing']} club(s) without a cached logo"
+    . ($tot['failed'] ? ", {$tot['failed']} write FAILURE(S) (permissions of TV/Photos?)" : '') . '.');
+if ($tot['failed']) {
     aut_log('LOGOSYNC_FAIL', 'cron', 'cli');
-    lg_log('Terminé AVEC DES ÉCHECS.');
+    lg_log('Done WITH FAILURES.');
     exit(1);
 }
 
 $st = aut_logos_stats();
-lg_log('Cache : ' . $st['avec'] . ' logos / ' . $st['total'] . ' clubs connus ('
-    . $st['sans'] . ' sans logo côté FFTA, ' . round($st['octets'] / 1048576, 1) . ' Mo).');
+lg_log('Cache: ' . $st['with'] . ' logos / ' . $st['total'] . ' known clubs ('
+    . $st['without'] . ' without a logo on the FFTA side, ' . round($st['bytes'] / 1048576, 1) . ' MB).');
 
 aut_log('LOGOSYNC_OK', 'cron', 'cli');
-lg_log('Terminé.');
+lg_log('Done.');

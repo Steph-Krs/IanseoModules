@@ -1,16 +1,15 @@
 <?php
 /**
- * public/licence.php — attestation de licence FFTA (PDF de l'espace licencié).
+ * public/licence.php — the federation's licence certificate (PDF of the licensee space).
  *
- * Deux voies, dans cet ordre (choix produit) :
- *  1) RELAIS via le cookie de session monespace CONSERVÉ au login (bk_ffta_fetch_pdf) —
- *     l'archer n'a rien à ressaisir. Lecture seule du cookie, jamais réécrit.
- *  2) REPLI (cookie absent ou session monespace expirée) : redirection vers l'URL
- *     directe de l'attestation → l'archer se connecte à SON espace licencié et l'obtient.
+ * Two ways, in this order (product choice):
+ *  1) RELAY through the licensee-space session cookie KEPT at sign-in (bk_ffta_fetch_pdf) —
+ *     the archer has nothing to type again. The cookie is only read, never rewritten.
+ *  2) FALLBACK (no cookie, or the licensee-space session expired): redirection to the direct
+ *     URL of the certificate → the archer signs in to THEIR licensee space and gets it there.
  *
- * L'id Exalto (dans l'URL …/pdf/p/{id}/{saison}) est capté à la connexion (BaExaltoId),
- * jamais saisi. Sans lui (compte connecté avant cette fonctionnalité), on invite à se
- * reconnecter.
+ * The Exalto id (in the URL …/pdf/p/{id}/{season}) is captured at sign-in (BaExaltoId), never
+ * typed. Without it (account signed in before this feature), the archer is asked to sign in again.
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/ffta.php';
@@ -19,8 +18,8 @@ $archer = bk_require_archer();
 $exalto = preg_replace('/\D/', '', (string) $archer->BaExaltoId);
 $season = bk_ffta_season();
 
-// Id Exalto inconnu (compte connecté avant la fonctionnalité, ou charte déjà acceptée au
-// login) : on tente de le résoudre À LA DEMANDE via le cookie conservé, et on le mémorise.
+// Unknown Exalto id (account signed in before the feature, or charter already accepted at
+// sign-in): resolved ON DEMAND through the kept cookie, and remembered.
 if ($exalto === '') {
     $exalto = preg_replace('/\D/', '', bk_ffta_resolve_exalto());
     if ($exalto !== '') {
@@ -29,35 +28,30 @@ if ($exalto === '') {
     }
 }
 
-// Toujours introuvable (session monespace expirée) : on invite à se reconnecter.
+// Still unknown (licensee-space session expired): ask to sign in again.
 if ($exalto === '') {
-    bk_head('Attestation de licence');
-    ?>
-    <div class="bk-block">
-      <h1>Attestation de licence</h1>
-      <p class="bk-hint">Votre attestation n'est pas accessible pour l'instant. <b>Déconnectez-vous puis
-         reconnectez-vous</b> : l'information nécessaire sera relue depuis votre espace licencié.</p>
-      <p><a class="bk-btn" href="<?= bk_e(bk_public_url()) ?>">← Mon espace</a></p>
-    </div>
-    <?php
+    bk_head(bk_t('LicCertTitle'));
+    echo '<div class="bk-block"><h1>' . bk_e(bk_t('LicCertTitle')) . '</h1>'
+        . '<p class="bk-hint">' . bk_t('LicCertRelog') . '</p>'
+        . '<p><a class="bk-btn" href="' . bk_e(bk_public_url()) . '">' . bk_e(bk_t('BackMySpace')) . '</a></p></div>';
     bk_foot();
     exit;
 }
 
 $url = bk_ffta_attestation_url($exalto, $season);
 
-// 1) Relais via le cookie conservé.
+// 1) Relay through the kept cookie.
 $res = bk_ffta_fetch_pdf($url);
 if (!empty($res['pdf'])) {
     header('Content-Type: application/pdf');
     header('Content-Disposition: inline; filename="attestation-licence-'
         . preg_replace('/[^A-Za-z0-9]/', '', (string) $archer->BaLicence) . '-' . $season . '.pdf"');
-    header('Content-Length: ' . strlen($res['pdf']));
+    header('Content-Length: ' . strlen($res['pdf']));   // bytes on purpose: an HTTP length
     header('X-Content-Type-Options: nosniff');
     echo $res['pdf'];
     exit;
 }
 
-// 2) Repli : cookie absent / expiré → l'archer va sur son espace licencié (il s'y connecte).
+// 2) Fallback: no cookie, or expired → the archer goes to their licensee space (and signs in there).
 header('Location: ' . $url);
 exit;

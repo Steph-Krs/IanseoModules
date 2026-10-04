@@ -1,23 +1,23 @@
 <?php
 /**
- * menu.php — entrées de menu du module BOOKING.
+ * menu.php — menu entries of the online registration.
  *
- * ATTENTION : ce fichier est inclus par get_which_menu() sur TOUTES les pages
- * de ianseo. Une erreur fatale ici casse le site entier — d'où les gardes
- * function_exists() sur tout appel de fonction optionnelle.
+ * WARNING: this file is included by get_which_menu() on EVERY ianseo page. A fatal error here
+ * breaks the whole site — hence the guards on every optional call, and no write of any kind.
  *
- * Tout est regroupé sous « Modules › Inscriptions en ligne » : les écrans du
- * module restent ensemble plutôt que d'être dispersés dans les menus du cœur.
+ * Everything sits under "Modules › Online registration": the module's screens stay together
+ * rather than being scattered in the core's menus.
  *
- * L'espace licencié (public/) n'apparaît pas ici : il s'adresse aux archers,
- * pas aux organisateurs. Son adresse est rappelée sur la page d'ouverture des
- * inscriptions.
+ * The licensee space (public/) does not appear here: it is for the archers, not the organisers.
+ * Its address is given on the registration settings page.
  */
+
+if (!function_exists('bk_t')) require_once __DIR__ . '/lib/lang.php';   // functions only, no query
 
 $bkEntries = array();
 
-// Écrans liés à la compétition ouverte : accessibles à l'organisateur qui gère
-// les participants, pas seulement à l'administrateur du serveur.
+// Screens of the open competition: for the organiser who manages the participants, not only
+// the server administrator.
 if (!empty($on) && isset($acl)) {
     // What this competition uses. Shop and payments: open on this server (levels 2-3), or
     // closed with the payments ticked. Survey: open and switched on. Read-only and guarded
@@ -31,38 +31,31 @@ if (!empty($on) && isset($acl)) {
         $bkShowPay = $bkLevel >= 2 || ($bkC && intval($bkC->BcPayments) === 1);
         $bkShowSurvey = $bkLevel >= 2 && intval($bkC->BcSurvey) === 1;
     }
+    $bkUrl = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/';
     if (subFeatureAcl($acl, AclParticipants, 'pEntries') >= AclReadWrite) {
-        $bkEntries[] = "Paramètres d'activation|"
-            . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php';
+        $bkEntries[] = bk_t('MnuSettings') . '|' . $bkUrl . 'competition.php';
         if ($bkShowPay) {
-            $bkEntries[] = 'Boutique|'
-                . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/shop.php';
-            $bkEntries[] = 'Paiements|'
-                . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/dues.php';
+            $bkEntries[] = bk_t('Shop') . '|' . $bkUrl . 'shop.php';
+            $bkEntries[] = bk_t('Payments') . '|' . $bkUrl . 'dues.php';
         }
-        $bkEntries[] = 'Mandat de compétition|'
-            . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/mandate.php';
+        $bkEntries[] = bk_t('MnuMandate') . '|' . $bkUrl . 'mandate.php';
     }
     if ($bkShowSurvey && subFeatureAcl($acl, AclParticipants, 'pEntries') >= AclReadOnly) {
-        $bkEntries[] = 'Satisfaction des archers|'
-            . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/survey.php';
+        $bkEntries[] = bk_t('MnuSurvey') . '|' . $bkUrl . 'survey.php';
     }
     if (subFeatureAcl($acl, AclParticipants, 'pTarget') >= AclReadWrite) {
-        $bkEntries[] = "Contraintes d'affectation du terrain|"
-            . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/field.php';
-        $bkEntries[] = 'Attribution des cibles|'
-            . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/targets.php';
+        $bkEntries[] = bk_t('MnuField') . '|' . $bkUrl . 'field.php';
+        $bkEntries[] = bk_t('MnuTargets') . '|' . $bkUrl . 'targets.php';
     }
 }
 
 if ($bkEntries) {
-    // Titre de section CLIQUABLE (getSubMenuItem gère « Titre|URL ») → accès direct
-    // à la page de configuration des inscriptions.
-    $ret['MODS']['BOOKING'][] = 'Inscriptions en ligne|'
-        . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php';
+    // CLICKABLE section title (getSubMenuItem handles "Title|URL") → straight to the registration
+    // settings page.
+    $ret['MODS']['BOOKING'][] = bk_t('Brand') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php';
     foreach ($bkEntries as $bkE) {
         $ret['MODS']['BOOKING'][] = $bkE;
     }
 }
 
-unset($bkEntries, $bkE, $bkShowPay, $bkShowSurvey, $bkRs, $bkC, $bkLevel);
+unset($bkEntries, $bkE, $bkShowPay, $bkShowSurvey, $bkRs, $bkC, $bkLevel, $bkUrl);

@@ -22,6 +22,7 @@
 
 // Loaded on its own by the nightly purge (aut_log_purge): bring the clock along.
 require_once __DIR__ . '/clock.php';
+require_once __DIR__ . '/lang.php';
 
 if (!defined('BK_SURVEY_DAYS')) define('BK_SURVEY_DAYS', 30);
 if (!defined('BK_SURVEY_TEXT_MAX')) define('BK_SURVEY_TEXT_MAX', 2000);
@@ -29,39 +30,35 @@ if (!defined('BK_SURVEY_TEXT_MAX')) define('BK_SURVEY_TEXT_MAX', 2000);
 /** The questionnaire: sections, 1-5 ratings and free texts, mapped to BK_Surveys columns. */
 function bk_survey_questions()
 {
-    $intro = 'Certains thèmes vous sont proposés, merci d\'évaluer votre ressenti sur ces sujets. '
-        . 'Une zone de texte vous est mise à disposition sous ces thèmes pour détailler vos évaluations.';
+    $intro = bk_t('SvIntroThemes');
     return array(
         'org' => array(
-            'title' => 'L\'organisation générale',
+            'title' => bk_t('SvOrgTitle'),
             'intro' => $intro,
             'items' => array(
-                array('col' => 'BqWelcome',    'label' => 'Qualité de l\'accueil'),
-                array('col' => 'BqAccess',     'label' => 'Accessibilité du site'),
-                array('col' => 'BqBar',        'label' => 'Organisation de la buvette'),
-                array('col' => 'BqBarValue',   'label' => 'Rapport qualité/prix de la buvette'),
-                array('col' => 'BqVenue',      'label' => 'Qualité des installations sportives',
-                      'hint' => 'Salle de compétition, ciblerie, terrain d\'échauffement'),
-                array('col' => 'BqFacilities', 'label' => 'Qualité des installations annexes',
-                      'hint' => 'Espace restauration, village exposants, sanitaires'),
+                array('col' => 'BqWelcome',    'label' => bk_t('SvWelcome')),
+                array('col' => 'BqAccess',     'label' => bk_t('SvAccess')),
+                array('col' => 'BqBar',        'label' => bk_t('SvBar')),
+                array('col' => 'BqBarValue',   'label' => bk_t('SvBarValue')),
+                array('col' => 'BqVenue',      'label' => bk_t('SvVenue'), 'hint' => bk_t('SvVenueHint')),
+                array('col' => 'BqFacilities', 'label' => bk_t('SvFacilities'), 'hint' => bk_t('SvFacilitiesHint')),
             ),
             'texts' => array(
-                array('col' => 'BqOrgComment', 'label' => 'Vous pouvez détailler ici vos évaluations.'),
-                array('col' => 'BqOrgIdeas',   'label' => 'Quelles améliorations souhaiteriez-vous voir pour les éditions futures ?'),
+                array('col' => 'BqOrgComment', 'label' => bk_t('SvDetail')),
+                array('col' => 'BqOrgIdeas',   'label' => bk_t('SvIdeas')),
             ),
         ),
         'comp' => array(
-            'title' => 'La compétition',
+            'title' => bk_t('SvCompTitle'),
             'intro' => $intro,
             'items' => array(
-                array('col' => 'BqDuration',  'label' => 'Durée de la compétition', 'hint' => 'Respect des horaires',
-                      'low' => 'Trop long'),
-                array('col' => 'BqSchedule',  'label' => 'Organisation du programme de la compétition', 'low' => 'Trop long'),
-                array('col' => 'BqResults',   'label' => 'La gestion des résultats', 'hint' => 'Durée de traitement, diffusion…'),
-                array('col' => 'BqAnimation', 'label' => 'L\'animation générale de la compétition', 'hint' => 'Speaker, musique…'),
+                array('col' => 'BqDuration',  'label' => bk_t('SvDuration'), 'hint' => bk_t('SvDurationHint'), 'low' => bk_t('SvTooLong')),
+                array('col' => 'BqSchedule',  'label' => bk_t('SvSchedule'), 'low' => bk_t('SvTooLong')),
+                array('col' => 'BqResults',   'label' => bk_t('SvResults'), 'hint' => bk_t('SvResultsHint')),
+                array('col' => 'BqAnimation', 'label' => bk_t('SvAnimation'), 'hint' => bk_t('SvAnimationHint')),
             ),
             'texts' => array(
-                array('col' => 'BqCompComment', 'label' => 'Vous pouvez détailler ici vos évaluations.'),
+                array('col' => 'BqCompComment', 'label' => bk_t('SvDetail')),
             ),
         ),
     );

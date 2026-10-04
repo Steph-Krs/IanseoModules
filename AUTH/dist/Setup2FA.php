@@ -1,16 +1,16 @@
 <?php
 /**
- * Déployé depuis Modules/Custom/AUTH/dist/ — activation de la double
- * authentification TOTP (obligatoire pour les comptes ADMIN).
+ * Deployed from Modules/Custom/AUTH/dist/ — turning on the TOTP two-factor authentication
+ * (mandatory for ADMIN accounts).
  *
- * Confirmation d'identité avant activation :
- *  - compte local (mot de passe stocké) : vérification du mot de passe local ;
- *  - compte SSO (pas de mot de passe local) : ré-authentification auprès de
- *    l'Espace Dirigeant FFTA (le mot de passe n'est pas conservé).
+ * Identity confirmed before turning it on:
+ *  - local account (stored password): the local password is checked;
+ *  - SSO account (no local password): authentication again with the FFTA officers' space
+ *    (the password is not kept).
  */
 if (basename(__DIR__) !== 'Authentication') {
     http_response_code(403);
-    die('Ce fichier doit être exécuté depuis Modules/Authentication/.');
+    die('This file must run from Modules/Authentication/.');
 }
 define('HTDOCS', dirname(__DIR__, 2));
 require_once(HTDOCS . '/config.php');
@@ -26,29 +26,29 @@ if (!$u) {
     die();
 }
 
-$isSso = ($u->AuPassword === '');   // compte provisionné via l'espace dirigeant
+$isSso = ($u->AuPassword === '');   // account provisioned through the officers' space
 $isAdmin = ($u->AuRole == AUT_ROLE_ADMIN);
 $err = '';
 $done = false;
 $off  = false;
-$mandatory = ($isAdmin && !$u->AuTotpEnabled);   // ADMIN sans 2FA : obligatoire
+$mandatory = ($isAdmin && !$u->AuTotpEnabled);   // ADMIN without 2FA: mandatory
 
-/* La 2FA est activable par TOUS les comptes (option de sécurité) ; elle reste
-   OBLIGATOIRE et non désactivable pour les administrateurs. */
+/* 2FA can be turned on by EVERY account (security option); it stays MANDATORY, and cannot be
+   turned off, for the administrators. */
 $allowed = true;
 
-/* Désactivation (comptes NON-admin uniquement) : confirmée par un code valide. */
+/* Turning off (NON-admin accounts only): confirmed by a valid code. */
 if (!$isAdmin && $u->AuTotpEnabled && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['disable'])) {
     $usedSlot = 0;
     if (aut_too_many_failures($u->AuUsername)) {
         aut_log('LOGIN_BLOCK', $u->AuUsername);
-        $err = 'Trop de tentatives. Réessayez dans 15 minutes.';
+        $err = aut_t('LoginTooMany');
     } elseif (!aut_totp_verify($u->AuTotpSecret, $_POST['code'] ?? '', intval($u->AuTotpLastSlot), $usedSlot)) {
         aut_log('TOTP_FAIL', $u->AuUsername);
-        $err = 'Code incorrect — la 2FA reste active.';
+        $err = aut_t('TfBadCodeStays');
     } else {
         safe_w_sql("UPDATE AUT_Users SET AuTotpSecret='', AuTotpEnabled=0, AuTotpLastSlot=0 WHERE AuId={$u->AuId}");
-        aut_sessions_revoke($u->AuId, aut_current_token_hash());   // révoque les autres sessions
+        aut_sessions_revoke($u->AuId, aut_current_token_hash());   // revokes the other sessions
         aut_log('TOTP_DISABLE', $u->AuUsername);
         $u->AuTotpEnabled = 0;
         $off = true;
@@ -56,35 +56,35 @@ if (!$isAdmin && $u->AuTotpEnabled && $_SERVER['REQUEST_METHOD'] == 'POST' && is
 }
 
 if ($allowed && !$off && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['confirm'])) {
-    // secret provisoire en session tant que non confirmé par un code valide
+    // provisional secret in the session until confirmed by a valid code
     $secret = $_SESSION['AUT_2FA_NewSecret'] ?? '';
     $usedSlot = 0;
     if ($secret === '') {
-        $err = 'Session expirée, régénérez une clé.';
+        $err = aut_t('TfExpired');
     } elseif (aut_too_many_failures($u->AuUsername)) {
         aut_log('LOGIN_BLOCK', $u->AuUsername);
-        $err = 'Trop de tentatives. Réessayez dans 15 minutes.';
+        $err = aut_t('LoginTooMany');
     } elseif (!aut_totp_verify($secret, $_POST['code'] ?? '', 0, $usedSlot)) {
         aut_log('TOTP_FAIL', $u->AuUsername);
-        $err = 'Code incorrect — vérifiez que l\'application est bien synchronisée et réessayez.';
+        $err = aut_t('TfBadCodeSync');
     } else {
-        // confirmation d'identité
+        // identity confirmation
         $identityOk = false;
         if ($isSso) {
             $structs = array();
             $e = '';
             $identityOk = aut_ffta_verify($u->AuUsername, $_POST['password'] ?? '', trim($_POST['fftaotp'] ?? ''), $structs, $e);
-            if (!$identityOk) $err = $e ?: 'Mot de passe Espace Dirigeant incorrect.';
+            if (!$identityOk) $err = $e ?: aut_t('TfBadSsoPwd');
         } else {
             $identityOk = password_verify($_POST['password'] ?? '', $u->AuPassword);
-            if (!$identityOk) $err = 'Mot de passe incorrect.';
+            if (!$identityOk) $err = aut_t('TfBadPwd');
         }
         if (!$identityOk) {
             aut_log('TOTP_FAIL', $u->AuUsername);
         } else {
             safe_w_sql("UPDATE AUT_Users SET AuTotpSecret=" . StrSafe_DB($secret)
                 . ", AuTotpEnabled=1, AuTotpLastSlot=$usedSlot WHERE AuId={$u->AuId}");
-            aut_sessions_revoke($u->AuId, aut_current_token_hash());   // révoque les autres sessions
+            aut_sessions_revoke($u->AuId, aut_current_token_hash());   // revokes the other sessions
             aut_log('TOTP_ENABLE', $u->AuUsername);
             unset($_SESSION['AUT_2FA_NewSecret']);
             $done = true;
@@ -92,7 +92,7 @@ if ($allowed && !$off && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['c
     }
 }
 
-// (re)génère un secret provisoire pour l'affichage
+// (re)generates a provisional secret for the display
 if ($allowed && !$done && !$off && (empty($_SESSION['AUT_2FA_NewSecret']) || isset($_POST['regen']))) {
     $_SESSION['AUT_2FA_NewSecret'] = aut_totp_new_secret();
 }
@@ -100,14 +100,17 @@ $secret = $_SESSION['AUT_2FA_NewSecret'] ?? '';
 $secretDisplay = $secret !== '' ? trim(chunk_split($secret, 4, ' ')) : '';
 $uri = $secret !== '' ? aut_totp_uri($u->AuUsername, $secret) : '';
 $qr  = $uri !== '' ? aut_qr_svg($uri) : '';
-?>
-<!DOCTYPE html>
-<html lang="fr">
+
+$e = function ($s) { return htmlspecialchars((string) $s); };
+echo '<!DOCTYPE html>
+<html lang="' . $e(aut_lang_code()) . '">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>ianseo — Double authentification</title>
+<title>' . $e(aut_t('TfPageTitle')) . '</title>
+';
+?>
 <style>
 body { margin:0; font-family:Verdana,Arial,sans-serif; background:#eef2f6;
        display:flex; align-items:center; justify-content:center; min-height:100vh; }
@@ -136,65 +139,51 @@ details { margin-top:8px; font-size:11px; }
 .links { margin-top:14px; font-size:11px; text-align:center; }
 .links a { color:#1a4f8b; }
 </style>
-</head>
-<body>
-<div class="card">
-    <h1>Double authentification (2FA)</h1>
-    <div class="sub">Compte : <b><?php echo htmlspecialchars($u->AuUsername); ?></b></div>
+<?php
+$home = '<a href="' . $CFG->ROOT_DIR . '">' . $e(aut_t('TfGoIanseo')) . '</a>';
+echo "</head>\n<body>\n" . '<div class="card">' . "\n"
+    . '<h1>' . $e(aut_t('TfTitle')) . "</h1>\n"
+    . '<div class="sub">' . aut_t('TfAccount', '<b>' . $e($u->AuUsername) . '</b>') . "</div>\n";
+if (!$isAdmin) echo '<div class="sub">' . aut_t($isSso ? 'TfOptionalSso' : 'TfOptionalPwd') . "</div>\n";
+if ($mandatory) echo '<div class="warn">' . aut_t('TfMandatory') . "</div>\n";
+if ($err)  echo '<div class="err">' . $e($err) . "</div>\n";
+if ($done) echo '<div class="ok">' . $e(aut_t('TfDone')) . ' ' . $home . "</div>\n";
+if ($off)  echo '<div class="ok">' . $e(aut_t('TfOff')) . ' ' . $home . "</div>\n";
 
-    <?php if (!$isAdmin) echo '<div class="sub">Fonction <b>facultative</b> : une fois activée, un code de votre application sera demandé à chaque connexion, en plus de votre '
-        . ($isSso ? 'connexion Espace Dirigeant' : 'mot de passe') . '.</div>'; ?>
-    <?php if ($mandatory) echo '<div class="warn">La 2FA est <b>obligatoire</b> pour les comptes administrateur. Configurez-la pour continuer.</div>'; ?>
-    <?php if ($err)  echo '<div class="err">' . $err . '</div>'; ?>
-    <?php if ($done) echo '<div class="ok">2FA activée. Un code sera demandé à chaque connexion. <a href="' . $CFG->ROOT_DIR . '">Accéder à ianseo</a></div>'; ?>
-    <?php if ($off)  echo '<div class="ok">2FA désactivée. <a href="' . $CFG->ROOT_DIR . '">Accéder à ianseo</a></div>'; ?>
-
-    <?php if (!$done && !$off) {
-        $reconf = !empty($u->AuTotpEnabled); ?>
-        <?php if ($reconf) { ?>
-        <div class="ok">🔒 Double authentification <b>active</b> sur ce compte.</div>
-        <?php if (!$isAdmin) { ?>
-        <form method="post" action="">
-            <label for="dcode">Pour la désactiver, saisissez un code de votre application</label>
-            <input type="text" id="dcode" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code">
-            <button type="submit" name="disable" value="1" style="background:#a33;">Désactiver la 2FA</button>
-        </form>
-        <?php } ?>
-        <details style="margin-top:10px"><summary>Changer d'appareil (reconfigurer)</summary>
-        <?php } ?>
-
-        <ol>
-            <li>Installez une application d'authentification (Google&nbsp;Authenticator, Microsoft&nbsp;Authenticator, FreeOTP, Aegis…).</li>
-            <li><b>Scannez ce QR code</b> avec l'application :</li>
-        </ol>
-        <?php if ($qr) { ?>
-        <div class="qr"><?php echo $qr; ?></div>
-        <?php } ?>
-        <details<?php echo $qr ? '' : ' open'; ?>>
-            <summary>Impossible de scanner ? Saisie manuelle</summary>
-            <div class="secret"><?php echo $secretDisplay; ?></div>
-            <div class="uri"><?php echo htmlspecialchars($uri); ?></div>
-        </details>
-        <form method="post" action="">
-            <label for="code">Code à 6 chiffres affiché par l'application</label>
-            <input type="text" id="code" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" autofocus>
-            <?php if ($isSso) { ?>
-            <label for="password">Confirmez avec votre mot de passe Espace Dirigeant FFTA</label>
-            <input type="password" id="password" name="password" autocomplete="current-password">
-            <label for="fftaotp">Code MFA Espace Dirigeant <small>(si activé sur votre compte FFTA)</small></label>
-            <input type="text" id="fftaotp" name="fftaotp" inputmode="numeric" maxlength="8" autocomplete="one-time-code">
-            <?php } else { ?>
-            <label for="password">Confirmez avec votre mot de passe</label>
-            <input type="password" id="password" name="password" autocomplete="current-password">
-            <?php } ?>
-            <button type="submit" name="confirm" value="1"><?php echo $reconf ? 'Reconfigurer la 2FA' : 'Activer la 2FA'; ?></button>
-        </form>
-        <form method="post" action="">
-            <button type="submit" name="regen" value="1" style="background:#889;">Générer une nouvelle clé</button>
-        </form>
-        <?php if ($reconf) echo '</details>'; ?>
-    <?php } ?>
-    <div class="links"><a href="<?php echo $CFG->ROOT_DIR; ?>Modules/Authentication/LogOut.php">Se déconnecter</a></div>
-</div>
-</body>
-</html>
+if (!$done && !$off) {
+    $reconf = !empty($u->AuTotpEnabled);
+    if ($reconf) {
+        echo '<div class="ok">🔒 ' . aut_t('TfActive') . "</div>\n";
+        if (!$isAdmin) {
+            echo '<form method="post" action="">'
+                . '<label for="dcode">' . $e(aut_t('TfDisableLabel')) . '</label>'
+                . '<input type="text" id="dcode" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code">'
+                . '<button type="submit" name="disable" value="1" style="background:#a33;">' . $e(aut_t('TfDisableBtn')) . '</button>'
+                . "</form>\n";
+        }
+        echo '<details style="margin-top:10px"><summary>' . $e(aut_t('TfChangeDevice')) . "</summary>\n";
+    }
+    echo '<ol><li>' . aut_t('TfStep1') . '</li><li>' . aut_t('TfStep2') . "</li></ol>\n"
+        . ($qr ? '<div class="qr">' . $qr . "</div>\n" : '')
+        . '<details' . ($qr ? '' : ' open') . '><summary>' . $e(aut_t('TfManual')) . '</summary>'
+        . '<div class="secret">' . $secretDisplay . '</div>'
+        . '<div class="uri">' . $e($uri) . "</div></details>\n"
+        . '<form method="post" action="">'
+        . '<label for="code">' . $e(aut_t('TfCodeLabel')) . '</label>'
+        . '<input type="text" id="code" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" autofocus>';
+    if ($isSso) {
+        echo '<label for="password">' . $e(aut_t('TfConfirmSsoPwd')) . '</label>'
+            . '<input type="password" id="password" name="password" autocomplete="current-password">'
+            . '<label for="fftaotp">' . $e(aut_t('TfSsoMfa')) . ' <small>(' . $e(aut_t('LoginOtpHint')) . ')</small></label>'
+            . '<input type="text" id="fftaotp" name="fftaotp" inputmode="numeric" maxlength="8" autocomplete="one-time-code">';
+    } else {
+        echo '<label for="password">' . $e(aut_t('TfConfirmPwd')) . '</label>'
+            . '<input type="password" id="password" name="password" autocomplete="current-password">';
+    }
+    echo '<button type="submit" name="confirm" value="1">' . $e(aut_t($reconf ? 'TfReconfigure' : 'TfEnable')) . "</button></form>\n"
+        . '<form method="post" action=""><button type="submit" name="regen" value="1" style="background:#889;">'
+        . $e(aut_t('TfNewKey')) . "</button></form>\n";
+    if ($reconf) echo "</details>\n";
+}
+echo '<div class="links"><a href="' . $CFG->ROOT_DIR . 'Modules/Authentication/LogOut.php">' . $e(aut_t('TfSignOut')) . "</a></div>\n"
+    . "</div>\n</body>\n</html>\n";

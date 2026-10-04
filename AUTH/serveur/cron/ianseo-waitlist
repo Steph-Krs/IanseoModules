@@ -1,14 +1,13 @@
-# /etc/cron.d/ianseo-waitlist — listes d'attente des inscriptions en ligne.
+# /etc/cron.d/ianseo-waitlist — waiting lists of the online registration.
 #
-# root:root, chmod 0644. Mêmes pièges que ianseo-nightly : nom de fichier SANS point,
-# SAUT DE LIGNE final obligatoire, champ UTILISATEUR (7 champs).
+# root:root, chmod 0644. Same traps as ianseo-nightly: file name WITHOUT a dot, final LINE
+# FEED mandatory, USER field (7 fields).
 #
-# Inscrit le premier archer d'une liste d'attente quand une place s'est libérée par les
-# écrans de ianseo eux-mêmes (participant supprimé, cibles ajoutées) : les pages
-# d'inscription en ligne le font déjà quand la place se libère chez elles ou quand on
-# les ouvre. Toutes les 10 minutes, quelques millisecondes quand personne n'attend ;
-# n'écrit dans le journal que lorsqu'un archer a été inscrit. Se met de côté tout seul
-# pendant la fenêtre de maintenance nocturne et pendant une restauration.
+# Registers the first archer of a waiting list when a place was freed by the screens of ianseo
+# itself (participant deleted, targets added): the online registration pages already do it
+# when the place is freed through them or when they are opened. Every 10 minutes, a few
+# milliseconds when nobody waits; only writes to the log when an archer was registered. Steps
+# aside by itself during the nightly maintenance window and during a restore.
 
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin

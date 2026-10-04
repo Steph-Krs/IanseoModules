@@ -1,10 +1,10 @@
 <?php
 /**
- * public/shop.php — Boutique côté compétiteur.
+ * public/shop.php — the shop, competitor side.
  *
- * Réservation d'articles (buvette, repas, souvenirs, hébergement, accès…) pour
- * une compétition. Tout est revérifié côté serveur (stock, plafond, ouverture) :
- * cet écran informe et propose, le moteur (lib/shop.php) tranche.
+ * Booking of items (refreshments, meals, souvenirs, accommodation, access…) for a competition.
+ * Everything is checked again by the server (stock, limit, opening): this screen informs and
+ * offers, the engine (lib/shop.php) decides.
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
@@ -26,13 +26,14 @@ if ($tourId && intval($cfg->BcPublishLevel ?? 1) === 1) {
         UNION SELECT 1 FROM BK_ShopOrders WHERE SoTournament = $tourId AND SoLicence = $l LIMIT 1"));
 }
 if (!$tourId || !$tour || !bk_shop_has_items($tourId) || !bk_comp_payments_on($cfg) || !$member) {
-    bk_head('Boutique', 'card');
-    echo '<div class="bk-card"><h1>Boutique indisponible</h1>'
-       . bk_msg('err', "Aucune boutique n'est proposée pour cette compétition.")
-       . '<p class="bk-alt"><a href="' . bk_e(bk_public_url('registrations.php')) . '">Mes inscriptions</a></p></div>';
+    bk_head(bk_t('Shop'), 'card');
+    echo '<div class="bk-card"><h1>' . bk_e(bk_t('ShopUnavailable')) . '</h1>'
+       . bk_msg('err', bk_t('ShopNone'))
+       . '<p class="bk-alt"><a href="' . bk_e(bk_public_url('registrations.php')) . '">' . bk_e(bk_t('NavMyRegs')) . '</a></p></div>';
     bk_foot();
     exit;
 }
+bk_money_tour($tourId);
 
 $open = bk_shop_open($cfg);
 $errs = array();   // "item_variant" => message
@@ -40,14 +41,14 @@ $ok   = false;
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1') {
     if (!bk_csrf_check()) {
-        $errs['_'] = 'Session expirée — merci de réessayer.';
+        $errs['_'] = bk_t('SessionExpired');
     } elseif (!$open) {
-        $errs['_'] = 'La boutique est fermée pour cette compétition.';
+        $errs['_'] = bk_t('ShopClosedComp');
     } else {
         foreach ((array) ($_POST['q'] ?? array()) as $iid => $vars) {
             foreach ((array) $vars as $vid => $qty) {
                 $res = bk_shop_order_set($tourId, $archer->BaLicence, $iid, $vid, $qty);
-                if (empty($res['ok'])) $errs[intval($iid) . '_' . intval($vid)] = $res['msg'] ?? 'Refusé.';
+                if (empty($res['ok'])) $errs[intval($iid) . '_' . intval($vid)] = $res['msg'] ?? bk_t('Refused');
             }
         }
         bk_log('SHOP_ORDER', $archer->BaLicence);
@@ -58,93 +59,77 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1
 $items = bk_shop_items($tourId, true, $archer->BaLicence);
 $total = bk_shop_order_total($tourId, $archer->BaLicence);
 
-// Regroupement par section, dans l'ordre d'apparition.
+// Grouped by section, in order of appearance.
 $bySection = array();
 foreach ($items as $it) $bySection[$it['section']][] = $it;
 
-bk_head('Boutique');
+/** One quantity line: stock left and the input, then the error of this line if any. */
+function sh_line($name, $price, $rem, $mine, $open, $err, $label = null)
+{
+    $soldOut = ($rem === 0 && $mine === 0);
+    $stock = $rem === null ? '' : ($soldOut ? bk_t('SoldOut') : bk_t($rem > 1 ? 'LeftMany' : 'LeftOne', $rem));
+    return '<div class="bk-shop-line">'
+        . ($label !== null ? '<span class="bk-shop-vname">' . bk_e($label) . '</span>' : '')
+        . '<span class="bk-shop-stock">' . bk_e($stock) . '</span>'
+        . '<input class="bk-shop-q" type="number" name="' . $name . '" value="' . intval($mine) . '" min="0"'
+        . ($rem === null ? '' : ' max="' . ($rem + $mine) . '"') . ' data-price="' . $price . '"'
+        . ((!$open || $soldOut) ? ' disabled' : '') . '></div>'
+        . ($err !== '' ? '<p class="bk-shop-err">' . bk_e($err) . '</p>' : '');
+}
+
+bk_head(bk_t('Shop'));
+echo '<p class="bk-back"><a href="' . bk_e(bk_public_url('registrations.php')) . '">' . bk_e(bk_t('BackMyRegs')) . '</a></p>'
+    . '<h1>' . bk_e(bk_t('Shop')) . '</h1>'
+    . '<div class="bk-block" style="margin-bottom:14px"><h2>' . bk_e($tour->ToName) . '</h2>'
+    . '<p class="bk-meta"><span>' . bk_e(bk_date_range($tour->ToWhenFrom, $tour->ToWhenTo)) . '</span>'
+    . ($tour->ToWhere ? '<span>' . bk_e($tour->ToWhere) . '</span>' : '') . '</p></div>';
+
+if ($ok && !array_filter($errs, function ($k) { return $k !== '_'; }, ARRAY_FILTER_USE_KEY)) {
+    echo bk_msg('ok', bk_t('ShopOrderSaved'));
+} elseif ($ok) {
+    echo bk_msg('err', bk_t('ShopOrderPartial'));
+}
+if (!empty($errs['_'])) echo bk_msg('err', $errs['_']);
+if (!$open) echo bk_msg('err', bk_t('ShopClosedNoChange'));
+
+echo '<form method="post" id="bkshopform">' . bk_csrf_field()
+    . '<input type="hidden" name="t" value="' . intval($tourId) . '"><input type="hidden" name="go" value="1">';
+foreach ($bySection as $section => $list) {
+    echo '<div class="bk-block bk-shop-sec"><h2>' . bk_e($section !== '' ? $section : bk_t('ShopItems')) . '</h2>';
+    foreach ($list as $it) {
+        echo '<div class="bk-shop-item"><div class="bk-shop-h"><span class="bk-shop-name">' . bk_e($it['label']) . '</span>'
+            . '<span class="bk-shop-price">' . bk_e(bk_eur($it['price'])) . '</span></div>'
+            . ($it['description'] !== '' ? '<p class="bk-hint">' . bk_e($it['description']) . '</p>' : '')
+            . ($it['maxper'] > 0 ? '<p class="bk-hint">' . bk_e(bk_t('ShopMaxPerHint', intval($it['maxper']))) . '</p>' : '');
+        if (empty($it['variants'])) {
+            echo sh_line('q[' . $it['id'] . '][0]', $it['price'], $it['remaining'], $it['mine'], $open, $errs[$it['id'] . '_0'] ?? '');
+        } else {
+            echo '<div class="bk-shop-opt">' . bk_e($it['option']) . '</div>';
+            foreach ($it['variants'] as $v) {
+                echo sh_line('q[' . $it['id'] . '][' . $v['id'] . ']', $it['price'], $v['remaining'], $v['mine'], $open,
+                    $errs[$it['id'] . '_' . $v['id']] ?? '', $v['label']);
+            }
+        }
+        echo '</div>';
+    }
+    echo '</div>';
+}
+echo '<div class="bk-shop-bar"><span>' . bk_e(bk_t('ShopSubtotal')) . ' <b id="bk-shop-total">' . bk_e(bk_eur($total)) . '</b></span>'
+    . ($open ? '<button type="submit" class="bk-btn bk-btn-primary">' . bk_e(bk_t('ShopValidate')) . '</button>' : '')
+    . '</div></form>';
+
+$seps = bk_number_seps();
+$fmt = array('cur' => bk_currency($tourId), 'dec' => $seps['dec'], 'th' => $seps['thousands']);
 ?>
-<p class="bk-back"><a href="<?= bk_e(bk_public_url('registrations.php')) ?>">← Mes inscriptions</a></p>
-<h1>Boutique</h1>
-
-<div class="bk-block" style="margin-bottom:14px">
-  <h2><?= bk_e($tour->ToName) ?></h2>
-  <p class="bk-meta"><span><?= bk_e(bk_date_range($tour->ToWhenFrom, $tour->ToWhenTo)) ?></span>
-    <?php if ($tour->ToWhere): ?><span><?= bk_e($tour->ToWhere) ?></span><?php endif; ?></p>
-</div>
-
-<?php if ($ok && !array_filter($errs, function ($k) { return $k !== '_'; }, ARRAY_FILTER_USE_KEY)): ?>
-  <?= bk_msg('ok', 'Votre commande a été enregistrée.') ?>
-<?php elseif ($ok): ?>
-  <?= bk_msg('err', "Certaines quantités n'ont pas pu être enregistrées (voir ci-dessous). Le reste est bien pris en compte.") ?>
-<?php endif; ?>
-<?php if (!empty($errs['_'])): ?><?= bk_msg('err', $errs['_']) ?><?php endif; ?>
-
-<?php if (!$open): ?>
-  <?= bk_msg('err', "La boutique est fermée : vous ne pouvez plus modifier vos commandes. Contactez l'organisateur.") ?>
-<?php endif; ?>
-
-<form method="post" id="bkshopform">
-  <?= bk_csrf_field() ?>
-  <input type="hidden" name="t" value="<?= intval($tourId) ?>">
-  <input type="hidden" name="go" value="1">
-
-  <?php foreach ($bySection as $section => $list): ?>
-    <div class="bk-block bk-shop-sec">
-      <h2><?= bk_e($section !== '' ? $section : 'Articles') ?></h2>
-      <?php foreach ($list as $it):
-          $hasVar = !empty($it['variants']); ?>
-        <div class="bk-shop-item">
-          <div class="bk-shop-h">
-            <span class="bk-shop-name"><?= bk_e($it['label']) ?></span>
-            <span class="bk-shop-price"><?= bk_e(number_format($it['price'], 2, ',', ' ')) ?> €</span>
-          </div>
-          <?php if ($it['description'] !== ''): ?><p class="bk-hint"><?= bk_e($it['description']) ?></p><?php endif; ?>
-          <?php if ($it['maxper'] > 0): ?><p class="bk-hint">Maximum <?= intval($it['maxper']) ?> par personne.</p><?php endif; ?>
-
-          <?php if (!$hasVar):
-              $rem = $it['remaining']; $mine = $it['mine'];
-              $soldOut = ($rem === 0 && $mine === 0);
-              $max = $rem === null ? '' : ' max="' . ($rem + $mine) . '"';
-              $ekey = $it['id'] . '_0'; ?>
-            <div class="bk-shop-line">
-              <span class="bk-shop-stock"><?= $rem === null ? '' : ($soldOut ? 'Épuisé' : $rem . ' restant' . ($rem > 1 ? 's' : '')) ?></span>
-              <input class="bk-shop-q" type="number" name="q[<?= $it['id'] ?>][0]" value="<?= intval($mine) ?>"
-                     min="0"<?= $max ?> data-price="<?= $it['price'] ?>" <?= (!$open || $soldOut) ? 'disabled' : '' ?>>
-            </div>
-            <?php if (!empty($errs[$ekey])): ?><p class="bk-shop-err"><?= bk_e($errs[$ekey]) ?></p><?php endif; ?>
-          <?php else: ?>
-            <div class="bk-shop-opt"><?= bk_e($it['option']) ?></div>
-            <?php foreach ($it['variants'] as $v):
-                $rem = $v['remaining']; $mine = $v['mine'];
-                $soldOut = ($rem === 0 && $mine === 0);
-                $max = $rem === null ? '' : ' max="' . ($rem + $mine) . '"';
-                $ekey = $it['id'] . '_' . $v['id']; ?>
-              <div class="bk-shop-line">
-                <span class="bk-shop-vname"><?= bk_e($v['label']) ?></span>
-                <span class="bk-shop-stock"><?= $rem === null ? '' : ($soldOut ? 'Épuisé' : $rem . ' restant' . ($rem > 1 ? 's' : '')) ?></span>
-                <input class="bk-shop-q" type="number" name="q[<?= $it['id'] ?>][<?= $v['id'] ?>]" value="<?= intval($mine) ?>"
-                       min="0"<?= $max ?> data-price="<?= $it['price'] ?>" <?= (!$open || $soldOut) ? 'disabled' : '' ?>>
-              </div>
-              <?php if (!empty($errs[$ekey])): ?><p class="bk-shop-err"><?= bk_e($errs[$ekey]) ?></p><?php endif; ?>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  <?php endforeach; ?>
-
-  <div class="bk-shop-bar">
-    <span>Sous-total boutique : <b id="bk-shop-total"><?= bk_e(number_format($total, 2, ',', ' ')) ?> €</b></span>
-    <?php if ($open): ?><button type="submit" class="bk-btn bk-btn-primary">Valider ma commande</button><?php endif; ?>
-  </div>
-</form>
-
 <script>
 (function () {
   var form = document.getElementById('bkshopform'); if (!form) return;
+  var F = <?= json_encode($fmt, JSON_UNESCAPED_UNICODE) ?>;
   var qs = form.querySelectorAll('.bk-shop-q'), out = document.getElementById('bk-shop-total');
-  function eur(n) { return n.toFixed(2).replace('.', ',') + ' €'; }
+  function eur(n) {
+    var p = Math.abs(n).toFixed(2).split('.');
+    return (n < 0 ? '−' : '') + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, F.th) + F.dec + p[1] + ' ' + F.cur;
+  }
   function calc() {
     var t = 0;
     Array.prototype.forEach.call(qs, function (i) { t += (parseInt(i.value, 10) || 0) * parseFloat(i.dataset.price || 0); });
@@ -153,4 +138,5 @@ bk_head('Boutique');
   Array.prototype.forEach.call(qs, function (i) { i.addEventListener('input', calc); });
 })();
 </script>
-<?php bk_foot(); ?>
+<?php
+bk_foot();

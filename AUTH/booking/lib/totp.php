@@ -1,13 +1,13 @@
 <?php
 /**
- * lib/totp.php — TOTP (RFC 6238) pour l'espace licencié, OPTIONNEL.
+ * lib/totp.php — TOTP (RFC 6238) for the licensee space, OPTIONAL.
  *
- * Copie AUTONOME du régime TOTP d'AUTH (aut_totp_*), sans jamais inclure AUTH —
- * exactement le parti pris déjà retenu pour les sessions (« copie du régime AUTH,
- * sans jamais inclure AUTH », voir lib/archer.php). Le secret ne quitte jamais le
- * serveur ; le QR est rendu via l'encodeur QR de TCPDF déjà fourni par ianseo.
+ * STANDALONE copy of AUTH's TOTP scheme (aut_totp_*), never including AUTH — exactly the choice
+ * already made for the sessions ("copy of the AUTH scheme, never including AUTH", see
+ * lib/archer.php). The secret never leaves the server; the QR code is drawn by the TCPDF QR
+ * encoder that ianseo already ships.
  *
- * Colonnes : BK_Archers.BaTotpSecret / BaTotpEnabled / BaTotpLastSlot.
+ * Columns: BK_Archers.BaTotpSecret / BaTotpEnabled / BaTotpLastSlot.
  */
 
 if (function_exists('bk_totp_verify')) return;
@@ -47,7 +47,7 @@ function bk_totp_code($secretB32, $slot)
     return str_pad($code, 6, '0', STR_PAD_LEFT);
 }
 
-/** Vérifie un code (fenêtre ±1 pas de 30 s). $minSlot = anti-rejeu ; $usedSlot = slot accepté. */
+/** Checks a code (window ±1 step of 30 s). $minSlot = anti-replay; $usedSlot = accepted slot. */
 function bk_totp_verify($secretB32, $code, $minSlot, &$usedSlot)
 {
     $code = preg_replace('/\D/', '', (string) $code);
@@ -63,7 +63,7 @@ function bk_totp_verify($secretB32, $code, $minSlot, &$usedSlot)
     return false;
 }
 
-/** Diagnostic d'HORLOGE serveur (jamais une acceptation) : écart en secondes ou null. */
+/** Server CLOCK diagnosis (never an acceptance): offset in seconds, or null. */
 function bk_totp_skew($secretB32, $code, $maxSlots = 120)
 {
     $code = preg_replace('/\D/', '', (string) $code);
@@ -78,14 +78,14 @@ function bk_totp_skew($secretB32, $code, $maxSlots = 120)
 
 function bk_totp_uri($label, $secret)
 {
-    $issuer = rawurlencode('ianseo licencié');
+    $issuer = rawurlencode(bk_t('TotpIssuer'));   // label of the entry in the authenticator app
     return 'otpauth://totp/' . $issuer . ':' . rawurlencode($label)
         . '?secret=' . $secret . '&issuer=' . $issuer . '&digits=6&period=30';
 }
 
 /**
- * QR code (SVG inline) via l'encodeur QR de TCPDF fourni par ianseo — aucune
- * dépendance externe, le secret ne sort pas. Retourne '' si indisponible.
+ * QR code (inline SVG) through the TCPDF QR encoder shipped with ianseo — no external
+ * dependency, the secret does not leave. Returns '' when unavailable.
  */
 function bk_qr_svg($text, $sizePx = 210)
 {

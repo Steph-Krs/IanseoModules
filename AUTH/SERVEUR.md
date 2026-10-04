@@ -1,129 +1,131 @@
-# Serveur ianseo partagé multi-comptes — Installation & sécurité
+# Shared multi-account ianseo server — Installation & security
 
-Guide de mise en place d'un serveur ianseo en ligne multi-comptes
-(module `Modules/Custom/AUTH`), avec un objectif affiché : **la sécurité des
-données personnelles prime sur tout le reste** (données de licenciés,
-serveur partagé exposé sur Internet).
+French version: [SERVEUR_FR.md](SERVEUR_FR.md) (the original).
+
+Guide to setting up an online multi-account ianseo server
+(module `Modules/Custom/AUTH`), with a stated goal: **the security of
+personal data comes before everything else** (licensee data,
+shared server exposed on the Internet).
 
 ---
 
-## 1. Apache ou ianseo ? → Les deux, en profondeur
+## 1. Apache or ianseo? → Both, in depth
 
-| Couche | Rôle |
+| Layer | Role |
 |---|---|
-| **Système** (VM dédiée, firewall, SSH, MaJ auto) | réduire la surface d'attaque |
-| **Apache** (HTTPS, ModSecurity, fail2ban, blocages) | filtrer avant d'atteindre PHP |
-| **ianseo + module AUTH** | comptes, 2FA, cloisonnement club/CD/CR/FFTA, partage |
-| **Données** (minimisation, purge, sauvegardes chiffrées) | limiter l'impact d'une compromission |
+| **System** (dedicated VM, firewall, SSH, automatic updates) | reduce the attack surface |
+| **Apache** (HTTPS, ModSecurity, fail2ban, blocking) | filter before reaching PHP |
+| **ianseo + AUTH module** | accounts, 2FA, club/CD/CR/FFTA partitioning, sharing |
+| **Data** (minimisation, purge, encrypted backups) | limit the impact of a compromise |
 
-Le htdigest seul ne fait pas d'instances (une fois franchi, ianseo montre tout
-à tout le monde). Le cœur ianseo contient déjà les hooks multi-comptes
-(`$CFG->USERAUTH` + `Modules/Authentication/`) ; le module `Custom/AUTH`
-fournit l'implémentation — aucun fichier du cœur modifié, une seule
-installation, une seule base.
+htdigest alone does not make instances (once it is passed, ianseo shows everything
+to everybody). The ianseo core already contains the multi-account hooks
+(`$CFG->USERAUTH` + `Modules/Authentication/`); the `Custom/AUTH` module
+provides the implementation — no core file modified, a single
+installation, a single database.
 
-> ⚠️ **À savoir avant tout — la connexion est un RELAIS DE CRÉDENTIELS, pas un SSO/OIDC.**
-> Faute d'un SSO officiel (OpenID Connect) fourni par la fédération, l'identifiant et le
-> **mot de passe** de chaque utilisateur **transitent par ce serveur** à la connexion pour être
-> vérifiés auprès des espaces en ligne (dirigeant / licencié). Le mot de passe n'est **jamais
-> stocké ni journalisé**, mais il passe par la **mémoire du serveur** le temps de la requête.
-> **Conséquence : tant qu'un vrai SSO n'est pas en place, la sécurité des comptes des utilisateurs
-> dépend directement de la sécurité ET de la fiabilité de ce serveur** (et de son exploitant). Tout
-> ce guide de durcissement (§§ 4-6) en découle, et les utilisateurs en sont avertis sur la page de
-> connexion. Demander à terme un vrai **OIDC** au prestataire des espaces (le module pourra basculer).
+> ⚠️ **To know before anything else — the sign-in is a CREDENTIAL RELAY, not an SSO/OIDC.**
+> Lacking an official SSO (OpenID Connect) provided by the federation, each user's identifier and
+> **password** **pass through this server** at sign-in to be
+> checked against the online spaces (officers' / licensee). The password is **never
+> stored nor logged**, but it goes through the **server's memory** for the time of the request.
+> **Consequence: as long as a real SSO is not in place, the security of the users' accounts
+> depends directly on the security AND the reliability of this server** (and of its operator). The
+> whole hardening guide (§§ 4-6) follows from it, and the users are warned on the sign-in
+> page. Ask the provider of the spaces, in time, for a real **OIDC** (the module will be able to switch).
 
-## 2. Modèle de menace — être honnête
+## 2. Threat model — being honest
 
-**ianseo est conçu pour tourner en local pendant une compétition**, pas comme
-application web multi-locataires exposée à Internet. Le code du cœur est
-ancien, avec un historique de vulnérabilités corrigées au fil de l'eau
-(injections SQL, uploads). Mettre ianseo en ligne = accepter ce risque et le
-**compenser par des couches externes**. Conséquences pratiques :
+**ianseo is designed to run locally during a competition**, not as a
+multi-tenant web application exposed to the Internet. The core code is
+old, with a history of vulnerabilities fixed as they came
+(SQL injections, uploads). Putting ianseo online = accepting this risk and
+**compensating for it with external layers**. Practical consequences:
 
-1. **Ne jamais exposer ianseo « nu »** : WAF (ModSecurity) + authentification
-   du module dès le premier jour + fail2ban.
-2. **Considérer tout utilisateur connecté comme semi-hostile** : un compte
-   club compromis (phishing) donne accès aux fonctions du cœur. Le module
-   cloisonne les compétitions, mais le cœur reste le cœur → d'où la
-   minimisation des données présentes sur le serveur (§ 7).
-3. **Minimiser ce qui est perdable** : le serveur ne doit contenir que les
-   données nécessaires aux compétitions en cours/récentes — pas la base des
-   80 000 licenciés si évitable (§ 7.1).
-4. **Capacité de détection et de restauration** : journaux, alertes,
-   sauvegardes testées. « Blindé à 100 % » n'existe pas ; détecter vite et
-   restaurer vite, si.
-5. **Mises à jour ianseo dès publication** (elles corrigent régulièrement des
-   failles) + veille sur les annonces ianseo.
-6. Avant l'ouverture publique : **audit/pentest externe** (la FFTA manipule
-   des données de 80 000 personnes, l'investissement est proportionné), et
-   déclarer le traitement au DPO (§ 7.3).
+1. **Never expose ianseo "bare"**: WAF (ModSecurity) + the module's authentication
+   from day one + fail2ban.
+2. **Consider every signed-in user as semi-hostile**: a compromised club
+   account (phishing) gives access to the core's functions. The module
+   partitions the competitions, but the core remains the core → hence the
+   minimisation of the data present on the server (§ 7).
+3. **Minimise what can be lost**: the server must only hold the data
+   needed for current/recent competitions — not the database of the
+   80,000 licensees if avoidable (§ 7.1).
+4. **Ability to detect and restore**: logs, alerts,
+   tested backups. "100 % armoured" does not exist; detecting fast and
+   restoring fast does.
+5. **ianseo updates as soon as published** (they regularly fix
+   flaws) + watching the ianseo announcements.
+6. Before the public opening: **external audit/pentest** (the FFTA handles
+   the data of 80,000 people, the investment is proportionate), and
+   declare the processing to the DPO (§ 7.3).
 
-## 3. Ce que le module AUTH apporte (couche applicative)
+## 3. What the AUTH module brings (application layer)
 
-- **SSO Espace Dirigeant** (§ 11) : les organisateurs utilisent leurs
-  identifiants dirigeant.ffta.fr, comptes provisionnés automatiquement avec
-  le bon rôle (club/CD/CR/FFTA) — aucune gestion de mots de passe côté ianseo.
-- Comptes locaux (ADMIN…) : bcrypt, mot de passe temporaire à usage unique,
-  changement forcé à la première connexion, politique 10+ caractères.
-- **2FA TOTP obligatoire pour les comptes ADMIN** (Google/Microsoft
-  Authenticator, FreeOTP…), optionnelle pour les autres (recommandée CD/CR/FED).
-- **Sessions à jetons révocables** : rien de rejouable dans la session PHP,
-  expiration 12 h d'inactivité / 7 jours, déconnexion à distance par un admin,
-  révocation automatique au changement/RàZ de mot de passe.
-- Anti-brute-force : 8 échecs / 15 min (par IP et par identifiant), réponse en
-  temps constant (anti-énumération d'identifiants).
-- Cloisonnement par compétition (préfixe agrément) + partage opt-in CD/CR/FFTA.
-- Anonyme : uniquement la page de connexion (+ accueil vide). Tout le reste
-  redirige vers le login. **Fail-closed** : si les fichiers d'auth manquent
-  alors que USERAUTH est actif, le site tombe en erreur, il ne s'ouvre pas.
-- Journal complet (connexions, échecs, actions admin) en DB + fichier optionnel
-  pour fail2ban.
-- **Exploitation** : sauvegarde nocturne + copies à chaud de la base, copie en ligne chiffrée,
-  restauration guidée (`ianseo-restore`), alertes à l'administrateur et page « État du serveur »
+- **Officers' space SSO** (§ 11): organisers use their
+  dirigeant.ffta.fr credentials, accounts are provisioned automatically with
+  the right role (club/CD/CR/FFTA) — no password management on the ianseo side.
+- Local accounts (ADMIN…): bcrypt, single-use temporary password,
+  forced change at first sign-in, 10+ character policy.
+- **TOTP 2FA mandatory for ADMIN accounts** (Google/Microsoft
+  Authenticator, FreeOTP…), optional for the others (recommended for CD/CR/FED).
+- **Sessions with revocable tokens**: nothing replayable in the PHP session,
+  expiry after 12 h of inactivity / 7 days, remote sign-out by an admin,
+  automatic revocation on password change/reset.
+- Anti-brute-force: 8 failures / 15 min (per IP and per identifier), constant-time
+  response (anti identifier enumeration).
+- Partitioning by competition (agrément prefix) + opt-in CD/CR/FFTA sharing.
+- Anonymous: only the sign-in page (+ empty home page). Everything else
+  redirects to the login. **Fail-closed**: if the auth files are missing
+  while USERAUTH is on, the site fails with an error, it does not open up.
+- Complete log (sign-ins, failures, admin actions) in the DB + optional file
+  for fail2ban.
+- **Operations**: nightly backup + hot copies of the database, encrypted online copy,
+  guided restore (`ianseo-restore`), alerts to the administrator and a "Server state" page
   (§§ 9, 9 bis, 16).
 
-## 4. Durcissement système (Debian/Ubuntu)
+## 4. System hardening (Debian/Ubuntu)
 
-### 4.1 Base
-- **OS recommandé : Debian stable** (actuellement 12 « Bookworm ») — ou Ubuntu Server
-  LTS. Raisons : support long, correctifs de sécurité fiables, `unattended-upgrades`,
-  et pile Apache + PHP + MariaDB/MySQL + ModSecurity + fail2ban native (tout ce guide
-  suppose cet écosystème apt). Éviter Windows/XAMPP en production (surface plus large,
-  durcissement plus laborieux) — XAMPP reste parfait pour un poste de **développement**.
-- **VM dédiée** à ianseo, rien d'autre dessus (pas de mutualisation).
-- **Horloge synchronisée (NTP) — OBLIGATOIRE, pas optionnel.** La 2FA des comptes
-  administrateur est un TOTP (code basé sur le temps, fenêtre ±30 s) : si l'horloge du
-  serveur dérive de plus de ~30 s par rapport à l'heure réelle, **aucun code valide ne
-  passe** et l'admin est verrouillé — la connexion FFTA (mot de passe) réussit pourtant,
-  ce qui rend le symptôme déroutant. Les expirations de session sont aussi calculées sur
-  l'horloge serveur. Sous Debian/Ubuntu, `systemd-timesyncd` (ou `chrony`) est actif par
-  défaut : vérifier `timedatectl` (`System clock synchronized: yes`). ⚠️ En dev
-  **Windows/XAMPP**, l'horloge est souvent sur « Local CMOS Clock » sans synchro et dérive
-  de plusieurs dizaines de minutes → activer « Régler l'heure automatiquement », ou en
-  PowerShell **administrateur** : `w32tm /resync /force` (après `net start w32time`).
-  Depuis la v1.0.x, un code TOTP refusé alors qu'il est correct est diagnostiqué
-  explicitement (« horloge décalée de ~N min ») et n'incrémente pas l'anti-bruteforce
-  (événement `TOTP_SKEW`).
-- Firewall : `ufw default deny incoming ; ufw allow 80,443/tcp ; ufw allow from <IP_admin_FFTA> to any port 22 ; ufw enable`
-- SSH : clés uniquement (`PasswordAuthentication no`), pas de root direct,
-  si possible restreint aux IP FFTA ou derrière VPN.
-- `unattended-upgrades` activé (MaJ sécurité automatiques) — **mais à heure fixe, la nuit, et
-  en dehors de la fenêtre de maintenance**. Par défaut, Debian/Ubuntu installent vers 6 h avec
-  un délai aléatoire d'une heure, et l'installation redémarre la base et Apache au passage : sur
-  un autre serveur ianseo, c'est tombé **trois fois en pleine compétition** en un semestre
-  (samedis matin). Gabarits `serveur/apt/` : téléchargement à 04:00, installation à **04:30**,
-  redémarrage automatique à 04:45 **seulement** si une mise à jour l'exige (facultatif) — après la
-  maintenance de 03:15 (§ 12), jamais pendant : un redémarrage de la base en pleine sauvegarde la
-  ferait échouer, et la mise à jour du cœur serait sautée cette nuit-là. Vérifier :
-  `systemctl list-timers 'apt-daily*'`. Si vous déplacez l'un des horaires, déplacez l'autre.
-- Utilisateur applicatif dédié (www-data), fichiers ianseo en `root:www-data`,
-  écriture limitée aux dossiers qui en ont besoin (`TourData/`, `Common/` pour
-  config.inc.php lors de l'activation, `Modules/`).
+### 4.1 Basics
+- **Recommended OS: Debian stable** (currently 12 "Bookworm") — or Ubuntu Server
+  LTS. Reasons: long support, reliable security fixes, `unattended-upgrades`,
+  and the native Apache + PHP + MariaDB/MySQL + ModSecurity + fail2ban stack (this whole guide
+  assumes this apt ecosystem). Avoid Windows/XAMPP in production (larger surface,
+  more laborious hardening) — XAMPP remains perfect for a **development** machine.
+- **Dedicated VM** for ianseo, nothing else on it (no sharing).
+- **Synchronised clock (NTP) — MANDATORY, not optional.** The 2FA of the
+  administrator accounts is a TOTP (time-based code, ±30 s window): if the server's
+  clock drifts by more than ~30 s from the real time, **no valid code
+  gets through** and the admin is locked out — while the FFTA sign-in (password) succeeds,
+  which makes the symptom confusing. Session expiries are also computed on the
+  server clock. On Debian/Ubuntu, `systemd-timesyncd` (or `chrony`) is active by
+  default: check `timedatectl` (`System clock synchronized: yes`). ⚠️ On a
+  **Windows/XAMPP** dev machine, the clock is often on "Local CMOS Clock" with no sync and drifts
+  by several tens of minutes → enable "Set time automatically", or in an
+  **administrator** PowerShell: `w32tm /resync /force` (after `net start w32time`).
+  Since v1.0.x, a TOTP code refused although it is correct is diagnosed
+  explicitly ("clock off by ~N min") and does not increment the anti-bruteforce
+  (event `TOTP_SKEW`).
+- Firewall: `ufw default deny incoming ; ufw allow 80,443/tcp ; ufw allow from <FFTA_admin_IP> to any port 22 ; ufw enable`
+- SSH: keys only (`PasswordAuthentication no`), no direct root,
+  if possible restricted to the FFTA IPs or behind a VPN.
+- `unattended-upgrades` enabled (automatic security updates) — **but at a fixed time, at night, and
+  outside the maintenance window**. By default, Debian/Ubuntu install around 6 am with
+  a random delay of one hour, and the installation restarts the database and Apache on the way: on
+  another ianseo server, it happened **three times in the middle of a competition** in six months
+  (Saturday mornings). Templates `serveur/apt/`: download at 04:00, installation at **04:30**,
+  automatic reboot at 04:45 **only** if an update requires it (optional) — after the
+  03:15 maintenance (§ 12), never during it: a database restart in the middle of a backup would
+  make it fail, and the core update would be skipped that night. Check:
+  `systemctl list-timers 'apt-daily*'`. If you move one of the times, move the other.
+- Dedicated application user (www-data), ianseo files as `root:www-data`,
+  write access limited to the folders that need it (`TourData/`, `Common/` for
+  config.inc.php at activation, `Modules/`).
 
 ### 4.2 fail2ban
-Jail SSH par défaut + jail dédiée aux échecs de connexion ianseo.
-Activer le fichier journal du module : créer
-`Modules/Custom/AUTH/config.local.json` :
+Default SSH jail + a jail dedicated to ianseo sign-in failures.
+Enable the module's log file: create
+`Modules/Custom/AUTH/config.local.json`:
 ```json
 { "log_file": "/var/log/ianseo-auth.log" }
 ```
@@ -142,10 +144,10 @@ maxretry = 10
 findtime = 15m
 bantime  = 1h
 ```
-(le rate-limit applicatif bloque à 8 ; fail2ban bannit l'IP au niveau réseau
-au-delà — les deux se complètent.)
+(the application rate limit blocks at 8; fail2ban bans the IP at network level
+beyond that — the two complement each other.)
 `touch /var/log/ianseo-auth.log && chown www-data /var/log/ianseo-auth.log`
-+ rotation logrotate.
++ logrotate rotation.
 
 ### 4.3 ModSecurity (WAF)
 ```bash
@@ -154,23 +156,23 @@ cp /etc/modsecurity/modsecurity.conf-recommended /etc/modsecurity/modsecurity.co
 # SecRuleEngine On
 apt install modsecurity-crs   # OWASP Core Rule Set
 ```
-Commencer en `DetectionOnly` une semaine, analyser les faux positifs (ianseo
-poste beaucoup de HTML/valeurs brutes), créer les exclusions nécessaires, puis
-passer `On`. C'est la principale compensation du risque « code du cœur ».
+Start in `DetectionOnly` for a week, analyse the false positives (ianseo
+posts a lot of HTML/raw values), create the necessary exclusions, then
+switch to `On`. It is the main compensation for the "core code" risk.
 
-⚠️ **Avant de passer `On`** : `SecRequestBodyLimit` vaut **12,5 Mo** dans le fichier livré, alors
-que PHP accepte 64 Mo (§ 6.1). En blocage, l'import d'une compétition plus lourde serait refusé
-(erreur 413) sans que rien dans ianseo ne l'explique. L'aligner sur PHP dans
-`/etc/modsecurity/modsecurity.conf` : `SecRequestBodyLimit 67108864`.
+⚠️ **Before switching to `On`**: `SecRequestBodyLimit` is **12.5 MB** in the file as shipped,
+whereas PHP accepts 64 MB (§ 6.1). In blocking mode, importing a heavier competition would be refused
+(error 413) with nothing in ianseo to explain it. Align it with PHP in
+`/etc/modsecurity/modsecurity.conf`: `SecRequestBodyLimit 67108864`.
 
-### 4.4 Limiteurs de débit (mod_evasive, proxy, pare-feu applicatif)
-Ce guide n'en installe pas : fail2ban (§ 4.2) et l'anti-bourrage du module ciblent les **échecs
-de connexion**, pas le volume de requêtes. Si vous en ajoutez un, il doit laisser passer les
-**rafales de la saisie ISK-NG** : chaque téléphone envoie un `OPTIONS` et environ **8 `POST`**
-vers `/Api/ISK-NG/index.php` **dans la même seconde**, et tous les téléphones d'un club sortent
-par la même adresse. Vécu sur un autre serveur ianseo : mod_evasive réglé à 5 requêtes par
-seconde et par adresse a bloqué **144 adresses** en 18 mois, presque toutes des tablettes de
-marque pendant des compétitions. Réglages qui ont fonctionné (`/etc/apache2/mods-available/evasive.conf`) :
+### 4.4 Rate limiters (mod_evasive, proxy, application firewall)
+This guide does not install any: fail2ban (§ 4.2) and the module's anti-stuffing target **sign-in
+failures**, not the request volume. If you add one, it must let through the
+**bursts of ISK-NG scoring**: each phone sends one `OPTIONS` and about **8 `POST`**
+to `/Api/ISK-NG/index.php` **within the same second**, and all the phones of a club go out
+through the same address. Experienced on another ianseo server: mod_evasive set to 5 requests per
+second and per address blocked **144 addresses** in 18 months, almost all of them scoring
+tablets during competitions. Settings that worked (`/etc/apache2/mods-available/evasive.conf`):
 
 ```apache
 DOSPageCount      30
@@ -178,29 +180,29 @@ DOSSiteCount      150
 DOSBlockingPeriod 10
 DOSWhitelist      127.0.0.1
 DOSWhitelist      192.168.*.*
-# et ne pas laisser DOSSystemCommand sur l'exemple de la documentation
+# and do not leave DOSSystemCommand on the documentation's example
 ```
 
-Symptôme trompeur à connaître : derrière une authentification HTTP (htdigest), le refus
-s'affiche en **401** (demande de mot de passe) et non en 403 — chercher les 403 dans les
-journaux ne trouve rien.
+A misleading symptom to know about: behind an HTTP authentication (htdigest), the refusal
+shows as **401** (password prompt) and not 403 — looking for 403s in the
+logs finds nothing.
 
-## 5. Apache — vhost durci
+## 5. Apache — hardened vhost
 
 ```apache
 <VirtualHost *:80>
-    ServerName VOTRE-DOMAINE
-    Redirect permanent / https://VOTRE-DOMAINE/
+    ServerName YOUR-DOMAIN
+    Redirect permanent / https://YOUR-DOMAIN/
 </VirtualHost>
 
 <VirtualHost *:443>
-    ServerName VOTRE-DOMAINE
+    ServerName YOUR-DOMAIN
     DocumentRoot /var/www/ianseo
 
     SSLEngine on
-    SSLCertificateFile    /etc/letsencrypt/live/VOTRE-DOMAINE/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/VOTRE-DOMAINE/privkey.pem
-    # TLS moderne (Mozilla "intermediate")
+    SSLCertificateFile    /etc/letsencrypt/live/YOUR-DOMAIN/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/YOUR-DOMAIN/privkey.pem
+    # modern TLS (Mozilla "intermediate")
     SSLProtocol -all +TLSv1.2 +TLSv1.3
     SSLHonorCipherOrder off
 
@@ -212,12 +214,12 @@ journaux ne trouve rien.
         Require all granted
     </Directory>
 
-    # fichiers sensibles jamais servis
+    # sensitive files never served
     <FilesMatch "\.(inc\.php|json|md|bak|sql|log)$">
         Require all denied
     </FilesMatch>
 
-    # AUCUNE exécution PHP dans les dossiers de fichiers uploadés
+    # NO PHP execution in the uploaded-files folders
     <Directory /var/www/ianseo/TourData>
         php_admin_flag engine off
         <FilesMatch "\.ph(p[0-9]?|tml|ar)$"> Require all denied </FilesMatch>
@@ -226,17 +228,17 @@ journaux ne trouve rien.
         php_admin_flag engine off
     </Directory>
 
-    # installation & outils serveur : localhost uniquement après mise en service
+    # installation & server tools: localhost only once in service
     <Location "/Install"> Require ip 127.0.0.1 ::1 </Location>
     <Location "/Update">  Require ip 127.0.0.1 ::1 </Location>
-    # scripts de réparation/maintenance à l'échelle du serveur — le module AUTH
-    # les bloque déjà pour les non-admins, mais on double au niveau Apache :
+    # server-wide repair/maintenance scripts — the AUTH module already
+    # blocks them for non-admins, but we double up at the Apache level:
     <Files "RepairXAMPP.php"> Require ip 127.0.0.1 ::1 </Files>
     <Location "/Modules/Help/RepairTables.php"> Require ip 127.0.0.1 ::1 </Location>
-    # (idéalement, SUPPRIMER RepairXAMPP.php du serveur : script XAMPP/Windows
-    #  qui redémarre MySQL, sans objet en production Linux.)
-    # si phpMyAdmin est présent sur la machine : NE PAS l'exposer
-    # (le supprimer, ou Require ip 127.0.0.1 + tunnel SSH pour l'utiliser)
+    # (ideally, DELETE RepairXAMPP.php from the server: an XAMPP/Windows script
+    #  that restarts MySQL, pointless on Linux production.)
+    # if phpMyAdmin is present on the machine: do NOT expose it
+    # (delete it, or Require ip 127.0.0.1 + SSH tunnel to use it)
 
     Header always set Strict-Transport-Security "max-age=31536000"
     Header always set X-Content-Type-Options "nosniff"
@@ -245,15 +247,15 @@ journaux ne trouve rien.
     Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
 </VirtualHost>
 ```
-Certificat : `certbot --apache -d VOTRE-DOMAINE` (renouvellement auto).
-Si PHP-FPM : remplacer `php_admin_flag engine off` par un
-`<FilesMatch \.php$> SetHandler none </FilesMatch>` équivalent.
+Certificate: `certbot --apache -d YOUR-DOMAIN` (automatic renewal).
+With PHP-FPM: replace `php_admin_flag engine off` with an equivalent
+`<FilesMatch \.php$> SetHandler none </FilesMatch>`.
 
-**htdigest** : le garder pendant TOUTE la mise en place, puis au choix le
-retirer (confort clubs) — les couches module+WAF prennent le relais — ou le
-conserver sur `/Update` en ceinture supplémentaire.
+**htdigest**: keep it during the WHOLE set-up, then either
+remove it (comfort for clubs) — the module+WAF layers take over — or
+keep it on `/Update` as an extra belt.
 
-## 6. PHP & MySQL durcis
+## 6. Hardened PHP & MySQL
 
 ### 6.1 php.ini
 ```ini
@@ -271,168 +273,168 @@ open_basedir = /var/www/ianseo:/tmp
 upload_max_filesize = 64M
 post_max_size = 64M
 ```
-> Tester après coup : l'export/import ianseo et les impressions PDF doivent
-> fonctionner (TCPDF n'a pas besoin des fonctions désactivées).
+> Test afterwards: ianseo export/import and PDF printing must
+> work (TCPDF does not need the disabled functions).
 
-`session.gc_maxlifetime = 43200` : **12 h**, la durée d'inactivité que prévoit le module (§ 3).
-La valeur par défaut de PHP (1440 s) efface une session inactive au bout de **24 minutes** :
-l'organisateur parti déjeuner est déconnecté et perd la compétition ouverte — vu sur un autre
-serveur. Sous Debian/Ubuntu, c'est une tâche système (`phpsessionclean`) qui efface les sessions,
-d'après ce réglage **du php.ini** : un `ini_set()` dans le code n'y changerait rien. Même chose
-pour `upload_max_filesize`/`post_max_size` : les deux fichiers `php.ini` à modifier sont ceux
-d'Apache (`/etc/php/8.x/apache2/php.ini`) ou de PHP-FPM — pas celui de la ligne de commande.
-**Multi-comptes › Configuration du serveur › État du serveur** affiche les valeurs réellement
-appliquées au site.
+`session.gc_maxlifetime = 43200`: **12 h**, the inactivity time the module provides for (§ 3).
+PHP's default value (1440 s) erases an inactive session after **24 minutes**:
+the organiser who went to lunch is signed out and loses the open competition — seen on another
+server. On Debian/Ubuntu, a system task (`phpsessionclean`) erases the sessions,
+according to this **php.ini** setting: an `ini_set()` in the code would change nothing. Same
+for `upload_max_filesize`/`post_max_size`: the two `php.ini` files to edit are those
+of Apache (`/etc/php/8.x/apache2/php.ini`) or of PHP-FPM — not the command-line one.
+**Multi-account › Server configuration › Server state** shows the values actually
+applied to the site.
 
 ### 6.2 MySQL
-- `bind-address = 127.0.0.1` (jamais exposé).
-- Utilisateur dédié `ianseo` limité à la base `ianseo`
+- `bind-address = 127.0.0.1` (never exposed).
+- Dedicated `ianseo` user limited to the `ianseo` database
   (`GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,ALTER,INDEX,DROP ON ianseo.* …`),
-  **pas** de `FILE`, `SUPER`, `GRANT`. Mot de passe long généré.
-- Pas de phpMyAdmin accessible depuis Internet (voir vhost).
-- `Common/config.inc.php` (identifiants DB) : permissions `640 root:www-data`.
+  **no** `FILE`, `SUPER`, `GRANT`. Long generated password.
+- No phpMyAdmin reachable from the Internet (see vhost).
+- `Common/config.inc.php` (DB credentials): permissions `640 root:www-data`.
 
-### 6.3 MySQL — performances (leçons d'un serveur en production)
+### 6.3 MySQL — performance (lessons from a production server)
 
-Sur un autre serveur ianseo en ligne (septembre 2026), **ajouter un archer bloquait la page 5 à
-10 minutes**. Les réglages ci-dessous en sont tirés ; gabarit : `serveur/mysql/ianseo.cnf`.
-**Multi-comptes › Configuration du serveur › État du serveur** contrôle chacun d'eux.
+On another online ianseo server (September 2026), **adding an archer froze the page for 5 to
+10 minutes**. The settings below come from it; template: `serveur/mysql/ianseo.cnf`.
+**Multi-account › Server configuration › Server state** checks each of them.
 
-- **MariaDB (installé au § 8.0) et MySQL 8 ne se comportent pas pareil.** Pour vérifier un numéro
-  de cible, le cœur (`createAvailableTargetSQL()`) fabrique une requête d'**une ligne `UNION` par
-  place** du départ, qu'il filtre ensuite. MySQL 8.0.22+ recopie ce filtre dans chaque branche
-  (optimisation `derived_condition_pushdown`) : le temps devient quadratique. Mesuré sur un
-  départ de 9 999 cibles × 8 = 80 000 places : **~10 min** sous MySQL 8.0.46, **1,2 s** une fois
-  l'optimisation coupée, 1,5 s sous MariaDB. Pendant ce temps, le verrou de session PHP bloque
-  toutes les autres pages du même utilisateur, et le processeur est saturé pour tout le monde.
-  **Sous MySQL 8 seulement** :
+- **MariaDB (installed in § 8.0) and MySQL 8 do not behave the same.** To check a target
+  number, the core (`createAvailableTargetSQL()`) builds a query with **one `UNION` line per
+  place** of the session, which it then filters. MySQL 8.0.22+ copies this filter into each branch
+  (`derived_condition_pushdown` optimisation): the time becomes quadratic. Measured on a
+  session of 9,999 targets × 8 = 80,000 places: **~10 min** under MySQL 8.0.46, **1.2 s** once
+  the optimisation is switched off, 1.5 s under MariaDB. Meanwhile, the PHP session lock blocks
+  all the other pages of the same user, and the processor is saturated for everybody.
+  **Under MySQL 8 only**:
   ```bash
   sudo mysql -e "SET PERSIST optimizer_switch='derived_condition_pushdown=off';"
   ```
-  Réglage de vitesse uniquement (résultats identiques, comportement de MySQL 5.7), conservé au
-  redémarrage, réversible (`=on`). **Pas dans un fichier `.cnf` commun** : MariaDB ne connaît pas
-  cette option et refuserait de démarrer.
-- **Dimensionner les départs au besoin réel**, jamais « 9 999 cibles par sécurité » : même
-  réglage appliqué, 80 000 places coûtent plus d'une seconde par vérification. Le module
-  signale les départs de plus de 5 000 places (à l'organisateur dans « Inscriptions en ligne »,
-  à l'administrateur dans « État du serveur »). Conseil aux opérateurs : choisir le **départ**
-  de l'archer AVANT sa cible — sans départ, la vérification porte sur tous les départs à la fois.
-- **Connexions** : ianseo ouvre **deux** connexions à la base par page (lecture + écriture).
-  `max_connections` doit donc valoir au moins **2 × le nombre de processus PHP** (Apache
-  `MaxRequestWorkers` en prefork — 150 sous Debian —, ou `pm.max_children` en PHP-FPM), plus une
-  marge pour les crons. La valeur par défaut (151) ne couvre que 75 processus : au-delà, la
-  base refuse la connexion et l'utilisateur tombe sur une page d'erreur.
-- **Mémoire** : `innodb_buffer_pool_size` au moins égal à la taille de la base (128 Mo par
-  défaut) — § 15 pour la cible d'un gros serveur. Et `MaxRequestWorkers` à la mesure de la RAM :
-  150 processus Apache d'environ 65 Mo chacun dépassaient les 8 Go de l'autre serveur.
-- **Journal des requêtes lentes** (seuil 2 s) : c'est lui qui a désigné la requête en cause.
-  Fichier : `/var/lib/mysql/<nom-du-serveur>-slow.log` ; résumé : `sudo mysqldumpslow -s t <fichier>`.
-- **Tester sous le moteur de production.** Un poste de développement XAMPP tourne sous MariaDB :
-  ce problème y était invisible. Si le serveur est sous MySQL 8, faire au moins un essai
-  (création de compétition, ajout d'archers, saisie) sur un MySQL 8.
+  Speed setting only (identical results, MySQL 5.7 behaviour), kept across
+  restarts, reversible (`=on`). **Not in a shared `.cnf` file**: MariaDB does not know
+  this option and would refuse to start.
+- **Size the sessions to the real need**, never "9,999 targets to be safe": with the same
+  setting applied, 80,000 places cost more than a second per check. The module
+  flags the sessions of more than 5,000 places (to the organiser in "Online registration",
+  to the administrator in "Server state"). Advice to operators: choose the archer's **session**
+  BEFORE their target — without a session, the check covers all the sessions at once.
+- **Connections**: ianseo opens **two** database connections per page (read + write).
+  `max_connections` must therefore be at least **2 × the number of PHP processes** (Apache
+  `MaxRequestWorkers` in prefork — 150 on Debian —, or `pm.max_children` in PHP-FPM), plus a
+  margin for the crons. The default value (151) only covers 75 processes: beyond that, the
+  database refuses the connection and the user lands on an error page.
+- **Memory**: `innodb_buffer_pool_size` at least equal to the size of the database (128 MB by
+  default) — § 15 for the target of a big server. And `MaxRequestWorkers` sized to the RAM:
+  150 Apache processes of about 65 MB each exceeded the 8 GB of the other server.
+- **Slow query log** (threshold 2 s): it is what pointed to the query at fault.
+  File: `/var/lib/mysql/<server-name>-slow.log`; summary: `sudo mysqldumpslow -s t <file>`.
+- **Test under the production engine.** An XAMPP development machine runs MariaDB:
+  this problem was invisible there. If the server is under MySQL 8, do at least one trial
+  (competition creation, adding archers, scoring) on a MySQL 8.
 
-## 7. Données personnelles & RGPD
+## 7. Personal data & GDPR
 
-### 7.1 La base licenciés sur le serveur — choix assumé, compensé
-Décision FFTA : la base de rapprochement licenciés (`LookUpEntries`) **reste
-sur le serveur** pour que les organisateurs puissent ajouter/modifier des
-inscriptions en ligne, et elle est alimentée par un **cron avec compte de
-service** (§ 12) — plus aucune synchro manuelle par les organisateurs, plus
-de fichier licences qui se promène sur les PC des clubs (c'est aussi un gain).
+### 7.1 The licensee database on the server — an accepted, compensated choice
+FFTA decision: the licensee matching database (`LookUpEntries`) **stays
+on the server** so that organisers can add/modify
+online registrations, and it is fed by a **cron with a service account**
+(§ 12) — no more manual sync by the organisers, no more
+licence file wandering on the clubs' PCs (that is a gain too).
 
-Conséquence à assumer : cette table (~80 000 noms + dates de naissance +
-n° licence + club) est consultable par **tout compte connecté** (c'est la
-fonction de recherche d'inscription d'ianseo). Un seul compte club hameçonné
-y donne accès. Compensations obligatoires :
-- SSO espace dirigeant (§ 11) : pas de mots de passe faibles côté clubs, les
-  comptes suivent la vie des accès FFTA (retrait du rôle Gestionnaire = plus
-  d'accès au prochain login) ;
-- WAF + rate-limit + journal surveillé (pics de LOGIN_FAIL, volumes anormaux) ;
-- purge des compétitions terminées : archive (export .ianseo chiffré) +
-  suppression du serveur ~3 mois après la compétition ;
-- ne demander aux clubs que les champs nécessaires aux inscriptions.
+Consequence to accept: this table (~80,000 names + dates of birth +
+licence no. + club) can be consulted by **any signed-in account** (it is the
+ianseo registration search function). A single phished club account
+gives access to it. Mandatory compensations:
+- officers' space SSO (§ 11): no weak passwords on the clubs' side, the
+  accounts follow the life of the FFTA access rights (removal of the Gestionnaire role = no more
+  access at the next sign-in);
+- WAF + rate limit + monitored log (LOGIN_FAIL peaks, abnormal volumes);
+- purge of finished competitions: archive (encrypted .ianseo export) +
+  deletion from the server ~3 months after the competition;
+- only ask the clubs for the fields needed for registrations.
 
-### 7.2 Sauvegardes — chiffrées et hors serveur
-Intégrées au module (§ 9 bis) : chaque nuit la base et les fichiers, dans la journée des copies
-« à chaud » de la base, et une copie en ligne **chiffrée** (rclone `crypt`). Principes, qui valent
-quel que soit l'outil :
-- **dès le premier jour** — l'autre serveur ianseo en ligne a tourné des mois sans aucune sauvegarde ;
-- **chiffrées hors du serveur**, et les secrets qui permettent de les relire (mots de passe
-  `crypt`) rangés **ailleurs** que sur le serveur : c'est justement le jour où il est perdu qu'on
-  en a besoin ;
-- **au moins un test de restauration** avant l'ouverture, puis périodiquement — sans toucher au
-  site : `sudo ianseo-restore --test <copie>` (§ 9 bis).
+### 7.2 Backups — encrypted and off the server
+Built into the module (§ 9 bis): every night the database and the files, during the day "hot"
+copies of the database, and an **encrypted** online copy (rclone `crypt`). Principles, which hold
+whatever the tool:
+- **from day one** — the other online ianseo server ran for months without any backup;
+- **encrypted off the server**, and the secrets that allow them to be read again (`crypt`
+  passwords) kept **somewhere other than** the server: it is precisely the day it is lost that
+  they are needed;
+- **at least one restore test** before opening, then periodically — without touching the
+  site: `sudo ianseo-restore --test <copy>` (§ 9 bis).
 
-### 7.3 Conformité (à traiter avec le DPO FFTA)
-- Inscrire le traitement au **registre** (finalité : gestion sportive des
-  compétitions ; base légale : intérêt légitime / relation contractuelle).
-- **Information des personnes** : mention dans les documents d'inscription ;
-  les résultats nominatifs publiés sont un usage sportif standard mais doivent
-  figurer dans la mention.
-- Durées de conservation alignées sur la purge (§ 7.1).
-- **Droit à l'effacement** : Multi-comptes › Anonymiser un licencié (§ 9).
-- **Violation de données** : procédure de notification CNIL sous 72 h —
-  prévoir le contact et la marche à suivre AVANT l'incident.
-- Sous-traitance hébergeur (OVH…) : vérifier le DPA.
+### 7.3 Compliance (to be handled with the FFTA DPO)
+- Enter the processing in the **register** (purpose: sports management of
+  competitions; legal basis: legitimate interest / contractual relationship).
+- **Information of the persons**: notice in the registration documents;
+  published named results are a standard sporting use but must
+  appear in the notice.
+- Retention periods aligned with the purge (§ 7.1).
+- **Right to erasure**: Multi-account › Anonymise a licensee (§ 9).
+- **Data breach**: CNIL notification procedure within 72 h —
+  plan the contact and the steps to follow BEFORE the incident.
+- Hosting subcontractor (OVH…): check the DPA.
 
-## 8. Installation pas à pas
+## 8. Step-by-step installation
 
-> **Gabarits fournis** : tous les fichiers à installer **hors** du module
-> (scripts d'exploitation, vhosts Apache, cron, sudoers, logrotate, fail2ban)
-> sont versionnés dans **`Modules/Custom/AUTH/serveur/`**, avec leur destination
-> et leurs droits — voir `serveur/README.md`. Recopiez-les plutôt que de les
-> retaper : c'est là que se glissent les erreurs de configuration.
+> **Templates provided**: all the files to install **outside** the module
+> (operating scripts, Apache vhosts, cron, sudoers, logrotate, fail2ban)
+> are versioned in **`Modules/Custom/AUTH/serveur/`**, with their destination
+> and permissions — see `serveur/README.md`. Copy them rather than
+> retyping them: that is where configuration errors creep in.
 
-### 8.0 Depuis une Debian neuve — séquence complète
+### 8.0 From a fresh Debian — complete sequence
 
-Toutes les commandes, dans l'ordre. Remplacez `VOTRE-DOMAINE` par votre nom
-d'hôte. Rien ici ne contient de secret : les identifiants ne sont saisis qu'à
-l'étape 7, dans un fichier en `chmod 600`.
+All the commands, in order. Replace `YOUR-DOMAIN` with your host
+name. Nothing here contains a secret: the credentials are only entered at
+step 7, in a `chmod 600` file.
 
 ```bash
-# ── 1. Système de base ────────────────────────────────────────────────
+# ── 1. Base system ────────────────────────────────────────────────────
 sudo apt update && sudo apt full-upgrade -y
-sudo timedatectl set-timezone Europe/Paris     # sinon les horaires des logs et
-                                               # des crons prêtent à confusion
+sudo timedatectl set-timezone Europe/Paris     # otherwise the times of the logs and
+                                               # of the crons are confusing
 sudo apt install -y apache2 mariadb-server php php-mysql php-gd php-curl \
                     php-mbstring php-zip php-xml unzip curl \
                     cron rsyslog fail2ban certbot python3-certbot-apache \
                     libapache2-mod-security2
-sudo systemctl enable --now cron fail2ban      # « cron » manque sur certaines
-                                               # images minimales
+sudo systemctl enable --now cron fail2ban      # "cron" is missing on some minimal
+                                               # images
 sudo mysql_secure_installation
 
-# ── 2. Base de données ────────────────────────────────────────────────
+# ── 2. Database ───────────────────────────────────────────────────────
 sudo mysql -e "CREATE DATABASE ianseo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-sudo mysql -e "CREATE USER 'ianseo'@'localhost' IDENTIFIED BY 'MOT-DE-PASSE-FORT';"
+sudo mysql -e "CREATE USER 'ianseo'@'localhost' IDENTIFIED BY 'STRONG-PASSWORD';"
 sudo mysql -e "GRANT ALL PRIVILEGES ON ianseo.* TO 'ianseo'@'localhost'; FLUSH PRIVILEGES;"
 
-# ── 3. Code ianseo ────────────────────────────────────────────────────
+# ── 3. ianseo code ────────────────────────────────────────────────────
 cd /tmp && curl -LO https://www.ianseo.net/Release/ianseo.zip
 sudo mkdir -p /var/www/ianseo && sudo unzip -q ianseo.zip -d /var/www/ianseo
-sudo chown -R www-data:www-data /var/www/ianseo        # temporaire, pour installer
+sudo chown -R www-data:www-data /var/www/ianseo        # temporary, to install
 
 # ── 4. Apache + TLS ───────────────────────────────────────────────────
 sudo a2enmod ssl rewrite headers
 sudo a2dissite 000-default
-# (les vhosts sont posés à l'étape 6 ; certbot a besoin du port 80 ouvert)
-sudo certbot --apache -d VOTRE-DOMAINE
+# (the vhosts are put in place at step 6; certbot needs port 80 open)
+sudo certbot --apache -d YOUR-DOMAIN
 
-# ── 5. ianseo : installation initiale ─────────────────────────────────
-# Ouvrir https://VOTRE-DOMAINE/Install/ et suivre l'assistant (base « ianseo »,
-# utilisateur « ianseo »). Créer une compétition de test, vérifier que tout
-# fonctionne AVANT d'ajouter la couche multi-comptes.
+# ── 5. ianseo: initial installation ───────────────────────────────────
+# Open https://YOUR-DOMAIN/Install/ and follow the wizard (database "ianseo",
+# user "ianseo"). Create a test competition, check that everything
+# works BEFORE adding the multi-account layer.
 
-# ── 6. Fichiers système (gabarits du module) ──────────────────────────
-# Voir serveur/README.md pour le détail ; adapter VOTRE-DOMAINE dans les vhosts.
-cd /var/www/ianseo/Modules/Custom/AUTH/serveur   # (après l'étape 7 si le module
-                                                 #  n'est pas encore déployé)
+# ── 6. System files (module templates) ────────────────────────────────
+# See serveur/README.md for details; adapt YOUR-DOMAIN in the vhosts.
+cd /var/www/ianseo/Modules/Custom/AUTH/serveur   # (after step 7 if the module
+                                                 #  is not deployed yet)
 sudo install -m 0750 -o root -g root bin/ianseo-*              /usr/local/bin/
 sudo mkdir -p /var/www/maintenance
 sudo install -m 0644 -o root -g root apache/maintenance.html   /var/www/maintenance/index.html
 sudo install -m 0644 -o root -g root apache/ianseo*.conf       /etc/apache2/sites-available/
 sudo install -m 0440 -o root -g root sudoers/ianseo-maintenance /etc/sudoers.d/
-sudo visudo -c                                   # DOIT afficher « parsed OK »
+sudo visudo -c                                   # MUST display "parsed OK"
 sudo install -m 0644 -o root -g root logrotate/ianseo          /etc/logrotate.d/
 sudo install -m 0644 -o root -g root fail2ban/filter-ianseo-auth.conf /etc/fail2ban/filter.d/ianseo-auth.conf
 sudo install -m 0644 -o root -g root fail2ban/jail-ianseo.conf        /etc/fail2ban/jail.d/ianseo.conf
@@ -440,30 +442,30 @@ sudo touch /var/log/ianseo-maintenance.log /var/log/ianseo-auth.log /var/log/ian
 sudo chown www-data:adm /var/log/ianseo-*.log && sudo chmod 0640 /var/log/ianseo-*.log
 sudo systemctl restart fail2ban
 sudo apache2ctl configtest && sudo systemctl reload apache2
-# mises à jour du système à heure fixe, après la maintenance (§ 4.1)
+# system updates at a fixed time, after the maintenance (§ 4.1)
 sudo install -D -m 0644 apt/apt-daily.timer.conf         /etc/systemd/system/apt-daily.timer.d/ianseo.conf
 sudo install -D -m 0644 apt/apt-daily-upgrade.timer.conf /etc/systemd/system/apt-daily-upgrade.timer.d/ianseo.conf
-sudo install -m 0644 -o root -g root apt/51ianseo-auto-reboot /etc/apt/apt.conf.d/   # facultatif
+sudo install -m 0644 -o root -g root apt/51ianseo-auto-reboot /etc/apt/apt.conf.d/   # optional
 sudo systemctl daemon-reload
-# base de données (§ 6.3) — MySQL 8 : /etc/mysql/mysql.conf.d/ et le réglage SET PERSIST
+# database (§ 6.3) — MySQL 8: /etc/mysql/mysql.conf.d/ and the SET PERSIST setting
 sudo install -m 0644 -o root -g root mysql/ianseo.cnf /etc/mysql/mariadb.conf.d/99-ianseo.cnf
 sudo systemctl restart mariadb
 
-# ── 7. Module AUTH ────────────────────────────────────────────────────
-# Copier Modules/Custom/AUTH/ et Modules/Custom/_shared/ dans /var/www/ianseo/
+# ── 7. AUTH module ────────────────────────────────────────────────────
+# Copy Modules/Custom/AUTH/ and Modules/Custom/_shared/ into /var/www/ianseo/
 sudo chown -R www-data:www-data /var/www/ianseo/Modules/Custom
-# Configuration locale (secrets) — chmod 600, JAMAIS lisible par le web :
+# Local configuration (secrets) — chmod 600, NEVER readable by the web:
 sudo -u www-data nano /var/www/ianseo/Modules/Custom/AUTH/config.local.json
 sudo chmod 600 /var/www/ianseo/Modules/Custom/AUTH/config.local.json
 ```
 
-`config.local.json` — modèle (⚠️ **UTF-8 sans BOM** : un BOM ferait échouer la
-lecture JSON et **toute** la configuration serait ignorée en silence) :
+`config.local.json` — template (⚠️ **UTF-8 without BOM**: a BOM would make the
+JSON reading fail and **the whole** configuration would be silently ignored):
 
 ```json
 {
   "log_file": "/var/log/ianseo-auth.log",
-  "licsync":  { "username": "COMPTE-DE-SERVICE", "password": "…", "otp": "" },
+  "licsync":  { "username": "SERVICE-ACCOUNT", "password": "…", "otp": "" },
   "maintenance": {
     "on":     "sudo /usr/local/bin/ianseo-maintenance-on",
     "off":    "sudo /usr/local/bin/ianseo-maintenance-off",
@@ -476,144 +478,144 @@ lecture JSON et **toute** la configuration serait ignorée en silence) :
 }
 ```
 
-(`ping_url` : facultatif, adresse d'un contrôle de supervision — voir § 9, « Alertes ».)
+(`ping_url`: optional, address of a monitoring check — see § 9, "Alerts".)
 
 ```bash
-# ── 8. Comptes, déploiement, verrouillage ─────────────────────────────
-# a) https://VOTRE-DOMAINE/Modules/Custom/AUTH/admin/ → créer le compte ADMIN
-# b) admin/deploy.php → « Déployer les fichiers » puis « Activer l'authentification »
-# c) Se reconnecter : changement de mot de passe forcé, puis 2FA obligatoire
-sudo ianseo-lock                                  # état normal : cœur en lecture seule
+# ── 8. Accounts, deployment, locking ──────────────────────────────────
+# a) https://YOUR-DOMAIN/Modules/Custom/AUTH/admin/ → create the ADMIN account
+# b) admin/deploy.php → "Deploy the files" then "Turn authentication on"
+# c) Sign in again: forced password change, then mandatory 2FA
+sudo ianseo-lock                                  # normal state: core read-only
 sudo -u www-data test -w /var/www/ianseo/TV/Photos && echo "TV OK"
 
-# ── 9. Essai à blanc de la maintenance, PUIS activation du cron ───────
+# ── 9. Dry run of the maintenance, THEN activation of the cron ────────
 sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php --dry-run
 sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php --only=none
-# (le site doit répondre 503 pendant l'exécution, puis revenir)
+# (the site must answer 503 during the run, then come back)
 sudo install -m 0644 -o root -g root \
      /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-nightly /etc/cron.d/
-# copies à chaud de la base, toutes les 6 heures (§ 9 bis)
+# hot copies of the database, every 6 hours (§ 9 bis)
 sudo install -m 0644 -o root -g root \
      /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-backup-live /etc/cron.d/
-# listes d'attente des inscriptions en ligne, toutes les 10 minutes (§ 11 bis)
+# waiting lists of the online registration, every 10 minutes (§ 11 bis)
 sudo install -m 0644 -o root -g root \
      /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-waitlist /etc/cron.d/
 ```
 
-**Le lendemain**, vérifier : `tail -n 40 /var/log/ianseo-maintenance.log`, puis
-`sudo ianseo-restore --test <la sauvegarde de la nuit>` — premier test de restauration.
+**The next day**, check: `tail -n 40 /var/log/ianseo-maintenance.log`, then
+`sudo ianseo-restore --test <the night's backup>` — first restore test.
 
-### 8.1 Rappel des étapes fonctionnelles
+### 8.1 Recap of the functional steps
 
-1. **ianseo** : ZIP officiel + `https://serveur/Install/`, test mono-utilisateur.
-   Pendant toute cette phase : htdigest Apache actif sur tout le site.
-2. **Module** : copier `Modules/Custom/AUTH/` et `Modules/Custom/_shared/`.
-3. **Comptes** : `…/Modules/Custom/AUTH/admin/` → créer le compte **ADMIN**
-   (mot de passe temporaire affiché une fois), puis des comptes de test
-   CLUB (`1075093`), CD (`1075`), CR (`10`).
-4. **Déploiement** : `admin/deploy.php` → « 1. Déployer les fichiers » puis
-   « 2. Activer l'authentification » (refusé tant qu'aucun ADMIN actif).
-5. **Test immédiat en navigation privée** : login ADMIN → changement de mot de
-   passe forcé → **configuration 2FA forcée** (application d'authentification
-   sur le téléphone) ; login avec un compte espace dirigeant (SSO) → choix de
-   structure → ne voit que son périmètre ; anonyme → page de connexion partout.
-6. Configurer le SSO et le cron licences (§§ 11-12 : `config.local.json`,
-   compte de service, crontab).
-7. Durcissement §§ 4-6 (fail2ban, ModSecurity, vhost, php.ini, MySQL).
-8. Retirer/réduire le htdigest, ouvrir aux premiers clubs pilotes.
+1. **ianseo**: official ZIP + `https://server/Install/`, single-user test.
+   During this whole phase: Apache htdigest active on the whole site.
+2. **Module**: copy `Modules/Custom/AUTH/` and `Modules/Custom/_shared/`.
+3. **Accounts**: `…/Modules/Custom/AUTH/admin/` → create the **ADMIN** account
+   (temporary password shown once), then CLUB (`1075093`), CD (`1075`), CR (`10`)
+   test accounts.
+4. **Deployment**: `admin/deploy.php` → "1. Deploy the files" then
+   "2. Turn authentication on" (refused as long as there is no active ADMIN).
+5. **Immediate test in a private window**: ADMIN login → forced password
+   change → **forced 2FA set-up** (authenticator app
+   on the phone); login with an officers' space account (SSO) → choice of
+   structure → sees only their scope; anonymous → sign-in page everywhere.
+6. Configure the SSO and the licence cron (§§ 11-12: `config.local.json`,
+   service account, crontab).
+7. Hardening §§ 4-6 (fail2ban, ModSecurity, vhost, php.ini, MySQL).
+8. Remove/reduce the htdigest, open to the first pilot clubs.
 
-**Codes de compétition** : le nom/code est **libre** (chaque organisateur met
-ce qu'il veut) mais doit être **unique sur le serveur** — un code déjà utilisé
-est refusé à la création et à l'import (dans le cœur ianseo, réutiliser un
-code ÉCRASE la compétition existante ; le module l'interdit). Seul le club
-propriétaire peut ré-importer sa propre compétition (restauration de
-sauvegarde). La propriété est enregistrée automatiquement à la création ;
-l'admin peut l'attribuer/corriger via la page « Compétitions & partage ».
+**Competition codes**: the name/code is **free** (each organiser puts
+what they want) but must be **unique on the server** — a code already in use
+is refused at creation and at import (in the ianseo core, reusing a
+code OVERWRITES the existing competition; the module forbids it). Only the owning
+club can re-import its own competition (backup
+restore). Ownership is recorded automatically at creation;
+the admin can assign/correct it via the "Competitions & sharing" page.
 
-## 9. Exploitation
+## 9. Operations
 
-- **Clubs** : créent leurs compétitions, page « Compétitions & partage » pour
-  ouvrir l'accès CD/CR/FFTA (défaut : privé). Partage = lecture + écriture.
-- **Admin** : page Utilisateurs = création de comptes, RàZ mot de passe
-  (sessions révoquées), RàZ 2FA (perte de téléphone), déconnexion à distance,
-  journal des 30 derniers événements.
-- **Surveiller** : le journal AUT_Log (pics de LOGIN_FAIL), fail2ban
-  (`fail2ban-client status ianseo-auth`), l'espace disque, les MaJ ianseo. Le journal admin
-  (Multi-comptes › Utilisateurs, un onglet Organisateurs / Archers avec chacun son journal
-  filtrable + paginé) donne une vue rapide.
-- **Alertes** : un bandeau rouge s'affiche sur toutes les pages de l'administrateur quand la
-  maintenance de la nuit a échoué (avec les étapes en cause), quand elle **n'a pas tourné** depuis
-  plus de 30 h (tâche planifiée arrêtée : plus aucune sauvegarde), ou quand la copie en ligne ou
-  une copie à chaud a échoué. Pour être prévenu **même serveur éteint**, renseigner en ligne de
-  commande `maintenance.ping_url` dans `config.local.json` : l'adresse d'un contrôle
-  [healthchecks.io](https://healthchecks.io) (gratuit), appelée à la fin de chaque nuit (et
-  `…/fail` en cas d'échec). Régler le contrôle sur « une fois par jour, tolérance 2 h » : le
-  service envoie un e-mail en cas d'échec **et** quand rien n'arrive.
-- **État du serveur** (Multi-comptes › Configuration du serveur) : contrôles en lecture seule des
-  pièges vécus sur un serveur en production — réglage MySQL 8 (§ 6.3), connexions et mémoire de la
-  base, journal des requêtes lentes, durée des sessions et taille des imports (§ 6.1), limite
-  ModSecurity (§ 4.3), OPcache, heure des mises à jour du système (§ 4.1), départs surdimensionnés,
-  âge des sauvegardes — chacun avec la commande de correction.
-- **Anonymiser un licencié** (Multi-comptes › Anonymiser un licencié, administrateur serveur) : pour
-  une demande d'effacement. Recherche par licence, nom ou prénom, aperçu de tout ce qui change,
-  confirmation en retapant la licence.
-  - **Compétitions à venir** (non terminées, et pas encore de score pour cette personne) :
-    inscriptions et rôles d'officiel **supprimés**, la place libérée va à la liste d'attente. Si un
-    paiement avait été enregistré, l'organisateur est prévenu d'un **remboursement à faire** (club et
-    montant, sans nom) sur sa page « Paiements », jusqu'à ce qu'il clique « Remboursement
-    effectué » — ce qui inscrit le remboursement dans l'historique, où les paiements restent sous `ANON`. Une compétition dont
-    l'organisateur a verrouillé les participants est anonymisée à la place (la page le signale).
-  - **Compétitions tirées** : licence remplacée par `ANON`, nom et prénom vidés (participants et
-    officiels), date de naissance supprimée (la catégorie, enregistrée à l'inscription, ne change
-    pas), photo, légende et e-mail supprimés ; la licence disparaît aussi des inscriptions en ligne,
-    des paiements, de la boutique et du journal. Scores, classements, matchs, club et catégorie sont
-    conservés. Ces résultats ne sont plus rattachés à une licence (un export vers la fédération les
-    enverrait sous `ANON`).
-  - Partout : compte en ligne supprimé. Hors de portée : le fichier fédéral des licences (rechargé chaque nuit),
-  les données des autres modules, les résultats déjà publiés sur ianseo.net (la page liste les
-  compétitions à republier) ou transmis à la fédération, et les sauvegardes, jusqu'à la fin de leur
-  durée de conservation.
-- **Journaux système : 60 jours.** Par défaut Apache ne garde que 14 jours : trop court pour
-  analyser une compétition après coup (l'autre serveur n'a pu remonter qu'à deux semaines).
-  `sudo sed -i 's/^\s*rotate 14/\trotate 60/' /etc/logrotate.d/apache2`. Même durée pour
-  l'historique de charge si le paquet `sysstat` est installé (`HISTORY=60` dans `/etc/sysstat/sysstat`).
-- **Rétention des journaux** : `AUT_Log` et `BK_Log` sont purgés automatiquement au-delà de
-  **180 jours** (au plus une fois par jour, via le bootstrap ; aussi jouable dans le cron).
-  Durée modulable : `config.local.json` → `"log_retention_days": <jours>` (borne 7 à 3650).
-  Sans conséquence sur l'anti-bruteforce (fenêtre 15 min). Aligne la conservation sur la
-  politique de confidentialité (« journal conservé quelques mois »).
-- **Statistiques d'usage** (Multi-comptes › Statistiques d'usage, ADMIN) : mesure d'audience
-  **agrégée** (pages vues par heure/jour, visiteurs uniques, pages principales, taux de
-  conversion des archers, nb d'archers inscrivant d'autres archers), en 2 onglets
-  Organisateurs / Archers. **Aucune donnée personnelle, aucune IP** : les connectés sont comptés
-  par identité de compte, les visiteurs anonymes de l'accueil via un **cookie de mesure
-  d'audience exempté de consentement** (`aud`, 1re partie, ≤ 13 mois, doctrine CNIL). Compteurs
-  dans `AUT_Usage` (conservés 25 mois) et `AUT_UsageSeen` (rétention des journaux), purgés avec
-  les journaux. Désactivable par `config.local.json` → `"stats_enabled": false` ; fuseau des
-  seaux réglable par `"stats_timezone"` (défaut `Europe/Paris`). La **politique cookies**
-  (page publique Mentions légales & CGU → Cookies) décrit ce cookie et son exemption.
-- **Mise à jour ianseo** : menu Update (réservé ADMIN). La MaJ remet `htdocs/` à
-  zéro et efface `Modules/Authentication/`, mais **un filet auto-répare** : le bloc
-  `AUTH-SELFHEAL` de `config.inc.php` (posé à l'activation / à chaque déploiement, et
-  préservé aux MaJ) recopie `dist/` → `Modules/Authentication/` dès la 1re requête.
-  **Plus de redéploiement manuel après une MaJ** — à condition que le serveur web
-  puisse écrire dans `Modules/`. `config.inc.php` et `Modules/Custom/` survivent aux MaJ.
-  (Un install existant sans le filet le reçoit au prochain « Déployer ».)
-- **Mise à jour du module** : menu Multi-comptes → Mise à jour module, puis
-  redéployer si `dist/` a changé.
+- **Clubs**: create their competitions, "Competitions & sharing" page to
+  open access to CD/CR/FFTA (default: private). Sharing = read + write.
+- **Admin**: Users page = account creation, password reset
+  (sessions revoked), 2FA reset (lost phone), remote sign-out,
+  log of the last 30 events.
+- **Monitor**: the AUT_Log log (LOGIN_FAIL peaks), fail2ban
+  (`fail2ban-client status ianseo-auth`), disk space, ianseo updates. The admin log
+  (Multi-account › Users, an Organisers / Archers tab each with its own
+  filterable + paginated log) gives a quick view.
+- **Alerts**: a red banner is shown on all the administrator's pages when the
+  night's maintenance failed (with the steps at fault), when it **did not run** for
+  more than 30 h (scheduled task stopped: no backup any more), or when the online copy or
+  a hot copy failed. To be warned **even with the server off**, set `maintenance.ping_url`
+  in `config.local.json` on the command line: the address of a
+  [healthchecks.io](https://healthchecks.io) check (free), called at the end of each night (and
+  `…/fail` on failure). Set the check to "once a day, 2 h grace": the
+  service sends an e-mail on failure **and** when nothing arrives.
+- **Server state** (Multi-account › Server configuration): read-only checks of the
+  pitfalls lived through on a production server — MySQL 8 setting (§ 6.3), database connections and
+  memory, slow query log, session length and import size (§ 6.1), ModSecurity
+  limit (§ 4.3), OPcache, time of the system updates (§ 4.1), oversized sessions,
+  age of the backups — each with its fix command.
+- **Anonymise a licensee** (Multi-account › Anonymise a licensee, server administrator): for
+  an erasure request. Search by licence, surname or first name, preview of everything that changes,
+  confirmation by retyping the licence.
+  - **Upcoming competitions** (not finished, and no score yet for this person):
+    registrations and official roles **deleted**, the freed place goes to the waiting list. If a
+    payment had been recorded, the organiser is told of a **refund to make** (club and
+    amount, no name) on their "Payments" page, until they click "Refund
+    done" — which writes the refund into the history, where the payments stay under `ANON`. A competition whose
+    organiser has locked the participants is anonymised instead (the page says so).
+  - **Competitions already drawn**: licence replaced by `ANON`, surname and first name emptied (participants and
+    officials), date of birth deleted (the category, recorded at registration, does not
+    change), photo, caption and e-mail deleted; the licence also disappears from the online registrations,
+    payments, shop and log. Scores, rankings, matches, club and category are
+    kept. These results are no longer attached to a licence (an export to the federation would
+    send them under `ANON`).
+  - Everywhere: online account deleted. Out of reach: the federation's licence file (reloaded every night),
+  the data of other modules, the results already published on ianseo.net (the page lists the
+  competitions to republish) or sent to the federation, and the backups, until the end of their
+  retention period.
+- **System logs: 60 days.** By default Apache only keeps 14 days: too short to
+  analyse a competition afterwards (the other server could only go back two weeks).
+  `sudo sed -i 's/^\s*rotate 14/\trotate 60/' /etc/logrotate.d/apache2`. Same duration for
+  the load history if the `sysstat` package is installed (`HISTORY=60` in `/etc/sysstat/sysstat`).
+- **Log retention**: `AUT_Log` and `BK_Log` are purged automatically beyond
+  **180 days** (at most once a day, via the bootstrap; also runnable from the cron).
+  Adjustable: `config.local.json` → `"log_retention_days": <days>` (range 7 to 3650).
+  No consequence on the anti-bruteforce (15 min window). Aligns the retention with the
+  privacy policy ("log kept for a few months").
+- **Usage statistics** (Multi-account › Usage statistics, ADMIN): **aggregated**
+  audience measurement (page views per hour/day, unique visitors, main pages, archer
+  conversion rate, number of archers registering other archers), in 2 tabs
+  Organisers / Archers. **No personal data, no IP**: signed-in users are counted
+  by account identity, anonymous visitors of the home page via a **consent-exempt
+  audience measurement cookie** (`aud`, first party, ≤ 13 months, CNIL doctrine). Counters
+  in `AUT_Usage` (kept 25 months) and `AUT_UsageSeen` (log retention), purged with
+  the logs. Can be disabled by `config.local.json` → `"stats_enabled": false`; time zone of the
+  buckets adjustable by `"stats_timezone"` (default `Europe/Paris`). The **cookie policy**
+  (public page Legal notice & Terms → Cookies) describes this cookie and its exemption.
+- **ianseo update**: Update menu (ADMIN only). The update resets `htdocs/` to
+  zero and erases `Modules/Authentication/`, but **a safety net self-repairs**: the
+  `AUTH-SELFHEAL` block of `config.inc.php` (put in place at activation / at each deployment, and
+  preserved across updates) copies `dist/` → `Modules/Authentication/` back from the 1st request.
+  **No more manual redeployment after an update** — provided the web server
+  can write to `Modules/`. `config.inc.php` and `Modules/Custom/` survive updates.
+  (An existing install without the net gets it at the next "Deploy".)
+- **Module update**: Multi-account menu → Module update, then
+  redeploy if `dist/` changed.
 
-## 9 bis. Sauvegardes (nuit + copies à chaud)
+## 9 bis. Backups (night + hot copies)
 
-Chaque nuit, dans la fenêtre de maintenance (site fermé, donc copie cohérente) et **juste avant
-la mise à jour du cœur**, `cron/backup.php` produit :
+Every night, in the maintenance window (site closed, hence a consistent copy) and **just before
+the core update**, `cron/backup.php` produces:
 
-- `ianseo-db-AAAAMMJJ-HHMMSS.sql.gz` — dump de la base (`mysqldump`) ;
-- `ianseo-files-AAAAMMJJ-HHMMSS.tar.gz` — archive du site (sans `TV/Photos`) : revenir en
-  arrière demande la base **et** le code qui va avec.
+- `ianseo-db-YYYYMMDD-HHMMSS.sql.gz` — database dump (`mysqldump`);
+- `ianseo-files-YYYYMMDD-HHMMSS.tar.gz` — archive of the site (without `TV/Photos`): going back
+  needs the database **and** the code that goes with it.
 
-**Sans sauvegarde valide, le cœur n'est pas mis à jour cette nuit-là** (réglable :
-`backup.required_for_core`). Tout se règle dans **Multi-comptes › Configuration du serveur**,
-ou dans `config.local.json` :
+**Without a valid backup, the core is not updated that night** (adjustable:
+`backup.required_for_core`). Everything is set in **Multi-account › Server configuration**,
+or in `config.local.json`:
 
 ```json
 "backup": {
@@ -630,41 +632,41 @@ ou dans `config.local.json` :
 }
 ```
 
-**Logos des clubs hors des dumps (`logos: false`, défaut).** Sur le serveur de test, le cache
-des logos pesait 59 % de la base : dump de **57,6 Mo en 11,6 s** avec, **4,1 Mo en 2,6 s** sans.
-Leurs deux tables (`Flags`, `AUT_ClubLogos`) restent dans le fichier, mais en **structure seule,
-créée seulement si elle manque** : restaurer sur ce serveur laisse les logos en place ; sur un
-serveur neuf, les tables sont créées vides et la synchro des logos les remplit (celle de la nuit,
-ou tout de suite `sudo -u www-data php …/cron/sync-logos.php --full` — pour les compétitions non
-terminées ; les compétitions terminées restent sans logo).
+**Club logos left out of the dumps (`logos: false`, default).** On the test server, the logo cache
+weighed 59 % of the database: dump of **57.6 MB in 11.6 s** with them, **4.1 MB in 2.6 s** without.
+Their two tables (`Flags`, `AUT_ClubLogos`) stay in the file, but as **structure only,
+created only if missing**: restoring on this server leaves the logos in place; on a
+new server, the tables are created empty and the logo sync fills them (the night's one,
+or right away `sudo -u www-data php …/cron/sync-logos.php --full` — for competitions that are not
+finished; finished competitions stay without a logo).
 
-**Copies à chaud de la base** (`ianseo-live-AAAAMMJJ-HHMMSS.sql.gz`), toutes les 6 heures avec
-la nuit : 09:05, 15:05, 21:05. Site ouvert, sans rien bloquer : `--single-transaction` sur des
-tables InnoDB lit un instantané cohérent sans verrouiller aucune table — une page qui enregistre
-une volée pendant la copie n'attend pas. Quelques secondes (2,6 s sur le serveur de test).
-Elles limitent la perte à quelques heures de saisie au lieu d'une journée, sont envoyées en ligne
-comme la nuit, gardées 48 h (`live_keep_hours`) et se sautent d'elles-mêmes pendant la fenêtre de
-maintenance ou une restauration. Installation, une fois :
+**Hot copies of the database** (`ianseo-live-YYYYMMDD-HHMMSS.sql.gz`), every 6 hours together with
+the night: 09:05, 15:05, 21:05. Site open, blocking nothing: `--single-transaction` on
+InnoDB tables reads a consistent snapshot without locking any table — a page that saves
+an end during the copy does not wait. A few seconds (2.6 s on the test server).
+They limit the loss to a few hours of entries instead of a day, are sent online
+like the night's, kept 48 h (`live_keep_hours`) and skip themselves during the maintenance
+window or a restore. Installation, once:
 
 ```bash
 sudo touch /var/log/ianseo-backup.log && sudo chown www-data:adm /var/log/ianseo-backup.log
 sudo install -m 0644 -o root -g root /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-backup-live /etc/cron.d/
 ```
 
-(Suspendre sans toucher au serveur : case « Copies à chaud » de la page de configuration.)
+(Suspend without touching the server: "Hot copies" box of the configuration page.)
 
-**Une fois par serveur** — le dossier par défaut est sous `/var/backups`, qui appartient à root :
+**Once per server** — the default folder is under `/var/backups`, which belongs to root:
 
 ```bash
 sudo install -d -o www-data -g www-data -m 0700 /var/backups/ianseo
 ```
 
-Le dossier est toujours **hors du site web** (refusé sinon : Apache ne bloque pas les `.gz`).
-La dernière sauvegarde de chaque type est gardée même au-delà de `keep_days`.
+The folder is always **outside the web site** (refused otherwise: Apache does not block `.gz` files).
+The latest backup of each type is kept even beyond `keep_days`.
 
-Lancer une sauvegarde à la main : `sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/backup.php`
+Run a backup by hand: `sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/backup.php`
 
-### Copie en ligne (Google Drive, Dropbox, OneDrive, NAS…) — rclone
+### Online copy (Google Drive, Dropbox, OneDrive, NAS…) — rclone
 
 ```bash
 sudo apt install rclone
@@ -672,311 +674,311 @@ sudo install -d -o www-data -g www-data -m 0700 /var/www/.config
 sudo -u www-data rclone config
 ```
 
-⚠️ **La base contient les données personnelles des licenciés** : on déclare **deux**
-destinations — le stockage, puis une couche `crypt` (chiffrée) par-dessus. ianseo n'écrit que
-dans la seconde : l'hébergeur ne voit que des fichiers illisibles.
+⚠️ **The database contains the licensees' personal data**: **two** destinations are declared
+— the storage, then a `crypt` (encrypted) layer on top of it. ianseo only writes to
+the second: the host only sees unreadable files.
 
-⚠️ À l'écran d'accueil de `rclone config`, **ne pas** choisir `s) Set configuration password` :
-la sauvegarde tourne la nuit, sans personne pour saisir ce mot de passe — elle échouerait.
+⚠️ On the welcome screen of `rclone config`, **do not** choose `s) Set configuration password`:
+the backup runs at night, with nobody to type this password — it would fail.
 
-**Destination 1 — le stockage** (exemple Google Drive ; `dropbox`, `onedrive`… se déroulent pareil) :
+**Destination 1 — the storage** (Google Drive example; `dropbox`, `onedrive`… go the same way):
 
-| Question | Réponse |
+| Question | Answer |
 |---|---|
 | `n/s/q>` | `n` |
 | `name>` | `gdrive` |
 | `Storage>` | `drive` |
-| `client_id>` / `client_secret>` | Entrée (vides) |
-| `scope>` | `drive.file` — rclone ne voit **que les fichiers qu'il a créés**, rien d'autre du Drive (voir ci-dessous pour un dossier partagé) |
-| `service_account_file>` | Entrée |
+| `client_id>` / `client_secret>` | Enter (empty) |
+| `scope>` | `drive.file` — rclone sees **only the files it created**, nothing else of the Drive (see below for a shared folder) |
+| `service_account_file>` | Enter |
 | `Edit advanced config?` | `n` |
-| `Use web browser to automatically authenticate?` | `n` — le serveur n'a pas de navigateur |
+| `Use web browser to automatically authenticate?` | `n` — the server has no browser |
 
-rclone affiche alors une commande `rclone authorize "drive" "…"`. La lancer **sur un ordinateur
-avec navigateur** où rclone est installé (Windows : `winget install Rclone.Rclone`), se connecter
-au compte Google choisi, puis recopier le jeton affiché dans `config_token>` sur le serveur.
-Ensuite : `Shared Drive?` → `n`, `Keep this remote?` → `y`.
+rclone then displays a `rclone authorize "drive" "…"` command. Run it **on a computer
+with a browser** where rclone is installed (Windows: `winget install Rclone.Rclone`), sign in
+to the chosen Google account, then paste the token displayed into `config_token>` on the server.
+Then: `Shared Drive?` → `n`, `Keep this remote?` → `y`.
 
-**Déposer dans un dossier partagé par quelqu'un d'autre** (vécu sur l'autre serveur) : `drive.file`
-ne voit ni les drives partagés ni un dossier créé par un autre compte. Il faut alors le scope
-`drive`, et désigner le dossier par son identifiant — la fin de son adresse dans le navigateur,
-`https://drive.google.com/drive/folders/<identifiant>` — à la question `root_folder_id>` (options
-avancées : `Edit advanced config?` → `y`).
+**Writing into a folder shared by someone else** (experienced on the other server): `drive.file`
+sees neither shared drives nor a folder created by another account. The scope
+`drive` is then needed, and the folder is designated by its identifier — the end of its address in the browser,
+`https://drive.google.com/drive/folders/<identifier>` — at the `root_folder_id>` question (advanced
+options: `Edit advanced config?` → `y`).
 
-**Bon à savoir sur Google Drive** : les fichiers appartiennent au compte Google qui a autorisé
-rclone et en dépendent (compte supprimé = sauvegardes perdues) — préférer un compte de la
-structure à un compte personnel. Ne jamais les supprimer depuis l'interface de Drive (les noms y
-sont chiffrés, on ne sait pas ce qu'on efface) : la rotation du module s'en charge, et supprime
-**définitivement** (sans passer par la corbeille de Drive, qui compterait dans le quota).
+**Good to know about Google Drive**: the files belong to the Google account that authorised
+rclone and depend on it (account deleted = backups lost) — prefer an account of the
+organisation to a personal one. Never delete them from the Drive interface (the names there
+are encrypted, you do not know what you are erasing): the module's rotation takes care of it, and deletes
+**permanently** (without going through the Drive trash, which would count towards the quota).
 
-**Destination 2 — la couche chiffrée** :
+**Destination 2 — the encrypted layer**:
 
-| Question | Réponse |
+| Question | Answer |
 |---|---|
 | `n/s/q>` | `n` |
-| `name>` | `gdrive-chiffre` |
+| `name>` | `gdrive-encrypted` |
 | `Storage>` | `crypt` |
-| `remote>` | `gdrive:ianseo` (dossier `ianseo` du Drive, créé au premier envoi) |
+| `remote>` | `gdrive:ianseo` (`ianseo` folder of the Drive, created at the first upload) |
 | `filename_encryption>` | `standard` |
 | `directory_name_encryption>` | `true` |
-| `password` | `g` pour en générer un (ou `y` pour le saisir) |
-| `password2` (sel) | `g` |
-| `Edit advanced config?` | `n` ; `Keep this remote?` → `y` ; puis `q` |
+| `password` | `g` to generate one (or `y` to type it) |
+| `password2` (salt) | `g` |
+| `Edit advanced config?` | `n`; `Keep this remote?` → `y`; then `q` |
 
-🔑 **Recopier les deux mots de passe affichés dans un coffre-fort ou un gestionnaire de mots de
-passe, hors du serveur.** Sans eux, les sauvegardes en ligne sont **irrécupérables** — par
-exemple si le serveur lui-même est perdu, qui est justement le cas où l'on en a besoin.
+🔑 **Copy the two passwords displayed into a safe or a password manager, off the server.**
+Without them, the online backups are **unrecoverable** — for
+instance if the server itself is lost, which is precisely the case where they are needed.
 
-Vérifier depuis le serveur, puis dans ianseo :
-
-```bash
-sudo -u www-data rclone mkdir gdrive-chiffre:ianseo   # crée le dossier (sans effet s'il existe)
-sudo -u www-data rclone lsf gdrive-chiffre:ianseo     # aucune erreur = accès ok (vide au début)
-```
-
-(Sans le `mkdir`, une destination qui n'a encore jamais rien reçu répond
-`directory not found` : ce n'est pas une panne, le premier envoi créerait le dossier.)
-
-**Multi-comptes › Configuration du serveur** → Copie en ligne : `gdrive-chiffre:` → Enregistrer →
-**Tester la destination en ligne**. Un échec de la copie en ligne ne bloque pas la mise à jour
-(la copie locale suffit pour revenir en arrière).
-
-**L'envoi part après la réouverture du site**, en arrière-plan : seul le dump a besoin du site
-fermé. Sur le premier serveur, 125 Mo ont mis 17 min à partir (liaison montante lente) — en
-restant dans la fenêtre, le site serait resté fermé 22 min au lieu de 5, et les fichiers du cœur
-déverrouillés d'autant. Le résultat s'ajoute à la fin du journal de la nuit
-(`Copie en ligne : ok → …`), après la ligne `Terminé en … s`. Lancé à la main dans un terminal,
-l'envoi se fait sur place.
-
-Taille à prévoir en ligne : ≈ (taille d'une nuit) × `remote_keep_days` + (taille d'une copie à
-chaud) × 8 — sans les logos, la base compte peu ; c'est l'archive des fichiers qui domine.
-Un seul envoi à la fois : si le précédent traîne encore, la copie locale est faite quand même et
-l'échec de l'envoi est signalé (bandeau administrateur).
-
-### Restaurer
-
-Script `serveur/bin/ianseo-restore` (installé dans `/usr/local/bin/`, à lancer en root) :
+Check from the server, then in ianseo:
 
 ```bash
-sudo ianseo-restore                                   # liste les sauvegardes, les plus récentes d'abord
-sudo ianseo-restore --test ianseo-db-XXXX.sql.gz      # VÉRIFIE une copie sans toucher au site
-sudo ianseo-restore ianseo-db-XXXX.sql.gz             # restaure la base (ou un ianseo-files-… : les fichiers)
+sudo -u www-data rclone mkdir gdrive-encrypted:ianseo   # creates the folder (no effect if it exists)
+sudo -u www-data rclone lsf gdrive-encrypted:ianseo     # no error = access ok (empty at first)
 ```
 
-⚠️ Restaurer la base ramène **toutes les compétitions du serveur** au moment de la copie : tout
-ce qui a été saisi depuis est perdu, pour tout le monde. Le script demande de taper `OUI`, empêche
-la maintenance nocturne et les copies à chaud de démarrer, met le site en maintenance, **sauvegarde
-l'état actuel** (on peut vouloir y revenir : c'est la copie en tête de liste), restaure, remet le
-cœur en lecture seule (fichiers) et rouvre le site. Si la restauration elle-même échoue, le site
-**reste fermé** — une base à moitié restaurée ne doit pas être servie — et le message dit quoi faire.
-Pour revenir en arrière après une mise à jour du cœur qui a mal tourné : la base **et** les
-fichiers de la même nuit (même horodatage), la base d'abord.
+(Without the `mkdir`, a destination that has never received anything answers
+`directory not found`: it is not a failure, the first upload would create the folder.)
 
-**Tester une restauration** avant l'ouverture, puis de temps en temps : `--test` restaure la copie
-dans une base jetable, compte tables, compétitions et inscriptions, affiche les compétitions les
-plus récentes, puis supprime la base jetable. Pour une copie en ligne, la rapatrier d'abord
-(`DESTINATION` = la valeur du champ « Copie en ligne », par exemple `gdrive-chiffre:ianseo`) :
-`sudo -u www-data rclone copy DESTINATION/ianseo-db-XXXX.sql.gz /tmp/` puis
+**Multi-account › Server configuration** → Online copy: `gdrive-encrypted:` → Save →
+**Test the online destination**. A failure of the online copy does not block the update
+(the local copy is enough to go back).
+
+**The upload starts after the site has reopened**, in the background: only the dump needs the site
+closed. On the first server, 125 MB took 17 min to go (slow uplink) — staying
+inside the window, the site would have stayed closed 22 min instead of 5, and the core files
+unlocked for as long. The result is appended at the end of the night's log
+(`Online copy: ok → …`), after the `Finished in … s` line. Run by hand in a terminal,
+the upload is done on the spot.
+
+Size to plan for online: ≈ (size of one night) × `remote_keep_days` + (size of one hot
+copy) × 8 — without the logos, the database is small; it is the files archive that dominates.
+One upload at a time: if the previous one is still dragging on, the local copy is made anyway and
+the upload failure is reported (administrator banner).
+
+### Restoring
+
+Script `serveur/bin/ianseo-restore` (installed in `/usr/local/bin/`, to be run as root):
+
+```bash
+sudo ianseo-restore                                   # lists the backups, most recent first
+sudo ianseo-restore --test ianseo-db-XXXX.sql.gz      # CHECKS a copy without touching the site
+sudo ianseo-restore ianseo-db-XXXX.sql.gz             # restores the database (or an ianseo-files-…: the files)
+```
+
+⚠️ Restoring the database brings **all the competitions of the server** back to the time of the copy: everything
+entered since is lost, for everybody. The script asks you to type `YES`, prevents the nightly
+maintenance and the hot copies from starting, puts the site in maintenance, **backs up
+the current state** (you may want to go back to it: it is the copy at the top of the list), restores, puts the
+core back to read-only (files) and reopens the site. If the restore itself fails, the site
+**stays closed** — a half-restored database must not be served — and the message says what to do.
+To go back after a core update that went wrong: the database **and** the
+files of the same night (same timestamp), the database first.
+
+**Test a restore** before opening, then from time to time: `--test` restores the copy
+into a throwaway database, counts tables, competitions and registrations, displays the most
+recent competitions, then deletes the throwaway database. For an online copy, bring it back first
+(`DESTINATION` = the value of the "Online copy" field, for example `gdrive-encrypted:ianseo`):
+`sudo -u www-data rclone copy DESTINATION/ianseo-db-XXXX.sql.gz /tmp/` then
 `sudo ianseo-restore --test /tmp/ianseo-db-XXXX.sql.gz`.
 
-Sans le script (par exemple sur une machine neuve où le module n'est pas encore là) :
+Without the script (for instance on a new machine where the module is not there yet):
 
 ```bash
 sudo /usr/local/bin/ianseo-maintenance-on
 gunzip -c /var/backups/ianseo/ianseo-db-XXXX.sql.gz | sudo mysql ianseo
-sudo tar -xzf /var/backups/ianseo/ianseo-files-XXXX.tar.gz -C /var/www   # remet /var/www/ianseo
-sudo /usr/local/bin/ianseo-lock                                          # cœur en lecture seule
+sudo tar -xzf /var/backups/ianseo/ianseo-files-XXXX.tar.gz -C /var/www   # puts /var/www/ianseo back
+sudo /usr/local/bin/ianseo-lock                                          # core read-only
 sudo /usr/local/bin/ianseo-maintenance-off
 ```
 
-## 9 ter. Configuration depuis ianseo (`admin/config.php`)
+## 9 ter. Configuration from ianseo (`admin/config.php`)
 
-`config.local.json` se modifie depuis **Multi-comptes › Configuration du serveur** (administrateur
-serveur uniquement). Règles appliquées côté serveur :
+`config.local.json` is edited from **Multi-account › Server configuration** (server
+administrator only). Rules applied on the server side:
 
-- les mots de passe ne sont **jamais** affichés (remplacés par `••••••••`, qui veut dire « inchangé ») ;
-- **verrouillés** — modifiables seulement en ligne de commande : les commandes de maintenance
-  (`maintenance.on/off/lock/unlock`), les chemins (`*file`, `*dir`, `*path`, `*bin`…) et les
-  adresses de serveurs (`*base`, `*url`, `*host`, toute valeur `https://…`). Une session
-  administrateur volée ne doit permettre ni d'exécuter une commande sur le serveur, ni d'écrire un
-  `.php` dans le site (`log_file`), ni de détourner les identifiants des organisateurs (`sso.base`).
-  Seule exception : `backup.dir`, contrôlé (jamais dans le site) ;
-- écriture atomique, version précédente dans `config.local.json.bak`, événement `CONFIG_EDIT`
-  dans le journal.
+- passwords are **never** displayed (replaced by `••••••••`, meaning "unchanged");
+- **locked** — editable only on the command line: the maintenance commands
+  (`maintenance.on/off/lock/unlock`), the paths (`*file`, `*dir`, `*path`, `*bin`…) and the
+  server addresses (`*base`, `*url`, `*host`, any `https://…` value). A stolen
+  administrator session must allow neither running a command on the server, nor writing a
+  `.php` into the site (`log_file`), nor diverting the organisers' credentials (`sso.base`).
+  The only exception: `backup.dir`, checked (never inside the site);
+- atomic write, previous version in `config.local.json.bak`, `CONFIG_EDIT` event
+  in the log.
 
-Le fichier doit appartenir au serveur web : `sudo chown www-data:www-data …/AUTH/config.local.json && sudo chmod 600 …`
+The file must belong to the web server: `sudo chown www-data:www-data …/AUTH/config.local.json && sudo chmod 600 …`
 
-## 10. Procédure de secours
+## 10. Emergency procedure
 
-Si `USERAUTH` est actif mais `Modules/Authentication/BlockFunction.php`
-manque, **tout le site est en erreur fatale** (fermé, pas ouvert — voulu).
-**Normalement le filet `AUTH-SELFHEAL` de `config.inc.php` répare seul** dès la 1re
-requête. S'il ne le fait pas (serveur web sans droit d'écriture sur `Modules/`, ou
-`config.inc.php` réinitialisé), depuis la console :
+If `USERAUTH` is on but `Modules/Authentication/BlockFunction.php`
+is missing, **the whole site is in fatal error** (closed, not open — intended).
+**Normally the `AUTH-SELFHEAL` net of `config.inc.php` repairs it alone** from the 1st
+request. If it does not (web server without write access to `Modules/`, or
+`config.inc.php` reset), from the console:
 
 ```bash
-# redéployer :
+# redeploy:
 cp /var/www/ianseo/Modules/Custom/AUTH/dist/* /var/www/ianseo/Modules/Authentication/
-# OU désactiver l'authentification :
+# OR turn authentication off:
 sed -i 's/$CFG->USERAUTH = true;/$CFG->USERAUTH = false;/' /var/www/ianseo/Common/config.inc.php
 ```
 ```powershell
-# Windows :
+# Windows:
 Copy-Item C:\ianseo\htdocs\Modules\Custom\AUTH\dist\* C:\ianseo\htdocs\Modules\Authentication\ -Force
 ```
 
-Rappel : depuis `localhost` (console serveur ou tunnel
-`ssh -L 8080:localhost:80 serveur`), ianseo reste accessible sans compte —
-porte de secours native du cœur. C'est aussi pour ça que l'accès SSH doit être
-verrouillé (clés + IP restreintes) : **qui a le SSH a ianseo**.
-Le point à connaître : le serveur web (www-data) doit posséder les fichiers pour que l'auto-réparation AUTH et les écritures locales (config.local.json, sessions, logs) fonctionnent — le chown www-data est aujourd'hui une étape manuelle (affichée en fin de script d'installation)
+Reminder: from `localhost` (server console or tunnel
+`ssh -L 8080:localhost:80 server`), ianseo remains accessible without an account —
+native back door of the core. That is also why SSH access must be
+locked down (keys + restricted IPs): **whoever has SSH has ianseo**.
+The point to know: the web server (www-data) must own the files for the AUTH self-repair and the local writes (config.local.json, sessions, logs) to work — the chown www-data is currently a manual step (displayed at the end of the installation script)
 
-## 11. SSO Espace Dirigeant FFTA
+## 11. FFTA officers' space SSO
 
-Les organisateurs se connectent avec leurs **identifiants dirigeant.ffta.fr** :
-pas de création de comptes ni de gestion de mots de passe côté serveur ianseo.
+Organisers sign in with their **dirigeant.ffta.fr credentials**:
+no account creation nor password management on the ianseo server side.
 
-- À la connexion, le serveur valide les identifiants en se connectant à
-  l'espace dirigeant (même flux que l'intégration licences FR existante), lit
-  les **structures rattachées** (menu select-structure) et en déduit le rôle :
-  club (badge = agrément, ex. `0760171`), CD (`60000` → dept 60), CR,
-  Fédération. Rôle FFTA requis : `Gestionnaire`/`Administrateur` (réglable).
-- **Pas de choix de structure à la connexion** : la personne entre directement
-  dans sa **dernière vue** utilisée (ou son niveau maximum), puis **bascule de
-  vue à la volée** via le sélecteur de la barre (club / CD / CR / Fédé / Admin).
-  La vue active détermine ce qu'elle voit et le propriétaire des compétitions
-  qu'elle crée. Les structures sont resynchronisées à chaque connexion : une
-  structure retirée sur l'espace dirigeant disparaît au login suivant.
-- Le compte ianseo est **provisionné automatiquement** à la première
-  connexion ; un admin peut le désactiver à tout moment (bloque l'accès même
-  si les identifiants FFTA restent valides).
-- **Le mot de passe FFTA n'est ni stocké ni journalisé** — il transite en
-  HTTPS vers dirigeant.ffta.fr uniquement. Si le compte FFTA a une MFA, le
-  champ « Code MFA » du formulaire est relayé.
-- Les comptes **ADMIN** peuvent être votre propre compte dirigeant (SSO) +
-  2FA de notre serveur (QR code d'enrôlement), OU un compte local. Le rôle
-  admin est toujours **octroyé explicitement** (jamais déduit du SSO).
-  **Gardez le compte local `ianseo` en secours (« break-glass »)** : si
-  dirigeant.ffta.fr est indisponible, il permet de reprendre la main
-  (indépendant du service externe). La 2FA de ce serveur ne concerne que les
-  comptes admin (les autres sont sécurisés par l'Espace Dirigeant).
-- Limite à connaître : c'est un **relais de crédentiels**, pas un OAuth. À
-  terme, demander au prestataire de l'espace dirigeant un vrai client
-  OpenID Connect (le module pourra basculer) ; en attendant, si la page de
-  login FFTA change de structure, le SSO s'arrête proprement (message
-  d'erreur explicite) et les comptes locaux continuent de fonctionner.
-- **Qui peut se connecter comme organisateur** : un compte espace dirigeant valide ne
-  suffit pas — il faut porter un rôle **SPORTIF** (« Gestionnaire Sportif » ou
-  « Administrateur Sportif ») sur au moins une structure (club, CD, CR, fédération).
-  « Consultant Club », « Gestionnaire Club », « Administrateur » seul et les autres
-  rôles sont refusés, avec un message nommant les rôles à demander.
-- Configuration (`Modules/Custom/AUTH/config.local.json`) — défaut si absent :
+- At sign-in, the server validates the credentials by connecting to
+  the officers' space (same flow as the existing FR licence integration), reads
+  the **attached structures** (select-structure menu) and deduces the role:
+  club (badge = agrément, e.g. `0760171`), CD (`60000` → dept 60), CR,
+  Federation. FFTA role required: `Gestionnaire`/`Administrateur` (adjustable).
+- **No choice of structure at sign-in**: the person goes straight into
+  their **last view** used (or their maximum level), then **switches
+  view on the fly** via the bar's selector (club / CD / CR / Fed / Admin).
+  The active view determines what they see and the owner of the competitions
+  they create. The structures are resynchronised at each sign-in: a
+  structure removed on the officers' space disappears at the next login.
+- The ianseo account is **provisioned automatically** at the first
+  sign-in; an admin can deactivate it at any time (blocks access even
+  if the FFTA credentials remain valid).
+- **The FFTA password is neither stored nor logged** — it only goes over
+  HTTPS to dirigeant.ffta.fr. If the FFTA account has MFA, the
+  "MFA code" field of the form is relayed.
+- **ADMIN** accounts can be your own officers' space account (SSO) +
+  our server's 2FA (enrolment QR code), OR a local account. The admin role
+  is always **granted explicitly** (never deduced from the SSO).
+  **Keep the local `ianseo` account as a "break-glass"**: if
+  dirigeant.ffta.fr is unavailable, it lets you regain control
+  (independent of the external service). This server's 2FA only concerns the
+  admin accounts (the others are secured by the officers' space).
+- Limit to know: it is a **credential relay**, not an OAuth. In
+  time, ask the provider of the officers' space for a real OpenID
+  Connect client (the module will be able to switch); meanwhile, if the FFTA login
+  page changes structure, the SSO stops cleanly (explicit error
+  message) and the local accounts keep working.
+- **Who can sign in as organiser**: a valid officers' space account is not
+  enough — one must hold a **SPORTIF** role ("Gestionnaire Sportif" or
+  "Administrateur Sportif") on at least one structure (club, CD, CR, federation).
+  "Consultant Club", "Gestionnaire Club", "Administrateur" alone and the other
+  roles are refused, with a message naming the roles to ask for.
+- Configuration (`Modules/Custom/AUTH/config.local.json`) — default if absent:
   ```json
   { "sso": { "enabled": true,
              "required_role_regex": "(Gestionnaire|Administrateur)\\s+Sportif",
-             "required_role_label": "« Gestionnaire Sportif » ou « Administrateur Sportif »" } }
+             "required_role_label": "\"Gestionnaire Sportif\" or \"Administrateur Sportif\"" } }
   ```
-  Pour élargir (p. ex. admettre aussi les administrateurs de structure sans
-  qualificatif sportif) : ajouter `|Administrateur` au motif et ajuster le label,
-  qui n'est qu'un texte d'affichage dans le message de refus.
-- **En cas de souci de connexion SSO un jour** (la FFTA change sa page de
-  login/MFA) : activer la trace en créant le fichier vide
-  `Modules/Custom/AUTH/ffta-debug.on`, reproduire l'erreur, lire
-  `Modules/Custom/AUTH/ffta-debug.log` (URLs, codes HTTP, type de page, noms de
-  champs — **jamais** de mot de passe ni de code), puis **supprimer
-  `ffta-debug.on`**. Désactivé par défaut. C'est ce qui a permis de câbler la
-  MFA à deux étapes (Laravel Fortify) ; garder ce mécanisme.
+  To widen (e.g. also admit structure administrators without the
+  sports qualifier): add `|Administrateur` to the pattern and adjust the label,
+  which is only a display text in the refusal message.
+- **If one day there is a problem with the SSO sign-in** (the FFTA changes its
+  login/MFA page): turn the trace on by creating the empty file
+  `Modules/Custom/AUTH/ffta-debug.on`, reproduce the error, read
+  `Modules/Custom/AUTH/ffta-debug.log` (URLs, HTTP codes, page type, field
+  names — **never** a password nor a code), then **delete
+  `ffta-debug.on`**. Off by default. It is what made it possible to wire the
+  two-step MFA (Laravel Fortify); keep this mechanism.
 
-## 11 bis. Espace compétiteur (inscriptions en ligne)
+## 11 bis. Competitor space (online registration)
 
-Le module inclut désormais le sous-module **inscriptions en ligne + boutique**
-(`Modules/Custom/AUTH/booking/`) : les **licenciés eux-mêmes** ouvrent un compte,
-consultent le calendrier des compétitions ouvertes et s'inscrivent en ligne.
+The module now includes the **online registration + shop** sub-module
+(`Modules/Custom/AUTH/booking/`): the **licensees themselves** open an account,
+consult the calendar of open competitions and register online.
 
-- **Troisième espace FFTA** : la connexion compétiteur relaie les identifiants vers
-  **`monespace.ffta.fr`** (Espace Licencié) — distinct de `dirigeant.ffta.fr` (§ 11)
-  et de `extranet.ffta.fr`. Même technique de **relais de crédentiels** : le mot de
-  passe transite en HTTPS, **jamais stocké ni journalisé** ; le compte licencié n'a
-  pas de mot de passe local (sentinelle SSO). La licence rattachée est **lue sur la
-  page servie après connexion** (déclarée par la FFTA), jamais depuis un champ de
-  formulaire — refus si elle est incertaine.
-- **Page de connexion par défaut = compétiteur** (la grande majorité des visiteurs
-  sont des licenciés) ; l'onglet organisateur reste accessible (`?p=org`).
-- **Surface publique maîtrisée** : les pages `booking/public/` posent `$SKIP_AUTH`
-  avant `config.php` (mécanisme natif du cœur) → un licencié anonyme les atteint
-  **même quand AUTH est actif**, sans liste blanche à maintenir. **Contrepartie** :
-  ces pages n'ont **aucune ACL du cœur** ; chaque lecture/écriture est gardée
-  explicitement (`bk_current_archer()` + CSRF sur tout POST), bornée au licencié
-  connecté. Sessions à jetons hachés en base (`BK_Sessions`, comme AUTH).
-- **Anti-bourrage** : la connexion compétiteur relaie vers la FFTA → **8 échecs /
-  15 min par IP ou licence** avant tout appel sortant (`bk_too_many`), pour ne pas
-  devenir un relais de brute-force contre la fédération.
-- **Données** : comptes licenciés (`BK_Archers`), inscriptions (traçage
-  `BK_Registrations` + Entries du cœur), paiements suivis (`BK_Payments`), boutique.
-  Mêmes compensations que § 7 (WAF, TLS, journal, sauvegardes, purge).
-- **Trace de débogage SSO** identique au § 11 : fichier vide
-  `booking/ffta-debug.on` → `booking/ffta-debug.log` (jamais de mot de passe), à
-  retirer après usage.
-- **Liste d'attente** : quand un départ est complet pour son profil (arme, catégorie, blason), il
-  reste sélectionnable dans le formulaire d'inscription, qui inscrit alors l'archer sur la liste
-  (avec ses souhaits et son moyen de paiement) ; dès qu'une place se libère, le premier compatible est
-  **inscrit automatiquement** (toutes les règles d'une inscription s'appliquent, validation
-  manuelle comprise) et prévenu sur le site. Les pages d'inscription en ligne servent la liste
-  dès qu'une place se libère chez elles ; pour les places libérées dans les écrans de ianseo
-  (participant supprimé, cibles ajoutées), une tâche planifiée passe toutes les 10 minutes :
+- **Third FFTA space**: the competitor sign-in relays the credentials to
+  **`monespace.ffta.fr`** (Espace Licencié) — distinct from `dirigeant.ffta.fr` (§ 11)
+  and from `extranet.ffta.fr`. Same **credential relay** technique: the password
+  goes over HTTPS, **never stored nor logged**; the licensee account has
+  no local password (SSO sentinel). The attached licence is **read from the
+  page served after sign-in** (declared by the FFTA), never from a form
+  field — refused if uncertain.
+- **Default sign-in page = competitor** (the great majority of visitors
+  are licensees); the organiser tab remains accessible (`?p=org`).
+- **Controlled public surface**: the `booking/public/` pages set `$SKIP_AUTH`
+  before `config.php` (native core mechanism) → an anonymous licensee reaches them
+  **even when AUTH is on**, with no whitelist to maintain. **Counterpart**:
+  these pages have **no core ACL**; each read/write is explicitly guarded
+  (`bk_current_archer()` + CSRF on every POST), bounded to the signed-in
+  licensee. Sessions with hashed tokens in the database (`BK_Sessions`, like AUTH).
+- **Anti-stuffing**: the competitor sign-in relays to the FFTA → **8 failures /
+  15 min per IP or licence** before any outgoing call (`bk_too_many`), so as not to
+  become a brute-force relay against the federation.
+- **Data**: licensee accounts (`BK_Archers`), registrations (trace
+  `BK_Registrations` + core Entries), tracked payments (`BK_Payments`), shop.
+  Same compensations as § 7 (WAF, TLS, log, backups, purge).
+- **SSO debug trace** identical to § 11: empty file
+  `booking/ffta-debug.on` → `booking/ffta-debug.log` (never a password), to be
+  removed after use.
+- **Waiting list**: when a session is full for their profile (bow, category, target face), it
+  remains selectable in the registration form, which then puts the archer on the list
+  (with their wishes and payment method); as soon as a place is freed, the first compatible one is
+  **registered automatically** (all the rules of a registration apply, manual
+  validation included) and told on the site. The online registration pages serve the list
+  as soon as a place is freed in them; for the places freed in the ianseo screens
+  (participant deleted, targets added), a scheduled task runs every 10 minutes:
   ```bash
   sudo install -m 0644 -o root -g root /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-waitlist /etc/cron.d/
   ```
-  Les listes sont supprimées au lendemain de la compétition.
+  The lists are deleted the day after the competition.
 
-## 12. Synchro licences par cron
+## 12. Licence sync by cron
 
-La base licenciés est maintenue par le serveur, pas par les organisateurs :
+The licensee database is maintained by the server, not by the organisers:
 
-1. Créer un **compte de service** dédié sur l'espace dirigeant (droits
-   minimaux : accès au téléchargement ianseo ; **sans MFA**, sinon le cron ne
-   peut pas s'authentifier — à défaut, MFA sur IP de confiance si disponible).
-2. Renseigner `Modules/Custom/AUTH/config.local.json` (chmod **600**,
-   propriétaire www-data) :
+1. Create a dedicated **service account** on the officers' space (minimal
+   rights: access to the ianseo download; **without MFA**, otherwise the cron cannot
+   authenticate — failing that, MFA on a trusted IP if available).
+2. Fill in `Modules/Custom/AUTH/config.local.json` (chmod **600**,
+   owner www-data):
    ```json
    { "licsync": { "username": "svc-ianseo", "password": "…", "otp": "" } }
    ```
-3. Crontab :
+3. Crontab:
    ```
    15 3 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/sync-licences.php >> /var/log/ianseo-licsync.log 2>&1
    ```
-   (Windows : Planificateur de tâches → `php.exe …\cron\sync-licences.php`.)
-4. Le script télécharge `parametres_ianseo.ffta`, importe dans
-   `LookUpEntries`, met à jour les statuts d'inscription des compétitions en
-   cours/à venir, et trace `LICSYNC_OK/FAIL` dans le journal du module.
-   Vérifier le log après la première nuit.
+   (Windows: Task Scheduler → `php.exe …\cron\sync-licences.php`.)
+4. The script downloads `parametres_ianseo.ffta`, imports it into
+   `LookUpEntries`, updates the registration statuses of the current/upcoming
+   competitions, and logs `LICSYNC_OK/FAIL` in the module's log.
+   Check the log after the first night.
 
-`config.local.json` n'est jamais synchronisé par les mises à jour du module
-(hors manifeste) : les secrets restent locaux au serveur.
+`config.local.json` is never synchronised by the module updates
+(outside the manifest): the secrets stay local to the server.
 
-### Tout en un : la fenêtre de maintenance nocturne
+### All in one: the nightly maintenance window
 
-`cron/maintenance.php` enchaîne toutes les opérations, chacune après la précédente,
-et **remplace à lui seul** les lignes crontab des synchros :
+`cron/maintenance.php` chains all the operations, each after the previous one,
+and **alone replaces** the crontab lines of the syncs:
 
 ```
 15 3 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php >> /var/log/ianseo-maintenance.log 2>&1
 ```
 
-Déroulé : maintenance ON → déverrouillage → **MàJ du cœur ianseo** → **MàJ des modules
-Custom** → redéploiement AUTH → **synchro licences** → **synchro logos** →
-verrouillage → maintenance OFF.
+Sequence: maintenance ON → unlock → **ianseo core update** → **Custom modules
+update** → AUTH redeployment → **licence sync** → **logo sync** →
+lock → maintenance OFF.
 
-- **La maintenance est toujours coupée**, même si une étape échoue, si le script est
-  interrompu ou s'il meurt sur une erreur fatale (gestionnaire de fin de script posé
-  avant toute action + signaux SIGINT/SIGTERM/SIGHUP). Sans cela, le serveur resterait
-  bloqué en page 503. *(Un `kill -9` reste hors de portée : dans ce cas, lancer
-  `ianseo-maintenance-off` à la main.)*
-- Chaque étape est **indépendante** : l'échec de l'une n'empêche ni les suivantes ni la
-  sortie de maintenance. Bilan en fin de log, code de sortie 1 et `MAINT_PARTIAL` au
-  journal si quelque chose a échoué.
-- Les commandes système sont **configurables**, et une commande vide fait simplement
-  sauter l'étape (le script est donc inoffensif hors serveur de production) :
+- **The maintenance is always switched off**, even if a step fails, if the script is
+  interrupted or if it dies on a fatal error (end-of-script handler put in place
+  before any action + SIGINT/SIGTERM/SIGHUP signals). Without it, the server would stay
+  stuck on a 503 page. *(A `kill -9` remains out of reach: in that case, run
+  `ianseo-maintenance-off` by hand.)*
+- Each step is **independent**: the failure of one prevents neither the following ones nor the
+  exit from maintenance. Summary at the end of the log, exit code 1 and `MAINT_PARTIAL` in the
+  log if something failed.
+- The system commands are **configurable**, and an empty command simply
+  skips the step (the script is therefore harmless outside a production server):
 
 ```json
 { "maintenance": {
@@ -989,209 +991,209 @@ verrouillage → maintenance OFF.
 } }
 ```
 
-- **`notice` — avertissement préalable aux utilisateurs.** Pendant les
-  `lead_minutes` qui précèdent l'heure `at`, un bandeau permanent s'affiche sur
-  **toutes** les pages (espace organisateur *et* espace licencié) : « Maintenance
-  programmée à 03:15 (dans N minutes) — le serveur sera indisponible quelques
-  minutes. Terminez et enregistrez votre saisie. » Le décompte se met à jour à
-  chaque page. Personne ne se retrouve devant une 503 sans prévenir.
-  Sans la clé `at`, **aucun message** n'est affiché (silencieux par défaut).
-  ⚠️ `at` doit correspondre à l'heure réelle du cron : les deux ne se déduisent
-  pas l'un de l'autre. Heure locale (`timezone`, défaut `Europe/Paris`) — ianseo
-  forçant PHP en UTC, un réglage naïf annoncerait l'horaire avec 2 h d'écart.
+- **`notice` — advance warning to the users.** During the
+  `lead_minutes` that precede the time `at`, a permanent banner is shown on
+  **all** the pages (organiser space *and* licensee space): "Maintenance
+  scheduled at 03:15 (in N minutes) — the server will be unavailable for a few
+  minutes. Finish and save your entry." The countdown is updated at
+  each page. Nobody ends up in front of a 503 without warning.
+  Without the `at` key, **no message** is shown (silent by default).
+  ⚠️ `at` must match the real time of the cron: the two cannot be deduced
+  from each other. Local time (`timezone`, default `Europe/Paris`) — ianseo
+  forcing PHP to UTC, a naive setting would announce the time 2 h off.
 
-  `www-data` doit pouvoir lancer `on`/`off` sans mot de passe (`sudoers`, `NOPASSWD`,
-  limité à ces deux chemins).
+  `www-data` must be able to run `on`/`off` without a password (`sudoers`, `NOPASSWD`,
+  limited to those two paths).
 
-  **`unlock`/`lock` restent VIDES** : le déverrouillage des fichiers du cœur est fait par
-  **root, autour du script**, dans la ligne cron elle-même (`serveur/cron/ianseo-nightly`) :
-  `ianseo-unlock && su www-data -c maintenance.php ; ianseo-lock`. Le compte web ne reçoit
-  ainsi jamais le droit de rendre le code d'ianseo modifiable — lui donner `ianseo-unlock`
-  en sudo annulerait la protection apportée par `ianseo-lock` (une faille du site pourrait
-  réécrire le cœur). Le `;` garantit le reverrouillage même si la maintenance échoue.
-  *(Incident réel du 2026-09-27 : `unlock` renseigné sans `sudo` ni chemin → « not found »,
-  fichiers restés verrouillés, MàJ du cœur refusée. Depuis, un déverrouillage en échec fait
-  sauter la MàJ du cœur au lieu de la tenter pour rien.)*
-- Options : `--dry-run` (affiche le plan sans rien faire — à lancer en premier),
+  **`unlock`/`lock` stay EMPTY**: the unlocking of the core files is done by
+  **root, around the script**, in the cron line itself (`serveur/cron/ianseo-nightly`):
+  `ianseo-unlock && su www-data -c maintenance.php ; ianseo-lock`. The web account thus
+  never receives the right to make ianseo's code writable — giving it `ianseo-unlock`
+  through sudo would cancel the protection brought by `ianseo-lock` (a flaw in the site could
+  rewrite the core). The `;` guarantees the re-locking even if the maintenance fails.
+  *(Real incident of 2026-09-27: `unlock` filled in without `sudo` nor a path → "not found",
+  files stayed locked, core update refused. Since then, a failed unlock makes
+  the core update skip instead of attempting it for nothing.)*
+- Options: `--dry-run` (shows the plan without doing anything — run it first),
   `--core` / `--no-core`, `--only=modules,licences,logos`.
 
-#### Mise à jour du cœur ianseo, sans navigateur
+#### ianseo core update, without a browser
 
-`cron/update-core.php` fait ce que fait `/Update/` : cette page n'est qu'une interface
-AJAX, le travail réel vit dans `Update/UpdateIanseo.php`, **qui ne porte aucun contrôle
-d'accès** (l'ACL est dans `index-action.php`). Il est donc exécutable en CLI — ce qui
-**lève le blocage** de l'automatisation : passer par HTTP aurait imposé de scripter une
-connexion ADMIN + code TOTP, donc de stocker le secret 2FA en clair. Les migrations de
-base sont appliquées au passage.
+`cron/update-core.php` does what `/Update/` does: this page is only an AJAX interface,
+the real work lives in `Update/UpdateIanseo.php`, **which carries no access
+control** (the ACL is in `index-action.php`). It can therefore be run on the CLI — which
+**lifts the blocker** for automation: going through HTTP would have required scripting an
+ADMIN sign-in + TOTP code, hence storing the 2FA secret in clear. Database
+migrations are applied on the way.
 
-> ⚠️ **Désactivée par défaut** (`steps.core: false`). Elle réécrit des fichiers du cœur
-> et migre la base **sans retour arrière possible**. Ne l'activer qu'avec une sauvegarde
-> automatique de la base et des fichiers (§ 9 bis — sans sauvegarde valide la nuit, elle
-> est sautée), et après un essai en `--dry-run`. Elle exige que les fichiers soient
-> déverrouillés pendant la fenêtre : c'est le rôle de la ligne cron lancée par root.
+> ⚠️ **Off by default** (`steps.core: false`). It rewrites core files
+> and migrates the database **with no way back**. Only turn it on with an automatic backup
+> of the database and the files (§ 9 bis — without a valid backup at night, it
+> is skipped), and after a `--dry-run` trial. It requires the files to be
+> unlocked during the window: that is the role of the cron line run by root.
 
-> ⚠️ **Piège vérifié** : un **BOM UTF-8** en tête de `config.local.json` (Bloc-notes,
-> `Set-Content -Encoding utf8`…) faisait échouer la lecture JSON et **toute** la
-> configuration était ignorée en silence — avec un message trompeur « identifiants
-> absents ». Le BOM est désormais retiré automatiquement, mais mieux vaut enregistrer ce
-> fichier en **UTF-8 sans BOM**.
+> ⚠️ **Verified pitfall**: a **UTF-8 BOM** at the head of `config.local.json` (Notepad,
+> `Set-Content -Encoding utf8`…) made the JSON reading fail and **the whole**
+> configuration was silently ignored — with a misleading "credentials
+> missing" message. The BOM is now removed automatically, but it is better to save this
+> file as **UTF-8 without BOM**.
 
-### Logos de club (drapeaux) — second cron, sans compte de service
+### Club logos (flags) — second cron, no service account
 
-Sans cela, chaque organisateur doit passer par « Participants › Charger table de
-correspondance » et cocher **Drapeaux** pour SA compétition, sinon ses impressions
-(dossards, badges, listes) sortent sans logo. Le cron ci-dessous supprime cette
-étape pour tout le monde.
+Without it, each organiser has to go through "Participants › Load matching table" and tick
+**Flags** for THEIR competition, otherwise their printouts (bibs, badges, lists) come out
+without a logo. The cron below removes this step for everybody.
 
 ```
 15 4 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/sync-logos.php >> /var/log/ianseo-logosync.log 2>&1
 ```
 
-- **Aucun identifiant requis** : l'endpoint FFTA des logos est public.
-  À placer **après** la synchro des licences (elle fournit la liste des clubs).
-- Deux étapes : téléchargement dans le cache global `AUT_ClubLogos` (~1600 clubs,
-  ~7 min, une connexion réutilisée), puis **propagation locale** vers toutes les
-  compétitions non terminées (table `Flags` + fichiers `TV/Photos/`). Une panne
-  réseau n'empêche pas la propagation de ce qui est déjà en cache.
-- Volume : compter ~50 Mo pour le cache, plus les fichiers par compétition.
-- Options utiles : `--propagate-only` (aucun réseau), `--full` (tout retélécharger),
-  `--limit=N` (mise au point). Trace `LOGOSYNC_OK/FAIL` dans le journal du module.
-- Réglages facultatifs : `{ "logos": { "enabled": true, "delay_ms": 120,
-  "refresh_days": 0, "timeout": 15 } }`. L'URL est reprise de ianseo
-  (`LookUpPaths.LupFlagsPath`) — rien à saisir.
-- **Logo modifié par un club** : l'endpoint FFTA ne renvoie ni `Last-Modified` ni `ETag`,
-  donc aucune requête conditionnelle n'est possible — il faut télécharger pour comparer.
-  D'où `refresh_days: 0` par défaut : **tout est retéléchargé chaque nuit**, mais un logo
-  n'est réécrit que s'il a *vraiment* changé (comparaison d'empreinte md5, en cache puis
-  sur le fichier posé). Un changement se répercute donc tout seul sur les compétitions non
-  terminées. ⚠️ Ne **pas** régler `refresh_days: 1` avec un cron quotidien : un club repris
-  quelques minutes après le début de la passe précédente serait jugé « frais » et sauté une
-  nuit sur deux. Utiliser `0` (défaut), ou `2` et plus si l'on veut économiser la bande
-  passante en acceptant un délai de détection.
-- Le logo est posé **immédiatement**, sans attendre le cron, dans les deux cas :
-  inscription **en ligne** (à la confirmation) et saisie **manuelle** par l'organisateur
-  (`Partecipants/PopEdit.php`). Dans les deux cas c'est une simple copie locale depuis le
-  cache — aucun accès réseau. Un club encore absent du cache (club tout neuf) est rattrapé
-  au passage suivant du cron, qui balaie aussi les clubs des compétitions.
+- **No credentials required**: the FFTA logos endpoint is public.
+  To be placed **after** the licence sync (it provides the list of clubs).
+- Two steps: download into the global cache `AUT_ClubLogos` (~1600 clubs,
+  ~7 min, one reused connection), then **local propagation** to all the
+  competitions that are not finished (`Flags` table + `TV/Photos/` files). A network
+  outage does not prevent the propagation of what is already in the cache.
+- Volume: count ~50 MB for the cache, plus the files per competition.
+- Useful options: `--propagate-only` (no network), `--full` (download everything again),
+  `--limit=N` (debugging). Logs `LOGOSYNC_OK/FAIL` in the module's log.
+- Optional settings: `{ "logos": { "enabled": true, "delay_ms": 120,
+  "refresh_days": 0, "timeout": 15 } }`. The URL is taken from ianseo
+  (`LookUpPaths.LupFlagsPath`) — nothing to enter.
+- **Logo changed by a club**: the FFTA endpoint returns neither `Last-Modified` nor `ETag`,
+  so no conditional request is possible — you have to download to compare.
+  Hence `refresh_days: 0` by default: **everything is downloaded again every night**, but a logo
+  is only rewritten if it *really* changed (md5 fingerprint comparison, in the cache then
+  on the file put in place). A change thus propagates by itself to the competitions that are not
+  finished. ⚠️ Do **not** set `refresh_days: 1` with a daily cron: a club taken
+  a few minutes after the start of the previous pass would be judged "fresh" and skipped one
+  night out of two. Use `0` (default), or `2` and more if you want to save bandwidth
+  while accepting a detection delay.
+- The logo is put in place **immediately**, without waiting for the cron, in both cases:
+  **online** registration (at confirmation) and **manual** entry by the organiser
+  (`Partecipants/PopEdit.php`). In both cases it is a simple local copy from the
+  cache — no network access. A club still absent from the cache (brand-new club) is caught up
+  at the next pass of the cron, which also sweeps the clubs of the competitions.
 
-## 13. Opérations à l'échelle du serveur (mise à jour / réparation)
+## 13. Server-wide operations (update / repair)
 
-Certaines opérations d'ianseo agissent sur **toute la base**, pas sur une
-seule compétition :
+Some ianseo operations act on the **whole database**, not on a
+single competition:
 
-- **Mise à jour de la base** (`/Update/`, menu Modules → Update) : peut
-  exécuter des migrations `ALTER TABLE`. Réservée à l'administrateur (garde du
-  cœur + garde du module + Apache localhost). **À faire dans une fenêtre de
-  maintenance** (aucune compétition en cours) : une migration pendant que des
-  arbitres saisissent des scores peut verrouiller des tables et provoquer des
-  erreurs pour tout le monde. Prévenir, sauvegarder avant.
-- **Réparation des tables** (`Modules/Help/RepairTables.php`, `RepairXAMPP.php`) :
-  `REPAIR`/`OPTIMIZE TABLE` sur toutes les tables, ou redémarrage de MySQL.
-  Le cœur ianseo **ne vérifie AUCUN droit** sur ces pages ; le module AUTH les
-  bloque désormais pour les non-admins (garde centrale du bootstrap), et le
-  vhost les restreint à localhost. Ne les lancer **jamais** en pleine
-  compétition (verrouillage de tables → interruptions).
+- **Database update** (`/Update/`, Modules → Update menu): can
+  run `ALTER TABLE` migrations. Reserved to the administrator (core guard +
+  module guard + Apache localhost). **To be done in a maintenance
+  window** (no competition under way): a migration while
+  judges are entering scores can lock tables and cause
+  errors for everybody. Warn people, back up beforehand.
+- **Table repair** (`Modules/Help/RepairTables.php`, `RepairXAMPP.php`):
+  `REPAIR`/`OPTIMIZE TABLE` on all the tables, or restart of MySQL.
+  The ianseo core **checks NO right** on these pages; the AUTH module now
+  blocks them for non-admins (central bootstrap guard), and the
+  vhost restricts them to localhost. **Never** run them in the middle of a
+  competition (table locking → interruptions).
 
-Règle générale : ces actions sont **globales et réservées à l'admin**, à
-programmer hors compétition. Le module empêche un organisateur de les
-déclencher, mais rien ne remplace une fenêtre de maintenance annoncée.
+General rule: these actions are **global and reserved to the admin**, to be
+scheduled outside competitions. The module prevents an organiser from
+triggering them, but nothing replaces an announced maintenance window.
 
-## 14. Points d'attention restants
+## 14. Remaining points of attention
 
-- **Résultats publics** : tout est derrière le login par défaut. Pour le
-  public : publication ianseo.net (menu Compétition), ou whitelist ciblée via
-  `config.local.json` → `"public_paths"` (ex. `"/TV/"`). Chaque chemin ouvert
-  = surface d'attaque en plus : n'ouvrir que le strict nécessaire.
-- **ISK / tablettes de marque** : `Api/` est bloqué pour les anonymes ;
-  **le scoring se fera principalement SUR le serveur** (ISK lite, en croissance)
-  → whitelister `/Api/ISK-NG/` (`config.local.json` → `public_paths`). L'API a ses
-  propres codes d'appairage (handshake/confirmhash), mais elle devient une surface
-  exposée : **régler ModSecurity** pour ne pas casser les POST de scores (mettre
-  `/Api/` en exclusion ciblée après analyse), et **dimensionner en conséquence** (le
-  scoring en ligne est le principal poste de charge — voir la ligne « Charge » ci-dessous).
-  ⚠️ **Modes ISK pro / live INTERDITS sur un serveur en ligne** : ils déclenchent
-  côté ianseo un mécanisme qui **révoque la licence** du serveur. Quand le module
-  AUTH est actif, seuls « aucun ISK » et **ISK-NG lite** sont proposés (menu
-  déroulant filtré sur la page compétition **et** sur SYNCHRO_FFTA), et toute
-  compétition enregistrée/importée en pro/live est **rebasculée en lite** à son
-  ouverture (`aut_isk_enforce`, journalisé `ISK_DOWNGRADE`).
-- **ACL par IP ianseo** : désactivées en remote par le module — seuls les
-  comptes font foi.
-- **Canaux/règles TV** : l'édition est cloisonnée (une règle TV est liée à sa
-  compétition, écriture protégée par `TVRTournament` + ACL de la compétition).
-  Réserve connue : la page `TV/ChannelSetup.php` (cœur ianseo) n'affiche que
-  les règles des compétitions de l'utilisateur, **sauf** pour un compte sans
-  aucune compétition accessible (filtre vide → liste toutes les règles). Fuite
-  mineure (codes/noms de compétitions et de règles TV, pas de scores) qui
-  concerne surtout un compte neuf. À surveiller ; corrigible côté cœur si
-  gênant (ajouter une condition `FALSE` quand `AUTH_COMP` est vide, comme le
-  fait la liste d'accueil).
-## 15. Dimensionnement (charge)
+- **Public results**: everything is behind the login by default. For the
+  public: ianseo.net publication (Competition menu), or targeted whitelist via
+  `config.local.json` → `"public_paths"` (e.g. `"/TV/"`). Each opened path
+  = extra attack surface: only open the strict minimum.
+- **ISK / scoring tablets**: `Api/` is blocked for anonymous users;
+  **scoring will mainly be done ON the server** (ISK lite, growing)
+  → whitelist `/Api/ISK-NG/` (`config.local.json` → `public_paths`). The API has its
+  own pairing codes (handshake/confirmhash), but it becomes an exposed surface:
+  **tune ModSecurity** so as not to break the score POSTs (put
+  `/Api/` in a targeted exclusion after analysis), and **size accordingly** (online
+  scoring is the main load item — see the "Load" line below).
+  ⚠️ **ISK pro / live modes FORBIDDEN on an online server**: they trigger on the
+  ianseo side a mechanism that **revokes the licence** of the server. When the AUTH module
+  is active, only "no ISK" and **ISK-NG lite** are offered (dropdown
+  filtered on the competition page **and** on SYNCHRO_FFTA), and any competition
+  saved/imported as pro/live is **switched back to lite** when it is
+  opened (`aut_isk_enforce`, logged `ISK_DOWNGRADE`).
+- **ianseo IP ACLs**: disabled remotely by the module — only the
+  accounts count.
+- **TV channels/rules**: editing is partitioned (a TV rule is tied to its
+  competition, write protected by `TVRTournament` + the competition's ACL).
+  Known reservation: the `TV/ChannelSetup.php` page (ianseo core) only displays
+  the rules of the user's competitions, **except** for an account with
+  no accessible competition at all (empty filter → lists all the rules). A
+  minor leak (competition and TV rule codes/names, no scores) that
+  mainly concerns a new account. To watch; fixable on the core side if
+  annoying (add a `FALSE` condition when `AUTH_COMP` is empty, as the
+  home list does).
 
-Chiffres FFTA 2025 : **243 500 scores remontés**, **2 307 compétitions**, **28 868
-compétiteurs uniques**. Pic : **85 compétitions simultanées** (~9 900 compétiteurs) un
-week-end, régulièrement **65** (~6 500). S'y ajoutent des événements **loisir** non comptés.
-Modèle retenu : **scoring principalement sur le serveur** (ISK lite, en croissance).
+## 15. Sizing (load)
 
-**La taille de la base n'est PAS la contrainte.** `LookUpEntries` (80 000 licenciés) ≈ 10–15 Mo ;
-une compétition ≈ 1–3 Mo. Une année entière tient dans **~5–15 Go** ; avec la purge à ~3 mois
-(§ 7.1), **~1–3 Go actifs**. Le facteur limitant est le **CPU PHP + le débit MySQL** pendant les pics.
+FFTA 2025 figures: **243,500 scores uploaded**, **2,307 competitions**, **28,868
+unique competitors**. Peak: **85 simultaneous competitions** (~9,900 competitors) on a
+weekend, regularly **65** (~6,500). To these are added **recreational** events not counted.
+Model retained: **scoring mainly on the server** (ISK lite, growing).
 
-**Estimation du pic** (85 compét. en ligne) : ~2 500–3 300 tablettes ISK (≈ 1 par cible/peloton),
-chacune postant une volée toutes les ~3–5 min + interrogeant les mises à jour → **~150 req/s**
-soutenus rien que pour le scoring, **+50–150 req/s** de consultation de résultats → **pic agrégé
-~200–300 req/s**, en hausse avec l'essor d'ISK lite.
+**The size of the database is NOT the constraint.** `LookUpEntries` (80,000 licensees) ≈ 10–15 MB;
+a competition ≈ 1–3 MB. A whole year fits in **~5–15 GB**; with the purge at ~3 months
+(§ 7.1), **~1–3 GB active**. The limiting factor is the **PHP CPU + the MySQL throughput** during peaks.
 
-| Profil | vCPU | RAM | Disque | Couvre |
+**Peak estimate** (85 competitions online): ~2,500–3,300 ISK tablets (≈ 1 per target/group),
+each posting an end every ~3–5 min + polling for updates → **~150 req/s**
+sustained for scoring alone, **+50–150 req/s** of results consultation → **aggregate peak
+~200–300 req/s**, rising with the growth of ISK lite.
+
+| Profile | vCPU | RAM | Disk | Covers |
 |---|---|---|---|---|
-| Minimum | 4 | 8 Go | 80 Go SSD | Inscriptions + résultats, scoring surtout local |
-| **Recommandé (plancher ici)** | **8** | **16 Go** | **160 Go NVMe** | Le pic avec **scoring en ligne**, WAF actif |
-| Croissance / loisir | 16 | 32 Go | 160 Go+ | Marge ISK lite + événements loisir |
+| Minimum | 4 | 8 GB | 80 GB SSD | Registrations + results, scoring mostly local |
+| **Recommended (floor here)** | **8** | **16 GB** | **160 GB NVMe** | The peak with **online scoring**, WAF active |
+| Growth / recreational | 16 | 32 GB | 160 GB+ | ISK lite margin + recreational events |
 
-Cloud **élastique** conseillé (OVH/Scaleway/Hetzner) : redimensionner à la hausse pour les grands
-week-ends, revenir ensuite (~30–60 €/mois pour le profil recommandé).
+**Elastic** cloud advised (OVH/Scaleway/Hetzner): scale up for the big
+weekends, come back down afterwards (~€30–60/month for the recommended profile).
 
-Leviers (comptent plus que la taille de VM) :
-1. **PHP-FPM + OPcache** (jamais mod_php prefork) — ×3–5 sur le débit PHP d'ianseo. Non négociable.
-2. **`innodb_buffer_pool_size` = 8 Go** : tout le jeu actif tient en RAM. Et **`max_connections`
-   ≥ 2 × workers PHP + marge** : ianseo ouvre deux connexions par page (§ 6.3) — avec 100
-   workers FPM, 220 au moins ; la valeur par défaut (151) ferait refuser des pages au pic.
-3. **Cache des pages de résultats publiques** (Apache mod_cache/Varnish, TTL court) : absorbe le
-   pic de spectateurs des finales — souvent LE pic.
-4. **Workers FPM (50–100)** : ⚠️ le login compétiteur **relaie de façon SYNCHRONE** vers
-   `monespace.ffta.fr` (~1–2 s bloquants/login) → une rafale d'inscriptions immobilise des workers.
-5. **ModSecurity** : compter **+20–30 % de CPU** (intégré au profil recommandé) ; exclusions ciblées
-   sur `/Api/` pour ne pas casser le scoring ISK.
-6. **Chemin de montée en charge** si dépassement : séparer **MySQL sur sa propre VM** (web/DB split),
-   puis répliques de lecture pour les résultats, puis CDN devant les pages publiques.
-7. **Un seul processeur ne suffit pas**, même pour 3 opérateurs : sur l'autre serveur (1 vCPU),
-   une seule requête lente (§ 6.3) saturait le processeur et ralentissait tout le monde, y compris
-   la saisie des scores sur téléphone. Et tout limiteur de débit placé devant doit laisser passer
-   les rafales d'ISK-NG (§ 4.4).
+Levers (they matter more than the VM size):
+1. **PHP-FPM + OPcache** (never mod_php prefork) — ×3–5 on ianseo's PHP throughput. Non-negotiable.
+2. **`innodb_buffer_pool_size` = 8 GB**: the whole active set fits in RAM. And **`max_connections`
+   ≥ 2 × PHP workers + margin**: ianseo opens two connections per page (§ 6.3) — with 100
+   FPM workers, at least 220; the default value (151) would make pages be refused at the peak.
+3. **Cache of the public results pages** (Apache mod_cache/Varnish, short TTL): absorbs the
+   peak of spectators for the finals — often THE peak.
+4. **FPM workers (50–100)**: ⚠️ the competitor login **relays SYNCHRONOUSLY** to
+   `monespace.ffta.fr` (~1–2 s blocking/login) → a burst of registrations ties up workers.
+5. **ModSecurity**: count **+20–30 % CPU** (built into the recommended profile); targeted exclusions
+   on `/Api/` so as not to break ISK scoring.
+6. **Scaling path** if exceeded: separate **MySQL on its own VM** (web/DB split),
+   then read replicas for the results, then a CDN in front of the public pages.
+7. **A single processor is not enough**, even for 3 operators: on the other server (1 vCPU),
+   a single slow query (§ 6.3) saturated the processor and slowed everybody down, including
+   score entry on phones. And any rate limiter placed in front must let through
+   the ISK-NG bursts (§ 4.4).
 
-## 16. Autour d'une compétition — routine d'exploitation
+## 16. Around a competition — operating routine
 
-Tirée des week-ends de saisie en ligne de l'autre serveur. Commandes à lancer sur le serveur.
+Drawn from the online-entry weekends of the other server. Commands to run on the server.
 
-**Avant**
-- Départs dimensionnés au besoin réel (État du serveur : « Départs surdimensionnés ») ; les
-  opérateurs choisissent le **départ** d'un archer avant sa cible.
-- Saisie ISK-NG essayée avec **plusieurs téléphones sur le même wifi** (même adresse publique :
-  c'est ce qui déclenche les limiteurs de débit, § 4.4).
-- Sauvegardes de la nuit et copies à chaud présentes (État du serveur, ou `sudo ianseo-restore`),
-  aucun bandeau rouge chez l'administrateur ; certificat valide
+**Before**
+- Sessions sized to the real need (Server state: "Oversized sessions"); the
+  operators choose an archer's **session** before their target.
+- ISK-NG entry tried with **several phones on the same wifi** (same public address:
+  that is what triggers the rate limiters, § 4.4).
+- Night backups and hot copies present (Server state, or `sudo ianseo-restore`),
+  no red banner on the administrator's side; valid certificate
   (`sudo certbot certificates`).
-- Mises à jour du système bien programmées la nuit (`systemctl list-timers 'apt-daily*'`).
+- System updates properly scheduled at night (`systemctl list-timers 'apt-daily*'`).
 
-**Pendant**
-- Charge : `top` (qui consomme — `mysqld`, `apache2`/`php-fpm`) ;
-- Requêtes en cours, les plus longues d'abord :
-  `sudo mysql -e "SELECT ID, TIME, LEFT(INFO, 80) FROM information_schema.PROCESSLIST WHERE COMMAND <> 'Sleep' ORDER BY TIME DESC"` ;
-- Erreurs : `sudo tail -f /var/log/apache2/error.log` ; blocages : `sudo fail2ban-client status ianseo-auth`
-  (et, si mod_evasive est installé, `ls -lt /var/log/mod_evasive | head`).
+**During**
+- Load: `top` (who consumes — `mysqld`, `apache2`/`php-fpm`);
+- Running queries, longest first:
+  `sudo mysql -e "SELECT ID, TIME, LEFT(INFO, 80) FROM information_schema.PROCESSLIST WHERE COMMAND <> 'Sleep' ORDER BY TIME DESC"`;
+- Errors: `sudo tail -f /var/log/apache2/error.log`; blocks: `sudo fail2ban-client status ianseo-auth`
+  (and, if mod_evasive is installed, `ls -lt /var/log/mod_evasive | head`).
 
-**Après**
-- Requêtes lentes : `sudo mysqldumpslow -s t /var/lib/mysql/*-slow.log | grep "^Count" | head` ;
-- Secondes les plus chargées :
-  `sudo zcat -f /var/log/apache2/access.log* | awk '{print $4}' | sort | uniq -c | sort -rn | head` ;
-- Journal du module : Multi-comptes › Utilisateurs (pics de `LOGIN_FAIL`).
+**After**
+- Slow queries: `sudo mysqldumpslow -s t /var/lib/mysql/*-slow.log | grep "^Count" | head`;
+- Busiest seconds:
+  `sudo zcat -f /var/log/apache2/access.log* | awk '{print $4}' | sort | uniq -c | sort -rn | head`;
+- Module log: Multi-account › Users (`LOGIN_FAIL` peaks).

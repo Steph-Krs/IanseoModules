@@ -1,14 +1,14 @@
 <?php
 /**
- * public/calendar-ics.php — export iCalendar (.ics) des compétitions de l'archer.
+ * public/calendar-ics.php — iCalendar (.ics) export of the archer's competitions.
  *
- * V1 : instantané téléchargeable (le téléphone l'importe dans son agenda). Réservé
- * à l'archer connecté (comme le reste de l'espace) ; ne sert QUE ses propres
- * inscriptions. La V2 (abonnement webcal à MàJ automatique via un jeton secret par
- * archer) est notée pour plus tard — elle demandera un endpoint anonyme + token.
+ * V1: downloadable snapshot (the phone imports it into its calendar). For the connected archer
+ * only (like the rest of the space); serves ONLY their own registrations. V2 (webcal
+ * subscription updated automatically through a secret token per archer) is noted for later —
+ * it will need an anonymous endpoint + token.
  *
- * Chaque compétition = un événement « journée entière » (VALUE=DATE), du premier au
- * dernier jour (DTEND exclusif en iCal → dernier jour + 1).
+ * Each competition = one "all day" event (VALUE=DATE), from the first to the last day (DTEND
+ * is exclusive in iCal → last day + 1).
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
@@ -16,7 +16,7 @@ require_once dirname(__DIR__) . '/lib/registration.php';
 
 $archer = bk_require_archer();
 
-/** Échappement iCalendar (RFC 5545) d'une valeur texte. */
+/** iCalendar escaping (RFC 5545) of a text value. */
 function bk_ics_esc($s)
 {
     $s = str_replace('\\', '\\\\', (string) $s);
@@ -30,8 +30,8 @@ $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' :
 $base   = $scheme . '://' . $host;
 $stamp  = gmdate('Ymd\THis\Z');
 
-// Regroupe par compétition en conservant les DÉPARTS de l'archer (une compétition = un
-// événement journée, avec le détail de ses départs dans la description).
+// Grouped by competition, keeping the archer's DEPARTURES (one competition = one all-day event,
+// with its departures detailed in the description).
 $byComp = array();
 foreach (bk_my_registrations($archer->BaLicence) as $r) {
     $tid = intval($r->BrTournament);
@@ -48,46 +48,51 @@ $L[] = 'VERSION:2.0';
 $L[] = 'PRODID:-//ianseo//Inscriptions en ligne//FR';
 $L[] = 'CALSCALE:GREGORIAN';
 $L[] = 'METHOD:PUBLISH';
-$L[] = 'X-WR-CALNAME:Mes compétitions';
+$L[] = 'X-WR-CALNAME:' . bk_ics_esc(bk_t('IcsCalName'));
 foreach ($byComp as $tid => $g) {
     $r = $g['c'];
-    $from = substr((string) $r->ToWhenFrom, 0, 10);
+    $from = substr((string) $r->ToWhenFrom, 0, 10);   // bytes: ASCII dates
     $to   = substr((string) $r->ToWhenTo, 0, 10);
-    if ($from === '' || strpos($from, '0000') === 0) continue;   // date invalide → on saute
+    if ($from === '' || strpos($from, '0000') === 0) continue;   // invalid date → skipped
     if ($to === '' || strpos($to, '0000') === 0) $to = $from;
     $dtStart = str_replace('-', '', $from);
-    $dtEnd   = date('Ymd', strtotime($to . ' +1 day'));           // DTEND exclusif (journée entière)
+    $dtEnd   = date('Ymd', strtotime($to . ' +1 day'));           // exclusive DTEND (all day)
 
     $dd   = bk_comp_discipline($r->ToType, $r->ToTypeSubRule ?? '', $r->ToTypeName ?? '');
     $disc = $labels[$dd['key']] ?? '';
     $url  = $base . bk_public_url('competition.php?t=' . $tid);
 
-    // Lieu = lieu précis (ToWhere : gymnase/stade) + ville (ToVenue).
+    // Place = precise place (ToWhere: gym/stadium) + town (ToVenue).
     $loc   = trim((string) $r->ToWhere);
     $venue = trim((string) ($r->ToVenue ?? ''));
     if ($venue !== '' && stripos($loc, $venue) === false) $loc = ($loc !== '' ? $loc . ', ' : '') . $venue;
 
-    // Départs de l'archer : nom, heure de début, durée estimée.
+    // The archer's departures: name, start time, estimated length.
     $byOrder = array();
     foreach (bk_comp_sessions($tid) as $s) $byOrder[intval($s->SesOrder)] = $s;
     $orders = array_keys($g['ses']); sort($orders);
     $depLines = array();
     foreach ($orders as $so) {
         $s = $byOrder[$so] ?? null;
-        $name = ($s && trim((string) $s->SesName) !== '') ? ' « ' . trim($s->SesName) . ' »' : '';
+        $name = ($s && trim((string) $s->SesName) !== '') ? ' ' . bk_t('QuotedX', trim($s->SesName)) : '';
         $hh = '';
-        if ($s) { $hm = substr(bk_session_start($s), 11, 5); if ($hm !== '' && $hm !== '00:00') $hh = ' à ' . str_replace(':', 'h', $hm); }
+        if ($s) {
+            $st = bk_session_start($s);
+            if (preg_match('/ (\d{2}):(\d{2})/', $st, $m) && $m[1] . $m[2] !== '0000') {
+                $hh = ' ' . bk_t('AtTime', date(bk_t('TimeFormat'), mktime(intval($m[1]), intval($m[2]), 0, 1, 1, 2000)));
+            }
+        }
         $dur = bk_dur_hm(bk_session_format($tid, $so)['min']);
-        $line = 'Départ ' . $so . $name . $hh;
-        if ($dur !== '') $line .= ' — durée ' . $dur;
+        $line = bk_t('DepCap', $so) . $name . $hh;
+        if ($dur !== '') $line .= ' — ' . bk_t('DurationX', $dur);
         $depLines[] = '• ' . $line;
     }
 
-    // DESCRIPTION : vraies nouvelles lignes, échappées ensuite en \n par bk_ics_esc.
+    // DESCRIPTION: real new lines, escaped into \n by bk_ics_esc afterwards.
     $desc = '';
     if ($disc !== '') $desc .= $disc . "\n";
-    if ($depLines) $desc .= "Vos départs :\n" . implode("\n", $depLines) . "\n";
-    $desc .= 'Fiche : ' . $url;
+    if ($depLines) $desc .= bk_t('IcsYourDeps') . "\n" . implode("\n", $depLines) . "\n";
+    $desc .= bk_t('IcsPage', $url);
 
     $L[] = 'BEGIN:VEVENT';
     $L[] = 'UID:bk-' . $tid . '@' . $host;
@@ -103,10 +108,15 @@ foreach ($byComp as $tid => $g) {
 }
 $L[] = 'END:VCALENDAR';
 
-// Repli des lignes trop longues (RFC 5545 : 75 octets, poursuite préfixée d'une espace).
+// Folding of long lines (RFC 5545: 75 bytes, continuation prefixed with a space). Counted in
+// bytes on purpose; mb_strcut never splits a character.
 $out = array();
 foreach ($L as $line) {
-    while (strlen($line) > 74) { $out[] = substr($line, 0, 74); $line = ' ' . substr($line, 74); }
+    while (strlen($line) > 74) {   // bytes, as the RFC counts
+        $head = mb_strcut($line, 0, 74, 'UTF-8');
+        $out[] = $head;
+        $line = ' ' . substr($line, strlen($head));   // bytes: offset of the cut
+    }
     $out[] = $line;
 }
 

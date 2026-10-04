@@ -1,18 +1,17 @@
 #!/bin/sh
-# ianseo-maintenance-off — remet le site en service.
+# ianseo-maintenance-off — puts the site back in service.
 #
-# À installer dans /usr/local/bin/ianseo-maintenance-off (root, chmod 750).
+# To install as /usr/local/bin/ianseo-maintenance-off (root, chmod 750).
 #
-# Idempotent : ne proteste pas si le drapeau est déjà absent — indispensable,
-# car cron/maintenance.php peut l'appeler plusieurs fois (fin normale ET filet
-# de sécurité en cas d'interruption).
+# Idempotent: does not complain when the flag is already gone — required, since
+# cron/maintenance.php may call it several times (normal end AND safety net on an
+# interruption).
 #
-# ⚠️ En cas d'arrêt brutal du serveur PENDANT une fenêtre de maintenance
-# (coupure de courant, kill -9), le drapeau peut subsister : le site reste alors
-# en page 503. Lancer cette commande à la main pour reprendre la main.
+# ⚠️ When the server stops abruptly DURING a maintenance window (power cut, kill -9), the flag
+# may remain: the site then stays on the 503 page. Run this command by hand to take over again.
 set -e
 
 FLAG=/var/www/maintenance.flag
 
 rm -f "$FLAG"
-echo "$(date): maintenance désactivée"
+echo "$(date): maintenance off"

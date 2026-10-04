@@ -1,15 +1,14 @@
 <?php
 /**
- * lib/archer.php — comptes licenciés : identité, mot de passe, sessions.
+ * lib/archer.php — licensee accounts: identity, sessions.
  *
- * Modèle repris de Modules/Custom/AUTH (jamais inclus : les modules restent
- * autonomes) : la session PHP ne porte qu'un JETON aléatoire, dont seul le
- * haché SHA-256 est en base — un dump de session ne donne aucun secret
- * réutilisable. Expirations calculées côté SQL (NOW()) : ianseo change le
- * time_zone MySQL par compétition, ne jamais comparer à time() PHP.
+ * Model taken from Modules/Custom/AUTH (never included: the modules stay standalone): the PHP
+ * session only carries a random TOKEN, of which only the SHA-256 hash is stored — a session
+ * dump gives no reusable secret. Expiries computed in SQL (NOW()): ianseo changes the MySQL
+ * time_zone per competition, never compare with PHP's time().
  *
- * BaPassword vide = compte SSO (sentinelle réservée au futur relais
- * monespace.ffta.fr) : un tel compte ne peut PAS se connecter par mot de passe.
+ * Empty BaPassword = SSO account (sentinel, sign-in relayed to the licensee space): such an
+ * account can NOT sign in with a password.
  */
 
 if (defined('BK_ARCHER_LOADED')) return;
@@ -17,13 +16,13 @@ define('BK_ARCHER_LOADED', true);
 
 require_once __DIR__ . '/schema.php';
 
-define('BK_SESSION_IDLE_H', 12);   // heures d'inactivité avant expiration
-define('BK_SESSION_ABS_D',  7);    // durée de vie absolue en jours
-define('BK_MAX_LOGIN_FAIL', 8);    // échecs de connexion / 15 min
-define('BK_MAX_IDENT_FAIL', 10);   // échecs d'identification / 15 min
+define('BK_SESSION_IDLE_H', 12);   // hours of inactivity before expiry
+define('BK_SESSION_ABS_D',  7);    // absolute lifetime in days
+define('BK_MAX_LOGIN_FAIL', 8);    // sign-in failures / 15 min
+define('BK_MAX_IDENT_FAIL', 10);   // identification failures / 15 min
 
 /* ------------------------------------------------------------------ */
-/* Journal & limitation de débit                                       */
+/* Log & rate limiting                                                 */
 /* ------------------------------------------------------------------ */
 
 function bk_ip()
@@ -41,9 +40,9 @@ function bk_log($event, $user = '')
 }
 
 /**
- * Compte les échecs récents pour une famille d'événements. Le filtre porte sur
- * l'IP OU l'identifiant : un attaquant qui change de licence à chaque essai est
- * bloqué par l'IP, un bourrage distribué sur une licence l'est par l'identifiant.
+ * Counts the recent failures of a family of events. The filter is on the IP OR the identifier:
+ * an attacker changing licence at each try is stopped by the IP, a distributed stuffing on one
+ * licence by the identifier.
  */
 function bk_too_many($events, $max, $user = '')
 {
@@ -58,16 +57,16 @@ function bk_too_many($events, $max, $user = '')
 }
 
 /* ------------------------------------------------------------------ */
-/* Base licenciés (LookUpEntries, alimentée par la synchro fédérale)   */
+/* Licensee base (LookUpEntries, filled by the federation sync)        */
 /* ------------------------------------------------------------------ */
 
-/** Normalise un numéro de licence (espaces, casse). */
+/** Normalises a licence number (spaces, case). */
 function bk_clean_licence($licence)
 {
     return strtoupper(preg_replace('/\s+/', '', (string) $licence));
 }
 
-/** Comparaison de noms tolérante (casse, accents, tirets, espaces). */
+/** Tolerant name comparison (case, accents, hyphens, spaces). */
 function bk_fold($s)
 {
     $s = (string) $s;
@@ -79,15 +78,14 @@ function bk_fold($s)
 }
 
 /**
- * Fiche d'un licencié dans le fichier fédéral, par son numéro de licence.
+ * Record of a licensee in the federation file, by licence number.
  *
- * L'identité est prouvée en amont par la connexion à l'espace licencié FFTA
- * (l'identifiant y EST le numéro de licence) : cette lecture ne sert donc plus
- * à authentifier, seulement à renseigner nom, prénom et club.
+ * The identity is proven beforehand by the sign-in to the licensee space: this read no longer
+ * authenticates, it only fills in name, given name and club.
  *
- * Rappel de nommage LookUpEntries (vérifié sur la base réelle) :
- * LueFamilyName = NOM, LueName = prénom, LueCtrlCode = date de naissance,
- * LueCountry = agrément du club (LLDDCCC).
+ * LookUpEntries naming reminder (checked on the real base): LueFamilyName = FAMILY name,
+ * LueName = given name, LueCtrlCode = date of birth, LueCountry = club approval number
+ * (LLDDCCC).
  */
 function bk_lookup_licence($licence)
 {
@@ -123,17 +121,16 @@ function bk_get_archer($id)
 }
 
 /**
- * Provisionne (ou rafraîchit) le compte d'un licencié dont l'identité vient
- * d'être prouvée par l'espace licencié FFTA.
+ * Creates (or refreshes) the account of a licensee whose identity was just proven by the
+ * licensee space.
  *
- * BaPassword reste TOUJOURS vide : ce module ne gère aucun mot de passe: la
- * sécurité du compte est celle de l'espace licencié FFTA. La sentinelle est la
- * même que AUT_Users.AuPassword côté AUTH.
+ * BaPassword ALWAYS stays empty: this module handles no password; the account's security is
+ * that of the licensee space. Same sentinel as AUT_Users.AuPassword in AUTH.
  *
- * Nom, prénom et club sont réalignés à chaque connexion sur le fichier fédéral
- * — un archer change de club entre deux saisons.
+ * Name, given name and club are realigned on the federation file at every sign-in — an archer
+ * changes club between two seasons.
  *
- * Retourne l'id du compte, ou 0 en cas d'échec.
+ * Returns the account id, or 0 on failure.
  */
 function bk_provision_archer($lue)
 {
@@ -157,7 +154,7 @@ function bk_provision_archer($lue)
 }
 
 /* ------------------------------------------------------------------ */
-/* Sessions à jetons                                                   */
+/* Token sessions                                                      */
 /* ------------------------------------------------------------------ */
 
 function bk_session_open($archer)
@@ -190,16 +187,11 @@ function bk_sessions_revoke($archerId, $exceptTokenHash = null)
 }
 
 /**
- * Licencié connecté, ou null. Revalide le jeton à chaque appel (le compte a pu
- * être désactivé ou la session révoquée entre deux requêtes) et rafraîchit
- * BsLastSeen au plus une fois par minute.
- */
-/**
- * Vue « depuis un autre compte » côté ARCHER (admin serveur, LECTURE SEULE).
- * Lit le MIROIR de session posé par AUTH (convention de session — aucun appel
- * ni require d'AUTH, conformément à l'indépendance des modules) : ce drapeau
- * n'est écrit que par la page admin (admin/impersonate.php), et on exige que
- * l'observateur (AUTH_User) en soit toujours l'auteur. Renvoie le drapeau ou null.
+ * "From another account" view on the ARCHER side (server admin, READ ONLY).
+ * Reads the session MIRROR set by AUTH (session convention — no call to or require of AUTH, as
+ * the modules stay independent): this flag is only written by the admin page
+ * (admin/impersonate.php), and the observer (AUTH_User) must still be its author. Returns the
+ * flag or null.
  */
 function bk_impersonating()
 {
@@ -210,14 +202,19 @@ function bk_impersonating()
     return $i;
 }
 
+/**
+ * The connected licensee, or null. Checks the token again at every call (the account may have
+ * been disabled or the session revoked between two requests) and refreshes BsLastSeen at most
+ * once a minute.
+ */
 function bk_current_archer()
 {
     static $cache = false;
     if ($cache !== false) return $cache;
     $cache = null;
 
-    // Observation admin : renvoie l'archer cible chargé par son id, sans passer
-    // par BK_Sessions. Les écritures sont bloquées en amont (public/boot.php).
+    // Admin observation: returns the target archer loaded by id, without BK_Sessions. Writes
+    // are blocked upstream (public/boot.php).
     $imp = bk_impersonating();
     if ($imp) {
         bk_schema();

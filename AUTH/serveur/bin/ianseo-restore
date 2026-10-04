@@ -1,28 +1,28 @@
 #!/bin/bash
-# ianseo-restore — restaure une sauvegarde du module AUTH (base ou fichiers).
+# ianseo-restore — restores a backup of the AUTH module (database or files).
 #
-# À installer dans /usr/local/bin/ianseo-restore (root:root, chmod 750). À lancer en root.
+# To install as /usr/local/bin/ianseo-restore (root:root, chmod 750). To run as root.
 #
-#   sudo ianseo-restore                   liste les sauvegardes disponibles
-#   sudo ianseo-restore --test FICHIER    VÉRIFIE une copie sans toucher au site : la base est
-#                                         restaurée dans une base jetable, comptée, puis supprimée
-#   sudo ianseo-restore FICHIER           restaure pour de bon (base ou fichiers, d'après le nom)
+#   sudo ianseo-restore                   lists the available backups
+#   sudo ianseo-restore --test FILE       CHECKS a copy without touching the site: the database is
+#                                         restored into a throwaway database, counted, then deleted
+#   sudo ianseo-restore FILE              restores for real (database or files, from the name)
 #
-# FICHIER : un nom de la liste (ianseo-db-…, ianseo-live-…, ianseo-files-…) ou un chemin
-# (par exemple une copie rapatriée de la sauvegarde en ligne avec « rclone copy »).
+# FILE: a name from the list (ianseo-db-…, ianseo-live-…, ianseo-files-…) or a path (for
+# instance a copy brought back from the online backup with "rclone copy").
 #
-# ⚠ Restaurer la BASE ramène TOUTES les compétitions du serveur au moment de la copie :
-#   tout ce qui a été saisi depuis est perdu, pour tout le monde.
+# ⚠ Restoring the DATABASE brings EVERY competition of the server back to the time of the copy:
+#   everything typed since is lost, for everyone.
 #
-# Déroulé d'une vraie restauration :
-#   1. confirmation (taper OUI) ;
-#   2. verrou partagé avec la maintenance nocturne : ni elle ni les copies à chaud ne démarrent ;
-#   3. site en maintenance (page 503) ;
-#   4. copie de sécurité de l'état actuel — on peut vouloir y revenir ;
-#   5. restauration ; pour les fichiers, le cœur est ensuite remis en lecture seule ;
-#   6. réouverture du site.
-# Si la restauration elle-même échoue, le site RESTE FERMÉ : une base à moitié restaurée ne
-# doit pas être servie. Le message indique quoi faire.
+# Steps of a real restore:
+#   1. confirmation (type YES);
+#   2. lock shared with the nightly maintenance: neither it nor the live copies start;
+#   3. site in maintenance (503 page);
+#   4. safety copy of the current state — going back to it may be wanted;
+#   5. restore; for the files, the core is then put back to read only;
+#   6. site reopened.
+# When the restore itself fails, the site STAYS CLOSED: a half-restored database must not be
+# served. The message tells what to do.
 set -euo pipefail
 
 IANSEO=/var/www/ianseo
@@ -42,28 +42,28 @@ STAGE=""
 WORK=""
 RESTORE_FILE=""
 
-die() { echo "ERREUR : $*" >&2; exit 1; }
+die() { echo "ERROR: $*" >&2; exit 1; }
 
 list() {
-    echo "Sauvegardes dans $DIR (les plus récentes d'abord) :"
+    echo "Backups in $DIR (newest first):"
     { ls -1t "$DIR" 2>/dev/null || true; } | { grep -E "$PATTERN" || true; } | while read -r f; do
         printf '  %6s  %s\n' "$(du -h "$DIR/$f" | cut -f1)" "$f"
     done
     echo
-    echo "  ianseo-db-…     base, prise chaque nuit site fermé"
-    echo "  ianseo-live-…   base, copie à chaud (site ouvert)"
-    echo "  ianseo-files-…  fichiers du site (code + modules), même nuit que le ianseo-db-… du même horodatage"
+    echo "  ianseo-db-…     database, taken every night with the site closed"
+    echo "  ianseo-live-…   database, live copy (site open)"
+    echo "  ianseo-files-…  files of the site (code + modules), same night as the ianseo-db-… of the same time stamp"
     echo
-    echo "Vérifier une copie :  sudo ianseo-restore --test FICHIER"
-    echo "Restaurer :           sudo ianseo-restore FICHIER"
+    echo "Check a copy:  sudo ianseo-restore --test FILE"
+    echo "Restore:       sudo ianseo-restore FILE"
 }
 
-# Nom ou chemin → chemin complet d'une sauvegarde du module (refuse tout autre fichier).
+# Name or path → full path of a backup of the module (refuses any other file).
 resolve() {
     local f="$1"
     [ -f "$f" ] || f="$DIR/$(basename -- "$1")"
-    [ -f "$f" ] || die "fichier introuvable : $1"
-    basename -- "$f" | grep -qE "$PATTERN" || die "ce n'est pas une sauvegarde du module : $(basename -- "$f")"
+    [ -f "$f" ] || die "file not found: $1"
+    basename -- "$f" | grep -qE "$PATTERN" || die "this is not a backup of the module: $(basename -- "$f")"
     echo "$f"
 }
 
@@ -72,22 +72,22 @@ test_copy() {
     f=$(resolve "$1")
     case "$f" in
     *.tar.gz)
-        echo "Lecture de l'archive $(basename -- "$f")…"
+        echo "Reading the archive $(basename -- "$f")…"
         local n
-        n=$(tar -tzf "$f" | wc -l) || die "archive illisible."
-        echo "OK : archive lisible, $n entrées."
+        n=$(tar -tzf "$f" | wc -l) || die "archive cannot be read."
+        echo "OK: archive readable, $n entries."
         ;;
     *)
-        echo "Restauration d'essai de $(basename -- "$f") dans la base jetable $TESTDB (le site n'est pas touché)…"
+        echo "Trial restore of $(basename -- "$f") into the throwaway database $TESTDB (the site is not touched)…"
         mysql -e "DROP DATABASE IF EXISTS \`$TESTDB\`; CREATE DATABASE \`$TESTDB\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
         trap 'mysql -e "DROP DATABASE IF EXISTS \`$TESTDB\`;" || true' EXIT
-        gunzip -c "$f" | mysql "$TESTDB" || die "cette copie ne se restaure pas (erreur ci-dessus)."
-        echo "OK : $(mysql -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$TESTDB'") tables," \
-             "$(mysql -N "$TESTDB" -e 'SELECT COUNT(*) FROM Tournament') compétitions," \
-             "$(mysql -N "$TESTDB" -e 'SELECT COUNT(*) FROM Entries') inscriptions."
-        echo "Compétitions les plus récentes de cette copie :"
+        gunzip -c "$f" | mysql "$TESTDB" || die "this copy does not restore (error above)."
+        echo "OK: $(mysql -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$TESTDB'") tables," \
+             "$(mysql -N "$TESTDB" -e 'SELECT COUNT(*) FROM Tournament') competitions," \
+             "$(mysql -N "$TESTDB" -e 'SELECT COUNT(*) FROM Entries') entries."
+        echo "Most recent competitions of this copy:"
         mysql -N "$TESTDB" -e "SELECT CONCAT('  ', ToCode, '  ', ToWhenFrom, '  ', ToName) FROM Tournament ORDER BY ToWhenFrom DESC LIMIT 5"
-        echo "(base jetable supprimée)"
+        echo "(throwaway database deleted)"
         ;;
     esac
 }
@@ -98,14 +98,14 @@ on_exit() {
     case "$STAGE" in
     closed)
         "$OFF" || true
-        echo "Site rouvert : rien n'a été restauré."
+        echo "Site reopened: nothing was restored."
         ;;
     restoring)
         echo
-        echo "!! ÉCHEC PENDANT LA RESTAURATION (code $rc) : le site reste FERMÉ (page de maintenance)."
-        echo "   Recommencer :                 sudo ianseo-restore $(basename -- "$RESTORE_FILE")"
-        echo "   Revenir à l'état d'avant :    sudo ianseo-restore <copie de sécurité, en tête de « sudo ianseo-restore »>"
-        echo "   Rouvrir le site malgré tout : sudo $OFF"
+        echo "!! FAILURE DURING THE RESTORE (code $rc): the site stays CLOSED (maintenance page)."
+        echo "   Start again:                  sudo ianseo-restore $(basename -- "$RESTORE_FILE")"
+        echo "   Go back to the state before:  sudo ianseo-restore <safety copy, at the top of \"sudo ianseo-restore\">"
+        echo "   Reopen the site anyway:       sudo $OFF"
         ;;
     esac
 }
@@ -114,27 +114,27 @@ restore() {
     local f kind answer
     f=$(resolve "$1")
     RESTORE_FILE="$f"
-    kind=base
-    case "$f" in *.tar.gz) kind=fichiers ;; esac
+    kind=database
+    case "$f" in *.tar.gz) kind=files ;; esac
 
-    echo "Restauration de : $(basename -- "$f")"
-    if [ "$kind" = base ]; then
-        echo "⚠ TOUTES les compétitions du serveur reviennent au moment de cette copie."
-        echo "  Tout ce qui a été saisi depuis sera perdu, pour tout le monde."
+    echo "Restoring: $(basename -- "$f")"
+    if [ "$kind" = database ]; then
+        echo "⚠ EVERY competition of the server goes back to the time of this copy."
+        echo "  Everything typed since will be lost, for everyone."
     else
-        echo "⚠ Les fichiers du site (code + modules) reviennent au moment de cette copie."
-        echo "  À faire avec la base de la même nuit (le ianseo-db-… du même horodatage)."
+        echo "⚠ The files of the site (code + modules) go back to the time of this copy."
+        echo "  To do with the database of the same night (the ianseo-db-… of the same time stamp)."
     fi
-    printf 'Tapez OUI pour continuer : '
+    printf 'Type YES to go on: '
     read -r answer || true
-    [ "$answer" = "OUI" ] || { echo "Abandon : rien n'a été modifié."; exit 1; }
+    [ "$answer" = "YES" ] || { echo "Cancelled: nothing was changed."; exit 1; }
 
     # 2. Same lock as cron/maintenance.php; the live copies test it and step aside.
     #    Created for the web user if missing: a root-owned lock would block the nights.
     local lockfile="$AUTH/cron/.maintenance.lock"
     [ -e "$lockfile" ] || install -o "$WEBUSER" -g "$WEBUSER" -m 0644 /dev/null "$lockfile"
     exec 9<"$lockfile"
-    flock -n 9 || die "une maintenance nocturne est en cours : réessayer une fois qu'elle est finie."
+    flock -n 9 || die "a nightly maintenance is running: try again once it is over."
     trap on_exit EXIT
     trap 'exit 130' INT TERM
 
@@ -148,17 +148,17 @@ restore() {
     "$ON"
 
     # 4. Safety copy of the current state.
-    echo "Copie de sécurité de l'état actuel…"
+    echo "Safety copy of the current state…"
     if ! su -s /bin/sh "$WEBUSER" -c "$PHP $AUTH/cron/backup.php --local"; then
-        echo "⚠ La copie de sécurité a échoué (base peut-être endommagée)."
-        printf 'Tapez CONTINUER pour restaurer quand même, autre chose pour abandonner : '
+        echo "⚠ The safety copy failed (database possibly damaged)."
+        printf 'Type CONTINUE to restore anyway, anything else to cancel: '
         read -r answer || true
-        [ "$answer" = "CONTINUER" ] || exit 1
+        [ "$answer" = "CONTINUE" ] || exit 1
     fi
 
     # 5. Restore.
     STAGE=restoring
-    if [ "$kind" = base ]; then
+    if [ "$kind" = database ]; then
         gunzip -c "$WORK" | mysql "$DB"
     else
         tar -xzf "$WORK" -C "$(dirname -- "$IANSEO")"
@@ -168,19 +168,19 @@ restore() {
 
     # 6. Site reopened.
     "$OFF"
-    echo "Restauration terminée, site rouvert."
-    if [ "$kind" = base ] && [ "$(mysql -N "$DB" -e 'SELECT COUNT(*) FROM Flags' 2>/dev/null || echo 0)" = "0" ]; then
-        echo "Logos des clubs absents (copie sans logos restaurée sur un serveur neuf) : ils reviennent avec la"
-        echo "synchro de la nuit, ou tout de suite : sudo -u $WEBUSER $PHP $AUTH/cron/sync-logos.php --full"
+    echo "Restore done, site reopened."
+    if [ "$kind" = database ] && [ "$(mysql -N "$DB" -e 'SELECT COUNT(*) FROM Flags' 2>/dev/null || echo 0)" = "0" ]; then
+        echo "Club logos missing (a copy without logos restored on a new server): they come back with the"
+        echo "sync of the night, or right now: sudo -u $WEBUSER $PHP $AUTH/cron/sync-logos.php --full"
     fi
 }
 
-[ "$(id -u)" -eq 0 ] || die "à lancer en root (sudo ianseo-restore …)."
+[ "$(id -u)" -eq 0 ] || die "to run as root (sudo ianseo-restore …)."
 
 case "${1:-}" in
     "")        list ;;
-    -h|--help) sed -n '2,26p' "$0" ;;
-    --test)    [ -n "${2:-}" ] || die "indiquer le fichier à vérifier."; test_copy "$2" ;;
-    -*)        die "option inconnue : $1 (voir --help)" ;;
+    -h|--help) sed -n '2,25p' "$0" ;;
+    --test)    [ -n "${2:-}" ] || die "give the file to check."; test_copy "$2" ;;
+    -*)        die "unknown option: $1 (see --help)" ;;
     *)         restore "$1" ;;
 esac

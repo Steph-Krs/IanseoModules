@@ -1,12 +1,12 @@
 <?php
 /**
- * Module AUTH — Déploiement des fichiers d'authentification.
+ * AUTH module — deployment of the authentication files.
  *
- * Copie dist/ vers htdocs/Modules/Authentication/ et gère le flag
- * $CFG->USERAUTH dans Common/config.inc.php (qui survit aux MaJ ianseo).
+ * Copies dist/ to htdocs/Modules/Authentication/ and manages the $CFG->USERAUTH flag in
+ * Common/config.inc.php (which survives ianseo updates).
  *
- * À relancer après chaque mise à jour officielle d'ianseo si les fichiers
- * ont été écrasés/supprimés (la barre admin affiche une alerte le cas échéant).
+ * To run again after each official ianseo update if the files were overwritten/deleted (the
+ * admin bar shows a warning when it happens).
  */
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
@@ -30,31 +30,31 @@ $nbAdmins = $r ? intval($r->n) : 0;
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!aut_csrf_check()) {
-        $msgErr = 'Session expirée : action non effectuée, réessayez.';
+        $msgErr = htmlspecialchars(aut_t('UsSessionExpired'));
     } else {
         $action = $_POST['action'] ?? '';
         if ($action == 'deploy') {
             $errors = array();
             if (aut_deploy($errors)) {
                 aut_log('DEPLOY', $_SESSION['AUTH_User'] ?? 'local');
-                $msgOk = 'Fichiers déployés dans Modules/Authentication/.';
+                $msgOk = htmlspecialchars(aut_t('DpDone'));
             } else {
-                $msgErr = 'Déploiement incomplet : ' . implode(' ; ', $errors);
+                $msgErr = htmlspecialchars(aut_t('DpIncomplete', implode(' ; ', $errors)));
             }
         }
         if ($action == 'enable') {
             $st = aut_dist_status();
             if (!$st['deployed']) {
-                $msgErr = 'Déployez d\'abord les fichiers.';
+                $msgErr = htmlspecialchars(aut_t('DpDeployFirst'));
             } elseif (!$nbAdmins) {
-                $msgErr = 'Créez d\'abord un compte ADMIN actif (page Utilisateurs), sinon plus personne ne pourra administrer le serveur à distance.';
+                $msgErr = htmlspecialchars(aut_t('DpAdminFirst'));
             } else {
                 $e = '';
                 if (aut_set_userauth(true, $e)) {
                     aut_log('USERAUTH_ON', $_SESSION['AUTH_User'] ?? 'local');
-                    $msgOk = 'Authentification ACTIVÉE. Testez immédiatement la connexion dans une fenêtre de navigation privée avant de fermer cette session.';
+                    $msgOk = htmlspecialchars(aut_t('DpEnabled'));
                 } else {
-                    $msgErr = $e;
+                    $msgErr = htmlspecialchars($e);
                 }
             }
         }
@@ -62,9 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $e = '';
             if (aut_set_userauth(false, $e)) {
                 aut_log('USERAUTH_OFF', $_SESSION['AUTH_User'] ?? 'local');
-                $msgOk = 'Authentification désactivée : le serveur est de nouveau OUVERT à tous (pensez au htdigest Apache en secours).';
+                $msgOk = htmlspecialchars(aut_t('DpDisabled'));
             } else {
-                $msgErr = $e;
+                $msgErr = htmlspecialchars($e);
             }
         }
     }
@@ -73,75 +73,51 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 $st = aut_dist_status();
 $flag = aut_userauth_flag_state();
 
-$PAGE_TITLE = 'Multi-comptes — Déploiement';
+$PAGE_TITLE = aut_t('MenuTitle') . ' — ' . aut_t('MenuDeploy');
 include('Common/Templates/head.php');
-?>
-<table class="Tabella">
-<tr><th class="Title" colspan="3">Déploiement de l'authentification</th></tr>
-<?php
-if ($msgOk)  echo '<tr><td colspan="3" class="Center" style="background:#e8f4e8; color:#1a5c1a;">' . $msgOk . '</td></tr>';
-if ($msgErr) echo '<tr><td colspan="3" class="Center" style="background:#fde8e8; color:#8b1a1a;">' . $msgErr . '</td></tr>';
-?>
-<tr><td colspan="3" style="font-size:11px;">
-    ianseo cherche nativement ses hooks d'authentification dans <code>Modules/Authentication/</code>
-    (dossier hors <code>Modules/Custom/</code>, donc potentiellement écrasé par une mise à jour officielle).
-    Cette page copie les fichiers sources du module (<code>dist/</code>) vers ce dossier, puis active le
-    flag <code>$CFG-&gt;USERAUTH</code> dans <code>Common/config.inc.php</code> (fichier préservé lors des MaJ).
-</td></tr>
 
-<tr><th class="Title" colspan="3">État des fichiers</th></tr>
-<tr><th class="Title w-40">Fichier</th><th class="Title w-30">Déployé</th><th class="Title w-30">Identique à dist/</th></tr>
-<?php foreach ($st['files'] as $f => $s) {
+$e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };
+$action = function ($name, $label, $attrs = '') use ($e) {
+    return '<form method="post" action="" style="display:inline;">' . aut_csrf_field()
+        . '<input type="hidden" name="action" value="' . $name . '">'
+        . '<button type="submit"' . $attrs . '>' . $e($label) . "</button></form>\n";
+};
+$confirm = function ($text) use ($e) {
+    return ' data-confirm="' . $e($text) . '" onclick="return confirm(this.dataset.confirm);"';
+};
+
+echo '<table class="Tabella">' . "\n"
+    . '<tr><th class="Title" colspan="3">' . $e(aut_t('DpTitle')) . "</th></tr>\n";
+if ($msgOk)  echo '<tr><td colspan="3" class="Center" style="background:#e8f4e8; color:#1a5c1a;">' . $msgOk . "</td></tr>\n";
+if ($msgErr) echo '<tr><td colspan="3" class="Center" style="background:#fde8e8; color:#8b1a1a;">' . $msgErr . "</td></tr>\n";
+echo '<tr><td colspan="3" style="font-size:11px;">' . aut_t('DpIntro') . "</td></tr>\n"
+    . '<tr><th class="Title" colspan="3">' . $e(aut_t('DpFiles')) . "</th></tr>\n"
+    . '<tr><th class="Title w-40">' . $e(aut_t('DpFile')) . '</th><th class="Title w-30">' . $e(aut_t('DpDeployed'))
+    . '</th><th class="Title w-30">' . $e(aut_t('DpSame')) . "</th></tr>\n";
+foreach ($st['files'] as $f => $s) {
     echo '<tr><td><code>Modules/Authentication/' . $f . '</code></td>'
-        . '<td class="Center">' . ($s['deployed'] ? '✅' : '❌ absent') . '</td>'
-        . '<td class="Center">' . ($s['deployed'] ? ($s['same'] ? '✅' : '⚠ différent (redéployer)') : '—') . '</td></tr>';
-} ?>
-
-<tr><th class="Title" colspan="3">État de l'activation</th></tr>
-<tr><td colspan="3">
-    Flag <code>$CFG-&gt;USERAUTH</code> dans <code>Common/config.inc.php</code> :
-    <?php
-    echo array(
-        'on'     => '<b style="color:#1a5c1a;">ACTIVÉ</b>',
-        'off'    => '<b style="color:#8b1a1a;">désactivé</b>',
-        'absent' => '<b style="color:#8b1a1a;">absent (jamais activé)</b>',
-        'nofile' => '<b>config.inc.php introuvable ?!</b>',
-    )[$flag];
-    ?>
-    — valeur effective sur cette requête : <b><?php echo !empty($CFG->USERAUTH) ? 'active' : 'inactive'; ?></b>
-    — comptes ADMIN actifs : <b><?php echo $nbAdmins; ?></b>
-</td></tr>
-
-<tr><td colspan="3" class="Center">
-    <form method="post" action="" style="display:inline;"><?php echo aut_csrf_field(); ?>
-        <input type="hidden" name="action" value="deploy">
-        <button type="submit">1. Déployer / redéployer les fichiers</button>
-    </form>
-    <form method="post" action="" style="display:inline;"><?php echo aut_csrf_field(); ?>
-        <input type="hidden" name="action" value="enable">
-        <button type="submit" <?php echo (!$st['deployed'] || !$nbAdmins) ? 'disabled title="Fichiers déployés + un compte ADMIN actif requis"' : ''; ?>
-            onclick="return confirm('Activer l\'authentification pour tout le serveur ?');">2. Activer l'authentification</button>
-    </form>
-    <form method="post" action="" style="display:inline;"><?php echo aut_csrf_field(); ?>
-        <input type="hidden" name="action" value="disable">
-        <button type="submit"
-            onclick="return confirm('DÉSACTIVER l\'authentification ? Le serveur sera accessible sans compte.');">Désactiver</button>
-    </form>
-</td></tr>
-
-<tr><td colspan="3" style="font-size:11px;">
-    <b>Auto-réparation après MaJ ianseo</b> : un filet est posé dans <code>Common/config.inc.php</code>
-    (bloc <code>AUTH-SELFHEAL</code>, ajouté automatiquement à l'activation et à chaque déploiement).
-    Il recopie <code>dist/</code> vers <code>Modules/Authentication/</code> dès la première requête si une
-    MaJ ianseo a effacé ces fichiers → plus besoin de redéployer à la main. Il faut simplement que le
-    serveur web puisse écrire dans <code>Modules/</code>.<br>
-    <b>Secours manuel</b> (si l'écriture est impossible) : recopiez <code>Modules/Custom/AUTH/dist/*</code>
-    vers <code>Modules/Authentication/</code>, ou passez <code>$CFG-&gt;USERAUTH = false;</code>.
-    Détail dans <code>Modules/Custom/AUTH/SERVEUR.md</code>.
-</td></tr>
-<tr><td colspan="3" class="Center">
-    <a href="config.php">Configuration du serveur (sauvegardes, nuit de maintenance, config.local.json) →</a>
-</td></tr>
-</table>
-<?php
+        . '<td class="Center">' . ($s['deployed'] ? '✅' : '❌ ' . $e(aut_t('DpMissing'))) . '</td>'
+        . '<td class="Center">' . ($s['deployed'] ? ($s['same'] ? '✅' : '⚠ ' . $e(aut_t('DpDiffers'))) : '—') . "</td></tr>\n";
+}
+$flags = array(
+    'on'     => '<b style="color:#1a5c1a;">' . $e(aut_t('DpFlagOn')) . '</b>',
+    'off'    => '<b style="color:#8b1a1a;">' . $e(aut_t('DpFlagOff')) . '</b>',
+    'absent' => '<b style="color:#8b1a1a;">' . $e(aut_t('DpFlagAbsent')) . '</b>',
+    'nofile' => '<b>' . $e(aut_t('DpFlagNoFile')) . '</b>',
+);
+echo '<tr><th class="Title" colspan="3">' . $e(aut_t('DpActivation')) . "</th></tr>\n"
+    . '<tr><td colspan="3">'
+    . aut_t('DpFlagLine', $flags[$flag])
+    . ' — ' . aut_t('DpEffective', '<b>' . $e(aut_t(!empty($CFG->USERAUTH) ? 'DpActive' : 'DpInactive')) . '</b>')
+    . ' — ' . aut_t('DpAdmins', '<b>' . $nbAdmins . '</b>')
+    . "</td></tr>\n"
+    . '<tr><td colspan="3" class="Center">'
+    . $action('deploy', aut_t('DpBtnDeploy'))
+    . $action('enable', aut_t('DpBtnEnable'),
+        ((!$st['deployed'] || !$nbAdmins) ? ' disabled title="' . $e(aut_t('DpEnableNeeds')) . '"' : '') . $confirm(aut_t('DpConfirmEnable')))
+    . $action('disable', aut_t('DpBtnDisable'), $confirm(aut_t('DpConfirmDisable')))
+    . "</td></tr>\n"
+    . '<tr><td colspan="3" style="font-size:11px;">' . aut_t('DpSelfheal') . "</td></tr>\n"
+    . '<tr><td colspan="3" class="Center"><a href="config.php">' . $e(aut_t('DpConfigLink')) . " →</a></td></tr>\n"
+    . "</table>\n";
 include('Common/Templates/tail.php');

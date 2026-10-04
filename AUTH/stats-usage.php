@@ -1,45 +1,43 @@
 <?php
 /**
- * stats-usage.php — mesure d'audience du serveur partagé (agrégée, respectueuse).
+ * stats-usage.php — audience measurement of the shared server (aggregated, respectful).
  *
- * Objectif : une page de statistiques d'usage (admin/stats.php) SANS pister les
- * personnes. Deux principes, conformes à la doctrine CNIL sur la mesure
- * d'audience exemptée de consentement
- * (https://www.cnil.fr/fr/cookies-solutions-pour-les-outils-de-mesure-daudience) :
+ * Goal: a usage statistics page (admin/stats.php) WITHOUT tracking people. Two principles,
+ * in line with the CNIL doctrine on audience measurement exempt from consent
+ * (https://www.cnil.fr/fr/cookies-solutions-pour-les-outils-de-mesure-daudience):
  *
- *  1. On ne stocke que des COMPTEURS AGRÉGÉS (pages vues par heure/jour/espace,
- *     AUT_Usage) — aucune donnée personnelle, aucune IP, aucun parcours nominatif.
- *  2. Les visiteurs uniques sont dédupliqués par jour dans AUT_UsageSeen :
- *     - un utilisateur CONNECTÉ est compté par son identité de compte (déjà
- *       connue, aucun cookie) ;
- *     - un visiteur ANONYME (page d'accueil) reçoit un cookie de mesure
- *       d'audience de première partie, opaque, non partagé entre sites, de durée
- *       ≤ 13 mois, jamais lu côté client (HttpOnly). C'est le SEUL cookie non
- *       essentiel, et il relève de l'exemption ci-dessus.
- *  3. Le TYPE D'APPAREIL (téléphone / tablette / ordinateur) est déduit du navigateur
- *     à chaque page et seul ce mot est conservé, dans la clé des deux tables — jamais
- *     la chaîne User-Agent elle-même. Il sert à adapter l'ergonomie à l'usage réel, et
- *     chaque chiffre de la page de statistiques peut être filtré par appareil. Les robots
- *     (moteurs de recherche, supervision…) ne sont plus comptés du tout : sans cookie,
- *     chacun de leurs passages créait un « visiteur unique » de plus.
+ *  1. Only AGGREGATED COUNTERS are stored (page views per hour/day/space, AUT_Usage) — no
+ *     personal data, no IP, no named path.
+ *  2. Unique visitors are deduplicated per day in AUT_UsageSeen:
+ *     - a SIGNED-IN user is counted by their account identity (already known, no cookie);
+ *     - an ANONYMOUS visitor (home page) receives a first-party audience measurement cookie,
+ *       opaque, not shared between sites, lasting ≤ 13 months, never read on the client side
+ *       (HttpOnly). It is the ONLY non-essential cookie, and it falls under the exemption
+ *       above.
+ *  3. The TYPE OF DEVICE (phone / tablet / computer) is derived from the browser at each page
+ *     and only this word is kept, in the key of both tables — never the User-Agent string
+ *     itself. It helps fit the ergonomics to the real use, and every figure of the statistics
+ *     page can be filtered by device. Robots (search engines, monitoring…) are no longer
+ *     counted at all: without a cookie, each of their passes created one more "unique
+ *     visitor".
  *
- * Le tracking ne doit JAMAIS interrompre une page : stats-usage.php est chargé
- * depuis des chemins critiques (bootstrap organisateur, bk_require_archer). Le seul
- * filet réel est la liste d'erreurs tolérées passée à safe_w_sql() (aut_stats_soft) :
- * le try/catch ne rattrape PAS safe_error(), qui sort par exit : une requête SQL en
- * erreur tue la page.
+ * The tracking must NEVER interrupt a page: stats-usage.php is loaded from critical paths
+ * (organiser bootstrap, bk_require_archer). The only real safety net is the list of tolerated
+ * errors passed to safe_w_sql() (aut_stats_soft): try/catch does NOT catch safe_error(),
+ * which leaves through exit: a SQL query in error kills the page.
  */
 
-if (!function_exists('safe_r_sql')) return;   // hors contexte ianseo : ne rien faire
+if (!function_exists('safe_r_sql')) return;   // outside an ianseo context: do nothing
 
-/** Mesure activable/désactivable via config.local.json → "stats_enabled" (défaut : activée). */
+/** Measurement turned on/off through config.local.json → "stats_enabled" (default: on). */
 function aut_stats_enabled() {
     $c = function_exists('aut_local_config') ? aut_local_config() : array();
     return !array_key_exists('stats_enabled', $c) || !empty($c['stats_enabled']);
 }
 
-/** Fuseau des seaux jour/heure : stable et lisible (indépendant du time_zone MySQL
- *  que ianseo change par compétition, et de l'UTC forcé de PHP). Défaut Europe/Paris. */
+/** Time zone of the day/hour buckets: stable and readable (independent of the MySQL
+ *  time_zone that ianseo changes per competition, and of the UTC forced on PHP). Default
+ *  Europe/Paris. */
 function aut_stats_tz() {
     static $tz = null;
     if ($tz instanceof DateTimeZone) return $tz;
@@ -50,19 +48,19 @@ function aut_stats_tz() {
     return $tz;
 }
 
-/** Rétention de la mesure. UsageSeen (pseudonyme) suit la rétention des journaux ;
- *  AUT_Usage (agrégats non personnels) est conservé jusqu'à 25 mois (limite CNIL). */
+/** Retention of the measurement. UsageSeen (pseudonymous) follows the log retention;
+ *  AUT_Usage (non-personal aggregates) is kept up to 25 months (CNIL limit). */
 function aut_stats_seen_days()  { return function_exists('aut_log_retention_days') ? aut_log_retention_days() : 180; }
-function aut_stats_agg_days()   { return 760; }   // ~25 mois
+function aut_stats_agg_days()   { return 760; }   // ~25 months
 
 /**
- * Erreurs SQL tolérées par la mesure d'audience.
+ * SQL errors tolerated by the audience measurement.
  *
- * ⚠️ `try/catch` ne protège de RIEN ici : `safe_w_sql()` appelle `safe_error()`, qui
- * fait `header('HTTP/1.0 404')` + `exit` — aucune exception n'est levée, donc rien à
- * rattraper. Le seul filet est le 3ᵉ argument de `safe_w_sql()` : la liste des numéros
- * d'erreur ACCEPTÉS. 0 = pas d'erreur, 1146 = table absente, 1142/1044 = droits
- * insuffisants. Une mesure d'audience ne doit jamais faire tomber une page.
+ * ⚠️ `try/catch` protects from NOTHING here: `safe_w_sql()` calls `safe_error()`, which does
+ * `header('HTTP/1.0 404')` + `exit` — no exception is raised, so nothing to catch. The only
+ * safety net is the 3rd argument of `safe_w_sql()`: the list of ACCEPTED error numbers.
+ * 0 = no error, 1146 = missing table, 1142/1044 = insufficient rights. An audience
+ * measurement must never bring a page down.
  */
 function aut_stats_soft() { return array(0, 1044, 1054, 1142, 1146); }   // 1054 = column not migrated yet
 
@@ -141,8 +139,8 @@ function aut_stats_ensure_schema() {
     } catch (\Throwable $e) { /* PHP errors only: SQL errors are neutralised by $soft */ }
 }
 
-/** Cette requête est-elle une consultation de page à mesurer ? (GET, pas XHR,
- *  pas un asset/API/logo). Sert de garde universelle au tracking. */
+/** Is this request a page view to measure? (GET, not XHR, not an asset/API/logo). Used as
+ *  the universal guard of the tracking. */
 function aut_stats_is_page() {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') return false;
     if (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest') return false;
@@ -176,8 +174,8 @@ function aut_stats_device($ua = null, $chMobile = null) {
     return 'desktop';
 }
 
-/** Clé de page normalisée. Pour l'espace organisateur (cœur ianseo, beaucoup de
- *  scripts nommés index.php), on préfixe du dossier parent pour désambiguïser. */
+/** Normalised page key. For the organiser space (ianseo core, many scripts named
+ *  index.php), the parent folder is prefixed to tell them apart. */
 function aut_stats_page_key($space) {
     $s = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
     $parts = array_values(array_filter(explode('/', trim($s, '/')), 'strlen'));
@@ -187,8 +185,8 @@ function aut_stats_page_key($space) {
     return substr($base !== '' ? $base : 'index', 0, 48);
 }
 
-/** Cookie de mesure d'audience (anonymes uniquement). Opaque, 1re partie, ≤ 13 mois,
- *  HttpOnly (jamais exposé au client). Retourne l'identifiant pseudonyme. */
+/** Audience measurement cookie (anonymous visitors only). Opaque, first party, ≤ 13 months,
+ *  HttpOnly (never exposed to the client). Returns the pseudonymous identifier. */
 function aut_stats_audience_id() {
     static $id = null;
     if ($id !== null) return $id;
@@ -200,29 +198,29 @@ function aut_stats_audience_id() {
         $path = (isset($CFG->ROOT_DIR) && $CFG->ROOT_DIR !== '') ? $CFG->ROOT_DIR : '/';
         $secure = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off');
         @setcookie('aud', $id, array(
-            'expires'  => time() + 34128000,   // 13 mois : limite CNIL du cookie de mesure d'audience
+            'expires'  => time() + 34128000,   // 13 months: CNIL limit of the audience measurement cookie
             'path'     => $path,
             'secure'   => $secure,
             'httponly' => true,
             'samesite' => 'Lax',
         ));
     }
-    $_COOKIE['aud'] = $id;   // disponible dès cette requête
+    $_COOKIE['aud'] = $id;   // available from this request on
     return $id;
 }
 
 /**
- * Enregistre une consultation de page.
- *   $space : 'org' | 'archer' | 'public'
- *   $uid   : identifiant de compte si connecté (compté par identité, sans cookie) ;
- *            null → visiteur anonyme (compté via le cookie de mesure d'audience).
- * Auto-gardé (aut_stats_is_page) et totalement isolé (aucune erreur ne remonte).
+ * Records a page view.
+ *   $space: 'org' | 'archer' | 'public'
+ *   $uid  : account identifier when signed in (counted by identity, no cookie);
+ *           null → anonymous visitor (counted through the audience measurement cookie).
+ * Self-guarded (aut_stats_is_page) and fully isolated (no error goes up).
  */
 function aut_track($space, $uid = null) {
     try {
         if (!aut_stats_enabled() || !aut_stats_is_page()) return;
         $device = aut_stats_device();
-        if ($device === 'bot') return;   // pas un utilisateur : ni vue, ni visiteur, ni cookie
+        if ($device === 'bot') return;   // not a user: no view, no visitor, no cookie
         aut_stats_ensure_schema();
 
         $now  = new DateTime('now', aut_stats_tz());
@@ -231,8 +229,8 @@ function aut_track($space, $uid = null) {
         $page = aut_stats_page_key($space);
         $sp   = StrSafe_DB($space);
 
-        // 3ᵉ argument = erreurs tolérées : c'est le SEUL filet (le catch ci-dessous ne
-        // rattrape pas safe_error(), qui sort par exit).
+        // 3rd argument = tolerated errors: it is the ONLY safety net (the catch below does not
+        // catch safe_error(), which leaves through exit).
         $soft = aut_stats_soft();
         $dev  = StrSafe_DB($device);
         safe_w_sql("INSERT INTO AUT_Usage (UsDay, UsHour, UsSpace, UsPage, UsDevice, UsViews)
@@ -244,25 +242,24 @@ function aut_track($space, $uid = null) {
         safe_w_sql("INSERT IGNORE INTO AUT_UsageSeen (UzDay, UzSpace, UzRef, UzDevice)
             VALUES (" . StrSafe_DB($day) . ", $sp, " . StrSafe_DB(substr($ref, 0, 64)) . ", $dev)", false, $soft);
     } catch (\Throwable $e) {
-        // erreurs PHP seulement (date, cookie…) : les erreurs SQL, elles, sont
-        // neutralisées par $soft — safe_error() ne lève rien, il sort.
+        // PHP errors only (date, cookie…): the SQL errors are neutralised by $soft —
+        // safe_error() raises nothing, it leaves.
     }
 }
 
 /**
- * Purge de la mesure : UsageSeen à la rétention des journaux, agrégats à 25 mois.
+ * Purge of the measurement: UsageSeen at the log retention, aggregates at 25 months.
  *
- * ⚠️ PANNE RÉELLE (serveur d'un utilisateur, sept. 2026) : « Error 1146: Table
- * 'xxx.AUT_UsageSeen' doesn't exist » en pleine page. Une installation mise à jour
- * depuis une version antérieure à la mesure d'audience n'a pas ces tables ; elles
- * n'étaient créées que par aut_track(), et la purge — appelée AVANT, depuis
- * aut_log_purge() — tombait donc sur une table absente. safe_w_sql() a alors fait
- * safe_error() → 404 + exit : page morte, malgré le try/catch (voir aut_stats_soft).
- * Symptôme trompeur : une seule requête par jour échoue (le marqueur de
- * aut_log_purge_daily est posé AVANT la purge), la suivante passe.
+ * ⚠️ REAL OUTAGE (a user's server, Sept. 2026): "Error 1146: Table 'xxx.AUT_UsageSeen'
+ * doesn't exist" in the middle of a page. An installation updated from a version older than
+ * the audience measurement does not have these tables; they were only created by
+ * aut_track(), and the purge — called BEFORE, from aut_log_purge() — hit a missing table.
+ * safe_w_sql() then did safe_error() → 404 + exit: dead page, despite the try/catch (see
+ * aut_stats_soft). Misleading symptom: only one request a day fails (the marker of
+ * aut_log_purge_daily is set BEFORE the purge), the next one passes.
  */
 function aut_stats_purge() {
-    aut_stats_ensure_schema();          // d'abord créer, ensuite purger
+    aut_stats_ensure_schema();          // create first, purge next
     $soft = aut_stats_soft();
     $seen = (int) aut_stats_seen_days();
     $agg  = (int) aut_stats_agg_days();
@@ -271,12 +268,12 @@ function aut_stats_purge() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Lectures pour la page de statistiques (admin/stats.php)             */
-/* Toutes en lecture forcée ($force) : une table absente rend 0/[],    */
-/* jamais une page en erreur.                                          */
+/* Reads for the statistics page (admin/stats.php)                     */
+/* All of them forced reads ($force): a missing table gives 0/[],      */
+/* never a page in error.                                              */
 /* ------------------------------------------------------------------ */
 
-/** Date de début (AAAA-MM-JJ) d'une fenêtre de $days jours, dans le fuseau de mesure. */
+/** Start date (YYYY-MM-DD) of a window of $days days, in the measurement time zone. */
 function aut_stats_from($days) {
     $d = (new DateTime('now', aut_stats_tz()))->modify('-' . (max(1, (int) $days) - 1) . ' days');
     return $d->format('Y-m-d');
@@ -314,7 +311,7 @@ function aut_stats_devices($space, $days) {
     return $out;
 }
 
-/** Visiteurs uniques (distincts) sur la fenêtre. */
+/** Unique (distinct) visitors over the window. */
 function aut_stats_uniques($space, $days, $device = '') {
     $q = safe_r_sql("SELECT COUNT(DISTINCT UzRef) AS u FROM AUT_UsageSeen
         WHERE UzSpace=" . StrSafe_DB($space) . " AND UzDay >= " . StrSafe_DB(aut_stats_from($days))
@@ -323,8 +320,8 @@ function aut_stats_uniques($space, $days, $device = '') {
     return $r ? (int) $r->u : 0;
 }
 
-/** Série quotidienne : [ ['day'=>..., 'views'=>..., 'uniques'=>...], ... ] pour tous
- *  les jours de la fenêtre (jours sans trafic inclus à 0). */
+/** Daily series: [ ['day'=>..., 'views'=>..., 'uniques'=>...], ... ] for every day of the
+ *  window (days without traffic included at 0). */
 function aut_stats_daily($space, $days, $device = '') {
     $from = aut_stats_from($days);
     $sp = StrSafe_DB($space);
@@ -350,7 +347,7 @@ function aut_stats_daily($space, $days, $device = '') {
     return $out;
 }
 
-/** Répartition horaire (0..23) des pages vues sur la fenêtre — « pics d'usage ». */
+/** Hourly split (0..23) of the page views over the window — "usage peaks". */
 function aut_stats_hourly($space, $days, $device = '') {
     $out = array_fill(0, 24, 0);
     $q = safe_r_sql("SELECT UsHour AS h, SUM(UsViews) AS v FROM AUT_Usage
@@ -360,7 +357,7 @@ function aut_stats_hourly($space, $days, $device = '') {
     return $out;
 }
 
-/** Pages les plus consultées : [ ['page'=>..., 'views'=>...], ... ]. */
+/** Most viewed pages: [ ['page'=>..., 'views'=>...], ... ]. */
 function aut_stats_top_pages($space, $days, $limit = 8, $device = '') {
     $out = array();
     $limit = max(1, min(30, (int) $limit));
@@ -371,7 +368,7 @@ function aut_stats_top_pages($space, $days, $limit = 8, $device = '') {
     return $out;
 }
 
-/** Métriques métier ARCHERS (indépendantes de la mesure d'audience). */
+/** ARCHER business figures (independent of the audience measurement). */
 function aut_stats_archer_business() {
     $one = function ($sql) {
         $q = safe_r_sql($sql, false, true);
@@ -380,10 +377,10 @@ function aut_stats_archer_business() {
     };
     $total   = $one("SELECT COUNT(*) AS n FROM BK_Archers");
     $active  = $one("SELECT COUNT(*) AS n FROM BK_Archers WHERE BaActive=1");
-    // Archers ayant AU MOINS une inscription à leur nom (conversion) — jointure BK↔BK, même collation.
+    // Archers with AT LEAST one registration in their name (conversion) — BK↔BK join, same collation.
     $conv    = $one("SELECT COUNT(*) AS n FROM BK_Archers a
         WHERE EXISTS (SELECT 1 FROM BK_Registrations r WHERE r.BrLicence = a.BaLicence)");
-    // Archers qui inscrivent d'AUTRES archers (pair « CLUB » ou gestionnaire « MANAGER »).
+    // Archers who register OTHER archers (peer "CLUB" or "MANAGER").
     $inscr   = $one("SELECT COUNT(DISTINCT BrArcher) AS n FROM BK_Registrations
         WHERE BrArcher > 0 AND BrByRole IN ('CLUB','MANAGER')");
     return array(
@@ -392,7 +389,7 @@ function aut_stats_archer_business() {
     );
 }
 
-/** Métriques métier ORGANISATEURS. */
+/** ORGANISER business figures. */
 function aut_stats_org_business($days = 30) {
     $one = function ($sql) {
         $q = safe_r_sql($sql, false, true);
@@ -404,7 +401,7 @@ function aut_stats_org_business($days = 30) {
     $roles = array();
     $q = safe_r_sql("SELECT AuRole AS r, COUNT(*) AS n FROM AUT_Users GROUP BY AuRole", false, true);
     while ($q && ($x = safe_fetch($q))) $roles[$x->r] = (int) $x->n;
-    // Connexions réussies sur la fenêtre (journal AUT_Log). Table toujours présente ici.
+    // Successful sign-ins over the window (AUT_Log). Table always there here.
     $from = aut_stats_from($days);
     $logins = $one("SELECT COUNT(*) AS n FROM AUT_Log
         WHERE AlEvent IN ('LOGIN_OK','SSO_OK') AND AlWhen >= " . StrSafe_DB($from . ' 00:00:00'));

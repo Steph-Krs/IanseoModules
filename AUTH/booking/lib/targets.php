@@ -1,15 +1,14 @@
 <?php
 /**
- * lib/targets.php — attribution des cibles et contrôle des règles fédérales.
+ * lib/targets.php — target assignment and check of the federation rules.
  *
- * Les emplacements possibles ne sont PAS recalculés ici : ils viennent de
- * createAvailableTargetSQL() (Common/Globals.inc.php), la vue virtuelle que le
- * cœur ianseo construit depuis Session (SesFirstTarget/SesTar4Session/
- * SesAth4Target). La table AvailableTarget existe en base mais est morte (son
- * INSERT est commenté dans Fun_ManSessions.inc.php) : ne jamais s'y fier.
+ * The possible slots are NOT computed here: they come from createAvailableTargetSQL()
+ * (Common/Globals.inc.php), the virtual view the ianseo core builds from Session
+ * (SesFirstTarget/SesTar4Session/SesAth4Target). The AvailableTarget table exists but is dead
+ * (its INSERT is commented out in Fun_ManSessions.inc.php): never rely on it.
  *
- * ⚠️ Qualifications n'a aucune colonne de compétition : toute lecture comme
- * toute écriture passe par une jointure sur Entries (EnTournament).
+ * ⚠️ Qualifications has no competition column: every read and every write goes through a join
+ * on Entries (EnTournament).
  */
 
 if (defined('BK_TARGETS_LOADED')) return;
@@ -19,15 +18,15 @@ require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/competition.php';
 require_once __DIR__ . '/registration.php';
 require_once __DIR__ . '/caps.php';
-require_once __DIR__ . '/cohabitation.php';   // cohabitation des blasons (M7)
+require_once __DIR__ . '/cohabitation.php';   // faces sharing a target (M7)
 
-/** Format ianseo de QuTargetNo : départ + cible sur 3 chiffres + lettre → 1004A. */
+/** ianseo format of QuTargetNo: departure + target on 3 digits + letter → 1004A. */
 function bk_target_no($session, $target, $letter)
 {
     return intval($session) . str_pad(intval($target), 3, '0', STR_PAD_LEFT) . strtoupper($letter);
 }
 
-/** Emplacements libres d'un départ, dans l'ordre cible puis lettre. */
+/** Free slots of a departure, ordered by target then letter. */
 function bk_free_slots($tourId, $sessionOrder)
 {
     $tourId = intval($tourId);
@@ -51,7 +50,7 @@ function bk_free_slots($tourId, $sessionOrder)
     return $out;
 }
 
-/** Archers d'un départ, avec leur club et leur éventuelle place déjà attribuée. */
+/** Archers of a departure, with their club and their place if already assigned. */
 function bk_session_archers($tourId, $sessionOrder)
 {
     $tourId = intval($tourId);
@@ -70,7 +69,7 @@ function bk_session_archers($tourId, $sessionOrder)
     return $out;
 }
 
-/** Idem, mais avec les demandes structurées et l'origine de l'inscription. */
+/** Same, with the structured wishes and the origin of the registration. */
 function bk_session_archers_full($tourId, $sessionOrder)
 {
     $tourId = intval($tourId);
@@ -91,25 +90,24 @@ function bk_session_archers_full($tourId, $sessionOrder)
 }
 
 /**
- * Attribue une cible aux archers d'un départ qui n'en ont pas encore.
+ * Assigns a target to the archers of a departure who have none yet.
  *
- * Ne DÉPLACE jamais un archer déjà placé : l'organisateur a pu ajuster à la
- * main (ou un autre outil l'a placé), et une inscription tardive ne doit pas
- * rebattre les cartes de tout le monde.
+ * NEVER MOVES an archer already placed: the organiser may have adjusted by hand (or another tool
+ * placed them), and a late registration must not reshuffle everyone.
  *
- * Contraintes appliquées, dans l'ordre de priorité :
- *  1. **Possibilités du terrain** (BK_TargetCaps) — une cible qui n'accepte pas
- *     la distance ou le blason de l'archer est éliminée. Contrainte DURE : on
- *     préfère laisser un archer non placé plutôt que sur une cible impossible.
- *  2. **Une seule distance par cible** — deux archers d'une même cible tirent
- *     ensemble : contrainte physique, pas une règle de cohabitation de blasons.
- *  3. `BcMaxPerClubPerTarget` archers d'un même club au plus par cible. Souple :
- *     dépassée en dernier recours, et signalée au contrôle.
+ * Constraints, by priority:
+ *  1. **Field capabilities** (BK_TargetCaps) — a target that does not accept the archer's
+ *     distance or face is ruled out. HARD constraint: better leave an archer unplaced than on an
+ *     impossible target.
+ *  2. **One distance per target** — two archers of one target shoot together: a physical
+ *     constraint, not a rule on faces sharing a target.
+ *  3. At most `BcMaxPerClubPerTarget` archers of one club per target. Soft: exceeded as a last
+ *     resort, and reported by the check.
  *
- * Les archers sont servis club par club en rotation, pour étaler les clubs.
+ * Archers are served club by club in turn, to spread the clubs.
  *
- * Retourne ['places'=>N, 'restants'=>M, 'compromis'=>K, 'incompatibles'=>I] —
- * `incompatibles` compte les archers qu'aucune cible du départ ne peut recevoir.
+ * Returns ['places'=>N, 'restants'=>M, 'compromis'=>K, 'incompatibles'=>I] — `incompatibles`
+ * counts the archers no target of the departure can take.
  */
 function bk_assign_session($tourId, $sessionOrder, $cfg)
 {
@@ -124,16 +122,16 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
     $type = $tr ? $tr->ToType : '';
     $caps = bk_caps_get($tourId, $sessionOrder);
 
-    // Cohabitation des blasons (M7) : discipline + rythme (archers/cible) du départ.
-    // Pour TAE/18m, une cible ne peut porter qu'un ensemble de blasons dont la somme
-    // des « coûts » tient dans le budget physique (voir lib/cohabitation.php).
+    // Faces sharing a target (M7): discipline + rhythm (archers per target) of the departure.
+    // Outdoors/18 m, a target can only carry a set of faces whose "costs" fit in the physical
+    // budget (see lib/cohabitation.php).
     $dd   = bk_comp_discipline($type, $tr ? $tr->ToTypeSubRule : '', $tr ? $tr->ToTypeName : '');
     $disc = $dd['key'];
     $sr   = safe_fetch(safe_r_sql("SELECT SesAth4Target FROM Session
         WHERE SesTournament = $tourId AND SesOrder = " . intval($sessionOrder) . " AND SesType = 'Q'"));
     $rhythm = $sr ? max(1, intval($sr->SesAth4Target)) : 1;
 
-    // Besoins de chaque archer (distances + blason), mis en cache par catégorie.
+    // Needs of each archer (distances + face), cached by category.
     $needCache = array();
     $needs = function ($a) use (&$needCache, $tourId, $type) {
         $k = $a->EnDivision . '|' . $a->EnClass . '|' . intval($a->EnTargetFace);
@@ -143,11 +141,11 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
         return $needCache[$k];
     };
 
-    // Occupation des cibles déjà en place : quota par club ET distance déjà
-    // imposée à la cible par ses occupants.
+    // Occupation of the targets already in place: quota per club AND distance already imposed
+    // on the target by its occupants.
     $parCible = array();
     $distCible = array();
-    $facesCible = array();     // cible → liste des classes de blason déjà posées (cohabitation)
+    $facesCible = array();     // target → list of the face classes already placed (sharing)
     $aPlacer  = array();
     foreach ($archers as $a) {
         $club = (string) ($a->CoCode ?: '?');
@@ -157,7 +155,7 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
             $distCible[$t] = bk_caps_dist_key($needs($a));
             $facesCible[$t][] = bk_face_class_by_id($tourId, $a->EnTargetFace);
         } else {
-            // Inscription en ligne non encore validée (mode manuel) → non placée.
+            // Online registration not validated yet (manual mode) → not placed.
             if (!empty($a->BrEnId) && intval($a->BrValidated) === 0) continue;
             $aPlacer[$club][] = $a;
         }
@@ -165,8 +163,8 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
     if (!$aPlacer) return array('places' => 0, 'restants' => 0, 'compromis' => 0,
                                'incompatibles' => 0, 'voeux' => 0, 'voeuxOk' => 0);
 
-    // File d'attente : un archer de chaque club à tour de rôle, les plus gros
-    // clubs d'abord — c'est ce qui étale les clubs sur toutes les cibles.
+    // Queue: one archer of each club in turn, the biggest clubs first — this is what spreads
+    // the clubs over all the targets.
     uasort($aPlacer, function ($x, $y) { return count($y) - count($x); });
     $file = array();
     while ($aPlacer) {
@@ -176,16 +174,15 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
         }
     }
 
-    /* ---- Demandes « avec untel » : on regroupe avant de placer ------------
-       Un vœu de ce type ne peut pas se satisfaire en plaçant les archers un à
-       un dans l'ordre d'arrivée. On constitue donc des grappes (union-find
-       simplifié), et on remonte chaque grappe en tête de file : ses membres
-       seront servis consécutivement, donc sur la même cible tant qu'il y a de
-       la place. Les grappes plus grandes qu'une cible débordent — inévitable. */
+    /* ---- "With someone" wishes: grouped before placing --------------------
+       Such a wish cannot be met by placing archers one by one in order of arrival. Clusters are
+       therefore built (simplified union-find), and each cluster moves to the front of the
+       queue: its members are served one after the other, so on the same target while there is
+       room. Clusters bigger than a target overflow — unavoidable. */
     $indexLic = array();
     foreach ($file as $i => $a) $indexLic[bk_clean_licence($a->EnCode)] = $i;
 
-    $groupe = array();                       // EnId → identifiant de grappe
+    $groupe = array();                       // EnId → cluster id
     $racine = function ($x) use (&$groupe, &$racine) {
         while (isset($groupe[$x]) && $groupe[$x] !== $x) $x = $groupe[$x];
         return $x;
@@ -203,10 +200,9 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
     $grappes = array();
     foreach ($file as $i => $a) $grappes[$racine(intval($a->EnId))][] = $i;
 
-    // Au sein d'une grappe, l'ANCRE d'abord : celui que les autres ont désigné.
-    // Si la grappe ne tient pas entièrement sur une cible (quota de club), c'est
-    // lui qui doit rester — sinon les demandeurs se retrouvent groupés entre eux
-    // sans la personne qu'ils avaient demandée, ce qui ne satisfait personne.
+    // Within a cluster, the ANCHOR first: the one the others asked for. When the cluster does
+    // not fit on one target (club quota), they are the one who must stay — otherwise the
+    // askers end up together without the person they asked for, which pleases nobody.
     $cite = array();
     foreach ($file as $a) {
         $w = bk_clean_licence($a->BrWantWith ?? '');
@@ -221,11 +217,11 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
     }
     unset($g);
 
-    // Grappes réelles (≥ 2) d'abord, les plus grandes en tête ; puis les isolés
-    // dans l'ordre de brassage des clubs déjà calculé.
+    // Real clusters (≥ 2) first, the biggest at the front; then the single ones in the club
+    // shuffling order already computed.
     uasort($grappes, function ($x, $y) { return count($y) - count($x); });
     $ordre = array();
-    $enGrappe = array();          // index (dans la NOUVELLE file) → membre d'une grappe
+    $enGrappe = array();          // index (in the NEW queue) → member of a cluster
     foreach ($grappes as $g) { if (count($g) > 1) foreach ($g as $i) { $ordre[] = $i; } }
     foreach ($grappes as $g) { if (count($g) === 1) $ordre[] = $g[0]; }
     $nouvelle = array();
@@ -235,7 +231,7 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
     }
     $file = $nouvelle;
 
-    // Comptage des vœux, pour rendre compte à l'organisateur.
+    // Count of the wishes, to report to the organiser.
     $voeux = 0;
     foreach ($file as $a) {
         if (trim((string) ($a->BrWantLetter ?? '')) !== '' || trim((string) ($a->BrWantWith ?? '')) !== '') $voeux++;
@@ -247,24 +243,23 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
         if (!$file) break;
         $t = $slot['t'];
 
-        // Candidats que CETTE cible peut physiquement recevoir : capacités du
-        // terrain, puis distance déjà imposée par les occupants de la cible.
+        // Candidates THIS target can physically take: field capabilities, then the distance
+        // already imposed by the target's occupants.
         $eligibles = array();
         foreach ($file as $i => $a) {
             $n = $needs($a);
             if (!bk_caps_target_ok($caps, $t, $n)) continue;
             if (isset($distCible[$t]) && $distCible[$t] !== bk_caps_dist_key($n)) continue;
-            // Cohabitation : le blason de l'archer doit tenir dans le budget restant de
-            // la cible compte tenu des blasons déjà posés (TAE/18m ; sinon sans effet).
+            // Sharing: the archer's face must fit in the target's remaining budget given the
+            // faces already placed (outdoors/18 m; no effect otherwise).
             if (bk_cohabit_max_add($facesCible[$t] ?? array(),
                     bk_face_class_by_id($tourId, $a->EnTargetFace), $disc, $rhythm) < 1) continue;
             $eligibles[] = $i;
         }
-        if (!$eligibles) continue;   // aucune cible impossible : on laisse le créneau vide
+        if (!$eligibles) continue;   // no impossible target: the slot stays empty
 
-        // Parmi eux, le premier dont le club tient encore sur cette cible.
-        // À égalité, on privilégie celui qui a demandé CETTE lettre : le vœu ne
-        // passe jamais devant une règle, seulement devant l'ordre d'arrivée.
+        // Among them, the first whose club still fits on this target. On a tie, the one who
+        // asked for THIS letter goes first: a wish never beats a rule, only the arrival order.
         $possibles = array();
         foreach ($eligibles as $i) {
             $club = (string) ($file[$i]->CoCode ?: '?');
@@ -272,10 +267,9 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
         }
         $idx = null;
         if ($possibles) {
-            // Préférence de lettre : uniquement parmi les archers SANS grappe.
-            // Laisser un vœu de lettre doubler un membre de grappe casserait
-            // l'adjacence qui, elle, satisfait un vœu « avec untel » — deux
-            // demandes rompues au lieu d'une.
+            // Letter preference: only among the archers WITHOUT a cluster. Letting a letter
+            // wish overtake a cluster member would break the adjacency that meets a "with
+            // someone" wish — two broken requests instead of one.
             foreach ($possibles as $i) {
                 if (!empty($enGrappe[intval($file[$i]->EnId)])) continue;
                 if (strtoupper(trim((string) ($file[$i]->BrWantLetter ?? ''))) === strtoupper($slot['l'])) {
@@ -284,7 +278,7 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
             }
             if ($idx === null) $idx = $possibles[0];
         } else {
-            $idx = $eligibles[0]; $compromis++;   // quota dépassé, signalé
+            $idx = $eligibles[0]; $compromis++;   // quota exceeded, reported
         }
 
         $a    = $file[$idx];
@@ -294,8 +288,8 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
         $file = array_values($file);
 
         $no = bk_target_no($sessionOrder, $slot['t'], $slot['l']);
-        // Garde-fou redondant : l'UPDATE cible un EnId précis ET revérifie la
-        // compétition — Qualifications seule déborderait sur toute la base.
+        // Redundant safeguard: the UPDATE aims at one EnId AND checks the competition again —
+        // Qualifications alone would spill over the whole database.
         safe_w_sql("UPDATE Qualifications q
             INNER JOIN Entries e ON e.EnId = q.QuId AND e.EnTournament = $tourId
             SET q.QuTarget = " . intval($slot['t']) . ",
@@ -310,8 +304,8 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
         $places++;
     }
 
-    // Satisfaction réelle, mesurée APRÈS coup plutôt que devinée pendant le
-    // placement : un vœu « avec untel » ne se juge qu'une fois les deux posés.
+    // Actual satisfaction, measured AFTERWARDS rather than guessed during placement: a "with
+    // someone" wish can only be judged once both are placed.
     foreach ($archers as $a) {
         if (intval($a->QuTarget) > 0) {
             $pose[bk_clean_licence($a->EnCode)] = array(
@@ -328,8 +322,8 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
         if ($ok) $voeuxOk++;
     }
 
-    // Ceux qu'AUCUNE cible du départ ne peut recevoir : à distinguer d'un simple
-    // manque de place, car la cause est la configuration du terrain.
+    // Those NO target of the departure can take: told apart from a mere lack of room, since
+    // the cause is the field's setting.
     $incompatibles = 0;
     foreach ($file as $a) {
         $n = $needs($a);
@@ -346,16 +340,15 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
 }
 
 /**
- * Places ENCORE disponibles sur un départ pour un PROFIL précis (arme, catégorie,
- * blason) — c'est la « jauge spécifique » de l'inscription, et le contrôle d'admission :
- * 0 ⇒ plus aucune cible ne peut recevoir cet archer, l'inscription doit être refusée.
+ * Places STILL available on a departure for a given PROFILE (bow, category, face) — the
+ * "specific gauge" of the registration, and the admission check: 0 ⇒ no target can take this
+ * archer any more, the registration must be refused.
  *
- * Reproduit exactement l'éligibilité de bk_assign_session (capacités du terrain, une
- * seule distance par cible, cohabitation des blasons) et somme, sur les cibles à
- * lettres libres, ce que chacune peut encore accueillir de ce profil. Renvoie null si
- * la contrainte n'est pas connue (départ absent). Basé sur les placements actuels :
- * exact en validation AUTOMATIQUE (chaque inscription est placée aussitôt) ; en
- * validation MANUELLE, les inscriptions en attente ne sont pas encore posées.
+ * Reproduces exactly the eligibility of bk_assign_session (field capabilities, one distance per
+ * target, faces sharing a target) and adds up, over the targets with free letters, what each
+ * can still take of this profile. Returns null when the constraint is unknown (no departure).
+ * Based on the current placements: exact with AUTOMATIC validation (each registration is placed
+ * at once); with MANUAL validation, the pending registrations are not placed yet.
  */
 function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId)
 {
@@ -389,7 +382,7 @@ function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId
     foreach ($slots as $s) $targets[intval($s['t'])] = true;
     if (!$targets) return 0;
 
-    // Occupation actuelle : blasons et distance imposés par les archers déjà placés.
+    // Current occupation: faces and distance imposed by the archers already placed.
     $facesCible = array(); $distCible = array();
     foreach (bk_session_archers_full($tourId, $sessionOrder) as $a) {
         if (intval($a->QuTarget) <= 0) continue;
@@ -402,12 +395,11 @@ function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId
     foreach (array_keys($targets) as $t) {
         if (!bk_caps_target_ok($caps, $t, $needs)) continue;
         if (isset($distCible[$t]) && $distCible[$t] !== $distKey) continue;
-        // ⚠️ bk_cohabit_max_add() répond « combien de plus MAINTENANT », pas « combien
-        // en tout ». Sur une cible vide en TAE, un blason plein (122) coûte tout le
-        // budget → elle renvoyait 1, alors que ce blason est ENSUITE PARTAGÉ par
-        // jusqu'à SesAth4Target archers. La jauge affichait donc le nombre de CIBLES
-        // libres et non les places (confusion signalée à l'inscription). On pose donc
-        // les archers un par un, comme le fait réellement le placement.
+        // ⚠️ bk_cohabit_max_add() answers "how many more NOW", not "how many in all". On an
+        // empty outdoor target, a full face (122) costs the whole budget → it returned 1,
+        // although this face is THEN SHARED by up to SesAth4Target archers. The gauge showed
+        // the number of free TARGETS and not the places (confusion reported at registration).
+        // Archers are therefore placed one by one, as the placement really does.
         $cur = $facesCible[$t] ?? array();
         for ($n = 0; $n < $rhythm; $n++) {
             if (bk_cohabit_max_add($cur, $faceClass, $disc, $rhythm) < 1) break;
@@ -419,18 +411,14 @@ function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId
 }
 
 /**
- * Replanifie ENTIÈREMENT un départ pour satisfaire au mieux les demandes des
- * archers, puis replace tout le monde.
+ * Plans a departure ENTIRELY again to best meet the archers' wishes, then places everyone.
  *
- * Appelée après chaque inscription : une demande « avec untel » ne peut pas se
- * satisfaire en plaçant les gens un par un dans l'ordre d'arrivée — il faut
- * pouvoir rebattre les cartes.
+ * Called after each registration: a "with someone" wish cannot be met by placing people one by
+ * one in order of arrival — the cards must be reshuffled.
  *
- * ⚠️ Ne libère QUE les inscriptions créées par ce module (présentes dans
- * BK_Registrations). Un participant saisi par l'organisateur, ou placé par un
- * autre outil, garde sa cible : elle devient un obstacle fixe. Sans cette
- * garde, une inscription en ligne déplacerait le travail manuel de
- * l'organisateur.
+ * ⚠️ Frees ONLY the registrations made by this module (in BK_Registrations). A participant
+ * entered by the organiser, or placed by another tool, keeps their target: it becomes a fixed
+ * obstacle. Without this guard, an online registration would move the organiser's manual work.
  */
 function bk_replan_session($tourId, $sessionOrder, $cfg)
 {
@@ -444,9 +432,8 @@ function bk_replan_session($tourId, $sessionOrder, $cfg)
 }
 
 /**
- * Replanifie tous les départs où le module a des inscriptions. Utilisée après
- * une inscription ou une annulation, quand l'organisateur laisse le placement
- * automatique actif.
+ * Plans again every departure where the module has registrations. Used after a registration or
+ * a cancellation, when the organiser leaves the automatic placement on.
  */
 function bk_replan_all($tourId, $cfg)
 {
@@ -463,9 +450,9 @@ function bk_replan_all($tourId, $cfg)
     return $tot;
 }
 
-/* ---- Validation manuelle des inscriptions -------------------------------- */
+/* ---- Manual validation of the registrations ---------------------------- */
 
-/** Inscriptions en ligne en attente de validation (BrValidated=0). */
+/** Online registrations waiting for validation (BrValidated=0). */
 function bk_pending_registrations($tourId)
 {
     $tourId = intval($tourId);
@@ -486,7 +473,7 @@ function bk_pending_registrations($tourId)
     return $out;
 }
 
-/** Nombre d'inscriptions en attente de validation. */
+/** Number of registrations waiting for validation. */
 function bk_pending_count($tourId)
 {
     $tourId = intval($tourId);
@@ -495,7 +482,7 @@ function bk_pending_count($tourId)
     return $r ? intval($r->n) : 0;
 }
 
-/** Valide une inscription puis place son départ. Retourne bool. */
+/** Validates a registration, then places its departure. Returns bool. */
 function bk_validate_registration($tourId, $enId, $cfg)
 {
     $tourId = intval($tourId); $enId = intval($enId);
@@ -508,7 +495,7 @@ function bk_validate_registration($tourId, $enId, $cfg)
     return true;
 }
 
-/** Valide toutes les inscriptions en attente + place les départs. Retourne le nombre validé. */
+/** Validates every pending registration + places the departures. Returns the number validated. */
 function bk_validate_all($tourId, $cfg)
 {
     $tourId = intval($tourId);
@@ -523,7 +510,7 @@ function bk_validate_all($tourId, $cfg)
     return $n;
 }
 
-/** Libère les cibles d'un départ (remet les archers en attente de placement). */
+/** Frees the targets of a departure (archers back to waiting for a placement). */
 function bk_clear_session($tourId, $sessionOrder)
 {
     $tourId = intval($tourId);
@@ -535,12 +522,11 @@ function bk_clear_session($tourId, $sessionOrder)
 }
 
 /**
- * Contrôle du règlement, départ par départ. À lancer à la clôture des
- * inscriptions (c'est le moment où le contrôle a un sens : avant, le plateau
- * bouge encore).
+ * Check of the rules, departure by departure. To run when registrations close (that is when the
+ * check makes sense: before, the field still moves).
  *
- * Retourne un tableau par départ : violations de quota club/cible, nombre de
- * clubs présents, archers non placés.
+ * Returns an array per departure: club/target quota breaches, number of clubs present, archers
+ * not placed.
  */
 function bk_rules_check($tourId, $cfg)
 {
@@ -574,8 +560,8 @@ function bk_rules_check($tourId, $cfg)
             }
         }
 
-        // Un même archer deux fois sur le même départ (ne devrait jamais
-        // arriver via BOOKING, mais l'organisateur saisit aussi à la main).
+        // The same archer twice on one departure (should never happen through booking, but the
+        // organiser also enters by hand).
         $vus = array();
         foreach ($archers as $a) {
             $k = bk_clean_licence($a->EnCode);
@@ -602,8 +588,8 @@ function bk_rules_check($tourId, $cfg)
 }
 
 /**
- * Plan d'un départ pour affichage : cible → lettre → archer.
- * Sert à la fois à l'organisateur et, si BcShowAssignment, aux archers.
+ * Plan of a departure for display: target → letter → archer.
+ * Used by the organiser and, when BcShowAssignment, by the archers.
  */
 function bk_session_plan($tourId, $sessionOrder)
 {

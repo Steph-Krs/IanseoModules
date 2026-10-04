@@ -1,17 +1,16 @@
 <?php
 /**
- * public/scoresheet-official.php — feuille de marque OFFICIELLE ianseo d'un archer.
+ * public/scoresheet-official.php — an archer's OFFICIAL ianseo score sheet.
  *
- * Relais borné (bk_doc_relay) vers le générateur officiel Qualification/PDFScore.php,
- * ciblé sur UNE seule inscription (paramètre Entry = EnId) → l'archer ne récupère
- * QUE la sienne. Garde stricte avant toute élévation :
- *   1. archer connecté (bk_require_archer) ;
- *   2. l'inscription (EnId) lui appartient (Entries.EnCode = sa licence) ;
- *   3. l'organisateur autorise la feuille de marque (BcAllowScoresheet).
+ * Limited relay (bk_doc_relay) to the official generator Qualification/PDFScore.php, aimed at
+ * ONE registration (parameter Entry = EnId) → the archer only gets THEIR own. Strict guard
+ * before any elevation:
+ *   1. connected archer (bk_require_archer);
+ *   2. the registration (EnId) is theirs (Entries.EnCode = their licence);
+ *   3. the organiser allows the score sheet (BcAllowScoresheet).
  *
- * Options de rendu : en-tête + pied de page ianseo (ScorePageHeaderFooter), toutes
- * les séries/distances sur une même feuille et remplies (PersonalScore) ; PAS de
- * QR code ni de code-barres (ScoreBarcode / ScoreQrPersonal volontairement absents).
+ * Rendering: ianseo header + footer (ScorePageHeaderFooter), every distance on one filled sheet
+ * (PersonalScore); NO QR code or barcode (ScoreBarcode / ScoreQrPersonal left out on purpose).
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
@@ -22,9 +21,9 @@ $archer = bk_require_archer();
 $enid = intval($_GET['enid'] ?? 0);
 if (!$enid) { http_response_code(404); exit; }
 
-// Accès autorisé si l'inscription est CELLE de l'archer (Entries.EnCode = sa
-// licence) OU s'il l'a lui-même créée pour un camarade de son club (inscription
-// de groupe : BK_Registrations.BrArcher = son compte). Rien d'autre.
+// Allowed when the registration is the archer's OWN (Entries.EnCode = their licence) OR when
+// they made it for a club mate (group registration: BK_Registrations.BrArcher = their account).
+// Nothing else.
 $row = safe_fetch(safe_r_sql("SELECT e.EnTournament, q.QuSession, q.QuTarget
     FROM Entries e
     INNER JOIN Qualifications q ON q.QuId = e.EnId
@@ -36,7 +35,7 @@ if (!$row) { http_response_code(404); exit; }
 
 $tourId = intval($row->EnTournament);
 $cfg    = bk_comp_config($tourId);
-if (empty($cfg->BcAllowScoresheet)) { http_response_code(404); exit; }   // choix de l'organisateur
+if (empty($cfg->BcAllowScoresheet)) { http_response_code(404); exit; }   // the organiser's choice
 
 $t = safe_fetch(safe_r_sql("SELECT ToCode, ToNumDist, ToType, ToCategory
     FROM Tournament WHERE ToId = $tourId"));
@@ -46,40 +45,39 @@ $session = intval($row->QuSession);
 $target  = intval($row->QuTarget);
 $from    = $target > 0 ? $target : 1;
 $to      = $target > 0 ? $target : 999;
-$numDist = max(1, intval($t->ToNumDist));       // nombre de séries/distances de la qualification
+$numDist = max(1, intval($t->ToNumDist));       // number of distances of the qualification
 $toType  = intval($t->ToType);
-$field3D = intval($t->ToCategory) & 12;         // même signal que Qualification/PrintScore.php
+$field3D = intval($t->ToCategory) & 12;         // same signal as Qualification/PrintScore.php
 
-// La feuille de marque DÉPEND de la discipline (voir le formulaire ianseo).
+// The score sheet DEPENDS on the discipline (see the ianseo form).
 if ($toType == 50) {
-    // BEURSAULT : discipline française → générateur dédié du set FR. ⚠️ Ce générateur
-    // du cœur n'a PAS de filtre par archer (il imprime par plage de cibles), on borne
-    // donc à la cible de l'archer (noEmpty = seulement les positions occupées).
+    // BEURSAULT: French discipline → dedicated generator of the FR set. ⚠️ This core generator
+    // has NO per-archer filter (it prints by target range), so it is limited to the archer's
+    // target (noEmpty = occupied positions only).
     $spec = array(
         'script' => 'Modules/Sets/FR/pdf/PDFScore.php',
         'params' => array(
             'x_Session' => $session, 'x_From' => $from, 'x_To' => $to,
             'noEmpty' => '1', 'ScoreFilled' => '1',
             'ScoreHeader' => '1', 'ScoreLogos' => '1', 'ScoreFlags' => '1',
-            // Aucun code : ScoreBarcode / ScoreQrPersonal / QRCode volontairement absents.
+            // No code: ScoreBarcode / ScoreQrPersonal / QRCode left out on purpose.
         ),
     );
 } else {
-    // TAE, Salle, Campagne/Field, 3D : générateur générique, CIBLÉ sur l'archer
-    // (Entry), toutes les séries sur une même feuille et remplies avec les résultats.
+    // Outdoor, indoor, field, 3D: generic generator, AIMED at the archer (Entry), every
+    // distance on one sheet, filled with the results.
     $params = array(
         'x_Session' => $session, 'x_From' => $from, 'x_To' => $to,
-        'Entry'         => $enid,               // filtre : uniquement CET archer
-        'ScoreDist'     => range(1, $numDist),  // toutes les séries (sinon 1re seule)
-        'ScoreFilled'   => '1',                 // avec les résultats (sinon feuille vierge)
-        'PersonalScore' => '1',                 // toutes les séries sur une même feuille
+        'Entry'         => $enid,               // filter: THIS archer only
+        'ScoreDist'     => range(1, $numDist),  // every distance (otherwise the first only)
+        'ScoreFilled'   => '1',                 // with the results (otherwise a blank sheet)
+        'PersonalScore' => '1',                 // every distance on one sheet
         'ScoreDraw'     => 'Complete',
-        'ScorePageHeaderFooter' => '1',         // en-tête + pied de page ianseo
+        'ScorePageHeaderFooter' => '1',         // ianseo header + footer
     );
     if ($field3D != 0) {
-        // PARCOURS (Campagne/Field ou 3D) : cocher la case discipline. ianseo force
-        // alors l'en-tête/logo « inline » (pas l'en-tête pleine page) — on s'aligne
-        // sur son formulaire (optionField3d).
+        // COURSE (field or 3D): tick the discipline box. ianseo then forces the "inline"
+        // header/logo (not the full-page header) — same as its form (optionField3d).
         $params['TourField3D'] = ($field3D == 4) ? 'FIELD' : '3D';
         unset($params['ScorePageHeaderFooter']);
         $params['ScoreHeader'] = '1';

@@ -1,35 +1,39 @@
 <?php
 /**
- * legal-accept.php — acceptation des CGU par un ORGANISATEUR connecté.
+ * legal-accept.php — acceptance of the terms of use by a signed-in ORGANISER.
  *
- * Écran BLOQUANT : le bootstrap (aut_request_bootstrap) y redirige tout organisateur
- * connecté qui n'a pas accepté la version courante des CGU. L'acceptation est
- * enregistrée HORODATÉE (AUT_Users.AuCguAt) et VERSIONNÉE (AuCguVer). Cette page est
- * exemptée de la garde (aut_is_legal_script) pour éviter toute boucle.
+ * BLOCKING screen: the bootstrap (aut_request_bootstrap) sends here every signed-in organiser
+ * who has not accepted the current version of the terms. The acceptance is recorded
+ * TIME-STAMPED (AUT_Users.AuCguAt) and VERSIONED (AuCguVer). This page is exempt from the guard
+ * (aut_is_legal_script) to avoid any loop.
+ *
+ * The wording is the competitor's one (booking/public/legal-accept.php), read from the
+ * "booking" section of the language files.
  */
 define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
 require_once(__DIR__ . '/lib.php');
 require_once(__DIR__ . '/legal-lib.php');
 
-// Réservé à un organisateur connecté (le bootstrap a validé la session).
+// Reserved to a signed-in organiser (the bootstrap checked the session).
 if (empty($_SESSION['AUTH_User'])) {
     CD_redirect($CFG->ROOT_DIR . 'Modules/Custom/AUTH/login.php'); die();
 }
 $user = (string) $_SESSION['AUTH_User'];
 
-// Déjà accepté → retour à l'accueil.
+// Already accepted → back to the home page.
 if (aut_legal_org_ok($user)) {
     $_SESSION['AUTH_CGU_OK'] = aut_legal_version();
     CD_redirect($CFG->ROOT_DIR); die();
 }
 
+$bk = function ($key, $a = null) { return aut_text($key, $a, 'booking'); };
 $err = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!aut_csrf_check()) {
-        $err = 'Session expirée — réessayez.';
+        $err = aut_t('LoginSessionExpired');
     } elseif (empty($_POST['accept'])) {
-        $err = "Vous devez cocher la case pour accepter les conditions.";
+        $err = $bk('CguTickBox');
     } else {
         aut_legal_org_record($user);
         $_SESSION['AUTH_CGU_OK'] = aut_legal_version();
@@ -40,13 +44,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 
 $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };
 $root = $CFG->ROOT_DIR;
-?><!DOCTYPE html>
-<html lang="fr">
+echo '<!DOCTYPE html>
+<html lang="' . $e(aut_lang_code()) . '">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Conditions générales d'utilisation</title>
+<title>' . $e($bk('CguTitle')) . '</title>
+';
+?>
 <style>
 * { box-sizing:border-box; }
 body { margin:0; font-family:Verdana,Arial,sans-serif; background:#eef2f6; color:#20263d; line-height:1.5; }
@@ -74,37 +80,26 @@ button:hover { background:#14396b; }
 .logout { color:#8a92a0; text-decoration:none; font-size:13px; }
 .logout:hover { color:#5b6470; }
 </style>
-</head>
-<body>
-<div class="wrap">
-  <h1>Conditions générales d'utilisation</h1>
-  <p class="lead">Avant d'accéder à votre espace, merci de lire et d'accepter les conditions générales
-     d'utilisation et la politique de confidentialité de ce serveur.</p>
-
-  <?php if ($err) echo '<div class="err">' . $e($err) . '</div>'; ?>
-
-  <div class="box"><?= aut_legal_render('cgu') ?></div>
-
-  <p class="links">
-    Documents complets :
-    <a href="<?= $e(aut_legal_url('cgu')) ?>" target="_blank" rel="noopener">CGU</a>
-    <a href="<?= $e(aut_legal_url('confidentialite')) ?>" target="_blank" rel="noopener">Confidentialité</a>
-    <a href="<?= $e(aut_legal_url('mentions')) ?>" target="_blank" rel="noopener">Mentions légales</a>
-    <a href="<?= $e(aut_legal_url('cookies')) ?>" target="_blank" rel="noopener">Cookies</a>
-  </p>
-
-  <form method="post">
-    <?= aut_csrf_field() ?>
-    <label class="accept">
-      <input type="checkbox" name="accept" value="1">
-      <span>J'ai lu et j'accepte les <b>conditions générales d'utilisation</b> et la
-        <b>politique de confidentialité</b> (version <?= $e(aut_legal_version()) ?>).</span>
-    </label>
-    <div class="row">
-      <button type="submit">Accepter et continuer</button>
-      <a class="logout" href="<?= $e($root) ?>Modules/Authentication/LogOut.php">Refuser et se déconnecter</a>
-    </div>
-  </form>
-</div>
-</body>
-</html>
+<?php
+$link = function ($doc, $label) use ($e) {
+    return '<a href="' . $e(aut_legal_url($doc)) . '" target="_blank" rel="noopener">' . $e($label) . "</a>\n";
+};
+echo "</head>\n<body>\n"
+    . '<div class="wrap">' . "\n"
+    . '<h1>' . $e($bk('CguTitle')) . "</h1>\n"
+    . '<p class="lead">' . $e($bk('CguIntro')) . "</p>\n"
+    . ($err ? '<div class="err">' . $e($err) . "</div>\n" : '')
+    . '<div class="box">' . aut_legal_render('cgu') . "</div>\n"
+    . '<p class="links">' . $e($bk('CguFullDocs')) . "\n"
+    . $link('cgu', $bk('CguShort'))
+    . $link('confidentialite', $bk('Privacy'))
+    . $link('mentions', $bk('LegalNotice'))
+    . $link('cookies', $bk('Cookies'))
+    . "</p>\n"
+    . '<form method="post">' . aut_csrf_field() . "\n"
+    . '<label class="accept"><input type="checkbox" name="accept" value="1">'
+    . '<span>' . $bk('CguAccept', $e(aut_legal_version())) . "</span></label>\n"
+    . '<div class="row">'
+    . '<button type="submit">' . $e($bk('CguAcceptBtn')) . '</button>'
+    . '<a class="logout" href="' . $e($root) . 'Modules/Authentication/LogOut.php">' . $e($bk('CguRefuse')) . '</a>'
+    . "</div>\n</form>\n</div>\n</body>\n</html>\n";

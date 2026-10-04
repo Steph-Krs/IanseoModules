@@ -1,16 +1,15 @@
 <?php
 /**
- * public/login.php — ENTRÉE UNIQUE.
+ * public/login.php — SINGLE ENTRY.
  *
- * Cette page ne gère plus la connexion : elle REDIRIGE vers la page de connexion
- * UNIFIÉE du serveur (Custom/AUTH/login.php), onglet compétiteur (?p=comp). Une seule
- * porte d'entrée pour tout le serveur (organisateur + compétiteur), au lieu de deux —
- * ce qui referme le piège des deux pages de connexion (cf. le cookie d'attestation qui
- * n'était pas conservé parce que seule la page unifiée le stockait).
+ * This page no longer handles the sign-in: it REDIRECTS to the server's UNIFIED sign-in page
+ * (Custom/AUTH/login.php), competitor tab (?p=comp). One door for the whole server (organiser
+ * and competitor) instead of two — which closes the trap of the two sign-in pages (the
+ * attestation cookie was not kept because only the unified page stored it).
  *
- * Tous les anciens liens et redirections (bk_require_archer → 'login.php') aboutissent
- * donc à la page unifiée, qui traite le flux compétiteur (relais FFTA, MFA, conservation
- * du cookie de session) et renvoie vers l'espace licencié une fois connecté.
+ * Every former link and redirection (bk_require_archer → 'login.php') therefore ends on the
+ * unified page, which handles the competitor flow (federation relay, MFA, keeping the session
+ * cookie) and sends to the licensee space once signed in.
  */
 require_once __DIR__ . '/boot.php';
 global $CFG;

@@ -1,60 +1,58 @@
 #!/bin/sh
-# ianseo-lock — remet le cœur ianseo en LECTURE SEULE pour le serveur web.
+# ianseo-lock — puts the ianseo core back to READ ONLY for the web server.
 #
-# À installer dans /usr/local/bin/ianseo-lock (root, chmod 750).
-# C'est l'état NORMAL du serveur : le compte web ne doit pas pouvoir réécrire le
-# code de ianseo, afin qu'une faille du cœur ne se transforme pas en prise de
-# contrôle durable. Les dossiers qui ont RÉELLEMENT besoin d'écriture sont
-# ré-ouverts un par un ci-dessous — ni plus, ni moins.
+# To install as /usr/local/bin/ianseo-lock (root, chmod 750).
+# This is the NORMAL state of the server: the web account must not be able to rewrite the
+# ianseo code, so that a flaw of the core does not turn into a lasting take-over. The folders
+# that REALLY need writing are opened again one by one below — no more, no less.
 #
-# Voir ianseo-unlock pour l'opération inverse (mise à jour du cœur uniquement).
+# See ianseo-unlock for the opposite operation (core update only).
 set -e
 
 IANSEO=/var/www/ianseo
 WEBUSER=www-data
 
-# 1. Tout appartient à root, le groupe web n'a que la lecture.
+# 1. Everything belongs to root, the web group can only read.
 chown -R root:${WEBUSER} "$IANSEO"
 
-# 2. Exception : les modules tiers, mis à jour depuis leur page d'administration
-#    (et par le cron de maintenance) — ils doivent rester écrivables en permanence.
+# 2. Exception: the third-party modules, updated from their administration page (and by the
+#    maintenance cron) — they must stay writable at all times.
 chown -R ${WEBUSER}:${WEBUSER} "$IANSEO/Modules/Custom"
 
-# 3. Droits de base : lecture seule pour le groupe (Modules/Custom exclu).
+# 3. Base rights: read only for the group (Modules/Custom excluded).
 find "$IANSEO" -path "$IANSEO/Modules/Custom" -prune -o -type d -exec chmod 750 {} \;
 find "$IANSEO" -path "$IANSEO/Modules/Custom" -prune -o -type f -exec chmod 640 {} \;
 
-# 4. Sticky bit (1770) là où le serveur web doit pouvoir CRÉER des entrées sans
-#    pouvoir toucher à celles de root :
-#      - la racine : création de TourData/ à la volée par ianseo ;
-#      - Install/  : fichiers temporaires d'installation ;
-#      - Modules/  : indispensable à l'auto-réparation AUTH-SELFHEAL, qui doit
-#                    pouvoir RECRÉER Modules/Authentication/ après une mise à
-#                    jour du cœur qui l'a effacé.
+# 4. Sticky bit (1770) where the web server must be able to CREATE entries without being
+#    able to touch root's:
+#      - the root folder: TourData/ created on the fly by ianseo;
+#      - Install/: temporary installation files;
+#      - Modules/: required by the AUTH-SELFHEAL self-repair, which must be able to
+#                  CREATE Modules/Authentication/ AGAIN after a core update erased it.
 chmod 1770 "$IANSEO" "$IANSEO/Install" "$IANSEO/Modules"
 
-# 5. Dossiers de DONNÉES, écrivables en permanence par le serveur web.
-#    ⚠️ TV/ est indispensable : ianseo y écrit les drapeaux/logos de club, les
-#    photos d'archers et les images de badges, et la page /Update/ REFUSE de
-#    démarrer si TV/Photos n'est pas inscriptible (« DirectoryNotWriteable »).
+# 5. DATA folders, writable by the web server at all times.
+#    ⚠️ TV/ is required: ianseo writes the club flags/logos, the archer photos and the badge
+#    images there, and the /Update/ page REFUSES to start when TV/Photos is not writable
+#    ("DirectoryNotWriteable").
 for d in Images Common TV TourData; do
     [ -d "$IANSEO/$d" ] || continue
     chown -R ${WEBUSER}:${WEBUSER} "$IANSEO/$d"
     find "$IANSEO/$d" -type d -exec chmod 770 {} \;
 done
 
-# 6. Fichiers d'authentification déployés : recréés par AUTH après chaque mise à
-#    jour du cœur, ils doivent appartenir au serveur web.
+# 6. Deployed authentication files: created again by AUTH after each core update, they must
+#    belong to the web server.
 if [ -d "$IANSEO/Modules/Authentication" ]; then
     chown -R ${WEBUSER}:${WEBUSER} "$IANSEO/Modules/Authentication"
     chmod 770 "$IANSEO/Modules/Authentication"
 fi
 
-# 7. Le fichier de configuration local du module contient des identifiants :
-#    lisible par le seul serveur web.
+# 7. The local configuration file of the module holds credentials: readable by the web
+#    server alone.
 if [ -f "$IANSEO/Modules/Custom/AUTH/config.local.json" ]; then
     chown ${WEBUSER}:${WEBUSER} "$IANSEO/Modules/Custom/AUTH/config.local.json"
     chmod 600 "$IANSEO/Modules/Custom/AUTH/config.local.json"
 fi
 
-echo "ianseo reverrouillé."
+echo "ianseo locked again."

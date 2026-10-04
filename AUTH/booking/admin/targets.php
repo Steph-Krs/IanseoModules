@@ -1,6 +1,6 @@
 <?php
 /**
- * admin/targets.php — attribution des cibles et contrôle du règlement.
+ * admin/targets.php — target assignment and check of the rules. Markup produced in PHP.
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -21,52 +21,50 @@ $TOUR = intval($_SESSION['TourId']);
 $cfg  = bk_comp_config($TOUR);
 $msg = ''; $err = '';
 
-/** Compte rendu d'une attribution, en distinguant les causes de non-placement. */
+/** Report of an assignment, telling apart the causes of non-placement. */
 function bk_assign_msg($prefix, $r)
 {
-    $m = $prefix . $r['places'] . ' archer(s) placé(s)';
-    $libres = intval($r['restants']) - intval($r['incompatibles']);
-    if ($libres > 0)             $m .= ", $libres sans place (départ complet)";
-    if ($r['incompatibles'] > 0) $m .= ", {$r['incompatibles']} qu'aucune cible ne peut recevoir "
-                                     . "(distance ou blason incompatible avec les contraintes d'affectation du terrain)";
-    if ($r['compromis'] > 0)     $m .= ", dont {$r['compromis']} au-delà du quota par club faute de place";
+    $m = $prefix . bk_t('TgPlaced', $r['places']);
+    $free = intval($r['restants']) - intval($r['incompatibles']);
+    if ($free > 0)               $m .= ', ' . bk_t('TgNoPlace', $free);
+    if ($r['incompatibles'] > 0) $m .= ', ' . bk_t('TgIncompatible', $r['incompatibles']);
+    if ($r['compromis'] > 0)     $m .= ', ' . bk_t('TgOverQuota', $r['compromis']);
     $m .= '.';
     if (!empty($r['voeux'])) {
-        $m .= ' Souhaits des archers : ' . intval($r['voeuxOk']) . ' sur ' . intval($r['voeux'])
-            . ' satisfait' . ($r['voeuxOk'] > 1 ? 's' : '') . '.';
+        $m .= ' ' . bk_t('TgWishes', array('ok' => intval($r['voeuxOk']), 'all' => intval($r['voeux'])));
     }
     return $m;
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
-        $err = 'Session expirée — rechargez la page et réessayez.';
+        $err = bk_t('SessionExpired');
     } elseif (IsBlocked(BIT_BLOCK_PARTICIPANT)) {
-        $err = 'Les participants de cette compétition sont verrouillés.';
+        $err = bk_t('TgLocked');
     } else {
         $act = $_POST['action'] ?? '';
         $ses = intval($_POST['session'] ?? 0);
         if ($act === 'assign') {
-            // « Réattribuer » = LIBÉRER les placements du module puis réattribuer :
-            // sinon un archer déjà placé ne bouge pas, même si le plan de cibles a
-            // changé (bk_assign_session ne déplace jamais un archer placé).
+            // "Reassign" = FREE the module's placements, then assign again: otherwise an archer
+            // already placed does not move, even when the target plan changed (bk_assign_session
+            // never moves a placed archer).
             $r = bk_replan_session($TOUR, $ses, $cfg);
-            $msg = bk_assign_msg("Départ $ses : ", $r);
+            $msg = bk_assign_msg(bk_t('TgDepPrefix', $ses), $r);
         } elseif ($act === 'assign_all') {
             $r = bk_replan_all($TOUR, $cfg);
             $msg = bk_assign_msg('', $r);
         } elseif ($act === 'clear') {
             $n = bk_clear_session($TOUR, $ses);
-            $msg = "Départ $ses : $n place(s) libérée(s).";
+            $msg = bk_t('TgFreed', array('dep' => $ses, 'n' => $n));
         } elseif ($act === 'validate') {
             if (bk_validate_registration($TOUR, intval($_POST['enid'] ?? 0), $cfg)) {
-                $msg = 'Inscription validée : sa cible a été attribuée.';
+                $msg = bk_t('TgValidated');
             } else {
-                $err = "Cette inscription n'est plus en attente de validation.";
+                $err = bk_t('TgNotPending');
             }
         } elseif ($act === 'validate_all') {
             $n = bk_validate_all($TOUR, $cfg);
-            $msg = "$n inscription(s) validée(s) et placée(s).";
+            $msg = bk_t('TgValidatedN', $n);
         }
     }
 }
@@ -77,7 +75,18 @@ $controle = bk_rules_check($TOUR, $cfg);
 $voir     = intval($_GET['plan'] ?? 0);
 $plan     = $voir ? bk_session_plan($TOUR, $voir) : array();
 
-$PAGE_TITLE = 'Attribution des cibles';
+// Free requests left by the archers ("Other request" of the wishes).
+$requests = array();
+$rs = safe_r_sql("SELECT e.EnFirstName, e.EnName, e.EnCode, r.BrRequest, q.QuSession
+    FROM BK_Registrations r
+    INNER JOIN Entries e ON e.EnId = r.BrEnId AND e.EnTournament = $TOUR
+    /* 1:1 with Entries → INNER JOIN, never LEFT + IS NULL. */
+    INNER JOIN Qualifications q ON q.QuId = e.EnId
+    WHERE r.BrTournament = $TOUR AND TRIM(COALESCE(r.BrRequest, '')) <> ''
+    ORDER BY q.QuSession, e.EnFirstName, e.EnName");
+while ($r = safe_fetch($rs)) $requests[] = $r;
+
+$PAGE_TITLE = bk_t('MnuTargets');
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <style>
@@ -103,217 +112,135 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #bkadm .bk-plan .bk-empty-cell { color:#c9ccce; }
 #bkadm .bk-viol { margin:4px 0 0; padding-left:18px; font-size:12px; color:#a80000; }
 </style>
-
-<div id="bkadm">
-<h1>Attribution des cibles</h1>
-<p style="font-size:13px"><a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/competition.php">← Inscriptions en ligne</a>
-   &nbsp;·&nbsp; <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/field.php">Contraintes d'affectation du terrain</a></p>
-
-<?php if ($msg): ?><div class="bk-msg bk-ok"><?= bk_e($msg) ?></div><?php endif; ?>
-<?php if ($err): ?><div class="bk-msg bk-err"><?= bk_e($err) ?></div><?php endif; ?>
-
-<?php if ($pending): ?>
-<div class="bk-sec" style="border-color:#cb8137">
-  <h2 style="color:#cb8137">Inscriptions en attente de validation
-      <span class="bk-pill bk-pill-warn"><?= count($pending) ?></span></h2>
-  <p class="bk-hint" style="margin-top:0">La validation manuelle est activée : ces inscriptions
-     ne seront placées sur une cible qu'une fois validées ci-dessous.</p>
-  <table class="bk-t">
-    <tr><th>Archer</th><th>Licence</th><th>Catégorie</th><th>Club</th><th>Départ</th><th></th></tr>
-    <?php foreach ($pending as $p): ?>
-    <tr>
-      <td><?= bk_e(trim($p->EnFirstName . ' ' . $p->EnName)) ?></td>
-      <td><?= bk_e($p->EnCode) ?></td>
-      <td><?= bk_e(trim(($p->DivDescription ?: $p->EnDivision) . ' ' . ($p->ClDescription ?: $p->EnClass))) ?></td>
-      <td><?= bk_e($p->CoName ?: $p->CoCode) ?></td>
-      <td><?= $p->QuSession ? 'Départ ' . intval($p->QuSession) : '—' ?></td>
-      <td>
-        <form method="post" style="margin:0">
-          <?= bk_csrf_field() ?>
-          <input type="hidden" name="action" value="validate">
-          <input type="hidden" name="enid" value="<?= intval($p->BrEnId) ?>">
-          <button type="submit" class="bk-btn bk-btn-primary">Valider</button>
-        </form>
-      </td>
-    </tr>
-    <?php endforeach; ?>
-  </table>
-  <form method="post" style="margin:6px 0 0" onsubmit="return confirm('Valider toutes les inscriptions en attente ?');">
-    <?= bk_csrf_field() ?>
-    <input type="hidden" name="action" value="validate_all">
-    <button type="submit" class="bk-btn">Tout valider (<?= count($pending) ?>)</button>
-  </form>
-</div>
-<?php endif; ?>
-
-<div class="bk-sec">
-  <h2>Départs</h2>
-  <?php if (!$sessions): ?>
-    <p class="bk-hint">Aucun départ de qualification configuré.</p>
-  <?php else: ?>
-  <table class="bk-t">
-    <tr><th>Départ</th><th>Places</th><th>Inscrits</th><th>Placés</th><th>Actions</th></tr>
-    <?php foreach ($sessions as $s):
-      $o = intval($s->SesOrder);
-      $c = null;
-      foreach ($controle as $x) if ($x['depart'] === $o) $c = $x;
-      $inscrits = $c ? $c['archers'] : 0;
-      $places   = $c ? $inscrits - $c['nonPlaces'] : 0; ?>
-      <tr>
-        <td><?= $o ?><?= $s->SesName ? ' — ' . bk_e($s->SesName) : '' ?></td>
-        <td><?= intval($s->Places) ?></td>
-        <td><?= $inscrits ?></td>
-        <td><?= $places ?> / <?= $inscrits ?></td>
-        <td>
-          <form method="post" style="display:inline">
-            <?= bk_csrf_field() ?>
-            <input type="hidden" name="action" value="assign">
-            <input type="hidden" name="session" value="<?= $o ?>">
-            <button type="submit" class="bk-btn bk-btn-primary">Réattribuer</button>
-          </form>
-          <form method="post" style="display:inline"
-                onsubmit="return confirm('Supprimer les attributions de cibles du départ <?= $o ?> ?')">
-            <?= bk_csrf_field() ?>
-            <input type="hidden" name="action" value="clear">
-            <input type="hidden" name="session" value="<?= $o ?>">
-            <button type="submit" class="bk-btn">Supprimer les attributions de cibles</button>
-          </form>
-          <a class="bk-btn" style="text-decoration:none;display:inline-block"
-             href="?plan=<?= $o ?>">Voir le plan</a>
-        </td>
-      </tr>
-    <?php endforeach; ?>
-  </table>
-  <form method="post" style="margin-top:8px"
-        onsubmit="return confirm('Réattribuer les cibles sur tous les départs ?')">
-    <?= bk_csrf_field() ?>
-    <input type="hidden" name="action" value="assign_all">
-    <button type="submit" class="bk-btn bk-btn-primary">Réattribuer sur tous les départs</button>
-  </form>
-  <?php
-  // Bouton vers PlanQualifs (plan de cible imprimable), s'il est installé.
-  // ⚠️ Ce module doit être renommé/déplacé à l'avenir : garder le chemin isolé
-  //    ici (une seule ligne à changer le jour venu).
-  $bkPlanQualifsDir  = 'Modules/Custom/PlanQualifs/';
-  if (is_dir($CFG->DOCUMENT_PATH . $bkPlanQualifsDir)): ?>
-    <a class="bk-btn" style="text-decoration:none;display:inline-block;margin-top:8px"
-       href="<?= bk_e($CFG->ROOT_DIR . $bkPlanQualifsDir) ?>">Plan de cible (impression) →</a>
-  <?php endif; ?>
-  <p class="bk-hint">« Réattribuer » libère les cibles des inscriptions en ligne puis les réattribue
-     — les modifications du plan de cibles sont ainsi prises en compte (les vœux aussi). Les archers
-     saisis hors du module gardent leur cible. « Libérer » vide entièrement le départ.</p>
-  <?php endif; ?>
-</div>
-
-<div class="bk-sec">
-  <h2>Contrôle du règlement</h2>
-  <?php if (!$controle): ?>
-    <p class="bk-hint">Aucun archer inscrit pour l'instant.</p>
-  <?php else: ?>
-    <table class="bk-t">
-      <tr><th>Départ</th><th>Archers</th><th>Clubs</th><th>Placement</th><th>État</th></tr>
-      <?php foreach ($controle as $c): ?>
-        <tr>
-          <td><?= $c['depart'] ?></td>
-          <td><?= $c['archers'] ?></td>
-          <td>
-            <?= $c['clubs'] ?>
-            <span class="bk-pill <?= $c['clubsOk'] ? 'bk-pill-ok' : 'bk-pill-ko' ?>">
-              min. <?= $c['minClubs'] ?></span>
-          </td>
-          <td><?= $c['nonPlaces'] ? $c['nonPlaces'] . ' non placé(s)' : 'complet' ?></td>
-          <td>
-            <?php if ($c['ok']): ?>
-              <span class="bk-pill bk-pill-ok">conforme</span>
-            <?php else: ?>
-              <span class="bk-pill bk-pill-ko">à corriger</span>
-            <?php endif; ?>
-            <?php if ($c['exces']): ?>
-              <ul class="bk-viol">
-                <?php foreach ($c['exces'] as $e): ?>
-                  <li>Cible <?= intval($e['cible']) ?> : <?= intval($e['n']) ?> archers du club
-                      <?= bk_e($e['club']) ?> (max. <?= $c['max'] ?>)</li>
-                <?php endforeach; ?>
-              </ul>
-            <?php endif; ?>
-            <?php if ($c['doublons']): ?>
-              <ul class="bk-viol">
-                <?php foreach ($c['doublons'] as $lic => $n): ?>
-                  <li>Licence <?= bk_e($lic) ?> inscrite <?= intval($n) ?> fois sur ce départ</li>
-                <?php endforeach; ?>
-              </ul>
-            <?php endif; ?>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-    </table>
-    <p class="bk-hint">Règles vérifiées : au plus <?= intval($cfg->BcMaxPerClubPerTarget) ?> archers
-       d'un même club par cible, au moins <?= intval($cfg->BcMinClubsPerSession) ?> clubs différents
-       par départ, pas de double inscription sur un même départ, tous les archers placés.
-       Réglable dans <b>Inscriptions en ligne</b>.</p>
-  <?php endif; ?>
-</div>
-
 <?php
-// Demandes libres laissées par les archers (« Autre demande » des souhaits).
-$demandes = array();
-$rs = safe_r_sql("SELECT e.EnFirstName, e.EnName, e.EnCode, r.BrRequest, q.QuSession
-    FROM BK_Registrations r
-    INNER JOIN Entries e ON e.EnId = r.BrEnId AND e.EnTournament = $TOUR
-    /* 1:1 avec Entries → INNER JOIN, jamais LEFT + IS NULL. */
-    INNER JOIN Qualifications q ON q.QuId = e.EnId
-    WHERE r.BrTournament = $TOUR AND TRIM(COALESCE(r.BrRequest, '')) <> ''
-    ORDER BY q.QuSession, e.EnFirstName, e.EnName");
-while ($r = safe_fetch($rs)) $demandes[] = $r;
-?>
-<?php if ($demandes): ?>
-<div class="bk-sec">
-  <h2>Demandes des archers</h2>
-  <p class="bk-hint">Champ libre « Autre demande » laissé à l'inscription — avec l'archer qui l'a
-     écrit. (Les souhaits de placement — position, « même cible que » — sont appliqués
-     automatiquement et n'apparaissent pas ici.)</p>
-  <table class="bk-t">
-    <tr><th>Archer</th><th>Licence</th><th>Départ</th><th>Demande</th></tr>
-    <?php foreach ($demandes as $d): ?>
-      <tr>
-        <td><?= bk_e(trim($d->EnFirstName . ' ' . $d->EnName)) ?></td>
-        <td><?= bk_e($d->EnCode) ?></td>
-        <td><?= $d->QuSession !== null ? 'Départ ' . intval($d->QuSession) : '—' ?></td>
-        <td><?= nl2br(bk_e($d->BrRequest)) ?></td>
-      </tr>
-    <?php endforeach; ?>
-  </table>
-</div>
-<?php endif; ?>
+/** One action form: hidden fields, a button, an optional confirmation. */
+$form = function ($fields, $label, $class, $confirm = '', $style = 'display:inline') {
+    $h = '<form method="post" style="' . $style . '"'
+        . ($confirm !== '' ? ' onsubmit="return confirm(' . htmlspecialchars(json_encode($confirm, JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')"' : '')
+        . '>' . bk_csrf_field();
+    foreach ($fields as $k => $v) $h .= '<input type="hidden" name="' . $k . '" value="' . bk_e($v) . '">';
+    return $h . '<button type="submit" class="' . $class . '">' . bk_e($label) . '</button></form> ';
+};
+$th = function ($keys) {
+    $h = '<tr>';
+    foreach ($keys as $k) $h .= '<th>' . ($k === '' ? '' : bk_e(bk_t($k))) . '</th>';
+    return $h . '</tr>';
+};
+$base = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/';
 
-<?php if ($voir && $plan): ?>
-<div class="bk-sec">
-  <h2>Plan du départ <?= $voir ?></h2>
-  <?php
-  $lettres = array();
-  foreach ($plan as $c) foreach (array_keys($c) as $l) $lettres[$l] = true;
-  ksort($lettres);
-  $lettres = array_keys($lettres);
-  ?>
-  <table class="bk-t bk-plan">
-    <tr><th>Cible</th><?php foreach ($lettres as $l): ?><th><?= bk_e($l) ?></th><?php endforeach; ?></tr>
-    <?php foreach ($plan as $cible => $par): ?>
-      <tr>
-        <td><b><?= intval($cible) ?></b></td>
-        <?php foreach ($lettres as $l):
-          $a = $par[$l] ?? null; ?>
-          <td<?= $a ? '' : ' class="bk-empty-cell"' ?>>
-            <?php if ($a): ?>
-              <?= bk_e($a->EnFirstName . ' ' . $a->EnName) ?><br>
-              <span style="color:#7d8183"><?= bk_e($a->CoCode) ?> · <?= bk_e($a->EnDivision . $a->EnClass) ?></span>
-            <?php else: ?>—<?php endif; ?>
-          </td>
-        <?php endforeach; ?>
-      </tr>
-    <?php endforeach; ?>
-  </table>
-</div>
-<?php endif; ?>
+$out = '<div id="bkadm"><h1>' . bk_e(bk_t('MnuTargets')) . '</h1>'
+    . '<p style="font-size:13px"><a href="' . $base . 'competition.php">← ' . bk_e(bk_t('Brand')) . '</a>'
+    . ' &nbsp;·&nbsp; <a href="' . $base . 'field.php">' . bk_e(bk_t('MnuField')) . '</a></p>'
+    . ($msg ? '<div class="bk-msg bk-ok">' . bk_e($msg) . '</div>' : '')
+    . ($err ? '<div class="bk-msg bk-err">' . bk_e($err) . '</div>' : '');
 
-</div>
-<?php include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php'); ?>
+if ($pending) {
+    $out .= '<div class="bk-sec" style="border-color:#cb8137"><h2 style="color:#cb8137">' . bk_e(bk_t('TgPendingTitle'))
+        . ' <span class="bk-pill bk-pill-warn">' . count($pending) . '</span></h2>'
+        . '<p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('TgPendingHint')) . '</p><table class="bk-t">'
+        . $th(array('ColArcher', 'Licence', 'SsCategory', 'Club', 'SsDeparture', ''));
+    foreach ($pending as $p) {
+        $out .= '<tr><td>' . bk_e(trim($p->EnFirstName . ' ' . $p->EnName)) . '</td><td>' . bk_e($p->EnCode) . '</td>'
+            . '<td>' . bk_e(trim(($p->DivDescription ?: $p->EnDivision) . ' ' . ($p->ClDescription ?: $p->EnClass))) . '</td>'
+            . '<td>' . bk_e($p->CoName ?: $p->CoCode) . '</td>'
+            . '<td>' . ($p->QuSession ? bk_e(bk_t('DepCap', intval($p->QuSession))) : '—') . '</td>'
+            . '<td>' . $form(array('action' => 'validate', 'enid' => intval($p->BrEnId)), bk_t('TgValidate'), 'bk-btn bk-btn-primary', '', 'margin:0') . '</td></tr>';
+    }
+    $out .= '</table>' . $form(array('action' => 'validate_all'), bk_t('TgValidateAll', count($pending)), 'bk-btn', bk_t('TgValidateAllConfirm'), 'margin:6px 0 0')
+        . '</div>';
+}
+
+$out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('TgDepartures')) . '</h2>';
+if (!$sessions) {
+    $out .= '<p class="bk-hint">' . bk_e(bk_t('TgNoSession')) . '</p>';
+} else {
+    $out .= '<table class="bk-t">' . $th(array('SsDeparture', 'TgPlaces', 'TgRegistered', 'TgPlacedCol', 'TgActions'));
+    foreach ($sessions as $s) {
+        $o = intval($s->SesOrder);
+        $c = null;
+        foreach ($controle as $x) if ($x['depart'] === $o) $c = $x;
+        $registered = $c ? $c['archers'] : 0;
+        $placed = $c ? $registered - $c['nonPlaces'] : 0;
+        $out .= '<tr><td>' . $o . ($s->SesName ? ' — ' . bk_e($s->SesName) : '') . '</td><td>' . intval($s->Places) . '</td>'
+            . '<td>' . $registered . '</td><td>' . $placed . ' / ' . $registered . '</td><td>'
+            . $form(array('action' => 'assign', 'session' => $o), bk_t('TgReassign'), 'bk-btn bk-btn-primary')
+            . $form(array('action' => 'clear', 'session' => $o), bk_t('TgClear'), 'bk-btn', bk_t('TgClearConfirm', $o))
+            . '<a class="bk-btn" style="text-decoration:none;display:inline-block" href="?plan=' . $o . '">' . bk_e(bk_t('TgSeePlan')) . '</a>'
+            . '</td></tr>';
+    }
+    $out .= '</table>' . $form(array('action' => 'assign_all'), bk_t('TgReassignAll'), 'bk-btn bk-btn-primary', bk_t('TgReassignAllConfirm'), 'margin-top:8px');
+    // Link to PlanQualifs (printable target plan), when installed.
+    // ⚠️ That module is to be renamed/moved in the future: keep the path in one place here.
+    $planQualifsDir = 'Modules/Custom/PlanQualifs/';
+    if (is_dir($CFG->DOCUMENT_PATH . $planQualifsDir)) {
+        $out .= '<a class="bk-btn" style="text-decoration:none;display:inline-block;margin-top:8px" href="'
+            . bk_e($CFG->ROOT_DIR . $planQualifsDir) . '">' . bk_e(bk_t('TgPrintPlan')) . '</a>';
+    }
+    $out .= '<p class="bk-hint">' . bk_e(bk_t('TgReassignHint')) . '</p>';
+}
+$out .= '</div>';
+
+$out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('TgRulesTitle')) . '</h2>';
+if (!$controle) {
+    $out .= '<p class="bk-hint">' . bk_e(bk_t('TgNobody')) . '</p>';
+} else {
+    $out .= '<table class="bk-t">' . $th(array('SsDeparture', 'TgArchers', 'TgClubs', 'TgPlacement', 'ColState'));
+    foreach ($controle as $c) {
+        $out .= '<tr><td>' . $c['depart'] . '</td><td>' . $c['archers'] . '</td>'
+            . '<td>' . $c['clubs'] . ' <span class="bk-pill ' . ($c['clubsOk'] ? 'bk-pill-ok' : 'bk-pill-ko') . '">'
+            . bk_e(bk_t('TgMinClubs', $c['minClubs'])) . '</span></td>'
+            . '<td>' . bk_e($c['nonPlaces'] ? bk_t('TgUnplaced', $c['nonPlaces']) : bk_t('TgComplete')) . '</td><td>'
+            . '<span class="bk-pill ' . ($c['ok'] ? 'bk-pill-ok' : 'bk-pill-ko') . '">' . bk_e(bk_t($c['ok'] ? 'TgCompliant' : 'TgToFix')) . '</span>';
+        if ($c['exces']) {
+            $out .= '<ul class="bk-viol">';
+            foreach ($c['exces'] as $e) {
+                $out .= '<li>' . bk_e(bk_t('TgTooMany', array('target' => intval($e['cible']), 'n' => intval($e['n']),
+                    'club' => $e['club'], 'max' => $c['max']))) . '</li>';
+            }
+            $out .= '</ul>';
+        }
+        if ($c['doublons']) {
+            $out .= '<ul class="bk-viol">';
+            foreach ($c['doublons'] as $lic => $n) $out .= '<li>' . bk_e(bk_t('TgTwice', array('lic' => $lic, 'n' => intval($n)))) . '</li>';
+            $out .= '</ul>';
+        }
+        $out .= '</td></tr>';
+    }
+    $out .= '</table><p class="bk-hint">' . bk_t('TgRulesHint', array('max' => intval($cfg->BcMaxPerClubPerTarget),
+        'clubs' => intval($cfg->BcMinClubsPerSession))) . '</p>';
+}
+$out .= '</div>';
+
+if ($requests) {
+    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('TgRequestsTitle')) . '</h2><p class="bk-hint">' . bk_e(bk_t('TgRequestsHint')) . '</p>'
+        . '<table class="bk-t">' . $th(array('ColArcher', 'Licence', 'SsDeparture', 'TgRequest'));
+    foreach ($requests as $d) {
+        $out .= '<tr><td>' . bk_e(trim($d->EnFirstName . ' ' . $d->EnName)) . '</td><td>' . bk_e($d->EnCode) . '</td>'
+            . '<td>' . ($d->QuSession !== null ? bk_e(bk_t('DepCap', intval($d->QuSession))) : '—') . '</td>'
+            . '<td>' . nl2br(bk_e($d->BrRequest)) . '</td></tr>';
+    }
+    $out .= '</table></div>';
+}
+
+if ($voir && $plan) {
+    $letters = array();
+    foreach ($plan as $c) foreach (array_keys($c) as $l) $letters[$l] = true;
+    ksort($letters);
+    $letters = array_keys($letters);
+    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('TgPlanTitle', $voir)) . '</h2><table class="bk-t bk-plan"><tr><th>' . bk_e(bk_t('SsTarget')) . '</th>';
+    foreach ($letters as $l) $out .= '<th>' . bk_e($l) . '</th>';
+    $out .= '</tr>';
+    foreach ($plan as $target => $byLetter) {
+        $out .= '<tr><td><b>' . intval($target) . '</b></td>';
+        foreach ($letters as $l) {
+            $a = $byLetter[$l] ?? null;
+            $out .= $a
+                ? '<td>' . bk_e($a->EnFirstName . ' ' . $a->EnName) . '<br><span style="color:#7d8183">' . bk_e($a->CoCode) . ' · ' . bk_e($a->EnDivision . $a->EnClass) . '</span></td>'
+                : '<td class="bk-empty-cell">—</td>';
+        }
+        $out .= '</tr>';
+    }
+    $out .= '</table></div>';
+}
+echo $out . '</div>';
+include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

@@ -1,26 +1,26 @@
 <?php
 /**
- * admin/impersonate.php — Vue « depuis un autre compte » (impersonation).
+ * admin/impersonate.php — "From another account" view (impersonation).
  *
- * ADMIN serveur uniquement, LECTURE SEULE. Ouvre/ferme l'observation d'un compte
- * ORGANISATEUR (redirige vers la liste des compétitions vue par la cible) ou de
- * l'espace d'un LICENCIÉ (redirige vers son espace booking).
+ * Server ADMIN only, READ ONLY. Opens/closes the observation of an ORGANISER account
+ * (redirects to the list of competitions as the target sees it) or of a LICENSEE's space
+ * (redirects to their booking space).
  *
- * L'état est persisté par session en base (AUT_Sessions.AsnImp) pour survivre à
- * CreateTourSession — voir aut_imp_* dans lib.php. La lecture seule organisateur
- * est imposée par le cœur (AUTH_RO → dist/BlockFunction.php) ; côté licencié, par
- * public/boot.php (refus de tout POST). Journalisé (IMPERSONATE_START/END).
+ * The state is kept per session in the database (AUT_Sessions.AsnImp) to survive
+ * CreateTourSession — see aut_imp_* in lib.php. The organiser read-only mode is enforced by
+ * the core (AUTH_RO → dist/BlockFunction.php); on the licensee side, by public/boot.php (every
+ * POST refused). Logged (IMPERSONATE_START/END).
  *
- * Contrôleur pur (aucune sortie HTML) : POST + CSRF pour ENTRER, GET pour SORTIR.
+ * Pure controller (no HTML output): POST + CSRF to ENTER, GET to LEAVE.
  */
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(__DIR__ . '/../lib.php');
 
-// ---- SORTIE d'observation ------------------------------------------------
-// Ne PAS exiger AclRoot : pendant une observation organisateur, AUTH_RO plafonne
-// justement AclRoot. On exige seulement que l'observation ait été ouverte par CET
-// utilisateur (session partagée), avec un jeton CSRF best-effort.
+// ---- LEAVING an observation -------------------------------------------------
+// Do NOT require AclRoot: during an organiser observation, AUTH_RO precisely caps AclRoot.
+// Only require that the observation was opened by THIS user (shared session), with a
+// best-effort CSRF token.
 if (isset($_GET['exit'])) {
     $i  = aut_imp_get();
     $me = (string) ($_SESSION['AUTH_User'] ?? '');
@@ -35,37 +35,37 @@ if (isset($_GET['exit'])) {
     exit;
 }
 
-// ---- ENTRÉE en observation : administrateur serveur uniquement -----------
-// Garde cohérente avec les autres pages admin du module (AclRoot + vue admin).
+// ---- ENTERING an observation: server administrator only -----------------
+// Guard consistent with the other admin pages of the module (AclRoot + admin view).
 checkFullACL(AclRoot, '', AclReadWrite);
 if (empty($_SESSION['AUTH_ROOT'])) { CD_redirect($CFG->ROOT_DIR . 'noAccess.php'); exit; }
 
 $err = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && aut_csrf_check()) {
-    aut_imp_forget();                       // repartir d'une observation propre
+    aut_imp_forget();                       // start from a clean observation
     $me   = (string) $_SESSION['AUTH_User'];
     $type = (string) ($_POST['type'] ?? '');
 
     if ($type === 'org') {
-        // La lecture seule organisateur est imposée par le BlockFunction DÉPLOYÉ
-        // (AUTH_RO). Tant que la version déployée l'ignore, observer donnerait un
-        // accès en ÉCRITURE aux compétitions de la cible → on refuse d'abord.
+        // The organiser read-only mode is enforced by the DEPLOYED BlockFunction (AUTH_RO).
+        // While the deployed version ignores it, observing would give WRITE access to the
+        // target's competitions → refused first.
         $deployed = HTDOCS . '/Modules/Authentication/BlockFunction.php';
         $roReady  = is_file($deployed) && strpos((string) @file_get_contents($deployed), 'AUTH_RO') !== false;
 
         $user = (string) ($_POST['user'] ?? '');
         $t = aut_get_user($user);
-        if (!$roReady)                        $err = 'Redéployez d\'abord l\'authentification (page « Déploiement ») : la lecture seule organisateur n\'est pas encore active sur le serveur.';
-        elseif (!$t)                          $err = 'Compte introuvable.';
-        elseif ($t->AuRole == AUT_ROLE_ADMIN) $err = 'On ne peut pas observer un compte administrateur.';
-        elseif ($t->AuUsername === $me)       $err = 'C\'est déjà votre compte.';
+        if (!$roReady)                        $err = aut_t('ImpRedeploy');
+        elseif (!$t)                          $err = aut_t('UsNotFound');
+        elseif ($t->AuRole == AUT_ROLE_ADMIN) $err = aut_t('ImpNoAdmin');
+        elseif ($t->AuUsername === $me)       $err = aut_t('ImpSelf');
         else {
             $label = $t->AuUsername . ' (' . (aut_roles()[$t->AuRole] ?? $t->AuRole)
                    . ($t->AuScope !== '' ? ' ' . $t->AuScope : '') . ')';
             aut_imp_store(array('type' => 'org', 'user' => $t->AuUsername,
                 'label' => $label, 'by' => $me, 'at' => time()));
             aut_log('IMPERSONATE_START', $me . ' -> org:' . $t->AuUsername);
-            CD_redirect($CFG->ROOT_DIR . 'index.php');   // compétitions vues par la cible
+            CD_redirect($CFG->ROOT_DIR . 'index.php');   // competitions as the target sees them
             exit;
         }
     } elseif ($type === 'archer') {
@@ -76,7 +76,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && aut_csrf_check()) {
                 FROM BK_Archers WHERE BaLicence=" . StrSafe_DB($lic), false, true);
             $a = $q ? safe_fetch($q) : null;
         }
-        if (!$a) $err = 'Aucun espace licencié pour cette licence (l\'archer ne s\'est jamais connecté).';
+        if (!$a) $err = aut_t('ImpNoArcher');
         else {
             $label = trim($a->BaName . ' ' . $a->BaFamilyName) . ' — ' . $a->BaLicence;
             aut_imp_store(array('type' => 'archer', 'archer' => intval($a->BaId),
@@ -86,11 +86,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && aut_csrf_check()) {
             exit;
         }
     } else {
-        $err = 'Type d\'observation inconnu.';
+        $err = aut_t('ImpBadType');
     }
 }
 
-// Échec (ou accès direct) : retour à la page comptes avec le motif en bannière.
-if ($err !== '') aut_flash_set('Observation impossible — ' . htmlspecialchars($err));
+// Failure (or direct access): back to the accounts page with the reason in a banner.
+if ($err !== '') aut_flash_set(htmlspecialchars(aut_t('ImpFailed', $err)));
 CD_redirect($CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/');
 exit;

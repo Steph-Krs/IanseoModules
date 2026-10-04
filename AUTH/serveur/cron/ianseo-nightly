@@ -1,26 +1,25 @@
-# /etc/cron.d/ianseo-nightly — fenêtre de maintenance nocturne (une seule ligne).
+# /etc/cron.d/ianseo-nightly — nightly maintenance window (one single line).
 #
-# root:root, chmod 0644. ⚠️ Pièges classiques de /etc/cron.d :
-#   - le nom du fichier ne doit contenir que [A-Za-z0-9_-] : un POINT ou une
-#     extension (.cron, .conf) le fait IGNORER SILENCIEUSEMENT ;
-#   - il faut un SAUT DE LIGNE final, sinon la dernière ligne est ignorée ;
-#   - contrairement à « crontab -e », il faut un champ UTILISATEUR (7 champs) ;
-#   - le fichier ne doit pas être exécutable ni inscriptible par le groupe.
+# root:root, chmod 0644. ⚠️ Classic traps of /etc/cron.d:
+#   - the file name may only hold [A-Za-z0-9_-]: a DOT or an extension (.cron, .conf) makes
+#     it SILENTLY IGNORED;
+#   - a final LINE FEED is needed, otherwise the last line is ignored;
+#   - unlike "crontab -e", a USER field is needed (7 fields);
+#   - the file must be neither executable nor writable by the group.
 #
-# Ce seul appel remplace les crons séparés de synchro : maintenance.php enchaîne
-# maintenance ON → sauvegarde → MàJ cœur → MàJ modules → licences → logos →
-# maintenance OFF, et garantit la sortie de maintenance même en cas d'échec.
+# This single call replaces the separate sync crons: maintenance.php runs
+# maintenance ON → backup → core update → module updates → licences → logos →
+# maintenance OFF, and guarantees the exit from maintenance even on failure.
 #
-# Lancée par ROOT, uniquement pour déverrouiller les fichiers du cœur avant, et les
-# reverrouiller après : le script lui-même tourne sous www-data (su). Ainsi le compte
-# web n'a jamais le droit de rendre le code d'ianseo modifiable — ne PAS donner
-# ianseo-unlock à www-data en sudo. Dans config.local.json, maintenance.unlock et
-# maintenance.lock restent donc VIDES. Le « ; » (et non « && ») avant ianseo-lock
-# garantit le reverrouillage même si la maintenance échoue.
+# Started by ROOT, only to unlock the core files before, and lock them again after: the
+# script itself runs as www-data (su). The web account thus never has the right to make the
+# ianseo code writable — do NOT give ianseo-unlock to www-data through sudo. In
+# config.local.json, maintenance.unlock and maintenance.lock therefore stay EMPTY. The ";"
+# (and not "&&") before ianseo-lock guarantees the re-locking even when the maintenance fails.
 #
-# ⚠️ Si un préavis est configuré (config.local.json → maintenance.notice.at),
-# il doit correspondre à l'HEURE CI-DESSOUS. Les deux ne se déduisent pas l'un
-# de l'autre : un décalage annoncerait une maintenance au mauvais moment.
+# ⚠️ When a notice is configured (config.local.json → maintenance.notice.at), it must match
+# the TIME BELOW. Neither is derived from the other: a gap would announce a maintenance at the
+# wrong time.
 
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin

@@ -1,17 +1,21 @@
 <?php
 /**
- * admin/reimport.php — réconciliation après un réimport de compétition.
+ * admin/reimport.php — reconciliation after a competition re-import.
  *
- * lib/adopt.php rapatrie automatiquement config, paiements, boutique et inscriptions,
- * puis enregistre CHAQUE écart comme un « conflit » que l'organisateur tranche ici :
- *   - category    : même archer/même départ, catégorie différente entre booking et l'import ;
- *   - onlybooking : inscrit en ligne dans booking mais absent de l'import (ré-injecté par défaut) ;
- *   - onlyimport  : participant de l'import non inscrit via booking (rendu visible par défaut) ;
- *   - reinject    : inscription booking non ré-injectable (licence inconnue, départ disparu).
+ * lib/adopt.php brings back the settings, payments, shop and registrations automatically, then
+ * records EACH gap as a "conflict" the organiser settles here:
+ *   - category    : same archer/same departure, different category between booking and import;
+ *   - onlybooking : registered online in booking but missing from the import (injected again by
+ *                   default);
+ *   - onlyimport  : participant of the import not registered through booking (made visible by
+ *                   default);
+ *   - reinject    : booking registration that could not be injected again (unknown licence,
+ *                   departure gone).
  *
- * Chaque conflit se tranche d'un CÔTÉ (import ou booking). Sémantique dans
- * bk_reimport_apply(). Deux boutons globaux tranchent tout d'un même côté.
- * ⚠️ « Côté booking » d'un onlyimport = RETRAIT du participant de la compétition (Entry supprimée).
+ * Each conflict is settled on one SIDE (import or booking). Meaning in bk_reimport_apply(). Two
+ * global buttons settle everything on one side.
+ * ⚠️ "Booking side" of an onlyimport = REMOVAL of the participant from the competition (Entry
+ * deleted).
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -31,27 +35,26 @@ $err = '';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
-        $err = 'Session expirée — rechargez la page et réessayez.';
+        $err = bk_t('SessionExpired');
     } else {
         $action = (string) ($_POST['do'] ?? '');
         if ($action === 'bulk') {
             $side = ((string) ($_POST['side'] ?? '') === 'booking') ? 'booking' : 'import';
             $r = bk_reimport_bulk($TOUR, $side);
-            $msg = 'Tout tranché « ' . ($side === 'booking' ? 'côté booking' : 'côté import') . ' » : '
-                . intval($r['done']) . ' élément(s) traité(s)'
-                . ($r['removed'] ? ', ' . intval($r['removed']) . ' participant(s) retiré(s)' : '')
-                . ($r['fail'] ? ', ' . intval($r['fail']) . ' échec(s)' : '') . '.';
+            $msg = bk_t($side === 'booking' ? 'RiBulkBooking' : 'RiBulkImport', intval($r['done']))
+                . ($r['removed'] ? ', ' . bk_t('RiRemovedN', intval($r['removed'])) : '')
+                . ($r['fail'] ? ', ' . bk_t('RiFailN', intval($r['fail'])) : '') . '.';
         } else {
             $rcId = intval($_POST['rc'] ?? 0);
             $rc = $rcId ? safe_fetch(safe_r_sql("SELECT * FROM BK_ReimportConflicts
                 WHERE RcId = $rcId AND RcTournament = $TOUR")) : null;
             $side = ((string) ($_POST['side'] ?? '') === 'booking') ? 'booking' : 'import';
             if (!$rc) {
-                $err = 'Élément introuvable (déjà traité ?).';
+                $err = bk_t('RiGone');
             } else {
                 $r = bk_reimport_apply($TOUR, $rc, $side);
-                if (!empty($r['ok'])) $msg = 'Décision appliquée.';
-                else $err = 'Action impossible : ' . ($r['msg'] ?? '');
+                if (!empty($r['ok'])) $msg = bk_t('RiApplied');
+                else $err = bk_t('RiImpossible', $r['msg'] ?? '');
             }
         }
     }
@@ -62,7 +65,6 @@ $by = array('category' => array(), 'onlybooking' => array(), 'onlyimport' => arr
 foreach ($conflicts as $c) { if (isset($by[$c->RcKind])) $by[$c->RcKind][] = $c; }
 
 $backUrl = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php';
-$self    = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/reimport.php';
 
 $catLabel = function ($j) {
     $a = is_array($j) ? $j : (array) json_decode((string) $j, true);
@@ -70,20 +72,25 @@ $catLabel = function ($j) {
     $c = trim((string) ($a['class'] ?? ''));
     return ($d || $c) ? bk_e(trim($d . ' ' . $c)) : '—';
 };
-// Formulaire d'un bouton par ligne (rc + côté + libellé + classe + confirmation).
-$btn = function ($rcId, $side, $label, $class, $confirm = '') {
-    $oc = $confirm ? ' onsubmit="return confirm(' . htmlspecialchars(json_encode($confirm), ENT_QUOTES) . ')"' : '';
-    ob_start(); ?>
-    <form method="post" class="bk-inline"<?= $oc ?>><?= bk_csrf_field() ?>
-      <input type="hidden" name="do" value="apply">
-      <input type="hidden" name="rc" value="<?= intval($rcId) ?>">
-      <input type="hidden" name="side" value="<?= bk_e($side) ?>">
-      <button class="<?= bk_e($class) ?>"><?= bk_e($label) ?></button>
-    </form>
-    <?php return ob_get_clean();
+// Form of one button per row (conflict + side + label + class + confirmation).
+$btn = function ($rcId, $side, $labelKey, $class, $confirmKey = '') {
+    $oc = $confirmKey ? ' onsubmit="return confirm(' . htmlspecialchars(json_encode(bk_t($confirmKey), JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')"' : '';
+    return '<form method="post" class="bk-inline"' . $oc . '>' . bk_csrf_field()
+        . '<input type="hidden" name="do" value="apply"><input type="hidden" name="rc" value="' . intval($rcId) . '">'
+        . '<input type="hidden" name="side" value="' . bk_e($side) . '"><button class="' . bk_e($class) . '">' . bk_e(bk_t($labelKey)) . '</button></form> ';
+};
+$head = function ($cols) {
+    $h = '<tr>';
+    foreach ($cols as $k) $h .= '<th>' . bk_e(bk_t($k)) . '</th>';
+    return $h . '</tr>';
+};
+$bulk = function ($side, $confirm, $labelKey, $class) {
+    return '<form method="post" class="bk-inline" onsubmit="return confirm(' . htmlspecialchars(json_encode($confirm, JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')">'
+        . bk_csrf_field() . '<input type="hidden" name="do" value="bulk"><input type="hidden" name="side" value="' . $side . '">'
+        . '<button class="' . $class . '">' . bk_e(bk_t($labelKey)) . '</button></form> ';
 };
 
-$PAGE_TITLE = 'Réimport — réconciliation';
+$PAGE_TITLE = bk_t('RiPageTitle');
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <style>
@@ -112,141 +119,76 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #bkadm .bk-bulk { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:8px; }
 #bkadm details.bk-fold > summary { cursor:pointer; font-weight:600; color:#0254a8; margin:4px 0; }
 </style>
+<?php
+$out = '<div id="bkadm"><h1>' . bk_e(bk_t('RiTitle')) . '</h1>'
+    . '<p><a class="bk-back" href="' . bk_e($backUrl) . '">' . bk_e(bk_t('RiBack')) . '</a></p>'
+    . ($msg ? '<div class="bk-msg bk-ok">' . bk_e($msg) . '</div>' : '')
+    . ($err ? '<div class="bk-msg bk-err">' . bk_e($err) . '</div>' : '');
 
-<div id="bkadm">
-<h1>Réimport de la compétition — réconciliation</h1>
-<p><a class="bk-back" href="<?= bk_e($backUrl) ?>">← Retour aux inscriptions en ligne</a></p>
+if (!$conflicts) {
+    echo $out . '<div class="bk-sec"><p class="bk-empty">' . bk_e(bk_t('RiNothing')) . '</p></div></div>';
+    include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');
+    exit;
+}
 
-<?php if ($msg): ?><div class="bk-msg bk-ok"><?= bk_e($msg) ?></div><?php endif; ?>
-<?php if ($err): ?><div class="bk-msg bk-err"><?= bk_e($err) ?></div><?php endif; ?>
+$out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('RiAllTitle')) . '</h2>'
+    . '<p class="bk-hint">' . bk_e(bk_t('RiAllHint', count($conflicts))) . '</p><div class="bk-bulk">'
+    . $bulk('import', bk_t('RiAllImportConfirm'), 'RiAllImport', 'bk-btn')
+    . $bulk('booking', bk_t('RiAllBookingConfirm', count($by['onlyimport'])), 'RiAllBooking', 'bk-btn2 bk-btn-danger')
+    . '</div></div>';
 
-<?php if (!$conflicts): ?>
-  <div class="bk-sec"><p class="bk-empty">Rien à trancher : tout a été rapatrié et validé.</p></div>
-<?php else: ?>
+if ($by['category']) {
+    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('RiCatTitle', count($by['category']))) . '</h2>'
+        . '<p class="bk-hint">' . bk_e(bk_t('RiCatHint')) . '</p><table class="bk-t">'
+        . $head(array('ColArcher', 'Licence', 'RiColBooking', 'RiColImport', 'RiColChoice'));
+    foreach ($by['category'] as $c) {
+        $out .= '<tr><td>' . bk_e($c->RcName ?: '—') . '</td><td>' . bk_e($c->RcLicence) . '</td><td>' . $catLabel($c->RcBooking) . '</td>'
+            . '<td><b>' . $catLabel($c->RcImport) . '</b></td><td>' . $btn($c->RcId, 'import', 'RiKeepImport', 'bk-btn')
+            . $btn($c->RcId, 'booking', 'RiUseBooking', 'bk-btn2', 'RiUseBookingConfirm') . '</td></tr>';
+    }
+    $out .= '</table></div>';
+}
 
-<div class="bk-sec">
-  <h2>Trancher tout d'un coup</h2>
-  <p class="bk-hint"><?= count($conflicts) ?> élément(s) à valider. Vous pouvez décider ligne par
-    ligne ci-dessous, ou tout trancher d'un côté :</p>
-  <div class="bk-bulk">
-    <form method="post" class="bk-inline"
-      onsubmit="return confirm('Tout garder de l\'IMPORT ?\n\nLes catégories de l\'import sont conservées, les participants de l\'import restent, et les inscriptions en ligne ABSENTES de l\'import sont RETIRÉES.')">
-      <?= bk_csrf_field() ?>
-      <input type="hidden" name="do" value="bulk">
-      <input type="hidden" name="side" value="import">
-      <button class="bk-btn">Tout garder de l'import</button>
-    </form>
-    <form method="post" class="bk-inline"
-      onsubmit="return confirm('Tout garder de BOOKING ?\n\nLes catégories du licencié sont appliquées, les inscriptions en ligne sont conservées, et les participants présents SEULEMENT dans l\'import (saisis hors module) sont RETIRÉS DE LA COMPÉTITION (<?= count($by['onlyimport']) ?> participant·s). Action irréversible.')">
-      <?= bk_csrf_field() ?>
-      <input type="hidden" name="do" value="bulk">
-      <input type="hidden" name="side" value="booking">
-      <button class="bk-btn2 bk-btn-danger">Tout garder de booking</button>
-    </form>
-  </div>
-</div>
+if ($by['onlybooking']) {
+    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('RiOnlyBkTitle', count($by['onlybooking']))) . '</h2>'
+        . '<p class="bk-hint">' . bk_e(bk_t('RiOnlyBkHint')) . '</p><table class="bk-t">'
+        . $head(array('ColArcher', 'Licence', 'SsCategory', 'RiColChoice'));
+    foreach ($by['onlybooking'] as $c) {
+        $out .= '<tr><td>' . bk_e($c->RcName ?: '—') . '</td><td>' . bk_e($c->RcLicence) . '</td><td>' . $catLabel($c->RcBooking) . '</td>'
+            . '<td>' . $btn($c->RcId, 'booking', 'RiKeepReg', 'bk-btn')
+            . $btn($c->RcId, 'import', 'RiRemove', 'bk-btn2 bk-btn-danger', 'RiRemoveRegConfirm') . '</td></tr>';
+    }
+    $out .= '</table></div>';
+}
 
-<?php if ($by['category']): ?>
-<div class="bk-sec">
-  <h2>Catégories divergentes (<?= count($by['category']) ?>)</h2>
-  <p class="bk-hint">Même archer, même départ, mais catégorie différente entre l'inscription
-    booking et l'import. Le placement de l'import est conservé ; choisissez la catégorie.</p>
-  <table class="bk-t">
-    <tr><th>Archer</th><th>Licence</th><th>Booking</th><th>Import (en place)</th><th>Choix</th></tr>
-    <?php foreach ($by['category'] as $c): ?>
-    <tr>
-      <td><?= bk_e($c->RcName ?: '—') ?></td>
-      <td><?= bk_e($c->RcLicence) ?></td>
-      <td><?= $catLabel($c->RcBooking) ?></td>
-      <td><b><?= $catLabel($c->RcImport) ?></b></td>
-      <td>
-        <?= $btn($c->RcId, 'import', 'Garder l\'import', 'bk-btn') ?>
-        <?= $btn($c->RcId, 'booking', 'Utiliser booking', 'bk-btn2', 'Remplacer la catégorie de l\'import par celle de l\'inscription booking ?') ?>
-      </td>
-    </tr>
-    <?php endforeach; ?>
-  </table>
-</div>
-<?php endif; ?>
+if ($by['onlyimport']) {
+    $oi = $by['onlyimport'];
+    $cap = 200;
+    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('RiOnlyImTitle', count($oi))) . '</h2>'
+        . '<p class="bk-hint">' . bk_t('RiOnlyImHint') . '</p>'
+        . '<details class="bk-fold"' . (count($oi) <= 30 ? ' open' : '') . '><summary>' . bk_e(bk_t('RiSeeList', count($oi))) . '</summary>'
+        . '<table class="bk-t">' . $head(array('ColArcher', 'Licence', 'SsCategory', 'RiColChoice'));
+    foreach (array_slice($oi, 0, $cap) as $c) {
+        $out .= '<tr><td>' . bk_e($c->RcName ?: '—') . '</td><td>' . bk_e($c->RcLicence) . '</td><td>' . $catLabel($c->RcImport) . '</td>'
+            . '<td>' . $btn($c->RcId, 'import', 'RiKeep', 'bk-btn')
+            . $btn($c->RcId, 'booking', 'RiRemove', 'bk-btn2 bk-btn-danger', 'RiRemovePartConfirm') . '</td></tr>';
+    }
+    $out .= '</table>' . (count($oi) > $cap ? '<p class="bk-hint">' . bk_e(bk_t('RiMore', count($oi) - $cap)) . '</p>' : '')
+        . '</details></div>';
+}
 
-<?php if ($by['onlybooking']): ?>
-<div class="bk-sec">
-  <h2>Inscrits en ligne absents de l'import (<?= count($by['onlybooking']) ?>)</h2>
-  <p class="bk-hint">Ces archers s'étaient inscrits en ligne mais ne figurent pas dans le nouvel
-    import (export pris avant leur inscription). Ils ont été ré-injectés par défaut. Gardez-les,
-    ou retirez-les si l'import fait foi.</p>
-  <table class="bk-t">
-    <tr><th>Archer</th><th>Licence</th><th>Catégorie</th><th>Choix</th></tr>
-    <?php foreach ($by['onlybooking'] as $c): ?>
-    <tr>
-      <td><?= bk_e($c->RcName ?: '—') ?></td>
-      <td><?= bk_e($c->RcLicence) ?></td>
-      <td><?= $catLabel($c->RcBooking) ?></td>
-      <td>
-        <?= $btn($c->RcId, 'booking', 'Garder l\'inscription', 'bk-btn') ?>
-        <?= $btn($c->RcId, 'import', 'Retirer', 'bk-btn2 bk-btn-danger', 'Retirer cette inscription de la compétition ?') ?>
-      </td>
-    </tr>
-    <?php endforeach; ?>
-  </table>
-</div>
-<?php endif; ?>
+if ($by['reinject']) {
+    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('RiReinjTitle', count($by['reinject']))) . '</h2>'
+        . '<p class="bk-hint">' . bk_e(bk_t('RiReinjHint')) . '</p><table class="bk-t">'
+        . $head(array('Licence', 'SsCategory', 'RiColReason', 'RiColChoice'));
+    foreach ($by['reinject'] as $c) {
+        $b = (array) json_decode((string) $c->RcBooking, true);
+        $out .= '<tr><td>' . bk_e($c->RcLicence) . '</td><td>' . $catLabel($c->RcBooking) . '</td><td>' . bk_e((string) ($b['msg'] ?? '')) . '</td>'
+            . '<td>' . $btn($c->RcId, 'booking', 'RiRetry', 'bk-btn')
+            . $btn($c->RcId, 'import', 'RiDrop', 'bk-btn2 bk-btn-danger', 'RiDropConfirm') . '</td></tr>';
+    }
+    $out .= '</table></div>';
+}
 
-<?php if ($by['onlyimport']):
-    $oi = $by['onlyimport']; $cap = 200; $shown = array_slice($oi, 0, $cap); ?>
-<div class="bk-sec">
-  <h2>Participants de l'import non inscrits via booking (<?= count($oi) ?>)</h2>
-  <p class="bk-hint">Ces participants ont été saisis hors module (directement dans ianseo). Ils
-    sont désormais visibles dans leur espace licencié, <b>sans information de paiement</b>. Gardez-les,
-    ou retirez-les de la compétition si seules les inscriptions en ligne doivent y figurer.</p>
-  <details class="bk-fold"<?= count($oi) <= 30 ? ' open' : '' ?>>
-    <summary>Voir la liste (<?= count($oi) ?>)</summary>
-    <table class="bk-t">
-      <tr><th>Archer</th><th>Licence</th><th>Catégorie</th><th>Choix</th></tr>
-      <?php foreach ($shown as $c): ?>
-      <tr>
-        <td><?= bk_e($c->RcName ?: '—') ?></td>
-        <td><?= bk_e($c->RcLicence) ?></td>
-        <td><?= $catLabel($c->RcImport) ?></td>
-        <td>
-          <?= $btn($c->RcId, 'import', 'Garder', 'bk-btn') ?>
-          <?= $btn($c->RcId, 'booking', 'Retirer', 'bk-btn2 bk-btn-danger', 'Retirer ce participant de la compétition (inscription ianseo supprimée) ?') ?>
-        </td>
-      </tr>
-      <?php endforeach; ?>
-    </table>
-    <?php if (count($oi) > $cap): ?>
-      <p class="bk-hint">… et <?= count($oi) - $cap ?> autre(s). Utilisez les boutons globaux
-        ci-dessus pour tout trancher d'un coup.</p>
-    <?php endif; ?>
-  </details>
-</div>
-<?php endif; ?>
-
-<?php if ($by['reinject']): ?>
-<div class="bk-sec">
-  <h2>Inscriptions non ré-injectées (<?= count($by['reinject']) ?>)</h2>
-  <p class="bk-hint">Ces inscriptions booking étaient absentes de l'import et n'ont pas pu être
-    recréées (licence inconnue du fichier fédéral, départ disparu…). Réessayez après correction,
-    ou abandonnez la trace.</p>
-  <table class="bk-t">
-    <tr><th>Licence</th><th>Catégorie</th><th>Motif</th><th>Choix</th></tr>
-    <?php foreach ($by['reinject'] as $c):
-      $b = (array) json_decode((string) $c->RcBooking, true); ?>
-    <tr>
-      <td><?= bk_e($c->RcLicence) ?></td>
-      <td><?= $catLabel($c->RcBooking) ?></td>
-      <td><?= bk_e((string) ($b['msg'] ?? '')) ?></td>
-      <td>
-        <?= $btn($c->RcId, 'booking', 'Réessayer', 'bk-btn') ?>
-        <?= $btn($c->RcId, 'import', 'Abandonner', 'bk-btn2 bk-btn-danger', 'Abandonner définitivement cette trace ?') ?>
-      </td>
-    </tr>
-    <?php endforeach; ?>
-  </table>
-</div>
-<?php endif; ?>
-
-<?php endif; ?>
-</div>
-<?php include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php'); ?>
+echo $out . '</div>';
+include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

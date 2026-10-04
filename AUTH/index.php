@@ -1,11 +1,11 @@
 <?php
 /**
- * Module AUTH — Compétitions & partage.
- * Chaque structure (club, CD, CR, FED) voit les compétitions qu'elle possède,
- * celles où elle est invitée et celles partagées avec son niveau.
- * Le PROPRIÉTAIRE d'une compétition gère : le partage montant (CD/CR/FFTA)
- * et la liste des clubs invités (aide à la saisie — plusieurs clubs possibles).
- * ADMIN : voit tout, peut aussi réattribuer le propriétaire.
+ * AUTH module — Competitions & sharing.
+ * Each structure (club, CD, CR, FED) sees the competitions it owns, those where it is invited
+ * and those shared with its level.
+ * The OWNER of a competition manages: the upward sharing (CD/CR/FFTA) and the list of invited
+ * clubs (help with data entry — several clubs possible).
+ * ADMIN: sees everything, can also give the competition another owner.
  */
 define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
@@ -29,12 +29,12 @@ $msgErr = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'save') {
     if (!aut_csrf_check()) {
-        $msgErr = 'Session expirée : rien n\'a été enregistré, réessayez.';
+        $msgErr = htmlspecialchars(aut_t('ShSessionExpired'));
     } else {
         foreach (($_POST['codes'] ?? array()) as $code) {
             $code = trim($code);
             if ($code === '') continue;
-            if (!$isAdmin && aut_code_status($code, $role, $scope) !== 'own') continue;   // pas la sienne
+            if (!$isAdmin && aut_code_status($code, $role, $scope) !== 'own') continue;   // not theirs
 
             $cd  = !empty($_POST['cd'][$code])  ? 1 : 0;
             $cr  = !empty($_POST['cr'][$code])  ? 1 : 0;
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'save') 
                 VALUES (" . StrSafe_DB($code) . ", $cd, $cr, $fed)
                 ON DUPLICATE KEY UPDATE AsShareCD=$cd, AsShareCR=$cr, AsShareFED=$fed");
 
-            // clubs invités : liste d'agréments séparés par virgules/espaces
+            // invited clubs: list of approval numbers separated by commas/spaces
             if (isset($_POST['clubs'][$code])) {
                 $list = array();
                 foreach (preg_split('/[\s,;]+/', trim($_POST['clubs'][$code])) as $c) {
@@ -56,27 +56,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'save') 
                 }
             }
 
-            // réattribution du propriétaire (admin uniquement) : '', agrément, CD60, CR07, FED
+            // new owner (admin only): '', approval number, CD60, CR07, FED
             if ($isAdmin && isset($_POST['owner'][$code])) {
                 $oRole = ''; $oScope = '';
                 if (aut_parse_owner($_POST['owner'][$code], $oRole, $oScope)) {
                     safe_w_sql("UPDATE AUT_Share SET AsOwnerRole=" . StrSafe_DB($oRole)
                         . ", AsOwnerScope=" . StrSafe_DB($oScope) . " WHERE AsToCode=" . StrSafe_DB($code));
                 } else {
-                    $msgErr = 'Propriétaire invalide pour « ' . htmlspecialchars($code)
-                        . ' » (formats : agrément, CD60, CR07, FED, ou vide).';
+                    $msgErr = htmlspecialchars(aut_t('ShBadOwner', $code));
                 }
             }
         }
-        if (!$msgErr) $msgOk = 'Enregistré.';
-        // les droits de session seront recalculés à la prochaine requête (bootstrap)
+        if (!$msgErr) $msgOk = htmlspecialchars(aut_t('ShSaved'));
+        // the session rights are computed again at the next request (bootstrap)
     }
 }
 
-/* ---- Liste des compétitions visibles ---- */
+/* ---- List of the visible competitions ---- */
 $where = '1=1';
 if (!$isAdmin) {
-    // la session contient déjà exactement les codes accessibles
+    // the session already holds exactly the reachable codes
     $codes = array_filter($_SESSION['AUTH_COMP'] ?? array(), function ($c) { return strpos($c, '%') === false; });
     $where = count($codes)
         ? 'ToCode IN (' . implode(',', array_map('StrSafe_DB', $codes)) . ')'
@@ -103,43 +102,33 @@ foreach ($rows as $r) {
     if ($r->_own) $hasEditable = true;
 }
 
-$PAGE_TITLE = 'Compétitions & partage';
+$PAGE_TITLE = aut_t('ShTitle');
 include('Common/Templates/head.php');
 
+$e = function ($s) { return htmlspecialchars((string) $s); };
 if ($hasEditable) {
     echo '<form method="post" action="">' . aut_csrf_field() . '<input type="hidden" name="action" value="save">';
 }
-?>
-<table class="Tabella">
-<tr><th class="Title" colspan="9">Compétitions &amp; partage</th></tr>
-<?php
-if ($msgOk)  echo '<tr><td colspan="9" class="Center" style="background:#e8f4e8; color:#1a5c1a;">' . $msgOk . '</td></tr>';
-if ($msgErr) echo '<tr><td colspan="9" class="Center" style="background:#fde8e8; color:#8b1a1a;">' . $msgErr . '</td></tr>';
-?>
-<tr><td colspan="9" style="font-size:11px;">
-    Vous voyez ici les compétitions que vous <b>possédez</b> (créées/importées par votre structure),
-    celles où votre club est <b>invité</b> et celles <b>partagées</b> avec votre niveau.
-    Sur vos compétitions : les cases CD / CR / FFTA les partagent vers votre comité, votre ligue ou la
-    fédération ; le champ <b>Clubs invités</b> donne accès (lecture + écriture, ex. aide à la saisie)
-    aux clubs listés — agréments séparés par des virgules, ex. <code>0760171, 0760023</code>.
-    Le code d'une nouvelle compétition est libre mais doit être <b>unique</b> sur le serveur.
-    <?php if ($isAdmin) echo '<br><b>Admin</b> : champ propriétaire = agrément (club), <code>CD60</code>, <code>CR07</code>, <code>FED</code>, ou vide (non attribuée).'; ?>
-</td></tr>
-<tr>
-    <th class="Title w-10">Code</th>
-    <th class="Title w-22">Nom</th>
-    <th class="Title w-12">Lieu</th>
-    <th class="Title w-12">Dates</th>
-    <th class="Title w-9">Propriétaire</th>
-    <th class="Title w-6">CD</th>
-    <th class="Title w-6">CR</th>
-    <th class="Title w-6">FFTA</th>
-    <th class="Title w-17">Clubs invités</th>
-</tr>
-<?php if (!count($rows)) { ?>
-<tr><td colspan="9" class="Center">Aucune compétition — créez-en une via le menu Compétition (le code doit être unique sur le serveur).</td></tr>
-<?php } ?>
-<?php
+echo '<table class="Tabella">' . "\n"
+    . '<tr><th class="Title" colspan="9">' . $e(aut_t('ShTitle')) . "</th></tr>\n";
+if ($msgOk)  echo '<tr><td colspan="9" class="Center" style="background:#e8f4e8; color:#1a5c1a;">' . $msgOk . "</td></tr>\n";
+if ($msgErr) echo '<tr><td colspan="9" class="Center" style="background:#fde8e8; color:#8b1a1a;">' . $msgErr . "</td></tr>\n";
+echo '<tr><td colspan="9" style="font-size:11px;">' . aut_t('ShIntro')
+    . ($isAdmin ? '<br>' . aut_t('ShIntroAdmin') : '') . "</td></tr>\n"
+    . '<tr>'
+    . '<th class="Title w-10">' . $e(aut_t('ShColCode')) . '</th>'
+    . '<th class="Title w-22">' . $e(aut_t('ShColName')) . '</th>'
+    . '<th class="Title w-12">' . $e(aut_t('ShColWhere')) . '</th>'
+    . '<th class="Title w-12">' . $e(aut_t('ShColDates')) . '</th>'
+    . '<th class="Title w-9">' . $e(aut_t('ShColOwner')) . '</th>'
+    . '<th class="Title w-6">CD</th>'
+    . '<th class="Title w-6">CR</th>'
+    . '<th class="Title w-6">FFTA</th>'
+    . '<th class="Title w-17">' . $e(aut_t('ShColInvited')) . '</th>'
+    . "</tr>\n";
+if (!count($rows)) {
+    echo '<tr><td colspan="9" class="Center">' . $e(aut_t('ShNone')) . "</td></tr>\n";
+}
 foreach ($rows as $r) {
     $code = htmlspecialchars($r->ToCode);
     $own = $r->_own;
@@ -152,32 +141,25 @@ foreach ($rows as $r) {
     print '<td>' . $r->DtFrom . ' — ' . $r->DtTo . '</td>';
     if ($isAdmin) {
         print '<td class="Center"><input type="text" name="owner[' . $code . ']" size="7" value="'
-            . htmlspecialchars($ownerLbl) . '" placeholder="agrément"></td>';
+            . htmlspecialchars($ownerLbl) . '" placeholder="' . $e(aut_t('ShOwnerHint')) . '"></td>';
     } else {
-        print '<td class="Center">' . htmlspecialchars($ownerLbl ?: '—') . ($own ? ' <b>(vous)</b>' : '') . '</td>';
+        print '<td class="Center">' . htmlspecialchars($ownerLbl ?: '—') . ($own ? ' <b>(' . $e(aut_t('ShYou')) . ')</b>' : '') . '</td>';
     }
     print '<td class="Center"><input type="checkbox" name="cd[' . $code . ']"' . ($r->AsShareCD ? ' checked' : '') . $dis . '></td>';
     print '<td class="Center"><input type="checkbox" name="cr[' . $code . ']"' . ($r->AsShareCR ? ' checked' : '') . $dis . '></td>';
     print '<td class="Center"><input type="checkbox" name="fed[' . $code . ']"' . ($r->AsShareFED ? ' checked' : '') . $dis . '></td>';
     if ($own) {
         print '<td><input type="text" name="clubs[' . $code . ']" style="width:95%;" value="'
-            . htmlspecialchars($r->Clubs ?? '') . '" placeholder="agréments, séparés par virgules"></td>';
+            . htmlspecialchars($r->Clubs ?? '') . '" placeholder="' . $e(aut_t('ShClubsHint')) . '"></td>';
     } else {
         print '<td>' . htmlspecialchars($r->Clubs ?? '') . '</td>';
     }
-    print '</tr>';
+    print "</tr>\n";
 }
-?>
-<?php if ($hasEditable) { ?>
-<tr><td colspan="9" class="Center"><button type="submit">Enregistrer</button></td></tr>
-<?php } ?>
-<tr><td colspan="9" style="font-size:10px; color:#667;">
-    Note : la case <b>CD</b> partage une compétition de club vers son comité départemental ; la case
-    <b>CR</b> partage une compétition de club <i>ou de CD</i> vers son comité régional (rattachement par
-    l'arborescence FFTA). Pour une compétition portée par un CR ou la fédération, utilisez la case
-    <b>FFTA</b> et/ou les <b>clubs invités</b>.
-</td></tr>
-</table>
-<?php
+if ($hasEditable) {
+    echo '<tr><td colspan="9" class="Center"><button type="submit">' . $e(aut_t('ShSave')) . "</button></td></tr>\n";
+}
+echo '<tr><td colspan="9" style="font-size:10px; color:#667;">' . aut_t('ShNote') . "</td></tr>\n"
+    . "</table>\n";
 if ($hasEditable) echo '</form>';
 include('Common/Templates/tail.php');

@@ -1,9 +1,9 @@
 <?php
 /**
- * Module AUTH — bascule de vue (club / CD / CR / Fédération / Admin).
- * Change le rôle effectif de la SESSION courante (AUT_Sessions.AsnRole/Scope)
- * parmi les vues auxquelles le compte a droit, mémorise la dernière vue pour
- * la prochaine connexion, puis renvoie à l'accueil.
+ * AUTH module — view switch (club / CD / CR / Federation / Admin).
+ * Changes the effective role of the current SESSION (AUT_Sessions.AsnRole/Scope) among the
+ * views the account is entitled to, remembers the last view for the next sign-in, then goes
+ * back to the home page.
  */
 define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && aut_csrf_check()) {
             . ", AuLastScope=" . StrSafe_DB($v['scope']) . " WHERE AuId={$u->AuId}");
         aut_log('VIEW_SWITCH', $u->AuUsername . ' ' . aut_owner_label($v['role'], $v['scope']));
 
-        // compétition ouverte inaccessible dans la nouvelle vue → on la ferme
+        // open competition not reachable in the new view → it is closed
         if ($v['role'] != AUT_ROLE_ADMIN && !empty($_SESSION['TourCode'])) {
             $comp = aut_compute_comp($v['role'], $v['scope']);
             if (!aut_code_allowed($_SESSION['TourCode'], $comp)) {

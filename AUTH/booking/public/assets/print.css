@@ -1,4 +1,4 @@
-/* Documents imprimables : feuille de marque et reçus. */
+/* Printable documents: score sheet. */
 
 #bk.bk-doc { max-width: 900px; margin: 0 auto; padding: 20px 18px 40px; background: #fff; }
 #bk.bk-doc .bk-noprint { margin: 0 0 18px; font-size: 13px; }

@@ -1,26 +1,28 @@
 <?php
 /**
- * Module AUTH — hébergement multi-comptes ianseo (FFTA).
+ * AUTH module — multi-account ianseo hosting (federation server).
  *
- * Bibliothèque partagée entre :
- *  - les fichiers déployés dans Modules/Authentication/ (hooks natifs ianseo)
- *  - les pages du module (partage, admin)
+ * Library shared by:
+ *  - the files deployed in Modules/Authentication/ (native ianseo hooks)
+ *  - the module's pages (sharing, admin)
  *
- * ATTENTION : ce fichier est inclus très tôt (depuis BlockFunction.php via
- * Common/BlockDefines.php) → uniquement des définitions, aucun effet de bord.
+ * WARNING: this file is included very early (from BlockFunction.php through
+ * Common/BlockDefines.php) → definitions only, no side effect.
  *
- * Sécurité (v1.1) :
- *  - la session ne contient JAMAIS de secret réutilisable : AUTH_Pwd porte un
- *    jeton aléatoire par connexion, stocké haché (SHA-256) dans AUT_Sessions
- *  - expiration : 12 h d'inactivité, 7 jours absolu ; révocation individuelle
- *    ou globale (changement/RàZ de mot de passe, désactivation, admin)
- *  - 2FA TOTP (RFC 6238) optionnelle, OBLIGATOIRE pour les comptes ADMIN
- *  - anti-brute-force : 8 échecs (mdp ou TOTP) / 15 min par IP ou identifiant
- *  - journal DB + fichier optionnel (fail2ban)
+ * Security (v1.1):
+ *  - the session NEVER holds a reusable secret: AUTH_Pwd carries a random token per sign-in,
+ *    stored hashed (SHA-256) in AUT_Sessions
+ *  - expiry: 12 h of inactivity, 7 days absolute; individual or global revocation (password
+ *    change/reset, deactivation, admin)
+ *  - TOTP 2FA (RFC 6238), optional, MANDATORY for ADMIN accounts
+ *  - anti brute force: 8 failures (password or TOTP) / 15 min per IP or identifier
+ *  - database log + optional file (fail2ban)
  */
 
 if (defined('AUT_LIB_LOADED')) return;
 define('AUT_LIB_LOADED', true);
+
+require_once __DIR__ . '/lang-lib.php';
 
 define('AUT_ROLE_CLUB',  'CLUB');
 define('AUT_ROLE_CD',    'CD');
@@ -28,17 +30,17 @@ define('AUT_ROLE_CR',    'CR');
 define('AUT_ROLE_FED',   'FED');
 define('AUT_ROLE_ADMIN', 'ADMIN');
 
-define('AUT_SESSION_IDLE_H', 12);   // heures d'inactivité avant expiration
-define('AUT_SESSION_ABS_D',  7);    // durée de vie absolue en jours
-define('AUT_2FA_PENDING_S',  300);  // validité de l'étape "mot de passe OK, code attendu"
+define('AUT_SESSION_IDLE_H', 12);   // hours of inactivity before expiry
+define('AUT_SESSION_ABS_D',  7);    // absolute lifetime in days
+define('AUT_2FA_PENDING_S',  300);  // validity of the "password OK, code expected" step
 
 function aut_roles() {
     return array(
-        AUT_ROLE_CLUB  => 'Club (organisateur)',
-        AUT_ROLE_CD    => 'Comité départemental',
-        AUT_ROLE_CR    => 'Comité régional',
-        AUT_ROLE_FED   => 'Fédération',
-        AUT_ROLE_ADMIN => 'Administrateur serveur',
+        AUT_ROLE_CLUB  => aut_t('RoleClub'),
+        AUT_ROLE_CD    => aut_t('RoleCD'),
+        AUT_ROLE_CR    => aut_t('RoleCR'),
+        AUT_ROLE_FED   => aut_t('RoleFED'),
+        AUT_ROLE_ADMIN => aut_t('RoleADMIN'),
     );
 }
 
@@ -65,12 +67,11 @@ function aut_local_config() {
 }
 
 /**
- * Retire un BOM UTF-8 en tête de JSON. Sans cela, un fichier enregistré par un
- * éditeur Windows (Bloc-notes, PowerShell `Set-Content -Encoding utf8`…) fait
- * échouer json_decode et TOUTE la configuration locale est silencieusement ignorée
- * — y compris les identifiants du cron, avec un message trompeur du type
- * « identifiants absents ». Piège rencontré pour de vrai, jamais évident à
- * diagnostiquer : le fichier paraît parfaitement valide à l'œil.
+ * Strips a UTF-8 BOM at the head of a JSON text. Without it, a file saved by a Windows editor
+ * (Notepad, PowerShell `Set-Content -Encoding utf8`…) makes json_decode fail and THE WHOLE local
+ * configuration is silently ignored — the cron credentials included, with a misleading message
+ * such as "credentials missing". A real trap, never obvious to diagnose: the file looks
+ * perfectly valid.
  */
 function aut_json_strip_bom($s) {
     $s = (string) $s;
@@ -78,12 +79,11 @@ function aut_json_strip_bom($s) {
 }
 
 /**
- * Horodatage des journaux de cron, à l'heure LOCALE du serveur.
+ * Timestamp of the cron logs, in the server's LOCAL time.
  *
- * ianseo force PHP en UTC (config.php). Sans ceci, les lignes de nos scripts
- * s'affichent avec 1 à 2 h de décalage par rapport à celles des scripts système
- * (ianseo-maintenance-off…) DANS LE MÊME FICHIER de log — confusion d'horaires
- * déjà rencontrée sur le serveur de test. Surcharge : config.local.json → "timezone".
+ * ianseo forces PHP to UTC (config.php). Without this, the lines of our scripts show 1 to 2 h
+ * apart from those of the system scripts (ianseo-maintenance-off…) IN THE SAME log file — a
+ * time confusion already met on the test server. Override: config.local.json → "timezone".
  */
 function aut_log_time($fmt = 'Y-m-d H:i:s') {
     static $tz = null;
@@ -96,17 +96,16 @@ function aut_log_time($fmt = 'Y-m-d H:i:s') {
 }
 
 /**
- * Message d'avertissement AVANT la fenêtre de maintenance nocturne, à afficher
- * en permanence pendant les N minutes qui la précèdent — pour qu'un utilisateur
- * en train de s'inscrire ou de saisir ne se retrouve pas devant une page 503
- * sans prévenir. Retourne '' hors de cette plage (donc quasiment toujours).
+ * Warning message BEFORE the nightly maintenance window, shown all the time during the N
+ * minutes before it — so a user who is registering or typing does not land on a 503 page
+ * without notice. Returns '' outside that range (so nearly always).
  *
- * L'horaire n'est PAS déduit de la crontab (trop fragile) : il est déclaré dans
- * config.local.json → "maintenance": {"notice": {"at": "03:15", "lead_minutes": 15}}.
- * Sans « at », la fonction ne fait rien : aucun message intempestif par défaut.
+ * The time is NOT read from the crontab (too fragile): it is declared in config.local.json →
+ * "maintenance": {"notice": {"at": "03:15", "lead_minutes": 15}}. Without "at", the function
+ * does nothing: no untimely message by default.
  *
- * Heure LOCALE obligatoire : ianseo force PHP en UTC, un calcul naïf annoncerait
- * la maintenance avec 1 à 2 h de décalage.
+ * LOCAL time required: ianseo forces PHP to UTC, a naive computation would announce the
+ * maintenance 1 to 2 h off.
  */
 function aut_maintenance_notice() {
     static $msg = null;
@@ -121,27 +120,27 @@ function aut_maintenance_notice() {
     try {
         $tz  = new DateTimeZone((string) (aut_local_config()['timezone'] ?? 'Europe/Paris'));
         $now = new DateTime('now', $tz);
-        $deb = new DateTime('now', $tz);
-        $deb->setTime(intval($m[1]), intval($m[2]), 0);
-        // Heure déjà passée aujourd'hui → la prochaine occurrence est demain. Pendant
-        // la maintenance elle-même, Apache sert la page 503 : rien à annoncer ici.
-        if ($deb <= $now) $deb->modify('+1 day');
-        $reste = (int) ceil(($deb->getTimestamp() - $now->getTimestamp()) / 60);
-        if ($reste > $lead) return $msg;
+        $start = new DateTime('now', $tz);
+        $start->setTime(intval($m[1]), intval($m[2]), 0);
+        // Time already past today → the next occurrence is tomorrow. During the maintenance
+        // itself, Apache serves the 503 page: nothing to announce here.
+        if ($start <= $now) $start->modify('+1 day');
+        $left = (int) ceil(($start->getTimestamp() - $now->getTimestamp()) / 60);
+        if ($left > $lead) return $msg;
     } catch (\Throwable $e) {
         return $msg;
     }
 
-    $duree = trim((string) ($c['duration'] ?? 'quelques minutes'));
-    $msg = 'Maintenance programmée à ' . $at
-         . ($reste > 1 ? ' (dans ' . $reste . ' minutes)' : ' (imminente)')
-         . ' — le serveur sera indisponible ' . $duree
-         . '. Terminez et enregistrez votre saisie.';
-    return $msg;
+    $duration = trim((string) ($c['duration'] ?? ''));
+    return aut_t('MaintNotice', array(
+        'time'     => $at,
+        'when'     => $left > 1 ? aut_t('MaintIn', $left) : aut_t('MaintImminent'),
+        'duration' => $duration !== '' ? $duration : aut_t('MaintSomeMinutes'),
+    ));
 }
 
 /* ------------------------------------------------------------------ */
-/* Schéma DB                                                           */
+/* Database schema                                                     */
 /* ------------------------------------------------------------------ */
 
 function aut_ensure_schema() {
@@ -181,7 +180,7 @@ function aut_ensure_schema() {
                 ADD COLUMN AuTotpEnabled  TINYINT     NOT NULL DEFAULT 0,
                 ADD COLUMN AuTotpLastSlot BIGINT      NOT NULL DEFAULT 0");
         }
-        // migration v0.1.6 → v0.1.7 : vues multiples (structures SSO + dernière vue)
+        // migration v0.1.6 → v0.1.7: several views (SSO structures + last view)
         $q = safe_r_sql("SHOW COLUMNS FROM AUT_Users LIKE 'AuStructs'");
         if (!safe_fetch($q)) {
             safe_w_sql("ALTER TABLE AUT_Users
@@ -191,8 +190,8 @@ function aut_ensure_schema() {
         }
     }
 
-    // AUT_Share = registre des compétitions : propriétaire (rôle + périmètre :
-    // club, CD, CR ou FED) + drapeaux de partage montant. Une ligne par compétition.
+    // AUT_Share = register of the competitions: owner (role + scope: club, CD, CR or FED) +
+    // upward sharing flags. One row per competition.
     safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_Share (
         AsToCode     VARCHAR(50) NOT NULL PRIMARY KEY,
         AsOwnerRole  VARCHAR(8)  NOT NULL DEFAULT '',
@@ -218,8 +217,8 @@ function aut_ensure_schema() {
         }
     }
 
-    // partage descendant : clubs invités à accéder à une compétition
-    // (plusieurs clubs possibles ; géré par le propriétaire ou un admin)
+    // downward sharing: clubs invited to access a competition
+    // (several clubs possible; managed by the owner or an admin)
     safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_ShareClub (
         AscToCode VARCHAR(50) NOT NULL,
         AscScope  VARCHAR(16) NOT NULL,
@@ -228,7 +227,7 @@ function aut_ensure_schema() {
         KEY AscScopeIdx (AscScope)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // revendications de codes en cours de création (nettoyées à l'adoption ou à 24 h)
+    // claims of codes being created (cleaned at adoption or after 24 h)
     safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_Claim (
         AcCode  VARCHAR(50) NOT NULL PRIMARY KEY,
         AcRole  VARCHAR(8)  NOT NULL DEFAULT 'CLUB',
@@ -266,8 +265,8 @@ function aut_ensure_schema() {
         KEY AsnUserIdx (AsnUser)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // migration v1.1 → v1.2 (rôle/périmètre par session, pour le choix de
-    // structure SSO façon espace dirigeant)
+    // migration v1.1 → v1.2 (role/scope per session, for the choice of SSO structure as on the
+    // officers' space)
     $q = safe_r_sql("SHOW COLUMNS FROM AUT_Sessions LIKE 'AsnRole'");
     if (!safe_fetch($q)) {
         safe_w_sql("ALTER TABLE AUT_Sessions
@@ -275,18 +274,18 @@ function aut_ensure_schema() {
             ADD COLUMN AsnScope VARCHAR(16) NOT NULL DEFAULT '' AFTER AsnRole");
     }
 
-    // v… : observation « depuis un autre compte » (impersonation) — persistée par
-    // session pour survivre à CreateTourSession (voir aut_imp_*). JSON ou NULL.
+    // v…: "from another account" observation (impersonation) — kept per session to survive
+    // CreateTourSession (see aut_imp_*). JSON or NULL.
     $q = safe_r_sql("SHOW COLUMNS FROM AUT_Sessions LIKE 'AsnImp'");
     if (!safe_fetch($q)) {
         safe_w_sql("ALTER TABLE AUT_Sessions ADD COLUMN AsnImp TEXT NULL DEFAULT NULL AFTER AsnScope");
     }
 
-    // v6 : tickets (bugs / demandes d'évolution) déposés par les organisateurs,
-    // triés par l'administrateur du serveur. TkScore = indice de précision calculé
-    // au dépôt (favorise les demandes bien décrites).
-    // v7 : TkResponse = réponse de l'admin visible du déposant ; TkChannel = origine
-    // ('org' organisateur / 'archer' compétiteur) — le déposant ne voit QUE les siens.
+    // v6: tickets (bugs / improvement requests) filed by the organisers, sorted by the server
+    // administrator. TkScore = precision score computed when filed (favours well-described
+    // requests).
+    // v7: TkResponse = admin's answer visible to the author; TkChannel = origin
+    // ('org' organiser / 'archer' competitor) — the author sees ONLY their own.
     safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_Tickets (
         TkId       INT AUTO_INCREMENT PRIMARY KEY,
         TkCreated  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -307,7 +306,7 @@ function aut_ensure_schema() {
         KEY TkStatusIdx (TkStatus),
         KEY TkWhoIdx (TkChannel, TkUser)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    // migration v6 → v7 pour une table existante
+    // migration v6 → v7 for an existing table
     $q = safe_r_sql("SHOW COLUMNS FROM AUT_Tickets LIKE 'TkResponse'");
     if (!safe_fetch($q)) {
         safe_w_sql("ALTER TABLE AUT_Tickets
@@ -315,9 +314,9 @@ function aut_ensure_schema() {
             ADD COLUMN TkResponse TEXT NULL AFTER TkStatus,
             ADD KEY TkWhoIdx (TkChannel, TkUser)");
     }
-    // v8 : compétition concernée par le ticket (libellé « Nom (Code) »), renseignée à la
-    // création si une compétition est sélectionnée (organisateur : compétition ouverte ;
-    // archer : la fiche d'où il vient). Vide sinon. Non modifiable ensuite.
+    // v8: competition concerned by the ticket ("Name (Code)" label), filled at creation when a
+    // competition is selected (organiser: the open competition; archer: the page they come
+    // from). Empty otherwise. Not editable afterwards.
     $q = safe_r_sql("SHOW COLUMNS FROM AUT_Tickets LIKE 'TkTour'");
     if (!safe_fetch($q)) {
         safe_w_sql("ALTER TABLE AUT_Tickets ADD COLUMN TkTour VARCHAR(160) NOT NULL DEFAULT '' AFTER TkPage");
@@ -343,7 +342,7 @@ function aut_log($event, $user = '', $ip = null) {
     safe_w_sql("INSERT INTO AUT_Log (AlEvent, AlUser, AlIP) VALUES ("
         . StrSafe_DB($event) . "," . StrSafe_DB(substr($user, 0, 64)) . "," . StrSafe_DB(substr($ip, 0, 45)) . ")");
 
-    // fichier optionnel pour fail2ban ({"log_file": "/var/log/ianseo-auth.log"})
+    // optional file for fail2ban ({"log_file": "/var/log/ianseo-auth.log"})
     $f = aut_local_config()['log_file'] ?? '';
     if ($f) {
         $clean = function ($s) { return preg_replace('/[^\x20-\x7E]/', '', (string)$s); };
@@ -354,23 +353,23 @@ function aut_log($event, $user = '', $ip = null) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Rétention des journaux (AUT_Log + BK_Log)                           */
+/* Retention of the logs (AUT_Log + BK_Log)                            */
 /*                                                                     */
-/* Sans purge, les journaux grossissent indéfiniment (à l'échelle      */
-/* fédérale : des millions de lignes/an) et la mention RGPD « conservés */
-/* quelques mois » serait fausse. Durée configurable, défaut 180 j.    */
-/* La sécurité (anti-bruteforce) n'utilise QUE la fenêtre 15 min → non  */
-/* affectée. Chunké (LIMIT) pour éviter une suppression massive d'un    */
-/* coup ; les exécutions répétées rattrapent le retard.                */
+/* Without a purge, the logs grow forever (at federation scale:        */
+/* millions of rows a year) and the GDPR note "kept a few months"      */
+/* would be false. Configurable length, 180 days by default.           */
+/* Security (anti brute force) ONLY uses the 15-minute window → not    */
+/* affected. Chunked (LIMIT) to avoid one massive deletion; repeated   */
+/* runs catch up.                                                      */
 /* ------------------------------------------------------------------ */
 
-/** Durée de rétention des journaux en jours (config.local.json → "log_retention_days", défaut 180). */
+/** Retention of the logs in days (config.local.json → "log_retention_days", default 180). */
 function aut_log_retention_days() {
     $d = intval(aut_local_config()['log_retention_days'] ?? 180);
-    return ($d >= 7 && $d <= 3650) ? $d : 180;   // borne : 1 semaine à 10 ans ; sinon défaut
+    return ($d >= 7 && $d <= 3650) ? $d : 180;   // bounds: 1 week to 10 years; otherwise the default
 }
 
-/** Supprime les événements plus vieux que la rétention (AUT_Log, et BK_Log si présent). */
+/** Deletes the events older than the retention (AUT_Log, and BK_Log when there). */
 function aut_log_purge() {
     $days = aut_log_retention_days();
     safe_w_sql("DELETE FROM AUT_Log WHERE AlWhen < DATE_SUB(NOW(), INTERVAL $days DAY) LIMIT 20000");
@@ -390,35 +389,36 @@ function aut_log_purge() {
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Waitlist'"));
     if ($wl) safe_w_sql("DELETE w FROM BK_Waitlist w LEFT JOIN Tournament ON ToId = w.BwTournament
         WHERE ToId IS NULL OR ToWhenTo < DATE_SUB(UTC_DATE(), INTERVAL 1 DAY)");
-    // Mesure d'audience : UsageSeen suit la rétention des journaux, agrégats à 25 mois.
+    // Audience measurement: UsageSeen follows the log retention, aggregates 25 months.
     require_once __DIR__ . '/stats-usage.php';
     if (function_exists('aut_stats_purge')) aut_stats_purge();
 }
 
-/** Purge AU PLUS une fois par jour (marqueur fichier), pour ne pas la refaire à chaque requête. */
+/** Purges AT MOST once a day (file marker), not to do it again at every request. */
 function aut_log_purge_daily() {
     $marker = sys_get_temp_dir() . '/aut_logpurge_' . substr(hash('sha256', __DIR__), 0, 16);
     $today  = date('Y-m-d');
     if (is_file($marker) && trim((string) @file_get_contents($marker)) === $today) return;
-    @file_put_contents($marker, $today);   // marque avant de purger : une seule tentative/jour même si la purge échoue
+    @file_put_contents($marker, $today);   // marks before purging: one try a day even if the purge fails
     aut_log_purge();
 }
 
 /* ------------------------------------------------------------------ */
-/* Tickets (bugs / demandes d'évolution)                               */
+/* Tickets (bugs / improvement requests)                               */
 /* ------------------------------------------------------------------ */
 
-/** Types de tickets. */
+/** Types of tickets. */
 function aut_ticket_kinds() {
-    return array('bug' => 'Bug', 'evolution' => 'Évolution');
+    return array('bug' => aut_t('TicketBug'), 'evolution' => aut_t('TicketEvolution'));
 }
 
-/** Statuts de tickets. Le déposant ne peut modifier que tant que 'new'. */
+/** Ticket statuses. The author can only edit while 'new'. */
 function aut_ticket_statuses() {
-    return array('new' => 'Nouveau', 'in_progress' => 'En cours', 'done' => 'Traité', 'rejected' => 'Rejeté');
+    return array('new' => aut_t('TicketNew'), 'in_progress' => aut_t('TicketInProgress'),
+                 'done' => aut_t('TicketDone'), 'rejected' => aut_t('TicketRejected'));
 }
 
-/** Un ticket est-il modifiable par son déposant ? (statut 'new' + propriété). */
+/** May its author edit a ticket? ('new' status + ownership). */
 function aut_ticket_editable($t, $user, $channel) {
     if (!$t) return false;
     $channel = ($channel === 'archer') ? 'archer' : 'org';
@@ -427,8 +427,8 @@ function aut_ticket_editable($t, $user, $channel) {
 }
 
 /**
- * Indice de précision (0-100) : favorise les demandes bien décrites — titre
- * explicite, corps détaillé, « comment / rendu attendu » renseigné.
+ * Precision score (0-100): favours well-described requests — explicit title, detailed body,
+ * "how / expected result" filled in.
  */
 function aut_ticket_score($title, $body, $expected, $page) {
     $len = function ($s) { return function_exists('mb_strlen') ? mb_strlen(trim((string) $s)) : strlen(trim((string) $s)); };
@@ -441,8 +441,8 @@ function aut_ticket_score($title, $body, $expected, $page) {
     return max(0, min(100, $s));
 }
 
-/** Dépose un ticket. $channel : 'org' (organisateur) ou 'archer' (compétiteur).
- *  $tour : libellé de la compétition concernée (« Nom (Code) »), vide si aucune. */
+/** Files a ticket. $channel: 'org' (organiser) or 'archer' (competitor).
+ *  $tour: label of the competition concerned ("Name (Code)"), empty when none. */
 function aut_ticket_add($kind, $title, $body, $expected, $page, $user, $role, $channel = 'org', $tour = '') {
     aut_ensure_schema();
     $kind = array_key_exists($kind, aut_ticket_kinds()) ? $kind : 'bug';
@@ -462,7 +462,7 @@ function aut_ticket_add($kind, $title, $body, $expected, $page, $user, $role, $c
     aut_log('TICKET_NEW', $user);
 }
 
-/** Liste des tickets, triés par date ('date') ou précision ('score'), filtrés par statut. */
+/** List of the tickets, sorted by date ('date') or precision ('score'), filtered by status. */
 function aut_ticket_list($sort = 'date', $status = '') {
     aut_ensure_schema();
     $w = array_key_exists($status, aut_ticket_statuses()) ? "WHERE TkStatus = " . StrSafe_DB($status) : "";
@@ -473,7 +473,7 @@ function aut_ticket_list($sort = 'date', $status = '') {
     return $out;
 }
 
-/** Tickets d'un déposant (pour qu'il suive les siens et leur réponse). */
+/** Tickets of an author (so they follow theirs and the answers). */
 function aut_ticket_my($user, $channel = 'org') {
     aut_ensure_schema();
     $channel = ($channel === 'archer') ? 'archer' : 'org';
@@ -486,23 +486,23 @@ function aut_ticket_my($user, $channel = 'org') {
     return $out;
 }
 
-/** Réponse de l'admin au déposant (visible par lui). */
+/** Admin's answer to the author (visible to them). */
 function aut_ticket_set_response($id, $text) {
     aut_ensure_schema();
     safe_w_sql("UPDATE AUT_Tickets SET TkResponse = " . StrSafe_DB(substr((string) $text, 0, 5000))
         . " WHERE TkId = " . intval($id));
 }
 
-/** Un ticket par son id, ou null. */
+/** A ticket by id, or null. */
 function aut_ticket_get($id) {
     aut_ensure_schema();
     return safe_fetch(safe_r_sql("SELECT * FROM AUT_Tickets WHERE TkId = " . intval($id))) ?: null;
 }
 
 /**
- * Modification d'un ticket par SON déposant. Refuse (retourne false) si le ticket
- * n'appartient pas à ($user, $channel) ou n'est plus 'new' (pris en charge/clôturé) —
- * garde revérifiée ICI, jamais confiée au client. Recalcule l'indice de précision.
+ * A ticket edited by ITS author. Refuses (returns false) when the ticket does not belong to
+ * ($user, $channel) or is no longer 'new' (taken in hand/closed) — guard checked HERE, never
+ * left to the client. Computes the precision score again.
  */
 function aut_ticket_update($id, $user, $channel, $kind, $title, $body, $expected, $page) {
     aut_ensure_schema();
@@ -522,20 +522,20 @@ function aut_ticket_update($id, $user, $channel, $kind, $title, $body, $expected
     return true;
 }
 
-/** Change le statut d'un ticket. */
+/** Changes the status of a ticket. */
 function aut_ticket_set_status($id, $status) {
     aut_ensure_schema();
     if (!array_key_exists($status, aut_ticket_statuses())) return;
     safe_w_sql("UPDATE AUT_Tickets SET TkStatus = " . StrSafe_DB($status) . " WHERE TkId = " . intval($id));
 }
 
-/** Supprime un ticket. */
+/** Deletes a ticket. */
 function aut_ticket_delete($id) {
     aut_ensure_schema();
     safe_w_sql("DELETE FROM AUT_Tickets WHERE TkId = " . intval($id));
 }
 
-/** Comptes par statut (+ 'all'). */
+/** Counts per status (+ 'all'). */
 function aut_ticket_counts() {
     aut_ensure_schema();
     $c = array('new' => 0, 'in_progress' => 0, 'done' => 0, 'rejected' => 0, 'all' => 0);
@@ -544,7 +544,7 @@ function aut_ticket_counts() {
     return $c;
 }
 
-/** Compte les échecs mot de passe ET TOTP des 15 dernières minutes. */
+/** Counts the password AND TOTP failures of the last 15 minutes. */
 function aut_too_many_failures($username) {
     aut_ensure_schema();
     $ip = StrSafe_DB($_SERVER['REMOTE_ADDR'] ?? '');
@@ -568,39 +568,39 @@ function aut_gen_password($len = 12) {
 }
 
 /**
- * Format des agréments FFTA : LLDDCCC (ligue 2 + département 2 + club 3),
- * ex. 0760171 = ligue 07, dept 60, club 171. D'où :
- *  - CLUB : scope = agrément complet (préfixe des codes de compétition)
- *  - CD   : scope = 2 chiffres du département → codes LIKE '__DD%'
- *  - CR   : scope = 2 chiffres de la ligue    → codes LIKE 'LL%'
- * Un scope contenant % ou _ est utilisé tel quel comme motif LIKE (cas
- * particuliers DOM-TOM ou découpages atypiques, réglé par un admin).
+ * Format of the federation approval numbers: LLDDCCC (league 2 + department 2 + club 3),
+ * e.g. 0760171 = league 07, dept 60, club 171. Hence:
+ *  - CLUB: scope = full approval number (prefix of the competition codes)
+ *  - CD  : scope = 2 digits of the department → codes LIKE '__DD%'
+ *  - CR  : scope = 2 digits of the league     → codes LIKE 'LL%'
+ * A scope containing % or _ is used as is as a LIKE pattern (overseas or unusual areas, set
+ * by an admin).
  */
 function aut_scope_error($role, $scope) {
     if (in_array($role, array(AUT_ROLE_FED, AUT_ROLE_ADMIN))) return '';
     if (preg_match('/^[0-9A-Za-z_%]{2,12}$/', $scope) && preg_match('/[_%]/', $scope)) return '';
     if (!preg_match('/^[0-9A-Za-z]{2,10}$/', $scope)) {
-        return 'Le périmètre doit contenir 2 à 10 caractères alphanumériques (ou un motif avec % / _).';
+        return aut_t('ScopeBadChars');
     }
-    if ($role == AUT_ROLE_CLUB && strlen($scope) < 5) return 'Périmètre club : n° d\'agrément complet attendu (ex. 0760171).';
-    if ($role == AUT_ROLE_CD && strlen($scope) != 2)  return 'Périmètre CD : 2 chiffres du département attendus (ex. 60 pour l\'Oise).';
-    if ($role == AUT_ROLE_CR && strlen($scope) != 2)  return 'Périmètre CR : 2 chiffres de la ligue/région attendus (ex. 07).';
+    // bytes: the scope was just checked to be ASCII letters and digits
+    if ($role == AUT_ROLE_CLUB && strlen($scope) < 5) return aut_t('ScopeClub');
+    if ($role == AUT_ROLE_CD && strlen($scope) != 2)  return aut_t('ScopeCD');
+    if ($role == AUT_ROLE_CR && strlen($scope) != 2)  return aut_t('ScopeCR');
     return '';
 }
 
-/** Motif LIKE des codes de compétition couverts par un rôle/périmètre. */
+/** LIKE pattern of the competition codes covered by a role/scope. */
 function aut_scope_like($role, $scope) {
-    if (preg_match('/[_%]/', $scope)) return $scope;           // motif expert tel quel
-    if ($role == AUT_ROLE_CD) return '__' . $scope . '%';      // dept en position 3-4
-    return $scope . '%';                                       // CLUB / CR : préfixe
+    if (preg_match('/[_%]/', $scope)) return $scope;           // expert pattern as is
+    if ($role == AUT_ROLE_CD) return '__' . $scope . '%';      // dept in position 3-4
+    return $scope . '%';                                       // CLUB / CR: prefix
 }
 
 /**
- * Arborescence FFTA : région (2 chiffres, = préfixe ligue des agréments et
- * n° de CR) → départements qui la composent (n° de dept sur 2 caractères).
- * Sert à retrouver les CD d'une ligue (un CD a pour périmètre son n° de dept,
- * sans préfixe ligue). Éditable via config.local.json → "regions" (fusionné).
- * Les CR d'outre-mer sans CD listé ne rattachent que les clubs (par préfixe).
+ * Federation tree: region (2 digits, = league prefix of the approval numbers and number of
+ * the CR) → its departments (dept number on 2 characters). Used to find the CDs of a league (a
+ * CD's scope is its dept number, without league prefix). Editable through config.local.json →
+ * "regions" (merged). Overseas CRs without a listed CD only attach the clubs (by prefix).
  */
 function aut_ffta_regions() {
     static $map = null;
@@ -613,13 +613,13 @@ function aut_ffta_regions() {
         '05' => array('2A','2B'),                                                   // Corse
         '06' => array('08','10','67','52','51','54','55','57','88','68'),           // Grand Est
         '07' => array('02','59','60','62','80'),                                    // Hauts-de-France
-        '08' => array('91','92','75','77','93','95','94','78'),                     // Île-de-France
+        '08' => array('91','92','75','77','93','95','94','78'),                     // Ile-de-France
         '09' => array('14','27','61','50','76'),                                    // Normandie
         '10' => array('16','17','19','23','79','24','33','87','40','47','64','86'), // Nouvelle-Aquitaine
         '11' => array('11','12','48','30','32','31','65','34','46','66','81','82'), // Occitanie
         '12' => array('85','44','49','53','72'),                                    // Pays de la Loire
         '13' => array('04','06','13','83','84'),                                    // PACA
-        '38' => array('992'),                                                       // Nouvelle-Calédonie
+        '38' => array('992'),                                                       // New Caledonia
     );
     foreach ((aut_local_config()['regions'] ?? array()) as $reg => $depts) {
         if (is_array($depts)) $map[$reg] = $depts;
@@ -627,14 +627,14 @@ function aut_ffta_regions() {
     return $map;
 }
 
-/** Départements d'une région (vide si inconnue). */
+/** Departments of a region (empty when unknown). */
 function aut_region_depts($region) {
     $m = aut_ffta_regions();
     return $m[$region] ?? array();
 }
 
 /* ------------------------------------------------------------------ */
-/* TOTP (RFC 6238) — sans dépendance externe                           */
+/* TOTP (RFC 6238) — no external dependency                            */
 /* ------------------------------------------------------------------ */
 
 function aut_base32_decode($b32) {
@@ -670,8 +670,8 @@ function aut_totp_code($secretB32, $slot) {
 }
 
 /**
- * Vérifie un code (fenêtre ±1 pas de 30 s). $minSlot = dernier slot déjà
- * utilisé (anti-rejeu) ; $usedSlot reçoit le slot accepté.
+ * Checks a code (window ±1 step of 30 s). $minSlot = last slot already used (anti-replay);
+ * $usedSlot receives the accepted slot.
  */
 function aut_totp_verify($secretB32, $code, $minSlot, &$usedSlot) {
     $code = preg_replace('/\D/', '', (string)$code);
@@ -688,21 +688,19 @@ function aut_totp_verify($secretB32, $code, $minSlot, &$usedSlot) {
 }
 
 /**
- * DIAGNOSTIC (jamais une acceptation). Un code TOTP correct rejeté vient presque
- * toujours d'une HORLOGE SERVEUR déréglée : le code du téléphone est calculé à
- * l'heure réelle, le serveur à son heure à lui. Après un échec, on cherche dans
- * une large fenêtre (±$maxSlots pas de 30 s) le décalage auquel le code AURAIT
- * correspondu, pour transformer un « code incorrect » énigmatique en diagnostic
- * clair (« horloge décalée de ~N min, synchronisez le NTP »). Retourne l'écart en
- * SECONDES (slot trouvé − slot courant), ou null. N'accepte JAMAIS : la
- * vérification reste aut_totp_verify (fenêtre ±1). ±120 pas = ±1 h.
+ * DIAGNOSIS (never an acceptance). A correct TOTP code refused nearly always comes from a
+ * wrong SERVER CLOCK: the phone computes the code from the real time, the server from its own.
+ * After a failure, the offset at which the code WOULD have matched is looked for in a wide
+ * window (±$maxSlots steps of 30 s), to turn a puzzling "wrong code" into a clear diagnosis
+ * ("clock off by ~N min, synchronise NTP"). Returns the offset in SECONDS (slot found − current
+ * slot), or null. NEVER accepts: the check stays aut_totp_verify (window ±1). ±120 steps = ±1 h.
  */
 function aut_totp_skew($secretB32, $code, $maxSlots = 120) {
     $code = preg_replace('/\D/', '', (string)$code);
     if (strlen($code) != 6 || (string)$secretB32 === '') return null;
     $slot = (int)floor(time() / 30);
     for ($d = -$maxSlots; $d <= $maxSlots; $d++) {
-        if (abs($d) <= 1) continue;   // la fenêtre normale a déjà tranché
+        if (abs($d) <= 1) continue;   // the normal window has already decided
         if (hash_equals(aut_totp_code($secretB32, $slot + $d), $code)) return $d * 30;
     }
     return null;
@@ -715,9 +713,9 @@ function aut_totp_uri($username, $secret) {
 }
 
 /**
- * QR code (SVG inline) d'un texte, via l'encodeur QR de TCPDF déjà fourni par
- * ianseo — aucune dépendance externe, le secret ne quitte jamais le serveur.
- * Retourne '' si l'encodeur est indisponible (repli sur la saisie manuelle).
+ * QR code (inline SVG) of a text, through the TCPDF QR encoder already shipped with ianseo —
+ * no external dependency, the secret never leaves the server. Returns '' when the encoder is
+ * unavailable (manual entry as a fallback).
  */
 function aut_qr_svg($text, $sizePx = 210) {
     global $CFG;
@@ -750,14 +748,14 @@ function aut_qr_svg($text, $sizePx = 210) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Sessions applicatives (jetons révocables)                           */
+/* Application sessions (revocable tokens)                             */
 /* ------------------------------------------------------------------ */
 
 /**
- * Ouvre une session : jeton aléatoire stocké haché en DB, valeur en clair
- * uniquement dans la session PHP (clé AUTH_Pwd — seule clé, avec AUTH_User,
- * qui survit à CreateTourSession/EraseTourSession du cœur ianseo).
- * $role/$scope : structure choisie à la connexion SSO (sinon ceux du compte).
+ * Opens a session: random token stored hashed in the database, plain value only in the PHP
+ * session (AUTH_Pwd key — the only key, with AUTH_User, that survives the core's
+ * CreateTourSession/EraseTourSession). $role/$scope: structure chosen at SSO sign-in
+ * (otherwise those of the account).
  */
 function aut_session_open($u, $role = '', $scope = '') {
     $token = bin2hex(random_bytes(32));
@@ -766,19 +764,19 @@ function aut_session_open($u, $role = '', $scope = '') {
         {$u->AuId}, '" . hash('sha256', $token) . "',"
         . StrSafe_DB($role) . "," . StrSafe_DB($scope) . ","
         . StrSafe_DB(substr($_SERVER['REMOTE_ADDR'] ?? '', 0, 45)) . "," . StrSafe_DB($ua) . ")");
-    // ménage opportuniste des sessions mortes
+    // opportunistic cleaning of dead sessions
     safe_w_sql("DELETE FROM AUT_Sessions WHERE AsnLastSeen < DATE_SUB(NOW(), INTERVAL 30 DAY)");
     $_SESSION['AUTH_User'] = $u->AuUsername;
     $_SESSION['AUTH_Pwd']  = $token;
-    aut_extranet_bind();    // le cookie extranet ouvert au login prend son chemin définitif
-    aut_dirigeant_bind();   // idem pour le cookie Espace Dirigeant capté du login SSO
+    aut_extranet_bind();    // the extranet cookie opened at sign-in takes its final path
+    aut_dirigeant_bind();   // same for the officers' space cookie captured from the SSO sign-in
     aut_session_apply($u, $role, $scope);
 }
 
 /**
- * Valide le jeton courant. Retourne l'objet session DB ou null.
- * Expiration calculée côté SQL (NOW()) pour éviter les décalages de fuseau
- * (ianseo change le time_zone MySQL par compétition).
+ * Checks the current token. Returns the database session object or null.
+ * Expiry computed in SQL (NOW()) to avoid time-zone offsets (ianseo changes the MySQL
+ * time_zone per competition).
  */
 function aut_session_validate($u) {
     $token = (string)($_SESSION['AUTH_Pwd'] ?? '');
@@ -802,7 +800,7 @@ function aut_session_validate($u) {
     return $s;
 }
 
-/** Révoque les sessions d'un utilisateur ($exceptTokenHash : garder la courante). */
+/** Revokes the sessions of a user ($exceptTokenHash: keep the current one). */
 function aut_sessions_revoke($userId, $exceptTokenHash = null) {
     $userId = intval($userId);
     $sql = "DELETE FROM AUT_Sessions WHERE AsnUser=$userId";
@@ -822,16 +820,16 @@ function aut_current_token_hash() {
 /* ------------------------------------------------------------------ */
 
 /**
- * Liste AUTH_COMP au format attendu par le cœur ianseo (codes exacts).
- * Le nommage des compétitions est LIBRE : la propriété vient du registre
- * AUT_Share (rôle + périmètre du créateur : club, CD, CR ou FED).
- *  - chacun voit les compétitions dont il est PROPRIÉTAIRE ;
- *  - CLUB : + celles où son agrément est INVITÉ (AUT_ShareClub — partage
- *    descendant d'un CD/CR/FED ou d'un autre club, ex. aide à la saisie) ;
- *  - CD : + compétitions de CLUBS du département partagées (AsShareCD) ;
- *  - CR : + compétitions de CLUBS de la ligue (préfixe agrément) ET de CD de
- *    la ligue (via l'arborescence dept→région) partagées (AsShareCR) ;
- *  - FED : + toutes les compétitions partagées FFTA.
+ * AUTH_COMP list in the format the ianseo core expects (exact codes).
+ * Competition naming is FREE: ownership comes from the AUT_Share register (role + scope of the
+ * creator: club, CD, CR or FED).
+ *  - each one sees the competitions they OWN;
+ *  - CLUB: + those where their approval number is INVITED (AUT_ShareClub — downward sharing
+ *    from a CD/CR/FED or another club, e.g. help with data entry);
+ *  - CD: + shared competitions of CLUBS of the department (AsShareCD);
+ *  - CR: + shared competitions of CLUBS of the league (approval prefix) AND of CDs of the
+ *    league (through the dept→region tree) (AsShareCR);
+ *  - FED: + every competition shared with the federation.
  */
 function aut_compute_comp($role, $scope) {
     if (!in_array($role, array(AUT_ROLE_CLUB, AUT_ROLE_CD, AUT_ROLE_CR, AUT_ROLE_FED))) return array();
@@ -844,7 +842,7 @@ function aut_compute_comp($role, $scope) {
     } elseif ($role == AUT_ROLE_CD) {
         $where = "($owned OR (AsShareCD=1 AND AsOwnerRole='CLUB' AND AsOwnerScope LIKE "
             . StrSafe_DB(aut_scope_like($role, $scope)) . "))";
-    } else { // CR : clubs de la ligue (préfixe) + CD des départements de la ligue
+    } else { // CR: clubs of the league (prefix) + CDs of the departments of the league
         $parts = array($owned);
         $parts[] = "(AsShareCR=1 AND AsOwnerRole='CLUB' AND AsOwnerScope LIKE "
             . StrSafe_DB(aut_scope_like($role, $scope)) . ")";
@@ -872,10 +870,10 @@ function aut_compute_comp($role, $scope) {
 }
 
 /**
- * État d'un code de compétition pour une structure (rôle + périmètre) :
- * 'free' (disponible), 'own' (sa compétition), 'other' (autre structure),
- * 'unowned' (existe sans propriétaire → admin), 'invalid'.
- * Purge au passage la ligne de registre orpheline d'une compétition supprimée.
+ * State of a competition code for a structure (role + scope):
+ * 'free' (available), 'own' (its competition), 'other' (another structure),
+ * 'unowned' (exists without an owner → admin), 'invalid'.
+ * Purges on the way the orphan register row of a deleted competition.
  */
 function aut_code_status($code, $role, $scope) {
     aut_ensure_schema();
@@ -899,30 +897,28 @@ function aut_code_status($code, $role, $scope) {
         ? 'own' : 'other';
 }
 
-/** Message utilisateur pour un refus de code. */
+/** User message for a refused code. */
 function aut_code_reason($state, $code, $isImport = false) {
-    $c = '« ' . htmlspecialchars($code) . ' »';
+    $c = htmlspecialchars($code);
     switch ($state) {
         case 'invalid':
-            return 'Code de compétition vide ou invalide.';
+            return aut_t('CodeInvalid');
         case 'other':
-            return "Le code $c est déjà utilisé par la compétition d'une autre structure (club, comité ou fédération). Choisissez un autre code.";
+            return aut_t('CodeOther', $c);
         case 'unowned':
-            return "Le code $c est déjà utilisé par une compétition existante (gérée par l'administrateur du serveur). Choisissez un autre code.";
+            return aut_t('CodeUnowned', $c);
         case 'own':
-            return $isImport ? '' : "Le code $c est déjà utilisé par une de vos compétitions. Choisissez un autre code — ou passez par Compétition → Importer si vous vouliez restaurer une sauvegarde de celle-ci.";
+            return $isImport ? '' : aut_t('CodeOwn', $c);
     }
     return '';
 }
 
 /**
- * Une structure (club, CD, CR, FED) peut-elle créer/importer une compétition
- * sous ce code ? Règle anti-écrasement : un code déjà porté par une
- * compétition existante n'est JAMAIS réutilisable par une autre structure ;
- * le propriétaire ne peut le réutiliser que par ré-import (restauration de sa
- * propre sauvegarde), pas par une nouvelle création. Code libre →
- * revendication enregistrée, la propriété est actée par aut_adopt_claims()
- * une fois la compétition créée. $reason reçoit le message en cas de refus.
+ * May a structure (club, CD, CR, FED) create/import a competition under this code? Anti-overwrite
+ * rule: a code already carried by an existing competition is NEVER reusable by another
+ * structure; the owner may only reuse it by re-import (restoring their own backup), not by a
+ * new creation. Free code → claim recorded, ownership is settled by aut_adopt_claims() once the
+ * competition is created. $reason receives the message on refusal.
  */
 function aut_can_use_code($code, $role, $scope, $user, $isImport, &$reason = '') {
     $state = aut_code_status($code, $role, $scope);
@@ -938,26 +934,26 @@ function aut_can_use_code($code, $role, $scope, $user, $isImport, &$reason = '')
 }
 
 /* ------------------------------------------------------------------ */
-/* Vues (une personne = plusieurs structures, bascule à la volée)      */
+/* Views (one person = several structures, switched on the fly)        */
 /* ------------------------------------------------------------------ */
 
-/** Niveau d'une vue — sert à déterminer « le droit maximum ». */
+/** Level of a view — used to find "the highest right". */
 function aut_view_rank($role) {
     $ranks = array(AUT_ROLE_ADMIN => 5, AUT_ROLE_FED => 4, AUT_ROLE_CR => 3, AUT_ROLE_CD => 2, AUT_ROLE_CLUB => 1);
     return $ranks[$role] ?? 0;
 }
 
 /**
- * Vues disponibles pour un compte, triées du niveau le plus haut au plus bas :
- *  - compte ADMIN : vue Administrateur + ses structures espace dirigeant ;
- *  - compte SSO   : ses structures (AuStructs, rafraîchies à chaque login) ;
- *  - compte LOCAL non admin : sa seule structure (AuRole/AuScope).
- * Un compte SSO non admin sans structure active n'a AUCUNE vue (accès refusé).
+ * Views available to an account, sorted from the highest level to the lowest:
+ *  - ADMIN account: Administrator view + their officers' space structures;
+ *  - SSO account  : their structures (AuStructs, refreshed at each sign-in);
+ *  - LOCAL non-admin account: their single structure (AuRole/AuScope).
+ * A non-admin SSO account without an active structure has NO view (access refused).
  */
 function aut_user_views($u) {
     $views = array();
     if ($u->AuRole == AUT_ROLE_ADMIN) {
-        $views[] = array('role' => AUT_ROLE_ADMIN, 'scope' => '', 'label' => 'Administrateur serveur');
+        $views[] = array('role' => AUT_ROLE_ADMIN, 'scope' => '', 'label' => aut_t('RoleADMIN'));
     }
     foreach ((json_decode($u->AuStructs ?? '', true) ?: array()) as $st) {
         if (!is_array($st) || !in_array($st['role'] ?? '', array(AUT_ROLE_CLUB, AUT_ROLE_CD, AUT_ROLE_CR, AUT_ROLE_FED))) continue;
@@ -968,7 +964,7 @@ function aut_user_views($u) {
         $views[] = array('role' => $u->AuRole, 'scope' => $u->AuScope,
                          'label' => aut_roles()[$u->AuRole] . ($u->AuScope !== '' ? ' ' . $u->AuScope : ''));
     }
-    // tri niveau décroissant (stable) + dédoublonnage rôle+périmètre
+    // sorted by decreasing level (stable) + duplicates of role+scope removed
     $seen = array();
     $out = array();
     foreach (array(5, 4, 3, 2, 1) as $rank) {
@@ -984,8 +980,8 @@ function aut_user_views($u) {
 }
 
 /**
- * Vue à activer à la connexion : la dernière utilisée si elle est encore
- * disponible, sinon le niveau maximum. null si aucune vue.
+ * View to turn on at sign-in: the last one used when still available, otherwise the highest
+ * level. null when no view.
  */
 function aut_pick_view($u, $views = null) {
     if (is_null($views)) $views = aut_user_views($u);
@@ -994,10 +990,10 @@ function aut_pick_view($u, $views = null) {
         if (strcasecmp($v['role'], $u->AuLastRole ?? '') === 0
             && strcasecmp($v['scope'], $u->AuLastScope ?? '') === 0) return $v;
     }
-    return $views[0];   // déjà triées par niveau décroissant
+    return $views[0];   // already sorted by decreasing level
 }
 
-/** Libellé court d'un propriétaire (page partage, admin). */
+/** Short label of an owner (sharing page, admin). */
 function aut_owner_label($role, $scope) {
     switch ($role) {
         case AUT_ROLE_CLUB: return $scope;
@@ -1008,12 +1004,12 @@ function aut_owner_label($role, $scope) {
     return '';
 }
 
-/** Analyse la saisie admin d'un propriétaire : '', agrément, CD60, CR07, FED. */
+/** Parses the admin's entry of an owner: '', approval number, CD60, CR07, FED. */
 function aut_parse_owner($str, &$role, &$scope) {
     $str = trim($str);
     $role = '';
     $scope = '';
-    if ($str === '') return true;                                    // sans propriétaire
+    if ($str === '') return true;                                    // no owner
     if (preg_match('/^FED$/i', $str)) { $role = AUT_ROLE_FED; return true; }
     if (preg_match('/^(CD|CR)([0-9A-Za-z]{2})$/i', $str, $m)) {
         $role = strtoupper($m[1]);
@@ -1024,7 +1020,7 @@ function aut_parse_owner($str, &$role, &$scope) {
     return false;
 }
 
-/* Message "flash" affiché une seule fois par la barre du module (menu.php). */
+/* "Flash" message shown once by the module's bar (menu.php). */
 function aut_flash_set($msg) {
     $_SESSION['AUT_Flash'] = $msg;
 }
@@ -1036,17 +1032,16 @@ function aut_flash_get() {
 }
 
 /**
- * Politique ISK d'un SERVEUR EN LIGNE : seuls « aucun ISK » et « ISK-NG lite » sont
- * autorisés. Les modes ng-pro et ng-live déclenchent (côté ianseo) un trigger qui
- * RÉVOQUE la licence du serveur — inacceptable sur un serveur partagé en ligne. Ces
- * deux fonctions constituent la source de vérité, réutilisée par l'UI (menu.php,
- * SYNCHRO_FFTA) et l'application (rebascule vers lite).
+ * ISK policy of an ONLINE SERVER: only "no ISK" and "ISK-NG lite" are allowed. The ng-pro and
+ * ng-live modes fire (on the ianseo side) a trigger that REVOKES the server's licence —
+ * unacceptable on a shared online server. These two functions are the source of truth, reused
+ * by the UI (menu.php, SYNCHRO_FFTA) and the enforcement (back to lite).
  */
 function aut_isk_blocked_modes() {
     return array('ng-pro', 'ng-live');
 }
 
-/** Retire les modes interdits d'une liste $IskType (clé => libellé). */
+/** Removes the forbidden modes from an $IskType list (key => label). */
 function aut_isk_filter($iskType) {
     if (!is_array($iskType)) return $iskType;
     foreach (aut_isk_blocked_modes() as $m) unset($iskType[$m]);
@@ -1054,9 +1049,9 @@ function aut_isk_filter($iskType) {
 }
 
 /**
- * Ramène le mode ISK d'une compétition à « lite » s'il est pro/live (import d'une
- * compétition configurée en pro, ou choix forcé sur la page cœur non modifiable).
- * Renvoie true si une rétrogradation a eu lieu. Sûr et bon marché (un SELECT indexé).
+ * Brings the ISK mode of a competition back to "lite" when it is pro/live (import of a
+ * competition set to pro, or a choice forced on the core page that cannot be changed). Returns
+ * true when a downgrade happened. Safe and cheap (one indexed SELECT).
  */
 function aut_isk_enforce($tourId = 0) {
     if (!function_exists('getModuleParameter') || !function_exists('setModuleParameter')) return false;
@@ -1066,14 +1061,11 @@ function aut_isk_enforce($tourId = 0) {
     if (in_array($mode, aut_isk_blocked_modes(), true)) {
         setModuleParameter('ISK-NG', 'Mode', 'ng-lite', $tourId);
         aut_log('ISK_DOWNGRADE', 'tour=' . $tourId . ' from=' . $mode);
-        // Informer l'organisateur (le filet était muet) : « 2e message si détecté »
-        // à l'import d'une compétition configurée en ISK Pro/Live. Ne pas écraser un
-        // flash déjà en attente (ex. refus d'import — cas sans compétition ouverte).
+        // Tell the organiser (the safety net was silent): "2nd message if detected" on the
+        // import of a competition set to ISK Pro/Live. Do not overwrite a flash already waiting
+        // (e.g. an import refusal — case without an open competition).
         if (($_SESSION['AUT_Flash'] ?? '') === '') {
-            aut_flash_set('⚠️ Cette compétition utilisait la saisie <b>ISK '
-                . ($mode === 'ng-pro' ? 'Pro' : 'Live') . '</b>, non prise en charge sur ce '
-                . 'serveur partagé (elle en révoquerait la licence). Elle a été ramenée en '
-                . '<b>ISK Lite</b> ; adaptez la saisie si besoin depuis la page de la compétition.');
+            aut_flash_set(aut_t('IskDowngraded', $mode === 'ng-pro' ? 'Pro' : 'Live'));
         }
         return true;
     }
@@ -1081,11 +1073,10 @@ function aut_isk_enforce($tourId = 0) {
 }
 
 /**
- * Adopte la compétition pointée par la session si elle n'a pas encore de
- * propriétaire. Le cœur ianseo pose $_SESSION['TourId'] à la création SANS
- * passer par TourOn ; pour un organisateur, un TourId ne peut venir que de
- * TourOn (filtré par AUTH_COMP → compétition déjà possédée/partagée) ou d'une
- * création par lui → l'adoption est sûre.
+ * Adopts the competition the session points to when it has no owner yet. The ianseo core sets
+ * $_SESSION['TourId'] at creation WITHOUT going through TourOn; for an organiser, a TourId can
+ * only come from TourOn (filtered by AUTH_COMP → competition already owned/shared) or from a
+ * creation by them → the adoption is safe.
  */
 function aut_adopt_current($u, $role, $scope) {
     $tid = intval($_SESSION['TourId'] ?? 0);
@@ -1095,8 +1086,8 @@ function aut_adopt_current($u, $role, $scope) {
     $q = safe_r_sql("SELECT AsOwnerRole FROM AUT_Share WHERE AsToCode=" . StrSafe_DB($t->ToCode));
     $own = safe_fetch($q);
     if ($own && $own->AsOwnerRole !== '') return;
-    // NB : les affectations d'un ON DUPLICATE s'évaluent de gauche à droite →
-    // scope/user (conditionnés par l'ancien AsOwnerRole) AVANT AsOwnerRole
+    // NB: the assignments of an ON DUPLICATE run left to right → scope/user (depending on the
+    // old AsOwnerRole) BEFORE AsOwnerRole
     safe_w_sql("INSERT INTO AUT_Share (AsToCode, AsOwnerRole, AsOwnerScope, AsOwnerUser) VALUES ("
         . StrSafe_DB($t->ToCode) . "," . StrSafe_DB($role) . "," . StrSafe_DB($scope) . "," . StrSafe_DB($u->AuUsername) . ")
         ON DUPLICATE KEY UPDATE
@@ -1107,11 +1098,10 @@ function aut_adopt_current($u, $role, $scope) {
 }
 
 /**
- * Barrière anti-écrasement à l'enregistrement d'une compétition.
- * La garde du cœur (Tournament/index.php:34) ne s'applique que si
- * $_SESSION['TourId'] == -1 : une session fraîche (TourId absent) la
- * contourne totalement. On revalide donc ici, AVANT le code de la page
- * (le bootstrap s'exécute depuis config.php).
+ * Anti-overwrite barrier when a competition is saved.
+ * The core's guard (Tournament/index.php:34) only applies when $_SESSION['TourId'] == -1: a
+ * fresh session (no TourId) bypasses it entirely. So the check is made again here, BEFORE the
+ * page's code (the bootstrap runs from config.php).
  */
 function aut_guard_tournament_save($role) {
     global $CFG;
@@ -1119,16 +1109,16 @@ function aut_guard_tournament_save($role) {
     if (strcasecmp(aut_script_rel(), '/Tournament/index.php') !== 0) return;
     if (($_REQUEST['Command'] ?? '') !== 'SAVE') return;
 
-    // Vue « depuis un autre compte » (lecture seule) : aucun enregistrement de
-    // compétition, quelles que soient les vérifications propres du cœur.
+    // "From another account" view (read only): no competition saved, whatever the core's own
+    // checks.
     if (!empty($_SESSION['AUTH_RO'])) {
         aut_log('SAVE_BLOCK', ($_SESSION['AUTH_User'] ?? '') . ' RO');
-        aut_flash_set('Vue en lecture seule — enregistrement impossible.');
+        aut_flash_set(aut_t('SaveReadOnly'));
         CD_redirect($CFG->ROOT_DIR . 'Tournament/index.php' . (isset($_REQUEST['New']) ? '?New=' : ''));
         die();
     }
 
-    // même normalisation du code que le cœur
+    // same code normalisation as the core
     $newCode = preg_replace('/[^0-9a-z._-]+/sim', '_', $_REQUEST['d_ToCode'] ?? '');
     $reason = '';
     $scope = $_SESSION['AUTH_SCOPE'] ?? '';
@@ -1138,26 +1128,26 @@ function aut_guard_tournament_save($role) {
     if (isset($_REQUEST['New'])) {
         if (!$organizer) {
             $ok = false;
-            $reason = 'Votre compte ne permet pas de créer une compétition sur ce serveur.';
+            $reason = aut_t('SaveNoCreate');
         } else {
             $ok = aut_can_use_code($newCode, $role, $scope, $user, false, $reason);
         }
     } else {
-        // modification : seul un CHANGEMENT de code doit être revalidé
+        // change: only a CHANGE of code must be checked again
         $cur = $_SESSION['TourCode'] ?? '';
         if ($newCode === '' || strcasecmp($newCode, $cur) === 0) {
             $ok = true;
         } elseif (!$organizer || aut_code_status($cur, $role, $scope) !== 'own') {
-            // un invité (aide à la saisie) peut modifier, mais pas renommer
+            // an invited club (help with data entry) may edit, but not rename
             $ok = false;
-            $reason = 'Seul le propriétaire de la compétition (ou un administrateur) peut changer son code.';
+            $reason = aut_t('SaveOwnerOnly');
         } else {
             $ok = aut_can_use_code($newCode, $role, $scope, $user, false, $reason);
         }
     }
     if (!$ok) {
         aut_log('SAVE_BLOCK', ($_SESSION['AUTH_User'] ?? '') . ' ' . substr($newCode, 0, 40));
-        // la saisie est conservée : menu.php la réinjecte dans le formulaire
+        // the entry is kept: menu.php puts it back into the form
         $data = array();
         foreach ($_POST as $k => $v) {
             if (is_string($v) && preg_match('/^(d_|x_|xx_)/', $k)) $data[$k] = $v;
@@ -1169,9 +1159,9 @@ function aut_guard_tournament_save($role) {
 }
 
 /**
- * Acte la propriété des compétitions effectivement créées depuis les
- * revendications de l'utilisateur (appelé à chaque requête d'un CLUB —
- * la création passe par le cœur ianseo, ce hook est notre seul point sûr).
+ * Settles the ownership of the competitions actually created from the user's claims (called at
+ * every request of a CLUB — creation goes through the ianseo core, this hook is our only safe
+ * point).
  */
 function aut_adopt_claims($u) {
     $q = safe_r_sql("SELECT * FROM AUT_Claim WHERE AcUser=" . StrSafe_DB($u->AuUsername));
@@ -1183,8 +1173,8 @@ function aut_adopt_claims($u) {
     foreach ($claims as $c) {
         $q = safe_r_sql("SELECT ToId FROM Tournament WHERE ToCode=" . StrSafe_DB($c->AcCode));
         if (safe_fetch($q)) {
-            // owner posé seulement s'il est encore vide (course avec un admin) ;
-            // affectations évaluées de gauche à droite → AsOwnerRole en dernier
+            // owner set only while still empty (race with an admin);
+            // assignments run left to right → AsOwnerRole last
             safe_w_sql("INSERT INTO AUT_Share (AsToCode, AsOwnerRole, AsOwnerScope, AsOwnerUser) VALUES ("
                 . StrSafe_DB($c->AcCode) . "," . StrSafe_DB($c->AcRole) . "," . StrSafe_DB($c->AcScope) . "," . StrSafe_DB($c->AcUser) . ")
                 ON DUPLICATE KEY UPDATE
@@ -1198,15 +1188,15 @@ function aut_adopt_claims($u) {
     safe_w_sql("DELETE FROM AUT_Claim WHERE AcWhen < DATE_SUB(NOW(), INTERVAL 24 HOUR)");
 }
 
-/** $role/$scope non vides = vue de la session, sinon ceux du compte. */
+/** Non-empty $role/$scope = the session's view, otherwise those of the account. */
 function aut_session_apply($u, $role = '', $scope = '') {
     if ($role === '') { $role = $u->AuRole; $scope = $u->AuScope; }
     $_SESSION['AUTH_ENABLE'] = 1;
     $_SESSION['AUTH_ROLE']   = $role;
     $_SESSION['AUTH_SCOPE']  = $scope;
-    $_SESSION['AUTH_VIEWS']  = aut_user_views($u);   // pour le sélecteur de vue (barre)
-    aut_extranet_publish();    // convention FFTA_EXTRANET_* : effacée par le cœur, republiée ici
-    aut_dirigeant_publish();   // convention FFTA_DIRIGEANT_* : idem
+    $_SESSION['AUTH_VIEWS']  = aut_user_views($u);   // for the view selector (bar)
+    aut_extranet_publish();    // FFTA_EXTRANET_* convention: erased by the core, published again here
+    aut_dirigeant_publish();   // FFTA_DIRIGEANT_* convention: same
     if ($role == AUT_ROLE_ADMIN) {
         $_SESSION['AUTH_ROOT'] = 1;
         $_SESSION['AUTH_COMP'] = array();
@@ -1220,31 +1210,31 @@ function aut_session_clear() {
     foreach (array('AUTH_User', 'AUTH_Pwd', 'AUTH_ROOT', 'AUTH_ROLE', 'AUTH_SCOPE', 'AUTH_SSO', 'AUTH_VIEWS') as $k) {
         unset($_SESSION[$k]);
     }
-    unset($_SESSION['AUTH_IMPERSONATE'], $_SESSION['AUTH_RO']);   // fin de session = fin d'observation
+    unset($_SESSION['AUTH_IMPERSONATE'], $_SESSION['AUTH_RO']);   // end of session = end of observation
     $_SESSION['AUTH_ENABLE'] = 1;
     $_SESSION['AUTH_COMP']   = array();
 }
 
 /* ------------------------------------------------------------------ */
-/* Vue « depuis un autre compte » (impersonation) — ADMIN, LECTURE     */
-/* SEULE. Ouverte UNIQUEMENT par la page admin (admin/impersonate.php, */
-/* gardée AclRoot + AUTH_ROOT). CANONIQUE EN BASE (AUT_Sessions.AsnImp) */
-/* car CreateTourSession vide la session à chaque ouverture de         */
-/* compétition (seuls AUTH_User/AUTH_Pwd survivent) : un simple drapeau */
-/* de session METTRAIT FIN à l'observation en laissant l'admin en       */
-/* lecture-ÉCRITURE sur la compétition d'un tiers. La session ne porte  */
-/* qu'un MIROIR (AUTH_IMPERSONATE), reconstruit à chaque requête par le  */
-/* bootstrap depuis la ligne de session — l'espace archer (qui ne lit   */
-/* que la session, sans dépendre d'AUTH) s'appuie dessus. La lecture    */
-/* seule organisateur est IMPOSÉE PAR LE CŒUR via AUTH_RO (plafond ACL, */
-/* dist/BlockFunction.php), jamais seulement masquée.                  */
+/* "From another account" view (impersonation) — ADMIN, READ ONLY.    */
+/* Opened ONLY by the admin page (admin/impersonate.php, guarded by    */
+/* AclRoot + AUTH_ROOT). CANONICAL IN THE DATABASE (AUT_Sessions.AsnImp) */
+/* because CreateTourSession empties the session at each opening of a  */
+/* competition (only AUTH_User/AUTH_Pwd survive): a mere session flag  */
+/* WOULD END the observation leaving the admin with read-WRITE access  */
+/* to someone else's competition. The session only carries a MIRROR    */
+/* (AUTH_IMPERSONATE), rebuilt at every request by the bootstrap from  */
+/* the session row — the archer space (which only reads the session,   */
+/* without depending on AUTH) relies on it. The organiser read-only    */
+/* mode is ENFORCED BY THE CORE through AUTH_RO (ACL ceiling,          */
+/* dist/BlockFunction.php), never merely hidden.                       */
 /* ------------------------------------------------------------------ */
 function aut_imp_get() {
     $i = $_SESSION['AUTH_IMPERSONATE'] ?? null;
     return is_array($i) ? $i : null;
 }
 
-/** Reconstruit le miroir de session depuis la ligne de session ($s->AsnImp). */
+/** Rebuilds the session mirror from the session row ($s->AsnImp). */
 function aut_imp_load($s) {
     $raw = is_object($s) ? (string) ($s->AsnImp ?? '') : '';
     $i = $raw !== '' ? json_decode($raw, true) : null;
@@ -1252,7 +1242,7 @@ function aut_imp_load($s) {
     else unset($_SESSION['AUTH_IMPERSONATE'], $_SESSION['AUTH_RO']);
 }
 
-/** Ouvre une observation : persiste en base (survit à CreateTourSession) + miroir. */
+/** Opens an observation: kept in the database (survives CreateTourSession) + mirror. */
 function aut_imp_store(array $imp) {
     $h = aut_current_token_hash();
     if ($h !== '') {
@@ -1270,34 +1260,33 @@ function aut_imp_forget() {
 }
 
 /**
- * Applique l'impersonation ORGANISATEUR sur la session courante, APRÈS
- * aut_session_apply (qui a posé la vue admin). L'admin voit alors le compte
- * cible en LECTURE SEULE : rôle/scope/AUTH_COMP de la cible, AUTH_ROOT retiré,
- * AUTH_RO posé (plafond ACL). Gardes : n'agit que si l'admin l'est TOUJOURS et
- * que la cible existe et n'est PAS admin ; sinon ferme l'observation.
+ * Applies the ORGANISER impersonation to the current session, AFTER aut_session_apply (which set
+ * the admin view). The admin then sees the target account READ ONLY: role/scope/AUTH_COMP of
+ * the target, AUTH_ROOT removed, AUTH_RO set (ACL ceiling). Guards: acts only while the admin
+ * STILL is one and the target exists and is NOT an admin; otherwise closes the observation.
  */
 function aut_imp_apply_org($u) {
     $i = aut_imp_get();
     if (!$i || ($i['type'] ?? '') !== 'org') return;
-    if ($u->AuRole != AUT_ROLE_ADMIN) {              // l'observateur n'est plus admin → on coupe
+    if ($u->AuRole != AUT_ROLE_ADMIN) {              // the observer is no longer an admin → stop
         aut_log('IMPERSONATE_REVOKE', $u->AuUsername);
         aut_imp_forget();
         return;
     }
     $t = aut_get_user((string) ($i['user'] ?? ''));
-    if (!$t || $t->AuRole == AUT_ROLE_ADMIN) {       // cible disparue ou devenue admin → on coupe
+    if (!$t || $t->AuRole == AUT_ROLE_ADMIN) {       // target gone or now an admin → stop
         aut_imp_forget();
         return;
     }
     $_SESSION['AUTH_ROLE']  = $t->AuRole;
     $_SESSION['AUTH_SCOPE'] = $t->AuScope;
     $_SESSION['AUTH_COMP']  = aut_compute_comp($t->AuRole, $t->AuScope);
-    unset($_SESSION['AUTH_ROOT']);                   // pas de root dans la vue observée
-    $_SESSION['AUTH_RO']    = 1;                      // plafond lecture seule (BlockFunction)
-    $_SESSION['AUTH_VIEWS'] = array();               // masque le sélecteur de vue pendant l'observation
+    unset($_SESSION['AUTH_ROOT']);                   // no root in the observed view
+    $_SESSION['AUTH_RO']    = 1;                      // read-only ceiling (BlockFunction)
+    $_SESSION['AUTH_VIEWS'] = array();               // hides the view selector during the observation
 }
 
-/** Un code de compétition correspond-il aux droits de la session ? */
+/** Does a competition code match the session's rights? */
 function aut_code_allowed($code, $list = null) {
     if (is_null($list)) $list = $_SESSION['AUTH_COMP'] ?? array();
     foreach ($list as $p) {
@@ -1312,7 +1301,7 @@ function aut_code_allowed($code, $list = null) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Bootstrap de requête (appelé par Modules/Authentication/AuthFunctions.php) */
+/* Request bootstrap (called by Modules/Authentication/AuthFunctions.php) */
 /* ------------------------------------------------------------------ */
 
 function aut_script_rel() {
@@ -1323,17 +1312,17 @@ function aut_script_rel() {
     return $s ?: '/';
 }
 
-/** Chemins accessibles sans connexion (extensibles via config.local.json). */
+/** Paths reachable without signing in (extensible through config.local.json). */
 function aut_public_paths() {
     static $paths = null;
     if (!is_null($paths)) return $paths;
-    // NB : /index.php (racine ianseo) n'est PLUS public → un visiteur anonyme y
-    // est redirigé vers la page de connexion unifiée (voir aut_request_bootstrap).
+    // NB: /index.php (ianseo root) is NO LONGER public → an anonymous visitor is sent to the
+    // unified sign-in page (see aut_request_bootstrap).
     $paths = array(
         '/noAccess.php', '/credits.php',
-        '/Modules/Authentication/',            // login/logout/2FA organisateur (déployés)
-        '/Modules/Custom/AUTH/login.php',      // page de connexion unifiée
-        '/Modules/Custom/AUTH/booking/public/',     // espace licencié (face publique, $SKIP_AUTH)
+        '/Modules/Authentication/',            // organiser login/logout/2FA (deployed)
+        '/Modules/Custom/AUTH/login.php',      // unified sign-in page
+        '/Modules/Custom/AUTH/booking/public/',     // licensee space (public side, $SKIP_AUTH)
     );
     foreach ((aut_local_config()['public_paths'] ?? array()) as $p) {
         if (is_string($p) && $p !== '') $paths[] = $p;
@@ -1341,15 +1330,15 @@ function aut_public_paths() {
     return $paths;
 }
 
-/** URL de la page de connexion unifiée (choix organisateur / compétiteur). */
+/** URL of the unified sign-in page (organiser / competitor choice). */
 function aut_unified_login_url() {
     global $CFG;
     return $CFG->ROOT_DIR . 'Modules/Custom/AUTH/login.php';
 }
 
 /**
- * Un compétiteur (session BOOKING) est-il connecté ? Chargé seulement si un
- * jeton BOOKING est présent — aucune dépendance d'AUTH envers BOOKING sinon.
+ * Is a competitor (booking session) signed in? Loaded only when a booking token is there — no
+ * dependency of AUTH on booking otherwise.
  */
 function aut_booking_archer_logged() {
     global $CFG;
@@ -1362,14 +1351,14 @@ function aut_booking_archer_logged() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Connexion ORGANISATEUR — handlers réutilisés par login.php (page    */
-/* unifiée) ET par le LogIn.php déployé. Source unique du flux.        */
+/* ORGANISER sign-in — handlers reused by login.php (unified page)     */
+/* AND by the deployed LogIn.php. Single source of the flow.           */
 /* ------------------------------------------------------------------ */
 
 /**
- * Finalise la connexion organisateur : la vue activée est la dernière utilisée
- * si encore disponible, sinon le niveau maximum. Régénère l'id de session,
- * puis redirige (ChangePassword si mot de passe temporaire) et termine.
+ * Completes the organiser sign-in: the view turned on is the last one used when still
+ * available, otherwise the highest level. Regenerates the session id, then redirects
+ * (ChangePassword when the password is temporary) and ends.
  */
 function aut_finish_login($u, $event = 'LOGIN_OK') {
     global $CFG;
@@ -1389,32 +1378,32 @@ function aut_finish_login($u, $event = 'LOGIN_OK') {
 }
 
 /**
- * Étape 1 organisateur (identifiant + mot de passe) — lit $_POST.
- * Compte LOCAL : mot de passe + TOTP éventuel. Compte SSO : relais Espace
- * Dirigeant (+ cookie dirigeant capté, extranet ouvert en repli silencieux),
- * synchro des structures. Sur succès : redirige et termine (aut_finish_login) ;
- * sinon renseigne $err, et $stage='totp' si un code TOTP serveur est attendu.
+ * Organiser step 1 (identifier + password) — reads $_POST.
+ * LOCAL account: password + TOTP if any. SSO account: relay to the officers' space (+ officers'
+ * cookie captured, extranet opened as a silent fallback), structures synchronised. On success:
+ * redirects and ends (aut_finish_login); otherwise fills $err, and $stage='totp' when a server
+ * TOTP code is expected.
  */
 function aut_handle_org_login(&$err, &$stage) {
     $username = strtolower(trim($_POST['username'] ?? ''));
     $password = $_POST['password'] ?? '';
     $otp      = trim($_POST['otp'] ?? '');
-    // hash factice : temps de réponse constant que l'identifiant existe ou non
+    // dummy hash: constant response time whether the identifier exists or not
     $dummyHash = '$2y$10$abcdefghijklmnopqrstuvJltUS3sTfTLNQKQ2wZ2gJ0S9nO2/xdC';
 
     if ($username === '' || $password === '') {
-        $err = 'Identifiant et mot de passe requis.';
+        $err = aut_t('LoginRequired');
         return;
     }
     if (aut_too_many_failures($username)) {
         aut_log('LOGIN_BLOCK', $username);
-        $err = 'Trop de tentatives. Réessayez dans 15 minutes.';
+        $err = aut_t('LoginTooMany');
         return;
     }
     $u = aut_get_user($username);
 
     if ($u && $u->AuPassword !== '') {
-        /* Compte local (ADMIN…) : mot de passe local + TOTP éventuel */
+        /* Local account (ADMIN…): local password + TOTP if any */
         if (password_verify($password, $u->AuPassword) && $u->AuActive) {
             if ($u->AuTotpEnabled) {
                 $_SESSION['AUT_2FA_User'] = $u->AuUsername;
@@ -1425,42 +1414,42 @@ function aut_handle_org_login(&$err, &$stage) {
             }
         } else {
             aut_log('LOGIN_FAIL', $username);
-            $err = 'Identifiant ou mot de passe incorrect.';
+            $err = aut_t('LoginBad');
         }
     } elseif (aut_sso_enabled()) {
-        /* SSO Espace Dirigeant : relais + synchro des structures */
+        /* SSO officers' space: relay + structures synchronised */
         $structures = array();
         $ssoErr = '';
         $ssoCode = '';
         $dirCookie = null;
         if (aut_ffta_verify($username, $password, $otp, $structures, $ssoErr, $dirCookie, $ssoCode)) {
-            aut_ffta_outage_clear('dirigeant');   // l'espace répond : le bandeau n'a plus lieu d'être
-            aut_dirigeant_stash($dirCookie);      // cookie session dirigeant réutilisable (synchro)
-            aut_extranet_open($username, $password); // 2e auth extranet, échec silencieux
+            aut_ffta_outage_clear('dirigeant');   // the space answers: the banner is no longer needed
+            aut_dirigeant_stash($dirCookie);      // reusable officers' session cookie (sync)
+            aut_extranet_open($username, $password); // 2nd extranet sign-in, silent on failure
             $syncErr = '';
             $u = aut_sso_sync($username, $structures, $syncErr);
             if (!$u) {
                 aut_log('LOGIN_FAIL', $username);
-                // Aucune structure exploitable : le diagnostic PRÉCIS vient de
-                // aut_ffta_verify (rôle insuffisant, avec les rôles réellement
-                // portés) — bien plus utile que le message générique du provisioning.
+                // No usable structure: the PRECISE diagnosis comes from aut_ffta_verify
+                // (insufficient role, with the roles really held) — much more useful than the
+                // generic provisioning message.
                 $err = (!count($structures) && $ssoErr !== '') ? $ssoErr : $syncErr;
             } elseif (!count(aut_user_views($u))) {
                 aut_log('LOGIN_FAIL', $username);
                 $err = $ssoErr ?: aut_ffta_no_structure_reason(array());
             } elseif ($u->AuTotpEnabled) {
-                // 2FA (obligatoire ADMIN, optionnelle pour les autres) : étape code.
+                // 2FA (mandatory for ADMIN, optional for the others): code step.
                 $_SESSION['AUT_2FA_User'] = $u->AuUsername;
                 $_SESSION['AUT_2FA_Time'] = time();
                 $stage = 'totp';
             } else {
-                aut_finish_login($u, 'SSO_OK');   // admin sans TOTP → Setup2FA forcé via bootstrap
+                aut_finish_login($u, 'SSO_OK');   // admin without TOTP → Setup2FA forced by the bootstrap
             }
         } else {
-            // Panne/maintenance FFTA, coupure réseau, page fédérale modifiée, code MFA
-            // non saisi : ce ne sont PAS des tentatives d'intrusion. Les compter
-            // bloquerait l'utilisateur 15 min de plus, EN PLUS de la panne — et le
-            // ferait chercher l'erreur de son côté. Seul BAD_CREDENTIALS compte.
+            // Federation outage/maintenance, network cut, federation page changed, MFA code not
+            // typed: these are NOT intrusion attempts. Counting them would lock the user out 15
+            // more minutes ON TOP of the outage — and make them look for the mistake on their
+            // side. Only BAD_CREDENTIALS counts.
             if (in_array($ssoCode, array('OUTAGE', 'NETWORK', 'NO_CSRF', 'MFA_NEEDED'), true)) {
                 aut_log($ssoCode === 'MFA_NEEDED' ? 'SSO_MFA_STEP' : 'SSO_UNAVAILABLE', $username);
                 if ($ssoCode !== 'MFA_NEEDED') aut_ffta_outage_note('dirigeant', $ssoErr);
@@ -1470,24 +1459,24 @@ function aut_handle_org_login(&$err, &$stage) {
             $err = $ssoErr;
         }
     } else {
-        password_verify($password, $dummyHash);   // temps constant
+        password_verify($password, $dummyHash);   // constant time
         aut_log('LOGIN_FAIL', $username);
-        $err = 'Identifiant ou mot de passe incorrect.';
+        $err = aut_t('LoginBad');
     }
 }
 
-/** Étape 2 organisateur : code TOTP du serveur (comptes ADMIN). Lit $_POST. */
+/** Organiser step 2: the server's TOTP code (ADMIN accounts). Reads $_POST. */
 function aut_handle_org_totp(&$err, &$stage) {
     $username = $_SESSION['AUT_2FA_User'] ?? '';
     if ($username === '' || (time() - ($_SESSION['AUT_2FA_Time'] ?? 0)) > AUT_2FA_PENDING_S) {
         unset($_SESSION['AUT_2FA_User'], $_SESSION['AUT_2FA_Time']);
-        $err = 'Délai dépassé, recommencez.';
+        $err = aut_t('LoginExpired');
         return;
     }
     if (aut_too_many_failures($username)) {
         aut_log('LOGIN_BLOCK', $username);
         unset($_SESSION['AUT_2FA_User'], $_SESSION['AUT_2FA_Time']);
-        $err = 'Trop de tentatives. Réessayez dans 15 minutes.';
+        $err = aut_t('LoginTooMany');
         return;
     }
     $u = aut_get_user($username);
@@ -1497,21 +1486,18 @@ function aut_handle_org_totp(&$err, &$stage) {
         safe_w_sql("UPDATE AUT_Users SET AuTotpLastSlot=$usedSlot WHERE AuId={$u->AuId}");
         aut_finish_login($u);
     }
-    // Échec : est-ce un mauvais code, ou une horloge serveur déréglée ? Si le code
-    // correspond à un slot très éloigné, c'est l'horloge — on le DIT (au lieu d'un
-    // « code incorrect » incompréhensible) et on NE compte PAS cet échec dans
-    // l'anti-bruteforce (TOTP_SKEW, hors du filtre LOGIN_FAIL/TOTP_FAIL) : un code
-    // juste rejeté par un décalage d'horloge ne doit pas verrouiller l'admin.
+    // Failure: a wrong code, or a wrong server clock? When the code matches a very distant
+    // slot, it is the clock — SAY so (instead of a puzzling "wrong code") and do NOT count this
+    // failure in the anti brute force (TOTP_SKEW, outside the LOGIN_FAIL/TOTP_FAIL filter): a
+    // right code refused because of a clock offset must not lock the admin out.
     $skew = ($u && $u->AuActive) ? aut_totp_skew($u->AuTotpSecret, $code) : null;
     if ($skew !== null) {
         aut_log('TOTP_SKEW', $username);
         $mins = round(abs($skew) / 60);
-        $err = "Code refusé : l'horloge de CE serveur est décalée d'environ {$mins} min par rapport à "
-             . "l'heure réelle (le code de votre application est basé sur l'heure). Synchronisez l'heure "
-             . "du serveur (NTP) puis réessayez — votre code est bon.";
+        $err = aut_t('TotpSkew', $mins);
     } else {
         aut_log('TOTP_FAIL', $username);
-        $err = 'Code incorrect.';
+        $err = aut_t('TotpBad');
     }
     $stage = 'totp';
 }
@@ -1533,7 +1519,7 @@ function aut_is_auth_script() {
     return stripos(aut_script_rel(), '/Modules/Authentication/') === 0;
 }
 
-/** Pages légales (consultation + acceptation) : exemptes de la garde CGU (anti-boucle). */
+/** Legal pages (reading + acceptance): exempt from the terms guard (no loop). */
 function aut_is_legal_script() {
     $s = aut_script_rel();
     return stripos($s, '/Modules/Custom/AUTH/legal.php') === 0
@@ -1541,22 +1527,21 @@ function aut_is_legal_script() {
 }
 
 /**
- * Scripts touchant TOUT le serveur (toute la base) → administrateur uniquement.
- * Filet de sécurité central : certaines de ces pages du cœur ianseo ne
- * vérifient AUCUNE ACL (ex. RepairTables lance REPAIR/OPTIMIZE sur toutes les
- * tables ; RepairXAMPP redémarre MySQL) — les bloquer ici évite qu'un simple
- * organisateur les déclenche et perturbe les compétitions des autres.
- * Surchargeable via config.local.json → "admin_only_paths" (fusionné).
+ * Scripts touching the WHOLE server (the whole database) → administrator only.
+ * Central safety net: some of these ianseo core pages check NO ACL (e.g. RepairTables runs
+ * REPAIR/OPTIMIZE on every table; RepairXAMPP restarts MySQL) — blocking them here keeps a mere
+ * organiser from firing them and disturbing the others' competitions.
+ * Can be overridden through config.local.json → "admin_only_paths" (merged).
  */
 function aut_admin_only_paths() {
     static $paths = null;
     if (!is_null($paths)) return $paths;
     $paths = array(
-        '/Update/',                            // mise à jour de la base (ALTER, migrations)
-        '/Install/',                           // (ré)installation
-        '/Modules/Help/RepairTables.php',      // REPAIR + OPTIMIZE de toutes les tables
+        '/Update/',                            // database update (ALTER, migrations)
+        '/Install/',                           // (re)installation
+        '/Modules/Help/RepairTables.php',      // REPAIR + OPTIMIZE of every table
         '/Modules/Help/LoadDebug.php',
-        '/RepairXAMPP.php',                    // aria_chk + redémarrage mysqld
+        '/RepairXAMPP.php',                    // aria_chk + mysqld restart
         '/info.php',                           // phpinfo(): versions, paths, and the visitor's own cookies
     );
     foreach ((aut_local_config()['admin_only_paths'] ?? array()) as $p) {
@@ -1578,37 +1563,33 @@ function aut_is_admin_only_script() {
 }
 
 /**
- * Exécuté sur CHAQUE requête (via config.php → AuthFunctions.php) quand
- * $CFG->USERAUTH est actif. Revalide l'utilisateur + son jeton de session et
- * recalcule ses droits : AUTH_ENABLE / AUTH_ROOT / AUTH_COMP sont effacés par
- * ianseo à chaque ouverture/fermeture de compétition (CreateTourSession) —
- * seuls AUTH_User / AUTH_Pwd survivent, d'où le recalcul systématique.
+ * Run on EVERY request (through config.php → AuthFunctions.php) when $CFG->USERAUTH is on.
+ * Checks the user + their session token again and recomputes their rights: AUTH_ENABLE /
+ * AUTH_ROOT / AUTH_COMP are erased by ianseo at each opening/closing of a competition
+ * (CreateTourSession) — only AUTH_User / AUTH_Pwd survive, hence the systematic recomputation.
  */
 /**
- * Saisie MANUELLE d'un participant (Partecipants/PopEdit.php…) : dès qu'un
- * organisateur enregistre un archer, poser le logo de son club depuis le cache
- * mutualisé — exactement ce que fait déjà l'inscription en ligne
- * (bk_reg_club_id → aut_logos_ensure_club). Sans cela, ce cas n'était couvert
- * que par la passe nocturne du cron.
+ * MANUAL entry of a participant (Partecipants/PopEdit.php…): as soon as an organiser saves an
+ * archer, set their club's logo from the shared cache — exactly what the online registration
+ * already does (bk_reg_club_id → aut_logos_ensure_club). Without it, this case was only covered
+ * by the cron's nightly pass.
  *
- * ⚠️ Pourquoi ici et pas dans PopEdit.php : ce fichier appartient au CŒUR, toute
- * retouche serait effacée à la prochaine mise à jour de ianseo. Le bootstrap est
- * exécuté sur chaque requête, il suffit d'y reconnaître l'enregistrement.
+ * ⚠️ Why here and not in PopEdit.php: that file belongs to the CORE, any change would be erased
+ * by the next ianseo update. The bootstrap runs on every request, recognising the save there is
+ * enough.
  *
- * Le travail est DIFFÉRÉ à la fin de la requête (register_shutdown_function) :
- * au moment du bootstrap, l'archer n'est pas encore enregistré. Purement LOCAL
- * (lecture du cache + écriture d'un fichier), jamais de réseau, et isolé — ne
- * peut pas perturber la saisie. Un club encore absent du cache est rattrapé par
- * le cron suivant (qui balaie aussi les clubs des compétitions, pas seulement le
- * fichier fédéral).
+ * The work is DEFERRED to the end of the request (register_shutdown_function): at bootstrap time
+ * the archer is not saved yet. Purely LOCAL (cache read + one file written), never any network,
+ * and isolated — cannot disturb the entry. A club still missing from the cache is caught by the
+ * next cron run (which also sweeps the clubs of the competitions, not only the federation file).
  */
 function aut_logos_hook_entry_save() {
     if (stripos(aut_script_rel(), '/Partecipants/') !== 0) return;
     $cmd = strtoupper((string) ($_REQUEST['Command'] ?? ''));
     if ($cmd !== 'SAVE' && $cmd !== 'SAVE_CONTINUE') return;
 
-    // Codes club saisis dans le formulaire (principal + 2 secondaires éventuels),
-    // normalisés comme le fait le cœur juste avant d'écrire dans Countries.
+    // Club codes typed in the form (main + up to 2 secondary ones),
+    // normalised as the core does just before writing into Countries.
     $codes = array();
     foreach (array('', '2', '3') as $v) {
         $c = trim((string) ($_REQUEST['d_c_CoCode' . $v . '_'] ?? ''));
@@ -1623,7 +1604,7 @@ function aut_logos_hook_entry_save() {
             if (!function_exists('aut_logos_ensure_club')) return;
             foreach (array_unique($codes) as $c) aut_logos_ensure_club($tid, $c);
         } catch (\Throwable $e) {
-            // la pose d'un logo ne doit jamais remonter à l'utilisateur
+            // setting a logo must never reach the user
         }
     });
 }
@@ -1631,14 +1612,14 @@ function aut_logos_hook_entry_save() {
 function aut_request_bootstrap() {
     global $CFG;
 
-    // Saisie manuelle d'un participant → logo de son club (voir la fonction).
-    // Placé AVANT le retour anticipé « localhost » : la console serveur saisit
-    // elle aussi des participants, et ses compétitions méritent leurs logos.
+    // Manual entry of a participant → logo of their club (see the function).
+    // Placed BEFORE the early "localhost" return: the server console enters participants
+    // too, and its competitions deserve their logos.
     aut_logos_hook_entry_save();
 
-    // Soin de session : à la création d'une compétition, le cœur pose
-    // $_SESSION['TourId'] SANS TourCode (Tournament/index.php) → warnings
-    // dans define_session_flags() à chaque page. On complète depuis la DB.
+    // Session care: when a competition is created, the core sets $_SESSION['TourId'] WITHOUT
+    // TourCode (Tournament/index.php) → warnings in define_session_flags() on every page.
+    // Completed from the database.
     if (!empty($_SESSION['TourId']) && $_SESSION['TourId'] > 0 && !isset($_SESSION['TourCode'])) {
         $q = safe_r_sql("SELECT ToCode FROM Tournament WHERE ToId=" . intval($_SESSION['TourId']));
         if ($r = safe_fetch($q)) {
@@ -1649,34 +1630,34 @@ function aut_request_bootstrap() {
         }
     }
 
-    if (aut_is_localhost()) return;   // console serveur : comportement ianseo classique
+    if (aut_is_localhost()) return;   // server console: classic ianseo behaviour
 
     aut_ensure_schema();
-    aut_log_purge_daily();   // rétention des journaux (au plus 1×/jour, cf. marqueur)
+    aut_log_purge_daily();   // log retention (at most once a day, see the marker)
 
     if (!empty($_SESSION['AUTH_User'])) {
         $u = aut_get_user($_SESSION['AUTH_User']);
         $s = ($u && $u->AuActive) ? aut_session_validate($u) : null;
         if ($s) {
-            aut_imp_load($s);   // miroir d'observation (canonique en base, survit à CreateTourSession)
+            aut_imp_load($s);   // observation mirror (canonical in the database, survives CreateTourSession)
             $_SESSION['AUTH_SSO'] = ($u->AuPassword === '') ? 1 : 0;
-            // vue courante = celle de la session (bascule à la volée via
-            // switch-view.php) ; repli sur le rôle de base du compte
+            // current view = the session's (switched on the fly through switch-view.php);
+            // falls back to the account's base role
             $role  = $s->AsnRole !== '' ? $s->AsnRole  : $u->AuRole;
             $scope = $s->AsnRole !== '' ? $s->AsnScope : $u->AuScope;
-            // la vue Administrateur exige que le compte le soit encore
+            // the Administrator view requires the account to still be one
             if ($role == AUT_ROLE_ADMIN && $u->AuRole != AUT_ROLE_ADMIN) {
                 $role = $u->AuRole;
                 $scope = $u->AuScope;
             }
             if (in_array($role, array(AUT_ROLE_CLUB, AUT_ROLE_CD, AUT_ROLE_CR, AUT_ROLE_FED))) {
-                aut_adopt_claims($u);                   // compétitions créées via import/claims
-                aut_adopt_current($u, $role, $scope);   // compétition tout juste créée (TourId posé par le cœur)
+                aut_adopt_claims($u);                   // competitions created through import/claims
+                aut_adopt_current($u, $role, $scope);   // competition just created (TourId set by the core)
             }
             aut_session_apply($u, $role, $scope);
-            aut_imp_apply_org($u);               // vue « depuis un autre compte » (admin, lecture seule)
-            aut_guard_tournament_save($role);    // barrière anti-écrasement (celle du cœur est contournable)
-            // pages serveur (mise à jour / réparation) : administrateur uniquement
+            aut_imp_apply_org($u);               // "from another account" view (admin, read only)
+            aut_guard_tournament_save($role);    // anti-overwrite barrier (the core's one can be bypassed)
+            // server pages (update / repair): administrator only
             if (empty($_SESSION['AUTH_ROOT']) && aut_is_admin_only_script()) {
                 aut_log('ADMIN_PATH_BLOCK', $u->AuUsername . ' ' . aut_script_rel());
                 CD_redirect($CFG->ROOT_DIR . 'noAccess.php');
@@ -1687,15 +1668,15 @@ function aut_request_bootstrap() {
                     CD_redirect($CFG->ROOT_DIR . 'Modules/Authentication/ChangePassword.php');
                     die();
                 }
-                // 2FA obligatoire pour les administrateurs
+                // 2FA mandatory for administrators
                 if ($u->AuRole == AUT_ROLE_ADMIN && !$u->AuTotpEnabled) {
                     CD_redirect($CFG->ROOT_DIR . 'Modules/Authentication/Setup2FA.php');
                     die();
                 }
-                // CGU : acceptation obligatoire (bloquant tant que non accepté pour la version
-                // courante) — SEULEMENT si l'exploitant a renseigné ses infos légales (sinon on ne
-                // force pas l'acceptation d'un texte à trous, et l'admin peut atteindre admin/legal.php).
-                // Cache en session pour éviter une requête par page. Pages légales exemptes.
+                // Terms of use: acceptance required (blocking until accepted for the current version) —
+                // ONLY when the operator has filled in their legal information (otherwise no one is
+                // made to accept a text with gaps, and the admin can reach admin/legal.php).
+                // Cached in the session to avoid one query per page. Legal pages are exempt.
                 if (!aut_is_legal_script()) {
                     require_once __DIR__ . '/legal-lib.php';
                     if (aut_legal_configured()) {
@@ -1711,21 +1692,21 @@ function aut_request_bootstrap() {
                     }
                 }
             }
-            // Mesure d'audience (agrégée, sans donnée personnelle ; l'organisateur est
-            // compté par identité de compte, aucun cookie). Page réellement servie
-            // (après les gardes qui redirigent). Auto-gardée et isolée : jamais fatale.
+            // Audience measurement (aggregated, no personal data; the organiser is counted by
+            // account identity, no cookie). Page really served (after the redirecting
+            // guards). Self-guarded and isolated: never fatal.
             require_once __DIR__ . '/stats-usage.php';
-            if (!aut_imp_get() && function_exists('aut_track')) aut_track('org', $u->AuId);   // pas de compteur pendant l'observation
+            if (!aut_imp_get() && function_exists('aut_track')) aut_track('org', $u->AuId);   // no counter during an observation
             return;
         }
-        // jeton expiré/révoqué, compte désactivé ou supprimé
+        // token expired/revoked, account deactivated or deleted
         aut_session_clear();
     }
 
     aut_session_clear();
     if (!aut_is_public_script()) {
-        // Compétiteur déjà connecté (session BOOKING) → son espace, jamais le
-        // login organisateur ; sinon → page de connexion unifiée (choix des rôles).
+        // Competitor already signed in (BOOKING session) → their space, never the organiser
+        // login; otherwise → unified sign-in page (choice of roles).
         if (aut_booking_archer_logged()) {
             CD_redirect($CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/public/index.php');
         } else {
@@ -1738,14 +1719,14 @@ function aut_request_bootstrap() {
 /* ------------------------------------------------------------------ */
 /* SSO Espace Dirigeant FFTA (dirigeant.ffta.fr)                       */
 /*                                                                      */
-/* Validation des identifiants par tentative de connexion à l'espace   */
-/* dirigeant (relais de crédentiels, pas un vrai SSO OAuth — voir      */
-/* SERVEUR.md). Le mot de passe n'est JAMAIS stocké ni journalisé.     */
-/* Les structures rattachées (menu select-structure) donnent le rôle.  */
+/* Credentials checked by a sign-in attempt on the officers' space     */
+/* (credential relay, not a real OAuth SSO — see SERVEUR.md).          */
+/* The password is NEVER stored nor logged.                            */
+/* The attached structures (select-structure menu) give the role.      */
 /* ------------------------------------------------------------------ */
 
-// Surchargeable en la définissant AVANT le chargement de lib.php (préprod, tests
-// hors ligne du diagnostic d'indisponibilité). Valeur de production par défaut.
+// Can be overridden by defining it BEFORE lib.php is loaded (pre-production, offline tests
+// of the outage diagnosis). Production value by default.
 if (!defined('AUT_FFTA_BASE')) define('AUT_FFTA_BASE', 'https://dirigeant.ffta.fr');
 
 function aut_sso_enabled() {
@@ -1753,12 +1734,12 @@ function aut_sso_enabled() {
     return !array_key_exists('enabled', $sso) || !empty($sso['enabled']);
 }
 
-/* ---- Débogage du flux SSO (trace cURL serveur) --------------------- *
- * Activation : soit config.local.json → "sso":{"debug":true}, soit la
- * présence du fichier interrupteur Modules/Custom/AUTH/ffta-debug.on
- * (pratique en démo : le créer, reproduire, lire ffta-debug.log, supprimer).
- * NE JOURNALISE JAMAIS mot de passe ni code MFA — seulement URLs, codes HTTP,
- * type de page atteinte et noms de champs de formulaire.                */
+/* ---- Debugging of the SSO flow (server cURL trace) ----------------- *
+ * Turned on: either config.local.json → "sso":{"debug":true}, or the
+ * presence of the switch file Modules/Custom/AUTH/ffta-debug.on
+ * (handy in a demo: create it, reproduce, read ffta-debug.log, delete).
+ * NEVER LOGS a password nor an MFA code — only URLs, HTTP codes, the
+ * type of page reached and the names of the form fields.               */
 function aut_ffta_debug_enabled() {
     if (!empty(aut_local_config()['sso']['debug'])) return true;
     return is_file(__DIR__ . '/ffta-debug.on');
@@ -1770,105 +1751,98 @@ function aut_ffta_debug($msg) {
         date('Y-m-d H:i:s') . '  ' . $msg . "\n", FILE_APPEND | LOCK_EX);
 }
 
-/** Résumé "sûr" d'une page HTML pour le log : type détecté + champs de formulaire. */
+/** "Safe" summary of an HTML page for the log: detected type + form fields. */
 function aut_ffta_debug_page($html) {
     $html = (string)$html;
     $info = array('len=' . strlen($html));
     if (preg_match('#<title[^>]*>(.*?)</title>#is', $html, $m)) {
         $info[] = 'title="' . trim(preg_replace('/\s+/', ' ', strip_tags($m[1]))) . '"';
     }
-    $info[] = 'select-structure=' . (strpos($html, '/auth/select-structure/') !== false ? 'oui' : 'non');
-    $info[] = 'champ-password=' . (preg_match('/name=["\']password["\']/', $html) ? 'oui' : 'non');
-    // marqueurs d'une étape MFA / double authentification
+    $info[] = 'select-structure=' . (strpos($html, '/auth/select-structure/') !== false ? 'yes' : 'no');
+    $info[] = 'password-field=' . (preg_match('/name=["\']password["\']/', $html) ? 'yes' : 'no');
+    // markers of an MFA / two-factor step
     $mfa = preg_match('/(two[-_]?factor|double.?authentification|v[ée]rification|authenticator|code.?(de.?)?s[ée]curit|otp|2fa)/i', $html);
-    $info[] = 'marqueur-MFA=' . ($mfa ? 'oui' : 'non');
-    // action du formulaire + noms de champs (valeurs masquées)
+    $info[] = 'MFA-marker=' . ($mfa ? 'yes' : 'no');
+    // form action + field names (values hidden)
     if (preg_match('#<form[^>]*action=["\']([^"\']+)["\']#i', $html, $m)) {
         $info[] = 'form-action="' . $m[1] . '"';
     }
     if (preg_match_all('/name=["\']([^"\']+)["\']/', $html, $m)) {
-        $info[] = 'champs=[' . implode(',', array_slice(array_unique($m[1]), 0, 15)) . ']';
+        $info[] = 'fields=[' . implode(',', array_slice(array_unique($m[1]), 0, 15)) . ']';
     }
     return implode('  ', $info);
 }
 
-/* ---- Indisponibilité de l'espace FFTA (maintenance, panne) ----------- *
- * Panne réelle (sept. 2026) : pendant une maintenance de la FFTA, le POST de
- * connexion revient en erreur SANS quitter /auth/login. Or l'échec
- * d'identifiants se détecte précisément par « l'URL finale contient /login » →
- * tout le monde recevait « Identifiants espace dirigeant incorrects (ou MFA
- * requise et non renseignée) ». Message doublement trompeur : l'utilisateur
- * ressaisit son mot de passe en se croyant fautif, et l'anti-bourrage finit par
- * le bloquer 15 min EN PLUS de la panne. On établit donc l'indisponibilité
- * AVANT de conclure au refus.                                           */
+/* ---- Unavailability of the FFTA space (maintenance, outage) --------- *
+ * Real outage (Sept. 2026): during an FFTA maintenance, the sign-in POST
+ * comes back in error WITHOUT leaving /auth/login. Yet a credentials
+ * failure is detected precisely by "the final URL contains /login" →
+ * everyone got "Officers' space credentials incorrect (or MFA required
+ * and not filled in)". Doubly misleading message: the user types their
+ * password again thinking they are at fault, and the anti brute force
+ * ends up locking them out 15 min ON TOP of the outage. So the
+ * unavailability is established BEFORE concluding to a refusal.        */
 
-/** Minuscules + accents repliés : les marqueurs se cherchent en ASCII. */
+/** Lower case + folded accents: the markers are looked for in ASCII. */
 function aut_ffta_fold($s) {
     $s = mb_strtolower((string) $s, 'UTF-8');
     return strtr($s, array('é'=>'e','è'=>'e','ê'=>'e','ë'=>'e','à'=>'a','â'=>'a','ä'=>'a',
                            'î'=>'i','ï'=>'i','ô'=>'o','ö'=>'o','ù'=>'u','û'=>'u','ü'=>'u','ç'=>'c'));
 }
 
-/** La page porte-t-elle un formulaire de connexion exploitable ? */
+/** Does the page carry a usable sign-in form? */
 function aut_ffta_is_login_page($html) {
     return (bool) preg_match('/(name|id)=["\']password["\']|type=["\']password["\']/i', (string) $html);
 }
 
 /**
- * La réponse FFTA est-elle exploitable ? Retourne '' si oui, sinon un message
- * affichable. $attendu='login' : on attendait le formulaire de connexion — une
- * page qui n'en est pas un est alors, elle aussi, un signe d'indisponibilité.
- * ⚠ À n'appeler QUE sur une page dont on sait qu'elle n'est pas une page
- * connectée : « maintenance » peut parfaitement figurer dans le menu d'une page
- * saine, et un faux positif refuserait une connexion valide.
+ * Is the FFTA response usable? Returns '' when it is, otherwise a message to show.
+ * $expected='login': the sign-in form was expected — a page that is not one is then also a sign
+ * of unavailability.
+ * ⚠ Call ONLY on a page known not to be a signed-in page: "maintenance" may very well appear in
+ * the menu of a healthy page, and a false positive would refuse a valid sign-in.
  */
-function aut_ffta_outage($ch, $html, $attendu = '', $espace = "L'espace dirigeant de la FFTA") {
+function aut_ffta_outage($ch, $html, $expected = '', $space = '') {
+    if ($space === '') $space = aut_t('SsoSpace');
     $code = intval(curl_getinfo($ch, CURLINFO_HTTP_CODE));
 
-    // 5xx = panne/maintenance côté fédération ; 429 = débit limité ; 408 = délai.
-    if ($code >= 500 || $code == 429 || $code == 408) return aut_ffta_outage_msg($espace, $code);
+    // 5xx = outage/maintenance on the federation side; 429 = rate limited; 408 = timeout.
+    if ($code >= 500 || $code == 429 || $code == 408) return aut_ffta_outage_msg($space, $code);
 
     if (!aut_ffta_is_login_page($html)) {
         $t = aut_ffta_fold($html);
         foreach (array(
-            'be right back',                      // page 503 par défaut de Laravel
+            'be right back',                      // Laravel's default 503 page
             'service unavailable', 'temporarily unavailable', 'web server is down',
             'en maintenance', 'maintenance en cours', 'maintenance planifiee',
             'momentanement indisponible', 'temporairement indisponible',
             'site indisponible', 'service indisponible',
         ) as $m) {
-            if (strpos($t, $m) !== false) return aut_ffta_outage_msg($espace, $code);
+            if (strpos($t, $m) !== false) return aut_ffta_outage_msg($space, $code);
         }
-        if ($attendu === 'login') return aut_ffta_outage_msg($espace, $code, true);
+        if ($expected === 'login') return aut_ffta_outage_msg($space, $code, true);
     }
     return '';
 }
 
-/** Message d'indisponibilité — dit explicitement que l'utilisateur n'y est pour rien. */
-function aut_ffta_outage_msg($espace, $code, $inattendu = false) {
-    $fin = "Vos identifiants n'ont pas pu être vérifiés : ce n'est pas une erreur de votre part. "
-         . 'Réessayez dans quelques minutes.';
-    if ($inattendu) {
-        return $espace . " n'a pas renvoyé sa page de connexion habituelle (maintenance en cours, "
-             . 'ou page fédérale modifiée). ' . $fin;
-    }
-    if ($code == 429) {
-        return $espace . ' limite actuellement le nombre de connexions (réponse HTTP 429). ' . $fin;
-    }
+/** Unavailability message — says explicitly that the user has nothing to do with it. */
+function aut_ffta_outage_msg($space, $code, $unexpected = false) {
+    $tail = ' ' . aut_t('SsoNotYourFault');
+    if ($unexpected) return aut_t('SsoNoLoginPage', $space) . $tail;
+    if ($code == 429) return aut_t('SsoRateLimited', $space) . $tail;
     if ($code >= 400) {
-        return $espace . ' ' . ($code == 503 ? 'est en maintenance' : 'est momentanément indisponible')
-             . ' (réponse HTTP ' . $code . '). ' . $fin;
+        return aut_t($code == 503 ? 'SsoMaintenanceHttp' : 'SsoDownHttp', array('space' => $space, 'code' => $code)) . $tail;
     }
-    // Détection par le CONTENU (le site répond 200 mais sert sa page de maintenance) :
-    // afficher « HTTP 200 » ici embrouillerait plus qu'il n'aiderait.
-    return $espace . " affiche une page d'indisponibilité (maintenance en cours). " . $fin;
+    // Detection by CONTENT (the site answers 200 but serves its maintenance page):
+    // showing "HTTP 200" here would confuse more than help.
+    return aut_t('SsoMaintenancePage', $space) . $tail;
 }
 
-/* ---- Mémo d'indisponibilité (bandeau de la page de connexion) -------- *
- * Un seul utilisateur essuie l'échec ; les suivants doivent être prévenus AVANT
- * de saisir leurs identifiants. Mémo volontairement hors du dossier du module
- * (jamais servi par Apache) et hors base (aucune requête ajoutée sur la page de
- * connexion). Illisible ou non écrivable, tout continue de fonctionner.   */
+/* ---- Unavailability memo (banner of the sign-in page) --------------- *
+ * Only one user suffers the failure; the next ones must be warned BEFORE
+ * typing their credentials. Memo deliberately outside the module folder
+ * (never served by Apache) and outside the database (no query added to the
+ * sign-in page). Unreadable or not writable, everything keeps working.  */
 define('AUT_OUTAGE_TTL', 600);
 
 function aut_ffta_outage_file() {
@@ -1894,7 +1868,7 @@ function aut_ffta_outage_clear($space) {
     @file_put_contents(aut_ffta_outage_file(), json_encode($all, JSON_UNESCAPED_UNICODE), LOCK_EX);
 }
 
-/** Mémo encore frais pour cet espace ('dirigeant' / 'licencie'), ou null. */
+/** Memo still fresh for this space ('dirigeant' / 'licencie'), or null. */
 function aut_ffta_outage_recent($space) {
     $m = aut_ffta_outage_all()[$space] ?? null;
     if (!is_array($m) || (time() - intval($m['at'] ?? 0)) > AUT_OUTAGE_TTL) return null;
@@ -1902,14 +1876,13 @@ function aut_ffta_outage_recent($space) {
 }
 
 /**
- * Connexion à l'espace dirigeant (flux repris de l'intégration FR existante :
- * GET login → _token CSRF Laravel → POST identifiants → échec si l'URL finale
- * contient /login). Retourne un handle curl connecté + le HTML de la page
- * d'atterrissage via $landing, ou null ($error renseigné).
+ * Sign-in on the officers' space (flow taken from the existing French integration:
+ * GET login → Laravel _token CSRF → POST credentials → failure when the final URL contains
+ * /login). Returns a signed-in curl handle + the HTML of the landing page through $landing, or
+ * null ($error filled).
  *
- * $errCode qualifie l'échec pour l'appelant : NETWORK, OUTAGE, NO_CSRF,
- * BAD_CREDENTIALS, MFA_NEEDED, MFA_BAD_CODE. Seul BAD_CREDENTIALS est une
- * tentative à compter dans l'anti-bourrage.
+ * $errCode qualifies the failure for the caller: NETWORK, OUTAGE, NO_CSRF, BAD_CREDENTIALS,
+ * MFA_NEEDED, MFA_BAD_CODE. Only BAD_CREDENTIALS is an attempt to count in the anti brute force.
  */
 function aut_ffta_curl_login($username, $password, $otp, &$landing, &$error, &$cookieFileOut = null, &$errCode = null) {
     $error = '';
@@ -1917,7 +1890,7 @@ function aut_ffta_curl_login($username, $password, $otp, &$landing, &$error, &$c
     $landing = '';
     $cookieFile = tempnam(sys_get_temp_dir(), 'aut_ck_');
     @chmod($cookieFile, 0600);
-    $cookieFileOut = $cookieFile;   // exposé pour capter la session Espace Dirigeant
+    $cookieFileOut = $cookieFile;   // exposed to capture the officers' space session
     register_shutdown_function(function () use ($cookieFile) {
         if (file_exists($cookieFile)) @unlink($cookieFile);
     });
@@ -1935,21 +1908,20 @@ function aut_ffta_curl_login($username, $password, $otp, &$landing, &$error, &$c
         CURLOPT_CONNECTTIMEOUT => 10,
     ));
 
-    aut_ffta_debug('--- login ' . $username . ' otp=' . ($otp !== '' ? 'fourni' : 'vide') . ' ---');
+    aut_ffta_debug('--- login ' . $username . ' otp=' . ($otp !== '' ? 'given' : 'empty') . ' ---');
     curl_setopt($ch, CURLOPT_URL, AUT_FFTA_BASE . '/auth/login');
     curl_setopt($ch, CURLOPT_HTTPGET, true);
     $loginPage = curl_exec($ch);
     aut_ffta_debug('GET /auth/login http=' . curl_getinfo($ch, CURLINFO_HTTP_CODE)
         . ' url=' . curl_getinfo($ch, CURLINFO_EFFECTIVE_URL) . ' ' . aut_ffta_debug_page($loginPage));
     if (!$loginPage || curl_errno($ch)) {
-        $error = 'Espace dirigeant injoignable (' . curl_error($ch) . ') — '
-               . 'réseau ou site fédéral hors service. Réessayez dans quelques minutes.';
+        $error = aut_t('SsoUnreachable', curl_error($ch));
         $errCode = 'NETWORK';
         curl_close($ch);
         return null;
     }
     if (($out = aut_ffta_outage($ch, $loginPage, 'login')) !== '') {
-        aut_ffta_debug('=> indisponibilité détectée sur GET /auth/login');
+        aut_ffta_debug('=> unavailability detected on GET /auth/login');
         $error = $out;
         $errCode = 'OUTAGE';
         curl_close($ch);
@@ -1964,9 +1936,9 @@ function aut_ffta_curl_login($username, $password, $otp, &$landing, &$error, &$c
     ) as $p) {
         if (preg_match($p, $loginPage, $m)) { $csrf = $m[1]; break; }
     }
-    aut_ffta_debug('CSRF ' . ($csrf ? 'trouvé' : 'INTROUVABLE'));
+    aut_ffta_debug('CSRF ' . ($csrf ? 'found' : 'NOT FOUND'));
     if (!$csrf) {
-        $error = 'Token CSRF introuvable (page de connexion FFTA modifiée ?)';
+        $error = aut_t('SsoNoCsrf');
         $errCode = 'NO_CSRF';
         curl_close($ch);
         return null;
@@ -1985,81 +1957,78 @@ function aut_ffta_curl_login($username, $password, $otp, &$landing, &$error, &$c
     aut_ffta_debug('POST /auth/login http=' . curl_getinfo($ch, CURLINFO_HTTP_CODE)
         . ' url=' . $effUrl . ' ' . aut_ffta_debug_page($landing));
 
-    // Réponse interrompue : sans ce contrôle, l'URL finale reste /auth/login et
-    // la coupure serait annoncée comme un refus d'identifiants.
+    // Interrupted response: without this check, the final URL stays /auth/login and the cut
+    // would be announced as a credentials refusal.
     if ($landing === false || curl_errno($ch)) {
-        $error = "La connexion à l'espace dirigeant a été interrompue (" . curl_error($ch)
-               . '). Réessayez dans quelques minutes.';
+        $error = aut_t('SsoInterrupted', curl_error($ch));
         $errCode = 'NETWORK';
         curl_close($ch);
         return null;
     }
-    $connecte = (strpos($landing, '/auth/select-structure/') !== false);
-    if (!$connecte && ($out = aut_ffta_outage($ch, $landing)) !== '') {
-        aut_ffta_debug('=> indisponibilité détectée sur POST /auth/login');
+    $signedIn = (strpos($landing, '/auth/select-structure/') !== false);
+    if (!$signedIn && ($out = aut_ffta_outage($ch, $landing)) !== '') {
+        aut_ffta_debug('=> unavailability detected on POST /auth/login');
         $error = $out;
         $errCode = 'OUTAGE';
         curl_close($ch);
         return null;
     }
 
-    // $connecte d'abord : marqueur POSITIF (menu select-structure). L'heuristique
-    // d'URL seule prendrait pour un échec une page d'accueil servie SANS
-    // redirection depuis /auth/login.
-    if (!$connecte && strpos($effUrl, '/login') !== false) {
-        // Retour sur /login SANS formulaire de connexion : Laravel réaffiche le
-        // formulaire quand le mot de passe est refusé — autre chose, ce n'est pas
-        // un refus d'identifiants (page d'erreur, portail captif, maintenance).
+    // $signedIn first: POSITIVE marker (select-structure menu). The URL heuristic alone would
+    // take a home page served WITHOUT redirection from /auth/login for a failure.
+    if (!$signedIn && strpos($effUrl, '/login') !== false) {
+        // Back on /login WITHOUT a sign-in form: Laravel shows the form again when the password is
+        // refused — anything else is not a credentials refusal (error page, captive portal,
+        // maintenance).
         if (!aut_ffta_is_login_page($landing)) {
-            $error = aut_ffta_outage_msg("L'espace dirigeant de la FFTA",
-                intval(curl_getinfo($ch, CURLINFO_HTTP_CODE)), true);
+            $error = aut_ffta_outage_msg(aut_t('SsoSpace'), intval(curl_getinfo($ch, CURLINFO_HTTP_CODE)), true);
             $errCode = 'OUTAGE';
         } else {
-            $error = 'Identifiants espace dirigeant incorrects (ou MFA requise et non renseignée).';
+            $error = aut_t('SsoBadCredentials');
             $errCode = 'BAD_CREDENTIALS';
         }
         curl_close($ch);
         return null;
     }
-    // Page intermédiaire MFA à 2 étapes (Laravel Fortify : /auth/two-factor-challenge)
-    if (!$connecte
+    // Intermediate 2-step MFA page (Laravel Fortify: /auth/two-factor-challenge)
+    if (!$signedIn
         && preg_match('/(two[-_]?factor|deux.?[ée]tapes|double.?authentification|authenticator|otp|2fa)/i', $landing)) {
-        aut_ffta_debug('=> page de défi MFA détectée');
+        aut_ffta_debug('=> MFA challenge page detected');
         if ($otp === '') {
-            $error = 'MFA_NEEDED';        // le code n'a pas été saisi
+            $error = 'MFA_NEEDED';        // the code was not typed
             $errCode = 'MFA_NEEDED';
             curl_close($ch);
             return null;
         }
         $landing = aut_ffta_mfa_second_step($ch, $landing, $otp);
-        $connecte = (strpos($landing, '/auth/select-structure/') !== false);
-        if (!$connecte && ($out = aut_ffta_outage($ch, $landing)) !== '') {
-            aut_ffta_debug('=> indisponibilité détectée après la 2e étape MFA');
+        $signedIn = (strpos($landing, '/auth/select-structure/') !== false);
+        if (!$signedIn && ($out = aut_ffta_outage($ch, $landing)) !== '') {
+            aut_ffta_debug('=> unavailability detected after the 2nd MFA step');
             $error = $out;
             $errCode = 'OUTAGE';
             curl_close($ch);
             return null;
         }
-        // encore la page de défi = code refusé/expiré ; sinon connecté
-        if (!$connecte && preg_match('/two[-_]?factor|deux.?[ée]tapes/i', $landing)) {
-            aut_ffta_debug('=> code MFA refusé (toujours la page de défi)');
+        // still the challenge page = code refused/expired; otherwise signed in
+        if (!$signedIn && preg_match('/two[-_]?factor|deux.?[ée]tapes/i', $landing)) {
+            aut_ffta_debug('=> MFA code refused (still the challenge page)');
             $error = 'MFA_BAD_CODE';
             $errCode = 'MFA_BAD_CODE';
             curl_close($ch);
             return null;
         }
-        aut_ffta_debug('=> seconde étape MFA acceptée');
+        aut_ffta_debug('=> second MFA step accepted');
     }
-    return $ch;   // connecté ; l'appelant DOIT curl_close()
+    return $ch;   // signed in; the caller MUST curl_close()
 }
 
 /**
- * Seconde étape MFA (best-effort, non testé contre la vraie FFTA) : renvoie le
- * code MFA au formulaire de la page de défi, en découvrant dynamiquement son
- * action et le nom du champ. Retourne le HTML de la page résultante.
+ * Second MFA step (best effort, not tested against the real FFTA): sends the MFA code back to
+ * the form of the challenge page, discovering its action and the name of the field on the fly.
+ * Returns the HTML of the resulting page.
  */
 function aut_ffta_mfa_second_step($ch, $page, $otp) {
-    // CSRF frais de la page de défi
+    // fresh CSRF of the challenge page
     $csrf = null;
     foreach (array(
         '/<input[^>]+name=["\']_token["\'][^>]+value=["\']([^"\']+)["\']/',
@@ -2068,13 +2037,13 @@ function aut_ffta_mfa_second_step($ch, $page, $otp) {
     ) as $p) {
         if (preg_match($p, $page, $m)) { $csrf = $m[1]; break; }
     }
-    // action du formulaire (repli sur l'endpoint de login)
+    // form action (falls back to the login endpoint)
     $action = AUT_FFTA_BASE . '/auth/login';
     if (preg_match('#<form[^>]*action=["\']([^"\']+)["\']#i', $page, $m) && $m[1] !== '') {
         $action = (strpos($m[1], 'http') === 0) ? $m[1] : AUT_FFTA_BASE . '/' . ltrim($m[1], '/');
     }
-    // nom du champ code : on PRIVILÉGIE 'code' (Fortify) et on EXCLUT
-    // 'recovery_code' (codes de secours, pas le code de l'application)
+    // name of the code field: 'code' (Fortify) is PREFERRED and 'recovery_code'
+    // (backup codes, not the app's code) EXCLUDED
     $names = array();
     if (preg_match_all('#<input\b[^>]*>#i', $page, $inp)) {
         foreach ($inp[0] as $tag) {
@@ -2093,7 +2062,7 @@ function aut_ffta_mfa_second_step($ch, $page, $otp) {
         }
     }
     if ($field === '') $field = 'code';
-    aut_ffta_debug('MFA step2 action=' . $action . ' champ=' . $field . ' csrf=' . ($csrf ? 'oui' : 'non'));
+    aut_ffta_debug('MFA step2 action=' . $action . ' field=' . $field . ' csrf=' . ($csrf ? 'yes' : 'no'));
 
     $post = array($field => $otp);
     if ($csrf) $post['_token'] = $csrf;
@@ -2110,8 +2079,8 @@ function aut_ffta_mfa_second_step($ch, $page, $otp) {
 }
 
 /**
- * Extrait les structures du menu "select-structure" de l'espace dirigeant.
- * Retour : array de array('id','code','name','roles').
+ * Extracts the structures from the "select-structure" menu of the officers' space.
+ * Returns: array of array('id','code','name','roles').
  */
 function aut_ffta_parse_structures($html) {
     $out = array();
@@ -2120,19 +2089,18 @@ function aut_ffta_parse_structures($html) {
     }
     foreach ($blocks as $b) {
         $s = array('id' => intval($b[1]), 'code' => '', 'name' => '', 'roles' => '');
-        // ⚠️ Le badge n'est PAS toujours numérique : les comités RÉGIONAUX portent
-        // « CR07 » (et non « 0700000 »). Un motif [0-9]+ faisait échouer tout le
-        // preg_match → code ET nom vides → la structure était SILENCIEUSEMENT écartée
-        // plus bas, si bien qu'aucun comité régional ne pouvait obtenir d'accès (bug
-        // réel : un compte Gestionnaire Sportif de ligue ne voyait pas sa vue CR).
-        // aut_ffta_map_structure sait déjà traiter « CR07 » (il n'en garde que les
-        // chiffres) : c'est bien la LECTURE qu'il fallait élargir.
+        // ⚠️ The badge is NOT always numeric: REGIONAL committees carry "CR07" (not "0700000").
+        // A [0-9]+ pattern made the whole preg_match fail → code AND name empty → the structure
+        // was SILENTLY dropped further down, so no regional committee could get access (real
+        // bug: a league's "Gestionnaire Sportif" account did not see its CR view).
+        // aut_ffta_map_structure already handles "CR07" (it only keeps the digits): it is the
+        // READING that had to be widened.
         if (preg_match('#<span class="badge[^"]*"[^>]*>\s*([^<]+?)\s*</span>\s*([^<]+)#', $b[0], $m)) {
             $s['code'] = trim($m[1]);
-            // Extraction par regex sur le HTML brut : une apostrophe dans le nom arrive
-            // encodée en entité (« Tir à l&#039;Arc ») — jamais décodée sans ceci, elle
-            // ressort telle quelle jusque dans la barre (#aut-bar affichait « &#039; »
-            // au lieu de l'apostrophe, bug réel signalé et vérifié).
+            // Extraction by regex on the raw HTML: an apostrophe in the name arrives encoded as an
+            // entity ("Tir à l&#039;Arc") — never decoded without this, it went through as is up
+            // to the bar (#aut-bar showed "&#039;" instead of the apostrophe, real bug reported
+            // and checked).
             $s['name'] = html_entity_decode(trim($m[2]), ENT_QUOTES, 'UTF-8');
         }
         if (preg_match('#<span class="ml-3[^"]*">\s*(.*?)\s*</span>#s', $b[0], $m)) {
@@ -2143,17 +2111,16 @@ function aut_ffta_parse_structures($html) {
     return $out;
 }
 
-/* Rôles espace dirigeant EXIGÉS pour gérer des compétitions ici : les rôles
- * SPORTIFS, « Gestionnaire Sportif » ou « Administrateur Sportif ».
+/* Officers' space roles REQUIRED to manage competitions here: the SPORTS roles,
+ * "Gestionnaire Sportif" or "Administrateur Sportif".
  *
- * ⚠️ Le qualificatif « Sportif » est OBLIGATOIRE dans le motif. L'ancien motif
- * « Gestionnaire|Administrateur » cherchait une sous-chaîne et laissait donc passer
- * « Gestionnaire CLUB », « Administrateur » seul, etc. Ici « Consultant Club »,
- * « Gestionnaire Club » et tous les autres rôles sont refusés, avec un message
- * explicite. Surcharge : config.local.json → "sso": {"required_role_regex": "...",
- * "required_role_label": "..."} (le label n'est qu'un texte d'affichage). */
+ * ⚠️ The "Sportif" qualifier is MANDATORY in the pattern. The old pattern
+ * "Gestionnaire|Administrateur" looked for a substring and so let "Gestionnaire CLUB",
+ * "Administrateur" alone, etc. through. Here "Consultant Club", "Gestionnaire Club" and every
+ * other role are refused, with an explicit message. Override: config.local.json →
+ * "sso": {"required_role_regex": "...", "required_role_label": "..."} (the label is only a text
+ * to show). */
 define('AUT_FFTA_ROLE_REGEX', '(Gestionnaire|Administrateur)\s+Sportif');
-define('AUT_FFTA_ROLE_LABEL', '« Gestionnaire Sportif » ou « Administrateur Sportif »');
 
 function aut_ffta_role_regex() {
     $cfg = aut_local_config()['sso'] ?? array();
@@ -2162,38 +2129,37 @@ function aut_ffta_role_regex() {
 
 function aut_ffta_role_label() {
     $cfg = aut_local_config()['sso'] ?? array();
-    return (string) ($cfg['required_role_label'] ?? AUT_FFTA_ROLE_LABEL);
+    return (string) ($cfg['required_role_label'] ?? aut_t('SsoRolesDefault'));
 }
 
 /**
- * Le libellé de rôles d'une structure donne-t-il le droit de gérer ? Source unique
- * de vérité (utilisée par le mapping ET par le message de refus). Les espaces
- * insécables de la page FFTA sont normalisés : « Gestionnaire<nbsp>Sportif » doit
- * matcher comme une espace ordinaire.
+ * Does the roles label of a structure give the right to manage? Single source of truth (used by
+ * the mapping AND by the refusal message). The non-breaking spaces of the FFTA page are
+ * normalised: "Gestionnaire<nbsp>Sportif" must match as an ordinary space.
  */
 function aut_ffta_role_ok($roles) {
     $required = aut_ffta_role_regex();
-    if ($required === '') return true;                       // filtre désactivé (config)
+    if ($required === '') return true;                       // filter turned off (config)
     $roles = str_replace(array("\xC2\xA0", "\xE2\x80\xAF"), ' ', (string) $roles);
     return (bool) preg_match('/' . str_replace('/', '\/', $required) . '/iu', $roles);
 }
 
 /**
- * Structure espace dirigeant → rôle/périmètre ianseo, ou null si non gérée.
- * Discrimination par le libellé des rôles (les codes CD/CR se ressemblent) :
- *  - « Fédération »            → FED
- *  - « Comité Départemental »  → CD, scope = 2 premiers chiffres (60000 → 60)
- *  - « Comité Régional »       → CR, scope = 2 premiers chiffres
- *  - sinon badge ≥ 5 chiffres  → CLUB, scope = agrément complet
- * La personne doit en outre porter le rôle exigé (aut_ffta_role_ok).
+ * Officers' space structure → ianseo role/scope, or null when not managed.
+ * Told apart by the roles label (the CD/CR codes look alike):
+ *  - "Fédération"            → FED
+ *  - "Comité Départemental"  → CD, scope = first 2 digits (60000 → 60)
+ *  - "Comité Régional"       → CR, scope = first 2 digits
+ *  - otherwise badge ≥ 5 digits → CLUB, scope = full approval number
+ * The person must also hold the required role (aut_ffta_role_ok).
  */
 function aut_ffta_map_structure($st) {
     if (!aut_ffta_role_ok($st['roles'])) {
         return null;
     }
     $hay = $st['roles'] . ' ' . $st['name'];
-    // n° de dept/ligue = 2 premiers chiffres du code (robuste que le badge soit
-    // "60000", "CR07" ou "0700000" — on garde les chiffres, 2A/2B préservés)
+    // dept/league number = first 2 digits of the code (robust whether the badge is
+    // "60000", "CR07" or "0700000" — the digits are kept, 2A/2B preserved)
     $digits = preg_replace('/[^0-9AB]/i', '', strtoupper($st['code']));
     $twoDigits = substr($digits, 0, 2);
     if (preg_match('/F[ée]d[ée]ration/iu', $st['roles']) || $st['code'] === '0') {
@@ -2201,11 +2167,11 @@ function aut_ffta_map_structure($st) {
     }
     if (preg_match('/Comit[ée]\s+D[ée]partemental/iu', $hay)) {
         return array('role' => AUT_ROLE_CD, 'scope' => $twoDigits,
-                     'label' => $st['name'] . ' (dept ' . $twoDigits . ')');
+                     'label' => aut_t('StructDept', array('name' => $st['name'], 'n' => $twoDigits)));
     }
     if (preg_match('/Comit[ée]\s+R[ée]gional/iu', $hay)) {
         return array('role' => AUT_ROLE_CR, 'scope' => $twoDigits,
-                     'label' => $st['name'] . ' (ligue ' . $twoDigits . ')');
+                     'label' => aut_t('StructLeague', array('name' => $st['name'], 'n' => $twoDigits)));
     }
     if (strlen($st['code']) >= 5) {
         return array('role' => AUT_ROLE_CLUB, 'scope' => $st['code'],
@@ -2215,8 +2181,8 @@ function aut_ffta_map_structure($st) {
 }
 
 /**
- * Valide les identifiants sur l'espace dirigeant et retourne les structures
- * ianseo exploitables. true = OK ($structures remplie), false = refus/erreur.
+ * Checks the credentials on the officers' space and returns the usable ianseo structures.
+ * true = OK ($structures filled), false = refusal/error.
  */
 function aut_ffta_verify($username, $password, $otp, &$structures, &$error, &$cookieFileOut = null, &$errCode = null) {
     $structures = array();
@@ -2225,19 +2191,18 @@ function aut_ffta_verify($username, $password, $otp, &$structures, &$error, &$co
     $errCode = '';
     $ch = aut_ffta_curl_login($username, $password, $otp, $landing, $error, $cookieFileOut, $errCode);
     if (!$ch) {
-        // messages MFA lisibles pour l'utilisateur
+        // readable MFA messages for the user
         if ($error === 'MFA_NEEDED') {
-            $error = 'Ce compte utilise la double authentification : saisissez le code à 6 chiffres '
-                   . 'de votre application d\'authentification dans le champ « Code MFA ».';
+            $error = aut_t('SsoMfaNeeded');
         } elseif ($error === 'MFA_BAD_CODE') {
-            $error = 'Code de double authentification incorrect ou expiré. Réessayez avec un code frais.';
+            $error = aut_t('SsoMfaBad');
         }
         return false;
     }
 
     $raw = aut_ffta_parse_structures($landing);
     if (!count($raw)) {
-        // la page d'atterrissage varie (après MFA notamment) : retenter sur l'accueil
+        // the landing page varies (after MFA especially): try again on the home page
         curl_setopt_array($ch, array(CURLOPT_URL => AUT_FFTA_BASE . '/', CURLOPT_HTTPGET => true, CURLOPT_POST => false));
         $home = curl_exec($ch);
         aut_ffta_debug('GET / (retry structures) http=' . curl_getinfo($ch, CURLINFO_HTTP_CODE)
@@ -2249,10 +2214,10 @@ function aut_ffta_verify($username, $password, $otp, &$structures, &$error, &$co
     foreach ($raw as $st) {
         if ($m = aut_ffta_map_structure($st)) $structures[] = $m;
     }
-    aut_ffta_debug('verify: structures brutes=' . count($raw) . ' exploitables=' . count($structures));
+    aut_ffta_debug('verify: raw structures=' . count($raw) . ' usable=' . count($structures));
 
-    // authentification RÉUSSIE même sans structure exploitable : l'appelant
-    // décide (un compte ADMIN garde sa vue admin ; un simple compte est refusé)
+    // authentication SUCCEEDED even without a usable structure: the caller decides
+    // (an ADMIN account keeps its admin view; a mere account is refused)
     if (!count($structures)) {
         $error = aut_ffta_no_structure_reason($raw);
         $errCode = 'NO_STRUCTURE';
@@ -2261,52 +2226,48 @@ function aut_ffta_verify($username, $password, $otp, &$structures, &$error, &$co
 }
 
 /**
- * Message de refus quand aucune structure n'est exploitable. On distingue le cas
- * COURANT — la personne a bien des structures, mais avec un rôle insuffisant
- * (Consultant Club, Gestionnaire Club…) — d'un type de structure non géré ou d'une
- * page illisible : sans cette distinction, l'utilisateur ne sait pas quoi demander.
- * Les libellés viennent de la page FFTA ; ils sont échappés à l'affichage (login.php).
+ * Refusal message when no structure is usable. The COMMON case — the person does have
+ * structures, but with an insufficient role (Consultant Club, Gestionnaire Club…) — is told
+ * apart from an unmanaged type of structure or an unreadable page: without that, the user does
+ * not know what to ask for. The labels come from the FFTA page; they are escaped when shown
+ * (login.php).
  */
 function aut_ffta_no_structure_reason($raw) {
     if (!count($raw)) {
-        return 'Connexion FFTA réussie mais structures introuvables (page espace dirigeant modifiée ?).';
+        return aut_t('SsoNoStructFound');
     }
     $bad = array();
     foreach ($raw as $st) {
-        if (aut_ffta_role_ok($st['roles'] ?? '')) continue;   // rôle OK → c'est le TYPE qui n'est pas géré
+        if (aut_ffta_role_ok($st['roles'] ?? '')) continue;   // role OK → it is the TYPE that is not managed
         $name  = trim((string) ($st['name'] ?? '')) ?: trim((string) ($st['code'] ?? ''));
         $roles = trim((string) ($st['roles'] ?? ''));
         $bad[] = $name . ($roles !== '' ? ' — ' . $roles : '');
     }
     if (!count($bad)) {
-        return 'Aucune de vos structures FFTA n\'est gérée par ce serveur '
-             . '(club, comité départemental, comité régional ou fédération).';
+        return aut_t('SsoNoManagedStruct');
     }
-    return 'La gestion des compétitions sur ce serveur est réservée aux rôles sportifs de '
-         . 'l\'espace dirigeant : ' . aut_ffta_role_label() . '. '
-         . 'Votre compte ne les porte sur aucune structure : '
-         . implode(' ; ', array_slice($bad, 0, 4)) . (count($bad) > 4 ? ' …' : '') . '. '
-         . 'Demandez à l\'administrateur de votre structure de vous attribuer l\'un de ces rôles.';
+    return aut_t('SsoRolesRequired', aut_ffta_role_label()) . ' '
+         . aut_t('SsoRolesNone', implode(' ; ', array_slice($bad, 0, 4)) . (count($bad) > 4 ? ' …' : '')) . ' '
+         . aut_t('SsoRolesAsk');
 }
 
 /**
- * Crée/actualise le compte d'un utilisateur SSO après authentification FFTA :
- * mémorise la liste de ses structures (AuStructs). Pour un compte non admin,
- * AuRole/AuScope = structure de niveau maximum (base de repli). Le rôle ADMIN
- * n'est JAMAIS posé ni retiré ici (octroi explicite uniquement).
- * Retourne l'objet utilisateur ou null ($error renseigné).
+ * Creates/refreshes the account of an SSO user after FFTA authentication: stores the list of
+ * their structures (AuStructs). For a non-admin account, AuRole/AuScope = highest-level
+ * structure (fallback base). The ADMIN role is NEVER set nor removed here (explicit grant only).
+ * Returns the user object or null ($error filled).
  */
 function aut_sso_sync($username, $structures, &$error) {
     $error = '';
     $username = strtolower(trim($username));
     $clean = array();
     foreach ($structures as $st) {
-        if (($st['role'] ?? '') == AUT_ROLE_ADMIN) continue;   // jamais d'admin via SSO
+        if (($st['role'] ?? '') == AUT_ROLE_ADMIN) continue;   // never an admin through SSO
         $clean[] = array('role' => $st['role'], 'scope' => (string)$st['scope'], 'label' => (string)$st['label']);
     }
     $json = json_encode($clean, JSON_UNESCAPED_UNICODE);
 
-    // structure de niveau max (base de repli pour les comptes non admin)
+    // highest-level structure (fallback base for non-admin accounts)
     $best = null;
     foreach ($clean as $st) {
         if (!$best || aut_view_rank($st['role']) > aut_view_rank($best['role'])) $best = $st;
@@ -2314,9 +2275,9 @@ function aut_sso_sync($username, $structures, &$error) {
 
     $u = aut_get_user($username);
     if ($u) {
-        if (!$u->AuActive) { $error = 'Compte désactivé sur ce serveur.'; return null; }
+        if (!$u->AuActive) { $error = aut_t('SsoAccountDisabled'); return null; }
         if ($u->AuPassword !== '') {
-            $error = 'Ce compte est géré localement (connexion par mot de passe local).';
+            $error = aut_t('SsoLocalAccount');
             return null;
         }
         $set = "AuStructs=" . StrSafe_DB($json);
@@ -2326,14 +2287,12 @@ function aut_sso_sync($username, $structures, &$error) {
         safe_w_sql("UPDATE AUT_Users SET $set WHERE AuId={$u->AuId}");
     } else {
         if (!$best) {
-            $error = 'La gestion des compétitions sur ce serveur est réservée aux rôles sportifs de '
-                   . 'l\'espace dirigeant : ' . aut_ffta_role_label()
-                   . '. Aucune de vos structures ne vous les attribue.';
+            $error = aut_t('SsoRolesRequired', aut_ffta_role_label()) . ' ' . aut_t('SsoRolesNoneShort');
             return null;
         }
         safe_w_sql("INSERT INTO AUT_Users (AuUsername, AuPassword, AuRole, AuScope, AuMustChangePwd, AuName, AuStructs)
             VALUES (" . StrSafe_DB($username) . ", '', " . StrSafe_DB($best['role']) . ","
-            . StrSafe_DB($best['scope']) . ", 0, 'SSO espace dirigeant', " . StrSafe_DB($json) . ")");
+            . StrSafe_DB($best['scope']) . ", 0, " . StrSafe_DB(aut_t('SsoAccountName')) . ", " . StrSafe_DB($json) . ")");
         aut_log('SSO_PROVISION', $username);
     }
     return aut_get_user($username);
@@ -2346,17 +2305,17 @@ function aut_sso_sync($username, $structures, &$error) {
 /* ------------------------------------------------------------------ */
 /* Session extranet FFTA (extranet.ffta.fr) — convention inter-modules  */
 /*                                                                      */
-/* L'extranet est une application DISTINCTE de l'espace dirigeant       */
-/* (Kareline/PHPSESSID, sans MFA) : le cookie de l'un n'ouvre rien sur  */
-/* l'autre. Les identifiants étant synchronisés, AUTH ouvre au login    */
-/* une SECONDE session, sur l'extranet, et n'en garde que le cookie.    */
+/* The extranet is an application DISTINCT from the officers' space     */
+/* (Kareline/PHPSESSID, no MFA): the cookie of one opens nothing on the */
+/* other. The credentials being synchronised, AUTH opens at sign-in     */
+/* a SECOND session, on the extranet, and only keeps its cookie.        */
 /*                                                                      */
-/* Convention de session publiée pour les autres modules :              */
-/*   $_SESSION['FFTA_EXTRANET_COOKIE'] = chemin du cookie jar (0600)    */
-/*   $_SESSION['FFTA_EXTRANET_BASE']   = URL de base de l'extranet      */
-/* Les modules consommateurs les utilisent SI elles existent, et gardent*/
-/* leur propre formulaire de connexion en repli (AUTH peut être absent, */
-/* le compte peut être local, la session extranet peut avoir expiré).   */
+/* Session convention published for the other modules:                 */
+/*   $_SESSION['FFTA_EXTRANET_COOKIE'] = path of the cookie jar (0600)  */
+/*   $_SESSION['FFTA_EXTRANET_BASE']   = base URL of the extranet       */
+/* The consuming modules use them WHEN they exist, and keep their own   */
+/* sign-in form as a fallback (AUTH may be missing, the account may be  */
+/* local, the extranet session may have expired).                       */
 /* ------------------------------------------------------------------ */
 
 define('AUT_EXTRANET_BASE', 'https://extranet.ffta.fr');
@@ -2372,8 +2331,8 @@ function aut_extranet_enabled() {
 }
 
 /**
- * Chemin du cookie jar, dérivé du jeton de session (AUTH_Pwd) : il survit donc
- * aux CreateTourSession/EraseTourSession du cœur, qui vident tout le reste.
+ * Path of the cookie jar, derived from the session token (AUTH_Pwd): it therefore survives the
+ * core's CreateTourSession/EraseTourSession, which empty everything else.
  */
 function aut_extranet_cookie_path() {
     $token = (string)($_SESSION['AUTH_Pwd'] ?? '');
@@ -2382,10 +2341,10 @@ function aut_extranet_cookie_path() {
 }
 
 /**
- * Ouvre la session extranet avec les identifiants de l'espace dirigeant.
- * Appelée pendant le login, AVANT que la session ianseo n'existe : le cookie
- * atterrit dans un fichier temporaire que aut_extranet_bind() déplacera.
- * Échec silencieux : l'extranet ne doit jamais bloquer la connexion à ianseo.
+ * Opens the extranet session with the officers' space credentials.
+ * Called during sign-in, BEFORE the ianseo session exists: the cookie lands in a temporary file
+ * that aut_extranet_bind() will move.
+ * Silent failure: the extranet must never block the sign-in to ianseo.
  */
 function aut_extranet_open($username, $password) {
     if (!aut_extranet_enabled()) return false;
@@ -2407,7 +2366,7 @@ function aut_extranet_open($username, $password) {
         CURLOPT_CONNECTTIMEOUT => 8,
     ));
 
-    // GET : dépose le PHPSESSID, puis POST du formulaire d'identification
+    // GET: sets the PHPSESSID, then POST of the identification form
     curl_setopt($ch, CURLOPT_URL, $base . '/');
     curl_setopt($ch, CURLOPT_HTTPGET, true);
     curl_exec($ch);
@@ -2422,7 +2381,7 @@ function aut_extranet_open($username, $password) {
     ));
     $body = curl_exec($ch);
     $fail = curl_errno($ch) || $body === false
-        || strpos((string)$body, 'name="login[identifiant]"') !== false;   // page de login re-servie
+        || strpos((string)$body, 'name="login[identifiant]"') !== false;   // sign-in page served again
     curl_close($ch);
 
     if ($fail) {
@@ -2436,7 +2395,7 @@ function aut_extranet_open($username, $password) {
     return true;
 }
 
-/** Session ianseo ouverte (jeton posé) : le cookie extranet prend son chemin définitif. */
+/** ianseo session open (token set): the extranet cookie takes its final path. */
 function aut_extranet_bind() {
     $tmp = $_SESSION['FFTA_EXTRANET_TMP'] ?? '';
     unset($_SESSION['FFTA_EXTRANET_TMP']);
@@ -2447,7 +2406,7 @@ function aut_extranet_bind() {
     }
 }
 
-/** Publie la convention en session (appelée à chaque requête). */
+/** Publishes the convention in the session (called at every request). */
 function aut_extranet_publish() {
     $path = aut_extranet_cookie_path();
     if ($path !== '' && file_exists($path)) {
@@ -2458,7 +2417,7 @@ function aut_extranet_publish() {
     }
 }
 
-/** Déconnexion ianseo : le cookie extranet est détruit avec la session. */
+/** ianseo sign-out: the extranet cookie is destroyed with the session. */
 function aut_extranet_forget() {
     $path = aut_extranet_cookie_path();
     if ($path !== '' && file_exists($path)) @unlink($path);
@@ -2468,15 +2427,15 @@ function aut_extranet_forget() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Session Espace Dirigeant (dirigeant.ffta.fr) — convention partagée   */
+/* Officers' space session (dirigeant.ffta.fr) — shared convention      */
 /*                                                                      */
-/* Contrairement à l'extranet, on NE relance PAS de login : le login    */
-/* SSO (aut_ffta_curl_login, MFA comprise) ouvre déjà une session       */
-/* Espace Dirigeant. On capture SON cookie (aut_dirigeant_stash) pour    */
-/* le publier — le code MFA étant à usage unique, un second login        */
-/* échouerait. Publie :                                                  */
-/*   $_SESSION['FFTA_DIRIGEANT_COOKIE'] = chemin du cookie jar (0600)    */
-/*   $_SESSION['FFTA_DIRIGEANT_BASE']   = URL de base de l'espace        */
+/* Unlike the extranet, NO new sign-in is made: the SSO sign-in         */
+/* (aut_ffta_curl_login, MFA included) already opens an officers'       */
+/* space session. ITS cookie is captured (aut_dirigeant_stash) to       */
+/* publish it — the MFA code being single-use, a second sign-in         */
+/* would fail. Publishes:                                                */
+/*   $_SESSION['FFTA_DIRIGEANT_COOKIE'] = path of the cookie jar (0600)  */
+/*   $_SESSION['FFTA_DIRIGEANT_BASE']   = base URL of the space          */
 /* ------------------------------------------------------------------ */
 
 define('AUT_DIRIGEANT_BASE', AUT_FFTA_BASE);   // dirigeant.ffta.fr
@@ -2495,9 +2454,9 @@ function aut_dirigeant_cookie_path() {
     return sys_get_temp_dir() . '/ffta_dir_' . hash('sha256', 'dirigeant|' . $token) . '.ck';
 }
 /**
- * Capture le cookie de la session Espace Dirigeant ouverte par le login SSO.
- * Appelée au login (avant la session ianseo) : copie dans un temporaire que
- * aut_dirigeant_bind() déplacera vers le chemin dérivé du jeton.
+ * Captures the cookie of the officers' space session opened by the SSO sign-in.
+ * Called at sign-in (before the ianseo session): copied to a temporary file that
+ * aut_dirigeant_bind() will move to the path derived from the token.
  */
 function aut_dirigeant_stash($cookieFile) {
     if (!aut_dirigeant_enabled() || !$cookieFile || !file_exists($cookieFile)) return;
@@ -2550,7 +2509,7 @@ function aut_csrf_check() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Déploiement des fichiers dist/ vers Modules/Authentication/         */
+/* Deployment of the dist/ files to Modules/Authentication/             */
 /* ------------------------------------------------------------------ */
 
 function aut_dist_files() {
@@ -2584,31 +2543,31 @@ function aut_dist_status() {
 function aut_deploy(&$errors = array()) {
     $dst = aut_auth_dir();
     if (!is_dir($dst) && !@mkdir($dst, 0755, true)) {
-        $errors[] = "Impossible de créer $dst";
+        $errors[] = aut_t('DeployMkdir', $dst);
         return false;
     }
     $ok = true;
     foreach (aut_dist_files() as $f) {
         if (!@copy(aut_dist_dir() . '/' . $f, $dst . '/' . $f)) {
-            $errors[] = "Copie échouée : $f";
+            $errors[] = aut_t('DeployCopy', $f);
             $ok = false;
         }
     }
-    // Pose le filet d'auto-redéploiement (best-effort : ne bloque pas le déploiement).
+    // Sets the self-redeployment safety net (best effort: does not block the deployment).
     $e = '';
-    if (!aut_ensure_selfheal($e)) $errors[] = "Filet auto-redéploiement : $e";
+    if (!aut_ensure_selfheal($e)) $errors[] = aut_t('DeploySelfheal', $e);
     return $ok;
 }
 
 /**
- * Bloc PHP d'AUTO-REDÉPLOIEMENT à écrire dans Common/config.inc.php (fichier local,
- * préservé aux MaJ ianseo, chargé AVANT Common/BlockDefines.php). Si USERAUTH est actif
- * mais que Modules/Authentication/BlockFunction.php a été effacé par une MaJ ianseo, il
- * recopie les hooks depuis dist/ (préservé) → plus d'erreur fatale « fail-closed », plus
- * de redéploiement manuel. Encadré de marqueurs pour une insertion IDEMPOTENTE.
+ * PHP SELF-REDEPLOYMENT block to write into Common/config.inc.php (local file, kept through
+ * ianseo updates, loaded BEFORE Common/BlockDefines.php). When USERAUTH is on but
+ * Modules/Authentication/BlockFunction.php was erased by an ianseo update, it copies the hooks
+ * back from dist/ (kept) → no more "fail-closed" fatal error, no more manual redeployment.
+ * Framed by markers for an IDEMPOTENT insertion.
  */
 function aut_selfheal_block() {
-    return "// === AUTH-SELFHEAL BEGIN (module Custom/AUTH — ne pas éditer à la main) ===\n"
+    return "// === AUTH-SELFHEAL BEGIN (module Custom/AUTH — do not edit by hand) ===\n"
         . "if (!empty(\$CFG->USERAUTH)) {\n"
         . "    \$bkAuthDir  = \$CFG->DOCUMENT_PATH . 'Modules/Authentication';\n"
         . "    \$bkAuthDist = \$CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/dist';\n"
@@ -2623,17 +2582,17 @@ function aut_selfheal_block() {
 }
 
 /**
- * S'assure que le bloc d'auto-redéploiement est présent dans Common/config.inc.php.
- * Idempotent : ne fait rien s'il est déjà là (marqueur AUTH-SELFHEAL). Inséré juste
- * avant la dernière balise de fermeture PHP. Appelé au déploiement et à l'activation.
+ * Makes sure the self-redeployment block is in Common/config.inc.php.
+ * Idempotent: does nothing when already there (AUTH-SELFHEAL marker). Inserted just before the
+ * last PHP closing tag. Called at deployment and at activation.
  */
 function aut_ensure_selfheal(&$error = '') {
     global $CFG;
     $f = $CFG->DOCUMENT_PATH . 'Common/config.inc.php';
-    if (!is_file($f)) { $error = 'Common/config.inc.php introuvable.'; return false; }
+    if (!is_file($f)) { $error = aut_t('CfgMissing'); return false; }
     $c = file_get_contents($f);
-    if ($c === false) { $error = 'Lecture de config.inc.php impossible.'; return false; }
-    if (strpos($c, 'AUTH-SELFHEAL') !== false) return true;   // déjà présent
+    if ($c === false) { $error = aut_t('CfgRead'); return false; }
+    if (strpos($c, 'AUTH-SELFHEAL') !== false) return true;   // already there
 
     $block = aut_selfheal_block();
     $pos = strrpos($c, '?>');
@@ -2643,11 +2602,11 @@ function aut_ensure_selfheal(&$error = '') {
         $c = rtrim($c) . "\n\n" . $block . "\n";
     }
     @copy($f, $f . '.bak');
-    if (@file_put_contents($f, $c) === false) { $error = 'Écriture de config.inc.php impossible.'; return false; }
+    if (@file_put_contents($f, $c) === false) { $error = aut_t('CfgWrite'); return false; }
     return true;
 }
 
-/** État du flag USERAUTH dans Common/config.inc.php : 'on' | 'off' | 'absent' | 'nofile' */
+/** State of the USERAUTH flag in Common/config.inc.php: 'on' | 'off' | 'absent' | 'nofile' */
 function aut_userauth_flag_state() {
     global $CFG;
     $f = $CFG->DOCUMENT_PATH . 'Common/config.inc.php';
@@ -2658,25 +2617,25 @@ function aut_userauth_flag_state() {
 }
 
 /**
- * Active/désactive USERAUTH dans Common/config.inc.php (survit aux MaJ ianseo,
- * contrairement à config.php qui est écrasé). Sauvegarde .bak avant écriture.
+ * Turns USERAUTH on/off in Common/config.inc.php (survives ianseo updates, unlike config.php
+ * which is overwritten). .bak copy before writing.
  */
 function aut_set_userauth($on, &$error = '') {
     global $CFG;
     $f = $CFG->DOCUMENT_PATH . 'Common/config.inc.php';
-    if (!is_file($f)) { $error = 'Common/config.inc.php introuvable.'; return false; }
+    if (!is_file($f)) { $error = aut_t('CfgMissing'); return false; }
     $c = file_get_contents($f);
     $line = '$CFG->USERAUTH = ' . ($on ? 'true' : 'false') . ';';
     if (preg_match('/\$CFG->USERAUTH\s*=\s*(true|false)\s*;/i', $c)) {
         $new = preg_replace('/\$CFG->USERAUTH\s*=\s*(true|false)\s*;/i', $line, $c, 1);
     } elseif (strpos($c, '?>') !== false) {
-        $new = str_replace('?>', "\n// Multi-comptes (module Custom/AUTH)\n$line\n?>", $c);
+        $new = str_replace('?>', "\n// Multi-account hosting (module Custom/AUTH)\n$line\n?>", $c);
     } else {
-        $new = $c . "\n// Multi-comptes (module Custom/AUTH)\n$line\n";
+        $new = $c . "\n// Multi-account hosting (module Custom/AUTH)\n$line\n";
     }
-    if (!@copy($f, $f . '.bak')) { $error = 'Sauvegarde .bak impossible.'; return false; }
-    if (@file_put_contents($f, $new) === false) { $error = 'Écriture de config.inc.php impossible.'; return false; }
-    // À l'activation, poser le filet d'auto-redéploiement (survit aux MaJ ianseo).
+    if (!@copy($f, $f . '.bak')) { $error = aut_t('CfgBak'); return false; }
+    if (@file_put_contents($f, $new) === false) { $error = aut_t('CfgWrite'); return false; }
+    // On activation, set the self-redeployment safety net (survives ianseo updates).
     if ($on) { $e = ''; aut_ensure_selfheal($e); }
     return true;
 }

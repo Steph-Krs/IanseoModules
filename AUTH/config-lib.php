@@ -20,6 +20,8 @@
  *     .json/.bak, which the Apache config shipped with the module denies.
  */
 
+require_once __DIR__ . '/lang-lib.php';
+
 define('AUT_CFG_MASK', '••••••••');
 
 function aut_cfg_file()
@@ -34,11 +36,11 @@ function aut_cfg_read(&$err = '')
     $f = aut_cfg_file();
     if (!is_file($f)) return array();
     $raw = @file_get_contents($f);
-    if ($raw === false) { $err = 'config.local.json illisible par le serveur web.'; return null; }
+    if ($raw === false) { $err = aut_t('ClUnreadable'); return null; }
     $raw = function_exists('aut_json_strip_bom') ? aut_json_strip_bom($raw) : $raw;
     if (trim($raw) === '') return array();
     $d = json_decode($raw, true);
-    if (!is_array($d)) { $err = 'config.local.json n\'est pas un JSON valide : ' . json_last_error_msg(); return null; }
+    if (!is_array($d)) { $err = aut_t('ClBadJson', json_last_error_msg()); return null; }
     return $d;
 }
 
@@ -123,7 +125,7 @@ function aut_cfg_unmask($new, $old)
 function aut_cfg_save($new, &$err, &$changed = array())
 {
     $err = ''; $changed = array();
-    if (!is_array($new)) { $err = 'Contenu invalide.'; return false; }
+    if (!is_array($new)) { $err = aut_t('ClBadContent'); return false; }
     $old = aut_cfg_read($err);
     if ($old === null) return false;
 
@@ -139,13 +141,12 @@ function aut_cfg_save($new, &$err, &$changed = array())
         if (aut_cfg_is_locked($p, $vo) || aut_cfg_is_locked($p, $vn)) $bad[] = $p;
     }
     if ($bad) {
-        $err = 'Ces réglages ne se modifient qu\'en ligne de commande sur le serveur (sécurité) : '
-            . implode(', ', $bad) . '.';
+        $err = aut_t('ClLocked', implode(', ', $bad));
         return false;
     }
 
     if (isset($new['backup'])) {
-        if (!is_array($new['backup'])) { $err = '« backup » doit être un objet.'; return false; }
+        if (!is_array($new['backup'])) { $err = aut_t('ClBackupObject'); return false; }
         require_once __DIR__ . '/backup-lib.php';
         $b = aut_backup_config($new);
         if (($new['backup']['dir'] ?? null) !== ($old['backup']['dir'] ?? null)) {
@@ -153,10 +154,10 @@ function aut_cfg_save($new, &$err, &$changed = array())
             $p = aut_backup_dir_problem($b['dir'], $fix, false);
             // A directory that does not exist yet is accepted (the admin creates it with
             // the command shown); a directory inside the web root never is.
-            if ($p !== '' && $fix === '') { $err = 'Dossier de sauvegarde refusé : ' . $p; return false; }
+            if ($p !== '' && $fix === '') { $err = aut_t('ClDirRefused', $p); return false; }
         }
         if ($b['remote'] !== '' && !aut_backup_remote_valid($b['remote'])) {
-            $err = 'Destination en ligne invalide : format attendu « nom:dossier » (nom défini dans rclone).';
+            $err = aut_t('ClBadRemote');
             return false;
         }
     }
@@ -168,24 +169,23 @@ function aut_cfg_save($new, &$err, &$changed = array())
 
     $f = aut_cfg_file();
     if (is_file($f) && !is_writable($f)) {
-        $err = 'Le serveur web ne peut pas écrire config.local.json. Sur le serveur : '
-            . 'sudo chown www-data:www-data ' . $f . ' && sudo chmod 600 ' . $f;
+        $err = aut_t('ClNotWritable', 'sudo chown www-data:www-data ' . $f . ' && sudo chmod 600 ' . $f);
         return false;
     }
     $json = json_encode($new, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($json === false) { $err = 'Encodage JSON impossible.'; return false; }
+    if ($json === false) { $err = aut_t('ClJsonEncode'); return false; }
 
     // Temporary name ends in .json so Apache denies it too while it exists.
     $tmp = __DIR__ . '/config.local.tmp.json';
     if (@file_put_contents($tmp, $json . "\n", LOCK_EX) === false) {
-        $err = 'Écriture impossible dans ' . __DIR__ . '.';
+        $err = aut_t('ClWriteDir', __DIR__);
         return false;
     }
     @chmod($tmp, 0600);
     if (is_file($f)) { @copy($f, $f . '.bak'); @chmod($f . '.bak', 0600); }
     if (!@rename($tmp, $f)) {
         @unlink($tmp);
-        $err = 'Remplacement de config.local.json impossible.';
+        $err = aut_t('ClReplace');
         return false;
     }
     return true;

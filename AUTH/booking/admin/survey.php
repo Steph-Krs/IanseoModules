@@ -27,10 +27,10 @@ $part = bk_survey_participants($TOUR);
 $bench = bk_survey_server_avg($TOUR);
 $cfgUrl = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php';
 
-/** Average 1-5 → "4,2" and a colour class. */
+/** Average 1-5 → "4.2" (decimal separator of the language) and a colour class. */
 function sv_avg($v)
 {
-    return $v === null ? '—' : number_format($v, 1, ',', '');
+    return $v === null ? '—' : number_format($v, 1, bk_number_seps()['dec'], '');
 }
 function sv_tone($v)
 {
@@ -39,43 +39,39 @@ function sv_tone($v)
 }
 
 $h = '<div id="bksv">';
-$h .= '<h1>Satisfaction des archers</h1>';
+$h .= '<h1>' . bk_e(bk_t('MnuSurvey')) . '</h1>';
 
 // Status of the survey for this competition.
 if ($comp) {
     $st = '';
     if (intval($comp->Level) < 2) {
-        $st = 'Les inscriptions en ligne de cette compétition sont <b>fermées</b> sur ce serveur : aucun questionnaire '
-            . 'n\'est proposé aux archers.';
+        $st = bk_t('SvaClosedComp');
     } elseif (!intval($comp->SurveyOn)) {
-        $st = 'Questionnaire <b>désactivé</b> dans les <a href="' . bk_e($cfgUrl) . '">réglages détaillés</a> de la compétition.';
+        $st = bk_t('SvaOff', bk_e($cfgUrl));
     } elseif (!intval($comp->Started)) {
-        $st = 'Le questionnaire s\'ouvrira le <b>' . bk_e(bk_date_fr($comp->OpenOn)) . '</b>, au lendemain de la compétition, '
-            . 'pour ' . intval(BK_SURVEY_DAYS) . ' jours. Chaque archer classé le trouvera dans son espace licencié.';
+        $st = bk_t('SvaSoon', array('date' => bk_e(bk_date_fr($comp->OpenOn)), 'days' => intval(BK_SURVEY_DAYS)));
     } elseif (!intval($comp->Ended)) {
-        $st = 'Questionnaire <b>ouvert</b> jusqu\'au <b>' . bk_e(bk_date_fr($comp->CloseOn)) . '</b> : chaque archer classé '
-            . 'le trouve dans son espace licencié.';
+        $st = bk_t('SvaOpen', bk_e(bk_date_fr($comp->CloseOn)));
     } else {
-        $st = 'Questionnaire <b>clos</b> depuis le ' . bk_e(bk_date_fr($comp->ClosedOn)) . ' (dernier jour : '
-            . bk_e(bk_date_fr($comp->CloseOn)) . ').';
+        $st = bk_t('SvaClosed', array('since' => bk_e(bk_date_fr($comp->ClosedOn)), 'last' => bk_e(bk_date_fr($comp->CloseOn))));
     }
     $h .= '<div class="sv-status">' . $st . '</div>';
 }
 
 $rate = $part > 0 ? round(100 * $res['answers'] / $part) : 0;
 $h .= '<div class="sv-cards">'
-    . '<div class="sv-kpi"><div class="sv-kv">' . intval($res['answers']) . '</div><div class="sv-kl">Réponses</div></div>'
-    . '<div class="sv-kpi"><div class="sv-kv">' . intval($part) . '</div><div class="sv-kl">Archers classés</div></div>'
-    . '<div class="sv-kpi"><div class="sv-kv">' . $rate . ' %</div><div class="sv-kl">Taux de réponse</div></div>'
+    . '<div class="sv-kpi"><div class="sv-kv">' . intval($res['answers']) . '</div><div class="sv-kl">' . bk_e(bk_t('SvaAnswers')) . '</div></div>'
+    . '<div class="sv-kpi"><div class="sv-kv">' . intval($part) . '</div><div class="sv-kl">' . bk_e(bk_t('SvaRanked')) . '</div></div>'
+    . '<div class="sv-kpi"><div class="sv-kv">' . $rate . ' %</div><div class="sv-kl">' . bk_e(bk_t('SvaRate')) . '</div></div>'
     . '</div>';
 
 if ($res['answers'] === 0) {
-    $h .= '<p class="sv-empty">Aucune réponse pour l\'instant.</p>';
+    $h .= '<p class="sv-empty">' . bk_e(bk_t('SvaNone')) . '</p>';
 } else {
-    $h .= '<p class="sv-legend">Note moyenne sur 5, puis la répartition des notes : '
+    $h .= '<p class="sv-legend">' . bk_e(bk_t('SvaLegend')) . ' '
         . '<span class="sv-sw sv-c1"></span>1 <span class="sv-sw sv-c2"></span>2 <span class="sv-sw sv-c3"></span>3 '
         . '<span class="sv-sw sv-c4"></span>4 <span class="sv-sw sv-c5"></span>5'
-        . ($bench['comps'] > 0 ? ' — et la moyenne des ' . intval($bench['comps']) . ' autre(s) compétition(s) du serveur ayant des réponses.' : '.')
+        . ($bench['comps'] > 0 ? ' — ' . bk_e(bk_t('SvaBench', intval($bench['comps']))) : '.')
         . '</p>';
     $n = 0;
     foreach (bk_survey_questions() as $sec) {
@@ -85,7 +81,7 @@ if ($res['answers'] === 0) {
             $q = $res['q'][$it['col']];
             $h .= '<div class="sv-row"><div class="sv-lab">' . bk_e($it['label'])
                 . (!empty($it['hint']) ? '<span>' . bk_e($it['hint']) . '</span>' : '')
-                . (!empty($it['low']) ? '<span>1 = « ' . bk_e($it['low']) . ' », 5 = « Excellent »</span>' : '') . '</div>'
+                . (!empty($it['low']) ? '<span>' . bk_e(bk_t('SvaScale', $it['low'])) . '</span>' : '') . '</div>'
                 . '<div class="sv-avg ' . sv_tone($q['avg']) . '">' . sv_avg($q['avg']) . '<small>/5</small></div>'
                 . '<div class="sv-dist">';
             if ($q['n'] > 0) {
@@ -100,8 +96,8 @@ if ($res['answers'] === 0) {
                 $h .= '</div>';
             }
             $b = $bench['avg'][$it['col']] ?? null;
-            $h .= '<div class="sv-sub">' . intval($q['n']) . ' réponse' . ($q['n'] > 1 ? 's' : '')
-                . ($b !== null ? ' · autres compétitions : <b>' . sv_avg($b) . '</b>' : '') . '</div>'
+            $h .= '<div class="sv-sub">' . bk_e(bk_t($q['n'] > 1 ? 'SvaNAnswers' : 'SvaNAnswer', intval($q['n'])))
+                . ($b !== null ? ' · ' . bk_e(bk_t('SvaOthers')) . ' <b>' . sv_avg($b) . '</b>' : '') . '</div>'
                 . '</div></div>';
         }
         $h .= '</div>';
@@ -113,11 +109,11 @@ if ($res['answers'] === 0) {
             $h .= '</div>';
         }
     }
-    $h .= '<p class="sv-note">Résultats anonymes : rien sur cette page ne permet de savoir qui a répondu quoi.</p>';
+    $h .= '<p class="sv-note">' . bk_e(bk_t('SvaAnon')) . '</p>';
 }
 $h .= '</div>';
 
-$PAGE_TITLE = 'Satisfaction des archers';
+$PAGE_TITLE = bk_t('MnuSurvey');
 include('Common/Templates/head.php');
 ?>
 <style>

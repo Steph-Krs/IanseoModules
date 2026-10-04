@@ -1,10 +1,10 @@
 <?php
 /**
- * legal.php — pages légales publiques (mentions légales, CGU, confidentialité, cookies).
+ * legal.php — public legal pages (legal notice, terms of use, privacy, cookies).
  *
- * Page AUTONOME accessible ANONYMEMENT ($SKIP_AUTH avant config.php → le bootstrap
- * organisateur ne tourne pas, pas de redirection vers la connexion). Le contenu est
- * généré depuis les informations de l'exploitant (admin/legal.php → legal.local.json).
+ * STANDALONE page reachable ANONYMOUSLY ($SKIP_AUTH before config.php → the organiser
+ * bootstrap does not run, no redirection to the sign-in). The content is generated from the
+ * operator's information (admin/legal.php → legal.local.json).
  */
 $SKIP_AUTH = 1;
 define('HTDOCS', dirname(__DIR__, 3));
@@ -19,13 +19,15 @@ $docs = aut_legal_docs();
 $title = $docs[$doc][0];
 $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };
 $root = $CFG->ROOT_DIR;
-?><!DOCTYPE html>
-<html lang="fr">
+echo '<!DOCTYPE html>
+<html lang="' . $e(aut_lang_code()) . '">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title><?= $e($title) ?></title>
+<title>' . $e($title) . '</title>
+';
+?>
 <style>
 :root { --blue:#0254a8; --blued:#01367c; }
 * { box-sizing:border-box; }
@@ -52,27 +54,18 @@ body { margin:0; font-family:Verdana,Arial,sans-serif; background:#eef2f6; color
     font-size:13px; color:#8b1a6a; }
 @media print { body { background:#fff; } .lg-tabs, .lg-back { display:none; } .lg-card { border:0; box-shadow:none; padding:0; } }
 </style>
-</head>
-<body>
-<div class="lg-wrap">
-  <div class="lg-head"><h1><?= $e($title) ?></h1></div>
-
-  <?php if (!aut_legal_configured()): ?>
-    <p class="lg-warn">⚠️ L'exploitant de ce serveur n'a pas encore renseigné ses informations légales.
-       Les textes ci-dessous sont incomplets tant que cette configuration n'est pas faite.</p>
-  <?php endif; ?>
-
-  <nav class="lg-tabs">
-    <?php foreach ($docs as $k => $d): ?>
-      <a class="<?= $k === $doc ? 'on' : '' ?>" href="<?= $e($root) ?>Modules/Custom/AUTH/legal.php?doc=<?= $e($d[1]) ?>"><?= $e($d[0]) ?></a>
-    <?php endforeach; ?>
-  </nav>
-
-  <div class="lg-card">
-    <?= aut_legal_render($doc) ?>
-  </div>
-
-  <a class="lg-back" href="<?= $e($root) ?>Modules/Custom/AUTH/login.php">← Retour à la connexion</a>
-</div>
-</body>
-</html>
+<?php
+echo "</head>\n<body>\n"
+    . '<div class="lg-wrap">' . "\n"
+    . '<div class="lg-head"><h1>' . $e($title) . "</h1></div>\n";
+if (!aut_legal_configured()) {
+    echo '<p class="lg-warn">⚠️ ' . $e(aut_t('LgNotConfigured')) . "</p>\n";
+}
+echo '<nav class="lg-tabs">';
+foreach ($docs as $k => $d) {
+    echo '<a class="' . ($k === $doc ? 'on' : '') . '" href="' . $e($root) . 'Modules/Custom/AUTH/legal.php?doc=' . $e($d[1]) . '">' . $e($d[0]) . '</a>';
+}
+echo "</nav>\n"
+    . '<div class="lg-card">' . aut_legal_render($doc) . "</div>\n"
+    . '<a class="lg-back" href="' . $e($root) . 'Modules/Custom/AUTH/login.php">← ' . $e(aut_t('LgBackLogin')) . "</a>\n"
+    . "</div>\n</body>\n</html>\n";

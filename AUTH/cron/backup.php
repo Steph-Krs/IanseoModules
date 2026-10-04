@@ -20,7 +20,7 @@
 
 if (php_sapi_name() !== 'cli') {
     http_response_code(403);
-    die('Script cron : exécution en ligne de commande uniquement.');
+    die('Cron script: command line only.');
 }
 
 $SKIP_AUTH = 1;
@@ -38,7 +38,7 @@ $mode = 'all';
 foreach (array('local', 'upload', 'live') as $m) if (in_array('--' . $m, $args, true)) $mode = $m;
 
 if (!aut_backup_config()['enabled']) {
-    $say('Sauvegarde désactivée (config.local.json → backup.enabled).');
+    $say('Backup turned off (config.local.json → backup.enabled).');
     exit(3);
 }
 

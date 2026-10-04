@@ -1,97 +1,96 @@
-# Inscriptions en ligne
+# Online registration
 
-Module pour [I@nseo](https://www.ianseo.net/), le logiciel de gestion de compétitions de tir à
-l'arc.
+A module for [I@nseo](https://www.ianseo.net/), the archery competition management software.
 
-Ouvre les inscriptions aux archers eux-mêmes : chaque licencié se connecte avec les identifiants
-de son espace licencié fédéral, consulte le calendrier des compétitions ouvertes et s'inscrit en
-quelques clics. Pensé pour les serveurs ianseo accessibles en ligne.
+Opens the registrations to the archers themselves: each licensee signs in with the credentials
+of their federation licensee space, looks at the calendar of the open competitions and registers
+in a few clicks. Designed for ianseo servers reachable online.
 
-## Fonctionnalités
+## Features
 
-### Pour l'archer
+### For the archer
 
-- 👤 **Connexion sans nouveau mot de passe** : les identifiants de l'espace licencié fédéral
-  sont transmis à la fédération, qui seule les vérifie. **Aucun mot de passe n'est conservé par
-  ce site.** Double authentification prise en charge. Le compte est créé automatiquement à la
-  première connexion.
-- 📅 **Calendrier** des compétitions ouvertes aux inscriptions : filtres (nom, lieu, dates,
-  type) et places restantes par départ.
-- 📝 **Inscription en quelques clics** : nom, club et date de naissance repris du fichier des
-  licences ; armes, catégories, blasons et départs proposés d'après la configuration de la
-  compétition.
-- 🙋 **Souhaits pris en compte automatiquement** : position sur la cible et « sur la même cible
-  que » (parmi les archers de son club déjà inscrits). Le placement se recalcule à chaque
-  inscription pour satisfaire le maximum de demandes, sans jamais enfreindre le règlement ni les
-  contraintes d'affectation du terrain.
-- ➕ **Plusieurs départs possibles** : avec la même arme, seule la première inscription compte
-  pour les épreuves, les suivantes sont des tirs supplémentaires ; une arme différente ouvre sa
-  propre épreuve.
-- 📋 **Mes inscriptions** : consultation, annulation tant que les inscriptions sont ouvertes,
-  cible attribuée si l'organisateur l'a autorisé.
-- 🖨️ **Feuille de marque individuelle** imprimable, au format réel de l'épreuve (volées,
-  flèches, distances et blason lus dans ianseo) — si l'organisateur active l'option.
-- 🧾 **Reçu** par archer, ou groupé pour tout un club.
+- 👤 **Sign-in without a new password**: the credentials of the federation licensee space are
+  passed on to the federation, which alone checks them. **No password is kept by this site.**
+  Two-factor authentication supported. The account is created automatically at the first
+  sign-in.
+- 📅 **Calendar** of the competitions open for registration: filters (name, place, dates,
+  type) and places left per session.
+- 📝 **Registration in a few clicks**: name, club and date of birth taken from the licence
+  file; bows, categories, target faces and sessions offered from the configuration of the
+  competition.
+- 🙋 **Wishes taken into account automatically**: position on the target and "on the same
+  target as" (among the archers of their club already registered). The placement is computed
+  again at each registration to meet as many requests as possible, without ever breaking the
+  rules nor the field assignment constraints.
+- ➕ **Several sessions possible**: with the same bow, only the first registration counts for
+  the events, the next ones are extra shoots; a different bow opens its own event.
+- 📋 **My registrations**: viewing, cancelling while the registrations are open, target
+  assigned when the organiser allowed it.
+- 🖨️ **Individual scorecard** to print, in the real format of the event (ends, arrows,
+  distances and target face read from ianseo) — when the organiser turns the option on.
+- 🧾 **Receipt** per archer, or grouped for a whole club.
 
-### Pour l'organisateur
+### For the organiser
 
-Tout se trouve dans le menu **Modules › Inscriptions en ligne**, compétition ouverte.
+Everything is in the **Modules › Online registration** menu, with the competition open.
 
-- ⚙️ **Ouvrir / configurer les inscriptions** : période d'ouverture, restriction aux archers
-  d'un département ou d'une région avec **ouverture différée à tous**, tarif, et ce que les
-  archers ont le droit de voir.
-- 🏹 **Contraintes d'affectation du terrain** : éditeur graphique des possibilités de chaque cible, départ par
-  départ. Chaque cible est une **boîte verticale** sur un axe de distances partagé : on y règle
-  la distance mini, maxi et par défaut en glissant les poignées. Les blasons autorisés se
-  glissent depuis la palette. Sélection multiple au clic-glissé pour traiter une rangée d'un
-  coup, copie d'un départ à l'autre, et curseur de taille pour afficher 50 à 70 cibles d'un
-  seul coup d'œil. Une cible sans réglage accepte tout. (« Plan du terrain » désigne le plan de
-  cibles visuel du module DragDropTarget.)
-- 🎯 **Attribution des cibles** : placement automatique respectant les contraintes d'affectation du terrain, avec
-  brassage des clubs, plan des cibles, et **contrôle du règlement** — archers d'un même club par
-  cible, clubs différents par départ, doublons sur un même départ, archers non placés.
-- 🏛️ **Gestionnaires de club** : un licencié désigné peut inscrire les archers de son club (ou
-  de son département / sa région). Fonctionne avec un module de comptes comme sans.
+- ⚙️ **Open / configure the registrations**: opening period, restriction to the archers of a
+  department or a region with a **later opening to everyone**, fee, and what the archers are
+  allowed to see.
+- 🏹 **Field assignment constraints**: graphical editor of what each target allows, session by
+  session. Each target is a **vertical box** on a shared distance axis: the minimum, maximum and
+  default distance are set by dragging the handles. The allowed target faces are dragged from
+  the palette. Multiple selection by click-and-drag to handle a row at once, copy from one
+  session to another, and a size slider to show 50 to 70 targets at a glance. A target without
+  settings accepts everything. ("Field plan" means the visual target plan of the DragDropTarget
+  module.)
+- 🎯 **Target assignment**: automatic placement following the field assignment constraints,
+  with clubs mixed, target plan, and **rule checks** — archers of the same club per target,
+  different clubs per session, duplicates on a same session, archers not placed.
+- 🏛️ **Club managers**: a designated licensee can register the archers of their club (or of
+  their department / region). Works with an accounts module as well as without.
 
-## Base de données
+## Database
 
-Tables créées automatiquement, toutes préfixées `BK_` : `BK_Archers` (comptes licenciés),
-`BK_Sessions`, `BK_Log` (journal et limitation des tentatives), `BK_Competitions` (ouverture des
-inscriptions), `BK_Registrations` (traçabilité), `BK_ClubManagers`.
+Tables created automatically, all prefixed `BK_`: `BK_Archers` (licensee accounts),
+`BK_Sessions`, `BK_Log` (log and rate limiting), `BK_Competitions` (opening of the
+registrations), `BK_Registrations` (traceability), `BK_ClubManagers`.
 
-Les inscriptions elles-mêmes sont écrites dans les tables **de ianseo** (participants et cibles),
-exactement comme une saisie manuelle : elles apparaissent normalement dans tous les écrans et
-exports du logiciel.
+The registrations themselves are written into the **ianseo** tables (participants and targets),
+exactly like a manual entry: they show normally in every screen and export of the software.
 
-La configuration du terrain n'est **pas** redemandée : le module lit celle déjà saisie dans
-ianseo (départs, nombre de cibles, distances, blasons, rythme de tir).
+The field configuration is **not** asked again: the module reads the one already entered in
+ianseo (sessions, number of targets, distances, target faces, shooting rhythm).
 
-## Connexion des archers
+## Archers' sign-in
 
-Les archers utilisent les **identifiants de leur espace licencié fédéral** (l'identifiant peut
-être un numéro de licence ou un identifiant nominatif). Un mot de passe oublié se récupère
-auprès de la fédération.
+The archers use the **credentials of their federation licensee space** (the identifier may be a
+licence number or a personal identifier). A forgotten password is recovered with the
+federation.
 
-Le numéro de licence est ensuite lu sur l'espace licencié lui-même — jamais demandé à l'archer —
-afin que chaque compte soit rattaché au bon licencié.
+The licence number is then read on the licensee space itself — never asked of the archer — so
+that each account is tied to the right licensee.
 
-Réglages facultatifs dans `config.local.json` (non versionné) :
+Optional settings in `config.local.json` (not versioned):
 
 ```json
 { "sso": { "enabled": true, "base": "https://monespace.ffta.fr", "debug": false } }
 ```
 
-## Accès
+## Access
 
-- **Espace licencié** (archers) : `Modules/Custom/AUTH/booking/public/` — accessible sans compte
-  organisateur. Communiquez ce lien à vos licenciés ; il est rappelé sur la page d'ouverture
-  des inscriptions.
-- **Tous les écrans organisateur** : menu **Modules › Inscriptions en ligne**. L'ouverture des
-  inscriptions et l'attribution des cibles n'apparaissent que lorsqu'une compétition est
-  ouverte ; les gestionnaires de club et la mise à jour sont réservés à l'administrateur.
+- **Licensee space** (archers): `Modules/Custom/AUTH/booking/public/` — reachable without an
+  organiser account. Give this link to your licensees; it is shown again on the page that opens
+  the registrations.
+- **Every organiser screen**: **Modules › Online registration** menu. Opening the registrations
+  and the target assignment only appear when a competition is open; the club managers and the
+  update are reserved to the administrator.
 
-## Installation, mise à jour, désinstallation
+## Installation, update, uninstallation
 
-Voir le [README général](../README.md). En résumé : copier le dossier `BOOKING/` et `_shared/`
-dans `Modules/Custom/` (ou `install.sh` / `install.ps1`). Mises à jour et désinstallation depuis
-ianseo : menu **Modules › Inscriptions en ligne › Mise à jour**.
+See the [general README](../README.md). In short: copy the `BOOKING/` and `_shared/` folders into
+`Modules/Custom/` (or `install.sh` / `install.ps1`). Updates and uninstallation from ianseo:
+**Modules › Online registration › Update** menu.
+
+French version: [README_BOOKING_FR.md](README_BOOKING_FR.md).

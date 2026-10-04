@@ -1,10 +1,10 @@
 <?php
 /**
- * admin/competition.php — ouverture des inscriptions pour la compétition
- * actuellement ouverte dans ianseo.
+ * admin/competition.php — opening of the online registration for the competition currently
+ * open in ianseo.
  *
- * Page ORGANISATEUR : contrairement à public/, elle s'insère dans l'habillage
- * ianseo et suit les ACL du cœur.
+ * ORGANISER page: unlike public/, it sits in the ianseo look and follows the core's ACL. Markup
+ * produced in PHP; the two scripts at the end get their texts from the page.
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -14,33 +14,35 @@ checkFullACL(AclParticipants, 'pEntries', AclReadWrite);
 
 require_once dirname(__DIR__) . '/lib/schema.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
-require_once dirname(__DIR__) . '/lib/pricing.php';  // tarification avancée
-require_once dirname(__DIR__) . '/lib/payment.php';  // moyens de paiement
+require_once dirname(__DIR__) . '/lib/pricing.php';  // advanced tariff
+require_once dirname(__DIR__) . '/lib/payment.php';  // means of payment
 require_once dirname(__DIR__) . '/lib/mandate.php';  // bk_mandate_visible
 require_once dirname(__DIR__) . '/lib/targets.php';  // bk_rules_check
 require_once dirname(__DIR__) . '/lib/archer.php';   // bk_csrf_*
-require_once dirname(__DIR__) . '/lib/adopt.php';    // bk_adopt_check (persistance réimport)
+require_once dirname(__DIR__) . '/lib/adopt.php';    // bk_adopt_check (kept across a re-import)
 require_once dirname(__DIR__) . '/lib/ui.php';       // bk_e
-require_once dirname(__DIR__) . '/lib/waitlist.php'; // liste d'attente
+require_once dirname(__DIR__) . '/lib/waitlist.php'; // waiting list
 
 bk_schema();
 
 $TOUR = intval($_SESSION['TourId']);
 $msg  = '';
 $err  = '';
+bk_money_tour($TOUR);   // amounts of this page in the competition's currency
+$SELF = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php';
+$ADMIN = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/';
 
-// Publication sur ianseo.net : Tournament.ToOnlineId n'est renseigné qu'au moment où les
-// codes de publication sont obtenus ET validés pour CETTE compétition (cœur ianseo,
-// Common/Lib/CommonLib.php → CheckCredentials). C'est exactement ce qui fait disparaître
-// le bloc « demander les codes » de Tournament/SetCredentials.php. Sans code, il n'existe
-// aucune fiche ianseo.net : inutile de proposer d'en coller le lien.
+// Publication on ianseo.net: Tournament.ToOnlineId is only set once the publication codes are
+// obtained AND validated for THIS competition (ianseo core, Common/Lib/CommonLib.php →
+// CheckCredentials). That is exactly what removes the "ask for the codes" block of
+// Tournament/SetCredentials.php. Without codes there is no ianseo.net page: no use offering
+// to paste its link.
 $rOnline  = safe_fetch(safe_r_sql("SELECT ToOnlineId FROM Tournament WHERE ToId = $TOUR"));
 $onlineId = $rOnline ? intval($rOnline->ToOnlineId) : 0;
 
-// Persistance à travers un réimport : si cette compétition est une version plus
-// récente d'une compétition déjà suivie par booking (même ToCode, ToId différent),
-// on rapatrie automatiquement config, paiements, boutique et inscriptions. Ne fait
-// rien (un SELECT indexé) hors de ce cas. Voir lib/adopt.php.
+// Kept across a re-import: when this competition is a newer version of one already followed
+// by booking (same ToCode, different ToId), settings, payments, shop and registrations are
+// brought back automatically. Does nothing (one indexed SELECT) otherwise. See lib/adopt.php.
 $adoptReport = bk_adopt_check($TOUR);
 
 /**
@@ -79,60 +81,60 @@ function bk_adm_pricing_from_post($post)
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
-        $err = 'Session expirée — rechargez la page et réessayez.';
+        $err = bk_t('SessionExpired');
     } elseif (isset($_POST['copy_from'])) {
-        // « Copier depuis… » : reprendre la configuration d'une autre compétition accessible.
+        // "Copy from…": take the settings of another competition the user can reach.
         $srcId = bk_copy_is_admin()
             ? bk_copy_resolve($_POST['copy_src_text'] ?? '', $TOUR)
             : intval($_POST['copy_src'] ?? 0);
-        // Non-admin : la source doit être ré-vérifiée accessible (la liste affichée ne fait pas foi).
+        // Not an admin: the source is checked again (the list shown is not proof).
         if (!bk_copy_is_admin() && $srcId > 0) {
             $chk = safe_fetch(safe_r_sql("SELECT t.ToId FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament
                 WHERE t.ToId = $srcId AND t.ToId <> $TOUR AND " . bk_copy_access_where('t')));
             if (!$chk) $srcId = 0;
         }
         if ($srcId <= 0) {
-            $err = 'Compétition source introuvable ou non accessible.';
+            $err = bk_t('AcCopyNoSrc');
         } elseif (bk_comp_copy_from($TOUR, $srcId)) {
-            header('Location: ' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php?copied=1');
+            header('Location: ' . $SELF . '?copied=1');
             exit;
         } else {
-            $err = "La copie a échoué : la compétition source n'a pas de configuration d'inscription en ligne.";
+            $err = bk_t('AcCopyFailed');
         }
     } elseif (isset($_POST['set_level'])) {
-        // Barre à 3 niveaux : applique la transition (snapshot / auto / restore) puis
-        // recharge la page (PRG) pour afficher l'UI du niveau choisi.
+        // 3-level bar: applies the transition (snapshot / automatic / restore), then reloads the
+        // page (PRG) to show the chosen level.
         bk_comp_set_level($TOUR, intval($_POST['set_level']));
-        header('Location: ' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php');
+        header('Location: ' . $SELF);
         exit;
     } elseif (isset($_POST['wait_action'])) {
         // Waiting list, by hand: register now (even on a full departure) or remove.
         $wid = intval($_POST['w'] ?? 0);
         if ($_POST['wait_action'] === 'register') {
             $r = bk_waitlist_register_now($TOUR, $wid, intval($_POST['wait_session'] ?? 0));
-            if (!empty($r['ok'])) $msg = "Archer inscrit depuis la liste d'attente.";
+            if (!empty($r['ok'])) $msg = bk_t('AcWaitRegistered');
             else $err = $r['msg'];
         } elseif ($_POST['wait_action'] === 'remove') {
             bk_waitlist_remove($TOUR, $wid);
-            $msg = "Archer retiré de la liste d'attente.";
+            $msg = bk_t('AcWaitRemoved');
         }
     } elseif (isset($_POST['save_fee'])) {
-        // Niveau 2 « publication simple » : tarif de base seul (sans la modulation avancée).
+        // Level 2 "simple publication": base fee only (without the advanced modulation).
         $fee = number_format((float) str_replace(',', '.', (string) ($_POST['fee'] ?? 0)), 2, '.', '');
         safe_w_sql("UPDATE BK_Competitions SET BcFee = " . StrSafe_DB($fee) . " WHERE BcTournament = $TOUR");
-        $msg = 'Tarif d\'inscription enregistré.';
+        $msg = bk_t('AcFeeSaved');
     } elseif (isset($_POST['set_payments'])) {
         // Closed competition: use the payments and the shop (or stop showing them).
         safe_w_sql("INSERT INTO BK_Competitions (BcTournament, BcPayments) VALUES ($TOUR, " . (empty($_POST['payments']) ? 0 : 1) . ")
             ON DUPLICATE KEY UPDATE BcPayments = VALUES(BcPayments)");
-        header('Location: ' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php');
+        header('Location: ' . $SELF);
         exit;
     } elseif (isset($_POST['save_payments'])) {
         // Closed competition using the payments: tariffs and payment methods only. Nothing
         // here opens the competition to the archers.
         $cur = bk_comp_config($TOUR);
         if (intval($cur->BcPublishLevel ?? 1) !== 1 || empty($cur->BcPayments)) {
-            $err = 'La gestion des paiements n\'est pas activée pour cette compétition — rechargez la page.';
+            $err = bk_t('AcPayOffReload');
         } else {
             $pricingJson = bk_adm_pricing_from_post($_POST);
             $payJson = bk_payinfo_from_post($_POST['pay'] ?? array());
@@ -141,7 +143,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 'BcPricing' => $pricingJson === '' ? null : $pricingJson,
                 'BcPayInfo' => $payJson === '' ? null : $payJson,
             ));
-            $msg = 'Tarifs et moyens de paiement enregistrés.';
+            $msg = bk_t('AcTariffsSaved');
         }
     } else {
         $kind = (string) ($_POST['kind'] ?? '');
@@ -150,10 +152,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         if ($err === '') {
             $pricingJson = bk_adm_pricing_from_post($_POST);
 
-            // Règles de placement : valeurs FFTA, modifiables seulement en DROM-TOM.
+            // Placement rules: federation values, editable only overseas.
             $isDromPost = bk_is_dromtom(bk_org_agrement($TOUR));
             $save = array(
-                'open'        => 1,   // niveau 3 = publié (la barre pilote la publication)
+                'open'        => 1,   // level 3 = published (the bar drives the publication)
                 'from'        => $_POST['from'] ?? '',
                 'to'          => $_POST['to'] ?? '',
                 'kind'        => $kind,
@@ -177,15 +179,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 'show_results'      => !empty($_POST['show_results']),
                 'show_dossard'      => !empty($_POST['show_dossard']),
             );
-            // Visibilité du mandat : n'écrire la valeur que si la case était présente
-            // (elle ne l'est que lorsqu'un mandat existe) — préserve le tri-état.
+            // Mandate visibility: written only when the box was there (it only is when a mandate
+            // exists) — keeps the three states.
             if (!empty($_POST['show_mandate_present'])) {
                 $save['show_mandate'] = !empty($_POST['show_mandate']);
             }
-            // Idem pour le lien ianseo.net : la case n'est présentée que si la compétition
-            // a ses codes de publication. Sans ce garde-fou, tout enregistrement fait case
-            // absente effacerait le lien. L'ADRESSE, elle, n'est jamais postée : elle est
-            // reconstruite depuis ToOnlineId par bk_comp_save().
+            // Same for the ianseo.net link: the box is only shown when the competition has its
+            // publication codes. Without this guard, every save made without the box would erase
+            // the link. The ADDRESS itself is never posted: bk_comp_save() rebuilds it from
+            // ToOnlineId.
             if (!empty($_POST['ianseo_present'])) {
                 $save['ianseo_present'] = 1;
                 $save['show_ianseo'] = !empty($_POST['show_ianseo']);
@@ -200,24 +202,24 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             }
             bk_comp_save($TOUR, $save);
             safe_w_sql("UPDATE BK_Competitions SET BcPublishLevel = 3 WHERE BcTournament = $TOUR");
-            $msg = 'Configuration enregistrée.';
+            $msg = bk_t('AcSaved');
         }
     }
 }
 
-/* Enregistrement automatique : même POST, même validation, mais on renvoie l'état au
-   lieu de la page. Volontairement PAS JsonOut() — il pose « Access-Control-Allow-Origin: * »,
-   inutile ici (appel de même origine) sur une page d'administration. */
+/* Autosave: same POST, same validation, but the state is returned instead of the page. On
+   purpose NOT JsonOut() — it sets "Access-Control-Allow-Origin: *", useless here (same-origin
+   call) on an administration page. */
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && !empty($_POST['ajax'])) {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(array(
         'ok'  => ($err === ''),
-        'msg' => ($err !== '' ? $err : ($msg !== '' ? $msg : 'Enregistré')),
+        'msg' => ($err !== '' ? $err : ($msg !== '' ? $msg : bk_t('AcSavedShort'))),
     ), JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-if (isset($_GET['copied'])) $msg = 'Configuration reprise depuis l\'autre compétition. Vérifiez les dates et les contraintes du terrain.';
+if (isset($_GET['copied'])) $msg = bk_t('AcCopied');
 
 // Places freed in ianseo's own screens (a participant deleted, targets added) go to the
 // waiting list as soon as the organiser comes back here; the cron catches the rest.
@@ -226,17 +228,17 @@ $waitList = bk_waitlist_of_tournament($TOUR);
 
 $cfg      = bk_comp_config($TOUR);
 $sessions = bk_comp_sessions($TOUR);
-$level    = intval($cfg->BcPublishLevel ?? 1);          // barre à 3 niveaux
+$level    = intval($cfg->BcPublishLevel ?? 1);          // 3-level bar
 $copyAdmin  = bk_copy_is_admin();
 $copySources = $copyAdmin ? array() : bk_copy_sources($TOUR);
-$isDrom   = bk_is_dromtom(bk_org_agrement($TOUR));       // règles de placement modifiables
+$isDrom   = bk_is_dromtom(bk_org_agrement($TOUR));       // placement rules editable
 $rules    = ($level >= 2) ? bk_rules_check($TOUR, $cfg) : array();
 // Address given to the archers: the page of this competition in their space. Not signed in,
 // they sign in first and come back to it (bk_require_archer / bk_next_after_login).
 $publicUrl = (empty($_SERVER['HTTPS']) ? 'http' : 'https') . '://'
     . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/public/competition.php?t=' . $TOUR;
 
-// Tarification : config existante + listes de catégories pour l'éditeur.
+// Tariff: current settings + lists of categories for the editor.
 $pricing = bk_pricing_get($cfg);
 $payinfo = bk_payinfo_get($cfg);
 $payByM = array();
@@ -247,19 +249,20 @@ while ($r = safe_fetch($rs)) $divs[(string) $r->DivId] = $r->DivDescription ?: $
 $classes = array();
 $rs = safe_r_sql("SELECT ClId, ClDescription FROM Classes WHERE ClTournament = $TOUR ORDER BY ClId");
 while ($r = safe_fetch($rs)) $classes[(string) $r->ClId] = $r->ClDescription ?: $r->ClId;
-// Codes locaux proposés d'après l'agrément organisateur tant qu'ils ne sont pas réglés.
-$orgc = preg_replace('/[^0-9A-Za-z]/', '', bk_org_agrement($TOUR));
+// Local codes suggested from the organiser's approval number while they are not set.
+$orgc = preg_replace('/[^0-9A-Za-z]/', '', bk_org_agrement($TOUR));   // ASCII only: bytes are characters below
 $provDeptDef   = $pricing['prov']['deptCode']   !== '' ? $pricing['prov']['deptCode']   : (strlen($orgc) >= 4 ? substr($orgc, 2, 2) : '');
 $provRegionDef = $pricing['prov']['regionCode'] !== '' ? $pricing['prov']['regionCode'] : (strlen($orgc) >= 2 ? substr($orgc, 0, 2) : '');
+$CUR = bk_currency($TOUR);
 
-/** Valeur d'un champ datetime-local depuis une colonne DATETIME. */
+/** Value of a datetime-local field from a DATETIME column. */
 function bk_dtval($v)
 {
     $v = trim((string) $v);
-    return $v === '' ? '' : str_replace(' ', 'T', substr($v, 0, 16));
+    return $v === '' ? '' : str_replace(' ', 'T', substr($v, 0, 16));   // bytes: ASCII date
 }
 
-/** Options d'un <select> avec présélection (valeurs = clés du map). */
+/** Options of a <select> with the selection (values = keys of the map). */
 function bk_opts($map, $selected)
 {
     $sel = array_flip(array_map('strval', (array) $selected));
@@ -271,31 +274,47 @@ function bk_opts($map, $selected)
     return $h;
 }
 
-/** Montant en champ texte (2 déc., virgule) ; vide si null/''. */
+/** Amount in a text field (2 decimals, the language's separator); empty when null/''. */
 function bk_amt($v)
 {
-    return ($v === '' || $v === null) ? '' : number_format((float) $v, 2, ',', '');
+    return ($v === '' || $v === null) ? '' : number_format((float) $v, 2, bk_number_seps()['dec'], '');
 }
 
-/** Une règle de catégorie (rendu serveur ET gabarit JS quand $i vaut '__i__'). */
-function bk_cat_row($i, $rule, $divs, $classes)
+/** A labelled field: <label class="bk-f"><span>label</span>input</label>. */
+function bk_fld($label, $input)
 {
-    ob_start(); ?>
-    <div class="bk-cat-row">
-      <label class="bk-f"><span>Libellé</span>
-        <input type="text" name="cat[<?= $i ?>][label]" value="<?= bk_e($rule['label'] ?? '') ?>" placeholder="ex. Jeunes"></label>
-      <label class="bk-f"><span>Armes (vide = toutes)</span>
-        <select name="cat[<?= $i ?>][div][]" multiple size="4"><?= bk_opts($divs, $rule['div'] ?? array()) ?></select></label>
-      <label class="bk-f"><span>Catégories (vide = toutes)</span>
-        <select name="cat[<?= $i ?>][cls][]" multiple size="4"><?= bk_opts($classes, $rule['cls'] ?? array()) ?></select></label>
-      <label class="bk-f"><span>Prix (€)</span>
-        <input type="text" name="cat[<?= $i ?>][price]" size="6" value="<?= bk_e(bk_amt($rule['price'] ?? '')) ?>"></label>
-      <button type="button" class="bk-cat-del" title="Retirer cette règle">✕</button>
-    </div>
-    <?php return ob_get_clean();
+    return '<label class="bk-f"><span>' . bk_e($label) . '</span>' . $input . '</label>';
 }
 
-$PAGE_TITLE = 'Inscriptions en ligne';
+/** A checkbox line; $label is markup from the language file or escaped by the caller. */
+function bk_chk($name, $on, $label, $style = '')
+{
+    return '<label class="bk-chk"' . ($style !== '' ? ' style="' . $style . '"' : '') . '><input type="checkbox" name="' . $name
+        . '" value="1"' . ($on ? ' checked' : '') . '> ' . $label . '</label>';
+}
+
+/** A form with one confirmation, hidden fields and a submit button. */
+function bk_post_form($fields, $button, $confirm = '', $attr = '')
+{
+    $h = '<form method="post"' . $attr . ($confirm !== '' ? ' onsubmit="return confirm('
+        . htmlspecialchars(json_encode($confirm, JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')"' : '') . '>' . bk_csrf_field();
+    foreach ($fields as $k => $v) $h .= '<input type="hidden" name="' . $k . '" value="' . bk_e($v) . '">';
+    return $h . $button . '</form>';
+}
+
+/** One category rule (server rendering AND script template when $i is '__i__'). */
+function bk_cat_row($i, $rule, $divs, $classes, $cur)
+{
+    $n = 'cat[' . $i . ']';
+    return '<div class="bk-cat-row">'
+        . bk_fld(bk_t('ColLabel'), '<input type="text" name="' . $n . '[label]" value="' . bk_e($rule['label'] ?? '') . '" placeholder="' . bk_e(bk_t('AcCatLabelPh')) . '">')
+        . bk_fld(bk_t('AcCatBows'), '<select name="' . $n . '[div][]" multiple size="4">' . bk_opts($divs, $rule['div'] ?? array()) . '</select>')
+        . bk_fld(bk_t('AcCatClasses'), '<select name="' . $n . '[cls][]" multiple size="4">' . bk_opts($classes, $rule['cls'] ?? array()) . '</select>')
+        . bk_fld(bk_t('AshPrice', $cur), '<input type="text" name="' . $n . '[price]" size="6" value="' . bk_e(bk_amt($rule['price'] ?? '')) . '">')
+        . '<button type="button" class="bk-cat-del" title="' . bk_e(bk_t('AcCatDel')) . '" aria-label="' . bk_e(bk_t('AcCatDel')) . '">✕</button></div>';
+}
+
+$PAGE_TITLE = bk_t('Brand');
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <style>
@@ -371,7 +390,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #bkadm .bk-copy-body .bk-btn { margin-top:8px; }
 #bkadm .bk-pub-what { font-size:13px; line-height:1.5; margin:0 0 6px; padding:8px 10px;
     background:#eef4fb; border:1px solid #cddff2; border-radius:6px; color:#123a63; }
-/* Enregistrement automatique : pastille d'état, flottante en bas à droite. */
+/* Autosave: state pill, floating at the bottom right. */
 #bk-pill { position:fixed; right:14px; bottom:14px; z-index:60; padding:8px 13px;
     border-radius:20px; font-size:12px; font-weight:600; border:1px solid transparent;
     box-shadow:0 2px 10px rgba(0,0,0,.18); }
@@ -380,593 +399,379 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #bk-pill.err  { background:#fdecea; border-color:#e8b4ae; color:#a02015; }
 #bkadm .bk-auto-note { font-size:12px; color:#5a6570; margin:10px 0 0; }
 </style>
-
-<div id="bkadm">
-<h1>Inscriptions en ligne</h1>
-
-<?php if ($msg): ?><div class="bk-msg bk-ok"><?= bk_e($msg) ?></div><?php endif; ?>
-<?php if ($err): ?><div class="bk-msg bk-err"><?= bk_e($err) ?></div><?php endif; ?>
-
 <?php
-// Compte-rendu d'un réimport qui vient d'être rapatrié (affiché une fois).
+$out = '<div id="bkadm"><h1>' . bk_e(bk_t('Brand')) . '</h1>'
+    . ($msg ? '<div class="bk-msg bk-ok">' . bk_e($msg) . '</div>' : '')
+    . ($err ? '<div class="bk-msg bk-err">' . bk_e($err) . '</div>' : '');
+
+// Report of a re-import just brought back (shown once).
 $ar = bk_adopt_report_pull();
-if ($ar && !empty($ar['ok'])):
-    $reimUrl = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/reimport.php';
-?>
-<div class="bk-msg" style="background:#eaf2fb;border:1px solid #b9d3f0;color:#123a63;text-align:left">
-  <b>Version précédente récupérée.</b> Les données d'inscription et de paiement de la version
-  antérieure de cette compétition ont été rattachées automatiquement.
-  <ul style="margin:6px 0 0 18px">
-    <?php if ($ar['payments']): ?><li><?= intval($ar['payments']) ?> suivi(s) de paiement conservé(s).</li><?php endif; ?>
-    <?php if ($ar['relinked']): ?><li><?= intval($ar['relinked']) ?> inscription(s) en ligne reconnectée(s) au nouvel import (placement de l'import conservé).</li><?php endif; ?>
-    <?php if ($ar['reinjected']): ?><li><?= intval($ar['reinjected']) ?> inscription(s) en ligne absente(s) de l'import ré-injectée(s) (à confirmer).</li><?php endif; ?>
-    <?php if ($ar['imported']): ?><li><?= intval($ar['imported']) ?> participant(s) de l'import, saisi(s) hors module, rendus visibles dans leur espace — <b>sans information de paiement</b> (à confirmer).</li><?php endif; ?>
-    <?php if ($ar['category']): ?><li><b><?= intval($ar['category']) ?> catégorie(s) divergente(s)</b> à trancher.</li><?php endif; ?>
-    <?php if ($ar['reinject_fail']): ?><li><b><?= intval($ar['reinject_fail']) ?> inscription(s)</b> n'ont pas pu être ré-injectées.</li><?php endif; ?>
-  </ul>
-  <p style="margin:8px 0 0">L'organisateur tranche chaque écart (garder l'import ou booking), ou tout d'un coup.
-    <a href="<?= bk_e($reimUrl) ?>" style="font-weight:600">Vérifier et trancher →</a></p>
-</div>
-<?php
-endif;
-// Rappel persistant tant qu'il reste des écarts à trancher.
+if ($ar && !empty($ar['ok'])) {
+    $items = '';
+    foreach (array('payments' => 'AcAdPay', 'relinked' => 'AcAdRelinked', 'reinjected' => 'AcAdReinjected',
+        'imported' => 'AcAdImported', 'category' => 'AcAdCategory', 'reinject_fail' => 'AcAdFail') as $k => $key) {
+        if (!empty($ar[$k])) $items .= '<li>' . bk_t($key, intval($ar[$k])) . '</li>';
+    }
+    $out .= '<div class="bk-msg" style="background:#eaf2fb;border:1px solid #b9d3f0;color:#123a63;text-align:left">'
+        . '<b>' . bk_e(bk_t('AcAdTitle')) . '</b> ' . bk_e(bk_t('AcAdText')) . '<ul style="margin:6px 0 0 18px">' . $items . '</ul>'
+        . '<p style="margin:8px 0 0">' . bk_e(bk_t('AcAdFoot')) . ' <a href="' . bk_e($ADMIN . 'reimport.php') . '" style="font-weight:600">'
+        . bk_e(bk_t('AcAdCheck')) . '</a></p></div>';
+}
+// Lasting reminder while gaps remain to settle.
 $openConf = bk_reimport_conflicts($TOUR);
-if ($openConf):
-?>
-<div class="bk-msg" style="background:#fdf0ef;border:1px solid #e8b4ae;color:#8b1a1a;text-align:left">
-  <b>Réimport : <?= count($openConf) ?> élément(s) à valider</b> (catégories, inscriptions, participants importés).
-  <a href="<?= bk_e($CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/reimport.php') ?>">Trancher →</a>
-</div>
-<?php endif; ?>
+if ($openConf) {
+    $out .= '<div class="bk-msg" style="background:#fdf0ef;border:1px solid #e8b4ae;color:#8b1a1a;text-align:left">'
+        . '<b>' . bk_e(bk_t('AcConfTitle', count($openConf))) . '</b> ' . bk_e(bk_t('AcConfText'))
+        . ' <a href="' . bk_e($ADMIN . 'reimport.php') . '">' . bk_e(bk_t('AcConfLink')) . '</a></div>';
+}
 
-<?php
 // Oversized departures (BK_BIG_SESSION_PLACES): slow for the whole server, whatever the level.
 $bigSes = array();
 foreach ($sessions as $s) {
     if (intval($s->Places) > BK_BIG_SESSION_PLACES) {
-        $bigSes[] = 'départ ' . intval($s->SesOrder) . ' — ' . intval($s->SesTar4Session) . ' cibles × '
-            . intval($s->SesAth4Target) . ' = ' . number_format(intval($s->Places), 0, ',', ' ') . ' places';
+        $bigSes[] = bk_t('AcBigLine', array('n' => intval($s->SesOrder), 't' => intval($s->SesTar4Session),
+            'a' => intval($s->SesAth4Target), 'p' => number_format(intval($s->Places), 0, '', bk_number_seps()['thousands'])));
     }
 }
 if ($bigSes) {
-    echo '<div class="bk-msg" style="background:#fff8e1;border:1px solid #e0a800;color:#5b4300;text-align:left">'
-        . '<b>' . (count($bigSes) > 1 ? 'Départs surdimensionnés' : 'Départ surdimensionné') . '</b> : '
-        . bk_e(implode(' ; ', $bigSes)) . '. Pour contrôler un numéro de cible, ianseo fabrique une requête d\'une '
-        . 'ligne par place du départ : au-delà de quelques milliers de places, ajouter ou déplacer un archer devient '
-        . 'lent pour tout le serveur (jusqu\'à plusieurs minutes par archer). Si ce n\'est pas le besoin réel, '
-        . 'réduisez le nombre de cibles dans <b>Compétition › Départs</b>.</div>';
+    $out .= '<div class="bk-msg" style="background:#fff8e1;border:1px solid #e0a800;color:#5b4300;text-align:left">'
+        . '<b>' . bk_e(bk_t(count($bigSes) > 1 ? 'AcBigMany' : 'AcBigOne')) . '</b> : ' . bk_e(implode(' ; ', $bigSes)) . '. '
+        . bk_t('AcBigText') . '</div>';
 }
-?>
 
-<div class="bk-sec">
-  <div class="bk-sec-head">
-    <h2>Ouverture des inscriptions sur ce serveur</h2>
-    <details class="bk-copy">
-      <summary>📋 Copier depuis…</summary>
-      <div class="bk-copy-body">
-        <p class="bk-hint" style="margin:0 0 8px">Reprendre la configuration d'une <b>autre compétition</b> :
-          niveau de publication, inscriptions, visibilité, tarif, mandat, boutique et contraintes du terrain.
-          Les <b>dates</b> gardent le même décalage par rapport à la date de début. Les logos et le lien
-          ianseo.net ne sont pas copiés. <b>Les réglages actuels seront remplacés.</b></p>
-        <form method="post" onsubmit="return confirm('Copier toute la configuration de la compétition source ? Les réglages actuels (inscriptions, tarif, mandat, boutique, contraintes du terrain) seront REMPLACÉS.');">
-          <?= bk_csrf_field() ?>
-          <?php if ($copyAdmin): ?>
-            <label class="bk-f"><span>Code (ou identifiant) de la compétition source</span>
-              <input type="text" name="copy_src_text" placeholder="ex. F26CF3D" autocomplete="off" required></label>
-            <button type="submit" name="copy_from" value="1" class="bk-btn">Copier la configuration</button>
-          <?php elseif (!$copySources): ?>
-            <p class="bk-hint" style="margin:0">Aucune autre compétition configurée n'est accessible pour l'instant.</p>
-          <?php else: ?>
-            <label class="bk-f"><span>Compétition source</span>
-              <select name="copy_src" required>
-                <option value="">— choisir —</option>
-                <?php foreach ($copySources as $s): ?>
-                  <option value="<?= intval($s->ToId) ?>"><?= bk_e($s->ToName . ' (' . $s->ToCode . ') — ' . bk_date_fr($s->ToWhenFrom)) ?></option>
-                <?php endforeach; ?>
-              </select></label>
-            <button type="submit" name="copy_from" value="1" class="bk-btn">Copier la configuration</button>
-          <?php endif; ?>
-        </form>
-      </div>
-    </details>
-  </div>
-  <p class="bk-pub-what">Il s'agit de la <b>page d'inscription en ligne de ce serveur</b> : ce que voient
-     les archers qui se connectent ici <b>avec leur numéro de licence</b>. Eux seuls y ont accès —
-     la compétition n'est visible ni du public, ni des moteurs de recherche.</p>
-  <p class="bk-hint" style="margin-top:0">Cela <b>ne concerne pas ianseo.net</b> : rien n'y est envoyé
-     ni publié depuis cette page. L'envoi des résultats vers ianseo.net reste le menu habituel de ianseo
-     (<i>Compétition › Envoyer à ianseo.net</i>).</p>
-  <div class="bk-levels">
-    <?php
-    $lvls = array(
-      1 => array('Fermée', "Vous seul la voyez. Elle n'apparaît pas dans le calendrier des archers et personne ne peut s'y inscrire."),
-      2 => array('Inscriptions ouvertes', "Les archers connectés la voient et s'inscrivent en ligne. Mandat et documents leur sont proposés automatiquement. Il ne reste que le tarif à indiquer et, si besoin, les contraintes du terrain et la boutique."),
-      3 => array('Inscriptions ouvertes — réglages détaillés', "Idem, mais vous réglez vous-même chaque paramètre : dates, restriction géographique, ce que voient les archers, tarifs, moyens de paiement."),
-    );
-    foreach ($lvls as $n => $info): ?>
-      <form method="post" class="bk-lvl-form">
-        <?= bk_csrf_field() ?>
-        <input type="hidden" name="set_level" value="<?= $n ?>">
-        <button type="submit" class="bk-lvl <?= $level === $n ? 'on' : '' ?>">
-          <span class="bk-lvl-t"><span class="bk-lvl-n"><?= $n ?></span><?= bk_e($info[0]) ?></span>
-          <span class="bk-lvl-d"><?= bk_e($info[1]) ?></span>
-        </button>
-      </form>
-    <?php endforeach; ?>
-  </div>
-</div>
+// Opening of the registration on this server: copy from…, 3-level bar.
+$copy = '';
+if ($copyAdmin) {
+    $copy = bk_fld(bk_t('AcCopyCode'), '<input type="text" name="copy_src_text" placeholder="' . bk_e(bk_t('AcCopyCodePh')) . '" autocomplete="off" required>')
+        . '<button type="submit" name="copy_from" value="1" class="bk-btn">' . bk_e(bk_t('AcCopyBtn')) . '</button>';
+} elseif (!$copySources) {
+    $copy = '<p class="bk-hint" style="margin:0">' . bk_e(bk_t('AcCopyNone')) . '</p>';
+} else {
+    $o = '<option value="">' . bk_e(bk_t('ChooseDash')) . '</option>';
+    foreach ($copySources as $s) {
+        $o .= '<option value="' . intval($s->ToId) . '">' . bk_e($s->ToName . ' (' . $s->ToCode . ') — ' . bk_date_fr($s->ToWhenFrom)) . '</option>';
+    }
+    $copy = bk_fld(bk_t('AcCopySrc'), '<select name="copy_src" required>' . $o . '</select>')
+        . '<button type="submit" name="copy_from" value="1" class="bk-btn">' . bk_e(bk_t('AcCopyBtn')) . '</button>';
+}
+$levels = '';
+foreach (array(1 => 'AcLvl1', 2 => 'AcLvl2', 3 => 'AcLvl3') as $n => $key) {
+    $levels .= bk_post_form(array('set_level' => $n), '<button type="submit" class="bk-lvl ' . ($level === $n ? 'on' : '') . '">'
+        . '<span class="bk-lvl-t"><span class="bk-lvl-n">' . $n . '</span>' . bk_e(bk_t($key)) . '</span>'
+        . '<span class="bk-lvl-d">' . bk_e(bk_t($key . 'D')) . '</span></button>', '', ' class="bk-lvl-form"');
+}
+$out .= '<div class="bk-sec"><div class="bk-sec-head"><h2>' . bk_e(bk_t('AcOpenTitle')) . '</h2>'
+    . '<details class="bk-copy"><summary>' . bk_e(bk_t('AcCopySummary')) . '</summary><div class="bk-copy-body">'
+    . '<p class="bk-hint" style="margin:0 0 8px">' . bk_t('AcCopyHint') . '</p>'
+    . '<form method="post" onsubmit="return confirm(' . htmlspecialchars(json_encode(bk_t('AcCopyConfirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')">'
+    . bk_csrf_field() . $copy . '</form></div></details></div>'
+    . '<p class="bk-pub-what">' . bk_t('AcPubWhat') . '</p>'
+    . '<p class="bk-hint" style="margin-top:0">' . bk_t('AcNotIanseoNet') . '</p>'
+    . '<div class="bk-levels">' . $levels . '</div></div>';
 
-<?php
 // Tariffs and payment methods: the same blocks at level 3 and on a closed competition that
 // uses the payments and the shop (level 1, participants imported in ianseo).
 $showTariffs = $level == 3 || ($level == 1 && !empty($cfg->BcPayments));
-ob_start(); ?>
-<div class="bk-sec">
-  <h2>Tarifs</h2>
-  <div class="bk-row">
-    <label class="bk-f"><span>Tarif de base (€)</span>
-      <input type="text" name="fee" size="8" value="<?= bk_e(number_format((float) $cfg->BcFee, 2, ',', '')) ?>"></label>
-  </div>
-  <p class="bk-hint">Montant appliqué par défaut à une inscription. Laissez les tarifs avancés
-     repliés si un tarif unique suffit.</p>
-
-  <details class="bk-adv" <?= bk_pricing_is_advanced($pricing) ? 'open' : '' ?>>
-    <summary>Tarifs avancés (facultatif)</summary>
-
-    <p class="bk-hint" style="margin:0 0 6px">
-      <b>Comment le prix est calculé :</b> on part du <b>tarif de base</b> (remplacé par le
-      <b>prix fixe d'une catégorie</b> si une règle correspond à l'archer), puis on
-      <b>ajoute ou retire</b> l'ajustement du <b>départ</b>, celui de la <b>provenance</b>
-      (le plus local seul, sans cumul) et celui du <b>dégressif</b> multi-inscriptions ;
-      jamais en dessous de 0 €. L'<b>aperçu en bas</b> montre le résultat en direct.</p>
-
-    <h3>Par catégorie (prix fixe)</h3>
-    <p class="bk-hint">Une règle fixe le prix pour les armes et catégories cochées (vides = toutes).
-       La première règle correspondant à l'archer l'emporte ; sinon le tarif de base s'applique.</p>
-    <div id="bk-cat-list">
-      <?php foreach ($pricing['categories'] as $i => $rule) echo bk_cat_row($i, $rule, $divs, $classes); ?>
-    </div>
-    <button type="button" class="bk-btn bk-add" onclick="bkAddCat()">+ Ajouter une règle</button>
-    <template id="bk-cat-tpl"><?= bk_cat_row('__i__', array(), $divs, $classes) ?></template>
-
-    <h3>Par départ (ajustement +/−)</h3>
-    <p class="bk-hint">Écart appliqué au tarif selon le départ choisi (ex. −2 pour un 2ᵉ départ moins cher).
-       Laisser vide = pas d'écart.</p>
-    <?php if (!$sessions): ?>
-      <p class="bk-hint">Aucun départ configuré pour l'instant.</p>
-    <?php else: ?>
-      <div class="bk-row">
-        <?php foreach ($sessions as $s): $o = intval($s->SesOrder); $dv = $pricing['departures'][(string) $o] ?? ''; ?>
-          <label class="bk-f"><span>Départ <?= $o ?><?= $s->SesName ? ' — ' . bk_e($s->SesName) : '' ?> (Δ €)</span>
-            <input type="text" name="dep[<?= $o ?>]" size="6" value="<?= bk_e(bk_amt($dv)) ?>"></label>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
-
-    <h3>Selon la provenance (favoriser les locaux)</h3>
-    <p class="bk-hint">Écart pour les archers du département / de la ligue de l'organisateur.
-       Le plus local l'emporte (pas de cumul). Codes pré-remplis d'après votre agrément — modifiables.</p>
-    <div class="bk-row">
-      <label class="bk-f"><span>Département local (2 chiffres)</span>
-        <input type="text" name="prov_deptcode" size="4" maxlength="2" value="<?= bk_e($provDeptDef) ?>"></label>
-      <label class="bk-f"><span>Δ départemental (€)</span>
-        <input type="text" name="prov_dept" size="6" value="<?= bk_e(bk_amt($pricing['prov']['dept'] ?: '')) ?>"></label>
-      <label class="bk-f"><span>Ligue locale (2 chiffres)</span>
-        <input type="text" name="prov_regioncode" size="4" maxlength="2" value="<?= bk_e($provRegionDef) ?>"></label>
-      <label class="bk-f"><span>Δ régional (€)</span>
-        <input type="text" name="prov_region" size="6" value="<?= bk_e(bk_amt($pricing['prov']['region'] ?: '')) ?>"></label>
-    </div>
-
-    <h3>Dégressif multi-inscriptions</h3>
-    <p class="bk-hint">Écart selon le rang de l'inscription de la personne sur cette compétition.</p>
-    <div class="bk-row">
-      <label class="bk-f"><span>À partir de la 2ᵉ (Δ €)</span>
-        <input type="text" name="rank[2]" size="6" value="<?= bk_e(bk_amt($pricing['rank']['2'] ?? '')) ?>"></label>
-      <label class="bk-f"><span>À partir de la 3ᵉ (Δ €)</span>
-        <input type="text" name="rank[3]" size="6" value="<?= bk_e(bk_amt($pricing['rank']['3'] ?? '')) ?>"></label>
-    </div>
-
-    <h3>Aperçu du tarif</h3>
-    <p class="bk-hint">Simulez un archer : le prix se met à jour en direct d'après votre configuration ci-dessus.</p>
-    <div class="bk-row bk-sim-in">
-      <label class="bk-f"><span>Arme</span>
-        <select id="sim-div"><?php foreach ($divs as $k => $v) echo '<option value="' . bk_e($k) . '">' . bk_e($v) . '</option>'; ?></select></label>
-      <label class="bk-f"><span>Catégorie</span>
-        <select id="sim-cls"><?php foreach ($classes as $k => $v) echo '<option value="' . bk_e($k) . '">' . bk_e($v) . '</option>'; ?></select></label>
-      <label class="bk-f"><span>Départ</span>
-        <select id="sim-ses"><option value="0">—</option><?php foreach ($sessions as $s) { $o = intval($s->SesOrder); echo '<option value="' . $o . '">Départ ' . $o . '</option>'; } ?></select></label>
-      <label class="bk-f"><span>Provenance</span>
-        <select id="sim-prov"><option value="">Hors zone</option><option value="region">Régional</option><option value="dept">Local départemental</option></select></label>
-      <label class="bk-f"><span>Inscription n°</span>
-        <select id="sim-rank"><option value="1">1re</option><option value="2">2e</option><option value="3">3e</option></select></label>
-    </div>
-    <div class="bk-sim-out">
-      <table class="bk-sim-t"><tbody id="sim-lines"></tbody></table>
-      <p class="bk-sim-tot">Total : <b id="sim-total">—</b></p>
-    </div>
-  </details>
-</div>
-
-<div class="bk-sec">
-  <h2>Moyens de paiement</h2>
-  <p class="bk-hint">Cochez les moyens acceptés, précisez quand ils le sont et l'info utile (ordre du
-     chèque, RIB, contact…). À la fin de son inscription, l'archer les voit.</p>
-  <?php foreach (bk_payment_methods() as $mk => $ml): $cur = $payByM[$mk] ?? null; ?>
-    <div class="bk-pay-row">
-      <label class="bk-chk bk-pay-name"><input type="checkbox" name="pay[<?= bk_e($mk) ?>][on]" value="1" <?= $cur ? 'checked' : '' ?>>
-        <b><?= bk_e($ml) ?></b></label>
-      <select name="pay[<?= bk_e($mk) ?>][when]">
-        <?php foreach (bk_payinfo_when_labels() as $wk => $wl): ?>
-          <option value="<?= bk_e($wk) ?>" <?= ($cur && $cur['when'] === $wk) ? 'selected' : '' ?>><?= bk_e($wl) ?></option>
-        <?php endforeach; ?>
-      </select>
-      <input type="text" class="bk-pay-info" name="pay[<?= bk_e($mk) ?>][info]"
-             value="<?= bk_e($cur['info'] ?? '') ?>" placeholder="Info (ex. à l'ordre de…, RIB, contact)">
-    </div>
-  <?php endforeach; ?>
-</div>
-
-<?php $tariffBlocks = ob_get_clean(); ?>
-
-<?php if ($level == 1): ?>
-  <div class="bk-sec">
-    <p class="bk-hint" style="margin:0">Les inscriptions en ligne sont fermées : cette compétition
-       n'apparaît pas dans le calendrier des archers connectés et ne compte pas dans leurs statistiques.
-       Choisissez <b>Inscriptions ouvertes</b> pour la leur rendre visible en un clic.</p>
-    <form method="post" style="margin:12px 0 0">
-      <?= bk_csrf_field() ?>
-      <input type="hidden" name="set_payments" value="1">
-      <label class="bk-chk"><input type="checkbox" name="payments" value="1" onchange="this.form.submit()" <?= !empty($cfg->BcPayments) ? 'checked' : '' ?>>
-        <b>Utiliser la gestion des paiements et la boutique</b> pour les participants saisis ou importés dans ianseo</label>
-      <noscript><button type="submit" class="bk-btn">Appliquer</button></noscript>
-    </form>
-    <p class="bk-hint">Tarifs, moyens de paiement, boutique et suivi des paiements, comme pour une compétition
-       ouverte. Chaque archer retrouve son compte (dû, payé, reste) et son reçu dans son espace, et peut commander
-       dans la boutique ; la compétition reste invisible dans le calendrier et personne ne s'y inscrit en ligne.</p>
-    <?php if (!empty($cfg->BcPayments)): ?>
-      <p class="bk-shortcuts">
-        <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/shop.php">Boutique →</a>
-        <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/dues.php">Paiements →</a>
-      </p>
-    <?php endif; ?>
-  </div>
-  <?php if (!empty($cfg->BcPayments)): ?>
-    <form method="post" id="bk-cfg" data-autosave="1">
-    <?= bk_csrf_field() ?>
-    <input type="hidden" name="save_payments" value="1">
-    <?= $tariffBlocks ?>
-    <button type="submit" class="bk-btn" data-manual-save="1">Enregistrer</button>
-    </form>
-    <div id="bk-pill" hidden></div>
-  <?php endif; ?>
-<?php endif; ?>
-
-<?php if ($level == 2): ?>
-  <div class="bk-sec">
-    <h2>À finaliser</h2>
-    <p class="bk-hint" style="margin-top:0">Les archers connectés voient la compétition et peuvent s'inscrire ;
-       mandat et documents leur sont proposés automatiquement. Indiquez le tarif d'inscription puis,
-       si besoin, configurez les contraintes d'affectation du terrain et la boutique :</p>
-    <form method="post" class="bk-row" style="margin:0 0 14px" data-autosave="1">
-      <?= bk_csrf_field() ?>
-      <input type="hidden" name="save_fee" value="1">
-      <label class="bk-f"><span>Tarif d'inscription (€)</span>
-        <input type="text" name="fee" size="8" value="<?= bk_e(number_format((float) $cfg->BcFee, 2, ',', '')) ?>"></label>
-      <button type="submit" class="bk-btn" data-manual-save="1" style="align-self:flex-end">Enregistrer le tarif</button>
-    </form>
-    <p class="bk-hint" style="margin:0 0 6px">Tarif unique appliqué à chaque inscription. La modulation
-       fine (par catégorie, départ, provenance…) reste disponible dans les
-       <b>réglages détaillés</b>.</p>
-    <p class="bk-shortcuts">
-      <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/field.php">Contraintes d'affectation du terrain →</a>
-      <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/shop.php">Boutique →</a>
-      <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/dues.php">Paiements →</a>
-      <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/survey.php">Satisfaction des archers →</a>
-    </p>
-  </div>
-<?php endif; ?>
-
-<?php if ($level == 3): ?>
-<form method="post" id="bk-cfg" data-autosave="1">
-<?= bk_csrf_field() ?>
-
-<div class="bk-sec">
-  <h2>Période d'inscription</h2>
-  <div class="bk-row">
-    <label class="bk-f"><span>Ouverture le (facultatif)</span>
-      <input type="datetime-local" name="from" value="<?= bk_e(bk_dtval($cfg->BcOpenFrom)) ?>"></label>
-    <label class="bk-f"><span>Clôture le (facultatif)</span>
-      <input type="datetime-local" name="to" value="<?= bk_e(bk_dtval($cfg->BcOpenTo)) ?>"></label>
-  </div>
-  <p class="bk-hint">Sans date, l'inscription est ouverte dès maintenant et ne se referme pas d'elle-même.
-     État actuel : <b style="color: crimson;"><?= $cfg->BcIsOpen ? 'inscriptions ouvertes' : 'hors période' ?></b>.</p>
-</div>
-
-<div class="bk-sec">
-  <h2>Restriction géographique</h2>
-  <div class="bk-row">
-    <label class="bk-f"><span>Réservée aux archers</span>
-      <select name="kind">
-        <?php foreach (bk_restrict_kinds() as $k => $lab): ?>
-          <option value="<?= bk_e($k) ?>" <?= $cfg->BcRestrictKind === $k ? 'selected' : '' ?>><?= bk_e($lab) ?></option>
-        <?php endforeach; ?>
-      </select></label>
-    <label class="bk-f"><span>Code (ex. 60 ou 07)</span>
-      <input type="text" name="code" size="8" maxlength="12" value="<?= bk_e($cfg->BcRestrictCode) ?>"></label>
-    <label class="bk-f"><span>Ouvrir à tous à partir du (facultatif)</span>
-      <input type="datetime-local" name="restrict_to" value="<?= bk_e(bk_dtval($cfg->BcRestrictTo)) ?>"></label>
-  </div>
-  <p class="bk-hint">Le périmètre est comparé à l'agrément du club de l'archer (format LLDDCCC :
-     ligue, département, club). Passé la date d'ouverture à tous, la restriction est levée
-     automatiquement.
-     <?php if ($cfg->BcRestrictKind !== ''): ?>
-       État actuel : <b><?= $cfg->BcAllOpen ? 'ouverte à tous' : 'restreinte' ?></b>.
-     <?php endif; ?>
-  </p>
-</div>
-
-<div class="bk-sec">
-  <h2>Placement et validation</h2>
-  <?php if ($isDrom): ?>
-    <p class="bk-hint" style="margin-top:0">Compétition DROM-TOM : les règles fédérales de mixité peuvent
-       être ajustées (peu de clubs sur le territoire).</p>
-    <div class="bk-row">
-      <label class="bk-f"><span>Archers d'un même club, au plus, par cible</span>
-        <input type="number" name="max_club" min="1" max="20" value="<?= intval($cfg->BcMaxPerClubPerTarget) ?>"></label>
-      <label class="bk-f"><span>Clubs différents, au moins, par départ</span>
-        <input type="number" name="min_clubs" min="1" max="50" value="<?= intval($cfg->BcMinClubsPerSession) ?>"></label>
-    </div>
-  <?php else: ?>
-    <p class="bk-hint" style="margin-top:0">Règles fédérales appliquées automatiquement : au plus
-       <b>2 archers d'un même club par cible</b> et au moins <b>3 clubs par départ</b>. (Modifiables
-       uniquement pour les compétitions DROM-TOM.)</p>
-  <?php endif; ?>
-  <label class="bk-chk" style="margin-top:6px"><input type="checkbox" name="manual_validation" value="1" <?= !empty($cfg->BcManualValidation) ? 'checked' : '' ?>>
-    <b>Valider manuellement chaque inscription</b> avant l'attribution de sa cible</label>
-  <p class="bk-hint">Par défaut, une inscription en ligne est placée automatiquement selon le plan.
-     Coché, chaque inscription reste « en attente » jusqu'à ce que vous la validiez (page
-     <b>Attribution des cibles</b>) — l'affectation ne se fait qu'ensuite.</p>
-</div>
-
-<div class="bk-sec">
-  <h2>Ce que voient les archers</h2>
-  <label class="bk-chk"><input type="checkbox" name="show_gauges" value="1" <?= $cfg->BcShowGauges ? 'checked' : '' ?>>
-    Afficher les places restantes par départ</label>
-  <label class="bk-chk"><input type="checkbox" name="show_assign" value="1" <?= $cfg->BcShowAssignment ? 'checked' : '' ?>>
-    Afficher les attributions de cibles en temps réel</label>
-  <label class="bk-chk"><input type="checkbox" name="scoresheet" value="1" <?= $cfg->BcAllowScoresheet ? 'checked' : '' ?>>
-    Autoriser chaque archer à imprimer sa feuille de marque</label>
-  <?php $hasMandate = trim((string) ($cfg->BcMandate ?? '')) !== ''; ?>
-  <?php if ($hasMandate): ?>
-    <input type="hidden" name="show_mandate_present" value="1">
-    <label class="bk-chk"><input type="checkbox" name="show_mandate" value="1" <?= bk_mandate_visible($cfg) ? 'checked' : '' ?>>
-      Rendre le <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/mandate.php">mandat</a> consultable
-      par les archers (fiche compétition du calendrier + « Mes inscriptions »)</label>
-  <?php else: ?>
-    <p class="bk-hint" style="margin:6px 0 0">Aucun mandat pour l'instant.
-      <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/mandate.php">Créer le mandat</a> pour pouvoir le proposer aux archers.</p>
-  <?php endif; ?>
-
-  <h3 class="bk-h3">Documents de la compétition</h3>
-  <p class="bk-hint">Rassemblés pour l'archer sur une page « Documents » (accessible depuis le calendrier
-     et « Mes inscriptions »). Le mandat s'y ajoute automatiquement s'il est rendu visible ci-dessus.</p>
-  <?php // L'adresse n'est plus demandée : elle se reconstruit depuis l'identifiant en ligne
-        // attribué avec les codes de publication. Il ne reste à décider que de l'afficher.
-        $ianseoUrl      = bk_ianseo_url($TOUR);
-        $ianseoUrlSaved = trim((string) ($cfg->BcIanseoUrl ?? '')); ?>
-  <?php if ($ianseoUrl !== ''): ?>
-    <input type="hidden" name="ianseo_present" value="1">
-    <label class="bk-chk"><input type="checkbox" name="show_ianseo" value="1" <?= $ianseoUrlSaved !== '' ? 'checked' : '' ?>>
-      Lien vers la <b>fiche ianseo.net</b> de la compétition (identifiant en ligne <?= $onlineId ?>) :
-      <a href="<?= bk_e($ianseoUrl) ?>" target="_blank" rel="noopener"><?= bk_e($ianseoUrl) ?></a></label>
-  <?php elseif ($ianseoUrlSaved !== ''): ?>
-    <?php // Valeur dérivée dont la source a disparu (réimport sans identifiant en ligne,
-          // ou adresse saisie à la main du temps où le champ était libre) : on l'annonce
-          // et le prochain enregistrement la retire — il n'existe plus de fiche à pointer. ?>
-    <input type="hidden" name="ianseo_present" value="1">
-    <p class="bk-hint" style="margin:6px 0 0; color:#a86b00">Un lien ianseo.net est enregistré
-       (<?= bk_e($ianseoUrlSaved) ?>) alors que cette compétition n'a pas (ou plus) de codes de
-       publication ianseo.net : il ne pointe vers aucune fiche et sera retiré au prochain
-       enregistrement de cette page.</p>
-  <?php endif; ?>
-
-  <p class="bk-hint" style="margin-top:12px">Documents officiels ianseo (PDF) à proposer aux archers. Ils sont
-     régénérés à la demande depuis les données de la compétition — n'affichez les résultats qu'une fois les
-     scores saisis.</p>
-  <input type="hidden" name="docs_present" value="1">
-  <label class="bk-chk"><input type="checkbox" name="show_program" value="1" <?= !empty($cfg->BcShowProgram) ? 'checked' : '' ?>>
-    Programme des départs (répartition par cible)</label>
-  <label class="bk-chk"><input type="checkbox" name="show_participants" value="1" <?= !empty($cfg->BcShowParticipants) ? 'checked' : '' ?>>
-    Liste des participants</label>
-  <label class="bk-chk"><input type="checkbox" name="show_results" value="1" <?= !empty($cfg->BcShowResults) ? 'checked' : '' ?>>
-    Résultats — les boutons apparaissent selon l'avancement : Qualifications (dès les premiers scores),
-    Duels individuels et Matchs par équipe (dès les grilles générées)</label>
-  <?php $dossardCard = bk_dossard_card($TOUR); ?>
-  <label class="bk-chk"><input type="checkbox" name="show_dossard" value="1" <?= !empty($cfg->BcShowDossard) ? 'checked' : '' ?>>
-    Dossard — chaque archer imprime <b>son</b> dossard (et ceux qu'il a inscrits) depuis la page Documents.
-    Utilise le premier gabarit « Dossard (Qualification) » de la compétition
-    (<a href="<?= $CFG->ROOT_DIR ?>Accreditation/IdCards.php?CardType=Q" target="_blank" rel="noopener">Accréditation › Dossards</a>).
-    <?php if ($dossardCard === null): ?><span class="bk-hint" style="color:#a86b00">Aucun gabarit de dossard n'existe encore : le bouton n'apparaîtra qu'une fois un dossard créé.</span><?php endif; ?></label>
-
-  <h3 class="bk-h3">Souhaits proposés à l'inscription</h3>
-  <p class="bk-hint">Choisissez ce que l'archer peut demander. Par défaut, seule la position sur la cible.</p>
-  <label class="bk-chk"><input type="checkbox" name="wish_letter" value="1" <?= $cfg->BcWishLetter ? 'checked' : '' ?>>
-    Position souhaitée sur la cible (lettre)</label>
-  <label class="bk-chk"><input type="checkbox" name="wish_with" value="1" <?= $cfg->BcWishWith ? 'checked' : '' ?>>
-    « Sur la même cible que… » (un archer de son club déjà inscrit)</label>
-  <label class="bk-chk"><input type="checkbox" name="wish_free" value="1" <?= $cfg->BcWishFree ? 'checked' : '' ?>>
-    Champ libre « Autre demande » (transmis à l'organisateur)</label>
-
-  <input type="hidden" name="waitlist_present" value="1">
-  <label class="bk-chk"><input type="checkbox" name="waitlist" value="1" <?= !isset($cfg->BcWaitlist) || !empty($cfg->BcWaitlist) ? 'checked' : '' ?>>
-    Proposer une <b>liste d'attente</b> quand un départ est complet : dès qu'une place se libère, le premier
-    archer compatible de la liste est inscrit automatiquement</label>
-
-  <h3 class="bk-h3">Après la compétition</h3>
-  <input type="hidden" name="survey_present" value="1">
-  <label class="bk-chk"><input type="checkbox" name="survey" value="1" <?= !isset($cfg->BcSurvey) || !empty($cfg->BcSurvey) ? 'checked' : '' ?>>
-    Proposer le <b>questionnaire de satisfaction</b> aux archers classés, pendant 30 jours à partir du lendemain
-    (<a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/survey.php">voir les réponses</a>)</label>
-  <p class="bk-hint">Moins de 2 minutes, rien d'obligatoire. Vous ne voyez que des résultats anonymes et des
-     graphiques simples, comparés à la moyenne des autres compétitions du serveur.</p>
-</div>
-
-<?= $tariffBlocks ?>
-
-<button type="submit" class="bk-btn" data-manual-save="1">Enregistrer</button>
-</form>
-<?php endif; // fin du mode avancé (niveau 3) ?>
-
-<?php if ($level >= 2): ?>
-<div class="bk-sec" style="margin-top:18px">
-  <h2>Départs</h2>
-  <?php if (!$sessions): ?>
-    <p class="bk-hint">Aucun départ de qualification n'est configuré pour cette compétition.
-       Renseignez-les dans <b>Compétition › Départs</b> : le nombre de cibles et de places par
-       cible en découle directement.</p>
-  <?php else: ?>
-    <table class="bk-t">
-      <tr><th>Départ</th><th>Cibles</th><th>Places / cible</th><th>Total</th><th>Occupation</th></tr>
-      <?php foreach ($sessions as $s):
-        $pl = intval($s->Places); $pr = intval($s->Pris);
-        $pc = $pl > 0 ? min(100, round($pr * 100 / $pl)) : 0; ?>
-        <tr>
-          <td><?= intval($s->SesOrder) ?><?= $s->SesName ? ' — ' . bk_e($s->SesName) : '' ?></td>
-          <td><?= intval($s->SesTar4Session) ?></td>
-          <td><?= intval($s->SesAth4Target) ?></td>
-          <td><?= $pl ?></td>
-          <td><span class="bk-gauge"><i style="width:<?= $pc ?>%"></i></span><?= $pr ?> / <?= $pl ?></td>
-        </tr>
-      <?php endforeach; ?>
-    </table>
-    <p class="bk-hint">Lu directement dans la configuration des départs de ianseo — rien à ressaisir ici.</p>
-  <?php endif; ?>
-  <p style="margin:10px 0 0">
-    <a class="bk-btn" style="text-decoration:none;display:inline-block"
-       href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/field.php">Contraintes d'affectation du terrain →</a>
-    <span class="bk-hint" style="display:block;margin-top:6px">Déclarez les distances et les
-      blasons que chaque cible peut recevoir : l'attribution automatique s'y conformera.</span>
-  </p>
-</div>
-
-<?php
-// Waiting list (lib/waitlist.php): order of arrival; register by hand (even on a full
-// departure: the organiser's call) or remove.
-if ($waitList['waiting'] || $waitList['done']) {
-    echo '<div class="bk-sec"><h2>Liste d\'attente</h2>';
-    if (!bk_waitlist_on($cfg)) {
-        echo '<p class="bk-hint">Liste d\'attente désactivée dans les réglages détaillés : plus personne ne peut s\'y inscrire.</p>';
-    }
-    if ($waitList['waiting']) {
-        echo '<p class="bk-hint">Ordre d\'arrivée. Dès qu\'une place se libère pour leur arme, leur catégorie et leur blason, '
-            . 'les premiers sont inscrits automatiquement et prévenus dans leur espace.'
-            . (empty($cfg->BcIsOpen) ? ' <b>Inscriptions closes : la liste est figée</b> — inscrivez à la main si une place se libère.' : '')
-            . '</p><table class="bk-t"><tr><th>#</th><th>Archer</th><th>Club</th><th>Arme / catégorie</th>'
-            . '<th>Départ souhaité</th><th>Paiement prévu</th><th>Depuis le</th><th></th></tr>';
-        foreach ($waitList['waiting'] as $i => $w) {
-            $pc = explode('|', (string) $w->BwPayChoice . '|', 3);   // "method|when", or empty
-            $opts = '';
-            foreach ($sessions as $s) {
-                $o = intval($s->SesOrder);
-                $opts .= '<option value="' . $o . '"' . (intval($w->BwSession) === $o ? ' selected' : '') . '>Départ ' . $o
-                    . ' (' . max(0, intval($s->Places) - intval($s->Pris)) . ' pl.)</option>';
-            }
-            echo '<tr><td>' . ($i + 1) . '</td><td>' . bk_e(trim($w->LueFamilyName . ' ' . $w->LueName)) . ' <span class="bk-hint">'
-                . bk_e($w->BwLicence) . '</span></td><td>' . bk_e($w->LueCoDescr) . '</td><td>'
-                . bk_e(($w->DivDescription ?: $w->BwDivision) . ' / ' . ($w->ClDescription ?: $w->BwClass)) . '</td><td>'
-                . (intval($w->BwSession) ? 'Départ ' . intval($w->BwSession) : 'N\'importe lequel') . '</td><td>'
-                . bk_e(bk_payment_decl_label($pc[0], $pc[1])) . '</td><td>'
-                . bk_e(bk_date_fr($w->BwCreated)) . '</td><td style="white-space:nowrap">'
-                . '<form method="post" style="display:inline" onsubmit="return confirm(\'Inscrire cet archer maintenant, même si le départ est complet ?\')">'
-                . bk_csrf_field() . '<input type="hidden" name="wait_action" value="register"><input type="hidden" name="w" value="' . intval($w->BwId) . '">'
-                . '<select name="wait_session">' . $opts . '</select> <button type="submit" class="bk-btn">Inscrire</button></form> '
-                . '<form method="post" style="display:inline" onsubmit="return confirm(\'Retirer cet archer de la liste d\\\'attente ?\')">'
-                . bk_csrf_field() . '<input type="hidden" name="wait_action" value="remove"><input type="hidden" name="w" value="' . intval($w->BwId) . '">'
-                . '<button type="submit" class="bk-btn">Retirer</button></form></td></tr>';
-        }
-        echo '</table>';
-    }
-    if ($waitList['done']) {
-        echo '<h3 class="bk-h3">Dernières suites</h3><table class="bk-t"><tr><th>Archer</th><th>Le</th><th>Résultat</th></tr>';
-        foreach ($waitList['done'] as $w) {
-            echo '<tr><td>' . bk_e(trim($w->LueFamilyName . ' ' . $w->LueName)) . ' <span class="bk-hint">' . bk_e($w->BwLicence)
-                . '</span></td><td>' . bk_e(bk_date_fr($w->BwDone)) . '</td><td>'
-                . (intval($w->BwStatus) === 1 ? 'Inscrit sur le départ ' . intval($w->BwSession) : 'Retiré : ' . bk_e($w->BwNote))
-                . '</td></tr>';
-        }
-        echo '</table>';
-    }
-    echo '</div>';
+$cats = '';
+foreach ($pricing['categories'] as $i => $rule) $cats .= bk_cat_row($i, $rule, $divs, $classes, $CUR);
+$deps = '';
+foreach ($sessions as $s) {
+    $o = intval($s->SesOrder);
+    $deps .= bk_fld(bk_t('DepCap', $o) . ($s->SesName ? ' — ' . $s->SesName : '') . ' (Δ ' . $CUR . ')',
+        '<input type="text" name="dep[' . $o . ']" size="6" value="' . bk_e(bk_amt($pricing['departures'][(string) $o] ?? '')) . '">');
 }
+$simDiv = $simCls = '';
+foreach ($divs as $k => $v) $simDiv .= '<option value="' . bk_e($k) . '">' . bk_e($v) . '</option>';
+foreach ($classes as $k => $v) $simCls .= '<option value="' . bk_e($k) . '">' . bk_e($v) . '</option>';
+$simSes = '<option value="0">—</option>';
+foreach ($sessions as $s) $simSes .= '<option value="' . intval($s->SesOrder) . '">' . bk_e(bk_t('DepCap', intval($s->SesOrder))) . '</option>';
+$payRows = '';
+foreach (bk_payment_methods() as $mk => $ml) {
+    $cur = $payByM[$mk] ?? null;
+    $when = '';
+    foreach (bk_payinfo_when_labels() as $wk => $wl) {
+        $when .= '<option value="' . bk_e($wk) . '"' . (($cur && $cur['when'] === $wk) ? ' selected' : '') . '>' . bk_e($wl) . '</option>';
+    }
+    $payRows .= '<div class="bk-pay-row"><label class="bk-chk bk-pay-name"><input type="checkbox" name="pay[' . bk_e($mk) . '][on]" value="1"'
+        . ($cur ? ' checked' : '') . '> <b>' . bk_e($ml) . '</b></label>'
+        . '<select name="pay[' . bk_e($mk) . '][when]">' . $when . '</select>'
+        . '<input type="text" class="bk-pay-info" name="pay[' . bk_e($mk) . '][info]" value="' . bk_e($cur['info'] ?? '') . '" placeholder="'
+        . bk_e(bk_t('AcPayInfoPh')) . '"></div>';
+}
+$tariffBlocks = '<div class="bk-sec"><h2>' . bk_e(bk_t('MnFees')) . '</h2><div class="bk-row">'
+    . bk_fld(bk_t('AcBaseFee', $CUR), '<input type="text" name="fee" size="8" value="' . bk_e(bk_amt((float) $cfg->BcFee)) . '">') . '</div>'
+    . '<p class="bk-hint">' . bk_e(bk_t('AcBaseFeeHint')) . '</p>'
+    . '<details class="bk-adv"' . (bk_pricing_is_advanced($pricing) ? ' open' : '') . '><summary>' . bk_e(bk_t('AcAdvSummary')) . '</summary>'
+    . '<p class="bk-hint" style="margin:0 0 6px">' . bk_t('AcHowPrice', bk_e(bk_eur(0))) . '</p>'
+    . '<h3>' . bk_e(bk_t('AcByCat')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcByCatHint')) . '</p>'
+    . '<div id="bk-cat-list">' . $cats . '</div>'
+    . '<button type="button" class="bk-btn bk-add" onclick="bkAddCat()">' . bk_e(bk_t('AcAddRule')) . '</button>'
+    . '<template id="bk-cat-tpl">' . bk_cat_row('__i__', array(), $divs, $classes, $CUR) . '</template>'
+    . '<h3>' . bk_e(bk_t('AcByDep')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcByDepHint')) . '</p>'
+    . ($sessions ? '<div class="bk-row">' . $deps . '</div>' : '<p class="bk-hint">' . bk_e(bk_t('AcNoSessionYet')) . '</p>')
+    . '<h3>' . bk_e(bk_t('AcByProv')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcByProvHint')) . '</p><div class="bk-row">'
+    . bk_fld(bk_t('AcLocalDept'), '<input type="text" name="prov_deptcode" size="4" maxlength="2" value="' . bk_e($provDeptDef) . '">')
+    . bk_fld(bk_t('AcDeltaDept', $CUR), '<input type="text" name="prov_dept" size="6" value="' . bk_e(bk_amt($pricing['prov']['dept'] ?: '')) . '">')
+    . bk_fld(bk_t('AcLocalRegion'), '<input type="text" name="prov_regioncode" size="4" maxlength="2" value="' . bk_e($provRegionDef) . '">')
+    . bk_fld(bk_t('AcDeltaRegion', $CUR), '<input type="text" name="prov_region" size="6" value="' . bk_e(bk_amt($pricing['prov']['region'] ?: '')) . '">')
+    . '</div><h3>' . bk_e(bk_t('AcRankTitle')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcRankHint')) . '</p><div class="bk-row">'
+    . bk_fld(bk_t('AcFromNth', array('n' => 2, 'cur' => $CUR)), '<input type="text" name="rank[2]" size="6" value="' . bk_e(bk_amt($pricing['rank']['2'] ?? '')) . '">')
+    . bk_fld(bk_t('AcFromNth', array('n' => 3, 'cur' => $CUR)), '<input type="text" name="rank[3]" size="6" value="' . bk_e(bk_amt($pricing['rank']['3'] ?? '')) . '">')
+    . '</div><h3>' . bk_e(bk_t('AcPreview')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcPreviewHint')) . '</p>'
+    . '<div class="bk-row bk-sim-in">'
+    . bk_fld(bk_t('AcSimBow'), '<select id="sim-div">' . $simDiv . '</select>')
+    . bk_fld(bk_t('SsCategory'), '<select id="sim-cls">' . $simCls . '</select>')
+    . bk_fld(bk_t('SsDeparture'), '<select id="sim-ses">' . $simSes . '</select>')
+    . bk_fld(bk_t('AcSimOrigin'), '<select id="sim-prov"><option value="">' . bk_e(bk_t('AcSimOut')) . '</option><option value="region">'
+        . bk_e(bk_t('AcSimRegion')) . '</option><option value="dept">' . bk_e(bk_t('AcSimDept')) . '</option></select>')
+    . bk_fld(bk_t('AcSimRankNo'), '<select id="sim-rank"><option value="1">' . bk_e(bk_t('AcSimR1')) . '</option><option value="2">'
+        . bk_e(bk_t('AcSimR2')) . '</option><option value="3">' . bk_e(bk_t('AcSimR3')) . '</option></select>')
+    . '</div><div class="bk-sim-out"><table class="bk-sim-t"><tbody id="sim-lines"></tbody></table>'
+    . '<p class="bk-sim-tot">' . bk_e(bk_t('AcSimTotal')) . ' <b id="sim-total">—</b></p></div></details></div>'
+    . '<div class="bk-sec"><h2>' . bk_e(bk_t('PayMeansTitle')) . '</h2><p class="bk-hint">' . bk_e(bk_t('AcPayHint')) . '</p>' . $payRows . '</div>';
+
+$saveBtn = '<button type="submit" class="bk-btn" data-manual-save="1">' . bk_e(bk_t('AmSave')) . '</button>';
+
+if ($level == 1) {
+    $out .= '<div class="bk-sec"><p class="bk-hint" style="margin:0">' . bk_t('AcL1Text') . '</p>'
+        . bk_post_form(array('set_payments' => 1), '<label class="bk-chk"><input type="checkbox" name="payments" value="1" onchange="this.form.submit()"'
+            . (!empty($cfg->BcPayments) ? ' checked' : '') . '> ' . bk_t('AcL1Box') . '</label>'
+            . '<noscript><button type="submit" class="bk-btn">' . bk_e(bk_t('AcApply')) . '</button></noscript>', '', ' style="margin:12px 0 0"')
+        . '<p class="bk-hint">' . bk_e(bk_t('AcL1Hint')) . '</p>'
+        . (!empty($cfg->BcPayments) ? '<p class="bk-shortcuts"><a class="bk-btn" href="' . $ADMIN . 'shop.php">' . bk_e(bk_t('Shop')) . ' →</a> '
+            . '<a class="bk-btn" href="' . $ADMIN . 'dues.php">' . bk_e(bk_t('Payments')) . ' →</a></p>' : '')
+        . '</div>';
+    if (!empty($cfg->BcPayments)) {
+        $out .= '<form method="post" id="bk-cfg" data-autosave="1">' . bk_csrf_field() . '<input type="hidden" name="save_payments" value="1">'
+            . $tariffBlocks . $saveBtn . '</form><div id="bk-pill" hidden></div>';
+    }
+}
+
+if ($level == 2) {
+    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('AcL2Title')) . '</h2><p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('AcL2Hint')) . '</p>'
+        . '<form method="post" class="bk-row" style="margin:0 0 14px" data-autosave="1">' . bk_csrf_field() . '<input type="hidden" name="save_fee" value="1">'
+        . bk_fld(bk_t('AcRegFee', $CUR), '<input type="text" name="fee" size="8" value="' . bk_e(bk_amt((float) $cfg->BcFee)) . '">')
+        . '<button type="submit" class="bk-btn" data-manual-save="1" style="align-self:flex-end">' . bk_e(bk_t('AcSaveFee')) . '</button></form>'
+        . '<p class="bk-hint" style="margin:0 0 6px">' . bk_t('AcL2FeeHint') . '</p><p class="bk-shortcuts">'
+        . '<a class="bk-btn" href="' . $ADMIN . 'field.php">' . bk_e(bk_t('MnuField')) . ' →</a> '
+        . '<a class="bk-btn" href="' . $ADMIN . 'shop.php">' . bk_e(bk_t('Shop')) . ' →</a> '
+        . '<a class="bk-btn" href="' . $ADMIN . 'dues.php">' . bk_e(bk_t('Payments')) . ' →</a> '
+        . '<a class="bk-btn" href="' . $ADMIN . 'survey.php">' . bk_e(bk_t('MnuSurvey')) . ' →</a></p></div>';
+}
+
+if ($level == 3) {
+    $kinds = '';
+    foreach (bk_restrict_kinds() as $k => $lab) {
+        $kinds .= '<option value="' . bk_e($k) . '"' . ($cfg->BcRestrictKind === $k ? ' selected' : '') . '>' . bk_e($lab) . '</option>';
+    }
+    $out .= '<form method="post" id="bk-cfg" data-autosave="1">' . bk_csrf_field()
+        // Registration period.
+        . '<div class="bk-sec"><h2>' . bk_e(bk_t('AcPeriod')) . '</h2><div class="bk-row">'
+        . bk_fld(bk_t('AcOpenFrom'), '<input type="datetime-local" name="from" value="' . bk_e(bk_dtval($cfg->BcOpenFrom)) . '">')
+        . bk_fld(bk_t('AcOpenTo'), '<input type="datetime-local" name="to" value="' . bk_e(bk_dtval($cfg->BcOpenTo)) . '">')
+        . '</div><p class="bk-hint">' . bk_e(bk_t('AcPeriodHint')) . ' <b style="color: crimson;">'
+        . bk_e(bk_t($cfg->BcIsOpen ? 'AcStateOpen' : 'AcStateOut')) . '</b>.</p></div>'
+        // Geographic restriction.
+        . '<div class="bk-sec"><h2>' . bk_e(bk_t('AcGeo')) . '</h2><div class="bk-row">'
+        . bk_fld(bk_t('AcGeoFor'), '<select name="kind">' . $kinds . '</select>')
+        . bk_fld(bk_t('AcGeoCode'), '<input type="text" name="code" size="8" maxlength="12" value="' . bk_e($cfg->BcRestrictCode) . '">')
+        . bk_fld(bk_t('AcGeoAll'), '<input type="datetime-local" name="restrict_to" value="' . bk_e(bk_dtval($cfg->BcRestrictTo)) . '">')
+        . '</div><p class="bk-hint">' . bk_e(bk_t('AcGeoHint'))
+        . ($cfg->BcRestrictKind !== '' ? ' ' . bk_e(bk_t('AcGeoState')) . ' <b>' . bk_e(bk_t($cfg->BcAllOpen ? 'AcGeoOpen' : 'AcGeoRestricted')) . '</b>.' : '')
+        . '</p></div>'
+        // Placement and validation.
+        . '<div class="bk-sec"><h2>' . bk_e(bk_t('AcPlacement')) . '</h2>'
+        . ($isDrom
+            ? '<p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('AcDromHint')) . '</p><div class="bk-row">'
+              . bk_fld(bk_t('AcMaxClub'), '<input type="number" name="max_club" min="1" max="20" value="' . intval($cfg->BcMaxPerClubPerTarget) . '">')
+              . bk_fld(bk_t('AcMinClubs'), '<input type="number" name="min_clubs" min="1" max="50" value="' . intval($cfg->BcMinClubsPerSession) . '">') . '</div>'
+            : '<p class="bk-hint" style="margin-top:0">' . bk_t('AcFedRules') . '</p>')
+        . bk_chk('manual_validation', !empty($cfg->BcManualValidation), bk_t('AcManualBox'), 'margin-top:6px')
+        . '<p class="bk-hint">' . bk_t('AcManualHint') . '</p></div>';
+
+    // What the archers see.
+    $hasMandate = trim((string) ($cfg->BcMandate ?? '')) !== '';
+    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('AcWhatSee')) . '</h2>'
+        . bk_chk('show_gauges', $cfg->BcShowGauges, bk_e(bk_t('AcShowGauges')))
+        . bk_chk('show_assign', $cfg->BcShowAssignment, bk_e(bk_t('AcShowAssign')))
+        . bk_chk('scoresheet', $cfg->BcAllowScoresheet, bk_e(bk_t('AcScoresheet')))
+        . ($hasMandate
+            ? '<input type="hidden" name="show_mandate_present" value="1">'
+              . bk_chk('show_mandate', bk_mandate_visible($cfg), bk_t('AcShowMandate', bk_e($ADMIN . 'mandate.php')))
+            : '<p class="bk-hint" style="margin:6px 0 0">' . bk_t('AcNoMandate', bk_e($ADMIN . 'mandate.php')) . '</p>');
+
+    // Documents. The address is no longer asked: it is rebuilt from the online id given with the
+    // publication codes. Only whether to show it is left to decide.
+    $ianseoUrl      = bk_ianseo_url($TOUR);
+    $ianseoUrlSaved = trim((string) ($cfg->BcIanseoUrl ?? ''));
+    $out .= '<h3 class="bk-h3">' . bk_e(bk_t('DocsTitle')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcDocsHint')) . '</p>';
+    if ($ianseoUrl !== '') {
+        $out .= '<input type="hidden" name="ianseo_present" value="1">'
+            . bk_chk('show_ianseo', $ianseoUrlSaved !== '', bk_t('AcIanseoLink', $onlineId) . ' <a href="' . bk_e($ianseoUrl)
+                . '" target="_blank" rel="noopener">' . bk_e($ianseoUrl) . '</a>');
+    } elseif ($ianseoUrlSaved !== '') {
+        // Derived value whose source is gone (re-import without an online id, or an address typed
+        // when the field was free): said here, and the next save removes it — there is no page
+        // to point to any more.
+        $out .= '<input type="hidden" name="ianseo_present" value="1"><p class="bk-hint" style="margin:6px 0 0; color:#a86b00">'
+            . bk_e(bk_t('AcIanseoStale', $ianseoUrlSaved)) . '</p>';
+    }
+    $dossardCard = bk_dossard_card($TOUR);
+    $out .= '<p class="bk-hint" style="margin-top:12px">' . bk_e(bk_t('AcOfficialHint')) . '</p><input type="hidden" name="docs_present" value="1">'
+        . bk_chk('show_program', !empty($cfg->BcShowProgram), bk_e(bk_t('AcShowProgram')))
+        . bk_chk('show_participants', !empty($cfg->BcShowParticipants), bk_e(bk_t('AcShowParticipants')))
+        . bk_chk('show_results', !empty($cfg->BcShowResults), bk_e(bk_t('AcShowResults')))
+        . bk_chk('show_dossard', !empty($cfg->BcShowDossard), bk_t('AcShowDossard', bk_e($CFG->ROOT_DIR . 'Accreditation/IdCards.php?CardType=Q'))
+            . ($dossardCard === null ? ' <span class="bk-hint" style="color:#a86b00">' . bk_e(bk_t('AcNoDossard')) . '</span>' : ''));
+
+    // Wishes, waiting list, after the competition.
+    $out .= '<h3 class="bk-h3">' . bk_e(bk_t('AcWishes')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcWishesHint')) . '</p>'
+        . bk_chk('wish_letter', $cfg->BcWishLetter, bk_e(bk_t('AcWishLetter')))
+        . bk_chk('wish_with', $cfg->BcWishWith, bk_e(bk_t('AcWishWith')))
+        . bk_chk('wish_free', $cfg->BcWishFree, bk_e(bk_t('AcWishFree')))
+        . '<input type="hidden" name="waitlist_present" value="1">'
+        . bk_chk('waitlist', !isset($cfg->BcWaitlist) || !empty($cfg->BcWaitlist), bk_t('AcWaitBox'))
+        . '<h3 class="bk-h3">' . bk_e(bk_t('AcAfter')) . '</h3><input type="hidden" name="survey_present" value="1">'
+        . bk_chk('survey', !isset($cfg->BcSurvey) || !empty($cfg->BcSurvey), bk_t('AcSurveyBox', bk_e($ADMIN . 'survey.php')))
+        . '<p class="bk-hint">' . bk_e(bk_t('AcSurveyHint')) . '</p></div>'
+        . $tariffBlocks . $saveBtn . '</form>';
+}
+
+if ($level >= 2) {
+    // Departures, read from ianseo.
+    $out .= '<div class="bk-sec" style="margin-top:18px"><h2>' . bk_e(bk_t('TgDepartures')) . '</h2>';
+    if (!$sessions) {
+        $out .= '<p class="bk-hint">' . bk_t('AcNoDepConf') . '</p>';
+    } else {
+        $out .= '<table class="bk-t"><tr><th>' . bk_e(bk_t('SsDeparture')) . '</th><th>' . bk_e(bk_t('AcTargets')) . '</th><th>'
+            . bk_e(bk_t('AcPerTarget')) . '</th><th>' . bk_e(bk_t('SsTotal')) . '</th><th>' . bk_e(bk_t('AcOccupancy')) . '</th></tr>';
+        foreach ($sessions as $s) {
+            $pl = intval($s->Places); $pr = intval($s->Pris);
+            $pc = $pl > 0 ? min(100, round($pr * 100 / $pl)) : 0;
+            $out .= '<tr><td>' . intval($s->SesOrder) . ($s->SesName ? ' — ' . bk_e($s->SesName) : '') . '</td><td>' . intval($s->SesTar4Session) . '</td>'
+                . '<td>' . intval($s->SesAth4Target) . '</td><td>' . $pl . '</td>'
+                . '<td><span class="bk-gauge"><i style="width:' . $pc . '%"></i></span>' . $pr . ' / ' . $pl . '</td></tr>';
+        }
+        $out .= '</table><p class="bk-hint">' . bk_e(bk_t('AcDepsHint')) . '</p>';
+    }
+    $out .= '<p style="margin:10px 0 0"><a class="bk-btn" style="text-decoration:none;display:inline-block" href="' . $ADMIN . 'field.php">'
+        . bk_e(bk_t('MnuField')) . ' →</a><span class="bk-hint" style="display:block;margin-top:6px">' . bk_e(bk_t('AcFieldHint')) . '</span></p></div>';
+
+    // Waiting list (lib/waitlist.php): order of arrival; register by hand (even on a full
+    // departure: the organiser's call) or remove.
+    if ($waitList['waiting'] || $waitList['done']) {
+        $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('AcWaitTitle')) . '</h2>';
+        if (!bk_waitlist_on($cfg)) $out .= '<p class="bk-hint">' . bk_e(bk_t('AcWaitOff')) . '</p>';
+        if ($waitList['waiting']) {
+            $out .= '<p class="bk-hint">' . bk_e(bk_t('AcWaitHint')) . (empty($cfg->BcIsOpen) ? ' ' . bk_t('AcWaitFrozen') : '') . '</p>'
+                . '<table class="bk-t"><tr><th>#</th><th>' . bk_e(bk_t('ColArcher')) . '</th><th>' . bk_e(bk_t('Club')) . '</th><th>'
+                . bk_e(bk_t('AcBowCat')) . '</th><th>' . bk_e(bk_t('AcWishedDep')) . '</th><th>' . bk_e(bk_t('AcPlannedPay')) . '</th><th>'
+                . bk_e(bk_t('AcSince')) . '</th><th></th></tr>';
+            foreach ($waitList['waiting'] as $i => $w) {
+                $pc = explode('|', (string) $w->BwPayChoice . '|', 3);   // "method|when", or empty
+                $opts = '';
+                foreach ($sessions as $s) {
+                    $o = intval($s->SesOrder);
+                    $opts .= '<option value="' . $o . '"' . (intval($w->BwSession) === $o ? ' selected' : '') . '>'
+                        . bk_e(bk_t('AcDepPl', array('dep' => bk_t('DepCap', $o), 'n' => max(0, intval($s->Places) - intval($s->Pris))))) . '</option>';
+                }
+                $out .= '<tr><td>' . ($i + 1) . '</td><td>' . bk_e(trim($w->LueFamilyName . ' ' . $w->LueName)) . ' <span class="bk-hint">'
+                    . bk_e($w->BwLicence) . '</span></td><td>' . bk_e($w->LueCoDescr) . '</td><td>'
+                    . bk_e(($w->DivDescription ?: $w->BwDivision) . ' / ' . ($w->ClDescription ?: $w->BwClass)) . '</td><td>'
+                    . bk_e(intval($w->BwSession) ? bk_t('DepCap', intval($w->BwSession)) : bk_t('AcAnyDep')) . '</td><td>'
+                    . bk_e(bk_payment_decl_label($pc[0], $pc[1])) . '</td><td>' . bk_e(bk_date_fr($w->BwCreated)) . '</td>'
+                    . '<td style="white-space:nowrap">'
+                    . bk_post_form(array('wait_action' => 'register', 'w' => intval($w->BwId)), '<select name="wait_session">' . $opts . '</select> '
+                        . '<button type="submit" class="bk-btn">' . bk_e(bk_t('ClubRegisterBtn')) . '</button>', bk_t('AcWaitRegConfirm'), ' style="display:inline"') . ' '
+                    . bk_post_form(array('wait_action' => 'remove', 'w' => intval($w->BwId)),
+                        '<button type="submit" class="bk-btn">' . bk_e(bk_t('RiRemove')) . '</button>', bk_t('AcWaitRemoveConfirm'), ' style="display:inline"')
+                    . '</td></tr>';
+            }
+            $out .= '</table>';
+        }
+        if ($waitList['done']) {
+            $out .= '<h3 class="bk-h3">' . bk_e(bk_t('AcLastResults')) . '</h3><table class="bk-t"><tr><th>' . bk_e(bk_t('ColArcher')) . '</th><th>'
+                . bk_e(bk_t('AcOn')) . '</th><th>' . bk_e(bk_t('AcResult')) . '</th></tr>';
+            foreach ($waitList['done'] as $w) {
+                $out .= '<tr><td>' . bk_e(trim($w->LueFamilyName . ' ' . $w->LueName)) . ' <span class="bk-hint">' . bk_e($w->BwLicence)
+                    . '</span></td><td>' . bk_e(bk_date_fr($w->BwDone)) . '</td><td>'
+                    . bk_e(intval($w->BwStatus) === 1 ? bk_t('AcWaitRegOn', intval($w->BwSession)) : bk_t('AcWaitRemovedX', $w->BwNote))
+                    . '</td></tr>';
+            }
+            $out .= '</table>';
+        }
+        $out .= '</div>';
+    }
+
+    // Check of the rules.
+    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('TgRulesTitle')) . '</h2>';
+    if (!$rules) {
+        $out .= '<p class="bk-hint" style="margin:0">' . bk_e(bk_t('AcNoRules')) . '</p>';
+    } else {
+        $out .= '<p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('AcRulesHint')) . '</p><table class="bk-t"><tr><th>'
+            . bk_e(bk_t('SsDeparture')) . '</th><th>' . bk_e(bk_t('TgRegistered')) . '</th><th>' . bk_e(bk_t('TgClubs')) . '</th><th>'
+            . bk_e(bk_t('AcRules')) . '</th></tr>';
+        foreach ($rules as $rc) {
+            $out .= '<tr><td>' . intval($rc['depart']) . ($rc['nom'] ? ' — ' . bk_e($rc['nom']) : '') . '</td><td>' . intval($rc['archers']) . '</td>'
+                . '<td>' . bk_e(bk_t('AcClubsMin', array('n' => intval($rc['clubs']), 'min' => intval($rc['minClubs'])))) . '</td><td>';
+            if ($rc['ok']) {
+                $out .= '<span style="color:#04ac0b;font-weight:600">' . bk_e(bk_t('AcCompliant')) . '</span>';
+            } else {
+                $li = '';
+                if (!$rc['clubsOk']) $li .= '<li>' . bk_e(bk_t('AcLessClubs', intval($rc['minClubs']))) . '</li>';
+                foreach ($rc['exces'] as $ex) {
+                    $li .= '<li>' . bk_e(bk_t('AcTooManyLow', array('target' => intval($ex['cible']), 'n' => intval($ex['n']),
+                        'club' => $ex['club'], 'max' => intval($rc['max'])))) . '</li>';
+                }
+                if (intval($rc['nonPlaces']) > 0) $li .= '<li>' . bk_e(bk_t('AcUnplaced', intval($rc['nonPlaces']))) . '</li>';
+                if (!empty($rc['doublons'])) $li .= '<li>' . bk_e(bk_t('AcDupes')) . '</li>';
+                $out .= '<span style="color:#c0392b;font-weight:600">' . bk_e(bk_t('AcReview')) . '</span>'
+                    . '<ul class="bk-hint" style="margin:4px 0 0; padding-left:18px; color:#a80000">' . $li . '</ul>';
+            }
+            $out .= '</td></tr>';
+        }
+        $out .= '</table>';
+    }
+    $out .= '</div>';
+
+    // Link for the archers.
+    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('AcLinkTitle')) . '</h2><p style="font-size:13px;margin:0">' . bk_e(bk_t('AcLinkGive'))
+        . '<br><a class="bk-url" href="' . bk_e($publicUrl) . '" target="_blank" rel="noopener">' . bk_e($publicUrl) . '</a></p>'
+        . '<p class="bk-hint">' . bk_e(bk_t('AcLinkHint')) . '</p></div><div id="bk-pill" hidden></div>';
+}
+echo $out . '</div>';
+
+// Texts and number format for the two scripts below.
+$seps = bk_number_seps();
+$jsT = array(
+    'lang' => aut_lang_code(), 'dec' => $seps['dec'], 'th' => $seps['thousands'], 'cur' => $CUR,
+    'saving' => bk_t('AcJsSaving'), 'savedAt' => bk_t('AcJsSavedAt'), 'refused' => bk_t('AcJsRefused'),
+    'offline' => bk_t('AcJsOffline'), 'auto' => bk_t('AcJsAuto'),
+    'base' => bk_t('PriceBase'), 'cat' => bk_t('PriceCat'), 'catNamed' => bk_t('PriceCatNamed'), 'dep' => bk_t('DepCap'),
+    'dept' => bk_t('PriceDept'), 'region' => bk_t('PriceRegion'), 'rank' => bk_t('PriceRank'),
+);
+echo '<script>var BK_T = ' . json_encode($jsT, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . ', BK_CATN = ' . count($pricing['categories']) . ';</script>';
 ?>
-
-<div class="bk-sec">
-  <h2>Contrôle du règlement</h2>
-  <?php if (!$rules): ?>
-    <p class="bk-hint" style="margin:0">Aucun départ avec des inscrits pour l'instant.</p>
-  <?php else: ?>
-    <p class="bk-hint" style="margin-top:0">Vérification à faire à la clôture des inscriptions (avant, le
-       plateau bouge encore).</p>
-    <table class="bk-t">
-      <tr><th>Départ</th><th>Inscrits</th><th>Clubs</th><th>Règlement</th></tr>
-      <?php foreach ($rules as $rc): ?>
-        <tr>
-          <td><?= intval($rc['depart']) ?><?= $rc['nom'] ? ' — ' . bk_e($rc['nom']) : '' ?></td>
-          <td><?= intval($rc['archers']) ?></td>
-          <td><?= intval($rc['clubs']) ?> / <?= intval($rc['minClubs']) ?> min</td>
-          <td>
-            <?php if ($rc['ok']): ?>
-              <span style="color:#04ac0b;font-weight:600">✓ conforme</span>
-            <?php else: ?>
-              <span style="color:#c0392b;font-weight:600">À revoir</span>
-              <ul class="bk-hint" style="margin:4px 0 0; padding-left:18px; color:#a80000">
-                <?php if (!$rc['clubsOk']): ?><li>moins de <?= intval($rc['minClubs']) ?> clubs</li><?php endif; ?>
-                <?php foreach ($rc['exces'] as $ex): ?><li>cible <?= intval($ex['cible']) ?> : <?= intval($ex['n']) ?> archers du club <?= bk_e($ex['club']) ?> (max <?= intval($rc['max']) ?>)</li><?php endforeach; ?>
-                <?php if (intval($rc['nonPlaces']) > 0): ?><li><?= intval($rc['nonPlaces']) ?> archer(s) non placé(s)</li><?php endif; ?>
-                <?php if (!empty($rc['doublons'])): ?><li>doublon(s) de licence sur le départ</li><?php endif; ?>
-              </ul>
-            <?php endif; ?>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-    </table>
-  <?php endif; ?>
-</div>
-
-<div class="bk-sec">
-  <h2>Lien pour les archers</h2>
-  <p style="font-size:13px;margin:0">Communiquez cette adresse à vos licenciés :<br>
-     <a class="bk-url" href="<?= bk_e($publicUrl) ?>" target="_blank" rel="noopener"><?= bk_e($publicUrl) ?></a></p>
-  <p class="bk-hint">Elle ouvre la page de cette compétition dans leur espace (départs, tarif, inscription).
-     Un archer pas encore connecté passe d'abord par la page de connexion, puis y revient.</p>
-</div>
-
-<div id="bk-pill" hidden></div>
-<?php endif; // fin niveau >= 2 ?>
-
-</div>
-
 <?php if ($level >= 2 || $showTariffs): ?>
 <script>
-/* Enregistrement automatique — le bouton « Enregistrer » disparaît quand JS est
-   disponible, et chaque modification est écrite au fil de l'eau.
-   Choix : on renvoie le formulaire ENTIER au même point d'entrée (même validation,
-   même normalisation côté serveur) plutôt que d'inventer une API par champ ; seule
-   la réponse change (JSON au lieu de la page). Sans JS, le bouton reste. */
+/* Autosave — the "Save" button disappears when scripts run, and each change is written as it
+   goes. Choice: the WHOLE form goes back to the same entry point (same validation, same
+   server-side normalisation) rather than one API per field; only the answer changes (JSON
+   instead of the page). Without scripts, the button stays. */
 (function () {
   var forms = [].slice.call(document.querySelectorAll('form[data-autosave]'));
   if (!forms.length || !window.fetch || !window.FormData) return;
 
   var pill = document.getElementById('bk-pill');
-  var timer = null, enCours = false, aRefaire = null, sale = false;
+  var timer = null, busy = false, again = null, dirty = false;
 
-  function etat(cls, txt) { if (!pill) return; pill.className = cls; pill.textContent = txt; pill.hidden = false; }
-  function heure() { return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
+  function state(cls, txt) { if (!pill) return; pill.className = cls; pill.textContent = txt; pill.hidden = false; }
+  function clock() { return new Date().toLocaleTimeString(BK_T.lang, { hour: '2-digit', minute: '2-digit' }); }
 
-  function envoyer(form) {
-    if (enCours) { aRefaire = form; return; }      // une écriture à la fois, la dernière rejouée
-    enCours = true;
-    etat('wait', '⏳ Enregistrement…');
+  function send(form) {
+    if (busy) { again = form; return; }      // one write at a time, the last one replayed
+    busy = true;
+    state('wait', BK_T.saving);
     var fd = new FormData(form);
     fd.append('ajax', '1');
     fetch(window.location.href, {
@@ -975,58 +780,57 @@ if ($waitList['waiting'] || $waitList['done']) {
     })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
-        if (j && j.ok) { sale = false; etat('ok', '✓ Enregistré à ' + heure()); }
-        else etat('err', '⚠ ' + ((j && j.msg) || 'Enregistrement refusé — rechargez la page.'));
+        if (j && j.ok) { dirty = false; state('ok', BK_T.savedAt.split('{$a}').join(clock())); }
+        else state('err', '⚠ ' + ((j && j.msg) || BK_T.refused));
       })
-      .catch(function () { etat('err', '⚠ Enregistrement impossible (connexion ?). Vos dernières modifications ne sont pas écrites.'); })
+      .catch(function () { state('err', '⚠ ' + BK_T.offline); })
       .then(function () {
-        enCours = false;
-        if (aRefaire) { var f = aRefaire; aRefaire = null; envoyer(f); }
+        busy = false;
+        if (again) { var f = again; again = null; send(f); }
       });
   }
 
-  function planifier(form, delai) {
-    sale = true;
+  function schedule(form, delay) {
+    dirty = true;
     clearTimeout(timer);
-    timer = setTimeout(function () { envoyer(form); }, delai);
+    timer = setTimeout(function () { send(form); }, delay);
   }
 
   forms.forEach(function (form) {
-    // L'aperçu de tarif est bâti sur des champs SANS name (sim-*) : les manipuler ne
-    // change rien d'enregistrable, inutile de déclencher une écriture.
-    function utile(e) { return e.target && e.target.name && !e.target.disabled; }
-    // Frappe au clavier : on laisse finir la saisie. Case/liste/date : immédiat.
-    form.addEventListener('input',  function (e) { if (utile(e)) planifier(form, 900); });
-    form.addEventListener('change', function (e) { if (utile(e)) planifier(form, 150); });
-    form.addEventListener('submit', function (e) { e.preventDefault(); planifier(form, 0); });
+    // The tariff preview is built on fields WITHOUT a name (sim-*): touching them changes
+    // nothing to save, no write needed.
+    function relevant(e) { return e.target && e.target.name && !e.target.disabled; }
+    // Typing: let the typing end. Box/list/date: at once.
+    form.addEventListener('input',  function (e) { if (relevant(e)) schedule(form, 900); });
+    form.addEventListener('change', function (e) { if (relevant(e)) schedule(form, 150); });
+    form.addEventListener('submit', function (e) { e.preventDefault(); schedule(form, 0); });
     form.querySelectorAll('[data-manual-save]').forEach(function (b) { b.hidden = true; });
-    // Après le formulaire, pas dedans : celui du tarif est une rangée flex.
+    // After the form, not inside: the fee one is a flex row.
     var note = document.createElement('p');
     note.className = 'bk-auto-note';
-    note.textContent = 'Vos modifications sont enregistrées automatiquement.';
+    note.textContent = BK_T.auto;
     if (form.parentNode) form.parentNode.insertBefore(note, form.nextSibling);
   });
 
-  // Supprimer une règle de tarif retire des champs sans déclencher d'événement.
-  // (La suppression elle-même a lieu dans l'autre écouteur, synchrone : le délai
-  //  ci-dessous garantit que l'envoi part APRÈS.)
+  // Deleting a tariff rule removes fields without firing an event. (The deletion itself
+  // happens in the other listener, synchronously: the delay below makes the send go AFTER.)
   document.addEventListener('click', function (e) {
     if (e.target.closest && e.target.closest('.bk-cat-del')) {
       var f = document.getElementById('bk-cfg');
-      if (f) planifier(f, 200);
+      if (f) schedule(f, 200);
     }
   });
 
-  // Quitter la page avec une modification non écrite : on prévient.
+  // Leaving the page with a change not written yet: warn.
   window.addEventListener('beforeunload', function (e) {
-    if (sale || enCours) { e.preventDefault(); e.returnValue = ''; }
+    if (dirty || busy) { e.preventDefault(); e.returnValue = ''; }
   });
 })();
 </script>
 <?php endif; ?>
 <?php if ($showTariffs): ?>
 <script>
-var bkCatN = <?= count($pricing['categories']) ?>;
+var bkCatN = BK_CATN;
 function bkAddCat() {
   var html = document.getElementById('bk-cat-tpl').innerHTML.replace(/__i__/g, 'n' + (bkCatN++));
   var wrap = document.createElement('div'); wrap.innerHTML = html.trim();
@@ -1038,17 +842,21 @@ document.addEventListener('click', function (e) {
 });
 </script>
 <script>
-/* Aperçu du tarif en direct : lit la configuration du formulaire et applique la
-   même formule que le serveur (lib/pricing.php). */
+/* Live tariff preview: reads the form's settings and applies the same formula as the server
+   (lib/pricing.php), with its labels (BK_T). */
 (function () {
-  // #bk-cfg et non « #bkadm form » : le PREMIER formulaire de la page est celui de
-  // « Copier depuis… » — l'aperçu y lisait donc un tarif de base toujours vide.
+  // #bk-cfg and not "#bkadm form": the FIRST form of the page is the "Copy from…" one — the
+  // preview used to read an always empty base fee there.
   var form = document.getElementById('bk-cfg'); if (!form) return;
   function num(v) { v = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isNaN(v) ? 0 : v; }
   function val(id) { var e = document.getElementById(id); return e ? e.value : ''; }
   function selVals(sel) { var a = []; if (!sel) return a; for (var i = 0; i < sel.options.length; i++) if (sel.options[i].selected) a.push(sel.options[i].value); return a; }
-  function eur(n, signed) { var s = n < 0 ? '−' : (signed ? '+' : ''); return s + Math.abs(n).toFixed(2).replace('.', ',') + ' €'; }
+  function eur(n, signed) {
+    var p = Math.abs(n).toFixed(2).split('.');
+    return (n < 0 ? '−' : (signed ? '+' : '')) + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, BK_T.th) + BK_T.dec + p[1] + ' ' + BK_T.cur;
+  }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]; }); }
+  function tx(t, a) { return String(t).split('{$a}').join(a); }
 
   function readConfig() {
     var feeEl = form.elements['fee'];
@@ -1073,19 +881,19 @@ document.addEventListener('click', function (e) {
     if (!document.getElementById('sim-total')) return;
     var cfg = readConfig();
     var div = val('sim-div'), cls = val('sim-cls'), ses = val('sim-ses'), prov = val('sim-prov'), rank = parseInt(val('sim-rank') || '1', 10);
-    var base = cfg.base, label = 'Tarif de base';
+    var base = cfg.base, label = BK_T.base;
     for (var i = 0; i < cfg.cats.length; i++) {
       var c = cfg.cats[i];
       var okD = !c.div.length || c.div.indexOf(div) >= 0, okC = !c.cls.length || c.cls.indexOf(cls) >= 0;
-      if (okD && okC) { base = c.price; label = 'Tarif' + (c.label ? ' ' + c.label : ' catégorie'); break; }
+      if (okD && okC) { base = c.price; label = c.label ? tx(BK_T.catNamed, c.label) : BK_T.cat; break; }
     }
     var lines = [[label, base, false]], total = base;
-    if (ses && ses !== '0' && cfg.deps[ses] !== undefined) { lines.push(['Départ ' + ses, cfg.deps[ses], true]); total += cfg.deps[ses]; }
+    if (ses && ses !== '0' && cfg.deps[ses] !== undefined) { lines.push([tx(BK_T.dep, ses), cfg.deps[ses], true]); total += cfg.deps[ses]; }
     var pd = prov === 'dept' ? cfg.prov.dept : (prov === 'region' ? cfg.prov.region : 0);
-    if (pd) { lines.push([prov === 'dept' ? 'Tarif départemental' : 'Tarif régional', pd, true]); total += pd; }
+    if (pd) { lines.push([prov === 'dept' ? BK_T.dept : BK_T.region, pd, true]); total += pd; }
     var rd = 0, th = 0;
     for (var k in cfg.rank) { var kk = parseInt(k, 10); if (rank >= kk && kk > th) { th = kk; rd = cfg.rank[k]; } }
-    if (rd) { lines.push([rank + 'ᵉ inscription', rd, true]); total += rd; }
+    if (rd) { lines.push([tx(BK_T.rank, rank), rd, true]); total += rd; }
     total = Math.max(0, total);
     var html = '';
     for (var j = 0; j < lines.length; j++) html += '<tr><td>' + esc(lines[j][0]) + '</td><td>' + eur(lines[j][1], lines[j][2]) + '</td></tr>';
@@ -1097,5 +905,6 @@ document.addEventListener('click', function (e) {
   simulate();
 })();
 </script>
-<?php endif; // scripts du mode avancé ?>
-<?php include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php'); ?>
+<?php endif; ?>
+<?php
+include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

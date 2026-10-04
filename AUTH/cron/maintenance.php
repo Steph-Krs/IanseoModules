@@ -1,52 +1,56 @@
 <?php
 /**
- * Module AUTH — fenêtre de maintenance nocturne, en UN seul script (CLI uniquement).
+ * AUTH module — nightly maintenance window, in ONE script (command line only).
  *
- * Enchaîne, chaque étape n'étant lancée qu'une fois la précédente terminée :
+ * Runs in a row, each step only started once the previous one has ended:
  *
- *   maintenance ON → SAUVEGARDE → déverrouillage → MàJ cœur ianseo → MàJ des modules Custom
- *   → redéploiement AUTH → synchro licences → synchro logos → verrouillage
+ *   maintenance ON → BACKUP → unlocking → ianseo core update → update of the Custom modules
+ *   → AUTH redeployment → licence sync → logo sync → locking
  *   → maintenance OFF
  *
- * INVARIANT NON NÉGOCIABLE : la maintenance est TOUJOURS coupée à la fin, y compris
- * si une étape échoue, si le script est interrompu (Ctrl-C, SIGTERM) ou s'il meurt sur
- * une erreur fatale — sans quoi le serveur resterait indéfiniment en page 503. D'où le
- * register_shutdown_function posé AVANT toute chose et les gestionnaires de signaux.
+ * NON-NEGOTIABLE INVARIANT: the maintenance is ALWAYS turned off at the end, including when a
+ * step fails, when the script is interrupted (Ctrl-C, SIGTERM) or when it dies on a fatal
+ * error — otherwise the server would stay on the 503 page for ever. Hence the
+ * register_shutdown_function set BEFORE anything else, and the signal handlers.
  *
- * Chaque étape est INDÉPENDANTE et désactivable ; l'échec de l'une n'empêche pas les
- * suivantes (une panne réseau chez la FFTA ne doit pas priver le serveur de sa MàJ de
- * module, ni laisser la maintenance active).
+ * Each step is INDEPENDENT and can be turned off; the failure of one does not prevent the
+ * next ones (a network outage at the FFTA must not deprive the server of its module update,
+ * nor leave the maintenance on).
  *
- * Les étapes lourdes tournent en SOUS-PROCESSUS. Ce n'est pas un détail :
- *  - sync-licences.php / sync-logos.php / update-core.php se terminent par `exit()` —
- *    inclus en direct, ils tueraient l'orchestrateur avant la sortie de maintenance ;
- *  - après une MàJ du cœur, ianseo a effacé Modules/Authentication/ et remplacé des
- *    fichiers : un processus neuf recharge la bonne version du code ;
- *  - une erreur fatale dans l'un d'eux reste confinée.
+ * The heavy steps run as SUB-PROCESSES. This is not a detail:
+ *  - sync-licences.php / sync-logos.php / update-core.php end with `exit()` — included
+ *    directly, they would kill the orchestrator before the maintenance is turned off;
+ *  - after a core update, ianseo erased Modules/Authentication/ and replaced files: a new
+ *    process loads the right version of the code;
+ *  - a fatal error in one of them stays contained.
  *
- * crontab (une seule ligne remplace celles des synchros) :
+ * crontab (one line replaces those of the syncs):
  *   15 3 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php >> /var/log/ianseo-maintenance.log 2>&1
  *
- * config.local.json (les commandes sont propres au serveur ; une commande vide = étape
- * ignorée, ce qui rend le script inoffensif sur un poste de développement) :
+ * config.local.json (the commands are specific to the server; an empty command = step
+ * skipped, which makes the script harmless on a development machine):
  *   { "maintenance": {
  *       "on":     "sudo /usr/local/bin/ianseo-maintenance-on",
  *       "off":    "sudo /usr/local/bin/ianseo-maintenance-off",
- *       "unlock": "",   ← vides : déverrouillage fait par root dans la ligne cron
- *       "lock":   "",   ← (serveur/cron/ianseo-nightly), jamais en sudo pour www-data
+ *       "unlock": "",   ← empty: unlocking done by root in the cron line
+ *       "lock":   "",   ← (serveur/cron/ianseo-nightly), never through sudo for www-data
  *       "steps":  { "core": false, "modules": true, "licences": true, "logos": true },
  *       "ping_url": ""   ← optional heartbeat (healthchecks.io…), see aut_backup_ping()
  *   },
  *   "backup": { "enabled": true, "dir": "/var/backups/ianseo", "keep_days": 14, … } }
- *   (détail : backup-lib.php ; réglable depuis admin/config.php)
+ *   (details: backup-lib.php; can be set from admin/config.php)
  *
- * Options : --dry-run (n'exécute rien, affiche le plan), --core (force la MàJ cœur
- * pour cette exécution), --no-core, --no-backup, --only=backup,modules,licences,logos
+ * Options: --dry-run (runs nothing, shows the plan), --core (forces the core update for this
+ * run), --no-core, --no-backup, --only=backup,modules,licences,logos
+ *
+ * The log is written in English, like ianseo's own scripts: it is read on the server, not in
+ * ianseo. The failed steps are recorded as codes (see aut_backup_step_label()), which the
+ * administrator banner shows in the visitor's language.
  */
 
 if (php_sapi_name() !== 'cli') {
     http_response_code(403);
-    die('Script cron : exécution en ligne de commande uniquement.');
+    die('Cron script: command line only.');
 }
 
 $SKIP_AUTH = 1;
@@ -58,8 +62,8 @@ require_once(dirname(__DIR__) . '/lib.php');
 ini_set('memory_limit', '512M');
 
 $T0 = microtime(true);
-// Heure LOCALE : ianseo force PHP en UTC, et ce journal est relu à côté des lignes
-// des scripts système (heure locale). Voir aut_log_time().
+// LOCAL time: ianseo forces PHP to UTC, and this log is read next to the lines of the system
+// scripts (local time). See aut_log_time().
 function mt_log($msg) { echo '[' . aut_log_time() . '] ' . $msg . "\n"; }
 function mt_step($t)  { mt_log(''); mt_log('=== ' . $t . ' ==='); }
 
@@ -74,21 +78,20 @@ $only    = preg_match('/--only=([a-z,]+)/i', $argsStr, $m) ? array_filter(explod
 $cfg   = aut_local_config()['maintenance'] ?? array();
 $steps = is_array($cfg['steps'] ?? null) ? $cfg['steps'] : array();
 
-/** Une étape est-elle demandée ? (--only prime, puis la config, puis le défaut) */
+/** Is a step asked for? (--only first, then the config, then the default) */
 function mt_want($name, $default) {
     global $only, $steps;
     if ($only !== null) return in_array($name, $only, true);
     return array_key_exists($name, $steps) ? !empty($steps[$name]) : $default;
 }
 
-// La MàJ du CŒUR est désactivée par défaut : elle réécrit des fichiers de ianseo et
-// applique des migrations de base, sans retour arrière. À n'activer qu'avec des
-// sauvegardes en place (voir SERVEUR.md).
+// The CORE update is off by default: it rewrites ianseo files and applies database
+// migrations, with no way back. To turn on only with backups in place (see SERVEUR.md).
 $doCore     = mt_want('core', false);
 if (in_array('--core', $args, true))    $doCore = true;
 if (in_array('--no-core', $args, true)) $doCore = false;
-// Sauvegarde : pilotée par config.local.json → backup.enabled (défaut : oui), et non
-// par steps — c'est une fonction à part entière, réglable depuis admin/config.php.
+// Backup: driven by config.local.json → backup.enabled (default: yes), not by steps — it is
+// a feature on its own, set from admin/config.php.
 require_once(dirname(__DIR__) . '/backup-lib.php');
 $bkCfg      = aut_backup_config();
 $doBackup   = $bkCfg['enabled'] && ($only === null || in_array('backup', $only, true));
@@ -98,28 +101,28 @@ $doLicences = mt_want('licences', true);
 $doLogos    = mt_want('logos',    true);
 
 /* ------------------------------------------------------------------ */
-/* Verrou : jamais deux fenêtres de maintenance à la fois              */
+/* Lock: never two maintenance windows at once                         */
 /* ------------------------------------------------------------------ */
 $lock = fopen(__DIR__ . '/.maintenance.lock', 'c');
 if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
-    mt_log('ERREUR : une fenêtre de maintenance est déjà en cours.');
+    mt_log('ERROR: a maintenance window is already running.');
     exit(1);
 }
 
 /* ------------------------------------------------------------------ */
-/* Sortie de maintenance GARANTIE                                      */
+/* GUARANTEED exit from maintenance                                    */
 /* ------------------------------------------------------------------ */
-$GLOBALS['MT_ON'] = false;   // la maintenance a-t-elle été activée PAR NOUS ?
+$GLOBALS['MT_ON'] = false;   // was the maintenance turned on BY US?
 
 function mt_exec($cmd, $label) {
     global $dryRun;
     $cmd = trim((string) $cmd);
-    if ($cmd === '') { mt_log("  ($label : aucune commande configurée — ignoré)"); return true; }
-    if ($dryRun)     { mt_log("  [dry-run] $label : $cmd"); return true; }
+    if ($cmd === '') { mt_log("  ($label: no command configured — skipped)"); return true; }
+    if ($dryRun)     { mt_log("  [dry-run] $label: $cmd"); return true; }
     $out = array(); $rc = 0;
     exec($cmd . ' 2>&1', $out, $rc);
     foreach ($out as $l) mt_log('    | ' . $l);
-    mt_log('  ' . $label . ' : ' . ($rc === 0 ? 'ok' : "ÉCHEC (code $rc)"));
+    mt_log('  ' . $label . ': ' . ($rc === 0 ? 'ok' : "FAILED (code $rc)"));
     return $rc === 0;
 }
 
@@ -127,22 +130,22 @@ function mt_maintenance_off() {
     if (empty($GLOBALS['MT_ON'])) return;
     $GLOBALS['MT_ON'] = false;
     $cfg = aut_local_config()['maintenance'] ?? array();
-    mt_log('Sortie du mode maintenance.');
+    mt_log('Leaving maintenance mode.');
     mt_exec($cfg['off'] ?? '', 'maintenance OFF');
 }
 
-// Posé AVANT toute action : couvre l'erreur fatale, le die() et la fin normale.
+// Set BEFORE any action: covers the fatal error, the die() and the normal end.
 register_shutdown_function(function () {
     if (!empty($GLOBALS['MT_ON'])) {
-        mt_log('!! Fin inattendue du script — sortie de maintenance de sécurité.');
+        mt_log('!! Unexpected end of the script — safety exit from maintenance.');
         mt_maintenance_off();
     }
 });
-// Interruptions (Ctrl-C, arrêt du service) : même garantie.
+// Interruptions (Ctrl-C, service stop): same guarantee.
 if (function_exists('pcntl_signal') && function_exists('pcntl_async_signals')) {
     pcntl_async_signals(true);
     foreach (array(SIGINT, SIGTERM, SIGHUP) as $sig) {
-        @pcntl_signal($sig, function ($s) { mt_log("!! Signal $s reçu."); mt_maintenance_off(); exit(1); });
+        @pcntl_signal($sig, function ($s) { mt_log("!! Signal $s received."); mt_maintenance_off(); exit(1); });
     }
 }
 
@@ -159,7 +162,7 @@ function mt_php_detached($script, $args = '') {
     global $dryRun;
     $bin = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
     $cmd = escapeshellarg($bin) . ' ' . escapeshellarg($script) . ($args !== '' ? ' ' . $args : '');
-    if ($dryRun) { mt_log('  [dry-run] en arrière-plan : ' . $cmd); return true; }
+    if ($dryRun) { mt_log('  [dry-run] in the background: ' . $cmd); return true; }
     if (DIRECTORY_SEPARATOR !== '/') return false;
     $log = @readlink('/proc/self/fd/1');   // the file cron redirected this script's output to
     if ($log === false || $log === '' || $log[0] !== '/' || !is_file($log) || !is_writable($log)) return false;
@@ -168,7 +171,7 @@ function mt_php_detached($script, $args = '') {
     return true;
 }
 
-/** Lance un script PHP du module dans un processus NEUF. $rc reçoit son code de sortie. */
+/** Runs a PHP script of the module in a NEW process. $rc receives its exit code. */
 function mt_php($script, $args = '', &$rc = 0) {
     global $dryRun;
     $bin = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
@@ -176,86 +179,84 @@ function mt_php($script, $args = '', &$rc = 0) {
     if ($dryRun) { mt_log('  [dry-run] ' . $cmd); $rc = 0; return true; }
     $out = array(); $rc = 0;
     exec($cmd . ' 2>&1', $out, $rc);
-    // Les avertissements « libpng warning: iCCP … » viennent de la bibliothèque C
-    // (profils ICC légèrement malformés dans les logos), sont totalement inoffensifs
-    // et peuvent représenter des dizaines de lignes par nuit : on les compte au lieu
-    // de les recopier, pour que le journal reste lisible. Tout le reste est conservé.
-    $bruit = 0;
+    // The "libpng warning: iCCP …" warnings come from the C library (slightly malformed ICC
+    // profiles in the logos), are fully harmless and can amount to dozens of lines a night:
+    // they are counted instead of copied, so the log stays readable. Everything else is kept.
+    $noise = 0;
     foreach ($out as $l) {
-        if (stripos(ltrim($l), 'libpng warning:') === 0) { $bruit++; continue; }
+        if (stripos(ltrim($l), 'libpng warning:') === 0) { $noise++; continue; }
         mt_log('  | ' . $l);
     }
-    if ($bruit) mt_log("  | ($bruit avertissement(s) libpng ignoré(s) — profils ICC des logos, sans conséquence)");
+    if ($noise) mt_log("  | ($noise libpng warning(s) skipped — ICC profiles of the logos, harmless)");
     return $rc === 0;
 }
 
 /* ================================================================== */
-/* Déroulé                                                             */
+/* Run                                                                 */
 /* ================================================================== */
-mt_log('Fenêtre de maintenance — début' . ($dryRun ? ' [DRY-RUN]' : ''));
-mt_log('Étapes : sauvegarde=' . ($doBackup ? 'oui' : 'non') . ', cœur=' . ($doCore ? 'oui' : 'non') . ', modules=' . ($doModules ? 'oui' : 'non')
-    . ', licences=' . ($doLicences ? 'oui' : 'non') . ', logos=' . ($doLogos ? 'oui' : 'non'));
+$yn = function ($b) { return $b ? 'yes' : 'no'; };
+mt_log('Maintenance window — start' . ($dryRun ? ' [DRY-RUN]' : ''));
+mt_log('Steps: backup=' . $yn($doBackup) . ', core=' . $yn($doCore) . ', modules=' . $yn($doModules)
+    . ', licences=' . $yn($doLicences) . ', logos=' . $yn($doLogos));
 
-$echecs = array();
+$failed = array();   // step codes, see aut_backup_step_label()
 
 /* ---- 1. Maintenance ON ---- */
-mt_step('1/8 Mise en maintenance');
+mt_step('1/8 Maintenance mode on');
 if (trim((string) ($cfg['on'] ?? '')) !== '' && !$dryRun) $GLOBALS['MT_ON'] = true;
 if (!mt_exec($cfg['on'] ?? '', 'maintenance ON')) {
-    // Si l'activation échoue, ne pas enchaîner des MàJ sur un serveur ouvert au public.
+    // When turning it on fails, do not run updates on a server open to the public.
     $GLOBALS['MT_ON'] = false;
-    mt_log('ARRÊT : impossible d\'activer le mode maintenance — aucune mise à jour lancée.');
+    mt_log('STOP: maintenance mode could not be turned on — no update started.');
     aut_log('MAINT_FAIL', 'cron: maintenance ON', 'cli');
     if (!$dryRun) aut_backup_ping(true);
     exit(1);
 }
 
-/* ---- 2. Sauvegarde base + fichiers ---- */
-// Site fermé → copie cohérente. Prise AVANT la MàJ du cœur : c'est elle qui permet
-// de revenir en arrière si une migration de base tourne mal (aucun retour arrière
-// n'existe dans ianseo). Pas de sauvegarde locale ⇒ pas de MàJ du cœur cette nuit
-// (réglable : backup.required_for_core). Un échec de la seule copie EN LIGNE ne
-// bloque rien : la copie locale suffit à revenir en arrière.
+/* ---- 2. Backup of the database + files ---- */
+// Site closed → consistent copy. Taken BEFORE the core update: it is what allows going back
+// when a database migration goes wrong (ianseo has no way back). No local backup ⇒ no core
+// update this night (setting: backup.required_for_core). A failure of the ONLINE copy alone
+// blocks nothing: the local copy is enough to go back.
 $backupOk = false;
 if ($doBackup) {
-    mt_step('2/8 Sauvegarde de la base et des fichiers');
+    mt_step('2/8 Backup of the database and files');
     $bkRc = 1;
     // LOCAL copy only: the off-site upload waits until the site has reopened (end of script).
     mt_php(__DIR__ . '/backup.php', '--local', $bkRc);
     $backupOk = ($bkRc === 0);
-    if ($backupOk) mt_log('  sauvegarde locale : ok');
-    else           { $echecs[] = 'sauvegarde'; mt_log('  sauvegarde : ÉCHEC' . ($bkRc !== 1 ? " (code $bkRc)" : '')); }
+    if ($backupOk) mt_log('  local backup: ok');
+    else           { $failed[] = 'backup'; mt_log('  backup: FAILED' . ($bkRc !== 1 ? " (code $bkRc)" : '')); }
 }
 if ($doCore && !$dryRun && !$backupOk && $bkCfg['required_for_core']) {
     $doCore = false;
-    $echecs[] = 'cœur (non lancé)';
+    $failed[] = 'core-skipped';
     mt_log('');
-    mt_log('!! MàJ du cœur NON lancée cette nuit : pas de sauvegarde valide pour revenir en arrière.'
-        . ($bkCfg['enabled'] ? '' : ' (sauvegarde désactivée)')
-        . ' Réglage : config.local.json → backup.required_for_core.');
+    mt_log('!! Core update NOT started this night: no valid backup to go back to.'
+        . ($bkCfg['enabled'] ? '' : ' (backup turned off)')
+        . ' Setting: config.local.json → backup.required_for_core.');
 }
 
-/* ---- 3. Déverrouillage des fichiers (nécessaire à la MàJ du cœur) ---- */
+/* ---- 3. Unlocking of the files (needed by the core update) ---- */
 if ($doCore) {
-    mt_step('3/8 Déverrouillage des fichiers');
+    mt_step('3/8 Unlocking of the files');
     if (!mt_exec($cfg['unlock'] ?? '', 'unlock')) {
-        // Fichiers du cœur toujours en lecture seule : la MàJ échouerait à coup sûr
-        // (« … must be writable by the server »). Rien n'ayant été déverrouillé, le
-        // reverrouillage final est sauté aussi.
-        $echecs[] = 'unlock';
+        // Core files still read-only: the update would fail for sure ("… must be writable by
+        // the server"). Nothing having been unlocked, the final re-locking is skipped too.
+        $failed[] = 'unlock';
         $doCore = false;
-        mt_log('!! MàJ du cœur NON lancée : les fichiers n\'ont pas pu être déverrouillés.'
-            . ' maintenance.unlock doit rester vide : le déverrouillage se fait par root dans /etc/cron.d/ianseo-nightly.');
+        mt_log('!! Core update NOT started: the files could not be unlocked.'
+            . ' maintenance.unlock must stay empty: unlocking is done by root in /etc/cron.d/ianseo-nightly.');
     }
 }
 
-/* ---- 4. Mise à jour du cœur ianseo ---- */
+/* ---- 4. Update of the ianseo core ---- */
 if ($doCore) {
-    mt_step('4/8 Mise à jour du cœur ianseo');
+    mt_step('4/8 Update of the ianseo core');
     $statusFile = HTDOCS . '/TV/Photos/updating.json';
     @unlink($statusFile);
     mt_php(__DIR__ . '/update-core.php');
-    // Le cœur sort par un exit(0) même en erreur : le verdict est dans le fichier d'état.
+    // The core leaves through exit(0) even on error: the verdict is in the status file.
     if (!$dryRun) {
         $d = is_file($statusFile) ? @json_decode((string) @file_get_contents($statusFile)) : null;
         // "Already up to date": ianseo.net answers "NothingToDo" and the core files it as
@@ -268,25 +269,25 @@ if ($doCore) {
         $upToDate    = $d && $coreMsg !== ''
             && (($nothingToDo !== '' && $coreMsg === $nothingToDo) || stripos($coreMsg, 'is up to date') !== false);
         if ($upToDate) {
-            mt_log('  MàJ cœur : déjà à jour');
+            mt_log('  core update: already up to date');
         } elseif (!$d || !empty($d->error) || empty($d->finished)) {
-            $echecs[] = 'cœur';
-            mt_log('  MàJ cœur : ÉCHEC ou inachevée' . ($d && !empty($d->msg) ? ' — ' . strip_tags((string) $d->msg) : ''));
+            $failed[] = 'core';
+            mt_log('  core update: FAILED or unfinished' . ($d && !empty($d->msg) ? ' — ' . strip_tags((string) $d->msg) : ''));
         } else {
-            mt_log('  MàJ cœur : ok');
+            mt_log('  core update: ok');
         }
     }
 }
 
-/* ---- 5. Mise à jour des modules Custom ---- */
+/* ---- 5. Update of the Custom modules ---- */
 if ($doModules) {
-    mt_step('5/8 Mise à jour des modules');
+    mt_step('5/8 Update of the modules');
     $shared = HTDOCS . '/Modules/Custom/_shared/update-lib.php';
     if (!is_file($shared)) {
-        mt_log('  _shared/update-lib.php absent — étape ignorée.');
+        mt_log('  _shared/update-lib.php missing — step skipped.');
     } else {
         require_once $shared;
-        // Un module géré = un dossier de Custom/ contenant module.json (invariant du standard).
+        // A managed module = a folder of Custom/ holding module.json (invariant of the standard).
         foreach (glob(HTDOCS . '/Modules/Custom/*/module.json') as $mj) {
             $dir  = dirname($mj);
             $name = basename($dir);
@@ -294,90 +295,90 @@ if ($doModules) {
             $loc  = upd_local_version($dir);
             $rem  = upd_remote_version($mcfg);
             if (!empty($rem['_error'])) {
-                mt_log("  $name : impossible de lire la version distante (" . $rem['_error'] . ')');
-                $echecs[] = "module:$name";
+                mt_log("  $name: cannot read the remote version (" . $rem['_error'] . ')');
+                $failed[] = "module:$name";
                 continue;
             }
             $lv = $loc['version'] ?? '0';
             $rv = $rem['version'];
-            if (upd_compare($lv, $rv) !== 'update') { mt_log("  $name : à jour (v$lv)"); continue; }
-            mt_log("  $name : v$lv → v$rv" . ($dryRun ? ' [dry-run]' : ''));
+            if (upd_compare($lv, $rv) !== 'update') { mt_log("  $name: up to date (v$lv)"); continue; }
+            mt_log("  $name: v$lv → v$rv" . ($dryRun ? ' [dry-run]' : ''));
             if ($dryRun) continue;
             $r = upd_sync_files($mcfg, $dir, $rem['files'] ?? array());
-            upd_sync_shared($mcfg);   // la bibliothèque commune suit chaque MàJ
-            mt_log("    {$r['ok']} fichier(s) mis à jour" . ($r['fail'] ? ', ÉCHECS : ' . implode(', ', $r['fail']) : ''));
-            if ($r['fail']) $echecs[] = "module:$name";
+            upd_sync_shared($mcfg);   // the shared library follows each update
+            mt_log("    {$r['ok']} file(s) updated" . ($r['fail'] ? ', FAILURES: ' . implode(', ', $r['fail']) : ''));
+            if ($r['fail']) $failed[] = "module:$name";
         }
     }
 }
 
-/* ---- 6. Redéploiement de l'authentification ---- */
-// Une MàJ du cœur efface Modules/Authentication/, et une MàJ du module AUTH peut
-// modifier dist/. L'auto-réparation le referait à la première requête web, mais
-// autant repartir d'un serveur cohérent avant les synchros.
+/* ---- 6. Redeployment of the authentication ---- */
+// A core update erases Modules/Authentication/, and an update of the AUTH module may change
+// dist/. The self-repair would do it at the first web request, but better start the syncs
+// from a consistent server.
 if (($doCore || $doModules) && !$dryRun) {
-    mt_step('6/8 Redéploiement de l\'authentification');
+    mt_step('6/8 Redeployment of the authentication');
     if (function_exists('aut_dist_status') && function_exists('aut_deploy')) {
         $st = aut_dist_status();
         if (!$st['deployed'] || $st['drift']) {
             $errs = array();
             $ok = aut_deploy($errs);
-            mt_log('  redéploiement : ' . ($ok ? 'ok' : 'ÉCHEC — ' . implode(' ; ', $errs)));
-            if (!$ok) $echecs[] = 'deploy';
+            mt_log('  redeployment: ' . ($ok ? 'ok' : 'FAILED — ' . implode(' ; ', $errs)));
+            if (!$ok) $failed[] = 'deploy';
         } else {
-            mt_log('  fichiers déployés déjà conformes.');
+            mt_log('  deployed files already matching.');
         }
     }
 }
 
-/* ---- 7. Synchros (licences puis logos) ---- */
+/* ---- 7. Syncs (licences then logos) ---- */
 if ($doLicences) {
-    mt_step('7a/8 Synchronisation des licences');
-    if (!mt_php(__DIR__ . '/sync-licences.php')) { $echecs[] = 'licences'; mt_log('  licences : ÉCHEC'); }
-    else mt_log('  licences : ok');
+    mt_step('7a/8 Licence synchronisation');
+    if (!mt_php(__DIR__ . '/sync-licences.php')) { $failed[] = 'licences'; mt_log('  licences: FAILED'); }
+    else mt_log('  licences: ok');
 }
 if ($doLogos) {
-    // Volontairement APRÈS les licences : la liste des clubs en est déduite.
-    mt_step('7b/8 Synchronisation des logos de club');
-    if (!mt_php(__DIR__ . '/sync-logos.php')) { $echecs[] = 'logos'; mt_log('  logos : ÉCHEC'); }
-    else mt_log('  logos : ok');
+    // AFTER the licences on purpose: the list of clubs is derived from them.
+    mt_step('7b/8 Club logo synchronisation');
+    if (!mt_php(__DIR__ . '/sync-logos.php')) { $failed[] = 'logos'; mt_log('  logos: FAILED'); }
+    else mt_log('  logos: ok');
 }
 
-/* ---- 8. Reverrouillage + sortie de maintenance ---- */
+/* ---- 8. Re-locking + leaving maintenance ---- */
 if ($doCore) {
-    mt_step('8/8 Reverrouillage des fichiers');
-    if (!mt_exec($cfg['lock'] ?? '', 'lock')) $echecs[] = 'lock';
+    mt_step('8/8 Re-locking of the files');
+    if (!mt_exec($cfg['lock'] ?? '', 'lock')) $failed[] = 'lock';
 }
 
-mt_step('Sortie de maintenance');
+mt_step('Leaving maintenance');
 mt_maintenance_off();
 
 /* ---- Site reopened: off-site copy of the backups ---- */
 if ($doBackup && ($backupOk || $dryRun) && $bkCfg['remote'] !== '') {
-    mt_step('Copie en ligne des sauvegardes (site rouvert)');
+    mt_step('Online copy of the backups (site reopened)');
     if (mt_php_detached(__DIR__ . '/backup.php', '--upload')) {
-        if (!$dryRun) mt_log('  lancée en arrière-plan : son résultat s\'ajoute à la suite de ce journal (« Copie en ligne : … »).');
+        if (!$dryRun) mt_log('  started in the background: its result is appended further down this log ("Online copy: …").');
     } else {
         $upRc = 0;
         mt_php(__DIR__ . '/backup.php', '--upload', $upRc);
-        if ($upRc === 0) mt_log('  copie en ligne : ok');
-        else { $echecs[] = 'sauvegarde en ligne'; mt_log('  copie en ligne : ÉCHEC' . ($upRc !== 2 ? " (code $upRc)" : '')); }
+        if ($upRc === 0) mt_log('  online copy: ok');
+        else { $failed[] = 'online-backup'; mt_log('  online copy: FAILED' . ($upRc !== 2 ? " (code $upRc)" : '')); }
     }
 }
 
-$duree = round(microtime(true) - $T0);
+$duration = round(microtime(true) - $T0);
 // The failed steps travel in the journal's user column (64 bytes, cut on a character
 // boundary): the administrator banner (menu.php) names them without reading this log.
 // A dry run is not a night: it must not tell the banner that the nightly job works.
-if ($echecs) {
-    mt_log('Terminé en ' . $duree . ' s — ÉCHECS : ' . implode(', ', $echecs));
+if ($failed) {
+    mt_log('Done in ' . $duration . ' s — FAILURES: ' . implode(', ', $failed));
     if (!$dryRun) {
-        aut_log('MAINT_PARTIAL', mb_strcut('cron: ' . implode(', ', $echecs), 0, 64, 'UTF-8'), 'cli');
+        aut_log('MAINT_PARTIAL', mb_strcut('cron: ' . implode(', ', $failed), 0, 64, 'UTF-8'), 'cli');
         aut_backup_ping(true);
     }
     exit(1);
 }
-mt_log('Terminé en ' . $duree . ' s — tout est ok.');
+mt_log('Done in ' . $duration . ' s — all ok.');
 if (!$dryRun) {
     aut_log('MAINT_OK', 'cron', 'cli');
     aut_backup_ping(false);

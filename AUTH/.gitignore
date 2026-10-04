@@ -1,4 +1,4 @@
-# Secrets et fichiers locaux — ne JAMAIS committer
+# Secrets and local files — NEVER commit
 config.local.json
 config.local.tmp.json
 legal.local.json

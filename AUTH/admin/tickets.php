@@ -1,8 +1,8 @@
 <?php
 /**
- * Module AUTH — admin/tickets.php
- * Gestion des tickets (ADMIN uniquement) : tri par date / précision, filtre par
- * statut, changement de statut, suppression. Le dépôt se fait dans ../tickets.php.
+ * AUTH module — admin/tickets.php
+ * Management of the tickets (ADMIN only): sorted by date / precision, filtered by status,
+ * status changes, deletion. Filing is done in ../tickets.php.
  */
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
@@ -10,7 +10,7 @@ require_once(dirname(__DIR__) . '/lib.php');
 require_once('Common/Fun_FormatText.inc.php');
 
 checkFullACL(AclRoot, '', AclReadWrite);
-// même verrou que admin/index.php : ADMIN réel quand l'auth est active
+// same lock as admin/index.php: real ADMIN when the authentication is on
 if (!empty($_SESSION['AUTH_ENABLE']) && empty($_SESSION['AUTH_ROOT'])) {
     CD_redirect($CFG->ROOT_DIR . 'noAccess.php');
     die();
@@ -25,19 +25,19 @@ if (!array_key_exists($status, aut_ticket_statuses())) $status = '';
 $msg = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!aut_csrf_check()) {
-        $msg = 'Session expirée — action non effectuée.';
+        $msg = aut_t('AtSessionExpired');
     } else {
         $id = intval($_POST['id'] ?? 0);
         $action = $_POST['action'] ?? '';
         if ($action === 'status') {
             aut_ticket_set_status($id, $_POST['value'] ?? '');
-            $msg = 'Statut mis à jour.';
+            $msg = aut_t('AtStatusSaved');
         } elseif ($action === 'respond') {
             aut_ticket_set_response($id, $_POST['response'] ?? '');
-            $msg = 'Réponse enregistrée (visible par le déposant).';
+            $msg = aut_t('AtResponseSaved');
         } elseif ($action === 'delete') {
             aut_ticket_delete($id);
-            $msg = 'Ticket supprimé.';
+            $msg = aut_t('AtDeleted');
         }
     }
 }
@@ -47,7 +47,7 @@ $tickets = aut_ticket_list($sort, $status);
 $kinds   = aut_ticket_kinds();
 $statuses = aut_ticket_statuses();
 
-/** URL de la liste en conservant l'autre paramètre. */
+/** URL of the list keeping the other parameter. */
 function tk_url($over = array())
 {
     global $CFG, $sort, $status;
@@ -57,7 +57,7 @@ function tk_url($over = array())
     return $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/tickets.php' . ($p ? '?' . http_build_query($p) : '');
 }
 
-$PAGE_TITLE = 'Multi-comptes — Tickets';
+$PAGE_TITLE = aut_t('MenuTitle') . ' — ' . aut_t('MenuTickets');
 include('Common/Templates/head.php');
 ?>
 <style>
@@ -114,132 +114,114 @@ include('Common/Templates/head.php');
 #aut-tk .tk-act .b-del { color:#c0392b; border-color:#e8b4ae; background:#fff; }
 #aut-tk .tk-act .b-del:hover { background:#ffd6db; }
 </style>
+<?php
+$e = function ($s) { return htmlspecialchars((string) $s); };
+$tab = function ($value, $key, $n) use ($e, $status) {
+    return '<a class="' . ($status === $value ? 'on' : '') . '" href="' . $e(tk_url(array('status' => $value))) . '">'
+        . $e(aut_t($key, $n)) . '</a>';
+};
+// One status button of a ticket (a small form that keeps the current view).
+$act = function ($t, $action, $value, $label, $title = '', $confirm = '', $class = '') use ($e, $sort, $status) {
+    return '<form method="post"' . ($confirm !== '' ? ' data-confirm="' . $e($confirm) . '" onsubmit="return confirm(this.dataset.confirm)"' : '') . '>'
+        . aut_csrf_field()
+        . '<input type="hidden" name="sort" value="' . $e($sort) . '">'
+        . '<input type="hidden" name="status" value="' . $e($status) . '">'
+        . '<input type="hidden" name="action" value="' . $action . '">'
+        . ($value !== '' ? '<input type="hidden" name="value" value="' . $value . '">' : '')
+        . '<input type="hidden" name="id" value="' . intval($t->TkId) . '">'
+        . '<button type="submit"' . ($class !== '' ? ' class="' . $class . '"' : '') . ($title !== '' ? ' title="' . $e($title) . '"' : '') . '>'
+        . $e($label) . "</button></form>\n";
+};
 
-<div id="aut-tk">
-<h1>Tickets</h1>
-<?php if ($msg): ?><div class="aut-msg"><?= htmlspecialchars($msg) ?></div><?php endif; ?>
+echo '<div id="aut-tk">' . "\n"
+    . '<h1>' . $e(aut_t('MenuTickets')) . "</h1>\n"
+    . ($msg ? '<div class="aut-msg">' . $e($msg) . "</div>\n" : '')
+    . '<div class="aut-bar">'
+    . '<div class="aut-grp aut-tabs"><b>' . $e(aut_t('AtStatus')) . '</b>'
+    . $tab('', 'AtAll', $counts['all'])
+    . $tab('new', 'AtNew', $counts['new'])
+    . $tab('in_progress', 'AtInProgress', $counts['in_progress'])
+    . $tab('done', 'AtDone', $counts['done'])
+    . $tab('rejected', 'AtRejected', $counts['rejected'])
+    . '</div>'
+    . '<div class="aut-grp aut-sort"><b>' . $e(aut_t('AtSort')) . '</b>'
+    . '<a class="' . ($sort === 'date' ? 'on' : '') . '" href="' . $e(tk_url(array('sort' => 'date'))) . '">' . $e(aut_t('AtByDate')) . '</a>'
+    . '<a class="' . ($sort === 'score' ? 'on' : '') . '" href="' . $e(tk_url(array('sort' => 'score'))) . '">' . $e(aut_t('AtByScore')) . '</a>'
+    . "</div>\n</div>\n";
 
-<div class="aut-bar">
-  <div class="aut-grp aut-tabs"><b>Statut</b>
-    <a class="<?= $status === '' ? 'on' : '' ?>" href="<?= htmlspecialchars(tk_url(array('status' => ''))) ?>">Tous (<?= $counts['all'] ?>)</a>
-    <a class="<?= $status === 'new' ? 'on' : '' ?>" href="<?= htmlspecialchars(tk_url(array('status' => 'new'))) ?>">Nouveaux (<?= $counts['new'] ?>)</a>
-    <a class="<?= $status === 'in_progress' ? 'on' : '' ?>" href="<?= htmlspecialchars(tk_url(array('status' => 'in_progress'))) ?>">En cours (<?= $counts['in_progress'] ?>)</a>
-    <a class="<?= $status === 'done' ? 'on' : '' ?>" href="<?= htmlspecialchars(tk_url(array('status' => 'done'))) ?>">Traités (<?= $counts['done'] ?>)</a>
-    <a class="<?= $status === 'rejected' ? 'on' : '' ?>" href="<?= htmlspecialchars(tk_url(array('status' => 'rejected'))) ?>">Rejetés (<?= $counts['rejected'] ?>)</a>
-  </div>
-  <div class="aut-grp aut-sort"><b>Trier</b>
-    <a class="<?= $sort === 'date' ? 'on' : '' ?>" href="<?= htmlspecialchars(tk_url(array('sort' => 'date'))) ?>">Par date</a>
-    <a class="<?= $sort === 'score' ? 'on' : '' ?>" href="<?= htmlspecialchars(tk_url(array('sort' => 'score'))) ?>">Par précision</a>
-  </div>
-</div>
-
-<?php if (!$tickets): ?>
-  <p class="aut-empty">Aucun ticket dans cette vue.</p>
-<?php else: foreach ($tickets as $t):
+if (!$tickets) {
+    echo '<p class="aut-empty">' . $e(aut_t('AtNone')) . "</p>\n";
+}
+foreach ($tickets as $t) {
     $isEvo = $t->TkKind === 'evolution';
     $stars = (int) round(intval($t->TkScore) / 20);
-    $bodyLab = $isEvo ? 'Souhait' : 'Problème';
-    $expLab  = $isEvo ? 'Rendu attendu' : 'Reproduction / attendu';
+    $bodyLab = aut_t($isEvo ? 'AtWish' : 'AtProblem');
+    $expLab  = aut_t($isEvo ? 'AtExpectedResult' : 'AtRepro');
     $stLab   = $statuses[$t->TkStatus] ?? $t->TkStatus;
-    // Texte structuré prêt à coller (bouton « Copier »).
-    $copy = '[' . ($kinds[$t->TkKind] ?? $t->TkKind) . '] ' . $t->TkTitle . "\n"
-          . 'Origine : ' . (($t->TkChannel ?? 'org') === 'archer' ? 'Compétiteur' : 'Organisateur')
-          . ' (' . $t->TkUser . ($t->TkRole ? ' — ' . $t->TkRole : '') . ")\n"
-          . 'Statut : ' . $stLab . ' · Précision ' . intval($t->TkScore) . '/100 · '
-          . date('d/m/Y H:i', strtotime($t->TkCreated)) . "\n"
-          . (trim((string) ($t->TkTour ?? '')) !== '' ? 'Compétition : ' . $t->TkTour . "\n" : '')
-          . ($t->TkPage ? 'Page : ' . $t->TkPage . "\n" : '')
-          . "\n" . $bodyLab . " :\n" . trim((string) $t->TkBody) . "\n"
+    $kindLab = $kinds[$t->TkKind] ?? $t->TkKind;
+    $chanLab = aut_t(($t->TkChannel ?? 'org') === 'archer' ? 'AtCompetitor' : 'AtOrganiser');
+    $when = date('d/m/Y H:i', strtotime($t->TkCreated));
+    // Structured text ready to paste ("Copy" button).
+    $copy = '[' . $kindLab . '] ' . $t->TkTitle . "\n"
+          . aut_t('AtCopyOrigin', $chanLab . ' (' . $t->TkUser . ($t->TkRole ? ' — ' . $t->TkRole : '') . ')') . "\n"
+          . aut_t('AtCopyStatus', array('status' => $stLab, 'score' => intval($t->TkScore), 'when' => $when)) . "\n"
+          . (trim((string) ($t->TkTour ?? '')) !== '' ? aut_t('AtCopyComp', $t->TkTour) . "\n" : '')
+          . ($t->TkPage ? aut_t('AtCopyPage', $t->TkPage) . "\n" : '')
+          . "\n" . aut_t('AtCopyLabel', $bodyLab) . "\n" . trim((string) $t->TkBody) . "\n"
           . (trim((string) $t->TkExpected) !== ''
-              ? "\n" . $expLab . " :\n" . trim((string) $t->TkExpected) . "\n" : ''); ?>
-  <article class="tk tk-<?= $isEvo ? 'evolution' : 'bug' ?> tk-<?= htmlspecialchars($t->TkStatus) ?>">
-    <div class="tk-head">
-      <span class="tk-badge <?= $isEvo ? 'evo' : '' ?>"><?= htmlspecialchars($kinds[$t->TkKind] ?? $t->TkKind) ?></span>
-      <span class="tk-chan"><?= ($t->TkChannel ?? 'org') === 'archer' ? 'Compétiteur' : 'Organisateur' ?></span>
-      <span><?= htmlspecialchars(date('d/m/Y H:i', strtotime($t->TkCreated))) ?></span>
-      <span class="tk-stars" title="Précision <?= intval($t->TkScore) ?>/100"><?php
-          for ($i = 0; $i < 5; $i++) echo $i < $stars ? '★' : '<i>★</i>'; ?></span>
-      <span class="tk-status <?= htmlspecialchars($t->TkStatus) ?>"><?= htmlspecialchars($stLab) ?></span>
-    </div>
+              ? "\n" . aut_t('AtCopyLabel', $expLab) . "\n" . trim((string) $t->TkExpected) . "\n" : '');
+    $starsHtml = '';
+    for ($i = 0; $i < 5; $i++) $starsHtml .= $i < $stars ? '★' : '<i>★</i>';
 
-    <h2><?= htmlspecialchars($t->TkTitle) ?></h2>
+    echo '<article class="tk tk-' . ($isEvo ? 'evolution' : 'bug') . ' tk-' . $e($t->TkStatus) . '">'
+        . '<div class="tk-head">'
+        . '<span class="tk-badge ' . ($isEvo ? 'evo' : '') . '">' . $e($kindLab) . '</span>'
+        . '<span class="tk-chan">' . $e($chanLab) . '</span>'
+        . '<span>' . $e($when) . '</span>'
+        . '<span class="tk-stars" title="' . $e(aut_t('AtScoreTip', intval($t->TkScore))) . '">' . $starsHtml . '</span>'
+        . '<span class="tk-status ' . $e($t->TkStatus) . '">' . $e($stLab) . '</span>'
+        . "</div>\n"
+        . '<h2>' . $e($t->TkTitle) . "</h2>\n";
+    if (trim((string) $t->TkBody) !== '') {
+        echo '<div class="tk-field"><b>' . $e($bodyLab) . '</b><div>' . $e($t->TkBody) . "</div></div>\n";
+    }
+    if (trim((string) $t->TkExpected) !== '') {
+        echo '<div class="tk-field"><b>' . $e($expLab) . '</b><div>' . $e($t->TkExpected) . "</div></div>\n";
+    }
+    if (trim((string) ($t->TkTour ?? '')) !== '') {
+        echo '<p class="tk-meta">🏆 ' . aut_t('AtComp', '<b>' . $e($t->TkTour) . '</b>') . "</p>\n";
+    }
+    echo '<p class="tk-meta">' . aut_t('AtFiledBy', '<b>' . $e($t->TkUser) . '</b>')
+        . ($t->TkRole ? ' (' . $e($t->TkRole) . ')' : '')
+        . ($t->TkPage ? ' — ' . $e(aut_t('AtPage', $t->TkPage)) : '') . "</p>\n";
 
-    <?php if (trim((string) $t->TkBody) !== ''): ?>
-      <div class="tk-field"><b><?= $bodyLab ?></b><div><?= htmlspecialchars($t->TkBody) ?></div></div>
-    <?php endif; ?>
-    <?php if (trim((string) $t->TkExpected) !== ''): ?>
-      <div class="tk-field"><b><?= $expLab ?></b><div><?= htmlspecialchars($t->TkExpected) ?></div></div>
-    <?php endif; ?>
+    echo '<form method="post" class="tk-resp">' . aut_csrf_field()
+        . '<input type="hidden" name="sort" value="' . $e($sort) . '">'
+        . '<input type="hidden" name="status" value="' . $e($status) . '">'
+        . '<input type="hidden" name="action" value="respond">'
+        . '<input type="hidden" name="id" value="' . intval($t->TkId) . '">'
+        . '<label>' . $e(aut_t('AtResponse')) . ' <span class="tk-mut">(' . $e(aut_t('AtResponseVisible')) . ')</span></label>'
+        . '<textarea name="response" rows="2" placeholder="' . $e(aut_t('AtResponsePh')) . '">' . $e((string) $t->TkResponse) . '</textarea>'
+        . '<button type="submit">' . $e(aut_t('AtResponseSave')) . "</button></form>\n";
 
-    <?php if (trim((string) ($t->TkTour ?? '')) !== ''): ?>
-      <p class="tk-meta">🏆 Compétition : <b><?= htmlspecialchars($t->TkTour) ?></b></p>
-    <?php endif; ?>
-
-    <p class="tk-meta">
-      Déposé par <b><?= htmlspecialchars($t->TkUser) ?></b><?= $t->TkRole ? ' (' . htmlspecialchars($t->TkRole) . ')' : '' ?>
-      <?= $t->TkPage ? ' — page : ' . htmlspecialchars($t->TkPage) : '' ?>
-    </p>
-
-    <form method="post" class="tk-resp"><?= aut_csrf_field() ?>
-      <input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>">
-      <input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>">
-      <input type="hidden" name="action" value="respond">
-      <input type="hidden" name="id" value="<?= intval($t->TkId) ?>">
-      <label>Réponse au déposant <span class="tk-mut">(visible par lui)</span></label>
-      <textarea name="response" rows="2" placeholder="Optionnel — ex. « Corrigé », « Prévu prochainement », « Besoin de précisions »…"><?= htmlspecialchars((string) $t->TkResponse) ?></textarea>
-      <button type="submit">Enregistrer la réponse</button>
-    </form>
-
-    <div class="tk-act">
-      <button type="button" class="tk-copy" onclick="tkCopy(this)" title="Copier le ticket pour le coller ailleurs">📋 Copier</button>
-      <pre class="tk-copy-src" hidden><?= htmlspecialchars($copy) ?></pre>
-      <?php if ($t->TkStatus !== 'in_progress'): ?>
-        <form method="post"><?= aut_csrf_field() ?>
-          <input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>">
-          <input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>">
-          <input type="hidden" name="action" value="status"><input type="hidden" name="value" value="in_progress">
-          <input type="hidden" name="id" value="<?= intval($t->TkId) ?>">
-          <button type="submit" title="Verrouille la modification par le déposant">Prendre en charge</button></form>
-      <?php endif; ?>
-      <?php if ($t->TkStatus !== 'done'): ?>
-        <form method="post"><?= aut_csrf_field() ?>
-          <input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>">
-          <input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>">
-          <input type="hidden" name="action" value="status"><input type="hidden" name="value" value="done">
-          <input type="hidden" name="id" value="<?= intval($t->TkId) ?>">
-          <button type="submit">Marquer traité</button></form>
-      <?php endif; ?>
-      <?php if ($t->TkStatus !== 'rejected'): ?>
-        <form method="post"><?= aut_csrf_field() ?>
-          <input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>">
-          <input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>">
-          <input type="hidden" name="action" value="status"><input type="hidden" name="value" value="rejected">
-          <input type="hidden" name="id" value="<?= intval($t->TkId) ?>">
-          <button type="submit">Rejeter</button></form>
-      <?php endif; ?>
-      <?php if ($t->TkStatus !== 'new'): ?>
-        <form method="post"><?= aut_csrf_field() ?>
-          <input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>">
-          <input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>">
-          <input type="hidden" name="action" value="status"><input type="hidden" name="value" value="new">
-          <input type="hidden" name="id" value="<?= intval($t->TkId) ?>">
-          <button type="submit">Rouvrir</button></form>
-      <?php endif; ?>
-      <form method="post" onsubmit="return confirm('Supprimer définitivement ce ticket ?')"><?= aut_csrf_field() ?>
-        <input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>">
-        <input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>">
-        <input type="hidden" name="action" value="delete">
-        <input type="hidden" name="id" value="<?= intval($t->TkId) ?>">
-        <button type="submit" class="b-del">Supprimer</button></form>
-    </div>
-  </article>
-<?php endforeach; endif; ?>
-</div>
+    echo '<div class="tk-act">'
+        . '<button type="button" class="tk-copy" onclick="tkCopy(this)" title="' . $e(aut_t('AtCopyTip')) . '">📋 ' . $e(aut_t('AtCopy')) . '</button>'
+        . '<pre class="tk-copy-src" hidden>' . $e($copy) . "</pre>\n"
+        . ($t->TkStatus !== 'in_progress' ? $act($t, 'status', 'in_progress', aut_t('AtTake'), aut_t('AtTakeTip')) : '')
+        . ($t->TkStatus !== 'done' ? $act($t, 'status', 'done', aut_t('AtMarkDone')) : '')
+        . ($t->TkStatus !== 'rejected' ? $act($t, 'status', 'rejected', aut_t('AtReject')) : '')
+        . ($t->TkStatus !== 'new' ? $act($t, 'status', 'new', aut_t('AtReopen')) : '')
+        . $act($t, 'delete', '', aut_t('UsDelete'), '', aut_t('AtConfirmDelete'), 'b-del')
+        . "</div>\n</article>\n";
+}
+echo "</div>\n"
+    . '<script>var AUT_TK_COPIED = ' . json_encode(aut_t('AtCopied')) . ";</script>\n";
+?>
 <script>
 function tkCopy(btn) {
   var src = btn.closest('.tk').querySelector('.tk-copy-src');
   var txt = src ? src.textContent : '';
-  function done() { btn.classList.add('ok'); var o = btn.textContent; btn.textContent = 'Copié ✓';
+  function done() { btn.classList.add('ok'); var o = btn.textContent; btn.textContent = AUT_TK_COPIED;
     setTimeout(function () { btn.textContent = o; btn.classList.remove('ok'); }, 1600); }
   function fallback(t) { var ta = document.createElement('textarea'); ta.value = t;
     ta.style.position = 'fixed'; ta.style.left = '-9999px'; document.body.appendChild(ta);
@@ -249,4 +231,5 @@ function tkCopy(btn) {
   } else { fallback(txt); done(); }
 }
 </script>
-<?php include('Common/Templates/tail.php'); ?>
+<?php
+include('Common/Templates/tail.php');

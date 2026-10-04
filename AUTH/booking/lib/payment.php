@@ -25,22 +25,22 @@ require_once __DIR__ . '/competition.php';
 require_once __DIR__ . '/pricing.php';
 require_once __DIR__ . '/shop.php';
 
-/** Moyens de paiement proposés. */
+/** Means of payment offered. */
 function bk_payment_methods()
 {
-    return array('cash' => 'Espèces', 'cheque' => 'Chèque', 'virement' => 'Virement',
-        'cb' => 'Carte bancaire', 'online' => 'Paiement en ligne', 'autre' => 'Autre');
+    return array('cash' => bk_t('PayCash'), 'cheque' => bk_t('PayCheque'), 'virement' => bk_t('PayTransfer'),
+        'cb' => bk_t('PayCard'), 'online' => bk_t('PayOnline'), 'autre' => bk_t('PayOther'));
 }
 
-/** Quand un moyen est disponible. */
+/** When a means of payment is available. */
 function bk_payinfo_when_labels()
 {
-    return array('before' => 'Avant la compétition', 'onsite' => 'Sur place', 'both' => 'Avant ou sur place');
+    return array('before' => bk_t('WhenBefore'), 'onsite' => bk_t('WhenOnsite'), 'both' => bk_t('WhenBoth'));
 }
 
 /**
- * Moyens de paiement déclarés par l'organisateur (depuis BcPayInfo JSON).
- * @return array de ['m','label','when','whenLabel','info']
+ * Means of payment declared by the organiser (from the BcPayInfo JSON).
+ * @return array of ['m', 'label', 'when', 'whenLabel', 'info']
  */
 function bk_payinfo_get($cfg)
 {
@@ -62,8 +62,8 @@ function bk_payinfo_get($cfg)
 }
 
 /**
- * Choix de paiement présentés au compétiteur : chaque moyen autorisé, décliné en
- * « avant » et/ou « sur place » selon sa disponibilité. value = "moyen|quand".
+ * Payment choices offered to the competitor: each means allowed, as "before" and/or "on
+ * site" depending on its availability. value = "means|when".
  */
 function bk_payinfo_choices($payinfo)
 {
@@ -72,27 +72,27 @@ function bk_payinfo_choices($payinfo)
         $whens = ($pi['when'] === 'both') ? array('before', 'onsite') : array($pi['when']);
         foreach ($whens as $w) {
             $out[] = array('value' => $pi['m'] . '|' . $w, 'm' => $pi['m'], 'when' => $w,
-                'label' => $pi['label'] . ' (' . ($w === 'before' ? 'avant' : 'sur place') . ')'
+                'label' => $pi['label'] . ' (' . bk_t($w === 'before' ? 'WhenBeforeShort' : 'WhenOnsiteShort') . ')'
                     . ($pi['info'] !== '' ? ' — ' . $pi['info'] : ''));
         }
     }
     return $out;
 }
 
-/** Libellé court d'une déclaration de paiement (moyen + quand). '' si vide. */
+/** Short label of a declared payment (means + when). '' when none. */
 function bk_payment_decl_label($method, $when)
 {
     if ($method === '') return '';
     $methods = bk_payment_methods();
     $lbl = $methods[$method] ?? $method;
-    if ($when === 'before') $lbl .= ' (avant)';
-    elseif ($when === 'onsite') $lbl .= ' (sur place)';
+    if ($when === 'before') $lbl .= ' (' . bk_t('WhenBeforeShort') . ')';
+    elseif ($when === 'onsite') $lbl .= ' (' . bk_t('WhenOnsiteShort') . ')';
     return $lbl;
 }
 
 /**
- * Déclaration du compétiteur : moyen souhaité + quand (before/onsite). Upsert sans
- * toucher au statut d'encaissement (que l'organisateur gère).
+ * Declaration of the competitor: means wished + when (before/onsite). Upsert, leaving what
+ * the organiser records alone.
  */
 function bk_payment_declare($tourId, $licence, $method, $when)
 {
@@ -106,7 +106,7 @@ function bk_payment_declare($tourId, $licence, $method, $when)
         ON DUPLICATE KEY UPDATE PyDeclMethod = " . StrSafe_DB($method) . ", PyDeclWhen = " . StrSafe_DB($when));
 }
 
-/** Construit le JSON BcPayInfo depuis le POST de la page de config ($_POST['pay']). */
+/** Builds the BcPayInfo JSON from the POST of the settings page ($_POST['pay']). */
 function bk_payinfo_from_post($post)
 {
     $methods = bk_payment_methods();
@@ -116,12 +116,12 @@ function bk_payinfo_from_post($post)
         if (!isset($methods[$m]) || !is_array($row) || empty($row['on'])) continue;
         $when = (string) ($row['when'] ?? 'both');
         if (!isset($whens[$when])) $when = 'both';
-        $out[] = array('m' => $m, 'when' => $when, 'info' => substr(trim((string) ($row['info'] ?? '')), 0, 255));
+        $out[] = array('m' => $m, 'when' => $when, 'info' => mb_substr(trim((string) ($row['info'] ?? '')), 0, 255));
     }
     return $out ? json_encode($out) : '';
 }
 
-/** Ligne de paiement d'un archer sur une compétition, ou null. */
+/** Payment row of an archer on a competition, or null. */
 function bk_payment_get($tourId, $licence)
 {
     bk_schema();
@@ -166,7 +166,7 @@ function bk_account_enid($account)
 /** Labels of the journal line kinds. */
 function bk_ledger_kinds()
 {
-    return array('payment' => 'Encaissement', 'refund' => 'Remboursement', 'cancel' => 'Annulation');
+    return array('payment' => bk_t('KindPayment'), 'refund' => bk_t('KindRefund'), 'cancel' => bk_t('KindCancel'));
 }
 
 /**
@@ -241,7 +241,7 @@ function bk_ledger_migrate($tourId)
         $due = bk_account_due($tourId, $r->PyLicence);
         if ($due['due'] <= 0) continue;
         bk_ledger_add($tourId, $r->PyLicence, 'payment', $due['due'], (string) $r->PyMethod,
-            bk_date_iso($r->PyPaidAt), "Repris du suivi précédent (case « payé »)",
+            bk_date_iso($r->PyPaidAt), bk_t('LedgerTakenOver'),
             (string) $r->PyBy);
     }
 }
@@ -355,8 +355,8 @@ function bk_account_state($a)
 /** French label of an account state. */
 function bk_account_state_label($state)
 {
-    $l = array('none' => 'Rien à payer', 'due' => 'À payer', 'partial' => 'Payé en partie',
-        'settled' => 'Soldé', 'over' => 'Trop-perçu');
+    $l = array('none' => bk_t('StateNone'), 'due' => bk_t('StateDue'), 'partial' => bk_t('StatePartial'),
+        'settled' => bk_t('StateSettled'), 'over' => bk_t('StateOver'));
     return $l[$state] ?? $state;
 }
 
@@ -419,8 +419,9 @@ function bk_ledger_cancel($tourId, $id, $by)
         BlgAccount = " . StrSafe_DB($l->BlgAccount) . ", BlgKind = 'cancel',
         BlgAmount = " . StrSafe_DB(number_format(-(float) $l->BlgAmount, 2, '.', '')) . ",
         BlgMethod = " . StrSafe_DB($l->BlgMethod) . ",
-        BlgLabel = " . StrSafe_DB('Annulation : ' . mb_strtolower($kinds[$l->BlgKind] ?? $l->BlgKind)
-            . ($d !== '' ? ' du ' . bk_date_dmy($d) : '')) . ",
+        BlgLabel = " . StrSafe_DB($d !== ''
+            ? bk_t('LedgerCancelOf', array('kind' => mb_strtolower($kinds[$l->BlgKind] ?? $l->BlgKind), 'date' => bk_date_dmy($d)))
+            : bk_t('LedgerCancel', mb_strtolower($kinds[$l->BlgKind] ?? $l->BlgKind))) . ",
         BlgCancels = " . intval($l->BlgId) . ",
         BlgWhen = " . bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)") . ",
         BlgCreated = " . bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)") . ",
@@ -471,7 +472,7 @@ function bk_ledger_pay_club($tourId, $clubCode, $amounts, $method, $date, $note,
     if (!$todo) return array('count' => 0, 'total' => 0.0);
     $g = safe_fetch(safe_r_sql("SELECT COALESCE(MAX(BlgGroup), 0) + 1 AS g FROM BK_Ledger"));
     $group = $g ? intval($g->g) : 1;
-    $label = 'Règlement du club ' . $clubCode . (trim((string) $note) !== '' ? ' — ' . trim((string) $note) : '');
+    $label = bk_t('LedgerClub', $clubCode) . (trim((string) $note) !== '' ? ' — ' . trim((string) $note) : '');
     $total = 0.0; $count = 0;
     foreach ($todo as $k => $v) {
         if (!bk_ledger_add($tourId, $k, 'payment', $v, $method, $date, $label, $by, $group)) continue;
@@ -527,7 +528,7 @@ function bk_refund_done($tourId, $id, $by)
     $amount = min((float) $f->BfAmount, -$a['remaining']);
     if ($amount > 0.005) {
         bk_ledger_add($tourId, $anon, 'refund', $amount, (string) $f->BfMethod, '',
-            'Remboursement après anonymisation — club ' . trim($f->BfClubCode . ' ' . $f->BfClubName), $by);
+            bk_t('LedgerAnonRefund', trim($f->BfClubCode . ' ' . $f->BfClubName)), $by);
     }
 }
 

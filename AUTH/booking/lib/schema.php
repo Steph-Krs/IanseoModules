@@ -1,30 +1,29 @@
 <?php
 /**
- * lib/schema.php — création et migration des tables BK_*.
+ * lib/schema.php — creation and migration of the BK_* tables.
  *
- * Collation imposée : utf8mb4_unicode_ci. Les tables ianseo peuvent être en
- * utf8mb4_0900_ai_ci ou _as_ci selon le serveur ; toute jointure entre une
- * colonne VARCHAR d'ici et une colonne VARCHAR de ianseo doit porter un
- * COLLATE utf8mb4_unicode_ci côté BK_, sinon MySQL 8 renvoie l'erreur 1267.
+ * Collation: utf8mb4_unicode_ci. The ianseo tables may be in utf8mb4_0900_ai_ci or _as_ci
+ * depending on the server; any join between a VARCHAR column of here and a VARCHAR column of
+ * ianseo carries COLLATE utf8mb4_unicode_ci on the BK_ side, otherwise MySQL 8 gives error 1267.
  *
- * Règle de migration (leçon REPARTITION_EPREUVES) : un bk_colonne($table, …)
- * doit TOUJOURS être placé APRÈS le CREATE TABLE IF NOT EXISTS de $table, même
- * si la table semble « sûrement déjà là » — sinon l'ALTER échoue sur une
- * installation neuve et interrompt toute la fonction (safe_w_sql lève).
+ * Migration rule (lesson of REPARTITION_EPREUVES): a bk_colonne($table, …) is ALWAYS placed
+ * AFTER the CREATE TABLE IF NOT EXISTS of $table, even when the table seems "surely there
+ * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
 if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 26);
 
-// Every library of the module loads this file: the right "now" comes with it.
+// Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
+require_once __DIR__ . '/lang.php';
 
-/** Suffixe de collation à coller derrière une colonne BK_ jointe à du ianseo. */
+/** Collation suffix to put after a BK_ column joined to an ianseo one. */
 function bk_coll()
 {
     return ' COLLATE utf8mb4_unicode_ci ';
 }
 
-/** Ajoute une colonne si elle manque (MySQL < 8.0.29 n'a pas ADD COLUMN IF NOT EXISTS). */
+/** Adds a column when missing (MySQL < 8.0.29 has no ADD COLUMN IF NOT EXISTS). */
 function bk_colonne($table, $colonne, $definition)
 {
     // Never fatal: on a missing table the ALTER would kill the whole schema function
@@ -44,14 +43,14 @@ function bk_colonne($table, $colonne, $definition)
     return false;
 }
 
-/** Crée les tables si besoin. Idempotent, protégé par un drapeau de session. */
+/** Creates the tables when needed. Idempotent, guarded by a session flag. */
 function bk_schema()
 {
     $flag = '_bk_schema_v' . BK_SCHEMA_VERSION;
     if (!empty($_SESSION[$flag])) return;
 
-    // Comptes licenciés. BaPassword vide = compte SSO (sentinelle réservée au
-    // futur relais monespace.ffta.fr, même convention que AUT_Users.AuPassword).
+    // Licensee accounts. Empty BaPassword = SSO account (sentinel for the relay to the licensee
+    // space, same convention as AUT_Users.AuPassword).
     safe_w_sql("CREATE TABLE IF NOT EXISTS BK_Archers (
         BaId         INT AUTO_INCREMENT PRIMARY KEY,
         BaLicence    VARCHAR(25)  NOT NULL,
@@ -66,26 +65,26 @@ function bk_schema()
         UNIQUE KEY BaLicenceIdx (BaLicence)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // v18 : id Exalto (« personne_id ») lu sur la page d'accueil de l'espace licencié à la
-    // connexion — nécessaire pour l'URL de l'attestation de licence (…/pdf/p/{id}/{saison}).
-    // Ce N'EST PAS le numéro de licence (il diffère). Simple identifiant interne FFTA, pas
-    // un secret ; jamais mis en dur dans le code (capté dynamiquement par archer).
+    // v18: Exalto id ("personne_id") read on the home page of the licensee space at sign-in —
+    // needed for the URL of the licence certificate (…/pdf/p/{id}/{season}). It is NOT the
+    // licence number (they differ). A plain internal federation id, not a secret; never hard
+    // coded (captured for each archer).
     bk_colonne('BK_Archers', 'BaExaltoId', "VARCHAR(16) NOT NULL DEFAULT '' AFTER BaLicence");
 
-    // v19 : acceptation des CGU horodatée + versionnée (BaCguVer = version acceptée ;
-    // BaCguAt = date/heure). Re-demandée si la version des CGU change (legal-lib.php).
+    // v19: timestamped + versioned acceptance of the terms of use (BaCguVer = accepted
+    // version; BaCguAt = date/time). Asked again when the version changes (legal-lib.php).
     bk_colonne('BK_Archers', 'BaCguVer', "VARCHAR(16) NOT NULL DEFAULT '' AFTER BaExaltoId");
     bk_colonne('BK_Archers', 'BaCguAt',  "DATETIME NULL AFTER BaCguVer");
 
-    // 2FA (TOTP) OPTIONNELLE, activable par le licencié depuis son espace (jamais
-    // imposée). Même régime que AUT_Users (copie autonome, voir lib/totp.php).
-    // RàZ possible par l'administrateur (perte de téléphone) via la page Comptes.
+    // OPTIONAL 2FA (TOTP), turned on by the licensee from their space (never forced). Same
+    // scheme as AUT_Users (standalone copy, see lib/totp.php). Reset by the administrator
+    // (lost phone) from the Accounts page.
     bk_colonne('BK_Archers', 'BaTotpSecret',   "VARCHAR(64) NOT NULL DEFAULT '' AFTER BaActive");
     bk_colonne('BK_Archers', 'BaTotpEnabled',  "TINYINT NOT NULL DEFAULT 0 AFTER BaTotpSecret");
     bk_colonne('BK_Archers', 'BaTotpLastSlot', "BIGINT NOT NULL DEFAULT 0 AFTER BaTotpEnabled");
 
-    // Sessions à jetons : seul le HACHÉ est stocké (un dump de session PHP ne
-    // donne aucun secret réutilisable). Même principe que AUT_Sessions.
+    // Token sessions: only the HASH is stored (a PHP session dump gives no reusable secret).
+    // Same principle as AUT_Sessions.
     safe_w_sql("CREATE TABLE IF NOT EXISTS BK_Sessions (
         BsId        INT AUTO_INCREMENT PRIMARY KEY,
         BsArcher    INT      NOT NULL,
@@ -98,9 +97,8 @@ function bk_schema()
         KEY BsArcherIdx (BsArcher)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // Journal : sert aussi d'anti-brute-force et d'anti-énumération (la
-    // création de compte interroge la base licenciés — à protéger autant que
-    // la connexion elle-même).
+    // Log: also used against brute force and enumeration (creating an account queries the
+    // licensee base — to protect as much as the sign-in itself).
     safe_w_sql("CREATE TABLE IF NOT EXISTS BK_Log (
         BlId    INT AUTO_INCREMENT PRIMARY KEY,
         BlWhen  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -111,9 +109,9 @@ function bk_schema()
         KEY BlUserIdx (BlUser)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // Ouverture des inscriptions par compétition. La config TERRAIN (cibles,
-    // départs, distances, blasons, rythme) n'est PAS dupliquée ici : elle est
-    // lue dans Session / DistanceInformation / TargetFaces / TournamentDistances.
+    // Opening of the registration per competition. The FIELD settings (targets, departures,
+    // distances, faces, rhythm) are NOT copied here: they are read from Session /
+    // DistanceInformation / TargetFaces / TournamentDistances.
     safe_w_sql("CREATE TABLE IF NOT EXISTS BK_Competitions (
         BcTournament   INT NOT NULL PRIMARY KEY,
         BcOpen         TINYINT  NOT NULL DEFAULT 0,
@@ -131,81 +129,77 @@ function bk_schema()
         BcUpdated      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // Souhaits proposés à l'archer au moment de l'inscription (configurable par
-    // l'organisateur). Par défaut : seulement la position sur la cible ; le
-    // « sur la même cible que » et le champ libre sont désactivés par défaut.
+    // Wishes offered to the archer when registering (set by the organiser). Default: only the
+    // position on the target; "on the same target as" and the free field are off by default.
     bk_colonne('BK_Competitions', 'BcWishLetter', "TINYINT NOT NULL DEFAULT 1 AFTER BcAllowScoresheet");
     bk_colonne('BK_Competitions', 'BcWishWith',   "TINYINT NOT NULL DEFAULT 0 AFTER BcWishLetter");
     bk_colonne('BK_Competitions', 'BcWishFree',   "TINYINT NOT NULL DEFAULT 0 AFTER BcWishWith");
 
-    // v4 : tarification avancée (JSON). Vide = tarif plat BcFee (comportement
-    // d'origine). Structure : categories[] (prix fixe par arme/classe), departures{}
-    // (Δ par départ), prov{} (Δ local dept/ligue), rank{} (Δ dégressif multi-inscriptions).
+    // v4: advanced tariff (JSON). Empty = flat fee BcFee (original behaviour). Structure:
+    // categories[] (fixed price per bow/class), departures{} (Δ per departure), prov{} (local
+    // Δ department/league), rank{} (decreasing Δ for several registrations).
     bk_colonne('BK_Competitions', 'BcPricing', "LONGTEXT NULL AFTER BcFee");
 
-    // v5 : boutique (buvette généralisée : souvenirs, hébergement, accès…). Date
-    // limite propre à la boutique ; vide = suit l'ouverture des inscriptions.
+    // v5: shop (a generalised refreshment stall: souvenirs, accommodation, access…). The
+    // shop's own deadline; empty = follows the opening of the registration.
     bk_colonne('BK_Competitions', 'BcShopUntil', "DATETIME NULL AFTER BcPricing");
 
-    // v6 : exclure une compétition des statistiques compétiteur (compétition de
-    // test / non officielle). Défaut 0 = visible dans les stats.
+    // v6: leave a competition out of the competitor statistics (test / unofficial
+    // competition). Default 0 = shown in the statistics.
     bk_colonne('BK_Competitions', 'BcExcludeStats', "TINYINT NOT NULL DEFAULT 0 AFTER BcShopUntil");
 
-    // v8 : moyens de paiement proposés par l'organisateur (JSON). Vide = aucun.
-    // Chaque entrée : {m: moyen, when: before/onsite/both, info: texte}.
+    // v8: means of payment offered by the organiser (JSON). Empty = none.
+    // Each entry: {m: means, when: before/onsite/both, info: text}.
     bk_colonne('BK_Competitions', 'BcPayInfo', "LONGTEXT NULL AFTER BcExcludeStats");
 
-    // v10 : validation manuelle des inscriptions. 0 = automatique (comme avant) ;
-    // 1 = chaque inscription doit être validée par l'organisateur avant placement.
+    // v10: manual validation of the registrations. 0 = automatic (as before); 1 = each
+    // registration must be validated by the organiser before placement.
     bk_colonne('BK_Competitions', 'BcManualValidation', "TINYINT NOT NULL DEFAULT 0 AFTER BcPayInfo");
 
-    // v11 : mandat de compétition (JSON) — template, couleur, logos affichés et
-    // blocs de texte libres. Vide = jamais configuré (le générateur propose alors
-    // ses valeurs par défaut).
+    // v11: competition mandate (JSON) — template, colour, logos shown and free text blocks.
+    // Empty = never set up (the generator then offers its defaults).
     bk_colonne('BK_Competitions', 'BcMandate', "LONGTEXT NULL AFTER BcManualValidation");
 
-    // v12 : visibilité du mandat par les archers. Tri-état (NULL = jamais choisi
-    // → visible dès qu'un mandat existe ; 1 = visible ; 0 = masqué). Voir
-    // bk_mandate_visible().
+    // v12: visibility of the mandate to the archers. Three states (NULL = never chosen →
+    // visible as soon as a mandate exists; 1 = visible; 0 = hidden). See bk_mandate_visible().
     bk_colonne('BK_Competitions', 'BcShowMandate', "TINYINT NULL AFTER BcMandate");
 
-    // v13 : documents de la compétition consultables par les archers. Lien vers la
-    // fiche publique ianseo.net (URL saisie par l'organisateur ; vide = pas de lien).
+    // v13: competition documents the archers may read. Link to the public ianseo.net page
+    // (derived from ToOnlineId; empty = no link).
     bk_colonne('BK_Competitions', 'BcIanseoUrl', "VARCHAR(255) NULL AFTER BcShowMandate");
 
-    // v14 : documents officiels ianseo proposés aux archers (opt-in par l'organisateur,
-    // servis via un relais borné qui régénère le PDF officiel). 0 = masqué (défaut).
+    // v14: official ianseo documents offered to the archers (the organiser opts in; served
+    // through a limited relay that generates the official PDF). 0 = hidden (default).
     bk_colonne('BK_Competitions', 'BcShowProgram',      "TINYINT NOT NULL DEFAULT 0 AFTER BcIanseoUrl");
     bk_colonne('BK_Competitions', 'BcShowParticipants', "TINYINT NOT NULL DEFAULT 0 AFTER BcShowProgram");
     bk_colonne('BK_Competitions', 'BcShowResults',      "TINYINT NOT NULL DEFAULT 0 AFTER BcShowParticipants");
 
-    // Dossard : impression du dossard (badge Qualification) par l'archer, depuis la
-    // page Documents. Opt-in comme les autres documents, mais servi PAR ARCHER (chaque
-    // archer n'imprime que son dossard + ceux qu'il a inscrits). ON par défaut au niveau 2.
+    // Bib: the archer prints their bib (Qualification badge) from the Documents page. Opt-in
+    // like the other documents, but served PER ARCHER (each archer prints only their bib and
+    // those they registered). ON by default at level 2.
     bk_colonne('BK_Competitions', 'BcShowDossard',      "TINYINT NOT NULL DEFAULT 0 AFTER BcShowResults");
 
-    // v15 : niveau de publication (barre à 3 niveaux — refonte ergonomique).
-    // 1 = aucune publication (privé orga) ; 2 = publication simple (tout auto) ;
-    // 3 = avancé (tout réglable). Défaut 1 (rien publié sans action explicite).
-    // BcAdvancedBackup : snapshot JSON des réglages avancés, conservé quand la
-    // compétition est en niveau 2, restauré au retour en niveau 3 (« conserver mais
-    // masquer » les réglages avancés). Les colonnes restent la config EFFECTIVE.
+    // v15: publication level (3-level bar — ergonomic redesign).
+    // 1 = no publication (private to the organiser); 2 = simple publication (all automatic);
+    // 3 = advanced (everything adjustable). Default 1 (nothing published without an explicit
+    // action). BcAdvancedBackup: JSON snapshot of the advanced settings, kept while the
+    // competition is at level 2, restored on going back to level 3 ("keep but hide" the
+    // advanced settings). The columns stay the EFFECTIVE settings.
     bk_colonne('BK_Competitions', 'BcPublishLevel',  "TINYINT NOT NULL DEFAULT 1 AFTER BcShowResults");
     bk_colonne('BK_Competitions', 'BcAdvancedBackup', "LONGTEXT NULL AFTER BcPublishLevel");
-    // Migration : les compétitions déjà OUVERTES avant la barre à 3 niveaux avaient été
-    // configurées à la main → niveau 3 (avancé). Idempotent (plus aucune ligne ne
-    // correspond une fois migrée : le niveau 2 met BcPublishLevel=2, le niveau 1 BcOpen=0).
+    // Migration: competitions already OPEN before the 3-level bar had been set up by hand →
+    // level 3 (advanced). Idempotent (no row matches any more once migrated: level 2 sets
+    // BcPublishLevel=2, level 1 BcOpen=0).
     safe_w_sql("UPDATE BK_Competitions SET BcPublishLevel = 3 WHERE BcOpen = 1 AND BcPublishLevel = 1");
 
-    // v16 : ancre stable de réimport. ianseo réimporte une compétition existante
-    // (même ToCode) en SUPPRIMANT l'ancien tournoi et en créant un nouveau avec un
-    // ToId DIFFÉRENT (Common/Fun_TourDelete.php) → toutes les tables BK_ (liées au
-    // ToId) deviennent orphelines et les inscriptions en ligne disparaissent. On
-    // mémorise donc le ToCode (stable d'une version à l'autre, comme PRONO_Config
-    // .PaCfTourCode) pour reconnecter les données à la nouvelle compétition. Voir
-    // lib/adopt.php. Renseigné tant que la compétition est vivante ; l'orphelin d'un
-    // réimport déjà survenu AVANT v16 (Tournament d'origine supprimé) n'a pas d'ancre
-    // et reste manuel — sans conséquence, la logique est prospective.
+    // v16: stable anchor for re-imports. ianseo re-imports an existing competition (same
+    // ToCode) by DELETING the old tournament and creating a new one with a DIFFERENT ToId
+    // (Common/Fun_TourDelete.php) → every BK_ table (tied to the ToId) is orphaned and the
+    // online registrations disappear. The ToCode (stable from one version to the next, like
+    // PRONO_Config.PaCfTourCode) is therefore kept to reconnect the data to the new
+    // competition. See lib/adopt.php. Filled while the competition is alive; the orphan of a
+    // re-import made BEFORE v16 (original Tournament deleted) has no anchor and stays manual —
+    // no consequence, the logic looks forward.
     $newCode = bk_colonne('BK_Competitions', 'BcCode', "VARCHAR(20) NOT NULL DEFAULT '' AFTER BcTournament");
     safe_w_sql("UPDATE BK_Competitions o
         INNER JOIN Tournament t ON t.ToId = o.BcTournament
@@ -213,9 +207,9 @@ function bk_schema()
         WHERE o.BcCode = ''");
     if ($newCode) safe_w_sql("ALTER TABLE BK_Competitions ADD KEY BcCodeIdx (BcCode)");
 
-    // v17 : coordonnées de la compétition pour la CARTE (géocodées une fois depuis la
-    // ville ToVenue via la Base Adresse Nationale, puis mises en cache). BcGeoSrc = la
-    // valeur géocodée (ville) → re-géocode si elle change. NULL = pas encore géocodé.
+    // v17: coordinates of the competition for the MAP (geocoded once from the town ToVenue
+    // through the Base Adresse Nationale, then cached). BcGeoSrc = the geocoded value (town) →
+    // geocoded again when it changes. NULL = not geocoded yet.
     bk_colonne('BK_Competitions', 'BcLat',    "DECIMAL(9,6) NULL AFTER BcAdvancedBackup");
     bk_colonne('BK_Competitions', 'BcLng',    "DECIMAL(9,6) NULL AFTER BcLat");
     bk_colonne('BK_Competitions', 'BcGeoSrc', "VARCHAR(160) NULL AFTER BcLng");
@@ -228,9 +222,8 @@ function bk_schema()
     // the survey: always on at level 2, a checkbox at level 3.
     bk_colonne('BK_Competitions', 'BcWaitlist', "TINYINT NOT NULL DEFAULT 1 AFTER BcSurvey");
 
-    // Une inscription = une ligne Entries de ianseo + cette ligne de traçage
-    // (qui a inscrit, quand, avec quelles demandes spéciales). Entries n'a
-    // aucune notion d'auteur d'inscription.
+    // A registration = one ianseo Entries row + this tracking row (who registered, when, with
+    // which special requests). Entries has no notion of who made a registration.
     safe_w_sql("CREATE TABLE IF NOT EXISTS BK_Registrations (
         BrId         INT AUTO_INCREMENT PRIMARY KEY,
         BrEnId       INT NOT NULL,
@@ -246,21 +239,19 @@ function bk_schema()
         KEY BrArcherIdx (BrArcher)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // v3 : demandes STRUCTURÉES, exploitables par le placement automatique
-    // (BrRequest reste le commentaire libre, lu par l'organisateur seulement).
+    // v3: STRUCTURED wishes, used by the automatic placement (BrRequest stays the free
+    // comment, read by the organiser only).
     bk_colonne('BK_Registrations', 'BrWantLetter', "VARCHAR(2)  NOT NULL DEFAULT '' AFTER BrRequest");
     bk_colonne('BK_Registrations', 'BrWantWith',   "VARCHAR(25) NOT NULL DEFAULT '' AFTER BrWantLetter");
 
-    // v10 : validation manuelle. BrValidated=1 par défaut (auto, comme avant) ;
-    // en mode manuel la nouvelle inscription arrive à 0 et n'est PAS placée tant
-    // que l'organisateur ne l'a pas validée.
+    // v10: manual validation. BrValidated=1 by default (automatic, as before); in manual mode
+    // the new registration arrives at 0 and is NOT placed until the organiser validates it.
     bk_colonne('BK_Registrations', 'BrValidated', "TINYINT NOT NULL DEFAULT 1 AFTER BrWantWith");
 
-    // v16 : instantané de l'inscription, pour la RÉ-INJECTER dans une nouvelle version
-    // de la compétition après un réimport (l'Entry d'origine est supprimée puis
-    // recréée avec un autre EnId — voir lib/adopt.php). Renseigné à l'inscription
-    // (bk_register) ; rétro-rempli ici depuis les Entries/Qualifications encore
-    // présentes pour les inscriptions déjà en base.
+    // v16: snapshot of the registration, to INJECT it AGAIN into a new version of the
+    // competition after a re-import (the original Entry is deleted and created again with
+    // another EnId — see lib/adopt.php). Filled at registration (bk_register); filled back here
+    // from the Entries/Qualifications still there for the registrations already stored.
     $newSnap = bk_colonne('BK_Registrations', 'BrDivision', "VARCHAR(8) NOT NULL DEFAULT '' AFTER BrValidated");
     bk_colonne('BK_Registrations', 'BrClass',   "VARCHAR(8) NOT NULL DEFAULT '' AFTER BrDivision");
     bk_colonne('BK_Registrations', 'BrSession', "SMALLINT NOT NULL DEFAULT 0 AFTER BrClass");
@@ -276,14 +267,12 @@ function bk_schema()
             WHERE r.BrDivision = ''");
     }
 
-    // Possibilités techniques du terrain, cible par cible et départ par départ.
-    // Une cible SANS ligne ici n'est pas contrainte (tout est permis) : c'est le
-    // comportement par défaut, qui laisse une compétition non configurée se
-    // comporter exactement comme avant l'existence de cette table.
-    // BtFaces : liste de TargetFaces.TfId séparés par des virgules. Vide = tout.
-    // Distances : une PLAGE par cible (min..max) plus une distance par défaut,
-    // en mètres — une cible se déplace entre deux bornes physiques sur le
-    // terrain. 0 = non renseigné, donc aucune contrainte.
+    // Technical possibilities of the field, target by target and departure by departure.
+    // A target WITHOUT a row here is not constrained (everything allowed): the default
+    // behaviour, which lets a competition never set up behave exactly as before this table.
+    // BtFaces: list of TargetFaces.TfId separated by commas. Empty = all.
+    // Distances: a RANGE per target (min..max) plus a default distance, in metres — a target
+    // moves between two physical bounds on the field. 0 = not set, so no constraint.
     safe_w_sql("CREATE TABLE IF NOT EXISTS BK_TargetCaps (
         BtTournament INT NOT NULL,
         BtSession    SMALLINT NOT NULL,
@@ -294,16 +283,16 @@ function bk_schema()
         PRIMARY KEY (BtTournament, BtSession, BtTarget)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // v3 : la plage remplace la liste de distances (BtDistances devient inutilisée
-    // mais reste en place — la supprimer perdrait la configuration d'une
-    // installation qui n'aurait pas encore rejoué la migration de données).
+    // v3: the range replaces the list of distances (BtDistances becomes unused but stays —
+    // dropping it would lose the settings of an installation that has not replayed the data
+    // migration yet).
     bk_colonne('BK_TargetCaps', 'BtDistDef', "SMALLINT NOT NULL DEFAULT 0 AFTER BtDistances");
     bk_colonne('BK_TargetCaps', 'BtDistMin', "SMALLINT NOT NULL DEFAULT 0 AFTER BtDistDef");
     $bkNewMax = bk_colonne('BK_TargetCaps', 'BtDistMax', "SMALLINT NOT NULL DEFAULT 0 AFTER BtDistMin");
     if ($bkNewMax) {
-        // Reprise des anciennes listes : la plage devient [min, max] des valeurs
-        // déclarées, la valeur par défaut la plus petite. Gaté sur la création
-        // de la colonne → ne s'exécute qu'une fois pour toute l'installation.
+        // Old lists taken over: the range becomes [min, max] of the declared values, the
+        // default the smallest. Gated on the creation of the column → runs only once for the
+        // whole installation.
         safe_w_sql("UPDATE BK_TargetCaps SET
             BtDistMin = CAST(SUBSTRING_INDEX(BtDistances, ',', 1) AS UNSIGNED),
             BtDistMax = CAST(SUBSTRING_INDEX(BtDistances, ',', -1) AS UNSIGNED),
@@ -311,8 +300,8 @@ function bk_schema()
             WHERE BtDistances <> ''");
     }
 
-    // Repli autonome quand AUTH est absent : qui peut inscrire pour quel club.
-    // Avec AUTH, le périmètre vient de la session (AUTH_ROLE/AUTH_SCOPE).
+    // Standalone fallback when AUTH is absent: who may register for which club.
+    // With AUTH, the scope comes from the session (AUTH_ROLE/AUTH_SCOPE).
     safe_w_sql("CREATE TABLE IF NOT EXISTS BK_ClubManagers (
         BmId      INT AUTO_INCREMENT PRIMARY KEY,
         BmArcher  INT NOT NULL,
@@ -321,9 +310,9 @@ function bk_schema()
         UNIQUE KEY BmPairIdx (BmArcher, BmClub)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // v5 — Boutique. Articles regroupés en sections libres (Buvette, Souvenirs…).
-    // SiOptionName vide = article simple ; sinon variantes dans BK_ShopVariants
-    // (stock propre à chaque variante). Stock 0 = illimité ; SiMaxPerPerson 0 = illimité.
+    // v5 — Shop. Items grouped in free sections (Refreshments, Souvenirs…). Empty SiOptionName
+    // = simple item; otherwise variants in BK_ShopVariants (own stock per variant). Stock 0 =
+    // unlimited; SiMaxPerPerson 0 = unlimited.
     safe_w_sql("CREATE TABLE IF NOT EXISTS BK_ShopItems (
         SiId           INT AUTO_INCREMENT PRIMARY KEY,
         SiTournament   INT NOT NULL,
@@ -340,7 +329,7 @@ function bk_schema()
         KEY SiTourIdx (SiTournament)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // Variantes d'un article (taille, menu…), chacune avec son stock. SvStock 0 = illimité.
+    // Variants of an item (size, menu…), each with its stock. SvStock 0 = unlimited.
     safe_w_sql("CREATE TABLE IF NOT EXISTS BK_ShopVariants (
         SvId    INT AUTO_INCREMENT PRIMARY KEY,
         SvItem  INT NOT NULL,
@@ -350,8 +339,8 @@ function bk_schema()
         KEY SvItemIdx (SvItem)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // Commandes de la boutique : quantité par (compétition, licence, article, variante).
-    // SoVariant = 0 pour un article sans variante. Éditables tant que la boutique est ouverte.
+    // Shop orders: quantity per (competition, licence, item, variant). SoVariant = 0 for an
+    // item without variants. Editable while the shop is open.
     safe_w_sql("CREATE TABLE IF NOT EXISTS BK_ShopOrders (
         SoId         INT AUTO_INCREMENT PRIMARY KEY,
         SoTournament INT NOT NULL,
@@ -380,22 +369,22 @@ function bk_schema()
         KEY PyTourIdx (PyTournament)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // v9 : déclaration du compétiteur à l'inscription — moyen souhaité + quand
-    // (before/onsite). Informe l'organisateur ; distinct du PyMethod qu'il valide.
+    // v9: the competitor's declaration at registration — means wished + when (before/onsite).
+    // Informs the organiser; separate from the PyMethod they validate.
     bk_colonne('BK_Payments', 'PyDeclMethod', "VARCHAR(16) NOT NULL DEFAULT '' AFTER PyMethod");
     bk_colonne('BK_Payments', 'PyDeclWhen', "VARCHAR(8) NOT NULL DEFAULT '' AFTER PyDeclMethod");
 
-    // v16 : incohérences détectées lors d'un réimport de compétition, à trancher par
-    // l'organisateur sur une page dédiée (lib/adopt.php les enregistre, admin/reimport.php
-    // les résout). RcKind :
-    //   'category'  même licence + même départ, mais catégorie (arme/classe) DIFFÉRENTE
-    //               entre l'inscription booking et l'import → on garde l'import par défaut,
-    //               l'orga confirme ;
-    //   'reinject'  inscription booking absente de l'import, ré-injection impossible
-    //               (licence inconnue du fichier fédéral, départ disparu…) → à traiter ;
-    //   'imported'  participant présent dans l'import mais inconnu de booking (saisi hors
-    //               module) → rendu visible dans son espace, SANS info de paiement.
-    // RcBooking / RcImport : instantané JSON de chaque version pour l'affichage.
+    // v16: inconsistencies found during a competition re-import, to be settled by the
+    // organiser on a dedicated page (lib/adopt.php records them, admin/reimport.php settles
+    // them). RcKind:
+    //   'category'  same licence + same departure, but a DIFFERENT category (bow/class)
+    //               between the booking registration and the import → the import is kept by
+    //               default, the organiser confirms;
+    //   'reinject'  booking registration missing from the import, injection impossible
+    //               (licence unknown to the federation file, departure gone…) → to handle;
+    //   'imported'  participant in the import but unknown to booking (entered outside the
+    //               module) → made visible in their space, WITHOUT payment information.
+    // RcBooking / RcImport: JSON snapshot of each version for display.
     safe_w_sql("CREATE TABLE IF NOT EXISTS BK_ReimportConflicts (
         RcId         INT AUTO_INCREMENT PRIMARY KEY,
         RcTournament INT NOT NULL,

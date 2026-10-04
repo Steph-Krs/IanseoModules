@@ -1,9 +1,9 @@
 <?php
 /**
- * Déployé depuis Modules/Custom/AUTH/dist/ — ne pas modifier ici, modifier la
- * copie source dans le module puis redéployer (admin/deploy.php).
+ * Deployed from Modules/Custom/AUTH/dist/ — do not edit here, edit the source copy in the
+ * module then redeploy (admin/deploy.php).
  *
- * Inclus par config.php sur toutes les pages quand $CFG->USERAUTH est actif.
+ * Included by config.php on every page when $CFG->USERAUTH is on.
  */
 if (!isset($CFG)) die();
 

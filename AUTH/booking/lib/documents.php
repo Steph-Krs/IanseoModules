@@ -1,11 +1,11 @@
 <?php
 /**
- * lib/documents.php — données des feuilles de marque et des reçus.
+ * lib/documents.php — data of the score sheets.
  *
- * Tout est LU dans la configuration ianseo, rien n'est redemandé :
- *  - rythme de tir  : DistanceInformation (DiEnds volées × DiArrows flèches)
- *  - distances      : TournamentDistances (motif LIKE sur Division+Classe)
- *  - blason         : TargetFaces via Entries.EnTargetFace
+ * Everything is READ from the ianseo settings, nothing is asked again:
+ *  - shooting rhythm: DistanceInformation (DiEnds ends × DiArrows arrows)
+ *  - distances      : TournamentDistances (LIKE pattern on Division+Class)
+ *  - target face    : TargetFaces through Entries.EnTargetFace
  */
 
 if (defined('BK_DOCS_LOADED')) return;
@@ -14,8 +14,8 @@ define('BK_DOCS_LOADED', true);
 require_once __DIR__ . '/schema.php';
 
 /**
- * Fiche complète d'une inscription pour l'impression.
- * Retourne null si l'inscription n'existe pas ou n'a pas été créée par BOOKING.
+ * Full record of a registration for printing.
+ * Returns null when the registration does not exist or was not made through booking.
  */
 function bk_doc_entry($enId)
 {
@@ -41,10 +41,10 @@ function bk_doc_entry($enId)
 }
 
 /**
- * Rythme de tir d'un départ : une entrée par distance (volées, flèches).
- * Lu dans DistanceInformation — la table que ianseo alimente depuis l'écran
- * « Distances », jamais une valeur devinée depuis ToNumEnds (qui compte parfois
- * les volées du round entier, piège déjà documenté côté PRONO).
+ * Shooting rhythm of a departure: one entry per distance (ends, arrows).
+ * Read from DistanceInformation — the table ianseo fills from the "Distances" screen, never a
+ * value guessed from ToNumEnds (which sometimes counts the ends of the whole round, a trap
+ * already documented for PRONO).
  */
 function bk_doc_rhythm($tourId, $session)
 {
@@ -63,9 +63,9 @@ function bk_doc_rhythm($tourId, $session)
 }
 
 /**
- * Libellés de distance applicables à une catégorie (Division+Classe).
- * Reprend la correspondance du cœur : CONCAT(EnDivision, EnClass) LIKE TdClasses,
- * filtrée par ToType. Le motif le plus long l'emporte en cas de recouvrement.
+ * Distance labels that apply to a category (Division+Class).
+ * Same matching as the core: CONCAT(EnDivision, EnClass) LIKE TdClasses, filtered by ToType.
+ * The longest pattern wins when they overlap.
  */
 function bk_doc_distances($tourId, $type, $division, $class)
 {
@@ -88,7 +88,7 @@ function bk_doc_distances($tourId, $type, $division, $class)
     return $out;
 }
 
-/** Blason de l'archer (nom + diamètre), depuis Entries.EnTargetFace. */
+/** The archer's target face (name + diameter), from Entries.EnTargetFace. */
 function bk_doc_face($tourId, $tfId)
 {
     if (!$tfId) return '';

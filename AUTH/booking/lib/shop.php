@@ -1,16 +1,15 @@
 <?php
 /**
- * lib/shop.php — Boutique de la compétition (buvette généralisée : souvenirs,
- * hébergement, accès…).
+ * lib/shop.php — the competition's shop (a generalised refreshment stall: souvenirs,
+ * accommodation, access…).
  *
- * Un article (BK_ShopItems) appartient à une section libre (Buvette, Souvenirs…).
- * S'il a un nom d'option (SiOptionName, ex. « Taille »), il porte des variantes
- * (BK_ShopVariants, ex. S/M/L), chacune avec son propre stock. Sinon c'est un
- * article simple à stock unique. Les commandes (BK_ShopOrders) sont une quantité
- * par (compétition, licence, article, variante), éditables tant que la boutique
- * est ouverte. Stock 0 = illimité ; SiMaxPerPerson 0 = illimité.
+ * An item (BK_ShopItems) belongs to a free section (Refreshments, Souvenirs…). When it has an
+ * option name (SiOptionName, e.g. "Size"), it has variants (BK_ShopVariants, e.g. S/M/L), each
+ * with its own stock; otherwise it is a simple item with one stock. Orders (BK_ShopOrders) are a
+ * quantity per (competition, licence, item, variant), editable while the shop is open.
+ * Stock 0 = unlimited; SiMaxPerPerson 0 = unlimited.
  *
- * Le serveur est l'autorité : tout contrôle de stock/plafond est refait ici.
+ * The server has the last word: every stock and limit check is made again here.
  */
 
 if (defined('BK_SHOP_LOADED')) return;
@@ -19,7 +18,7 @@ define('BK_SHOP_LOADED', true);
 require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/competition.php';   // bk_comp_payments_on, bk_comp_set_effective, bk_comp_finished
 
-/** La boutique accepte-t-elle des commandes ? Date limite propre, sinon suit les inscriptions. */
+/** Does the shop take orders? Its own deadline, otherwise the registration window. */
 function bk_shop_open($cfg)
 {
     $until = trim((string) ($cfg->BcShopUntil ?? ''));
@@ -40,7 +39,7 @@ function bk_shop_open($cfg)
     return $r ? (bool) $r->o : false;
 }
 
-/** Au moins un article actif dans la boutique de cette compétition. */
+/** At least one active item in this competition's shop. */
 function bk_shop_has_items($tourId)
 {
     bk_schema();
@@ -50,10 +49,10 @@ function bk_shop_has_items($tourId)
 }
 
 /**
- * Articles de la boutique, avec variantes et stock restant. Si $licence est
- * fournie, chaque article/variante porte aussi 'mine' (quantité déjà commandée).
- * Retour : [SiId => [id, section, label, description, price, stock, maxper,
- *                    option, active, remaining, mine, variants=[SvId => [...]]]].
+ * Items of the shop, with variants and remaining stock. With $licence, each item/variant also
+ * has 'mine' (quantity already ordered).
+ * Returns [SiId => [id, section, label, description, price, stock, maxper,
+ *                   option, active, remaining, mine, variants=[SvId => [...]]]].
  */
 function bk_shop_items($tourId, $activeOnly = false, $licence = null)
 {
@@ -114,8 +113,8 @@ function bk_shop_items($tourId, $activeOnly = false, $licence = null)
 }
 
 /**
- * Enregistre une quantité commandée (upsert, ou suppression si 0), avec contrôle
- * de stock et de plafond par personne. Retour ['ok'=>bool, 'msg'=>?].
+ * Records an ordered quantity (upsert, or deletion when 0), checking the stock and the
+ * per-person limit. Returns ['ok' => bool, 'msg' => ?].
  */
 function bk_shop_order_set($tourId, $licence, $itemId, $variantId, $qty)
 {
@@ -126,13 +125,13 @@ function bk_shop_order_set($tourId, $licence, $itemId, $variantId, $qty)
 
     $rs = safe_r_sql("SELECT * FROM BK_ShopItems WHERE SiId = $itemId AND SiTournament = $tourId AND SiActive = 1");
     $it = safe_fetch($rs);
-    if (!$it) return array('ok' => false, 'msg' => "Article indisponible.");
+    if (!$it) return array('ok' => false, 'msg' => bk_t('ShopItemGone'));
 
     if (trim((string) $it->SiOptionName) !== '') {
-        if ($variantId <= 0) return array('ok' => false, 'msg' => "Choisissez une option.");
+        if ($variantId <= 0) return array('ok' => false, 'msg' => bk_t('ShopPickOption'));
         $rs = safe_r_sql("SELECT SvStock FROM BK_ShopVariants WHERE SvId = $variantId AND SvItem = $itemId");
         $v = safe_fetch($rs);
-        if (!$v) return array('ok' => false, 'msg' => "Option invalide.");
+        if (!$v) return array('ok' => false, 'msg' => bk_t('ShopBadOption'));
         $stock = intval($v->SvStock);
     } else {
         $variantId = 0;
@@ -147,7 +146,7 @@ function bk_shop_order_set($tourId, $licence, $itemId, $variantId, $qty)
         WHERE SoTournament = $tourId AND SoItem = $itemId AND SoVariant = $variantId");
     $others = intval(safe_fetch($rs)->q) - $mineOld;
     if ($stock > 0 && $qty > $stock - $others) {
-        return array('ok' => false, 'msg' => "Stock insuffisant : il reste " . max(0, $stock - $others) . ".");
+        return array('ok' => false, 'msg' => bk_t('ShopLowStock', max(0, $stock - $others)));
     }
 
     $maxper = intval($it->SiMaxPerPerson);
@@ -155,7 +154,7 @@ function bk_shop_order_set($tourId, $licence, $itemId, $variantId, $qty)
         $rs = safe_r_sql("SELECT COALESCE(SUM(SoQty),0) q FROM BK_ShopOrders
             WHERE SoTournament = $tourId AND SoLicence = $lic AND SoItem = $itemId AND SoVariant <> $variantId");
         if (intval(safe_fetch($rs)->q) + $qty > $maxper) {
-            return array('ok' => false, 'msg' => "Maximum $maxper par personne pour cet article.");
+            return array('ok' => false, 'msg' => bk_t('ShopMaxPer', $maxper));
         }
     }
 
@@ -170,7 +169,7 @@ function bk_shop_order_set($tourId, $licence, $itemId, $variantId, $qty)
     return array('ok' => true);
 }
 
-/** Total boutique d'un archer sur une compétition (pour le reçu). */
+/** Shop total of an archer on a competition (for the receipt). */
 function bk_shop_order_total($tourId, $licence)
 {
     bk_schema();
@@ -181,7 +180,7 @@ function bk_shop_order_total($tourId, $licence)
     return $r ? (float) $r->t : 0.0;
 }
 
-/** Lignes détaillées de la commande boutique d'un archer (reçu / récap). */
+/** Detailed lines of an archer's shop order (receipt, summary). */
 function bk_shop_order_lines($tourId, $licence)
 {
     bk_schema();
@@ -202,7 +201,7 @@ function bk_shop_order_lines($tourId, $licence)
     return $out;
 }
 
-/** Fixe la date limite propre à la boutique ('' = suit les inscriptions). */
+/** Sets the shop's own deadline ('' = follows the registration window). */
 function bk_shop_set_deadline($tourId, $dt)
 {
     bk_schema();
@@ -212,19 +211,19 @@ function bk_shop_set_deadline($tourId, $dt)
     bk_comp_set_effective($tourId, array('BcShopUntil' => $dt === '' ? null : str_replace('T', ' ', substr($dt, 0, 16))));
 }
 
-/* ----- CRUD organisateur ----- */
+/* ----- Organiser's editing ----- */
 
 function bk_shop_item_upsert($tourId, $d)
 {
     bk_schema();
     $tourId = intval($tourId);
-    $set = "SiSection = " . StrSafe_DB(substr(trim((string) ($d['section'] ?? '')), 0, 60))
-        . ", SiLabel = " . StrSafe_DB(substr(trim((string) ($d['label'] ?? '')), 0, 120))
-        . ", SiDescription = " . StrSafe_DB(substr(trim((string) ($d['description'] ?? '')), 0, 255))
+    $set = "SiSection = " . StrSafe_DB(mb_substr(trim((string) ($d['section'] ?? '')), 0, 60))
+        . ", SiLabel = " . StrSafe_DB(mb_substr(trim((string) ($d['label'] ?? '')), 0, 120))
+        . ", SiDescription = " . StrSafe_DB(mb_substr(trim((string) ($d['description'] ?? '')), 0, 255))
         . ", SiPrice = " . StrSafe_DB(number_format((float) str_replace(',', '.', (string) ($d['price'] ?? 0)), 2, '.', ''))
         . ", SiStock = " . max(0, intval($d['stock'] ?? 0))
         . ", SiMaxPerPerson = " . max(0, intval($d['maxper'] ?? 0))
-        . ", SiOptionName = " . StrSafe_DB(substr(trim((string) ($d['option'] ?? '')), 0, 40))
+        . ", SiOptionName = " . StrSafe_DB(mb_substr(trim((string) ($d['option'] ?? '')), 0, 40))
         . ", SiOrder = " . max(0, intval($d['order'] ?? 0))
         . ", SiActive = " . (empty($d['active']) ? 0 : 1);
     $id = intval($d['id'] ?? 0);
@@ -233,7 +232,7 @@ function bk_shop_item_upsert($tourId, $d)
         return $id;
     }
     safe_w_sql("INSERT INTO BK_ShopItems SET SiTournament = $tourId, $set");
-    return intval(safe_w_last_id());   // id sur la connexion d'ÉCRITURE (READ_CON renverrait 0)
+    return intval(safe_w_last_id());   // id on the WRITE connection (READ_CON would give 0)
 }
 
 function bk_shop_item_delete($tourId, $itemId)
@@ -250,7 +249,7 @@ function bk_shop_variant_upsert($itemId, $d)
 {
     bk_schema();
     $itemId = intval($itemId);
-    $set = "SvLabel = " . StrSafe_DB(substr(trim((string) ($d['label'] ?? '')), 0, 80))
+    $set = "SvLabel = " . StrSafe_DB(mb_substr(trim((string) ($d['label'] ?? '')), 0, 80))
         . ", SvStock = " . max(0, intval($d['stock'] ?? 0))
         . ", SvOrder = " . max(0, intval($d['order'] ?? 0));
     $id = intval($d['id'] ?? 0);
@@ -259,7 +258,7 @@ function bk_shop_variant_upsert($itemId, $d)
         return $id;
     }
     safe_w_sql("INSERT INTO BK_ShopVariants SET SvItem = $itemId, $set");
-    return intval(safe_w_last_id());   // id sur la connexion d'ÉCRITURE (READ_CON renverrait 0)
+    return intval(safe_w_last_id());   // id on the WRITE connection (READ_CON would give 0)
 }
 
 function bk_shop_variant_delete($variantId)

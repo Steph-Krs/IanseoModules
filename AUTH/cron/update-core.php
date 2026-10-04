@@ -1,50 +1,48 @@
 <?php
 /**
- * Module AUTH — mise à jour du CŒUR ianseo, sans navigateur (CLI uniquement).
+ * AUTH module — update of the ianseo CORE, without a browser (command line only).
  *
- * Rejoue exactement ce que fait la page /Update/ : elle n'est qu'une interface qui
- * appelle `Update/index-action.php` en AJAX ; le travail réel vit dans
- * `Update/UpdateIanseo.php`, lequel ne porte AUCUN contrôle d'accès (l'ACL est dans
- * index-action.php). On peut donc l'exécuter ici — ce qui lève le blocage identifié
- * côté serveur : automatiser /Update/ en HTTP supposerait de scripter une connexion
- * ADMIN + code TOTP, donc de stocker le secret 2FA en clair, ce qui annulerait
- * l'intérêt de la 2FA. En CLI, l'autorisation est celle du compte système, déjà au
- * moins aussi privilégiée qu'une session administrateur.
+ * Plays exactly what the /Update/ page does: it is only an interface that calls
+ * `Update/index-action.php` in AJAX; the real work lives in `Update/UpdateIanseo.php`, which
+ * carries NO access check (the ACL is in index-action.php). It can therefore be run here —
+ * which lifts the blocker found on the server side: automating /Update/ over HTTP would mean
+ * scripting an ADMIN sign-in + TOTP code, hence storing the 2FA secret in clear, which would
+ * cancel the point of the 2FA. On the command line, the authorisation is that of the system
+ * account, already at least as privileged as an administrator session.
  *
- * Ce que fait la mise à jour : télécharge le différentiel depuis ianseo.net, écrit /
- * supprime les fichiers du cœur, rafraîchit les paquets de langue, puis déclenche les
- * migrations de base (`updateChkUp()` → `Common/UpdateDb-check.php`).
+ * What the update does: downloads the differential from ianseo.net, writes / deletes the
+ * core files, refreshes the language packs, then triggers the database migrations
+ * (`updateChkUp()` → `Common/UpdateDb-check.php`).
  *
- * ⚠️ Script SÉPARÉ, appelé en SOUS-PROCESSUS par cron/maintenance.php : UpdateIanseo.php
- * se termine par un `JsonOut()` qui fait `exit` — inclus en direct, il tuerait
- * l'orchestrateur avant la sortie du mode maintenance.
+ * ⚠️ SEPARATE script, called as a SUB-PROCESS by cron/maintenance.php: UpdateIanseo.php ends
+ * with a `JsonOut()` that does `exit` — included directly, it would kill the orchestrator
+ * before the maintenance mode is left.
  *
- * Le résultat n'est pas rendu par le code de sortie (le `exit` du cœur vaut 0) mais
- * par le fichier d'état TV/Photos/updating.json, que l'appelant relit (clés
- * « error » et « finished »).
+ * The result is not given by the exit code (the core's `exit` is 0) but by the status file
+ * TV/Photos/updating.json, which the caller reads back ("error" and "finished" keys).
  */
 
 if (php_sapi_name() !== 'cli') {
     http_response_code(403);
-    die('Script cron : exécution en ligne de commande uniquement.');
+    die('Cron script: command line only.');
 }
 
 $SKIP_AUTH = 1;
 define('HTDOCS', dirname(__DIR__, 4));
 
-// DIRNAME : ce que index-action.php définit comme le dossier du script appelant.
-// UpdateIanseo.php en dérive le chemin du fichier d'état (dirname(DIRNAME).'/TV/Photos').
+// DIRNAME: what index-action.php defines as the folder of the calling script.
+// UpdateIanseo.php derives the path of the status file from it (dirname(DIRNAME).'/TV/Photos').
 define('DIRNAME', HTDOCS . DIRECTORY_SEPARATOR . 'Update');
 
 require_once(HTDOCS . '/config.php');
 
-// UpdateIanseo.php fait des include RELATIFS (« FileList.php », « Language/lib.php »)
-// qui, en web, se résolvent depuis le dossier du script. En CLI il faut s'y placer.
+// UpdateIanseo.php does RELATIVE includes ("FileList.php", "Language/lib.php") which, on the
+// web, resolve from the script's folder. On the command line the script has to move there.
 chdir(DIRNAME);
 
 $statusFile = HTDOCS . '/TV/Photos/updating.json';
 
-/** Même implémentation que Update/index-action.php (écriture atomique). */
+/** Same implementation as Update/index-action.php (atomic write). */
 if (!function_exists('writeStatusFile')) {
     function writeStatusFile($file, $data) {
         file_put_contents($file . '.tmp', json_encode($data));
@@ -54,32 +52,32 @@ if (!function_exists('writeStatusFile')) {
 
 function uc_out($msg) { echo '[' . date('Y-m-d H:i:s') . '] ' . $msg . "\n"; }
 
-// Une mise à jour déjà en cours ? (même garde que l'interface, sauf --force)
+// An update already running? (same guard as the interface, except --force)
 $force = in_array('--force', array_slice($argv, 1), true);
 if (!$force && is_file($statusFile)) {
     $d = @json_decode((string) @file_get_contents($statusFile));
     if ($d && empty($d->finished)) {
-        uc_out('ERREUR : une mise à jour est déjà en cours depuis ' . ($d->start ?? '?')
-            . ' (utiliser --force pour passer outre).');
+        uc_out('ERROR: an update has been running since ' . ($d->start ?? '?')
+            . ' (use --force to override).');
         exit(1);
     }
 }
 
 if (!is_writable(dirname($statusFile))) {
-    uc_out('ERREUR : ' . dirname($statusFile) . ' n\'est pas accessible en écriture.');
+    uc_out('ERROR: ' . dirname($statusFile) . ' is not writable.');
     exit(1);
 }
 if (!is_writable(HTDOCS)) {
-    uc_out('ERREUR : ' . HTDOCS . ' n\'est pas accessible en écriture — déverrouillez les '
-        . 'fichiers du cœur avant la mise à jour (ianseo-unlock).');
+    uc_out('ERROR: ' . HTDOCS . ' is not writable — unlock the core files before the update '
+        . '(ianseo-unlock).');
     exit(1);
 }
 
-// État initial, exactement comme l'action « getFile » de l'interface.
+// Initial state, exactly as the "getFile" action of the interface.
 $JSON = array('error' => 0, 'msg' => '', 'start' => date('Y-m-d H:i:s'), 'status' => '', 'finished' => 0);
 writeStatusFile($statusFile, $JSON);
 
-uc_out('Mise à jour du cœur ianseo (' . (defined('ProgramRelease') ? ProgramRelease : '?') . ') depuis ' . $CFG->IanseoServer . '…');
+uc_out('Update of the ianseo core (' . (defined('ProgramRelease') ? ProgramRelease : '?') . ') from ' . $CFG->IanseoServer . '…');
 
-$IN_PHP = true;                       // exigé par UpdateIanseo.php
-require_once DIRNAME . '/UpdateIanseo.php';   // se termine par JsonOut() → exit
+$IN_PHP = true;                       // required by UpdateIanseo.php
+require_once DIRNAME . '/UpdateIanseo.php';   // ends with JsonOut() → exit

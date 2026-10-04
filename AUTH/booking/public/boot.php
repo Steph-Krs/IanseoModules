@@ -1,16 +1,14 @@
 <?php
 /**
- * public/boot.php — amorçage de l'espace licencié (face publique).
+ * public/boot.php — bootstrap of the archer space (public side).
  *
- * $SKIP_AUTH court-circuite le bootstrap d'authentification ORGANISATEUR
- * (config.php:124) : ces pages doivent rester accessibles à un archer anonyme,
- * que le module AUTH soit installé ou non — aucune liste blanche à maintenir
- * ailleurs, donc aucune dépendance entre les deux modules. Mécanisme du cœur
- * ianseo, déjà utilisé par Api/ISK-NG.
+ * $SKIP_AUTH bypasses the ORGANISER authentication bootstrap (config.php): these pages must
+ * stay reachable by an anonymous archer — no allow-list to maintain elsewhere. Mechanism of
+ * the ianseo core, already used by Api/ISK-NG.
  *
- * Contrepartie assumée : ces pages n'ont AUCUNE ACL ianseo. Toute lecture ou
- * écriture doit donc être gardée explicitement par bk_current_archer() et
- * bk_csrf_check(), et bornée à ce que le licencié connecté a le droit de voir.
+ * The price, accepted: these pages have NO ianseo ACL. Every read and write is therefore
+ * guarded explicitly by bk_current_archer() and bk_csrf_check(), and limited to what the
+ * signed-in licensee may see.
  */
 
 $SKIP_AUTH = 1;
@@ -24,10 +22,9 @@ require_once dirname(__DIR__) . '/lib/ui.php';
 
 bk_schema();
 
-// Vue « depuis un autre compte » (admin serveur, LECTURE SEULE) : point de garde
-// unique pour tout l'espace licencié. Toute requête POST (donc toute écriture,
-// la règle du module étant « CSRF sur tout POST ») est refusée tant que l'admin
-// observe l'espace d'un tiers.
+// "Seen from another account" (server administrator, READ ONLY): the single guard of the
+// whole archer space. Any POST (so any write, the module's rule being "CSRF on every POST")
+// is refused while the administrator looks at someone else's space.
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
     && function_exists('bk_impersonating') && bk_impersonating()) {
     bk_impersonation_block();

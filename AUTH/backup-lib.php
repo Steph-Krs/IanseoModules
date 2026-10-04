@@ -31,6 +31,8 @@
  * waits on them.
  */
 
+require_once __DIR__ . '/lang-lib.php';
+
 /** Default settings. */
 function aut_backup_defaults()
 {
@@ -86,23 +88,20 @@ function aut_backup_dir_problem($dir, &$fix = '', $create = true)
 {
     $fix = '';
     $dir = (string) $dir;
-    if ($dir === '') return 'Aucun dossier de sauvegarde configuré.';
-    if (!preg_match('#^(/|[A-Za-z]:/)#', $dir)) return 'Le dossier doit être un chemin absolu (ex. /var/backups/ianseo).';
-    if (strpos($dir, '..') !== false) return 'Le chemin ne doit pas contenir « .. ».';
-    if (aut_backup_path_inside($dir, HTDOCS)) {
-        return 'Le dossier est à l\'intérieur du site web : les sauvegardes y seraient téléchargeables. '
-            . 'Choisissez un dossier hors de ' . HTDOCS . '.';
-    }
+    if ($dir === '') return aut_t('BuNoDir');
+    if (!preg_match('#^(/|[A-Za-z]:/)#', $dir)) return aut_t('BuNotAbsolute');
+    if (strpos($dir, '..') !== false) return aut_t('BuDotDot');
+    if (aut_backup_path_inside($dir, HTDOCS)) return aut_t('BuInsideSite', HTDOCS);
     $user = function_exists('posix_getpwuid') && function_exists('posix_geteuid')
         ? (posix_getpwuid(posix_geteuid())['name'] ?? 'www-data') : 'www-data';
     $cmd = 'sudo install -d -o ' . $user . ' -g ' . $user . ' -m 0700 ' . escapeshellarg($dir);
     if (!is_dir($dir) && (!$create || !@mkdir($dir, 0700, true))) {
         $fix = $cmd;
-        return 'Le dossier n\'existe pas et le serveur web ne peut pas le créer.';
+        return aut_t('BuCannotCreate');
     }
     if (!is_writable($dir)) {
         $fix = $cmd;
-        return 'Le dossier existe mais le serveur web ne peut pas y écrire.';
+        return aut_t('BuCannotWrite');
     }
     return '';
 }
@@ -215,7 +214,7 @@ function aut_backup_db($dir, $stamp, &$err, &$log, $kind = 'db', $logos = true)
     global $CFG;
     $err = ''; $log = array();
     $bin = aut_backup_mysqldump_bin();
-    if ($bin === '') { $err = 'mysqldump introuvable sur le serveur.'; return false; }
+    if ($bin === '') { $err = 'mysqldump not found on the server.'; return false; }
 
     // Host may be "host:port" in ianseo's config.
     $host = (string) $CFG->W_HOST; $port = '';
@@ -254,7 +253,7 @@ function aut_backup_db($dir, $stamp, &$err, &$log, $kind = 'db', $logos = true)
     foreach ($parts as $p) $ok = $ok && aut_backup_dump_complete($p);
     if (!$ok) {
         foreach ($parts as $p) @unlink($p);
-        $err = 'mysqldump a échoué' . ($rc !== 0 ? " (code $rc)" : ' (dump incomplet)') . '.';
+        $err = 'mysqldump failed' . ($rc !== 0 ? " (code $rc)" : ' (incomplete dump)') . '.';
         return false;
     }
 
@@ -276,7 +275,7 @@ function aut_backup_db($dir, $stamp, &$err, &$log, $kind = 'db', $logos = true)
     }
     gzclose($gz);
     @chmod($final, 0600);
-    if (!is_file($final) || filesize($final) === 0) { $err = 'Compression du dump impossible.'; return false; }
+    if (!is_file($final) || filesize($final) === 0) { $err = 'Could not compress the dump.'; return false; }
     return $final;
 }
 
@@ -288,7 +287,7 @@ function aut_backup_files($dir, $stamp, &$err, &$log)
 {
     $err = ''; $log = array();
     $bin = aut_backup_find_bin(array('tar'), array('/bin/tar', '/usr/bin/tar'));
-    if ($bin === '') { $err = 'tar introuvable sur le serveur.'; return false; }
+    if ($bin === '') { $err = 'tar not found on the server.'; return false; }
     $root  = str_replace('\\', '/', realpath(HTDOCS));
     $base  = basename($root);
     $final = $dir . '/ianseo-files-' . $stamp . '.tar.gz';
@@ -302,7 +301,7 @@ function aut_backup_files($dir, $stamp, &$err, &$log)
     // GNU tar: 1 = "some files changed while being read" — the archive is still valid.
     if (($rc !== 0 && $rc !== 1) || !is_file($part) || filesize($part) === 0) {
         @unlink($part);
-        $err = "Archive des fichiers impossible (tar, code $rc).";
+        $err = "Could not archive the files (tar, code $rc).";
         return false;
     }
     rename($part, $final);
@@ -364,7 +363,7 @@ function aut_backup_rclone($args, &$out)
 {
     $out = array();
     $bin = aut_backup_rclone_bin();
-    if ($bin === '') { $out[] = 'rclone n\'est pas installé sur le serveur.'; return 127; }
+    if ($bin === '') { $out[] = aut_t('CfRcloneKo'); return 127; }
     $rc = 1;
     exec(escapeshellarg($bin) . ' ' . $args . ' 2>&1', $out, $rc);
     return $rc;
@@ -379,7 +378,7 @@ function aut_backup_rclone($args, &$out)
  */
 function aut_backup_remote_test($remote, &$out)
 {
-    if (!aut_backup_remote_valid($remote)) { $out = array('Destination invalide (format attendu : nom:dossier).'); return false; }
+    if (!aut_backup_remote_valid($remote)) { $out = array(aut_t('BuBadRemote')); return false; }
     $opt = ' --contimeout 20s --timeout 60s ';
     if (aut_backup_rclone('mkdir' . $opt . escapeshellarg($remote), $out) !== 0) return false;
     return aut_backup_rclone('lsf --max-depth 1' . $opt . escapeshellarg($remote), $out) === 0;
@@ -394,11 +393,11 @@ function aut_backup_upload($c, $files, $say, $live = false)
 {
     if ($c['remote'] === '') return 'off';
     if (!aut_backup_remote_valid($c['remote'])) {
-        $say('ÉCHEC copie en ligne : destination invalide « ' . $c['remote'] . ' ».');
+        $say('FAILED online copy: invalid destination "' . $c['remote'] . '".');
         return 'fail';
     }
     if (!aut_backup_lock('upload')) {
-        $say('Copie en ligne non lancée : un envoi précédent est encore en cours (la copie locale est faite).');
+        $say('Online copy not started: a previous upload is still running (the local copy is done).');
         return 'busy';
     }
     $dest = escapeshellarg($c['remote']);
@@ -407,10 +406,10 @@ function aut_backup_upload($c, $files, $say, $live = false)
         $out = array();
         $rc = aut_backup_rclone('copy --retries 3 --contimeout 30s ' . escapeshellarg($f) . ' ' . $dest, $out);
         foreach ($out as $l) $say('  | ' . $l);
-        if ($rc !== 0) { $ok = false; $say('ÉCHEC copie en ligne de ' . basename($f) . " (rclone, code $rc)"); }
+        if ($rc !== 0) { $ok = false; $say('FAILED online copy of ' . basename($f) . " (rclone, code $rc)"); }
     }
     if (!$ok) return 'fail';
-    $say('Copie en ligne : ok → ' . $c['remote']);
+    $say('Online copy: ok → ' . $c['remote']);
     // Prune only after this copy succeeded: the remote is never left empty. Deleted for
     // good: on Google Drive a plain delete only moves to the bin, which still counts
     // against the quota (and with encrypted names, nobody can tell the files apart there).
@@ -422,7 +421,7 @@ function aut_backup_upload($c, $files, $say, $live = false)
     $out = array();
     aut_backup_rclone('delete ' . $dest . ' --drive-use-trash=false' . $inc, $out);
     foreach ($out as $l) $say('  | ' . $l);
-    $say('Rotation en ligne (' . ($live ? $c['live_keep_hours'] . ' h' : $c['remote_keep_days'] . ' j') . ') : faite.');
+    $say('Online rotation (' . ($live ? $c['live_keep_hours'] . ' h' : $c['remote_keep_days'] . ' d') . '): done.');
     return 'ok';
 }
 
@@ -456,15 +455,15 @@ function aut_backup_run($say, $mode = 'all')
 {
     $c = aut_backup_config();
     $res = array('local_ok' => false, 'remote' => 'skip', 'files' => array(), 'skipped' => false);
-    if (!$c['enabled']) { $say('Sauvegarde désactivée (config.local.json → backup.enabled).'); return $res; }
+    if (!$c['enabled']) { $say('Backup turned off (config.local.json → backup.enabled).'); return $res; }
 
     if ($mode === 'live') {
-        $why = !$c['live'] ? 'copies à chaud désactivées (backup.live)'
-            : (aut_backup_night_running() ? 'maintenance nocturne ou restauration en cours' : '');
-        if ($why !== '') { $say('Copie à chaud non lancée : ' . $why . '.'); $res['skipped'] = true; return $res; }
+        $why = !$c['live'] ? 'live copies turned off (backup.live)'
+            : (aut_backup_night_running() ? 'nightly maintenance or restore under way' : '');
+        if ($why !== '') { $say('Live copy not started: ' . $why . '.'); $res['skipped'] = true; return $res; }
     }
     if ($mode !== 'upload' && !aut_backup_lock('backup')) {
-        $say('Sauvegarde non lancée : une autre sauvegarde est en cours.');
+        $say('Backup not started: another backup is running.');
         $res['skipped'] = ($mode === 'live');
         return $res;
     }
@@ -472,17 +471,17 @@ function aut_backup_run($say, $mode = 'all')
     if ($mode === 'upload') {
         $res['files'] = aut_backup_latest_set($c['dir']);
         $res['local_ok'] = (bool) $res['files'];
-        if (!$res['files']) { $say('Copie en ligne : aucune sauvegarde locale à envoyer.'); return $res; }
+        if (!$res['files']) { $say('Online copy: no local backup to send.'); return $res; }
         if ($c['remote'] === '') { $res['remote'] = 'off'; return $res; }
-        $say('Copie en ligne de ' . implode(', ', array_map('basename', $res['files'])) . '…');
+        $say('Online copy of ' . implode(', ', array_map('basename', $res['files'])) . '…');
         $res['remote'] = aut_backup_upload($c, $res['files'], $say);
         return $res;
     }
 
     $fix = '';
     if ($p = aut_backup_dir_problem($c['dir'], $fix)) {
-        $say('ÉCHEC : ' . $p . ' (' . $c['dir'] . ')');
-        if ($fix !== '') $say('  À lancer une fois sur le serveur : ' . $fix);
+        $say('FAILED: ' . $p . ' (' . $c['dir'] . ')');
+        if ($fix !== '') $say('  To run once on the server: ' . $fix);
         return $res;
     }
 
@@ -492,7 +491,7 @@ function aut_backup_run($say, $mode = 'all')
     $need = max(200 * 1048576, (int) ($prev / max(1, count(aut_backup_list($c['dir']))) * 3));
     $free = @disk_free_space($c['dir']);
     if ($free !== false && $free < $need) {
-        $say('ÉCHEC : espace disque insuffisant (' . round($free / 1048576) . ' Mo libres, ~' . round($need / 1048576) . ' Mo nécessaires).');
+        $say('FAILED: not enough disk space (' . round($free / 1048576) . ' MB free, ~' . round($need / 1048576) . ' MB needed).');
         return $res;
     }
 
@@ -503,23 +502,23 @@ function aut_backup_run($say, $mode = 'all')
     $t0 = microtime(true);
     $db = aut_backup_db($c['dir'], $stamp, $err, $log, $live ? 'live' : 'db', $c['logos']);
     foreach ($log as $l) $say('  | ' . $l);
-    if (!$db) { $say('ÉCHEC base : ' . $err); return $res; }
-    $say('Base : ' . basename($db) . ' (' . round(filesize($db) / 1048576, 1) . ' Mo, '
-        . round(microtime(true) - $t0, 1) . ' s' . ($c['logos'] ? '' : ', sans les logos') . ')');
+    if (!$db) { $say('FAILED database: ' . $err); return $res; }
+    $say('Database: ' . basename($db) . ' (' . round(filesize($db) / 1048576, 1) . ' MB, '
+        . round(microtime(true) - $t0, 1) . ' s' . ($c['logos'] ? '' : ', without the logos') . ')');
     $res['files'][] = $db;
 
     if ($c['files'] && !$live) {
         $fa = aut_backup_files($c['dir'], $stamp, $err, $log);
         foreach ($log as $l) $say('  | ' . $l);
-        if (!$fa) { $say('ÉCHEC fichiers : ' . $err); return $res; }
-        $say('Fichiers : ' . basename($fa) . ' (' . round(filesize($fa) / 1048576, 1) . ' Mo)');
+        if (!$fa) { $say('FAILED files: ' . $err); return $res; }
+        $say('Files: ' . basename($fa) . ' (' . round(filesize($fa) / 1048576, 1) . ' MB)');
         $res['files'][] = $fa;
     }
     $res['local_ok'] = true;
 
     $gone = aut_backup_rotate($c['dir'], $c['keep_days'], $c['live_keep_hours']);
-    $say('Rotation locale (' . $c['keep_days'] . ' j, copies à chaud ' . $c['live_keep_hours'] . ' h) : '
-        . ($gone ? count($gone) . ' ancienne(s) copie(s) supprimée(s)' : 'rien à supprimer'));
+    $say('Local rotation (' . $c['keep_days'] . ' d, live copies ' . $c['live_keep_hours'] . ' h): '
+        . ($gone ? count($gone) . ' old cop' . (count($gone) > 1 ? 'ies' : 'y') . ' deleted' : 'nothing to delete'));
 
     if ($mode === 'all' || $live) $res['remote'] = aut_backup_upload($c, $res['files'], $say, $live);
     return $res;
@@ -550,6 +549,20 @@ function aut_backup_ping($fail = false)
 }
 
 /**
+ * Label of a failed step of the night, as cron/maintenance.php records it (code), in the
+ * visitor's language. "module:NAME" keeps the module's name; an unknown word (a record made
+ * by an older version, in French) is shown as it is.
+ */
+function aut_backup_step_label($code)
+{
+    if (strpos($code, 'module:') === 0) return aut_t('BuStepModule', mb_substr($code, 7));
+    $keys = array('backup' => 'BuStepBackup', 'core' => 'BuStepCore', 'core-skipped' => 'BuStepCoreSkipped',
+        'unlock' => 'BuStepUnlock', 'lock' => 'BuStepLock', 'deploy' => 'BuStepDeploy',
+        'licences' => 'BuStepLicences', 'logos' => 'BuStepLogos', 'online-backup' => 'BuStepOnline');
+    return isset($keys[$code]) ? aut_t($keys[$code]) : $code;
+}
+
+/**
  * Problems of the recent nights and live copies, for the administrator banner (menu.php):
  * short sentences, [] when all is well. Silent on a machine without the nightly job
  * (maintenance.on empty: development, fresh install). Never fatal: $force on the query.
@@ -575,25 +588,26 @@ function aut_backup_alerts($all = null)
     try { $tz = new DateTimeZone((string) ($all['timezone'] ?? 'Europe/Paris')); }
     catch (\Throwable $e) { $tz = new DateTimeZone('Europe/Paris'); }
     $at = function ($r) use ($tz) {
-        return (new DateTime($r->AlWhen, new DateTimeZone('UTC')))->setTimezone($tz)->format('d/m à H:i');
+        $d = (new DateTime($r->AlWhen, new DateTimeZone('UTC')))->setTimezone($tz);
+        return aut_t('BuAt', array('day' => $d->format('d/m'), 'time' => $d->format('H:i')));
     };
 
     $out = array();
     $m = $last['night'] ?? null;
     if (!$m || $m->Age > 30) {
-        $out[] = 'Aucune maintenance nocturne depuis ' . ($m ? 'le ' . $at($m) : 'plus de 3 jours')
-            . ' : tâche planifiée arrêtée ? Pas de sauvegarde nocturne tant qu\'elle ne tourne pas.';
+        $out[] = $m ? aut_t('BuNoNightSince', $at($m)) : aut_t('BuNoNight3Days');
     } elseif ($m->AlEvent !== 'MAINT_OK') {
-        $what = trim(preg_replace('/^cron:?/', '', (string) $m->AlUser));
-        $out[] = 'Maintenance de la nuit (' . $at($m) . ') : échec' . ($what !== '' ? ' — ' . $what : '') . '.';
+        $what = implode(', ', array_map('aut_backup_step_label',
+            array_filter(array_map('trim', explode(',', preg_replace('/^cron:?/', '', (string) $m->AlUser))), 'strlen')));
+        $out[] = aut_t('BuNightFailed', $at($m)) . ($what !== '' ? ' — ' . $what : '') . '.';
     }
     $r = $last['remote'] ?? null;
     if ($r && $r->AlEvent === 'BACKUP_REMOTE_FAIL' && $r->Age <= 30) {
-        $out[] = 'Copie en ligne des sauvegardes (' . $at($r) . ') : échec.';
+        $out[] = aut_t('BuRemoteFailed', $at($r));
     }
     $r = $last['live'] ?? null;
     if ($r && $r->AlEvent === 'BACKUP_LIVE_FAIL' && $r->Age <= 12) {
-        $out[] = 'Copie à chaud de la base (' . $at($r) . ') : échec.';
+        $out[] = aut_t('BuLiveFailed', $at($r));
     }
     return $out;
 }

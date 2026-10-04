@@ -1,15 +1,14 @@
 <?php
 /**
- * lib/club.php — inscription par un gestionnaire de club.
+ * lib/club.php — registration by a club manager.
  *
- * Autonomie : le module ne `require` JAMAIS AUTH et ne suppose pas sa présence.
- * Deux sources de droits, cumulatives :
- *   1. BK_ClubManagers — table propre au module, alimentée par l'administrateur.
- *      C'est le repli qui rend la fonctionnalité utilisable sans aucun module
- *      de comptes.
- *   2. La session ianseo, SI un module de comptes en a posé une : lecture seule
- *      de $_SESSION['AUTH_ROLE'] / ['AUTH_SCOPE'] (convention de session commune aux
- *      modules). Aucune fonction d'AUTH n'est appelée.
+ * Standalone: the module NEVER `require`s AUTH and does not assume it is there.
+ * Two sources of rights, added together:
+ *   1. BK_ClubManagers — the module's own table, filled by the administrator. This is the
+ *      fallback that makes the feature usable without any accounts module.
+ *   2. The ianseo session, IF an accounts module set one: read-only use of
+ *      $_SESSION['AUTH_ROLE'] / ['AUTH_SCOPE'] (session convention shared by the modules).
+ *      No AUTH function is called.
  */
 
 if (defined('BK_CLUB_LOADED')) return;
@@ -18,9 +17,9 @@ define('BK_CLUB_LOADED', true);
 require_once __DIR__ . '/schema.php';
 
 /**
- * Agréments de club que cet archer peut gérer.
- * Retourne un tableau de codes (agréments complets LLDDCCC), éventuellement
- * avec des motifs LIKE pour un périmètre départemental ou régional.
+ * Club approval numbers this archer may manage.
+ * Returns an array of codes (full LLDDCCC approval numbers), possibly with LIKE patterns for a
+ * department or regional scope.
  */
 function bk_manager_scopes($archer)
 {
@@ -32,7 +31,7 @@ function bk_manager_scopes($archer)
         while ($r = safe_fetch($rs)) $out[] = $r->BmClub;
     }
 
-    // Session d'un module de comptes, si elle existe — jamais requise.
+    // Session of an accounts module, if there is one — never required.
     $role  = (string) ($_SESSION['AUTH_ROLE'] ?? '');
     $scope = (string) ($_SESSION['AUTH_SCOPE'] ?? '');
     if ($scope !== '' && in_array($role, array('CLUB', 'CD', 'CR'), true)) {
@@ -44,7 +43,7 @@ function bk_manager_scopes($archer)
     return array_values(array_unique($out));
 }
 
-/** Condition SQL « LueCountry appartient à l'un de ces périmètres ». */
+/** SQL condition "LueCountry belongs to one of these scopes". */
 function bk_scopes_sql($scopes, $col = 'LueCountry')
 {
     if (!$scopes) return '0';
@@ -57,7 +56,7 @@ function bk_scopes_sql($scopes, $col = 'LueCountry')
     return '(' . implode(' OR ', $p) . ')';
 }
 
-/** Un agrément donné est-il dans le périmètre ? (contrôle serveur avant écriture) */
+/** Is a given approval number in the scope? (server check before writing) */
 function bk_scope_covers($scopes, $clubCode)
 {
     $club = strtoupper(trim((string) $clubCode));
@@ -78,7 +77,7 @@ function bk_scope_covers($scopes, $clubCode)
     return false;
 }
 
-/** Licenciés du périmètre, filtrés par nom ou licence. */
+/** Licensees of the scope, filtered by name or licence. */
 function bk_club_members($scopes, $q = '', $limit = 60)
 {
     if (!$scopes) return array();
@@ -99,7 +98,7 @@ function bk_club_members($scopes, $q = '', $limit = 60)
     return $out;
 }
 
-/** Libellés des clubs du périmètre (pour l'affichage). */
+/** Labels of the clubs of the scope (for display). */
 function bk_scope_labels($scopes)
 {
     if (!$scopes) return array();

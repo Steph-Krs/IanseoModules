@@ -1,14 +1,14 @@
 <?php
 /**
- * lib/geo.php — géolocalisation des compétitions pour la CARTE (option 1 : carte SVG
- * de France + marqueurs de ville, SANS tuiles externes ni fuite d'IP côté navigateur).
+ * lib/geo.php — geolocation of the competitions for the MAP (option 1: SVG map of France + town
+ * markers, NO external tiles nor IP leak from the browser).
  *
- * Le seul appel sortant est le GÉOCODAGE, fait CÔTÉ SERVEUR et UNE SEULE FOIS par
- * compétition (résultat mis en cache dans BK_Competitions : BcLat/BcLng/BcGeoSrc),
- * via la Base Adresse Nationale (api-adresse.data.gouv.fr — service public FR, gratuit,
- * sans clé). Désactivable via config.local.json → "geo": {"enabled": false}.
+ * The only outgoing call is the GEOCODING, done BY THE SERVER and ONCE per competition (result
+ * cached in BK_Competitions: BcLat/BcLng/BcGeoSrc), through the Base Adresse Nationale
+ * (api-adresse.data.gouv.fr — French public service, free, no key). Can be turned off with
+ * config.local.json → "geo": {"enabled": false}.
  *
- * ⚠️ La ville est le champ ToVenue (ToWhere = lieu précis : gymnase/stade).
+ * ⚠️ The town is the ToVenue field (ToWhere = precise place: gym/stadium).
  */
 
 if (defined('BK_GEO_LOADED')) return;
@@ -16,7 +16,7 @@ define('BK_GEO_LOADED', true);
 
 require_once __DIR__ . '/schema.php';
 
-/** Config géo (config.local.json → "geo"), avec défauts. */
+/** Geo settings (config.local.json → "geo"), with defaults. */
 function bk_geo_conf()
 {
     static $c = null;
@@ -30,8 +30,8 @@ function bk_geo_conf()
 }
 
 /**
- * Géocode une ville via la Base Adresse Nationale. Retour ['lat','lng','label'] ou null.
- * Jamais d'exception : au moindre souci (réseau, réponse inattendue), on renvoie null.
+ * Geocodes a town through the Base Adresse Nationale. Returns ['lat', 'lng', 'label'] or null.
+ * Never throws: at the slightest problem (network, unexpected answer) it returns null.
  */
 function bk_geocode($query)
 {
@@ -45,7 +45,7 @@ function bk_geocode($query)
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT        => 6,
         CURLOPT_CONNECTTIMEOUT => 4,
-        CURLOPT_USERAGENT      => 'ianseo-booking/1.0 (+carte compétitions)',
+        CURLOPT_USERAGENT      => 'ianseo-booking/1.0 (+competition map)',
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
     ));
@@ -63,9 +63,9 @@ function bk_geocode($query)
 }
 
 /**
- * Coordonnées d'une compétition, géocodées à la demande (une fois) et mises en cache.
- * Re-géocode si la ville (ToVenue) a changé depuis le dernier cache. Retour
- * ['lat','lng'] ou null (ville absente / géocodage impossible). N'écrit qu'au besoin.
+ * Coordinates of a competition, geocoded on demand (once) and cached. Geocodes again when the
+ * town (ToVenue) changed since the last cache. Returns ['lat', 'lng'] or null (no town /
+ * geocoding impossible). Writes only when needed.
  */
 function bk_comp_geocode($tourId)
 {
@@ -79,15 +79,15 @@ function bk_comp_geocode($tourId)
     $venue = trim((string) $r->ToVenue);
     if ($venue === '') return null;
 
-    // Cache valide : même ville ET coordonnées présentes.
+    // Valid cache: same town AND coordinates there.
     if ((string) $r->BcGeoSrc === $venue && $r->BcLat !== null && $r->BcLng !== null) {
         return array('lat' => (float) $r->BcLat, 'lng' => (float) $r->BcLng);
     }
 
     $g = bk_geocode($venue);
     if (!$g) {
-        // Mémorise la tentative (BcGeoSrc) sans coordonnées → on ne re-tente pas en boucle
-        // pour la même ville ; un nouveau ToVenue relancera un géocodage.
+        // Remembers the try (BcGeoSrc) without coordinates → no endless retries for the same
+        // town; a new ToVenue starts a new geocoding.
         safe_w_sql("INSERT INTO BK_Competitions SET BcTournament = $tourId, BcGeoSrc = " . StrSafe_DB($venue) . "
             ON DUPLICATE KEY UPDATE BcGeoSrc = " . StrSafe_DB($venue));
         return null;
@@ -101,20 +101,20 @@ function bk_comp_geocode($tourId)
 }
 
 /* ------------------------------------------------------------------ */
-/* Fond de carte (SVG) — métropole en grand cadre + DROM en mini-cadres */
+/* Map background (SVG) — mainland in a large frame + overseas in small ones */
 /* ------------------------------------------------------------------ */
 
 /**
- * Cadres de projection dans un viewBox 0 0 1000 1000. Une projection équirectangulaire
- * GLOBALE écraserait la métropole (la Guyane est à ~50° de longitude d'écart) : chaque
- * territoire ultramarin a donc SON cadre et SA bbox → encarts empilés dans la colonne de
- * droite (métropole = grand cadre à gauche).
+ * Projection frames in a 0 0 1000 1000 viewBox. A GLOBAL equirectangular projection would
+ * crush the mainland (French Guiana is ~50° of longitude away): each overseas territory has
+ * ITS frame and ITS bbox → insets stacked in the right column (mainland = large frame on the
+ * left).
  *
- * DROM (971-976) : bbox déduite de la géométrie du GeoJSON. COM (Nouvelle-Calédonie 988,
- * Polynésie 987) : ABSENTES du GeoJSON des départements → bbox FIXE fournie ici pour que
- * les marqueurs y atterrissent (la Base Adresse Nationale géocode ces deux territoires ;
- * le cadre est dessiné vide sinon). Les rectangles sont calculés (hauteur égale) afin
- * d'ajouter/retirer un territoire sans repositionner les autres à la main.
+ * Overseas departments (971-976): bbox from the GeoJSON geometry. Overseas collectivities (New
+ * Caledonia 988, French Polynesia 987): MISSING from the departments GeoJSON → FIXED bbox given
+ * here so the markers land in them (the Base Adresse Nationale geocodes these two territories;
+ * otherwise the frame is drawn empty). The rectangles are computed (equal height) so a
+ * territory can be added or removed without moving the others by hand.
  */
 function bk_map_groups()
 {
@@ -141,10 +141,10 @@ function bk_map_groups()
 }
 
 /**
- * Contours SIMPLIFIÉS des COM absentes du GeoJSON des départements (Nouvelle-Calédonie,
- * Polynésie), au format « feature » GeoJSON (properties.code/nom + geometry MultiPolygon).
- * Tracés approximatifs mais reconnaissables, en lng/lat → projetés dans l'encart comme un
- * département, pour que le marqueur repose sur une terre et non dans un rectangle vide.
+ * SIMPLIFIED outlines of the collectivities missing from the departments GeoJSON (New
+ * Caledonia, French Polynesia), as GeoJSON "features" (properties.code/nom + MultiPolygon
+ * geometry). Rough but recognisable shapes, in lng/lat → projected in the inset like a
+ * department, so the marker sits on land and not in an empty rectangle.
  */
 function bk_com_features()
 {
@@ -176,7 +176,7 @@ function bk_com_features()
     );
 }
 
-/** Groupe d'un code département : lui-même si territoire ultramarin connu, sinon 'metro'. */
+/** Group of a department code: itself for a known overseas territory, otherwise 'metro'. */
 function bk_map_group_of($code)
 {
     $code = (string) $code;
@@ -184,7 +184,7 @@ function bk_map_group_of($code)
     return ($code !== 'metro' && isset($g[$code])) ? $code : 'metro';
 }
 
-/** Ajuste une bbox [lngMin,lngMax,latMin,latMax] dans un rect [x,y,w,h] (aspect préservé). */
+/** Fits a bbox [lngMin, lngMax, latMin, latMax] into a rect [x, y, w, h] (aspect kept). */
 function bk_map_fit($bbox, $rect, $lat0)
 {
     list($lngMin, $lngMax, $latMin, $latMax) = $bbox;
@@ -199,7 +199,7 @@ function bk_map_fit($bbox, $rect, $lat0)
                  'k' => $k, 's' => $s, 'ox' => $ox, 'oy' => $oy);
 }
 
-/** Projette (lng,lat) dans un cadre bk_map_fit → [x, y]. */
+/** Projects (lng, lat) into a bk_map_fit frame → [x, y]. */
 function bk_map_xy($p, $lng, $lat)
 {
     return array($p['ox'] + ($lng - $p['lngMin']) * $p['k'] * $p['s'],
@@ -207,9 +207,9 @@ function bk_map_xy($p, $lng, $lat)
 }
 
 /**
- * Géométrie du fond de carte, projetée et SIMPLIFIÉE (décimation à ~0,8 px), mise en
- * CACHE (sérialisée, invalidée si le GeoJSON change) — on ne relit pas 3,5 Mo par requête.
- * Retour : ['proj'=>[groupe=>params], 'paths'=>[ ['code','nom','group','d','cx','cy'] ], 'ok'=>bool].
+ * Geometry of the map background, projected and SIMPLIFIED (decimation at ~0.8 px), CACHED
+ * (serialised, invalidated when the GeoJSON changes) — 3.5 MB are not read again per request.
+ * Returns ['proj'=>[group=>params], 'paths'=>[ ['code','nom','group','d','cx','cy'] ], 'ok'=>bool].
  */
 function bk_map_geometry()
 {
@@ -225,9 +225,9 @@ function bk_map_geometry()
     $j = json_decode((string) @file_get_contents($src), true);
     if (empty($j['features'])) return array('ok' => false, 'proj' => array(), 'paths' => array());
 
-    // 1) bbox par groupe (métropole = union des départements métropolitains). Les COM
-    // (contours simplifiés, hors GeoJSON) sont ajoutées ici pour être tracées comme un
-    // département ; leur PROJECTION garde la bbox fixe de bk_map_groups (voir étape 2).
+    // 1) bbox per group (mainland = union of the mainland departments). The collectivities
+    // (simplified outlines, outside the GeoJSON) are added here to be drawn like a department;
+    // their PROJECTION keeps the fixed bbox of bk_map_groups (see step 2).
     $groups = bk_map_groups();
     $bbox = array();   // groupe => [lngMin,lngMax,latMin,latMax]
     $feat = array();   // [ ['code','nom','group','polys'=>[ [ [lng,lat],... ] ]] ]
@@ -258,8 +258,8 @@ function bk_map_geometry()
         $feat[] = array('code' => $code, 'nom' => (string) ($f['properties']['nom'] ?? ''), 'group' => $grp, 'polys' => $polys);
     }
 
-    // 2) projection par groupe. Pour les COM, la bbox FIXE prime (cadrage généreux : les
-    // marqueurs de villes non couvertes par le contour simplifié atterrissent quand même).
+    // 2) projection per group. For the collectivities the FIXED bbox wins (generous framing:
+    // markers of towns outside the simplified outline still land in the inset).
     $proj = array();
     foreach ($groups as $g => $cfg) {
         $bb = ($cfg['bbox'] ?? null) ?: ($bbox[$g] ?? null);
@@ -270,9 +270,9 @@ function bk_map_geometry()
         $proj[$g] = $p;
     }
 
-    // 3) chemins SVG (projetés, décimés). Centroïde = moyenne des sommets du plus gros anneau.
-    // eps = seuil de décimation en px (viewBox 1000) : plus haut = plus léger. 1.6 px reste
-    // net même zoomé au département (0,3 px effectif à 5×), pour un poids ~3× moindre.
+    // 3) SVG paths (projected, decimated). Centroid = mean of the vertices of the largest ring.
+    // eps = decimation threshold in px (viewBox 1000): higher = lighter. 1.6 px stays sharp even
+    // zoomed to a department (0.3 px effective at 5×), for a weight ~3× smaller.
     $eps = 1.6;
     $paths = array();
     foreach ($feat as $ft) {
@@ -291,7 +291,7 @@ function bk_map_geometry()
             $d .= 'M';
             foreach ($pts as $i => $xy) $d .= ($i ? 'L' : '') . round($xy[0], 1) . ' ' . round($xy[1], 1) . ' ';
             $d .= 'Z';
-            if (count($pts) > $bestN) {   // centroïde depuis l'anneau le plus détaillé (le principal)
+            if (count($pts) > $bestN) {   // centroid from the most detailed ring (the main one)
                 $bestN = count($pts); $sx = 0; $sy = 0;
                 foreach ($pts as $xy) { $sx += $xy[0]; $sy += $xy[1]; }
                 $cx = $sx / count($pts); $cy = $sy / count($pts);
@@ -307,12 +307,12 @@ function bk_map_geometry()
 }
 
 /**
- * Position d'un marqueur (lat,lng) sur le fond : trouve le groupe dont la bbox le contient
- * (métropole ou un DROM) puis projette. Retour [x,y] ou null.
+ * Position of a marker (lat, lng) on the background: finds the group whose bbox contains it
+ * (mainland or an overseas territory), then projects. Returns [x, y] or null.
  */
 function bk_map_marker_xy($proj, $lat, $lng)
 {
-    // Territoires ultramarins d'abord (bbox restreintes, prioritaires), métropole en dernier.
+    // Overseas territories first (small bboxes, take precedence), mainland last.
     foreach ($proj as $g => $p) {
         if ($g === 'metro' || !$p) continue;
         $b = $p['bbox'];

@@ -1,14 +1,15 @@
-/* Plan du terrain — plage de distances par cible + blasons autorisés.
-   Portée : #bkfield. Aucune dépendance.
+/* Field constraints — distance range per target + faces allowed.
+   Scope: #bkfield. No dependency. Texts come from the page (window.BKF.t).
 
-   L'échelle n'est PAS métrique : elle liste les distances réellement utilisées
-   par la compétition, régulièrement espacées. Une cible se pose à l'une de ces
-   distances, jamais entre deux — d'où l'accrochage systématique. */
+   The scale is NOT metric: it lists the distances the competition really uses, evenly spaced.
+   A target sits at one of these distances, never between two — hence the systematic snapping. */
 (function () {
     'use strict';
 
     var B = window.BKF;
     if (!B || !document.getElementById('bkf-grid')) return;
+    /** Text of the page (window.BKF.t), {$a} replaced by a. */
+    function T(k, a) { var x = (B.t && B.t[k]) || k; return a === undefined ? x : String(x).split('{$a}').join(a); }
 
     var grid  = document.getElementById('bkf-grid');
     var axis  = document.getElementById('bkf-axis');
@@ -25,13 +26,13 @@
     var faceOf = {};
     B.faces.forEach(function (f) { faceOf[f.id] = f; });
 
-    // Sans distance chiffrée (parcours campagne : TdDist = 0), la plage n'a pas
-    // de sens. On garde néanmoins l'éditeur pour les blasons — un palier fictif
-    // suffit à faire tenir le rendu, et la page l'annonce explicitement.
+    // Without a distance in metres (field course: TdDist = 0), the range makes no sense. The
+    // editor is kept for the faces anyway — a dummy step is enough for the rendering, and the
+    // page says so explicitly.
     var SANS_DIST = !STEPS.length;
     if (SANS_DIST) { STEPS = [0]; H = 0; }
 
-    /* ---------- échelle discrète ---------- */
+    /* ---------- discrete scale ---------- */
 
     function yOfIdx(i) {
         if (STEPS.length === 1) return Math.round(H / 2);
@@ -41,7 +42,7 @@
         var i = STEPS.indexOf(m);
         return i < 0 ? yOfIdx(idxNear(m)) : yOfIdx(i);
     }
-    /** Indice de la distance déclarée la plus proche d'une valeur en mètres. */
+    /** Index of the declared distance closest to a value in metres. */
     function idxNear(m) {
         var best = 0, d = Infinity;
         STEPS.forEach(function (s, i) {
@@ -50,7 +51,7 @@
         });
         return best;
     }
-    /** Position verticale → distance déclarée (accrochage). */
+    /** Vertical position → declared distance (snapping). */
     function mOfY(y) {
         if (STEPS.length === 1) return STEPS[0];
         var r = 1 - Math.max(0, Math.min(1, y / H));
@@ -66,9 +67,8 @@
     }
     function vide(c) { return !c.def && !c.min && !c.max && !c.f.length; }
 
-    /** Valeurs affichées : une cible non réglée montre la plage complète, grisée.
-        Sans ça il n'y aurait rien à saisir sur une cible vierge — on ne pourrait
-        jamais la configurer au glisser. */
+    /** Values shown: a target not set shows the full range, greyed. Without it there would be
+        nothing to grab on a blank target — it could never be set by dragging. */
     function vue(c) {
         return {
             min: c.min || STEPS[0],
@@ -78,7 +78,7 @@
         };
     }
 
-    /* ---------- rendu ---------- */
+    /* ---------- rendering ---------- */
 
     function renderAxis() {
         axis.innerHTML = '';
@@ -145,7 +145,7 @@
                         s.appendChild(img);
                     }
                     s.appendChild(document.createTextNode(f.tag || f.short || f.label));
-                    s.title = (f.name || f.label) + ' — cliquer pour retirer';
+                    s.title = T('FjClickRemove', f.name || f.label);
                     s.setAttribute('data-face', id);
                     s.setAttribute('data-target', t);
                     fl.appendChild(s);
@@ -164,15 +164,14 @@
         h.className = 'bkf-h bkf-h-' + kind;
         h.style.top = y + 'px';
         h.setAttribute('data-h', kind);
-        h.title = ({ min: 'Distance mini', def: 'Distance par défaut', max: 'Distance maxi' })[kind];
+        h.title = ({ min: T('FjMin'), def: T('FjDef'), max: T('FjMax') })[kind];
         h.innerHTML = '<i></i><b>' + val + '</b>';
         return h;
     }
 
     function majCount() {
         var n = Object.keys(sel).length;
-        count.textContent = n === 0 ? 'Aucune cible sélectionnée'
-            : (n === 1 ? '1 cible sélectionnée' : n + ' cibles sélectionnées');
+        count.textContent = n === 0 ? T('FjSel0') : (n === 1 ? T('FjSel1') : T('FjSelN', n));
         count.className = 'bkf-count' + (n ? ' bkf-count-on' : '');
     }
 
@@ -182,7 +181,7 @@
         if (!err) setTimeout(function () { state.textContent = ''; state.className = 'bkf-state'; }, 2500);
     }
 
-    /* ---------- serveur ---------- */
+    /* ---------- server ---------- */
 
     function post(data, done) {
         var body = new URLSearchParams();
@@ -190,34 +189,33 @@
         body.append('session', B.session);
         Object.keys(data).forEach(function (k) {
             if (Array.isArray(data[k])) {
-                if (!data[k].length) body.append(k + '[]', '');      // liste vide explicite
+                if (!data[k].length) body.append(k + '[]', '');      // explicit empty list
                 else data[k].forEach(function (v) { body.append(k + '[]', v); });
             } else body.append(k, data[k]);
         });
-        state.textContent = 'Enregistrement…'; state.className = 'bkf-state';
+        state.textContent = T('FjSaving'); state.className = 'bkf-state';
         return fetch(B.ajax, {
             method: 'POST', credentials: 'same-origin',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
             body: body.toString()
         }).then(function (r) { return r.json(); })
           .then(function (j) {
-              if (!j || !j.ok) { flash((j && j.err) || 'Échec de l\'enregistrement.', true); return; }
+              if (!j || !j.ok) { flash((j && j.err) || T('FjSaveFail'), true); return; }
               if (j.caps) caps = j.caps;
               done && done(j);
               render();
           })
-          .catch(function () { flash('Serveur injoignable.', true); });
+          .catch(function () { flash(T('FjServerDown'), true); });
     }
 
-    /** Écrit un lot de cibles en conservant, pour chacune, ce qui n'est pas modifié. */
+    /** Writes a batch of targets, keeping for each what is not changed. */
     function ecrire(targets, patch) {
         if (!targets.length) return;
         var groupes = {};
         targets.forEach(function (t) {
             var c = capOf(t), v = vue(c);
-            // Une cible encore vierge prend la plage complète comme point de
-            // départ : régler une seule poignée doit produire un réglage complet
-            // et cohérent, pas une plage à moitié définie.
+            // A still blank target starts from the full range: setting one handle must give a
+            // complete, consistent setting, not a half-defined range.
             var base = v.pose ? { def: c.def, min: c.min, max: c.max }
                               : { def: v.def, min: v.min, max: v.max };
             var o = {
@@ -240,7 +238,7 @@
             post({ action: 'set', targets: g.t, def: g.v.def, min: g.v.min, max: g.v.max, f: g.v.f },
                  function () {
                      if (--reste === 0) {
-                         flash(n + ' cible' + (n > 1 ? 's' : '') + ' enregistrée' + (n > 1 ? 's' : '') + '.');
+                         flash(n > 1 ? T('FjSavedN', n) : T('FjSaved1'));
                      }
                  });
         });
@@ -251,7 +249,7 @@
         return (s.length && s.indexOf(t) >= 0) ? s : [t];
     }
 
-    /* ---------- glisser une poignée ---------- */
+    /* ---------- dragging a handle ---------- */
 
     var dragH = null, selDrag = false, selAdd = true;
 
@@ -292,7 +290,7 @@
         if (!dragH) return;
         var d = dragH; dragH = null;
         d.el.classList.remove('bkf-h-drag');
-        if (d.val === undefined) { render(); return; }   // simple clic, rien à écrire
+        if (d.val === undefined) { render(); return; }   // a mere click, nothing to write
         var patch = {};
         patch[d.kind] = d.val;
         ecrire(cibles(d.t), patch);
@@ -307,7 +305,7 @@
         render();
     });
 
-    /* ---------- blasons ---------- */
+    /* ---------- faces ---------- */
 
     var payload = null;
 
@@ -321,7 +319,7 @@
         chip.addEventListener('dragend', function () { chip.classList.remove('bkf-chip-drag'); payload = null; });
         chip.addEventListener('click', function () {
             var s = Object.keys(sel).map(Number);
-            if (!s.length) { flash('Sélectionnez d\'abord une ou plusieurs cibles.', true); return; }
+            if (!s.length) { flash(T('FjSelectFirst'), true); return; }
             ajoutFace(s, +chip.getAttribute('data-val'));
         });
     });
@@ -366,12 +364,12 @@
         if (id) ajoutFace(cibles(+card.getAttribute('data-t')), id);
     });
 
-    /* ---------- barre d'outils ---------- */
+    /* ---------- toolbar ---------- */
 
     document.querySelectorAll('#bkfield [data-quick]').forEach(function (b) {
         b.addEventListener('click', function () {
             var s = Object.keys(sel).map(Number);
-            if (!s.length) { flash('Sélectionnez d\'abord une ou plusieurs cibles.', true); return; }
+            if (!s.length) { flash(T('FjSelectFirst'), true); return; }
             var m = +b.getAttribute('data-quick');
             ecrire(s, { def: m, min: m, max: m });
         });
@@ -386,47 +384,47 @@
             if (a === 'none') { sel = {}; render(); }
 
             if (a === 'applyd') {
-                if (!s.length) { flash('Sélectionnez d\'abord une ou plusieurs cibles.', true); return; }
+                if (!s.length) { flash(T('FjSelectFirst'), true); return; }
                 var p = {};
                 ['def', 'min', 'max'].forEach(function (k) {
                     var v = document.getElementById('bkf-' + k).value;
                     if (v !== '') p[k] = parseInt(v, 10);
                 });
-                if (!Object.keys(p).length) { flash('Choisissez au moins une valeur.', true); return; }
+                if (!Object.keys(p).length) { flash(T('FjPickValue'), true); return; }
                 ecrire(s, p);
             }
             if (a === 'clearsel') {
-                if (!s.length) { flash('Sélectionnez d\'abord une ou plusieurs cibles.', true); return; }
+                if (!s.length) { flash(T('FjSelectFirst'), true); return; }
                 var reste = s.length;
                 s.forEach(function (t) {
                     post({ action: 'set', targets: [t], def: 0, min: 0, max: 0, f: [] }, function () {
-                        if (--reste === 0) flash(s.length + ' cible(s) remise(s) sans contrainte.');
+                        if (--reste === 0) flash(T('FjCleared', s.length));
                     });
                 });
             }
             if (a === 'clearall') {
-                if (!confirm('Effacer toutes les capacités de ce départ ?')) return;
-                post({ action: 'clear' }, function () { sel = {}; flash('Départ remis sans contrainte.'); });
+                if (!confirm(T('FjClearAllConfirm'))) return;
+                post({ action: 'clear' }, function () { sel = {}; flash(T('FjDepCleared')); });
             }
             if (a === 'copy') {
                 var to = document.getElementById('bkf-copyto').value;
-                if (!to) { flash('Choisissez un départ de destination.', true); return; }
-                if (!confirm('Copier vers le départ ' + to + ' ? Les réglages y seront remplacés.')) return;
-                post({ action: 'copy', to: to }, function (j) { flash(j.msg || 'Copié.'); });
+                if (!to) { flash(T('FjPickDest'), true); return; }
+                if (!confirm(T('FjCopyConfirm', to))) return;
+                post({ action: 'copy', to: to }, function (j) { flash(j.msg || T('FjCopied')); });
             }
             if (a === 'copyfrom') {
                 var from = document.getElementById('bkf-copyfrom').value;
-                if (!from) { flash('Choisissez un départ source.', true); return; }
-                if (!confirm('Reprendre la configuration du départ ' + from + ' sur ce départ ? Les réglages actuels seront remplacés.')) return;
-                // le serveur renvoie les caps de CE départ → la grille se rafraîchit
-                post({ action: 'copyfrom', from: from }, function (j) { sel = {}; flash(j.msg || 'Configuration reprise.'); });
+                if (!from) { flash(T('FjPickSrc'), true); return; }
+                if (!confirm(T('FjCopyFromConfirm', from))) return;
+                // the server sends back the capabilities of THIS departure → the grid refreshes
+                post({ action: 'copyfrom', from: from }, function (j) { sel = {}; flash(j.msg || T('FjCopiedFrom')); });
             }
         });
     });
 
     if (size) {
-        // La taille d'affichage est une préférence : les onglets de départ
-        // rechargent la page, on la mémorise donc pour ne pas repartir du défaut.
+        // The display size is a preference: the departure tabs reload the page, so it is
+        // remembered rather than starting from the default again.
         var KEY = 'bkf_size';
         try {
             var saved = parseInt(localStorage.getItem(KEY), 10);

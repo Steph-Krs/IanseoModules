@@ -1,16 +1,16 @@
 <?php
 /**
- * Page de connexion UNIFIÉE (serveur partagé) — point d'entrée unique, traité
- * ENTIÈREMENT sur place (pas de délégation) : les deux flux sont ici.
+ * UNIFIED sign-in page (shared server) — single entry point, handled ENTIRELY here (no
+ * delegation): both flows live in this page.
  *
- *   • Organisateur → Espace Dirigeant FFTA (dirigeant.ffta.fr) — handlers
- *     aut_handle_org_login()/aut_handle_org_totp() de lib.php (source unique,
- *     MFA/2FA/extranet/cookie dirigeant compris).
- *   • Compétiteur  → Espace Licencié FFTA (monespace.ffta.fr) — fonctions
- *     bk_ffta_login()/bk_provision_archer()… du module BOOKING.
+ *   • Organiser  → FFTA officers' space (dirigeant.ffta.fr) — handlers
+ *     aut_handle_org_login()/aut_handle_org_totp() of lib.php (single source, MFA/2FA/extranet/
+ *     officers' cookie included).
+ *   • Competitor → FFTA licensee space (monespace.ffta.fr) — functions
+ *     bk_ffta_login()/bk_provision_archer()… of the online registration.
  *
- * $SKIP_AUTH : joignable anonymement même quand l'auth organisateur est active.
- * Aucun mot de passe n'est stocké ni journalisé (les deux relais l'effacent).
+ * $SKIP_AUTH: reachable anonymously even when the organiser authentication is on.
+ * No password is stored nor logged (both relays erase it).
  */
 $SKIP_AUTH = 1;
 define('HTDOCS', dirname(__DIR__, 3));
@@ -21,7 +21,7 @@ require_once($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/legal-lib.php');
 $root = $CFG->ROOT_DIR;
 aut_ensure_schema();
 
-/* ---- Modules présents ---- */
+/* ---- Modules present ---- */
 $hasOrganiser = !empty($CFG->USERAUTH);
 $hasCompetitor = is_file($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/booking/lib/archer.php');
 $compEnabled = true;
@@ -29,61 +29,60 @@ if ($hasCompetitor) {
     require_once($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/booking/lib/schema.php');
     require_once($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/booking/lib/archer.php');
     require_once($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/booking/lib/ffta.php');
-    require_once($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/booking/lib/totp.php');   // 2FA licencié (optionnelle)
+    require_once($CFG->DOCUMENT_PATH . 'Modules/Custom/AUTH/booking/lib/totp.php');   // licensee 2FA (optional)
     bk_schema();
     $compEnabled = bk_ffta_enabled();
     if (bk_current_archer()) { CD_redirect($root . 'Modules/Custom/AUTH/booking/public/' . bk_next_after_login()); die(); }
 }
 
 $errO = $errC = '';
-$stage = 'password';        // organisateur : 'password' ou 'totp'
-$stageC = 'password';       // compétiteur : 'password' ou 'totp' (2FA locale du licencié)
-$needOtpC = false;          // compétiteur : code MFA demandé
-// Par défaut, l'onglet COMPÉTITEUR (la grande majorité des visiteurs sont des
-// licenciés). L'organisateur reste accessible via ?p=org ou l'onglet.
+$stage = 'password';        // organiser: 'password' or 'totp'
+$stageC = 'password';       // competitor: 'password' or 'totp' (licensee's local 2FA)
+$needOtpC = false;          // competitor: MFA code asked
+// COMPETITOR tab by default (the vast majority of visitors are licensees). The organiser
+// stays reachable through ?p=org or the tab.
 $active = ($_GET['p'] ?? '') === 'org' ? 'org' : 'comp';
-if (!$hasCompetitor && $hasOrganiser) $active = 'org';   // repli si compétiteur indisponible
+if (!$hasCompetitor && $hasOrganiser) $active = 'org';   // fallback when the competitor side is missing
 if (!$hasOrganiser && $hasCompetitor) $active = 'comp';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-// Mesure d'audience de la page d'accueil (visiteur anonyme → cookie de mesure exempté ;
-// self-gardée sur les GET de page, isolée, jamais fatale). Doit précéder toute sortie HTML.
+// Audience measurement of the home page (anonymous visitor → exempt measurement cookie;
+// self-guarded on page GETs, isolated, never fatal). Must come before any HTML output.
 require_once(__DIR__ . '/stats-usage.php');
 if (function_exists('aut_track')) aut_track('public');
 
-/* ---- POST organisateur ---- */
+/* ---- Organiser POST ---- */
 if ($method === 'POST' && ($_POST['role'] ?? '') === 'org' && $hasOrganiser) {
     $active = 'org';
     if (!aut_csrf_check()) {
-        $errO = 'Session expirée — réessayez.';
+        $errO = aut_t('LoginSessionExpired');
     } elseif (($_POST['stage'] ?? '') === 'totp') {
         $stage = 'totp';
-        aut_handle_org_totp($errO, $stage);      // succès → redirige et termine
+        aut_handle_org_totp($errO, $stage);      // success → redirects and ends
     } else {
-        aut_handle_org_login($errO, $stage);     // succès → redirige et termine
+        aut_handle_org_login($errO, $stage);     // success → redirects and ends
     }
 }
 
-/* ---- POST compétiteur ---- */
+/* ---- Competitor POST ---- */
 if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor
         && ($_POST['stage'] ?? '') === 'totp') {
-    /* Étape 2 : code 2FA locale du licencié. Les identifiants FFTA ont déjà été
-       validés à l'étape 1 ; on n'a plus qu'à vérifier le code TOTP du serveur, en
-       reprenant les cookies FFTA mis en attente (le code MFA FFTA étant à usage
-       unique, on ne relance pas la connexion fédérale). */
+    /* Step 2: the licensee's local 2FA code. The FFTA credentials were already checked at
+       step 1; only the server's TOTP code is left to check, taking back the FFTA cookies put
+       on hold (the FFTA MFA code being single-use, the federation sign-in is not run again). */
     $active = 'comp';
     $stageC = 'totp';
     $pend = $_SESSION['BK_2FA'] ?? null;
     if (!aut_csrf_check()) {
-        $errC = 'Session expirée — réessayez.';
+        $errC = aut_t('LoginSessionExpired');
     } elseif (!is_array($pend) || (time() - intval($pend['time'] ?? 0)) > 300) {
         unset($_SESSION['BK_2FA']);
         $stageC = 'password';
-        $errC = 'Délai dépassé, reconnectez-vous.';
+        $errC = aut_t('LoginCompExpired');
     } elseif (bk_too_many(array('LOGIN_FAIL', 'TOTP_FAIL'), BK_MAX_LOGIN_FAIL, (string) $pend['licence'])) {
         bk_log('LOGIN_BLOCK', (string) $pend['licence']);
-        $errC = 'Trop de tentatives. Réessayez dans quelques minutes.';
+        $errC = aut_t('LoginCompTooMany');
     } else {
         $a = bk_get_archer(intval($pend['archer']));
         $usedSlot = 0;
@@ -99,17 +98,14 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor
             CD_redirect($root . 'Modules/Custom/AUTH/booking/public/' . bk_next_after_login());
             die();
         }
-        // Échec : horloge serveur déréglée (diagnostic, jamais une acceptation) ou code faux.
+        // Failure: server clock off (a diagnosis, never an acceptance) or a wrong code.
         $skew = ($a && $a->BaTotpEnabled) ? bk_totp_skew($a->BaTotpSecret, $code) : null;
         if ($skew !== null) {
             bk_log('TOTP_SKEW', (string) $pend['licence']);
-            $mins = round(abs($skew) / 60);
-            $errC = "Code refusé : l'horloge de ce serveur est décalée d'environ {$mins} min "
-                  . "(le code de votre application est basé sur l'heure réelle). Signalez-le à "
-                  . "l'organisateur — votre code est bon.";
+            $errC = aut_t('LoginCompSkew', round(abs($skew) / 60));
         } else {
             bk_log('TOTP_FAIL', (string) $pend['licence']);
-            $errC = 'Code incorrect.';
+            $errC = aut_t('TotpBad');
         }
     }
 } elseif ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor) {
@@ -119,33 +115,33 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor
     $otp   = trim((string) ($_POST['otp'] ?? ''));
 
     if (!aut_csrf_check()) {
-        $errC = 'Session expirée — réessayez.';
+        $errC = aut_t('LoginSessionExpired');
     } elseif (!$compEnabled) {
-        $errC = "La connexion des compétiteurs est désactivée sur ce serveur.";
+        $errC = aut_t('LoginCompOff');
     } elseif ($ident === '' || $pwd === '') {
-        $errC = 'Renseignez votre identifiant et votre mot de passe.';
+        $errC = aut_t('LoginCompRequired');
     } elseif (bk_too_many(array('LOGIN_FAIL'), BK_MAX_LOGIN_FAIL, $ident)) {
         bk_log('LOGIN_BLOCK', $ident);
-        $errC = 'Trop de tentatives. Réessayez dans quelques minutes.';
+        $errC = aut_t('LoginCompTooMany');
     } else {
         $res = bk_ffta_login($ident, $pwd, $otp);
-        $pwd = null;                              // le mot de passe ne survit pas à l'appel
+        $pwd = null;                              // the password does not outlive the call
         if (!empty($res['ok'])) {
-            aut_ffta_outage_clear('licencie');    // l'espace répond : le bandeau n'a plus lieu d'être
-            $licence = $res['licence'];           // vient de la FFTA, jamais de la saisie
+            aut_ffta_outage_clear('licencie');    // the space answers: the banner is no longer needed
+            $licence = $res['licence'];           // comes from the FFTA, never from the entry
             $lue = bk_lookup_licence($licence);
             if (!$lue) {
                 bk_log('LICENCE_UNKNOWN', $licence);
-                $errC = "Votre licence n'est pas encore connue de ce serveur. Signalez-le à l'organisateur.";
+                $errC = aut_t('LoginCompUnknown');
             } elseif (!bk_ffta_name_matches($res['displayName'] ?? '', $lue)) {
                 bk_log('NAME_MISMATCH', $licence);
-                $errC = "Les informations lues sur l'espace licencié sont incohérentes. Signalez-le à l'organisateur.";
+                $errC = aut_t('LoginCompMismatch');
             } else {
                 $id = bk_provision_archer($lue);
                 $a = $id ? bk_get_archer($id) : null;
                 if ($a && $a->BaActive && !empty($a->BaTotpEnabled)) {
-                    // 2FA locale activée : on met en attente les cookies FFTA (déjà captés)
-                    // et on demande le code avant d'ouvrir la session. cf. branche 'totp'.
+                    // Local 2FA on: the FFTA cookies (already captured) are put on hold and the
+                    // code is asked before the session opens. See the 'totp' branch.
                     $_SESSION['BK_2FA'] = array(
                         'archer'  => intval($a->BaId),
                         'licence' => $licence,
@@ -157,27 +153,27 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor
                 } elseif ($a && $a->BaActive) {
                     session_regenerate_id(true);
                     bk_session_open($a);
-                    // Conserve le cookie de session monespace + l'id Exalto (attestation de licence).
+                    // Keeps the monespace session cookie + the Exalto id (licence certificate).
                     bk_ffta_espace_store($res['cookies'] ?? '', $res['exaltoId'] ?? '', $a->BaId);
                     bk_log('LOGIN_OK', $licence);
                     CD_redirect($root . 'Modules/Custom/AUTH/booking/public/' . bk_next_after_login());
                     die();
                 } else {
-                    $errC = $a ? "Votre compte a été désactivé sur ce serveur." : "La création du compte a échoué.";
+                    $errC = aut_t($a ? 'LoginCompDisabled' : 'LoginCompCreateFail');
                     if ($a) bk_log('LOGIN_DISABLED', $licence);
                 }
             }
         } elseif (($res['err'] ?? '') === 'MFA_NEEDED') {
-            $needOtpC = true;                     // pas un échec d'identifiants : non compté
+            $needOtpC = true;                     // not a credentials failure: not counted
             $errC = $res['msg'];
         } else {
             if (($res['err'] ?? '') === 'MFA_BAD_CODE') $needOtpC = true;
-            // Maintenance FFTA : rien n'a pu être vérifié → on prévient les visiteurs
-            // suivants AVANT qu'ils ne saisissent leurs identifiants.
+            // FFTA maintenance: nothing could be checked → the next visitors are warned
+            // BEFORE they type their credentials.
             if (in_array($res['err'] ?? '', array('UNAVAILABLE', 'NETWORK'), true)) {
                 aut_ffta_outage_note('licencie', (string) ($res['msg'] ?? ''));
             }
-            // réseau / page FFTA / lecture licence : pas une tentative frauduleuse → non compté
+            // network / FFTA page / licence reading: not a fraudulent attempt → not counted
             if (!in_array($res['err'] ?? '', array('NETWORK', 'UNAVAILABLE', 'NO_CSRF', 'NO_LICENCE', 'AMBIGUOUS_LICENCE'), true)) {
                 bk_log('LOGIN_FAIL', $ident);
             } else {
@@ -191,23 +187,74 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor
 $csrf = aut_csrf_field();
 $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };
 
-/* Bandeau « la FFTA était indisponible il y a peu » : le premier visiteur essuie
-   l'échec, les suivants sont prévenus AVANT de saisir leurs identifiants (et de
-   croire qu'ils se trompent de mot de passe). Mémo effacé dès qu'une connexion
-   au même espace réussit. */
+/* "The FFTA was unavailable a moment ago" banner: the first visitor suffers the failure, the
+   next ones are warned BEFORE typing their credentials (and believing they have the wrong
+   password). Memo erased as soon as a sign-in to the same space succeeds. */
 $warnBox = function ($o) use ($e) {
     $min = max(1, (int) round((time() - intval($o['at'] ?? 0)) / 60));
     return '<div class="warn">⚠ ' . $e($o['msg'] ?? '')
-         . ' <span class="when">(constaté il y a ' . $min . ' min)</span></div>';
+         . ' <span class="when">(' . $e(aut_t('LoginSeenAgo', $min)) . ')</span></div>';
 };
-?>
-<!DOCTYPE html>
-<html lang="fr">
+$err = function ($msg) use ($e) {
+    return $msg !== '' ? '<div class="err">' . $e($msg) . "</div>\n" : '';
+};
+
+/* Second step of a 2FA (server code): $role 'org' (administrator) or 'comp' (licensee). */
+$totpForm = function ($role, $sub, $msg) use ($e, $err, $csrf) {
+    $id = $role === 'org' ? 't-code' : 'c-code';
+    return '<div class="sub">' . $e($sub) . "</div>\n"
+        . $err($msg)
+        . '<form method="post" action="login.php">' . $csrf
+        . '<input type="hidden" name="role" value="' . $role . '">'
+        . '<input type="hidden" name="stage" value="totp">'
+        . '<label for="' . $id . '">' . $e(aut_t('LoginAppCode')) . '</label>'
+        . '<input type="text" id="' . $id . '" name="code" inputmode="numeric" pattern="[0-9]{6}"'
+        . ' maxlength="6" autocomplete="one-time-code" autofocus>'
+        . '<button type="submit">' . $e(aut_t('LoginValidate')) . '</button>'
+        . "</form>\n"
+        . '<div class="foot"><a href="login.php">' . $e(aut_t('LoginCancel')) . "</a></div>\n";
+};
+
+/* Sign-in form of one space. */
+$signForm = function ($role, $userField, $userLabel, $host, $value, $otpFocus) use ($e, $csrf) {
+    $p = $role === 'org' ? 'o' : 'c';
+    return '<form method="post" action="login.php">' . $csrf
+        . '<input type="hidden" name="role" value="' . $role . '">'
+        . ($role === 'org' ? '<input type="hidden" name="stage" value="password">' : '')
+        . '<label for="' . $p . '-user">' . $e($userLabel) . '</label>'
+        . '<input type="text" id="' . $p . '-user" name="' . $userField . '" autocomplete="username" value="' . $e($value) . '">'
+        . '<label for="' . $p . '-pwd">' . $e(aut_t('LoginPassword')) . '</label>'
+        . '<input type="password" id="' . $p . '-pwd" name="password" autocomplete="current-password">'
+        . '<label for="' . $p . '-otp">' . $e(aut_t('LoginOtp'))
+        . ' <span class="optional">(' . $e(aut_t('LoginOtpHint')) . ')</span></label>'
+        . '<input type="text" id="' . $p . '-otp" name="otp" inputmode="numeric"'
+        . ($role === 'org' ? ' maxlength="8"' : '') . ' autocomplete="one-time-code"' . ($otpFocus ? ' autofocus' : '') . '>'
+        . '<button type="submit">' . $e(aut_t('LoginSubmit')) . "</button>\n"
+        . "</form>\n"
+        . '<div class="foot">' . $e(aut_t('LoginCheckedBy', $host)) . '<br>'
+        . '<a href="https://' . $host . '/retrouver-mes-identifiants" target="_blank" rel="noopener noreferrer">'
+        . $e(aut_t('LoginForgotten')) . "</a></div>\n";
+};
+
+/* Argument of one tab: a title, four points (icon + text with simple markup), a closing line. */
+$pitch = function ($role, $title, $points, $closing) use ($e, $active) {
+    $out = '<div class="pitch' . ($active === $role ? ' active' : '') . '" id="pitch-' . $role . '">'
+         . '<h2>' . $e($title) . "</h2>\n<ul>\n";
+    foreach ($points as $icon => $key) {
+        $out .= '<li><span class="pi">' . $icon . '</span><span>' . aut_t($key) . "</span></li>\n";
+    }
+    return $out . "</ul>\n" . '<p class="pt">' . $e($closing) . "</p>\n</div>\n";
+};
+
+echo '<!DOCTYPE html>
+<html lang="' . $e(aut_lang_code()) . '">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>ianseo — Connexion</title>
+<title>' . $e(aut_t('LoginTitle')) . '</title>
+';
+?>
 <style>
 * { box-sizing:border-box; }
 body { margin:0; font-family:Verdana,Arial,sans-serif; color:#20263d;
@@ -217,7 +264,7 @@ body { margin:0; font-family:Verdana,Arial,sans-serif; color:#20263d;
 .landing { display:flex; flex-direction:row-reverse; align-items:center; justify-content:center;
     gap:34px; flex-wrap:wrap; width:100%; max-width:940px; }
 
-/* Colonne connexion (carte) */
+/* Sign-in column (card) */
 .auth-col { flex:0 0 auto; }
 .card { background:#fff; border:1px solid #c9d4df; border-radius:10px; padding:26px 30px;
         box-shadow:0 8px 26px rgba(20,60,120,.12); width:372px; max-width:100%; }
@@ -248,7 +295,7 @@ button[disabled] { opacity:.9; cursor:progress; }
 .foot a { color:#1a4f8b; }
 .pane { display:none; } .pane.active { display:block; }
 
-/* Colonne argumentaire (landing) */
+/* Argument column (landing) */
 .pitch-col { flex:1 1 320px; max-width:440px; }
 .pitch-brand { font-size:13px; color:#1a4f8b; font-weight:700; letter-spacing:.3px; margin:0 0 4px; }
 .pitch { display:none; }
@@ -259,7 +306,7 @@ button[disabled] { opacity:.9; cursor:progress; }
 .pitch li .pi { flex:0 0 auto; font-size:18px; line-height:1.2; }
 .pitch .pt { margin:16px 0 0; font-size:12.5px; color:#5b6470; }
 
-/* Pied de page légal */
+/* Legal footer */
 .site-foot { text-align:center; padding:16px 14px 26px; font-size:11px; color:#8a92a0; line-height:1.7; }
 .site-foot .legal a { color:#1a4f8b; text-decoration:none; margin:0 7px; white-space:nowrap; }
 .site-foot .legal a:hover { text-decoration:underline; }
@@ -274,159 +321,86 @@ button[disabled] { opacity:.9; cursor:progress; }
 @keyframes bnc { 0%,80%,100%{ transform:translateY(0); opacity:.5; } 40%{ transform:translateY(-5px); opacity:1; } }
 @media (max-width:760px){
     .landing { flex-direction:column; gap:22px; align-items:center; }
-    /* .card a une largeur fixe (372px) qui, via flex:0 0 auto, débordait l'écran mobile.
-       On repasse les colonnes en 100% capé → plus de débordement, centrage propre. */
+    /* .card has a fixed width (372px) which, through flex:0 0 auto, went past the phone
+       screen. The columns go back to a capped 100% → no overflow, clean centring. */
     .auth-col { width:100%; max-width:372px; }
     .card { width:100%; }
     .pitch-col { width:100%; max-width:440px; flex-basis:auto; }
     .pitch h2 { font-size:20px; }
 }
 </style>
-</head>
-<body>
-<div class="page">
-<div class="landing">
-<div class="auth-col">
-<div class="card">
-    <h1>ianseo — Serveur partagé</h1>
+<?php
+echo "</head>\n<body>\n"
+    . '<div class="page"><div class="landing"><div class="auth-col"><div class="card">' . "\n"
+    . '<h1>' . $e(aut_t('LoginHeading')) . "</h1>\n";
 
-    <?php if ($stage === 'totp') { /* étape 2FA serveur (compte administrateur) */ ?>
-    <div class="sub">Double authentification — compte administrateur.</div>
-    <?php if ($errO) echo '<div class="err">' . $e($errO) . '</div>'; ?>
-    <form method="post" action="login.php">
-        <?= $csrf ?>
-        <input type="hidden" name="role" value="org">
-        <input type="hidden" name="stage" value="totp">
-        <label for="t-code">Code de votre application d'authentification</label>
-        <input type="text" id="t-code" name="code" inputmode="numeric" pattern="[0-9]{6}"
-               maxlength="6" autocomplete="one-time-code" autofocus>
-        <button type="submit">Valider</button>
-    </form>
-    <div class="foot"><a href="login.php">Annuler</a></div>
+if ($stage === 'totp') {
+    // server 2FA step (administrator account)
+    echo $totpForm('org', aut_t('LoginTotpAdmin'), $errO);
+} elseif ($stageC === 'totp') {
+    // licensee's local 2FA step
+    echo $totpForm('comp', aut_t('LoginTotpComp'), $errC);
+} else {
+    echo '<div class="sub">' . $e(aut_t('LoginIntro')) . "</div>\n"
+        . '<p class="relay-note">' . $e(aut_t('LoginRelayNote')) . "</p>\n";
 
-    <?php } elseif ($stageC === 'totp') { /* étape 2FA locale du licencié */ ?>
-    <div class="sub">Double authentification — espace licencié.</div>
-    <?php if ($errC) echo '<div class="err">' . $e($errC) . '</div>'; ?>
-    <form method="post" action="login.php">
-        <?= $csrf ?>
-        <input type="hidden" name="role" value="comp">
-        <input type="hidden" name="stage" value="totp">
-        <label for="c-code">Code de votre application d'authentification</label>
-        <input type="text" id="c-code" name="code" inputmode="numeric" pattern="[0-9]{6}"
-               maxlength="6" autocomplete="one-time-code" autofocus>
-        <button type="submit">Valider</button>
-    </form>
-    <div class="foot"><a href="login.php">Annuler</a></div>
+    if ($hasOrganiser && $hasCompetitor) {
+        echo '<div class="tabs">'
+            . '<a class="tab' . ($active === 'org' ? ' active' : '') . '" data-pane="org" href="?p=org"><span class="ic">🏹</span>' . $e(aut_t('LoginTabOrg')) . '</a>'
+            . '<a class="tab' . ($active === 'comp' ? ' active' : '') . '" data-pane="comp" href="?p=comp"><span class="ic">🎯</span>' . $e(aut_t('LoginTabComp')) . '</a>'
+            . "</div>\n";
+    }
 
-    <?php } else { ?>
-    <div class="sub">Connectez-vous avec vos identifiants fédéraux.</div>
-    <p class="relay-note">Vos identifiants transitent par ce serveur le temps de la connexion — ils
-       ne sont ni conservés ni enregistrés. Connectez-vous uniquement si vous avez confiance en ce serveur.</p>
+    if ($hasOrganiser) {
+        $o = $errO === '' ? aut_ffta_outage_recent('dirigeant') : null;
+        echo '<div class="pane' . ($active === 'org' ? ' active' : '') . '" id="pane-org">'
+            . '<div class="sub">' . aut_t('LoginOrgSub') . "</div>\n"
+            . ($errO !== '' ? $err($errO) : ($o ? $warnBox($o) : ''))
+            . $signForm('org', 'username', aut_t('LoginOrgUser'), 'dirigeant.ffta.fr',
+                        $active === 'org' ? ($_POST['username'] ?? '') : '', false)
+            . "</div>\n";
+    }
 
-    <?php if ($hasOrganiser && $hasCompetitor) { ?>
-    <div class="tabs">
-        <a class="tab<?= $active === 'org' ? ' active' : '' ?>"  data-pane="org"  href="?p=org"><span class="ic">🏹</span>Organisateur</a>
-        <a class="tab<?= $active === 'comp' ? ' active' : '' ?>" data-pane="comp" href="?p=comp"><span class="ic">🎯</span>Compétiteur</a>
-    </div>
-    <?php } ?>
+    if ($hasCompetitor) {
+        echo '<div class="pane' . ($active === 'comp' ? ' active' : '') . '" id="pane-comp">'
+            . '<div class="sub">' . aut_t('LoginCompSub') . "</div>\n";
+        if (!$compEnabled) {
+            echo $err(aut_t('LoginCompOff'));
+        } else {
+            $o = $errC === '' ? aut_ffta_outage_recent('licencie') : null;
+            echo ($errC !== '' ? $err($errC) : ($o ? $warnBox($o) : ''))
+                . $signForm('comp', 'identifiant', aut_t('LoginCompUser'), 'monespace.ffta.fr',
+                            $active === 'comp' ? ($_POST['identifiant'] ?? '') : '', $needOtpC);
+        }
+        echo "</div>\n";
+    }
+}
+echo "</div></div>\n";   // card, auth-col
 
-    <?php if ($hasOrganiser) { ?>
-    <div class="pane<?= $active === 'org' ? ' active' : '' ?>" id="pane-org">
-        <div class="sub">Espace <b>Dirigeant</b> FFTA — clubs, comités, fédération.</div>
-        <?php if ($errO) echo '<div class="err">' . $e($errO) . '</div>';
-              elseif ($o = aut_ffta_outage_recent('dirigeant')) echo $warnBox($o); ?>
-        <form method="post" action="login.php">
-            <?= $csrf ?>
-            <input type="hidden" name="role" value="org">
-            <input type="hidden" name="stage" value="password">
-            <label for="o-user">Identifiant Espace Dirigeant</label>
-            <input type="text" id="o-user" name="username" autocomplete="username"
-                   value="<?= $active === 'org' ? $e($_POST['username'] ?? '') : '' ?>">
-            <label for="o-pwd">Mot de passe</label>
-            <input type="password" id="o-pwd" name="password" autocomplete="current-password">
-            <label for="o-otp">Code de double authentification <span class="optional">(si activé sur votre compte FFTA)</span></label>
-            <input type="text" id="o-otp" name="otp" inputmode="numeric" maxlength="8" autocomplete="one-time-code">
-            <button type="submit">Se connecter</button>
-        </form>
-        <div class="foot">Vérifié auprès de dirigeant.ffta.fr. Vos identifiants ne sont pas conservés.<br>
-            <a href="https://dirigeant.ffta.fr/retrouver-mes-identifiants" target="_blank" rel="noopener noreferrer">Identifiants oubliés ?</a></div>
-    </div>
-    <?php } ?>
+echo '<div class="pitch-col">' . "\n"
+    . '<p class="pitch-brand">' . $e(aut_t('LoginBrand')) . "</p>\n";
+if ($hasOrganiser) {
+    echo $pitch('org', aut_t('LoginPitchOrgTitle'), array(
+        '🗂️' => 'LoginPitchOrg1', '🚀' => 'LoginPitchOrg2', '🔄' => 'LoginPitchOrg3', '🛡️' => 'LoginPitchOrg4',
+    ), aut_t('LoginPitchOrgEnd'));
+}
+if ($hasCompetitor) {
+    echo $pitch('comp', aut_t('LoginPitchCompTitle'), array(
+        '🎯' => 'LoginPitchComp1', '🗺️' => 'LoginPitchComp2', '📄' => 'LoginPitchComp3', '📊' => 'LoginPitchComp4',
+    ), aut_t('LoginPitchCompEnd'));
+}
+echo "</div>\n</div></div>\n";   // pitch-col, landing, page
 
-    <?php if ($hasCompetitor) { ?>
-    <div class="pane<?= $active === 'comp' ? ' active' : '' ?>" id="pane-comp">
-        <div class="sub">Espace <b>Licencié</b> FFTA — pour vous inscrire aux compétitions.</div>
-        <?php if (!$compEnabled) { ?>
-            <div class="err">La connexion des compétiteurs est désactivée sur ce serveur.</div>
-        <?php } else { ?>
-        <?php if ($errC) echo '<div class="err">' . $e($errC) . '</div>';
-              elseif ($o = aut_ffta_outage_recent('licencie')) echo $warnBox($o); ?>
-        <form method="post" action="login.php">
-            <?= $csrf ?>
-            <input type="hidden" name="role" value="comp">
-            <label for="c-user">Identifiant Espace Licencié</label>
-            <input type="text" id="c-user" name="identifiant" autocomplete="username"
-                   value="<?= $active === 'comp' ? $e($_POST['identifiant'] ?? '') : '' ?>">
-            <label for="c-pwd">Mot de passe</label>
-            <input type="password" id="c-pwd" name="password" autocomplete="current-password">
-            <label for="c-otp">Code de double authentification <span class="optional">(si activé sur votre compte FFTA)</span></label>
-            <input type="text" id="c-otp" name="otp" inputmode="numeric" autocomplete="one-time-code"
-                   <?= $needOtpC ? 'autofocus' : '' ?>>
-            <button type="submit">Se connecter</button>
-        </form>
-        <div class="foot">Vérifié auprès de monespace.ffta.fr. Vos identifiants ne sont pas conservés.<br>
-            <a href="https://monespace.ffta.fr/retrouver-mes-identifiants" target="_blank" rel="noopener noreferrer">Identifiants oubliés ?</a></div>
-        <?php } ?>
-    </div>
-    <?php } ?>
-    <?php } ?>
-</div><!-- card -->
-</div><!-- auth-col -->
-
-<div class="pitch-col">
-    <p class="pitch-brand">SERVEUR PARTAGÉ</p>
-    <?php if ($hasOrganiser) { ?>
-    <div class="pitch<?= $active === 'org' ? ' active' : '' ?>" id="pitch-org">
-        <h2>Gérez vos compétitions en ligne, sans rien installer.</h2>
-        <ul>
-            <li><span class="pi">🗂️</span><span>Inscriptions, plan du terrain, mandat, feuilles de marque, sommes dues — <b>tout au même endroit</b>.</span></li>
-            <li><span class="pi">🚀</span><span><b>Aucune installation</b>, aucune mise à jour, aucune maintenance à votre charge.</span></li>
-            <li><span class="pi">🔄</span><span>Base fédérale des licenciés <b>tenue à jour automatiquement</b>.</span></li>
-            <li><span class="pi">🛡️</span><span><b>Sauvegardes et sécurité</b> assurées par le serveur.</span></li>
-        </ul>
-        <p class="pt">Connectez-vous avec vos identifiants de l'Espace Dirigeant FFTA.</p>
-    </div>
-    <?php } ?>
-    <?php if ($hasCompetitor) { ?>
-    <div class="pitch<?= $active === 'comp' ? ' active' : '' ?>" id="pitch-comp">
-        <h2>Inscrivez-vous aux compétitions en quelques clics.</h2>
-        <ul>
-            <li><span class="pi">🎯</span><span>Inscription en ligne avec vos <b>identifiants fédéraux</b>.</span></li>
-            <li><span class="pi">🗺️</span><span><b>Calendrier et carte</b> des compétitions ouvertes près de chez vous.</span></li>
-            <li><span class="pi">📄</span><span>Vos documents : <b>feuille de marque, reçu, attestation de licence</b>.</span></li>
-            <li><span class="pi">📊</span><span>Suivi de vos <b>inscriptions et statistiques</b>.</span></li>
-        </ul>
-        <p class="pt">Connectez-vous avec vos identifiants de l'Espace Licencié FFTA.</p>
-    </div>
-    <?php } ?>
-</div>
-</div><!-- landing -->
-</div><!-- page -->
-
-<footer class="site-foot">
-    <div class="legal">
-        <a href="<?= $e(aut_legal_url('mentions')) ?>">Mentions légales</a> ·
-        <a href="<?= $e(aut_legal_url('cgu')) ?>">CGU</a> ·
-        <a href="<?= $e(aut_legal_url('confidentialite')) ?>">Confidentialité</a> ·
-        <a href="<?= $e(aut_legal_url('cookies')) ?>">Cookies</a>
-    </div>
-    <div class="credits">
-        Le calcul et la publication des <b>résultats</b> reposent sur le logiciel
-        <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a>.
-        La gestion des <b>comptes</b>, des <b>inscriptions</b> et du <b>calendrier</b> est un développement indépendant.
-        Ce site n'utilise qu'un <b>cookie de session</b> strictement nécessaire.
-    </div>
-</footer>
+echo '<footer class="site-foot"><div class="legal">'
+    . '<a href="' . $e(aut_legal_url('mentions')) . '">' . $e(aut_t('LegalNotice')) . '</a> · '
+    . '<a href="' . $e(aut_legal_url('cgu')) . '">' . $e(aut_t('LegalTerms')) . '</a> · '
+    . '<a href="' . $e(aut_legal_url('confidentialite')) . '">' . $e(aut_t('LegalPrivacy')) . '</a> · '
+    . '<a href="' . $e(aut_legal_url('cookies')) . '">' . $e(aut_t('LegalCookies')) . '</a>'
+    . "</div>\n"
+    . '<div class="credits">' . aut_t('LoginCredits') . "</div>\n"
+    . "</footer>\n"
+    . '<script>var AUT_LOGIN_BUSY = ' . json_encode(aut_t('LoginBusy')) . ";</script>\n";
+?>
 <script>
 document.querySelectorAll('.tab').forEach(function (t) {
     t.addEventListener('click', function (ev) {
@@ -442,7 +416,14 @@ document.querySelectorAll('.tab').forEach(function (t) {
 document.querySelectorAll('.pane form, form[action="login.php"]').forEach(function (f) {
     f.addEventListener('submit', function () {
         var b = f.querySelector('button[type=submit]');
-        if (b) { b.disabled = true; b.innerHTML = 'Connexion en cours <span id="dots"><i></i><i></i><i></i></span>'; }
+        if (b) {
+            b.disabled = true;
+            b.textContent = AUT_LOGIN_BUSY + ' ';
+            var dots = document.createElement('span');
+            dots.id = 'dots';
+            dots.innerHTML = '<i></i><i></i><i></i>';
+            b.appendChild(dots);
+        }
     });
 });
 </script>

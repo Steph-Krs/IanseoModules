@@ -8,8 +8,8 @@
  * choice made there — wishes and payment choice included. When a place frees for that
  * profile, the FIRST compatible archer of the list is registered automatically through
  * bk_register(): every rule of a normal registration applies (manual validation,
- * category, finished competition…). The archer is told on the site (home banner, "Mes
- * inscriptions"), never by e-mail; if they no longer want the place they cancel it like
+ * category, finished competition…). The archer is told on the site (home banner, "My
+ * registrations"), never by e-mail; if they no longer want the place they cancel it like
  * any registration, which frees it for the next one.
  *
  * Fairness: a freed place goes to the list before anyone else — register-comp.php runs
@@ -81,13 +81,13 @@ function bk_waitlist_join($tourId, $cfg, $lue, $division, $class, $face, $sessio
     $session = intval($session);
     $lic = bk_clean_licence($lue->LueCode);
     if (!bk_waitlist_on($cfg)) {
-        return array('ok' => false, 'msg' => "Cette compétition ne propose pas de liste d'attente.");
+        return array('ok' => false, 'msg' => bk_t('WlNone'));
     }
     $orders = array();
     foreach (bk_comp_sessions($tourId) as $s) {
         if (!$session || intval($s->SesOrder) === $session) $orders[] = intval($s->SesOrder);
     }
-    if (!$orders) return array('ok' => false, 'msg' => "Ce départ n'existe pas sur cette compétition.");
+    if (!$orders) return array('ok' => false, 'msg' => bk_t('WlNoDep'));
     $err = '';
     foreach ($orders as $o) {
         $err = bk_reg_blocked($tourId, $cfg, $lic, $lue->LueCountry, $division, $class, $o, $lue, true);
@@ -99,7 +99,7 @@ function bk_waitlist_join($tourId, $cfg, $lue, $division, $class, $face, $sessio
         WHERE BwTournament = $tourId AND BwStatus = 0
           AND BwLicence = " . StrSafe_DB($lic) . " AND BwDivision = " . StrSafe_DB($division)));
     if ($dup) {
-        return array('ok' => false, 'msg' => "Déjà sur la liste d'attente de cette compétition pour cette arme.");
+        return array('ok' => false, 'msg' => bk_t('WlAlready'));
     }
     safe_w_sql("INSERT INTO BK_Waitlist SET
         BwTournament = $tourId,
@@ -171,7 +171,7 @@ function bk_waitlist_process($tourId)
             $lue = bk_lookup_licence($w->BwLicence);
             if (!$lue) continue;   // not in today's federal file: next time
             if (!array_key_exists($w->BwClass, bk_reg_classes($tourId, $lue->LueCtrlCode, $lue->LueSex, $w->BwDivision))) {
-                bk_waitlist_close($w->BwId, $tourId, "Cette catégorie ne correspond plus à la licence.");
+                bk_waitlist_close($w->BwId, $tourId, bk_t('WlCatGone'));
                 continue;
             }
             $taken = array();
@@ -181,7 +181,7 @@ function bk_waitlist_process($tourId)
                 if (!isset($taken[$o]) && in_array($o, $orders, true)) $cands[] = $o;
             }
             if (!$cands) {
-                bk_waitlist_close($w->BwId, $tourId, "Déjà inscrit sur ce départ.");
+                bk_waitlist_close($w->BwId, $tourId, bk_t('WlAlreadyDep'));
                 continue;
             }
             foreach ($cands as $o) {
@@ -330,27 +330,27 @@ function bk_waitlist_register_now($tourId, $id, $session)
     $tourId = intval($tourId);
     $w = safe_fetch(safe_r_sql("SELECT * FROM BK_Waitlist WHERE BwId = " . intval($id) . "
         AND BwTournament = $tourId AND BwStatus = 0"));
-    if (!$w) return array('ok' => false, 'msg' => "Cet archer n'est plus sur la liste d'attente.");
+    if (!$w) return array('ok' => false, 'msg' => bk_t('WlNotOnList'));
     $lue = bk_lookup_licence($w->BwLicence);
-    if (!$lue) return array('ok' => false, 'msg' => "Licence inconnue du fichier fédéral de ce serveur.");
+    if (!$lue) return array('ok' => false, 'msg' => bk_t('WlUnknownLic'));
     $session = intval($session);
     $cfg = bk_comp_config($tourId);
     // The organiser may register outside the registration window and the geographic
     // restriction, as in ianseo's own screens: only the rules about the archer and the
     // departure stand (bk_register refuses a finished competition by itself).
     if (bk_reg_session_left($tourId, $session) < 0) {
-        return array('ok' => false, 'msg' => "Ce départ n'existe pas sur cette compétition.");
+        return array('ok' => false, 'msg' => bk_t('WlNoDep'));
     }
     if (!array_key_exists($w->BwClass, bk_reg_classes($tourId, $lue->LueCtrlCode, $lue->LueSex, $w->BwDivision))) {
-        return array('ok' => false, 'msg' => "Cette catégorie ne correspond plus à la licence.");
+        return array('ok' => false, 'msg' => bk_t('WlCatGone'));
     }
     foreach (bk_reg_existing($tourId, $w->BwLicence) as $e) {
-        if (intval($e->QuSession) === $session) return array('ok' => false, 'msg' => "Déjà inscrit sur ce départ.");
+        if (intval($e->QuSession) === $session) return array('ok' => false, 'msg' => bk_t('WlAlreadyDep'));
     }
     $res = bk_register($tourId, $lue, $w->BwDivision, $w->BwClass, $session, (string) $w->BwRequest,
         array('role' => $w->BwByRole, 'who' => $w->BwBy, 'archer' => intval($w->BwArcher)),
         array('face' => intval($w->BwFace), 'letter' => $w->BwWantLetter, 'with' => $w->BwWantWith, 'skip_capacity' => true));
-    if (empty($res['ok'])) return array('ok' => false, 'msg' => $res['msg'] ?? "L'inscription a échoué.");
+    if (empty($res['ok'])) return array('ok' => false, 'msg' => $res['msg'] ?? bk_t('RegFailed'));
     safe_w_sql("UPDATE BK_Waitlist SET BwStatus = 1, BwSeen = 0, BwEnId = " . intval($res['enid'])
         . ", BwSession = $session, BwDone = " . bk_waitlist_now_sql($tourId) . " WHERE BwId = " . intval($w->BwId));
     bk_waitlist_declare_payment($tourId, $w);

@@ -1,15 +1,15 @@
 <?php
 /**
- * lib/competition.php — ouverture des inscriptions par compétition.
+ * lib/competition.php — opening of online registration, competition by competition.
  *
- * La configuration TERRAIN n'est pas ici : elle est déjà saisie dans ianseo
- * (Session, DistanceInformation, TargetFaces, TournamentDistances) et lue telle
- * quelle. BK_Competitions ne porte que ce qui relève des inscriptions en ligne.
+ * The FIELD setup is not here: it is already entered in ianseo (Session, DistanceInformation,
+ * TargetFaces, TournamentDistances) and read as is. BK_Competitions only holds what belongs
+ * to online registration.
  *
- * ⚠️ Dates: NOW()/CURDATE() are NOT a clock shared by both faces — the MySQL
- * connection is in UTC on the archer pages and in the competition's zone on the
- * organiser pages (real bug, 2026-09-30). Any time typed by the organiser is compared
- * with the competition's LOCAL time: see lib/clock.php.
+ * ⚠️ Dates: NOW()/CURDATE() are NOT a clock shared by both faces — the MySQL connection is in
+ * UTC on the archer pages and in the competition's zone on the organiser pages (real bug,
+ * 2026-09-30). Any time typed by the organiser is compared with the competition's LOCAL
+ * time: see lib/clock.php.
  */
 
 if (defined('BK_COMP_LOADED')) return;
@@ -17,50 +17,47 @@ define('BK_COMP_LOADED', true);
 
 require_once __DIR__ . '/schema.php';
 
-/** Périmètres de restriction géographique proposés. */
+/** Geographic restriction scopes offered. */
 function bk_restrict_kinds()
 {
     return array(
-        ''   => 'Aucune restriction',
-        'CD' => 'Département',
-        'CR' => 'Région (ligue)',
+        ''   => bk_t('RestrictNone'),
+        'CD' => bk_t('RestrictDept'),
+        'CR' => bk_t('RestrictRegion'),
     );
 }
 
 /**
- * Motif LIKE des agréments de club couverts par une restriction.
- * Agrément FFTA = LLDDCCC (ligue 2 + département 2 + club 3), même convention
- * que le module AUTH — réimplémentée ici pour rester autonome.
+ * LIKE pattern of the club agreement numbers covered by a restriction. Agreement number =
+ * LLDDCCC (league 2 + department 2 + club 3), same convention as the AUTH module.
  */
 function bk_scope_like($kind, $code)
 {
     $code = trim((string) $code);
     if ($code === '') return '%';
-    if (preg_match('/[_%]/', $code)) return $code;      // motif expert tel quel
-    if ($kind === 'CD') return '__' . $code . '%';      // département en position 3-4
-    return $code . '%';                                 // région : préfixe
+    if (preg_match('/[_%]/', $code)) return $code;      // expert pattern, as is
+    if ($kind === 'CD') return '__' . $code . '%';      // department in positions 3-4
+    return $code . '%';                                 // region: prefix
 }
 
-/** Contrôle de saisie d'un périmètre. Chaîne vide = valide. */
+/** Check of a typed scope. Empty string = valid. */
 function bk_scope_error($kind, $code)
 {
     if ($kind === '') return '';
     $code = trim((string) $code);
-    if ($code === '') return 'Indiquez le code du périmètre.';
+    if ($code === '') return bk_t('ScopeNeedCode');
     if (preg_match('/^[0-9A-Za-z_%]{2,12}$/', $code) && preg_match('/[_%]/', $code)) return '';
-    if (!preg_match('/^[0-9A-Za-z]{2,10}$/', $code)) {
-        return 'Le code doit contenir 2 à 10 caractères alphanumériques (ou un motif avec % / _).';
-    }
-    if ($kind === 'CD' && strlen($code) != 2) return 'Département : 2 chiffres attendus (ex. 60 pour l\'Oise).';
-    if ($kind === 'CR' && strlen($code) != 2) return 'Région : 2 chiffres attendus (ex. 07).';
+    if (!preg_match('/^[0-9A-Za-z]{2,10}$/', $code)) return bk_t('ScopeFormat');
+    // bytes: the code was just checked to be ASCII letters and digits.
+    if ($kind === 'CD' && strlen($code) != 2) return bk_t('ScopeDept2');
+    if ($kind === 'CR' && strlen($code) != 2) return bk_t('ScopeRegion2');
     return '';
 }
 
 /**
- * Fragment SQL des colonnes calculées par MySQL. `o` = alias de BK_Competitions.
- *  BcIsOpen  : les inscriptions sont ouvertes en ce moment
- *  BcAllOpen : la restriction géographique est levée (pas de restriction, ou
- *              date d'ouverture à tous atteinte)
+ * SQL fragment of the columns computed by MySQL. `o` = alias of BK_Competitions.
+ *  BcIsOpen  : registration is open right now
+ *  BcAllOpen : the geographic restriction is lifted (none, or its opening date reached)
  */
 function bk_comp_calc_sql($a = 'o')
 {
@@ -74,7 +71,7 @@ function bk_comp_calc_sql($a = 'o')
               OR ($a.BcRestrictTo IS NOT NULL AND $a.BcRestrictTo <= $now)) AS BcAllOpen";
 }
 
-/** Valeurs par défaut d'une compétition jamais configurée. */
+/** Default values of a competition never configured. */
 function bk_comp_defaults($tourId)
 {
     return (object) array(
@@ -94,16 +91,15 @@ function bk_comp_defaults($tourId)
 }
 
 /**
- * Colonnes de configuration « avancée » d'une compétition — celles que le niveau 2
- * (publication simple) impose automatiquement, et que l'on SAUVEGARDE (snapshot)
- * pour pouvoir les restaurer au retour en niveau 3 (« conserver mais masquer »).
+ * "Detailed" setting columns of a competition — those that level 2 (simple publication) sets
+ * by itself, and that are SAVED (snapshot) to be restored when going back to level 3 ("keep
+ * but hide").
  */
 function bk_comp_advanced_cols()
 {
-    // BcFee (tarif de base) est VOLONTAIREMENT absent : c'est un réglage effectif stable,
-    // saisissable aussi en niveau 2 (« À finaliser »), qui ne doit donc pas être remis à sa
-    // valeur d'avant par la restauration du snapshot au retour en niveau 3. Seule la
-    // tarification AVANCÉE (BcPricing) est mise en veille par le niveau 2 et restaurée ensuite.
+    // BcFee (base fee) is left out ON PURPOSE: a stable effective setting, also typed at level 2
+    // ("To finish"), which the snapshot must not put back to its former value when going back
+    // to level 3. Only the DETAILED tariff (BcPricing) is set aside by level 2, then restored.
     return array('BcOpen', 'BcOpenFrom', 'BcOpenTo', 'BcRestrictKind', 'BcRestrictCode', 'BcRestrictTo',
         'BcMaxPerClubPerTarget', 'BcMinClubsPerSession', 'BcShowAssignment', 'BcShowGauges', 'BcAllowScoresheet',
         'BcWishLetter', 'BcWishWith', 'BcWishFree', 'BcPricing', 'BcManualValidation',
@@ -112,12 +108,12 @@ function bk_comp_advanced_cols()
 }
 
 /**
- * Adresse de la fiche ianseo.net d'une compétition — RECONSTRUITE, jamais saisie.
+ * Address of the ianseo.net page of a competition — REBUILT, never typed.
  *
- * `Tournament.ToOnlineId` est l'identifiant attribué par ianseo.net en même temps que
- * les codes de publication (cœur : `CheckCredentials`) ; 0 = la compétition n'y est pas
- * publiée, donc aucune fiche n'existe. Format relevé sur une compétition réellement
- * publiée (F26WFT1 → toId 27215). Retourne '' s'il n'y a rien à proposer.
+ * `Tournament.ToOnlineId` is the identifier given by ianseo.net together with the publication
+ * codes (core: `CheckCredentials`); 0 = the competition is not published there, so no page
+ * exists. Format taken from a competition really published (F26WFT1 → toId 27215). Returns
+ * '' when there is nothing to offer.
  */
 function bk_ianseo_url($tourId)
 {
@@ -126,7 +122,7 @@ function bk_ianseo_url($tourId)
     return $id > 0 ? 'https://www.ianseo.net/Details.php?toId=' . $id : '';
 }
 
-/** Configuration d'une compétition (défauts si jamais enregistrée). */
+/** Setup of a competition (defaults if never saved). */
 function bk_comp_config($tourId)
 {
     bk_schema();
@@ -138,20 +134,19 @@ function bk_comp_config($tourId)
 }
 
 /* ------------------------------------------------------------------ */
-/* « Copier depuis… » — reprendre la configuration d'une autre         */
-/* compétition (gain de temps sur les paramétrages complexes)          */
+/* "Copy from…" — take the setup of another competition               */
 /* ------------------------------------------------------------------ */
 
 /**
- * Fragment SQL bornant les compétitions ACCESSIBLES à l'organisateur courant
- * (sur l'alias Tournament $alias). Lit la convention de session d'AUTH (aucune
- * dépendance dure) : hors AUTH ou administrateur serveur → tout ; sinon la liste
- * AUTH_COMP (codes exacts ou motifs LIKE). Repli sûr : aucun accès.
+ * SQL fragment limiting the competitions ACCESSIBLE to the current organiser (on the
+ * Tournament alias $alias). Reads AUTH's session convention (no hard dependency): without
+ * AUTH, or server administrator → everything; otherwise the AUTH_COMP list (exact codes or
+ * LIKE patterns). Safe fallback: no access.
  */
 function bk_copy_access_where($alias = 't')
 {
-    if (empty($_SESSION['AUTH_ENABLE'])) return '1=1';     // localhost / mono-organisateur
-    if (!empty($_SESSION['AUTH_ROOT']))  return '1=1';     // admin serveur (UI = champ libre)
+    if (empty($_SESSION['AUTH_ENABLE'])) return '1=1';     // localhost / single organiser
+    if (!empty($_SESSION['AUTH_ROOT']))  return '1=1';     // server administrator (free field)
     $comp = $_SESSION['AUTH_COMP'] ?? array();
     if (!is_array($comp) || !$comp) return '1=0';
     $ors = array();
@@ -165,13 +160,13 @@ function bk_copy_access_where($alias = 't')
     return $ors ? '(' . implode(' OR ', $ors) . ')' : '1=0';
 }
 
-/** L'organisateur courant est-il administrateur serveur ? (source « Copier » = champ libre). */
+/** Is the current organiser the server administrator? ("Copy" source = free field). */
 function bk_copy_is_admin()
 {
     return !empty($_SESSION['AUTH_ENABLE']) && !empty($_SESSION['AUTH_ROOT']);
 }
 
-/** Compétitions accessibles ayant une config booking, hors la compétition courante. */
+/** Accessible competitions with a booking setup, except the current one. */
 function bk_copy_sources($currentTour)
 {
     bk_schema();
@@ -186,8 +181,8 @@ function bk_copy_sources($currentTour)
 }
 
 /**
- * Résout une saisie libre d'admin (code de compétition, ou identifiant numérique)
- * vers un ToId accessible ayant une config booking. Retourne l'id, ou 0.
+ * Resolves a free entry of the administrator (competition code, or numeric id) to an
+ * accessible ToId with a booking setup. Returns the id, or 0.
  */
 function bk_copy_resolve($input, $currentTour)
 {
@@ -207,12 +202,11 @@ function bk_copy_resolve($input, $currentTour)
 }
 
 /**
- * Copie la configuration booking de $srcTour vers $destTour. REMPLACE les réglages
- * (niveau de publication, inscriptions, visibilité, tarif, mandat, boutique, contraintes
- * du terrain). Les DATES sont conservées en DÉCALAGE par rapport à la date de début
- * (même « ratio » temporel). Non copiés : identité (BcCode), géocodage (par lieu), et le
- * lien ianseo.net (propre à chaque compétition). Les LOGOS ne sont pas copiés — seules les
- * cases « quels logos » du mandat le sont. Retourne true si copié.
+ * Copies the booking setup of $srcTour to $destTour. REPLACES the settings (publication
+ * level, registration, visibility, tariff, mandate, shop, field constraints). DATES keep the
+ * same OFFSET from the start date. Not copied: identity (BcCode), geocoding (by venue), the
+ * ianseo.net link (each competition's own), the LOGOS — only the mandate's "which logos"
+ * boxes are. Returns true when copied.
  */
 function bk_comp_copy_from($destTour, $srcTour)
 {
@@ -222,7 +216,7 @@ function bk_comp_copy_from($destTour, $srcTour)
 
     $src = safe_fetch(safe_r_sql("SELECT o.BcTournament, t.ToWhenFrom AS SrcStart
         FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament WHERE o.BcTournament = $srcTour"));
-    if (!$src) return false;                                   // la source n'a pas de config booking
+    if (!$src) return false;                                   // the source has no booking setup
     $dst = safe_fetch(safe_r_sql("SELECT ToWhenFrom FROM Tournament WHERE ToId = $destTour"));
     if (!$dst) return false;
 
@@ -230,7 +224,7 @@ function bk_comp_copy_from($destTour, $srcTour)
 
     $ss = StrSafe_DB($src->SrcStart);
     $ds = StrSafe_DB($dst->ToWhenFrom);
-    // Décalage identique par rapport à la date de début (ex. « ouvre 30 j avant, clôt 2 j avant »).
+    // Same offset from the start date (e.g. "opens 30 days before, closes 2 days before").
     $remap = function ($col) use ($ss, $ds) {
         return "IF(s.$col IS NULL, NULL, DATE_ADD($ds, INTERVAL TIMESTAMPDIFF(SECOND, $ss, s.$col) SECOND))";
     };
@@ -256,11 +250,11 @@ function bk_comp_copy_from($destTour, $srcTour)
     return true;
 }
 
-/** Copie la boutique (articles + variantes) ; REMPLACE celle de la destination (commandes effacées). */
+/** Copies the shop (items + variants); REPLACES the destination's (orders erased). */
 function bk_comp_copy_shop($destTour, $srcTour)
 {
     $destTour = intval($destTour); $srcTour = intval($srcTour);
-    // Collecte de la source d'abord (pas d'itération imbriquée sur des result sets vivants).
+    // Source collected first (no nested loop over live result sets).
     $items = array();
     $rs = safe_r_sql("SELECT * FROM BK_ShopItems WHERE SiTournament = $srcTour ORDER BY SiId");
     while ($r = safe_fetch($rs)) $items[] = $r;
@@ -270,7 +264,7 @@ function bk_comp_copy_shop($destTour, $srcTour)
         $rv = safe_r_sql("SELECT * FROM BK_ShopVariants WHERE SvItem = " . intval($it->SiId) . " ORDER BY SvId");
         while ($v = safe_fetch($rv)) $variants[(string) $it->SiId][] = $v;
     }
-    // Boutique de destination remise à zéro (copie = boutique fraîche).
+    // Destination shop reset (copy = fresh shop).
     safe_w_sql("DELETE FROM BK_ShopOrders WHERE SoTournament = $destTour");
     safe_w_sql("DELETE v FROM BK_ShopVariants v INNER JOIN BK_ShopItems i ON i.SiId = v.SvItem WHERE i.SiTournament = $destTour");
     safe_w_sql("DELETE FROM BK_ShopItems WHERE SiTournament = $destTour");
@@ -289,17 +283,17 @@ function bk_comp_copy_shop($destTour, $srcTour)
 }
 
 /**
- * Copie les contraintes d'affectation du terrain. Distances = mètres (portables). Les
- * BLASONS sont re-mappés PAR NOM (TfName) : les TfId ne sont pas fiables d'une compétition
- * à l'autre. Un blason absent de la destination est ignoré. REMPLACE les contraintes existantes.
+ * Copies the field constraints. Distances = metres (portable). The FACES are mapped again BY
+ * NAME (TfName): TfId values do not carry from one competition to another. A face missing at
+ * the destination is skipped. REPLACES the existing constraints.
  */
 function bk_comp_copy_caps($destTour, $srcTour)
 {
     $destTour = intval($destTour); $srcTour = intval($srcTour);
-    $srcName = array();                          // TfId (src) => TfName
+    $srcName = array();                          // TfId (source) => TfName
     $rs = safe_r_sql("SELECT TfId, TfName FROM TargetFaces WHERE TfTournament = $srcTour");
     while ($r = safe_fetch($rs)) $srcName[(string) $r->TfId] = trim((string) $r->TfName);
-    $destByName = array();                        // TfName => TfId (dest)
+    $destByName = array();                       // TfName => TfId (destination)
     $rs = safe_r_sql("SELECT TfId, TfName FROM TargetFaces WHERE TfTournament = $destTour");
     while ($r = safe_fetch($rs)) { $n = trim((string) $r->TfName); if ($n !== '' && !isset($destByName[$n])) $destByName[$n] = (string) $r->TfId; }
 
@@ -331,11 +325,11 @@ function bk_comp_copy_caps($destTour, $srcTour)
  */
 function bk_is_finished($toWhenTo)
 {
-    $d = substr((string) $toWhenTo, 0, 10);
+    $d = substr((string) $toWhenTo, 0, 10);   // bytes: an ASCII date
     return $d !== '' && strpos($d, '0000') !== 0 && $d < bk_today();
 }
 
-/** Idem à partir d'un identifiant de compétition (lit ToWhenTo). */
+/** Same, from a competition id (reads ToWhenTo). */
 function bk_comp_finished($tourId)
 {
     $rs = safe_r_sql("SELECT ToWhenTo FROM Tournament WHERE ToId = " . intval($tourId));
@@ -343,7 +337,7 @@ function bk_comp_finished($tourId)
     return $r ? bk_is_finished($r->ToWhenTo) : false;
 }
 
-/** Enregistre la configuration. $in : valeurs déjà validées par l'appelant. */
+/** Saves the setup. $in: values already checked by the caller. */
 function bk_comp_save($tourId, $in)
 {
     bk_schema();
@@ -372,21 +366,20 @@ function bk_comp_save($tourId, $in)
         . ", BcManualValidation = " . (empty($in['manual_validation']) ? 0 : 1)
         . ", BcFee = " . StrSafe_DB(number_format((float) str_replace(',', '.', (string) ($in['fee'] ?? 0)), 2, '.', ''));
 
-    // Visibilité du mandat : n'écrire une valeur explicite (0/1) que si l'appelant
-    // a présenté la case (tri-état sinon — NULL = « pas encore choisi »).
+    // Visibility of the mandate: an explicit value (0/1) only when the caller showed the box
+    // (three states otherwise — NULL = "not chosen yet").
     if (array_key_exists('show_mandate', $in)) {
         $set .= ", BcShowMandate = " . (empty($in['show_mandate']) ? 0 : 1);
     }
-    // Lien ianseo.net : l'organisateur ne saisit PLUS d'adresse, il décide seulement de
-    // l'afficher — la colonne est donc une valeur DÉRIVÉE, reconstruite à chaque
-    // enregistrement depuis ToOnlineId. Effet utile : une compétition réimportée sous un
-    // autre identifiant en ligne se corrige d'elle-même au premier enregistrement.
+    // ianseo.net link: the organiser no longer types an address, they only decide to show it
+    // — the column is a DERIVED value, rebuilt at every save from ToOnlineId. Useful effect: a
+    // competition imported again under another online id corrects itself at the first save.
     if (array_key_exists('ianseo_present', $in)) {
         $u = empty($in['show_ianseo']) ? '' : bk_ianseo_url($tourId);
         $set .= ", BcIanseoUrl = " . ($u === '' ? 'NULL' : StrSafe_DB($u));
     }
-    // Documents officiels ianseo proposés aux archers (opt-in), écrits seulement
-    // si l'appelant a présenté les cases (competition.php).
+    // Official ianseo documents offered to the archers (opt-in), written only when the caller
+    // showed the boxes (competition.php).
     if (array_key_exists('docs_present', $in)) {
         $set .= ", BcShowProgram = "      . (empty($in['show_program']) ? 0 : 1)
               . ", BcShowParticipants = " . (empty($in['show_participants']) ? 0 : 1)
@@ -402,12 +395,12 @@ function bk_comp_save($tourId, $in)
         $set .= ", BcWaitlist = " . (empty($in['waitlist']) ? 0 : 1);
     }
 
-    // Tarification avancée : JSON déjà normalisé par l'appelant, ou NULL (tarif plat).
+    // Detailed tariff: JSON already normalised by the caller, or NULL (single fee).
     if (array_key_exists('pricing', $in)) {
         $json = trim((string) $in['pricing']);
         $set .= ", BcPricing = " . ($json === '' ? 'NULL' : StrSafe_DB($json));
     }
-    // Moyens de paiement : JSON déjà construit par l'appelant, ou NULL (aucun).
+    // Payment methods: JSON already built by the caller, or NULL (none).
     if (array_key_exists('payinfo', $in)) {
         $json = trim((string) $in['payinfo']);
         $set .= ", BcPayInfo = " . ($json === '' ? 'NULL' : StrSafe_DB($json));
@@ -418,10 +411,10 @@ function bk_comp_save($tourId, $in)
 }
 
 /* ------------------------------------------------------------------ */
-/* Niveau de publication (barre à 3 niveaux)                           */
+/* Publication level (bar of 3 levels)                                 */
 /* ------------------------------------------------------------------ */
 
-/** Snapshot des colonnes avancées d'une config (pour BcAdvancedBackup). */
+/** Snapshot of the detailed columns of a setup (for BcAdvancedBackup). */
 function bk_comp_snapshot($cfg)
 {
     $out = array();
@@ -431,7 +424,7 @@ function bk_comp_snapshot($cfg)
     return $out;
 }
 
-/** Restaure les colonnes avancées depuis un snapshot. */
+/** Restores the detailed columns from a snapshot. */
 function bk_comp_restore($tourId, $snap)
 {
     if (!is_array($snap)) return;
@@ -478,17 +471,18 @@ function bk_comp_set_effective($tourId, $cols)
 }
 
 /**
- * Applique les valeurs AUTO du niveau 2 (publication simple) : ouvert de maintenant
- * à la date de fin (incluse), aucune restriction géo, validation auto, tarif de base
- * seul, tout visible et tous les documents. Les règles de placement prennent les
- * valeurs FFTA (2 archers/club/cible, 3 clubs/départ). Le mandat est rendu visible
- * (auto-rempli depuis les données — voir bk_mandate_visible, court-circuit niveau 2).
+ * Applies the AUTO values of level 2 (simple publication): open from now to the end date
+ * (included), no geographic restriction, automatic validation, base fee only, everything
+ * visible and every document. Placement rules take the federal values (2 archers per club per
+ * target, 3 clubs per departure). The mandate is made visible (filled from the data — see
+ * bk_mandate_visible, level-2 shortcut).
  */
 function bk_comp_apply_auto($tourId)
 {
     $tourId = intval($tourId);
     $t = safe_fetch(safe_r_sql("SELECT ToWhenTo, DATE_FORMAT(" . bk_local_now_sql()
         . ", '%Y-%m-%d %H:%i:%s') AS LocalNow FROM Tournament WHERE ToId = $tourId"));
+    // bytes: ASCII dates.
     $end = ($t && substr((string) $t->ToWhenTo, 0, 4) > '0000')
         ? substr((string) $t->ToWhenTo, 0, 10) . ' 23:59:59' : '';
     // "Open from now", in the competition's local time like every other window time.
@@ -505,8 +499,8 @@ function bk_comp_apply_auto($tourId)
         . ", BcShowMandate = 1, BcShowProgram = 1, BcShowParticipants = 1, BcShowResults = 1, BcShowDossard = 1"
         . ", BcSurvey = 1"   // survey always offered at level 2: only level 3 can switch it off
         . ", BcWaitlist = 1" // same for the waiting list
-        // Lien ianseo.net proposé d'office quand la compétition y est publiée ; sinon rien
-        // à montrer. Reconstruit, comme partout, depuis ToOnlineId.
+        // ianseo.net link offered when the competition is published there; nothing to show
+        // otherwise. Rebuilt, as everywhere, from ToOnlineId.
         . ", BcIanseoUrl = " . (($u = bk_ianseo_url($tourId)) === '' ? 'NULL' : StrSafe_DB($u))
         . ", BcWishLetter = 1, BcWishWith = 0, BcWishFree = 0"
         . ", BcPricing = NULL, BcExcludeStats = 0";
@@ -514,13 +508,13 @@ function bk_comp_apply_auto($tourId)
 }
 
 /**
- * Change le niveau de publication et applique la transition :
- *  - 1 : privé (BcOpen=0, plus rien côté archer) ;
- *  - 2 : simple → snapshot des réglages avancés (si pas déjà fait) puis valeurs AUTO ;
- *  - 3 : avancé → restaure le snapshot (s'il existe) et le vide (les réglages avancés
- *        du formulaire sont ensuite écrits par bk_comp_save).
- * Les colonnes restent la config EFFECTIVE lue partout ; BcAdvancedBackup conserve
- * les réglages avancés tant qu'on est en niveau 2.
+ * Changes the publication level and applies the transition:
+ *  - 1: private (BcOpen=0, nothing left on the archer side);
+ *  - 2: simple → snapshot of the detailed settings (if not done yet), then the AUTO values;
+ *  - 3: detailed → restores the snapshot (if any) and empties it (the detailed settings of
+ *       the form are then written by bk_comp_save).
+ * The columns stay the EFFECTIVE setup read everywhere; BcAdvancedBackup keeps the detailed
+ * settings while at level 2.
  */
 function bk_comp_set_level($tourId, $level)
 {
@@ -528,7 +522,7 @@ function bk_comp_set_level($tourId, $level)
     $tourId = intval($tourId);
     $level  = in_array(intval($level), array(1, 2, 3), true) ? intval($level) : 1;
 
-    // Garantir l'existence de la ligne (sans rien modifier si elle existe déjà).
+    // Make sure the row exists (changing nothing when it already does).
     safe_w_sql("INSERT INTO BK_Competitions (BcTournament) VALUES ($tourId)
         ON DUPLICATE KEY UPDATE BcTournament = BcTournament");
 
@@ -555,11 +549,10 @@ function bk_comp_set_level($tourId, $level)
 }
 
 /**
- * Un archer de ce club peut-il s'inscrire ? Retourne '' si oui, sinon le motif
- * du refus (message affichable).
+ * May an archer of this club register? Returns '' if so, otherwise the reason (displayable).
  *
- * $cfg doit porter les colonnes calculées (BcAllOpen), donc venir de
- * bk_comp_config() ou bk_comp_calendar().
+ * $cfg must carry the computed columns (BcAllOpen), so come from bk_comp_config() or
+ * bk_comp_calendar().
  */
 function bk_comp_archer_blocked($cfg, $clubCode)
 {
@@ -568,10 +561,11 @@ function bk_comp_archer_blocked($cfg, $clubCode)
     $kind = (string) $cfg->BcRestrictKind;
     $code = strtoupper(trim((string) $cfg->BcRestrictCode));
     $club = strtoupper(trim((string) $clubCode));
-    if ($code === '') return '';          // restriction incomplète = pas de restriction
+    if ($code === '') return '';          // incomplete restriction = no restriction
 
+    // bytes, in this whole block: an agreement number and a scope are ASCII codes.
     if (strpbrk($code, '%_') !== false) {
-        // Motif expert (DOM-TOM, découpages atypiques) : LIKE → expression régulière.
+        // Expert pattern (overseas, unusual areas): LIKE → regular expression.
         $re = '';
         foreach (str_split($code) as $ch) {
             if ($ch === '%')      $re .= '.*';
@@ -580,27 +574,25 @@ function bk_comp_archer_blocked($cfg, $clubCode)
         }
         $ok = (bool) preg_match('/^' . $re . '$/', $club);
     } elseif ($kind === 'CD') {
-        // Agrément LLDDCCC : le département occupe les positions 3-4.
+        // Agreement LLDDCCC: the department is in positions 3-4.
         $ok = (substr($club, 2, strlen($code)) === $code);
     } else {
-        // Région (ligue) : préfixe de l'agrément.
+        // Region (league): prefix of the agreement number.
         $ok = (strncmp($club, $code, strlen($code)) === 0);
     }
     if ($ok) return '';
 
-    $label = ($kind === 'CD') ? 'du département ' : 'de la région ';
-    return 'Ces inscriptions sont réservées aux archers ' . $label . $code . '.';
+    return bk_t($kind === 'CD' ? 'BlockedDept' : 'BlockedRegion', $code);
 }
 
 /**
- * Compétitions visibles dans le calendrier public.
+ * Competitions shown in the public calendar.
  *
- * Ne renvoie que celles PUBLIÉES au calendrier (BcOpen=1) — un organisateur qui
- * n'a rien publié n'y figure jamais. En revanche on montre les compétitions
- * PASSÉES comme à venir : c'est un vrai calendrier. L'inscription, elle, reste
- * gardée à part (fenêtre d'ouverture BcIsOpen + compétition terminée + géo/tarif).
+ * Only those PUBLISHED in the calendar (BcOpen=1) — an organiser who published nothing is
+ * never there. Competitions OVER are shown as well as the coming ones: it is a real calendar.
+ * Registration itself stays guarded apart (window BcIsOpen + competition over + geo/tariff).
  *
- * $filters : ['q' => texte, 'from' => date, 'to' => date, 'type' => ToTypeName]
+ * $filters: ['q' => text, 'from' => date, 'to' => date, 'type' => ToTypeName, 'disc', 'region']
  */
 function bk_comp_calendar($filters = array())
 {
@@ -645,7 +637,7 @@ function bk_comp_calendar($filters = array())
     return $out;
 }
 
-/** Types de compétition présents dans le calendrier (pour le filtre). */
+/** Competition types present in the calendar (for the filter). */
 function bk_comp_types()
 {
     bk_schema();
@@ -660,85 +652,78 @@ function bk_comp_types()
 }
 
 /* ------------------------------------------------------------------ */
-/* Disciplines (déduites de ToType) & région (préfixe de ToCommitee)   */
+/* Disciplines (from ToType) & region (prefix of ToCommitee)           */
 /* ------------------------------------------------------------------ */
 
-/** Nom de la ligue (région) d'après son code à 2 chiffres. Code seul si inconnu. */
+/** Name of the league (region) from its 2-digit code; "Region NN" when unknown. */
 function bk_region_name($code)
 {
-    $m = array(
-        '01' => 'Auvergne-Rhône-Alpes', '02' => 'Bourgogne-Franche-Comté', '03' => 'Bretagne',
-        '04' => 'Centre-Val de Loire', '05' => 'Corse', '06' => 'Grand Est',
-        '07' => 'Hauts-de-France', '08' => 'Île-de-France', '09' => 'Normandie',
-        '10' => 'Nouvelle-Aquitaine', '11' => 'Occitanie', '12' => 'Pays de la Loire',
-        '13' => "Provence-Alpes-Côte d'Azur", '35' => 'La Réunion', '36' => 'Guyane',
-        '37' => 'Guadeloupe', '38' => 'Nouvelle-Calédonie', '39' => 'Martinique',
-    );
-    return $m[$code] ?? ('Région ' . $code);
+    $known = array('01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '35', '36', '37', '38', '39');
+    return in_array((string) $code, $known, true) ? bk_t('Region' . $code) : bk_t('RegionN', $code);
 }
 
 /**
- * La compétition est-elle DROM-TOM ? (d'après l'agrément de l'organisateur, ToCommitee).
- * Les ligues métropolitaines vont de 01 à 13 (Corse = 05) ; les DROM-TOM sont ≥ 30
- * (35 Réunion, 36 Guyane, 37 Guadeloupe, 38 Nouvelle-Calédonie, 39 Martinique).
- * Seules ces compétitions échappent aux règles FFTA de placement (peu de clubs).
+ * Is the competition overseas (DROM-TOM)? (from the organiser's agreement number, ToCommitee).
+ * Mainland leagues go from 01 to 13 (Corsica = 05); overseas ones are ≥ 30 (35 Réunion,
+ * 36 French Guiana, 37 Guadeloupe, 38 New Caledonia, 39 Martinique). Only these competitions
+ * escape the federal placement rules (few clubs).
  */
 function bk_is_dromtom($committee)
 {
-    $ll = substr(preg_replace('/\D/', '', (string) $committee), 0, 2);
+    $ll = substr(preg_replace('/\D/', '', (string) $committee), 0, 2);   // bytes: digits only
     return $ll !== '' && intval($ll) >= 30;
 }
 
 /**
- * Libellés des disciplines (clé interne → nom affiché). Dénominations FFTA
- * officielles — ne pas raccourcir (utilisées au calendrier, dans « Mes
- * inscriptions » et sur le mandat).
+ * Labels of the disciplines (internal key → displayed name). Official federation names — not
+ * to be shortened (calendar, "My registrations", mandate).
  */
 function bk_disc_labels()
 {
     return array(
-        'ext'       => 'Tir à l\'Arc Extérieur',
-        'salle'     => 'Tir à 18m',
-        'campagne'  => 'Tir en Campagne',
-        'nature'    => 'Parcours Nature',
-        '3d'        => 'Tir sur cibles 3D',
-        'run'       => 'Run Archery',
-        'beursault' => 'Beursault',
+        'ext'       => bk_t('DiscExt'),
+        'salle'     => bk_t('DiscIndoor'),
+        'campagne'  => bk_t('DiscField'),
+        'nature'    => bk_t('DiscNature'),
+        '3d'        => bk_t('Disc3d'),
+        'run'       => bk_t('DiscRun'),
+        'beursault' => bk_t('DiscBeursault'),
     );
 }
 
-/** Types ianseo (ToType) couverts par une discipline — pour filtrer le calendrier. */
+/** ianseo types (ToType) covered by a discipline — to filter the calendar. */
 function bk_disc_types($key)
 {
     $m = array(
-        'ext'       => array(1, 2, 3, 4, 5),      // extérieur / FITA / 70m
-        'salle'     => array(6),                  // Indoor 18/25
-        'campagne'  => array(7, 9),               // Field — ToType 9 = « Type_HF 12+12 » (Hunter-Field = Campagne)
-        'nature'    => array(),                   // (par libellé, voir bk_comp_discipline)
+        'ext'       => array(1, 2, 3, 4, 5),      // outdoor / FITA / 70 m
+        'salle'     => array(6),                  // indoor 18/25
+        'campagne'  => array(7, 9),               // field — ToType 9 = "Type_HF 12+12" (Hunter-Field = field)
+        'nature'    => array(),                   // (by label, see bk_comp_discipline)
         '3d'        => array(11),
-        'run'       => array(48),                 // Run Archery (TourType 48 dans ianseo)
+        'run'       => array(48),                 // Run Archery (TourType 48 in ianseo)
         'beursault' => array(50),
     );
     return $m[$key] ?? array();
 }
 
 /**
- * Discipline d'une compétition d'après ToType (+ repli sur le libellé), et si
- * c'est une épreuve Para (ToTypeSubRule). Retourne ['key','para'].
+ * Discipline of a competition from ToType (falling back on the label), and whether it is a
+ * Para event (ToTypeSubRule). Returns ['key', 'para'].
  */
 function bk_comp_discipline($type, $subrule = '', $typeName = '')
 {
     $type = intval($type);
-    // ⚠️ ToType 9 = « Type_HF 12+12 » (Hunter-Field) = CAMPAGNE, pas extérieur : toutes
-    // les compétitions Campagne portent ce type (vérifié en base). Le classer en 'ext'
-    // affichait un picto TAE au calendrier ET appliquait à tort la cohabitation de blasons
-    // TAE à un parcours (qui n'a pas de blason mais des couleurs de piquet).
+    // ⚠️ ToType 9 = "Type_HF 12+12" (Hunter-Field) = FIELD, not outdoor: every field
+    // competition carries this type (checked in the database). Taking it for 'ext' showed an
+    // outdoor picture in the calendar AND applied the outdoor face sharing to a course (which
+    // has no face but peg colours).
     $byType = array(
         1 => 'ext', 2 => 'ext', 3 => 'ext', 4 => 'ext', 5 => 'ext',
         6 => 'salle', 7 => 'campagne', 9 => 'campagne', 11 => '3d', 48 => 'run', 50 => 'beursault',
     );
     $key = $byType[$type] ?? '';
     if ($key === '') {
+        // bytes: matching ASCII keywords in the type name; nothing to fold beyond ASCII.
         $n = strtolower($typeName . ' ' . $subrule);
         if     (strpos($n, 'beursault') !== false) $key = 'beursault';
         elseif (strpos($n, '3d') !== false)        $key = '3d';
@@ -752,9 +737,8 @@ function bk_comp_discipline($type, $subrule = '', $typeName = '')
 }
 
 /**
- * Disciplines et régions RÉELLEMENT présentes dans le calendrier ouvert
- * (pour ne proposer que des filtres utiles). Retour :
- *   ['disc' => [key => n], 'para' => bool, 'regions' => [code => n]]
+ * Disciplines and regions REALLY present in the open calendar (to offer useful filters
+ * only). Returns ['disc' => [key => n], 'para' => bool, 'regions' => [code => n]].
  */
 function bk_comp_facets()
 {
@@ -767,14 +751,14 @@ function bk_comp_facets()
         $d = bk_comp_discipline($r->ToType, $r->ToTypeSubRule, $r->ToTypeName);
         $disc[$d['key']] = ($disc[$d['key']] ?? 0) + 1;
         if ($d['para']) $para = true;
-        $code = strtoupper(substr((string) $r->ToCommitee, 0, 2));
+        $code = strtoupper(substr((string) $r->ToCommitee, 0, 2));   // bytes: ASCII agreement number
         if (preg_match('/^[0-9]{2}$/', $code)) $regions[$code] = ($regions[$code] ?? 0) + 1;
     }
     ksort($regions);
     return array('disc' => $disc, 'para' => $para, 'regions' => $regions);
 }
 
-/** Une compétition ouverte, pour la page de détail (null si absente/fermée). */
+/** One open competition, for the detail page (null when missing/closed). */
 function bk_comp_one($tourId)
 {
     bk_schema();
@@ -788,47 +772,45 @@ function bk_comp_one($tourId)
 }
 
 /**
- * Correspondance discipline → n° de blason ianseo (Common/Images/Targets/{id}.svg,
- * les mêmes visuels que ceux utilisés par ISK-ng et PlanQualifs). Les images
- * étant fournies par le cœur ianseo, elles sont toujours présentes.
+ * Discipline → ianseo face number (Common/Images/Targets/{id}.svg, the same pictures as
+ * ISK-ng and PlanQualifs). The images come with the ianseo core, so they are always there.
  *
- * ⚠️ Table à AJUSTER : identifiés de façon sûre 1 = blason couleur 10 zones (WA),
- * 20 = blason bleu/blanc (parcours), 8 = animal, 27 = Beursault. Salle / Nature /
- * Run restent des choix par défaut à confirmer. Surchargeable sans toucher au code
- * via config.local.json → "disc_face": {"salle": 12, ...}.
+ * Surely identified: 1 = 10-zone colour face (WA), 20 = blue/white face (courses), 8 = animal,
+ * 27 = Beursault. Indoor / Nature / Run are defaults to confirm. Can be changed without
+ * touching the code: config.local.json → "disc_face": {"salle": 12, ...}.
  */
 function bk_disc_face_id($key)
 {
     static $map = null;
     if (is_null($map)) {
         $map = array(
-            'ext'       => 1,    // blason couleur 10 zones (World Archery) — TAE
-            'salle'     => 2,    // blason 18 m
-            'campagne'  => 6,    // parcours campagne
-            'nature'    => 12,   // animal — encadré (voir bk_disc_icon) pour se distinguer du 3D
+            'ext'       => 1,    // 10-zone colour face (World Archery) — outdoor
+            'salle'     => 2,    // 18 m face
+            'campagne'  => 6,    // field course
+            'nature'    => 12,   // animal — framed (see bk_disc_icon) to differ from 3D
             '3d'        => 8,    // animal
             'run'       => 19,   // run archery
-            'beursault' => 27,   // cible Beursault
+            'beursault' => 27,   // Beursault target
         );
         $ov = function_exists('bk_local_config') ? (bk_local_config()['disc_face'] ?? array()) : array();
         foreach ($ov as $k => $v) {
             if (is_numeric($v)) $map[$k] = intval($v);
         }
     }
-    return $map[$key] ?? 0;   // 0.svg = blason « inconnu » (repli)
+    return $map[$key] ?? 0;   // 0.svg = "unknown" face (fallback)
 }
 
 /**
- * Pictogramme « piquet » COLORABLE, pour le PLAN DU TERRAIN des parcours (Campagne,
- * 3D, Nature) : ces disciplines n'ont pas de blason qui change selon la catégorie mais
- * des COULEURS DE PIQUET (rouge, bleu, blanc, rose). Brique réutilisable — passer la
- * couleur réglementaire du piquet. (Le CALENDRIER, lui, garde les blasons du cœur.)
+ * COLOURABLE peg picture, for the FIELD PLAN of courses (field, 3D, nature): these
+ * disciplines have no face changing with the category but PEG COLOURS (red, blue, white,
+ * pink). Reusable brick — pass the regulation colour of the peg. (The CALENDAR keeps the
+ * core's faces.)
  */
 function bk_piquet_svg($color = '#0254a8', $size = 22)
 {
     $s = intval($size);
     $c = htmlspecialchars($color, ENT_QUOTES);
-    // Piquet à sommet arrondi et base pointue plantée dans le sol, + reflet.
+    // Peg with a rounded top and a pointed base planted in the ground, + highlight.
     return '<svg class="bk-piquet" width="' . $s . '" height="' . $s . '" viewBox="0 0 24 24" '
          . 'role="img" aria-hidden="true">'
          . '<ellipse cx="12" cy="20.2" rx="6.4" ry="1.8" fill="#d9d2c4"/>'
@@ -837,52 +819,51 @@ function bk_piquet_svg($color = '#0254a8', $size = 22)
          . '</svg>';
 }
 
-/** Couleur para FFTA (contour des pastilles para). */
+/** Para colour of the federation (outline of the para badges). */
 function bk_color_para() { return '#A0006D'; }
 
 /**
- * Couleur FFTA d'une discipline (charte : voir CHARTE_GRAPHIQUE.md). $official=false
- * (compétition non officielle) → anthracite. Le para est un CONTOUR ajouté par-dessus
- * (bk_color_para), pas une couleur de remplissage.
+ * Federation colour of a discipline (see CHARTE_GRAPHIQUE.md). $official=false (unofficial
+ * competition) → charcoal. Para is an OUTLINE added on top (bk_color_para), not a fill.
  */
 function bk_disc_color($key, $official = true)
 {
-    if (!$official) return '#37414a';                     // anthracite — non officielle
+    if (!$official) return '#37414a';                     // charcoal — unofficial
     switch ($key) {
-        case 'ext': case 'salle':                 return '#3E62FF';   // cibles (TAE + 18 m)
-        case 'campagne': case '3d': case 'nature': return '#157A32';   // parcours (Campagne/3D/Nature)
-        case 'beursault':                          return '#D04A0B';   // traditionnel (Beursault)
+        case 'ext': case 'salle':                 return '#3E62FF';   // targets (outdoor + 18 m)
+        case 'campagne': case '3d': case 'nature': return '#157A32';   // courses (field/3D/nature)
+        case 'beursault':                          return '#D04A0B';   // traditional (Beursault)
         case 'run':                                return '#0F857C';   // run archery
-        default:                                   return '#37414a';   // inconnu → anthracite
+        default:                                   return '#37414a';   // unknown → charcoal
     }
 }
 
-/** Couleur (hex) d'un piquet d'après son nom (« Piquet Rouge/Bleu/Blanc/Rose »). */
+/** Colour (hex) of a peg from its name ("Piquet Rouge/Bleu/Blanc/Rose" in the ianseo setup). */
 function bk_peg_color($name)
 {
     $n = mb_strtolower((string) $name, 'UTF-8');
-    if (strpos($n, 'roug') !== false)  return '#d0342c';   // rouge
-    if (strpos($n, 'bleu') !== false)  return '#2b6cb0';   // bleu
-    if (strpos($n, 'blanc') !== false) return '#c9ced6';   // blanc (gris clair pour rester visible)
-    if (strpos($n, 'ros') !== false)   return '#e5679a';   // rose
-    if (strpos($n, 'noir') !== false)  return '#333a44';
-    if (strpos($n, 'jaune') !== false) return '#e8c33a';
-    return '#7a8b3a';                                       // repli (olive)
+    if (strpos($n, 'roug') !== false)  return '#d0342c';   // red
+    if (strpos($n, 'bleu') !== false)  return '#2b6cb0';   // blue
+    if (strpos($n, 'blanc') !== false) return '#c9ced6';   // white (light grey to stay visible)
+    if (strpos($n, 'ros') !== false)   return '#e5679a';   // pink
+    if (strpos($n, 'noir') !== false)  return '#333a44';   // black
+    if (strpos($n, 'jaune') !== false) return '#e8c33a';   // yellow
+    return '#7a8b3a';                                       // fallback (olive)
 }
 
-/** Pictogramme d'une discipline au calendrier : image de blason ianseo (ratio préservé). */
+/** Picture of a discipline in the calendar: ianseo face image (ratio kept). */
 function bk_disc_icon($key, $size = 22)
 {
     global $CFG;
     $src = $CFG->ROOT_DIR . 'Common/Images/Targets/' . bk_disc_face_id($key) . '.svg';
     $img = '<img class="bk-disc-img" src="' . htmlspecialchars($src, ENT_QUOTES)
          . '" width="' . intval($size) . '" height="' . intval($size) . '" alt="" loading="lazy">';
-    // Nature et 3D partagent des blasons animaux : un cadre rectangulaire marque le Nature.
+    // Nature and 3D share animal faces: a rectangular frame marks nature.
     if ($key === 'nature') return '<span class="bk-disc-frame">' . $img . '</span>';
     return $img;
 }
 
-/** Pictogramme « Para » (fauteuil), superposable en petit sur une tuile. */
+/** "Para" picture (wheelchair), small, on top of a tile. */
 function bk_disc_icon_para($size = 16)
 {
     return '<svg width="' . intval($size) . '" height="' . intval($size) . '" viewBox="0 0 24 24" '
@@ -892,14 +873,6 @@ function bk_disc_icon_para($size = 16)
 }
 
 /**
- * Capacité d'une compétition, départ par départ, lue dans la configuration
- * ianseo (Session) et l'occupation réelle (Qualifications).
- *
- * ⚠️ Qualifications n'a AUCUNE colonne de compétition : le comptage DOIT passer
- * par une jointure sur Entries (EnTournament), sinon il agrège les archers de
- * toutes les compétitions de la base.
- */
-/**
  * Places per departure above which the organiser is warned (admin/competition.php). To
  * check a target number, the core builds one UNION branch per place of the departure
  * (createAvailableTargetSQL): 9 999 targets × 8 = 80 000 branches, up to 10 minutes per
@@ -907,6 +880,13 @@ function bk_disc_icon_para($size = 16)
  */
 if (!defined('BK_BIG_SESSION_PLACES')) define('BK_BIG_SESSION_PLACES', 5000);
 
+/**
+ * Capacity of a competition, departure by departure, read from the ianseo setup (Session)
+ * and the real occupation (Qualifications).
+ *
+ * ⚠️ Qualifications has NO competition column: the count MUST go through a join on Entries
+ * (EnTournament), otherwise it adds up the archers of every competition of the database.
+ */
 function bk_comp_sessions($tourId)
 {
     $tourId = intval($tourId);
@@ -929,25 +909,24 @@ function bk_comp_sessions($tourId)
 }
 
 /**
- * Date/heure de début d'un départ : l'horaire de la distance 1 (DistanceInformation,
- * saisi dans ManSessions_kiss.php) en priorité, sinon SesDtStart. '' si non renseigné.
- * Retour : chaîne 'AAAA-MM-JJ HH:MM:SS' ou ''.
+ * Start date/time of a departure: the time of distance 1 (DistanceInformation, typed in
+ * ManSessions_kiss.php) first, else SesDtStart. Returns 'YYYY-MM-DD HH:MM:SS' or ''.
  */
 function bk_session_start($s)
 {
     foreach (array($s->SesStart ?? '', $s->SesDtStart ?? '') as $v) {
         $v = trim((string) $v);
-        if ($v !== '' && substr($v, 0, 10) !== '0000-00-00') return $v;
+        if ($v !== '' && substr($v, 0, 10) !== '0000-00-00') return $v;   // bytes: ASCII date
     }
     return '';
 }
 
 /**
- * Format et durée d'un départ, lus dans DistanceInformation. La durée est la valeur
- * RÉELLE saisie par l'organisateur (DistanceInformation.DiDuration, en minutes, portée
- * par la distance 1 mais représentant tout le départ — voir Scheduler / ManSessions).
- * JAMAIS estimée : 'min'=0 si elle n'est pas renseignée. 'fmt' = volées×flèches (info).
- * Retour : ['ends'=>int, 'fmt'=>'10×3 + 10×3', 'min'=>int].
+ * Format and duration of a departure, read from DistanceInformation. The duration is the
+ * REAL value typed by the organiser (DistanceInformation.DiDuration, in minutes, carried by
+ * distance 1 but standing for the whole departure — see Scheduler / ManSessions). NEVER
+ * estimated: 'min'=0 when not typed. 'fmt' = ends×arrows (information).
+ * Returns ['ends' => int, 'fmt' => '10×3 + 10×3', 'min' => int].
  */
 function bk_session_format($tourId, $sessionOrder)
 {
@@ -958,18 +937,18 @@ function bk_session_format($tourId, $sessionOrder)
     while ($r = safe_fetch($rs)) {
         $e = intval($r->DiEnds); $a = intval($r->DiArrows);
         if ($e > 0 && $a > 0) { $ends += $e; $fmt[] = $e . '×' . $a; }
-        if (intval($r->DiDistance) === 1) $min = intval($r->DiDuration);   // durée globale du départ
+        if (intval($r->DiDistance) === 1) $min = intval($r->DiDuration);   // duration of the whole departure
     }
     return array('ends' => $ends, 'fmt' => implode(' + ', $fmt), 'min' => max(0, $min));
 }
 
-/** Durée en 'Xh', 'XhYY' ou 'Z min' (français). '' si 0. */
+/** Duration as 'Xh', 'XhYY' or 'Z min'. '' when 0. */
 function bk_dur_hm($min)
 {
     $min = intval($min);
     if ($min <= 0) return '';
     $h = intdiv($min, 60); $m = $min % 60;
-    if ($h && $m) return $h . 'h' . str_pad($m, 2, '0', STR_PAD_LEFT);
+    if ($h && $m) return $h . 'h' . sprintf('%02d', $m);
     if ($h) return $h . 'h';
     return $m . ' min';
 }

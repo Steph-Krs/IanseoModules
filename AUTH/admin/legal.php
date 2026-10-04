@@ -1,11 +1,11 @@
 <?php
 /**
- * admin/legal.php — informations légales de l'exploitant du serveur (ADMIN uniquement).
+ * admin/legal.php — legal information of the server's operator (ADMIN only).
  *
- * L'exploitant saisit ici son identité, son hébergeur, ses contacts, etc. Le module
- * GÉNÈRE alors des mentions légales / CGU / politique de confidentialité / cookies
- * complètes (page publique legal.php). Chaque texte peut être SURCHARGÉ (zone libre) ;
- * laissé vide, le texte généré s'applique. Stockage : legal.local.json (non versionné).
+ * The operator types here their identity, their host, their contacts, etc. The module then
+ * GENERATES a complete legal notice / terms of use / privacy policy / cookies page (public
+ * page legal.php). Each text can be OVERRIDDEN (free area); left empty, the generated text
+ * applies. Storage: legal.local.json (not versioned).
  */
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
@@ -25,7 +25,7 @@ $ok = ''; $err = '';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!aut_csrf_check()) {
-        $err = 'Session expirée — réessayez.';
+        $err = aut_t('LoginSessionExpired');
     } else {
         $conf = aut_legal_conf();
         $op = array();
@@ -35,22 +35,24 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         foreach (array_keys($docs) as $k) $custom[$k] = trim((string) ($_POST['custom'][$k] ?? ''));
         $conf['custom'] = $custom;
         $ver = trim((string) ($_POST['version'] ?? '1'));
-        $conf['version'] = ($ver !== '') ? substr($ver, 0, 16) : '1';
+        $conf['version'] = ($ver !== '') ? mb_substr($ver, 0, 16) : '1';
         if (aut_legal_save($conf)) {
             CD_redirect($CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/legal.php?ok=1'); die();
         }
-        $err = "Écriture impossible (droits sur le fichier legal.local.json ?).";
+        $err = aut_t('AlWriteFailed');
     }
 }
-if (isset($_GET['ok'])) $ok = 'Informations légales enregistrées.';
+if (isset($_GET['ok'])) $ok = aut_t('AlSaved');
 
 $conf = aut_legal_conf();
 $op   = aut_legal_operator();
-$statuses = array('' => '—', 'particulier' => 'Particulier', 'association' => 'Association',
-    'société' => 'Société', 'structure publique' => 'Structure publique / fédérale');
+// The stored values stay those of the first version (French words): they are data, read back
+// as they are by the legal notice.
+$statuses = array('' => '—', 'particulier' => aut_t('AlStatusPerson'), 'association' => aut_t('AlStatusAssociation'),
+    'société' => aut_t('AlStatusCompany'), 'structure publique' => aut_t('AlStatusPublic'));
 
-// Suivi des acceptations de CGU (version courante). Les archers ne sont comptés que si la
-// table booking existe (module d'inscriptions installé).
+// Follow-up of the acceptances of the terms (current version). Archers are only counted when
+// the booking table exists (online registration installed).
 aut_legal_ensure_schema();
 $curVer = aut_legal_version();
 $cnt = function ($sql) { $r = safe_fetch(safe_r_sql($sql)); return $r ? intval($r->n) : 0; };
@@ -63,7 +65,7 @@ if ($hasArchers) {
     $arcTot = $cnt("SELECT COUNT(*) n FROM BK_Archers");
 }
 
-$PAGE_TITLE = 'Mentions légales & CGU';
+$PAGE_TITLE = aut_t('MenuLegal');
 include('Common/Templates/head.php');
 $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };
 ?>
@@ -90,84 +92,66 @@ $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };
 #aut-lg details.adv > summary { cursor:pointer; font-weight:600; color:#0254a8; margin:4px 0; }
 #aut-lg .warn { background:#fdf0ef; border:1px solid #e8b4ae; color:#8b1a1a; border-radius:6px; padding:10px 13px; font-size:13px; margin:0 0 14px; }
 </style>
+<?php
+$root = $e($CFG->ROOT_DIR);
+echo '<div id="aut-lg">' . "\n"
+    . '<h1>' . $e(aut_t('AlTitle')) . "</h1>\n"
+    . '<p class="lead">' . aut_t('AlLead') . "</p>\n";
+if ($ok)  echo '<div class="msg ok">' . $e($ok) . "</div>\n";
+if ($err) echo '<div class="msg err">' . $e($err) . "</div>\n";
+if (!aut_legal_configured()) echo '<div class="warn">⚠️ ' . aut_t('AlNotConfigured') . "</div>\n";
 
-<div id="aut-lg">
-<h1>Mentions légales &amp; CGU du serveur</h1>
-<p class="lead">Renseignez les informations de <b>l'exploitant de ce serveur</b>. Le service génère alors
-   automatiquement des <b>mentions légales, CGU, politique de confidentialité et page cookies</b> complètes,
-   affichées aux utilisateurs. Vous restez responsable de l'exactitude de ces informations — au besoin,
-   faites-les relire (juriste, DPO).</p>
+echo '<div class="sec">'
+    . '<h2>' . $e(aut_t('AlFollowUp', $curVer)) . '</h2>'
+    . '<p style="margin:0 0 6px; font-size:14px">'
+    . aut_t('AlOrgCount', array('ok' => intval($orgOk), 'total' => intval($orgTot)))
+    . ($hasArchers ? '<br>' . aut_t('AlArcCount', array('ok' => intval($arcOk), 'total' => intval($arcTot))) : '')
+    . '</p>'
+    . '<p class="help" style="margin:0">' . aut_t('AlDetail', '<a href="' . $root . 'Modules/Custom/AUTH/admin/">'
+        . $e(aut_t('MenuTitle') . ' › ' . aut_t('MenuUsers')) . '</a>') . '</p>'
+    . "</div>\n";
 
-<?php if ($ok): ?><div class="msg ok"><?= $e($ok) ?></div><?php endif; ?>
-<?php if ($err): ?><div class="msg err"><?= $e($err) ?></div><?php endif; ?>
+echo '<form method="post">' . aut_csrf_field() . "\n"
+    . '<div class="sec"><h2>' . $e(aut_t('AlOperator')) . "</h2>\n";
+foreach ($fields as $k => $f) {
+    $id = 'op_' . $e($k);
+    $name = 'op[' . $e($k) . ']';
+    echo '<label for="' . $id . '">' . $e($f[0]) . ($f[1] ? ' <span class="help">' . $e($f[1]) . '</span>' : '') . "</label>\n";
+    if ($k === 'status') {
+        echo '<select id="' . $id . '" name="' . $name . '">';
+        foreach ($statuses as $sv => $sl) {
+            echo '<option value="' . $e($sv) . '"' . ($op[$k] === $sv ? ' selected' : '') . '>' . $e($sl) . '</option>';
+        }
+        echo "</select>\n";
+    } elseif ($k === 'address' || $k === 'host_address') {
+        echo '<textarea id="' . $id . '" name="' . $name . '" rows="2">' . $e($op[$k]) . "</textarea>\n";
+    } else {
+        echo '<input type="text" id="' . $id . '" name="' . $name . '" value="' . $e($op[$k]) . "\">\n";
+    }
+}
+echo "</div>\n";
 
-<?php if (!aut_legal_configured()): ?>
-  <div class="warn">⚠️ Tant que <b>le nom de l'exploitant et un e-mail de contact</b> ne sont pas renseignés,
-     les pages légales sont incomplètes, un bandeau d'avertissement s'affiche <b>et l'acceptation des CGU n'est
-     pas encore demandée</b> aux utilisateurs (elle s'activera une fois ces informations saisies).</div>
-<?php endif; ?>
+echo '<div class="sec"><h2>' . $e(aut_t('AlVersionH')) . '</h2>'
+    . '<label for="version">' . $e(aut_t('AlVersionNo')) . ' <span class="help">' . $e(aut_t('AlVersionHelp')) . '</span></label>'
+    . '<input type="text" id="version" name="version" maxlength="16" style="max-width:160px" value="' . $e(aut_legal_version()) . '">'
+    . "</div>\n";
 
-<div class="sec">
-  <h2>Suivi des acceptations — CGU version <?= $e($curVer) ?></h2>
-  <p style="margin:0 0 6px; font-size:14px">
-    <b>Organisateurs</b> : <?= intval($orgOk) ?> / <?= intval($orgTot) ?> ont accepté la version courante.
-    <?php if ($hasArchers): ?><br><b>Archers</b> : <?= intval($arcOk) ?> / <?= intval($arcTot) ?> ont accepté la version courante.<?php endif; ?>
-  </p>
-  <p class="help" style="margin:0">Détail par organisateur (date/heure + version) dans
-    <a href="<?= $e($CFG->ROOT_DIR) ?>Modules/Custom/AUTH/admin/">Multi-comptes › Utilisateurs</a>, colonne « CGU ».
-    Chaque acceptation est aussi tracée (événement <code>CGU_ACCEPT</code>) dans le journal, avec sa date et son heure.</p>
-</div>
+echo '<div class="sec"><h2>' . $e(aut_t('AlGenerated')) . '</h2>'
+    . '<p class="help" style="margin:0 0 8px">' . $e(aut_t('AlPreview')) . '</p>'
+    . '<div class="prev">';
+foreach ($docs as $k => $d) {
+    echo '<a class="btn btn-2" href="' . $root . 'Modules/Custom/AUTH/legal.php?doc=' . $e($d[1]) . '" target="_blank" rel="noopener">' . $e($d[0]) . ' ↗</a>';
+}
+echo "</div>\n"
+    . '<details class="adv" style="margin-top:14px"><summary>' . $e(aut_t('AlOverride')) . '</summary>'
+    . '<p class="help" style="margin:6px 0">' . aut_t('AlOverrideHelp') . "</p>\n";
+foreach ($docs as $k => $d) {
+    echo '<label for="custom_' . $e($k) . '">' . $e($d[0]) . '</label>'
+        . '<textarea id="custom_' . $e($k) . '" name="custom[' . $e($k) . ']" rows="4" placeholder="' . $e(aut_t('AlOverridePh')) . '">'
+        . $e($conf['custom'][$k] ?? '') . "</textarea>\n";
+}
+echo "</details>\n</div>\n"
+    . '<p><button type="submit" class="btn">' . $e(aut_t('ShSave')) . "</button></p>\n"
+    . "</form>\n</div>\n";
 
-<form method="post">
-  <?= aut_csrf_field() ?>
-
-  <div class="sec">
-    <h2>Exploitant du serveur</h2>
-    <?php foreach ($fields as $k => $f): ?>
-      <label for="op_<?= $e($k) ?>"><?= $e($f[0]) ?><?php if ($f[1]): ?> <span class="help"><?= $e($f[1]) ?></span><?php endif; ?></label>
-      <?php if ($k === 'status'): ?>
-        <select id="op_<?= $e($k) ?>" name="op[<?= $e($k) ?>]">
-          <?php foreach ($statuses as $sv => $sl): ?>
-            <option value="<?= $e($sv) ?>" <?= $op[$k] === $sv ? 'selected' : '' ?>><?= $e($sl) ?></option>
-          <?php endforeach; ?>
-        </select>
-      <?php elseif ($k === 'address' || $k === 'host_address'): ?>
-        <textarea id="op_<?= $e($k) ?>" name="op[<?= $e($k) ?>]" rows="2"><?= $e($op[$k]) ?></textarea>
-      <?php else: ?>
-        <input type="text" id="op_<?= $e($k) ?>" name="op[<?= $e($k) ?>]" value="<?= $e($op[$k]) ?>">
-      <?php endif; ?>
-    <?php endforeach; ?>
-  </div>
-
-  <div class="sec">
-    <h2>Version des CGU</h2>
-    <label for="version">Numéro de version <span class="help">Changez-le pour redemander l'acceptation à tous les utilisateurs (ex. après une modification des CGU).</span></label>
-    <input type="text" id="version" name="version" maxlength="16" style="max-width:160px" value="<?= $e(aut_legal_version()) ?>">
-  </div>
-
-  <div class="sec">
-    <h2>Textes générés</h2>
-    <p class="help" style="margin:0 0 8px">Les quatre documents sont générés à partir des informations ci-dessus.
-       Prévisualisez-les :</p>
-    <div class="prev">
-      <?php foreach ($docs as $k => $d): ?>
-        <a class="btn btn-2" href="<?= $e($CFG->ROOT_DIR) ?>Modules/Custom/AUTH/legal.php?doc=<?= $e($d[1]) ?>" target="_blank" rel="noopener"><?= $e($d[0]) ?> ↗</a>
-      <?php endforeach; ?>
-    </div>
-
-    <details class="adv" style="margin-top:14px">
-      <summary>Surcharger un texte (avancé)</summary>
-      <p class="help" style="margin:6px 0">Laissez vide pour utiliser le texte généré. Un texte saisi ici
-         <b>remplace entièrement</b> le document correspondant (texte simple ; les lignes vides séparent les paragraphes).</p>
-      <?php foreach ($docs as $k => $d): ?>
-        <label for="custom_<?= $e($k) ?>"><?= $e($d[0]) ?></label>
-        <textarea id="custom_<?= $e($k) ?>" name="custom[<?= $e($k) ?>]" rows="4" placeholder="(vide = texte généré automatiquement)"><?= $e($conf['custom'][$k] ?? '') ?></textarea>
-      <?php endforeach; ?>
-    </details>
-  </div>
-
-  <p><button type="submit" class="btn">Enregistrer</button></p>
-</form>
-</div>
-
-<?php include('Common/Templates/tail.php'); ?>
+include('Common/Templates/tail.php');

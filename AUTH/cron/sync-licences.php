@@ -1,27 +1,27 @@
 <?php
 /**
- * Module AUTH — Synchronisation des licences FFTA par cron (CLI uniquement).
+ * AUTH module — synchronisation of the FFTA licences by cron (command line only).
  *
- * Télécharge parametres_ianseo.ffta depuis l'Espace Dirigeant avec un compte
- * de service (config.local.json → "licsync") et importe dans LookUpEntries.
- * Les organisateurs n'ont ainsi jamais à synchroniser eux-mêmes : la base de
- * rapprochement licenciés est maintenue à jour côté serveur.
+ * Downloads parametres_ianseo.ffta from the officers' space with a service account
+ * (config.local.json → "licsync") and imports it into LookUpEntries. The organisers thus
+ * never have to synchronise by themselves: the licensee lookup database is kept up to date
+ * on the server side.
  *
- * Flux d'import repris de l'intégration FR existante (FFTAAjax.php).
+ * Import flow taken from the existing French integration (FFTAAjax.php).
  *
- * crontab (tous les jours à 03h15) :
+ * crontab (every day at 03:15):
  *   15 3 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/sync-licences.php >> /var/log/ianseo-licsync.log 2>&1
  *
- * config.local.json (chmod 600) :
- *   { "licsync": { "username": "compte-service", "password": "…", "otp": "" } }
+ * config.local.json (chmod 600):
+ *   { "licsync": { "username": "service-account", "password": "…", "otp": "" } }
  */
 
 if (php_sapi_name() !== 'cli') {
     http_response_code(403);
-    die('Script cron : exécution en ligne de commande uniquement.');
+    die('Cron script: command line only.');
 }
 
-$SKIP_AUTH = 1;   // pas de bootstrap web en CLI
+$SKIP_AUTH = 1;   // no web bootstrap in CLI
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
@@ -32,44 +32,44 @@ require_once('Common/Lib/Fun_DateTime.inc.php');
 ini_set('memory_limit', '512M');
 
 function lic_log($msg) {
-    // Heure LOCALE (ianseo force PHP en UTC) — voir aut_log_time().
+    // LOCAL time (ianseo forces PHP to UTC) — see aut_log_time().
     echo '[' . aut_log_time() . '] ' . $msg . "\n";
 }
 
 function lic_fail($msg) {
-    lic_log('ERREUR : ' . $msg);
+    lic_log('ERROR: ' . $msg);
     aut_log('LICSYNC_FAIL', 'cron', 'cli');
     exit(1);
 }
 
 /**
- * Espace dirigeant en maintenance : ce n'est PAS une panne de la synchro. Journal
- * distinct (LICSYNC_SKIP) et sortie 0, pour ne pas déclencher d'alerte inutile —
- * le fichier fédéral de la veille reste en base, la nuit suivante rattrapera.
+ * Officers' space under maintenance: this is NOT a failure of the sync. Distinct log entry
+ * (LICSYNC_SKIP) and exit 0, not to raise a needless alarm — the federation file of the day
+ * before stays in the database, the next night will catch up.
  */
 function lic_skip($msg) {
-    lic_log('REPORTÉ : ' . $msg);
+    lic_log('POSTPONED: ' . $msg);
     aut_log('LICSYNC_SKIP', 'cron', 'cli');
     exit(0);
 }
 
-/* ---- Verrou anti-double-exécution ---- */
+/* ---- Lock against a double run ---- */
 $lock = fopen(__DIR__ . '/.sync.lock', 'c');
 if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
-    lic_fail('une synchronisation est déjà en cours.');
+    lic_fail('a synchronisation is already running.');
 }
 
-/* ---- Identifiants du compte de service ---- */
+/* ---- Credentials of the service account ---- */
 $cfg = aut_local_config()['licsync'] ?? array();
 $username = $cfg['username'] ?? '';
 $password = $cfg['password'] ?? '';
 $otp      = $cfg['otp'] ?? '';
 if ($username === '' || $password === '') {
-    lic_fail('identifiants absents de config.local.json (clé "licsync").');
+    lic_fail('credentials missing from config.local.json ("licsync" key).');
 }
 
-/* ---- Connexion + téléchargement ---- */
-lic_log('Connexion à l\'Espace Dirigeant FFTA…');
+/* ---- Sign-in + download ---- */
+lic_log('Signing in to the FFTA officers\' space…');
 $landing = '';
 $error = '';
 $errCode = '';
@@ -80,7 +80,7 @@ if (!$ch) {
     lic_fail($error);
 }
 
-lic_log('Authentifié. Téléchargement de parametres_ianseo.ffta…');
+lic_log('Signed in. Downloading parametres_ianseo.ffta…');
 curl_setopt_array($ch, array(
     CURLOPT_URL     => AUT_FFTA_BASE . '/ianseo/download/parametres_ianseo.ffta',
     CURLOPT_HTTPGET => true,
@@ -91,13 +91,14 @@ $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
 curl_close($ch);
 
-if (strpos($finalUrl, '/login') !== false) lic_fail('session expirée pendant le téléchargement (MFA sur le compte de service ?).');
-if (!$data || $http !== 200) lic_fail("téléchargement échoué (HTTP $http).");
-lic_log('Fichier reçu (' . number_format(strlen($data)) . ' octets).');
+if (strpos($finalUrl, '/login') !== false) lic_fail('session expired during the download (MFA on the service account?).');
+if (!$data || $http !== 200) lic_fail("download failed (HTTP $http).");
+// bytes: the size of a download
+lic_log('File received (' . number_format(strlen($data)) . ' bytes).');
 
 if ($u = @gzuncompress($data)) $data = $u;
 
-/* ---- Import (formats JSON ou tabulé 2.0, comme le set FR) ---- */
+/* ---- Import (JSON or tab-separated 2.0 formats, as the FR set) ---- */
 $archers = json_decode($data);
 if ($archers !== null) {
     $n = lic_import_json($archers);
@@ -105,21 +106,21 @@ if ($archers !== null) {
     $n = lic_import_tabulated($data);
 }
 unset($data, $archers);
-lic_log(number_format($n) . ' licenciés importés dans LookUpEntries.');
+lic_log(number_format($n) . ' licensees imported into LookUpEntries.');
 
-/* ---- Mise à jour des statuts pour les compétitions non terminées ---- */
+/* ---- Update of the statuses for the competitions not over yet ---- */
 $q = safe_r_sql("SELECT ToId, ToCode FROM Tournament WHERE ToWhenTo >= DATE_SUB(CURDATE(), INTERVAL 2 DAY)");
 while ($t = safe_fetch($q)) {
     lic_entries_check($t->ToId);
-    lic_log("Statuts mis à jour : {$t->ToCode}");
+    lic_log("Statuses updated: {$t->ToCode}");
 }
 
 aut_log('LICSYNC_OK', 'cron', 'cli');
 
-// Rétention des journaux (job quotidien canonique). Le bootstrap le fait aussi au plus 1×/jour.
-if (function_exists('aut_log_purge')) { aut_log_purge(); lic_log('Journaux purgés (rétention).'); }
+// Log retention (canonical daily job). The bootstrap also does it at most once a day.
+if (function_exists('aut_log_purge')) { aut_log_purge(); lic_log('Logs purged (retention).'); }
 
-lic_log('Synchronisation terminée.');
+lic_log('Synchronisation done.');
 flock($lock, LOCK_UN);
 exit(0);
 
@@ -156,30 +157,32 @@ function lic_import_tabulated($data) {
     $work = tempnam(sys_get_temp_dir(), 'lic_');
     file_put_contents($work, $data);
     $fp = fopen($work, 'r');
-    if (!$fp) { @unlink($work); lic_fail('fichier de travail illisible.'); }
+    if (!$fp) { @unlink($work); lic_fail('working file cannot be read.'); }
 
     $buf = fgets($fp);
-    if (!preg_match('/VERSION: [0-9]+\.[0-9]+/', $buf)) { fclose($fp); @unlink($work); lic_fail('format invalide (VERSION).'); }
+    if (!preg_match('/VERSION: [0-9]+\.[0-9]+/', $buf)) { fclose($fp); @unlink($work); lic_fail('invalid format (VERSION).'); }
     list(, $ver) = explode(':', $buf);
-    if (trim($ver) !== '2.0') { fclose($fp); @unlink($work); lic_fail('version de format incompatible : ' . trim($ver)); }
+    if (trim($ver) !== '2.0') { fclose($fp); @unlink($work); lic_fail('incompatible format version: ' . trim($ver)); }
 
     $buf = fgets($fp);
-    if (!preg_match('/DATE: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/', $buf)) { fclose($fp); @unlink($work); lic_fail('date invalide.'); }
+    if (!preg_match('/DATE: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/', $buf)) { fclose($fp); @unlink($work); lic_fail('invalid date.'); }
     $date = str_replace('DATE: ', '', trim($buf));
 
     $buf = rtrim(fgets($fp));
-    if (substr($buf, 0, 4) !== 'IOC:') { fclose($fp); @unlink($work); lic_fail('code IOC manquant.'); }
+    // bytes: an ASCII header of the federation file
+    if (substr($buf, 0, 4) !== 'IOC:') { fclose($fp); @unlink($work); lic_fail('IOC code missing.'); }
     $ioc = preg_replace('/[^A-Z0-9_]/', '', strtoupper(trim(str_replace('IOC:', '', $buf))));
     if (empty($ioc)) $ioc = 'FRA';
 
     $buf = fgets($fp);
-    if (!preg_match('/CLUBS/', $buf)) { fclose($fp); @unlink($work); lic_fail('section CLUBS manquante.'); }
+    if (!preg_match('/CLUBS/', $buf)) { fclose($fp); @unlink($work); lic_fail('CLUBS section missing.'); }
 
     safe_w_sql("DELETE FROM LookUpEntries WHERE LueIocCode='$ioc'");
     safe_w_BeginTransaction();
 
     $clubs = array();
     while (($buf = fgets($fp)) !== false) {
+        // bytes: removes the line feed
         $buf = substr($buf, 0, -1);
         if ($buf === 'ENTRIES') break;
         $row = explode("\t", $buf);
@@ -227,7 +230,7 @@ function lic_import_tabulated($data) {
     return $n;
 }
 
-/** Répercute les statuts de licence sur les inscriptions d'une compétition. */
+/** Passes the licence statuses on to the registrations of a competition. */
 function lic_entries_check($tid) {
     $tid = intval($tid);
     $now = date('Y-m-d H:i:s');

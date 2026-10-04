@@ -1,13 +1,12 @@
 <?php
 /**
- * admin/mandate.php — générateur de mandat de compétition (organisateur).
+ * admin/mandate.php — competition mandate generator (organiser).
  *
- * Deux rôles :
- *  1. Page de configuration (habillage ianseo) : template, couleur, logos à
- *     afficher, sections auto à masquer, blocs de texte libres.
- *  2. Aperçu imprimable (?print=1) : document HTML autonome mis aux couleurs
- *     choisies. Le rendu lui-même vit dans bk_mandate_document() (lib), mutualisé
- *     avec la vue publique consultée par les archers.
+ * Two roles:
+ *  1. Settings page (ianseo look): template, colour, logos to show, automatic sections to hide,
+ *     free text blocks.
+ *  2. Printable preview (?print=1): standalone HTML document in the chosen colours. The rendering
+ *     itself lives in bk_mandate_document() (lib), shared with the public view the archers read.
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -27,58 +26,57 @@ $TOUR = intval($_SESSION['TourId']);
 $cfg  = bk_comp_config($TOUR);
 $msg  = '';
 $err  = '';
+$self = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/mandate.php';
+$settingsUrl = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
-        $err = 'Session expirée — rechargez la page et réessayez.';
+        $err = bk_t('SessionExpired');
     } elseif (isset($_POST['set_visible'])) {
-        // Bascule visibilité par les archers (même effet que la case de « Ce que voient les
-        // archers »). Tri-état BcShowMandate : on écrit explicitement 1 ou 0. PRG (rechargement).
+        // Visibility to the archers (same effect as the box of "What the archers see"). Three
+        // states in BcShowMandate: 1 or 0 written explicitly. PRG (reload).
         $v = (intval($_POST['set_visible']) === 1) ? 1 : 0;
         safe_w_sql("UPDATE BK_Competitions SET BcShowMandate = $v WHERE BcTournament = $TOUR");
-        header('Location: ' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/mandate.php'
-            . ($v ? '?vis=1' : '?vis=0'));
+        header('Location: ' . $self . ($v ? '?vis=1' : '?vis=0'));
         exit;
     } else {
         bk_mandate_save($TOUR, bk_mandate_from_post($_POST));
         $cfg = bk_comp_config($TOUR);
-        $msg = 'Mandat enregistré.';
+        $msg = bk_t('AmSaved');
     }
 }
-if (isset($_GET['vis'])) $msg = $_GET['vis'] === '1'
-    ? 'Le mandat est désormais visible par les archers.'
-    : 'Le mandat est désormais masqué pour les archers.';
+if (isset($_GET['vis'])) $msg = bk_t($_GET['vis'] === '1' ? 'AmNowVisible' : 'AmNowHidden');
 
 $m    = bk_mandate_get($cfg);
 $data = bk_mandate_data($TOUR);
 
-// Visibilité par les archers (tri-état BcShowMandate ; jamais visible sans mandat).
+// Visibility to the archers (three states in BcShowMandate; never visible without a mandate).
 $hasMandate     = trim((string) ($cfg->BcMandate ?? '')) !== '';
 $mandateVisible = bk_mandate_visible($cfg);
 
 /* ================================================================== */
-/* Aperçu imprimable — délègue au rendu mutualisé (lib)               */
+/* Printable preview — the shared rendering does the work (lib)       */
 /* ================================================================== */
 if (!empty($_GET['print']) && $data) {
     $scheme = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
     $abs    = ($_SERVER['HTTP_HOST'] ?? '') ? $scheme . '://' . $_SERVER['HTTP_HOST'] : '';
     bk_mandate_document($data, $m, array(
-        // Organisateur : session ianseo ouverte → logos via TourLogo.php.
+        // Organiser: ianseo session open → logos through TourLogo.php.
         'logo'    => function ($type, $w) use ($CFG) {
             return $CFG->ROOT_DIR . 'Common/TourLogo.php?Type=' . $type . '&W=' . intval($w);
         },
         'regUrl'  => $abs . bk_public_url('competition.php?t=' . $TOUR),
         'shopUrl' => $abs . bk_public_url('shop.php?t=' . $TOUR),
-        'toolbar' => '<button type="button" class="mn-print" onclick="window.print()">Imprimer / enregistrer en PDF</button>'
-                   . '<a class="mn-close" href="' . bk_e($CFG->ROOT_DIR) . 'Modules/Custom/AUTH/booking/admin/mandate.php">Retour à la configuration</a>',
+        'toolbar' => '<button type="button" class="mn-print" onclick="window.print()">' . bk_e(bk_t('PrintOrPdf')) . '</button>'
+                   . '<a class="mn-close" href="' . bk_e($self) . '">' . bk_e(bk_t('AmBackSettings')) . '</a>',
     ));
     exit;
 }
 
 /* ================================================================== */
-/* Page de configuration                                              */
+/* Settings page                                                      */
 /* ================================================================== */
-$PAGE_TITLE = 'Mandat de compétition';
+$PAGE_TITLE = bk_t('MnuMandate');
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <style>
@@ -112,79 +110,56 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #bkadm .bk-vis.on  .bk-vis-state { color:#1a8a3f; }
 #bkadm .bk-vis.off .bk-vis-state { color:#c0392b; }
 </style>
+<?php
+$check = function ($name, $checked, $label, $extra = '', $cls = '') {
+    return '<label class="bk-check' . $cls . '"><input type="checkbox" name="' . bk_e($name) . '" value="1"'
+        . ($checked ? ' checked' : '') . $extra . '> ' . bk_e($label) . '</label>';
+};
+$select = function ($name, $list, $current) {
+    $o = '';
+    foreach ($list as $k => $lab) $o .= '<option value="' . bk_e($k) . '"' . ($current === $k ? ' selected' : '') . '>' . bk_e($lab) . '</option>';
+    return '<select id="' . $name . '" name="' . $name . '">' . $o . '</select>';
+};
 
-<div id="bkadm">
-<h1>Mandat de compétition</h1>
-<p style="font-size:13px"><a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/competition.php">← Inscriptions en ligne</a></p>
+$out = '<div id="bkadm"><h1>' . bk_e(bk_t('MnuMandate')) . '</h1>'
+    . '<p style="font-size:13px"><a href="' . $settingsUrl . '">← ' . bk_e(bk_t('Brand')) . '</a></p>'
+    . ($msg ? '<div class="bk-msg bk-ok">' . bk_e($msg) . '</div>' : '')
+    . ($err ? '<div class="bk-msg bk-err">' . bk_e($err) . '</div>' : '');
 
-<?php if ($msg): ?><div class="bk-msg bk-ok"><?= bk_e($msg) ?></div><?php endif; ?>
-<?php if ($err): ?><div class="bk-msg bk-err"><?= bk_e($err) ?></div><?php endif; ?>
+// Visibility to the archers.
+$out .= '<div class="bk-sec bk-vis ' . ($mandateVisible ? 'on' : 'off') . '"><h2 style="margin-bottom:6px">' . bk_e(bk_t('AmVisTitle')) . '</h2>';
+if (!$hasMandate) {
+    $out .= '<p style="margin:0;font-size:13px">' . bk_t('AmNotSaved') . '</p>';
+} else {
+    $out .= '<p style="margin:0 0 8px;font-size:14px">' . bk_e(bk_t('AmState')) . ' <b class="bk-vis-state">'
+        . bk_e(bk_t($mandateVisible ? 'AmVisible' : 'AmHidden')) . '</b> <span class="bk-hint" style="display:inline">'
+        . bk_e(bk_t('AmWhere')) . '</span></p>'
+        . '<form method="post" style="margin:0">' . bk_csrf_field()
+        . '<input type="hidden" name="set_visible" value="' . ($mandateVisible ? '0' : '1') . '">'
+        . '<button type="submit" class="bk-btn' . ($mandateVisible ? '' : ' bk-btn-primary') . '">'
+        . bk_e(bk_t($mandateVisible ? 'AmHideBtn' : 'AmShowBtn')) . '</button></form>';
+}
+$out .= '<p class="bk-hint" style="margin-top:8px">' . bk_t('AmSameBox', bk_e($settingsUrl)) . '</p></div>'
+    . '<p style="font-size:13px; color:#4c4e50; max-width:640px">' . bk_t('AmIntro') . '</p>';
 
-<div class="bk-sec bk-vis <?= $mandateVisible ? 'on' : 'off' ?>">
-  <h2 style="margin-bottom:6px">Visibilité par les archers</h2>
-  <?php if (!$hasMandate): ?>
-    <p style="margin:0;font-size:13px">Le mandat n'est pas encore enregistré. Configurez-le ci-dessous puis
-       cliquez <b>Enregistrer</b> : vous pourrez alors le rendre visible par les archers.</p>
-  <?php else: ?>
-    <p style="margin:0 0 8px;font-size:14px">
-      État actuel :
-      <b class="bk-vis-state"><?= $mandateVisible ? '👁️ visible par les archers' : '🚫 masqué (invisible pour les archers)' ?></b>
-      <span class="bk-hint" style="display:inline">— fiche compétition du calendrier + « Mes inscriptions »</span>
-    </p>
-    <form method="post" style="margin:0">
-      <?= bk_csrf_field() ?>
-      <input type="hidden" name="set_visible" value="<?= $mandateVisible ? '0' : '1' ?>">
-      <button type="submit" class="bk-btn <?= $mandateVisible ? '' : 'bk-btn-primary' ?>">
-        <?= $mandateVisible ? 'Masquer le mandat' : 'Rendre le mandat visible' ?></button>
-    </form>
-  <?php endif; ?>
-  <p class="bk-hint" style="margin-top:8px">Ce réglage est le même que la case
-     « Rendre le mandat consultable » de <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/competition.php">« Ce que voient les archers »</a>.</p>
-</div>
-
-<p style="font-size:13px; color:#4c4e50; max-width:640px">Le mandat est rempli automatiquement depuis la
-compétition (nom, dates, lieu, départs, catégories, tarifs, moyens de paiement). Choisissez un modèle et
-une couleur, cochez les sections à afficher, complétez les blocs de texte utiles, puis
-<b>Enregistrer</b>. « Aperçu / imprimer » ouvre le document prêt à imprimer (ou à enregistrer en PDF).</p>
-
-<form method="post">
-<?= bk_csrf_field() ?>
-
-<div class="bk-sec">
-  <h2>Modèles et couleur</h2>
-  <div class="bk-two">
-    <div>
-      <label for="template">Modèle du mandat</label>
-      <select id="template" name="template">
-        <?php foreach (bk_mandate_templates() as $k => $lab): ?>
-          <option value="<?= bk_e($k) ?>" <?= $m['template'] === $k ? 'selected' : '' ?>><?= bk_e($lab) ?></option>
-        <?php endforeach; ?>
-      </select>
-      <p class="bk-hint">Mise en page du document imprimable.</p>
-    </div>
-    <div>
-      <label for="share_template">Modèle du visuel de partage</label>
-      <select id="share_template" name="share_template">
-        <?php foreach (bk_share_templates() as $k => $lab): ?>
-          <option value="<?= bk_e($k) ?>" <?= $m['share_template'] === $k ? 'selected' : '' ?>><?= bk_e($lab) ?></option>
-        <?php endforeach; ?>
-      </select>
-      <p class="bk-hint">Image « J'y serai » que les inscrits partagent sur les réseaux.</p>
-    </div>
-  </div>
-
-  <label for="color">Couleur principale (commune au mandat et au visuel)</label>
-  <div class="bk-color-row">
-    <input type="color" id="color" name="color" value="<?= bk_e($m['color']) ?>">
-    <input type="text" id="colorhex" value="<?= bk_e($m['color']) ?>" maxlength="7"
-           style="width:110px; font-family:monospace" aria-label="Code couleur (hexadécimal)">
-    <span style="font-size:12px; color:#7d8183">choix libre ↑</span>
-    <?php foreach (array('#0254a8','#c0392b','#1a8a3f','#7d3c98','#d35400','#00838f','#e67e22','#20263d') as $sw): ?>
-      <span class="bk-swatch" style="background:<?= bk_e($sw) ?>" data-c="<?= bk_e($sw) ?>" title="<?= bk_e($sw) ?>"></span>
-    <?php endforeach; ?>
-  </div>
-  <p class="bk-hint">Choisissez une couleur (pastilles), une couleur personnalisée (sélecteur), ou saisissez
-     son code hexadécimal. Les nuances (fonds clairs, titres) en sont dérivées automatiquement.</p>
+// Templates and colour.
+$swatches = '';
+foreach (array('#0254a8', '#c0392b', '#1a8a3f', '#7d3c98', '#d35400', '#00838f', '#e67e22', '#20263d') as $sw) {
+    $swatches .= '<span class="bk-swatch" style="background:' . bk_e($sw) . '" data-c="' . bk_e($sw) . '" title="' . bk_e($sw) . '"></span>';
+}
+$out .= '<form method="post">' . bk_csrf_field()
+    . '<div class="bk-sec"><h2>' . bk_e(bk_t('AmTplTitle')) . '</h2><div class="bk-two">'
+    . '<div><label for="template">' . bk_e(bk_t('AmTplMandate')) . '</label>' . $select('template', bk_mandate_templates(), $m['template'])
+    . '<p class="bk-hint">' . bk_e(bk_t('AmTplMandateHint')) . '</p></div>'
+    . '<div><label for="share_template">' . bk_e(bk_t('AmTplShare')) . '</label>' . $select('share_template', bk_share_templates(), $m['share_template'])
+    . '<p class="bk-hint">' . bk_e(bk_t('AmTplShareHint')) . '</p></div></div>'
+    . '<label for="color">' . bk_e(bk_t('AmColour')) . '</label><div class="bk-color-row">'
+    . '<input type="color" id="color" name="color" value="' . bk_e($m['color']) . '">'
+    . '<input type="text" id="colorhex" value="' . bk_e($m['color']) . '" maxlength="7" style="width:110px; font-family:monospace" aria-label="' . bk_e(bk_t('AmHex')) . '">'
+    . '<span style="font-size:12px; color:#7d8183">' . bk_e(bk_t('AmFreeChoice')) . '</span>' . $swatches . '</div>'
+    . '<p class="bk-hint">' . bk_e(bk_t('AmColourHint')) . '</p>';
+echo $out;
+?>
   <script>
   (function () {
     var col = document.getElementById('color'), hex = document.getElementById('colorhex');
@@ -197,52 +172,28 @@ une couleur, cochez les sections à afficher, complétez les blocs de texte util
     });
   })();
   </script>
-</div>
-
-<div class="bk-sec">
-  <h2>Logos de la compétition</h2>
-  <p class="bk-hint" style="margin-top:0">Ce sont les images déjà téléversées dans ianseo
-     (<a href="<?= $CFG->ROOT_DIR ?>Tournament/ManLogo.php">Compétition › Logos</a>). Décochez pour ne pas les afficher.</p>
-  <?php
-  $logoLabels = array('L' => 'Logo haut-gauche', 'R' => 'Logo haut-droit', 'B' => 'Image du bas');
-  $has = $data
-      ? array('L' => intval($data['tour']->HasL), 'R' => intval($data['tour']->HasR), 'B' => intval($data['tour']->HasB))
-      : array('L' => 0, 'R' => 0, 'B' => 0);
-  foreach ($logoLabels as $k => $lab): $present = $has[$k] > 0; ?>
-    <label class="bk-check <?= $present ? '' : 'bk-disabled' ?>">
-      <input type="checkbox" name="logo_<?= $k ?>" value="1" <?= (!empty($m['logos'][$k]) && $present) ? 'checked' : '' ?> <?= $present ? '' : 'disabled' ?>>
-      <?= bk_e($lab) ?><?= $present ? '' : ' — aucune image téléversée' ?>
-    </label>
-  <?php endforeach; ?>
-</div>
-
-<div class="bk-sec">
-  <h2>Sections automatiques à afficher</h2>
-  <div class="bk-cols">
-    <?php foreach (bk_mandate_auto_sections() as $k => $lab): ?>
-      <label class="bk-check">
-        <input type="checkbox" name="show_<?= bk_e($k) ?>" value="1" <?= !empty($m['show'][$k]) ? 'checked' : '' ?>>
-        <?= bk_e($lab) ?>
-      </label>
-    <?php endforeach; ?>
-  </div>
-</div>
-
-<div class="bk-sec">
-  <h2>Blocs de texte libres</h2>
-  <p class="bk-hint" style="margin-top:0">Laissez vide un bloc pour ne pas l'afficher.</p>
-  <?php foreach (bk_mandate_sections() as $k => $lab): ?>
-    <label for="block_<?= bk_e($k) ?>"><?= bk_e($lab) ?></label>
-    <textarea id="block_<?= bk_e($k) ?>" name="block_<?= bk_e($k) ?>" maxlength="4000"><?= bk_e($m['blocks'][$k] ?? '') ?></textarea>
-  <?php endforeach; ?>
-</div>
-
-<p>
-  <button type="submit" class="bk-btn bk-btn-primary">Enregistrer</button>
-  &nbsp;
-  <a class="bk-btn" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/mandate.php?print=1" target="_blank" rel="noopener">Aperçu / imprimer ↗</a>
-</p>
-</form>
-</div>
-
-<?php include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php'); ?>
+<?php
+// Logos, automatic sections, free blocks.
+$out = '</div><div class="bk-sec"><h2>' . bk_e(bk_t('AmLogos')) . '</h2>'
+    . '<p class="bk-hint" style="margin-top:0">' . bk_t('AmLogosHint', bk_e($CFG->ROOT_DIR . 'Tournament/ManLogo.php')) . '</p>';
+$has = $data
+    ? array('L' => intval($data['tour']->HasL), 'R' => intval($data['tour']->HasR), 'B' => intval($data['tour']->HasB))
+    : array('L' => 0, 'R' => 0, 'B' => 0);
+foreach (array('L' => 'AmLogoL', 'R' => 'AmLogoR', 'B' => 'AmLogoB') as $k => $key) {
+    $present = $has[$k] > 0;
+    $out .= $check('logo_' . $k, !empty($m['logos'][$k]) && $present, bk_t($key) . ($present ? '' : ' — ' . bk_t('AmNoImage')),
+        $present ? '' : ' disabled', $present ? '' : ' bk-disabled');
+}
+$out .= '</div><div class="bk-sec"><h2>' . bk_e(bk_t('AmAutoTitle')) . '</h2><div class="bk-cols">';
+foreach (bk_mandate_auto_sections() as $k => $lab) $out .= $check('show_' . $k, !empty($m['show'][$k]), $lab);
+$out .= '</div></div><div class="bk-sec"><h2>' . bk_e(bk_t('AmBlocksTitle')) . '</h2>'
+    . '<p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('AmBlocksHint')) . '</p>';
+foreach (bk_mandate_sections() as $k => $lab) {
+    $out .= '<label for="block_' . bk_e($k) . '">' . bk_e($lab) . '</label>'
+        . '<textarea id="block_' . bk_e($k) . '" name="block_' . bk_e($k) . '" maxlength="4000">' . bk_e($m['blocks'][$k] ?? '') . '</textarea>';
+}
+$out .= '</div><p><button type="submit" class="bk-btn bk-btn-primary">' . bk_e(bk_t('AmSave')) . '</button> &nbsp; '
+    . '<a class="bk-btn" href="' . bk_e($self) . '?print=1" target="_blank" rel="noopener">' . bk_e(bk_t('AmPreview')) . '</a></p>'
+    . '</form></div>';
+echo $out;
+include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

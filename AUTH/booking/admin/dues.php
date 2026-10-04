@@ -30,11 +30,14 @@ $TOUR = intval($_SESSION['TourId']);
 // A newer version of this competition was imported: take the previous one's registrations
 // and payments over BEFORE anything is written here (a journal line makes it "already used").
 $adopted = bk_adopt_check($TOUR);
-$WHO = (string) ($_SESSION['AUTH_User'] ?? 'organisateur');
+$WHO = (string) ($_SESSION['AUTH_User'] ?? bk_t('DuOrganiser'));
+bk_money_tour($TOUR);   // amounts of this page in the competition's currency
 $SELF = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/dues.php';
 $methods = bk_payment_methods();
 
-function due_eur($n) { return number_format((float) $n, 2, ',', ' ') . ' €'; }
+function due_eur($n) { return bk_eur($n); }
+/** An amount for an input field: 2 decimals, the language's separator, no grouping. */
+function due_in($n) { return number_format((float) $n, 2, bk_number_seps()['dec'], ''); }
 function due_hm($dt) { return preg_match('/ (\d{2}:\d{2})/', (string) $dt, $m) ? $m[1] : ''; }
 
 /** Page URL with the given parameters (account, sort, message). */
@@ -49,8 +52,8 @@ function due_url($params = array())
 function due_name($a)
 {
     if ($a['name'] !== '') return $a['name'];
-    if ($a['account'] === 'ANON') return 'Archer(s) anonymisé(s)';
-    return $a['licence'] !== '' ? $a['licence'] : 'Sans licence';
+    if ($a['account'] === 'ANON') return bk_t('DuAnon');
+    return $a['licence'] !== '' ? $a['licence'] : bk_t('DuNoLicence');
 }
 
 $accounts = bk_accounts($TOUR);
@@ -75,7 +78,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         } else {
             $note = trim((string) ($_POST['note'] ?? ''));
             $id = bk_ledger_add($TOUR, $acc, $act === 'pay' ? 'payment' : 'refund', $amount, (string) ($_POST['method'] ?? ''),
-                (string) ($_POST['date'] ?? ''), $note !== '' ? $note : ($act === 'pay' ? 'Encaissement' : 'Remboursement'), $WHO);
+                (string) ($_POST['date'] ?? ''), $note !== '' ? $note : bk_t($act === 'pay' ? 'KindPayment' : 'KindRefund'), $WHO);
             $done = $id ? $act : 'amount';
         }
     } elseif ($act === 'cancel') {
@@ -99,30 +102,29 @@ if (($_GET['pdf'] ?? '') !== '') {
     if ($_GET['pdf'] === 'acc' && isset($accounts[$acc])) {
         $a = bk_account($TOUR, $acc);
         if ($a['name'] === '') $a['name'] = due_name($accounts[$acc]);
-        bk_ledger_pdf_send(bk_ledger_pdf_build($TOUR, 'Reçu', function ($pdf) use ($a) {
+        bk_ledger_pdf_send(bk_ledger_pdf_build($TOUR, bk_t('ReceiptTitle'), function ($pdf) use ($a) {
             bk_ledger_pdf_account($pdf, $a);
         }), 'recu-' . $acc . '.pdf');
     }
     $list = array_filter($accounts, function ($a) { return $a['due'] > 0 || $a['moves'] > 0; });
     uasort($list, function ($x, $y) { return strcasecmp(due_name($x), due_name($y)); });
     foreach ($list as $k => $a) $list[$k]['name'] = due_name($a);
-    bk_ledger_pdf_send(bk_ledger_pdf_build($TOUR, 'Paiements', function ($pdf) use ($list) {
-        bk_ledger_pdf_list($pdf, $list, 'Paiements', 'Situation au ' . bk_now_local_text());
-    }, false), 'paiements.pdf');
+    bk_ledger_pdf_send(bk_ledger_pdf_build($TOUR, bk_t('Payments'), function ($pdf) use ($list) {
+        bk_ledger_pdf_list($pdf, $list, bk_t('Payments'), bk_t('SituationOn', bk_now_local_text()));
+    }, false), 'payments.pdf');
 }
 
 $messages = array(
-    'csrf' => array('err', 'Session expirée — rechargez la page et réessayez.'),
-    'refund_done' => array('ok', 'Remboursement noté comme effectué.'),
-    'unknown' => array('err', 'Ce compte n\'existe pas sur cette compétition.'),
-    'amount' => array('err', 'Montant illisible : saisissez par exemple 12 ou 12,50.'),
-    'pay' => array('ok', 'Encaissement enregistré.'),
-    'refund' => array('ok', 'Remboursement enregistré.'),
-    'cancel' => array('ok', 'Mouvement annulé : une ligne d\'annulation a été ajoutée à l\'historique.'),
-    'cancel_no' => array('err', 'Ce mouvement est déjà annulé.'),
-    'club' => array('ok', 'Règlement du club enregistré : ' . intval($_GET['n'] ?? 0) . ' archer(s), '
-        . due_eur((float) ($_GET['tot'] ?? 0)) . '.'),
-    'club_none' => array('err', 'Rien n\'a été encaissé : aucun montant saisi pour les archers de ce club.'),
+    'csrf' => array('err', bk_t('SessionExpired')),
+    'refund_done' => array('ok', bk_t('DuRefundDoneMsg')),
+    'unknown' => array('err', bk_t('DuUnknownAcc')),
+    'amount' => array('err', bk_t('DuBadAmount', due_in(12.5))),
+    'pay' => array('ok', bk_t('DuPaySaved')),
+    'refund' => array('ok', bk_t('DuRefundSaved')),
+    'cancel' => array('ok', bk_t('DuCancelled')),
+    'cancel_no' => array('err', bk_t('DuAlreadyCancelled')),
+    'club' => array('ok', bk_t('DuClubSaved', array('n' => intval($_GET['n'] ?? 0), 'total' => due_eur((float) ($_GET['tot'] ?? 0))))),
+    'club_none' => array('err', bk_t('DuClubNone')),
 );
 $msg = $messages[(string) ($_GET['done'] ?? '')] ?? null;
 
@@ -170,15 +172,15 @@ function due_form($act, $acc, $amount, $method, $sort, $label)
     return '<form method="post" class="due-form">' . bk_csrf_field()
         . '<input type="hidden" name="act" value="' . $act . '"><input type="hidden" name="acc" value="' . bk_e($acc) . '">'
         . '<input type="hidden" name="sort" value="' . bk_e($sort) . '">'
-        . '<label>Montant <input type="text" name="amount" inputmode="decimal" size="7" value="'
-        . ($amount > 0 ? bk_e(number_format($amount, 2, ',', '')) : '') . '" required> €</label>'
-        . '<label>Moyen <select name="method">' . due_methods($method) . '</select></label>'
-        . '<label>Date <input type="date" name="date" value="' . bk_e($today) . '" max="' . bk_e($today) . '"></label>'
-        . '<label class="due-note">Note <input type="text" name="note" maxlength="120" placeholder="n° de chèque, reçu…"></label>'
+        . '<label>' . bk_e(bk_t('ColAmount')) . ' <input type="text" name="amount" inputmode="decimal" size="7" value="'
+        . ($amount > 0 ? bk_e(due_in($amount)) : '') . '" required> ' . bk_e(bk_currency(bk_money_tour())) . '</label>'
+        . '<label>' . bk_e(bk_t('ColMeans')) . ' <select name="method">' . due_methods($method) . '</select></label>'
+        . '<label>' . bk_e(bk_t('ColDate')) . ' <input type="date" name="date" value="' . bk_e($today) . '" max="' . bk_e($today) . '"></label>'
+        . '<label class="due-note">' . bk_e(bk_t('DuNote')) . ' <input type="text" name="note" maxlength="120" placeholder="' . bk_e(bk_t('DuNotePh')) . '"></label>'
         . '<button type="submit" class="due-btn' . ($act === 'refund' ? ' due-btn-warn' : '') . '">' . bk_e($label) . '</button></form>';
 }
 
-$PAGE_TITLE = 'Paiements';
+$PAGE_TITLE = bk_t('Payments');
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 echo '<style>
@@ -232,34 +234,26 @@ echo '<style>
 #bkdue tr.due-line td { border-top:none; border-bottom:none; font-size:12px; color:#4c4e50; padding-top:1px; padding-bottom:1px; }
 </style>';
 
-echo '<div id="bkdue"><h1>Paiements</h1><p class="due-sub">' . bk_e($tour->ToName ?? '') . ' — ' . count($rows)
-    . ' compte' . (count($rows) > 1 ? 's' : '') . ' · inscriptions en ligne et participants saisis dans ianseo, boutique comprise</p>';
+echo '<div id="bkdue"><h1>' . bk_e(bk_t('Payments')) . '</h1><p class="due-sub">' . bk_e($tour->ToName ?? '') . ' — '
+    . bk_e(bk_t(count($rows) > 1 ? 'DuAccountsMany' : 'DuAccountsOne', count($rows))) . ' · ' . bk_e(bk_t('DuScope')) . '</p>';
 
 if ($adopted && !empty($adopted['ok'])) {
-    echo '<div class="due-msg due-msg-info">Nouvelle version de la compétition importée : inscriptions en ligne et paiements '
-        . 'de la version précédente repris. Les écarts éventuels se tranchent dans <a href="'
-        . bk_e($CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php') . '">Inscriptions en ligne</a>.</div>';
+    echo '<div class="due-msg due-msg-info">' . bk_t('DuAdopted', bk_e($CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php')) . '</div>';
 }
 if ($msg) echo '<div class="due-msg due-msg-' . ($msg[0] === 'ok' ? 'ok' : 'err') . '">' . bk_e($msg[1]) . '</div>';
 
 $cfgUrl = bk_e($CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php');
 if (!bk_comp_payments_on($cfg)) {
-    echo '<div class="due-msg due-msg-info"><b>La gestion des paiements n\'est pas activée</b> pour cette compétition '
-        . 'fermée : les archers ne voient ni leur compte ni la boutique. Cochez « Utiliser la gestion des paiements et la '
-        . 'boutique » dans <a href="' . $cfgUrl . '">Inscriptions en ligne</a>.</div>';
+    echo '<div class="due-msg due-msg-info">' . bk_t('DuPayOff', $cfgUrl) . '</div>';
 } elseif ($noTariff) {
-    echo '<div class="due-msg due-msg-info"><b>Aucun tarif n\'est configuré pour cette compétition</b> : les inscriptions '
-        . 'valent 0 €. Le tarif se règle dans <a href="' . $cfgUrl . '">Inscriptions en ligne</a> — tarif de base dès '
-        . '« Inscriptions ouvertes », tarif par catégorie, départ, provenance et dégressif dans les réglages détaillés ou, '
-        . 'compétition fermée, une fois la gestion des paiements cochée. Les montants se recalculent aussitôt, ici comme '
-        . 'sur les reçus.</div>';
+    echo '<div class="due-msg due-msg-info">' . bk_t('DuNoTariff', array('zero' => bk_e(due_eur(0)), 'url' => $cfgUrl)) . '</div>';
 }
 
 echo '<div class="due-kpis">'
-    . '<div class="due-kpi"><b>' . due_eur($tot['due']) . '</b><span>Total dû</span></div>'
-    . '<div class="due-kpi"><b>' . due_eur($tot['paid']) . '</b><span>Encaissé (remboursements déduits)</span></div>'
-    . '<div class="due-kpi' . ($tot['remaining'] > 0.005 ? ' warn' : '') . '"><b>' . due_eur($tot['remaining']) . '</b><span>Reste à encaisser</span></div>'
-    . ($tot['over'] > 0.005 ? '<div class="due-kpi warn"><b>' . due_eur($tot['over']) . '</b><span>Trop-perçu à rendre</span></div>' : '')
+    . '<div class="due-kpi"><b>' . due_eur($tot['due']) . '</b><span>' . bk_e(bk_t('TotalDue')) . '</span></div>'
+    . '<div class="due-kpi"><b>' . due_eur($tot['paid']) . '</b><span>' . bk_e(bk_t('DuCollected')) . '</span></div>'
+    . '<div class="due-kpi' . ($tot['remaining'] > 0.005 ? ' warn' : '') . '"><b>' . due_eur($tot['remaining']) . '</b><span>' . bk_e(bk_t('DuToCollect')) . '</span></div>'
+    . ($tot['over'] > 0.005 ? '<div class="due-kpi warn"><b>' . due_eur($tot['over']) . '</b><span>' . bk_e(bk_t('DuOverToReturn')) . '</span></div>' : '')
     . '</div>';
 
 // Refunds owed after the server removed a paid registration (anonymisation of a licensee,
@@ -268,23 +262,20 @@ $refunds = bk_refunds_of($TOUR);
 if ($refunds) {
     $pending = array_filter($refunds, function ($f) { return !intval($f->BfDone); });
     echo '<div class="due-msg ' . ($pending ? 'due-msg-err' : 'due-msg-ok') . '">'
-        . '<b>' . ($pending ? 'Remboursement à faire' : 'Remboursements effectués') . '</b> — archer(s) retiré(s) de cette '
-        . 'compétition à la suite d\'une demande d\'anonymisation de ses données ; un paiement avait été enregistré. '
-        . 'Son nom n\'est plus connu du serveur : le club et le montant permettent de retrouver le règlement.'
+        . '<b>' . bk_e(bk_t($pending ? 'DuRefundToDo' : 'DuRefundsDone')) . '</b> — ' . bk_e(bk_t('DuRefundWhy'))
         . '<ul style="margin:6px 0 0 18px">';
     foreach ($refunds as $f) {
-        $what = 'Un archer du club <b>' . bk_e(trim($f->BfClubCode . ' ' . $f->BfClubName)) . '</b> : <b>'
-            . due_eur($f->BfAmount) . '</b>'
+        $what = bk_t('DuRefundLine', array('club' => bk_e(trim($f->BfClubCode . ' ' . $f->BfClubName)), 'amount' => bk_e(due_eur($f->BfAmount))))
             . (isset($methods[$f->BfMethod]) ? ' (' . bk_e($methods[$f->BfMethod]) . ')' : '')
-            . ' — signalé le ' . bk_e(bk_date_fr($f->BfCreated));
+            . ' — ' . bk_e(bk_t('DuReportedOn', bk_date_fr($f->BfCreated)));
         if (intval($f->BfDone)) {
-            echo '<li style="opacity:.75">' . $what . ' — remboursé le ' . bk_e(bk_date_fr($f->BfDoneAt))
+            echo '<li style="opacity:.75">' . $what . ' — ' . bk_e(bk_t('DuRefundedOn', bk_date_fr($f->BfDoneAt)))
                 . ($f->BfDoneBy !== '' ? ' (' . bk_e($f->BfDoneBy) . ')' : '') . '</li>';
         } else {
             echo '<li>' . $what . ' <form method="post" style="display:inline"'
-                . ' onsubmit="return confirm(\'Ce remboursement a-t-il été fait ?\')">' . bk_csrf_field()
+                . ' onsubmit="return confirm(' . htmlspecialchars(json_encode(bk_t('DuRefundConfirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')">' . bk_csrf_field()
                 . '<button type="submit" name="refund_done" value="' . intval($f->BfId) . '" class="due-btn due-btn-sm">'
-                . 'Remboursement effectué</button></form></li>';
+                . bk_e(bk_t('DuRefundDoneBtn')) . '</button></form></li>';
         }
     }
     echo '</ul></div>';
@@ -299,93 +290,92 @@ if ($open !== '' && isset($accounts[$open])) {
     $state = bk_account_state($acc);
     echo '<div class="due-panel" id="detail"><p style="float:right;margin:0">'
         . '<a class="due-btn due-btn-light" href="' . bk_e(due_url(array('a' => $open, 'pdf' => 'acc'))) . '" target="_blank">'
-        . '<img src="' . $CFG->ROOT_DIR . 'Common/Images/pdf_small.gif" alt="" style="vertical-align:middle"> Reçu</a> '
-        . '<a class="due-btn due-btn-light" href="' . bk_e(due_url(array('sort' => $sort))) . '">Fermer</a></p>'
+        . '<img src="' . $CFG->ROOT_DIR . 'Common/Images/pdf_small.gif" alt="" style="vertical-align:middle"> ' . bk_e(bk_t('ReceiptTitle')) . '</a> '
+        . '<a class="due-btn due-btn-light" href="' . bk_e(due_url(array('sort' => $sort))) . '">' . bk_e(bk_t('Close')) . '</a></p>'
         . '<h2 style="margin-top:0">' . bk_e(due_name($row)) . '</h2><p class="due-sub">'
-        . bk_e(implode(' · ', array_filter(array($row['licence'] !== '' ? 'Licence ' . $row['licence'] : '',
+        . bk_e(implode(' · ', array_filter(array($row['licence'] !== '' ? bk_t('LicenceX', $row['licence']) : '',
             trim($row['club_code'] . ' ' . $row['club_name']),
-            $row['decl'] !== '' ? 'Paiement prévu : ' . $row['decl'] : ''))))
+            $row['decl'] !== '' ? bk_t('DuPlanned', $row['decl']) : ''))))
         . '</p>';
 
-    echo '<div class="due-scroll"><table><tr><th>Consommation</th><th class="num">Montant</th></tr>';
+    echo '<div class="due-scroll"><table><tr><th>' . bk_e(bk_t('DuConsumption')) . '</th><th class="num">' . bk_e(bk_t('ColAmount')) . '</th></tr>';
     foreach ($acc['registrations'] as $r) {
-        echo '<tr><td><b>Inscription — départ ' . intval($r['session']) . '</b> — ' . bk_e($r['category'])
-            . ' <span class="due-mut">(' . ($r['online'] ? 'inscription en ligne' : 'saisi dans ianseo') . ')</span></td>'
+        echo '<tr><td><b>' . bk_e(bk_t('RegDepLine', intval($r['session']))) . '</b> — ' . bk_e($r['category'])
+            . ' <span class="due-mut">(' . bk_e(bk_t($r['online'] ? 'DuOnline' : 'DuInIanseo')) . ')</span></td>'
             . '<td class="num"><b>' . due_eur($r['price']) . '</b></td></tr>';
         foreach ($r['lines'] as $l) {
             echo '<tr class="due-line"><td>&nbsp;&nbsp;&nbsp;' . bk_e($l['label']) . '</td><td class="num">' . due_eur($l['amount']) . '</td></tr>';
         }
     }
     foreach ($acc['shop_lines'] as $s) {
-        echo '<tr><td>' . bk_e(($s['section'] !== '' ? $s['section'] : 'Boutique') . ' — ' . $s['label'])
+        echo '<tr><td>' . bk_e(($s['section'] !== '' ? $s['section'] : bk_t('Shop')) . ' — ' . $s['label'])
             . ' <span class="due-mut">' . intval($s['qty']) . ' × ' . due_eur($s['unit']) . '</span></td>'
             . '<td class="num">' . due_eur($s['amount']) . '</td></tr>';
     }
-    if (!$acc['registrations'] && !$acc['shop_lines']) echo '<tr><td colspan="2" class="due-mut">Rien de dû.</td></tr>';
-    echo '<tr class="tot"><td>Total dû</td><td class="num">' . due_eur($acc['due']) . '</td></tr></table></div>';
+    if (!$acc['registrations'] && !$acc['shop_lines']) echo '<tr><td colspan="2" class="due-mut">' . bk_e(bk_t('DuNothingDue')) . '</td></tr>';
+    echo '<tr class="tot"><td>' . bk_e(bk_t('TotalDue')) . '</td><td class="num">' . due_eur($acc['due']) . '</td></tr></table></div>';
 
-    echo '<h2>Historique</h2>';
+    echo '<h2>' . bk_e(bk_t('DuHistory')) . '</h2>';
     if (!$acc['moves']) {
-        echo '<p class="due-mut">Aucun mouvement.</p>';
+        echo '<p class="due-mut">' . bk_e(bk_t('DuNoMove')) . '</p>';
     } else {
-        echo '<div class="due-scroll"><table><tr><th>Date</th><th>Type</th><th>Moyen</th><th>Libellé</th>'
-            . '<th class="num">Montant</th><th>Saisi par</th><th></th></tr>';
+        echo '<div class="due-scroll"><table><tr><th>' . bk_e(bk_t('ColDate')) . '</th><th>' . bk_e(bk_t('ColKind')) . '</th><th>'
+            . bk_e(bk_t('ColMeans')) . '</th><th>' . bk_e(bk_t('ColLabel')) . '</th><th class="num">' . bk_e(bk_t('ColAmount')) . '</th><th>'
+            . bk_e(bk_t('DuEnteredBy')) . '</th><th></th></tr>';
         foreach ($acc['moves'] as $m) {
             $cancelled = intval($m->BlgCancelled) > 0;
             echo '<tr' . ($cancelled ? ' class="is-cancelled"' : '') . '><td>' . bk_e(bk_date_fr($m->BlgWhen)) . '</td>'
                 . '<td>' . bk_e($kinds[$m->BlgKind] ?? $m->BlgKind) . '</td>'
                 . '<td>' . bk_e($methods[$m->BlgMethod] ?? '') . '</td>'
-                . '<td>' . bk_e($m->BlgLabel) . (intval($m->BlgGroup) ? ' <span class="due-mut">(règlement groupé)</span>' : '') . '</td>'
+                . '<td>' . bk_e($m->BlgLabel) . (intval($m->BlgGroup) ? ' <span class="due-mut">(' . bk_e(bk_t('DuGrouped')) . ')</span>' : '') . '</td>'
                 . '<td class="num">' . due_eur($m->BlgAmount) . '</td>'
                 . '<td class="keep due-mut">' . bk_e($m->BlgBy) . ' — ' . bk_e(bk_date_fr($m->BlgCreated) . ' ' . due_hm($m->BlgCreated)) . '</td>'
                 . '<td class="keep">';
             if ($cancelled) {
-                echo '<span class="due-mut">annulé</span>';
+                echo '<span class="due-mut">' . bk_e(bk_t('CancelledWord')) . '</span>';
             } elseif ($m->BlgKind !== 'cancel') {
-                echo '<form method="post" onsubmit="return confirm(\'Annuler ce mouvement ? Une ligne d\\\'annulation sera ajoutée, '
-                    . 'l\\\'historique reste complet.\')">' . bk_csrf_field()
+                echo '<form method="post" onsubmit="return confirm(' . htmlspecialchars(json_encode(bk_t('DuCancelConfirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')">' . bk_csrf_field()
                     . '<input type="hidden" name="act" value="cancel"><input type="hidden" name="acc" value="' . bk_e($open) . '">'
                     . '<input type="hidden" name="id" value="' . intval($m->BlgId) . '">'
-                    . '<button type="submit" class="due-btn due-btn-light due-btn-sm">Annuler</button></form>';
+                    . '<button type="submit" class="due-btn due-btn-light due-btn-sm">' . bk_e(bk_t('CancelBtn')) . '</button></form>';
             }
             echo '</td></tr>';
         }
-        echo '<tr class="tot"><td colspan="4">Total payé</td><td class="num">' . due_eur($acc['paid']) . '</td><td colspan="2"></td></tr></table></div>';
+        echo '<tr class="tot"><td colspan="4">' . bk_e(bk_t('TotalPaid')) . '</td><td class="num">' . due_eur($acc['paid']) . '</td><td colspan="2"></td></tr></table></div>';
     }
 
     echo '<p style="font-size:16px;margin:12px 0 4px"><span class="due-state st-' . $state . '">'
         . bk_e(bk_account_state_label($state)) . '</span> '
-        . ($state === 'over' ? 'Trop-perçu : <b>' . due_eur(-$acc['remaining']) . '</b>'
-            : 'Reste à payer : <b>' . due_eur(max(0, $acc['remaining'])) . '</b>') . '</p>';
-    echo due_form('pay', $open, max(0, $acc['remaining']), $row['decl_method'], $sort, 'Encaisser');
+        . ($state === 'over' ? bk_e(bk_t('DuOverX')) . ' <b>' . due_eur(-$acc['remaining']) . '</b>'
+            : bk_e(bk_t('DuLeftX')) . ' <b>' . due_eur(max(0, $acc['remaining'])) . '</b>') . '</p>';
+    echo due_form('pay', $open, max(0, $acc['remaining']), $row['decl_method'], $sort, bk_t('DuCollect'));
     if ($acc['paid'] > 0.005) {
-        echo '<details class="due-box" style="margin-top:8px"' . ($state === 'over' ? ' open' : '') . '><summary>Rembourser</summary>'
-            . due_form('refund', $open, $state === 'over' ? -$acc['remaining'] : 0, '', $sort, 'Enregistrer le remboursement')
+        echo '<details class="due-box" style="margin-top:8px"' . ($state === 'over' ? ' open' : '') . '><summary>' . bk_e(bk_t('DuRefund')) . '</summary>'
+            . due_form('refund', $open, $state === 'over' ? -$acc['remaining'] : 0, '', $sort, bk_t('DuRefundSave'))
             . '</details>';
     }
     echo '</div>';
 }
 
 if (!$rows) {
-    echo '<p class="due-mut"><i>Aucun participant ni commande sur cette compétition pour l\'instant.</i></p>';
+    echo '<p class="due-mut"><i>' . bk_e(bk_t('DuNobody')) . '</i></p>';
 } else {
     // Settle for a club: the organiser picks the club, then the amount of each archer —
     // prefilled with what each one still owes; or the registrations only; or a total shared
     // out (registrations first). One line per archer, tied by a group number.
     if ($clubs) {
         $clubSel = (string) ($_GET['club'] ?? '');
-        $opts = '<option value="">— choisir —</option>';
+        $opts = '<option value="">' . bk_e(bk_t('ChooseDash')) . '</option>';
         foreach ($clubs as $code => $c) {
             $opts .= '<option value="' . bk_e($code) . '"' . ((string) $code === $clubSel ? ' selected' : '') . '>'
-                . bk_e(trim($code . ' ' . $c['name'])) . ' — ' . intval($c['count']) . ' archer' . ($c['count'] > 1 ? 's' : '')
-                . ', ' . due_eur($c['total']) . '</option>';
+                . bk_e(trim($code . ' ' . $c['name']) . ' — ' . bk_t($c['count'] > 1 ? 'DuArchersMany' : 'DuArchersOne', intval($c['count']))
+                . ', ' . due_eur($c['total'])) . '</option>';
         }
-        echo '<details class="due-box" id="club"' . ($clubSel !== '' ? ' open' : '') . '><summary>Encaisser pour un club</summary>'
-            . '<p class="due-mut" style="margin:6px 0">Un seul règlement pour plusieurs archers du club : chacun reçoit une ligne '
-            . 'du montant indiqué, reliée aux autres, qui s\'annule ensuite séparément si besoin.</p>'
+        echo '<details class="due-box" id="club"' . ($clubSel !== '' ? ' open' : '') . '><summary>' . bk_e(bk_t('DuClubTitle')) . '</summary>'
+            . '<p class="due-mut" style="margin:6px 0">' . bk_e(bk_t('DuClubHint')) . '</p>'
             . '<form method="get" action="#club" class="due-form"><input type="hidden" name="sort" value="' . bk_e($sort) . '">'
-            . '<label>Club <select name="club" onchange="this.form.submit()">' . $opts . '</select></label>'
-            . '<noscript><button type="submit" class="due-btn due-btn-light">Afficher</button></noscript></form>';
+            . '<label>' . bk_e(bk_t('Club')) . ' <select name="club" onchange="this.form.submit()">' . $opts . '</select></label>'
+            . '<noscript><button type="submit" class="due-btn due-btn-light">' . bk_e(bk_t('DuShow')) . '</button></noscript></form>';
         if ($clubSel !== '' && isset($clubs[$clubSel])) {
             $members = array_filter($rows, function ($a) use ($clubSel) {
                 return (string) $a['club_code'] === $clubSel && $a['remaining'] > 0.005;
@@ -399,75 +389,73 @@ if (!$rows) {
                     . '<td class="num">' . due_eur($a['remaining']) . '</td><td class="num">' . due_eur($p['reg']) . '</td>'
                     . '<td class="num">' . due_eur($p['shop']) . '</td>'
                     . '<td class="num"><input type="text" inputmode="decimal" size="7" class="due-amt" name="amt[' . bk_e($a['account']) . ']"'
-                    . ' value="' . bk_e(number_format($a['remaining'], 2, ',', '')) . '" data-rest="' . $a['remaining'] . '"'
-                    . ' data-reg="' . $p['reg'] . '" data-shop="' . $p['shop'] . '"> €</td></tr>';
+                    . ' value="' . bk_e(due_in($a['remaining'])) . '" data-rest="' . $a['remaining'] . '"'
+                    . ' data-reg="' . $p['reg'] . '" data-shop="' . $p['shop'] . '"> ' . bk_e(bk_currency($TOUR)) . '</td></tr>';
             }
-            echo '<form method="post" id="due-club" onsubmit="return confirm(\'Enregistrer ce règlement du club ?\')">' . bk_csrf_field()
+            echo '<form method="post" id="due-club" onsubmit="return confirm(' . htmlspecialchars(json_encode(bk_t('DuClubConfirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')">' . bk_csrf_field()
                 . '<input type="hidden" name="act" value="club"><input type="hidden" name="club" value="' . bk_e($clubSel) . '">'
                 . '<input type="hidden" name="sort" value="' . bk_e($sort) . '">'
-                . '<p class="due-fill" hidden>Pré-remplir : '
-                . '<button type="button" class="due-btn due-btn-light due-btn-sm" data-fill="rest">Tout le reste</button> '
-                . '<button type="button" class="due-btn due-btn-light due-btn-sm" data-fill="reg">Inscriptions seulement</button> '
-                . '<button type="button" class="due-btn due-btn-light due-btn-sm" data-fill="none">Vider</button>'
-                . ' &nbsp; ou répartir un total : <input type="text" inputmode="decimal" size="8" id="due-club-total" aria-label="Total à répartir"> € '
-                . '<button type="button" class="due-btn due-btn-light due-btn-sm" id="due-club-split">Répartir</button></p>'
-                . '<div class="due-scroll"><table><tr><th>Archer</th><th class="num">Reste à payer</th><th class="num">dont inscriptions</th>'
-                . '<th class="num">dont boutique</th><th class="num">Montant encaissé</th></tr>' . $lines
-                . '<tr class="tot"><td>Total</td><td class="num">' . due_eur($sum['rest']) . '</td><td class="num">' . due_eur($sum['reg']) . '</td>'
+                . '<p class="due-fill" hidden>' . bk_e(bk_t('DuPrefill')) . ' '
+                . '<button type="button" class="due-btn due-btn-light due-btn-sm" data-fill="rest">' . bk_e(bk_t('DuFillRest')) . '</button> '
+                . '<button type="button" class="due-btn due-btn-light due-btn-sm" data-fill="reg">' . bk_e(bk_t('DuFillReg')) . '</button> '
+                . '<button type="button" class="due-btn due-btn-light due-btn-sm" data-fill="none">' . bk_e(bk_t('DuFillNone')) . '</button>'
+                . ' &nbsp; ' . bk_e(bk_t('DuSplitLabel')) . ' <input type="text" inputmode="decimal" size="8" id="due-club-total" aria-label="' . bk_e(bk_t('DuSplitAria')) . '"> '
+                . bk_e(bk_currency($TOUR)) . ' <button type="button" class="due-btn due-btn-light due-btn-sm" id="due-club-split">' . bk_e(bk_t('DuSplit')) . '</button></p>'
+                . '<div class="due-scroll"><table><tr><th>' . bk_e(bk_t('ColArcher')) . '</th><th class="num">' . bk_e(bk_t('DuLeftCol')) . '</th><th class="num">'
+                . bk_e(bk_t('DuOfRegs')) . '</th><th class="num">' . bk_e(bk_t('DuOfShop')) . '</th><th class="num">' . bk_e(bk_t('DuCollectedCol')) . '</th></tr>' . $lines
+                . '<tr class="tot"><td>' . bk_e(bk_t('SsTotal')) . '</td><td class="num">' . due_eur($sum['rest']) . '</td><td class="num">' . due_eur($sum['reg']) . '</td>'
                 . '<td class="num">' . due_eur($sum['shop']) . '</td><td class="num" id="due-club-sum"></td></tr></table></div>'
                 . '<p class="due-msg due-msg-info" id="due-club-warn" hidden></p>'
-                . '<div class="due-form"><label>Moyen <select name="method">' . due_methods('') . '</select></label>'
-                . '<label>Date <input type="date" name="date" value="' . bk_e($today) . '" max="' . bk_e($today) . '"></label>'
-                . '<label class="due-note">Note <input type="text" name="note" maxlength="80" placeholder="n° de chèque…"></label>'
-                . '<button type="submit" class="due-btn">Encaisser pour le club</button></div>'
-                . '<p class="due-mut">Montant vide ou 0 : l\'archer n\'est pas concerné par ce règlement. Dans le reste dû, ce qui '
-                . 'a déjà été payé est compté sur les inscriptions d\'abord.</p></form>';
+                . '<div class="due-form"><label>' . bk_e(bk_t('ColMeans')) . ' <select name="method">' . due_methods('') . '</select></label>'
+                . '<label>' . bk_e(bk_t('ColDate')) . ' <input type="date" name="date" value="' . bk_e($today) . '" max="' . bk_e($today) . '"></label>'
+                . '<label class="due-note">' . bk_e(bk_t('DuNote')) . ' <input type="text" name="note" maxlength="80" placeholder="' . bk_e(bk_t('DuNoteClubPh')) . '"></label>'
+                . '<button type="submit" class="due-btn">' . bk_e(bk_t('DuClubCollect')) . '</button></div>'
+                . '<p class="due-mut">' . bk_e(bk_t('DuClubFoot')) . '</p></form>';
         } elseif ($clubSel !== '') {
-            echo '<p class="due-mut">Rien à payer pour ce club.</p>';
+            echo '<p class="due-mut">' . bk_e(bk_t('DuClubNothing')) . '</p>';
         }
         echo '</details>';
     }
 
     echo '<div class="due-filters" id="due-filters">'
-        . '<button type="button" class="on" data-f="all">Tous</button>'
-        . '<button type="button" data-f="open">À payer</button>'
-        . '<button type="button" data-f="settled">Soldés</button>'
-        . '<button type="button" data-f="over">Trop-perçu</button>'
-        . '<input type="search" id="due-q" placeholder="Nom, licence ou club" aria-label="Rechercher">'
+        . '<button type="button" class="on" data-f="all">' . bk_e(bk_t('DuFAll')) . '</button>'
+        . '<button type="button" data-f="open">' . bk_e(bk_t('StateDue')) . '</button>'
+        . '<button type="button" data-f="settled">' . bk_e(bk_t('DuFSettled')) . '</button>'
+        . '<button type="button" data-f="over">' . bk_e(bk_t('StateOver')) . '</button>'
+        . '<input type="search" id="due-q" placeholder="' . bk_e(bk_t('DuSearchPh')) . '" aria-label="' . bk_e(bk_t('DuSearch')) . '">'
         . '<a class="due-btn due-btn-light" style="margin-left:auto" href="' . bk_e(due_url(array('pdf' => 'list'))) . '" target="_blank">'
-        . '<img src="' . $CFG->ROOT_DIR . 'Common/Images/pdf_small.gif" alt="" style="vertical-align:middle"> Liste</a></div>';
+        . '<img src="' . $CFG->ROOT_DIR . 'Common/Images/pdf_small.gif" alt="" style="vertical-align:middle"> ' . bk_e(bk_t('DuList')) . '</a></div>';
 
     $th = function ($key, $label, $num = false) use ($sort) {
         return '<th' . ($num ? ' class="num"' : '') . '><a class="' . ($sort === $key ? 'on' : '') . '" href="'
             . bk_e(due_url(array('sort' => $key))) . '">' . bk_e($label) . '</a></th>';
     };
-    echo '<div class="due-scroll"><table id="due-table"><tr>' . $th('name', 'Archer') . $th('club', 'Club')
-        . '<th class="num">Départs</th>' . $th('due', 'Total dû', true) . '<th class="num">Payé</th>'
-        . $th('remaining', 'Reste', true) . '<th>État</th><th></th></tr>';
+    echo '<div class="due-scroll"><table id="due-table"><tr>' . $th('name', bk_t('ColArcher')) . $th('club', bk_t('Club'))
+        . '<th class="num">' . bk_e(bk_t('ColDeps')) . '</th>' . $th('due', bk_t('TotalDue'), true) . '<th class="num">' . bk_e(bk_t('ColPaid')) . '</th>'
+        . $th('remaining', bk_t('ColLeft'), true) . '<th>' . bk_e(bk_t('ColState')) . '</th><th></th></tr>';
     foreach ($rows as $a) {
         $state = bk_account_state($a);
         $filter = in_array($state, array('due', 'partial'), true) ? 'open' : ($state === 'none' ? 'settled' : $state);
         $search = mb_strtolower(due_name($a) . ' ' . $a['licence'] . ' ' . $a['club_code'] . ' ' . $a['club_name']);
         echo '<tr data-f="' . $filter . '" data-q="' . bk_e($search) . '"' . ($a['account'] === $open ? ' style="background:#eef4fb"' : '') . '>'
             . '<td>' . bk_e(due_name($a)) . ($a['licence'] !== '' ? ' <span class="due-mut">' . bk_e($a['licence']) . '</span>' : '')
-            . ($a['decl'] !== '' ? '<br><span class="due-mut">Prévu : ' . bk_e($a['decl']) . '</span>' : '') . '</td>'
+            . ($a['decl'] !== '' ? '<br><span class="due-mut">' . bk_e(bk_t('DuPlannedShort', $a['decl'])) . '</span>' : '') . '</td>'
             . '<td>' . bk_e($a['club_name'] !== '' ? $a['club_name'] : $a['club_code']) . '</td>'
             . '<td class="num">' . ($a['count'] ? intval($a['count']) : '') . '</td>'
-            . '<td class="num">' . due_eur($a['due']) . ($a['shop'] > 0 ? '<br><span class="due-mut">dont boutique ' . due_eur($a['shop']) . '</span>' : '') . '</td>'
+            . '<td class="num">' . due_eur($a['due']) . ($a['shop'] > 0 ? '<br><span class="due-mut">' . bk_e(bk_t('DuOfShopX', due_eur($a['shop']))) . '</span>' : '') . '</td>'
             . '<td class="num">' . due_eur($a['paid']) . '</td>'
             . '<td class="num"><b>' . due_eur($a['remaining']) . '</b></td>'
             . '<td><span class="due-state st-' . $state . '">' . bk_e(bk_account_state_label($state)) . '</span></td>'
             . '<td><a class="due-btn due-btn-sm' . ($state === 'due' || $state === 'partial' ? '' : ' due-btn-light') . '" href="'
             . bk_e(due_url(array('a' => $a['account'], 'sort' => $sort))) . '#detail">'
-            . ($state === 'due' || $state === 'partial' ? 'Encaisser' : 'Détail') . '</a></td></tr>';
+            . bk_e(bk_t($state === 'due' || $state === 'partial' ? 'DuCollect' : 'DuDetail')) . '</a></td></tr>';
     }
-    echo '<tr class="tot"><td colspan="3">Total — ' . count($rows) . ' compte' . (count($rows) > 1 ? 's' : '') . '</td>'
+    echo '<tr class="tot"><td colspan="3">' . bk_e(bk_t(count($rows) > 1 ? 'TotalAccountsMany' : 'TotalAccountsOne', count($rows))) . '</td>'
         . '<td class="num">' . due_eur($tot['due']) . '</td><td class="num">' . due_eur($tot['paid']) . '</td>'
         . '<td class="num">' . due_eur($tot['remaining'] - $tot['over']) . '</td><td colspan="2"></td></tr></table></div>';
-    echo '<p class="due-mut" style="margin-top:10px">Montants calculés avec le tarif de la compétition (base, catégorie, départ, '
-        . 'provenance, dégressif) pour chaque participant, inscrit en ligne ou saisi dans ianseo, plus la boutique. Un paiement '
-        . 'ne se modifie pas : il s\'annule, et l\'annulation reste dans l\'historique. L\'archer voit son reste à payer et '
-        . 'l\'historique dans son espace, et peut imprimer son reçu à tout moment. Ce n\'est pas une facture.</p>';
+    echo '<p class="due-mut" style="margin-top:10px">' . bk_e(bk_t('DuFoot')) . '</p>';
+    $seps = bk_number_seps();
+    $fmt = array('dec' => $seps['dec'], 'th' => $seps['thousands'], 'cur' => bk_currency($TOUR), 'over' => bk_t('DuSplitOver'));
 
     echo '<script>
 (function () {
@@ -496,8 +484,12 @@ if (!$rows) {
   var inputs = form.querySelectorAll("input.due-amt");
   var sumCell = document.getElementById("due-club-sum"), warn = document.getElementById("due-club-warn");
   function num(v) { v = parseFloat(String(v || "").replace(/\s| |€/g, "").replace(",", ".")); return isNaN(v) ? 0 : v; }
-  function eur(n) { return n.toFixed(2).replace(".", ",") + " €"; }
-  function put(inp, n) { inp.value = n > 0.004 ? n.toFixed(2).replace(".", ",") : ""; }
+  var F = ' . json_encode($fmt, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS) . ';
+  function eur(n) {
+    var p = Math.abs(n).toFixed(2).split(".");
+    return (n < 0 ? "−" : "") + p[0].replace(/\\B(?=(\\d{3})+(?!\\d))/g, F.th) + F.dec + p[1] + " " + F.cur;
+  }
+  function put(inp, n) { inp.value = n > 0.004 ? n.toFixed(2).replace(".", F.dec) : ""; }
   function refresh() {
     var t = 0; Array.prototype.forEach.call(inputs, function (i) { t += num(i.value); });
     sumCell.textContent = eur(t);
@@ -521,7 +513,7 @@ if (!$rows) {
     });
     Array.prototype.forEach.call(inputs, function (i, n) { put(i, got[n]); });
     warn.hidden = left <= 0.004;
-    warn.textContent = "Le total dépasse ce que doit le club de " + eur(left) + " : ajoutez-le à la main à l\'archer de votre choix.";
+    warn.textContent = F.over.split("{$a}").join(eur(left));
     refresh();
   });
   form.addEventListener("input", function (e) { if (e.target.classList.contains("due-amt")) refresh(); });

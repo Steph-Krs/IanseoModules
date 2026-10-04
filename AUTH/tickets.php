@@ -1,16 +1,19 @@
 <?php
 /**
- * Module AUTH — tickets.php
- * Dépôt d'un ticket (bug / demande d'évolution) par un organisateur connecté.
- * La gestion (tri, statut, suppression) se fait dans admin/tickets.php (ADMIN).
+ * AUTH module — tickets.php
+ * Filing of a ticket (bug / improvement request) by a signed-in organiser.
+ * Managing them (sorting, status, deletion) is done in admin/tickets.php (ADMIN).
+ *
+ * The wording shared with the competitor's page (booking/public/tickets.php) is read from the
+ * "booking" section of the language files, so it is translated once.
  */
 define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
 require_once(__DIR__ . '/lib.php');
 require_once('Common/Fun_FormatText.inc.php');
 
-// Réservé aux organisateurs connectés (ou console locale sans auth) — même
-// logique que la visibilité de l'entrée de menu, indépendante d'AUTH_ROOT.
+// Reserved to signed-in organisers (or the local console without authentication) — same logic
+// as the visibility of the menu entry, independent of AUTH_ROOT.
 if (empty($_SESSION['AUTH_User'])
     && !(empty($_SESSION['AUTH_ENABLE']) && isset($acl) && subFeatureAcl($acl, AclRoot, '') >= AclReadOnly)) {
     CD_redirect($CFG->ROOT_DIR . 'noAccess.php');
@@ -18,7 +21,10 @@ if (empty($_SESSION['AUTH_User'])
 }
 aut_ensure_schema();
 
-// Compétition concernée : celle que l'organisateur a ouverte, s'il y en a une (« Nom (Code) »).
+$tk = function ($key, $a = null) { return aut_text($key, $a, 'booking'); };
+$e = function ($s) { return htmlspecialchars((string) $s); };
+
+// Competition concerned: the one the organiser has open, if any ("Name (Code)").
 $openTour = '';
 $openTid = intval($_SESSION['TourId'] ?? 0);
 if ($openTid > 0) {
@@ -35,13 +41,13 @@ $body     = trim($_POST['body'] ?? '');
 $expected = trim($_POST['expected'] ?? '');
 $page     = trim($_POST['page'] ?? '');
 
-// Page concernée : pré-remplie depuis le référent si absente.
+// Page concerned: filled from the referrer when missing.
 if ($page === '' && !empty($_SERVER['HTTP_REFERER'])) {
     $p = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH);
     if ($p && stripos($p, '/tickets.php') === false) $page = $p;
 }
 
-// Identité du déposant (organisateur) : sert au dépôt ET à « Mes tickets ».
+// Identity of the author (organiser): used for the filing AND for "My tickets".
 $user = $_SESSION['AUTH_User'] ?? 'console';
 $role = '';
 if (isset($_SESSION['AUTH_ROLE'])) {
@@ -52,42 +58,42 @@ if (isset($_SESSION['AUTH_ROLE'])) {
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $tid = intval($_POST['tid'] ?? 0);
     if (!aut_csrf_check()) {
-        $err = 'Session expirée — merci de réessayer.';
+        $err = aut_t('TkSessionExpired');
         $editId = $tid;
     } elseif ($title === '' || $body === '') {
-        $err = 'Indiquez au moins un titre et une description.';
+        $err = $tk('TkNeedTitle');
         $editId = $tid;
-    } elseif ($tid > 0) {   // modification d'un ticket existant
+    } elseif ($tid > 0) {   // change of an existing ticket
         if (aut_ticket_update($tid, $user, 'org', $kind, $title, $body, $expected, $page)) {
-            // POST/Redirect/GET : un rafraîchissement ne re-poste rien.
+            // POST/Redirect/GET: a refresh posts nothing again.
             CD_redirect($CFG->ROOT_DIR . 'Modules/Custom/AUTH/tickets.php?ok=upd'); die();
         } else {
-            $err = "Ce ticket n'est plus modifiable (pris en charge ou clôturé).";
+            $err = $tk('TkLocked');
             $editId = 0;
         }
-    } else {                // nouveau dépôt
+    } else {                // new filing
         aut_ticket_add($kind, $title, $body, $expected, $page, $user, $role, 'org', $openTour);
         CD_redirect($CFG->ROOT_DIR . 'Modules/Custom/AUTH/tickets.php?ok=new'); die();
     }
 }
 
-// Message de confirmation après redirection (le contenu du POST n'est plus rejoué).
+// Confirmation after the redirection (the POST content is not replayed).
 if (isset($_GET['ok'])) {
-    if ($_GET['ok'] === 'upd') $ok = 'Votre ticket a été mis à jour.';
-    elseif ($_GET['ok'] === 'new') $ok = 'Votre ticket a bien été enregistré. Vous pouvez suivre son évolution ci-dessous.';
+    if ($_GET['ok'] === 'upd') $ok = $tk('TkUpdated');
+    elseif ($_GET['ok'] === 'new') $ok = aut_t('TkOrgSaved');
 }
 
-// Chargement d'un ticket dans le formulaire pour modification (GET ?edit=).
+// A ticket loaded into the form to be changed (GET ?edit=).
 if ($editId > 0 && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     $et = aut_ticket_get($editId);
     if (aut_ticket_editable($et, $user, 'org')) {
         $kind = $et->TkKind; $title = $et->TkTitle; $body = (string) $et->TkBody;
         $expected = (string) $et->TkExpected; $page = (string) $et->TkPage;
     } else {
-        $editId = 0;   // pas (ou plus) modifiable
+        $editId = 0;   // not (or no longer) editable
     }
 }
-// Libellé affiché : la compétition figée du ticket en édition, sinon celle ouverte maintenant.
+// Label shown: the competition frozen in the ticket being edited, otherwise the one open now.
 $tourLabel = ($editId > 0 && isset($et) && $et) ? (string) $et->TkTour : $openTour;
 
 $mine = aut_ticket_my($user, 'org');
@@ -95,7 +101,7 @@ $mine = aut_ticket_my($user, 'org');
 $isAdmin = !empty($_SESSION['AUTH_ROOT'])
     || (empty($_SESSION['AUTH_ENABLE']) && isset($acl) && subFeatureAcl($acl, AclRoot, '') == AclReadWrite);
 
-$PAGE_TITLE = 'Signaler un bug / proposer une évolution';
+$PAGE_TITLE = aut_t('BarReportTitle');
 include('Common/Templates/head.php');
 ?>
 <style>
@@ -149,121 +155,103 @@ include('Common/Templates/head.php');
 #aut-tk .aut-editing { background:#fff6e6; border:1px solid #e8b96a; color:#8a5a26; border-radius:6px;
     padding:8px 12px; margin:0 0 12px; font-size:13px; }
 </style>
+<?php
+$root = $CFG->ROOT_DIR;
+echo '<div id="aut-tk">' . "\n"
+    . '<h1>' . $e(aut_t('BarReportTitle')) . "</h1>\n"
+    . '<p class="aut-lead">' . $e($tk('TkIntro')) . "</p>\n";
 
-<div id="aut-tk">
-<h1>Signaler un bug / proposer une évolution</h1>
-<p class="aut-lead">Décrivez le plus précisément possible : plus votre demande est claire
-   (ce que vous attendez, le rendu souhaité), plus elle sera traitée rapidement.</p>
+if ($ok) {
+    echo '<div class="aut-msg aut-ok">' . $e($ok)
+        . ($isAdmin ? ' <a href="' . $root . 'Modules/Custom/AUTH/admin/tickets.php">' . $e(aut_t('TkSeeAll')) . '</a>.' : '')
+        . "</div>\n";
+}
+if ($err) echo '<div class="aut-msg aut-err">' . $e($err) . "</div>\n";
 
-<?php if ($ok): ?>
-  <div class="aut-msg aut-ok"><?= htmlspecialchars($ok) ?>
-    <?php if ($isAdmin): ?><a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/admin/tickets.php">Voir les tickets</a>.<?php endif; ?>
-  </div>
-<?php endif; ?>
-<?php if ($err): ?><div class="aut-msg aut-err"><?= htmlspecialchars($err) ?></div><?php endif; ?>
+echo '<form method="post" class="aut-card" id="autform">' . aut_csrf_field()
+    . '<input type="hidden" name="tid" value="' . intval($editId) . '">' . "\n";
+if ($editId) {
+    echo '<div class="aut-editing">' . $e($tk('TkEditing'))
+        . ' <a href="' . $root . 'Modules/Custom/AUTH/tickets.php">' . $e($tk('TkCancelEdit')) . "</a></div>\n";
+}
+echo '<label>' . $e($tk('TkKind')) . "</label>\n"
+    . '<div class="aut-kinds">'
+    . '<label class="aut-kind" data-kind="bug">'
+    . '<input type="radio" name="kind" value="bug"' . ($kind !== 'evolution' ? ' checked' : '') . '>'
+    . '<span><b>' . $e($tk('TkBug')) . '</b><span>' . $e($tk('TkBugHint')) . '</span></span></label>'
+    . '<label class="aut-kind" data-kind="evolution">'
+    . '<input type="radio" name="kind" value="evolution"' . ($kind === 'evolution' ? ' checked' : '') . '>'
+    . '<span><b>' . $e($tk('TkEvo')) . '</b><span>' . $e($tk('TkEvoHint')) . '</span></span></label>'
+    . "</div>\n"
+    . '<label for="tk-title" id="lab-title">' . $e($tk('TkShort')) . '</label>'
+    . '<input type="text" id="tk-title" name="title" maxlength="160" value="' . $e($title) . '" placeholder="' . $e($tk('TkShortPh')) . '">' . "\n"
+    . '<label for="tk-body" id="lab-body">' . $e($tk('TkDescription')) . '</label>'
+    . '<textarea id="tk-body" name="body" rows="4" maxlength="5000">' . $e($body) . '</textarea>'
+    . '<p class="aut-hint" id="hint-body"></p>' . "\n"
+    . '<label for="tk-expected" id="lab-expected">' . $e($tk('TkDetails')) . '</label>'
+    . '<textarea id="tk-expected" name="expected" rows="4" maxlength="5000">' . $e($expected) . '</textarea>'
+    . '<p class="aut-hint" id="hint-expected"></p>' . "\n"
+    . '<label for="tk-page">' . $e($tk('TkPage')) . ' <span class="aut-hint" style="font-weight:400">' . $e($tk('OptionalParen')) . '</span></label>'
+    . '<input type="text" id="tk-page" name="page" maxlength="255" value="' . $e($page) . '" placeholder="' . $e(aut_t('TkOrgPagePh')) . '">' . "\n";
+if ($tourLabel !== '') {
+    echo '<label>' . $e($tk('TkComp')) . '</label>'
+        . '<p class="aut-hint" style="margin:0;font-size:14px;color:#20263d">' . $e($tourLabel)
+        . ' <span class="aut-hint">(' . $e(aut_t('TkOrgOpenComp')) . ")</span></p>\n";
+}
+echo '<button type="submit" class="aut-btn">' . $e($tk($editId ? 'TkUpdateBtn' : 'TkSendBtn')) . "</button>\n"
+    . "</form>\n";
 
-<form method="post" class="aut-card" id="autform">
-  <?= aut_csrf_field() ?>
-  <input type="hidden" name="tid" value="<?= intval($editId) ?>">
+if ($mine) {
+    $statuses = aut_ticket_statuses();
+    $kinds = aut_ticket_kinds();
+    echo '<h2 class="aut-mine-h">' . $e($tk('TkMine')) . "</h2>\n" . '<div class="aut-mine">' . "\n";
+    foreach ($mine as $t) {
+        $st = $statuses[$t->TkStatus] ?? $t->TkStatus;
+        $stars = (int) round(intval($t->TkScore) / 20);
+        $starsHtml = '';
+        for ($i = 0; $i < 5; $i++) $starsHtml .= $i < $stars ? '★' : '<i>☆</i>';
+        echo '<div class="aut-mt aut-mt-' . $e($t->TkStatus) . '">'
+            . '<div class="aut-mt-head">'
+            . '<span class="aut-mt-kind">' . $e($kinds[$t->TkKind] ?? $t->TkKind) . '</span>'
+            . '<span class="aut-mt-date">' . $e(date('d/m/Y', strtotime($t->TkCreated))) . '</span>'
+            . '<span class="aut-mt-score" title="' . $e($tk('TkScoreTip')) . '">' . $starsHtml
+            . '<span class="aut-mt-score-n">' . intval($t->TkScore) . '/100</span></span>'
+            . '<span class="aut-mt-status aut-s-' . $e($t->TkStatus) . '">' . $e($st) . '</span>'
+            . '</div>'
+            . '<div class="aut-mt-title">' . $e($t->TkTitle) . '</div>';
+        if (trim((string) ($t->TkTour ?? '')) !== '') {
+            echo '<div class="aut-hint" style="margin-top:2px">🏆 ' . $e($t->TkTour) . '</div>';
+        }
+        if (trim((string) $t->TkResponse) !== '') {
+            echo '<div class="aut-mt-resp"><b>' . $e($tk('TkResponse')) . '</b> ' . nl2br($e($t->TkResponse)) . '</div>';
+        }
+        echo '<div class="aut-mt-act">'
+            . (aut_ticket_editable($t, $user, 'org')
+                ? '<a class="aut-mt-edit" href="' . $root . 'Modules/Custom/AUTH/tickets.php?edit=' . intval($t->TkId) . '">' . $e($tk('TkEditBtn')) . '</a>'
+                : '<span class="aut-mt-locked">' . $e($tk('TkNotEditable')) . '</span>')
+            . "</div></div>\n";
+    }
+    echo "</div>\n";
+}
 
-  <?php if ($editId): ?>
-    <div class="aut-editing">✎ Modification de votre ticket —
-      <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/tickets.php">annuler</a></div>
-  <?php endif; ?>
+echo '<p class="aut-back"><a href="' . $root . 'index.php">← ' . $e(aut_t('TkBack')) . "</a></p>\n"
+    . "</div>\n";
 
-  <label>Type de demande</label>
-  <div class="aut-kinds">
-    <label class="aut-kind" data-kind="bug">
-      <input type="radio" name="kind" value="bug" <?= $kind !== 'evolution' ? 'checked' : '' ?>>
-      <span><b>Bug</b><span>Quelque chose ne fonctionne pas comme prévu.</span></span>
-    </label>
-    <label class="aut-kind" data-kind="evolution">
-      <input type="radio" name="kind" value="evolution" <?= $kind === 'evolution' ? 'checked' : '' ?>>
-      <span><b>Évolution</b><span>Une amélioration ou une nouvelle fonctionnalité.</span></span>
-    </label>
-  </div>
-
-  <label for="tk-title" id="lab-title">Résumé court</label>
-  <input type="text" id="tk-title" name="title" maxlength="160" value="<?= htmlspecialchars($title) ?>"
-         placeholder="En une phrase">
-
-  <label for="tk-body" id="lab-body">Description</label>
-  <textarea id="tk-body" name="body" rows="4" maxlength="5000"><?= htmlspecialchars($body) ?></textarea>
-  <p class="aut-hint" id="hint-body"></p>
-
-  <label for="tk-expected" id="lab-expected">Précisions</label>
-  <textarea id="tk-expected" name="expected" rows="4" maxlength="5000"><?= htmlspecialchars($expected) ?></textarea>
-  <p class="aut-hint" id="hint-expected"></p>
-
-  <label for="tk-page">Page ou écran concerné <span class="aut-hint" style="font-weight:400">(facultatif)</span></label>
-  <input type="text" id="tk-page" name="page" maxlength="255" value="<?= htmlspecialchars($page) ?>"
-         placeholder="ex. Inscriptions en ligne, calendrier…">
-
-  <?php if ($tourLabel !== ''): ?>
-    <label>Compétition concernée</label>
-    <p class="aut-hint" style="margin:0;font-size:14px;color:#20263d"><?= htmlspecialchars($tourLabel) ?>
-      <span class="aut-hint">(compétition ouverte au moment du signalement)</span></p>
-  <?php endif; ?>
-
-  <button type="submit" class="aut-btn"><?= $editId ? 'Mettre à jour le ticket' : 'Envoyer le ticket' ?></button>
-</form>
-
-<?php if ($mine): ?>
-<h2 class="aut-mine-h">Mes tickets</h2>
-<div class="aut-mine">
-  <?php foreach ($mine as $t):
-      $st = aut_ticket_statuses()[$t->TkStatus] ?? $t->TkStatus;
-      $stars = (int) round(intval($t->TkScore) / 20);
-      $edit = aut_ticket_editable($t, $user, 'org'); ?>
-    <div class="aut-mt aut-mt-<?= htmlspecialchars($t->TkStatus) ?>">
-      <div class="aut-mt-head">
-        <span class="aut-mt-kind"><?= htmlspecialchars(aut_ticket_kinds()[$t->TkKind] ?? $t->TkKind) ?></span>
-        <span class="aut-mt-date"><?= htmlspecialchars(date('d/m/Y', strtotime($t->TkCreated))) ?></span>
-        <span class="aut-mt-score" title="Indice de précision : plus votre demande est détaillée, plus il monte">
-          <?php for ($i = 0; $i < 5; $i++) echo $i < $stars ? '★' : '<i>☆</i>'; ?>
-          <span class="aut-mt-score-n"><?= intval($t->TkScore) ?>/100</span></span>
-        <span class="aut-mt-status aut-s-<?= htmlspecialchars($t->TkStatus) ?>"><?= htmlspecialchars($st) ?></span>
-      </div>
-      <div class="aut-mt-title"><?= htmlspecialchars($t->TkTitle) ?></div>
-      <?php if (trim((string) ($t->TkTour ?? '')) !== ''): ?>
-        <div class="aut-hint" style="margin-top:2px">🏆 <?= htmlspecialchars($t->TkTour) ?></div>
-      <?php endif; ?>
-      <?php if (trim((string) $t->TkResponse) !== ''): ?>
-        <div class="aut-mt-resp"><b>Réponse :</b> <?= nl2br(htmlspecialchars($t->TkResponse)) ?></div>
-      <?php endif; ?>
-      <div class="aut-mt-act">
-        <?php if ($edit): ?>
-          <a class="aut-mt-edit" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/tickets.php?edit=<?= intval($t->TkId) ?>">Modifier / préciser</a>
-        <?php else: ?>
-          <span class="aut-mt-locked">Non modifiable (pris en charge ou clôturé)</span>
-        <?php endif; ?>
-      </div>
-    </div>
-  <?php endforeach; ?>
-</div>
-<?php endif; ?>
-
-<p class="aut-back"><a href="<?= $CFG->ROOT_DIR ?>index.php">← Retour</a></p>
-</div>
-
+$labels = array();
+foreach (array('bug' => 'Bug', 'evolution' => 'Evo') as $k => $p) {
+    $labels[$k] = array(
+        'title'        => $tk('Tk' . $p . 'Title'),
+        'body'         => $tk('Tk' . $p . 'Body'),
+        'bodyHint'     => $tk('Tk' . $p . 'BodyHint'),
+        'expected'     => $tk('Tk' . $p . 'Expected'),
+        'expectedHint' => $tk('Tk' . $p . 'ExpectedHint'),
+    );
+}
+echo '<script>var AUT_TK_LABELS = ' . json_encode($labels) . ";</script>\n";
+?>
 <script>
 (function () {
-  var LABELS = {
-    bug: {
-      title: 'Résumé court du problème',
-      body: 'Que se passe-t-il ?',
-      bodyHint: 'Ce que vous faisiez, ce qui s’est affiché, le message d’erreur éventuel.',
-      expected: 'Étapes pour reproduire / ce que vous attendiez',
-      expectedHint: 'Les étapes précises aident à retrouver le problème.'
-    },
-    evolution: {
-      title: 'Résumé court de votre idée',
-      body: 'Qu’aimeriez-vous ?',
-      bodyHint: 'Le besoin, l’objectif, le contexte d’usage.',
-      expected: 'Comment cela devrait fonctionner / quel rendu attendu ?',
-      expectedHint: 'Le plus important : décrivez le comportement ou l’affichage souhaité.'
-    }
-  };
+  var LABELS = AUT_TK_LABELS;
   function apply(kind) {
     var L = LABELS[kind] || LABELS.bug;
     document.getElementById('lab-title').textContent = L.title;
@@ -282,4 +270,5 @@ include('Common/Templates/head.php');
   apply(cur ? cur.value : 'bug');
 })();
 </script>
-<?php include('Common/Templates/tail.php'); ?>
+<?php
+include('Common/Templates/tail.php');

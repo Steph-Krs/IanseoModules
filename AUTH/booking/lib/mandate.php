@@ -1,16 +1,15 @@
 <?php
 /**
- * lib/mandate.php — mandat de compétition (document imprimable pour l'organisateur).
+ * lib/mandate.php — the competition's mandate (printable document of the organiser).
  *
- * Le mandat est du HTML imprimable (comme les reçus et feuilles de marque, pas un
- * PDF) : son contenu est REMPLI AUTOMATIQUEMENT depuis la compétition (nom, dates,
- * lieu, départs, catégories, tarifs, moyens de paiement), l'organisateur n'ajoutant
- * que des blocs de texte libres, un choix de template et une couleur. Pas de mise en
- * page libre, pas de traitement de texte — le cadre reste simple et cohérent.
+ * The mandate is printable HTML (like the score sheets, not a PDF): its content is FILLED IN
+ * AUTOMATICALLY from the competition (name, dates, place, departures, categories, tariffs,
+ * means of payment); the organiser only adds free text blocks, a template and a colour. No
+ * free layout, no word processor — the frame stays simple and consistent.
  *
- * Les logos (haut-gauche / haut-droit / bas) sont ceux déjà téléversés dans ianseo
- * (Tournament/ManLogo.php : colonnes ToImgL / ToImgR / ToImgB), servis par
- * Common/TourLogo.php — jamais redemandés au module.
+ * The logos (top left / top right / bottom) are those already uploaded in ianseo
+ * (Tournament/ManLogo.php: columns ToImgL / ToImgR / ToImgB), served by Common/TourLogo.php —
+ * never asked again by the module.
  */
 
 if (defined('BK_MANDATE_LOADED')) return;
@@ -23,81 +22,80 @@ require_once __DIR__ . '/payment.php';
 require_once __DIR__ . '/shop.php';
 require_once __DIR__ . '/ui.php';
 
-/** Templates disponibles : clé => libellé lisible. */
+/** Available templates: key => readable label. */
 function bk_mandate_templates()
 {
     return array(
-        'sobre'   => 'Sobre — titre centré, sections classiques',
-        'moderne' => 'Moderne — accent latéral coloré',
-        'bandeau' => 'Bandeau — en-tête pleine couleur',
-        'encadre' => 'Encadré — page entièrement bordée',
-        'ligne'   => 'Épuré — filets fins, titres espacés',
-        'compact' => 'Compact — dense, tient sur peu de pages',
+        'sobre'   => bk_t('MnTplSobre'),
+        'moderne' => bk_t('MnTplModerne'),
+        'bandeau' => bk_t('MnTplBandeau'),
+        'encadre' => bk_t('MnTplEncadre'),
+        'ligne'   => bk_t('MnTplLigne'),
+        'compact' => bk_t('MnTplCompact'),
     );
 }
 
 /**
- * Modèles du VISUEL PARTAGEABLE (share.php), distincts de ceux du mandat mais
- * pilotés par la MÊME couleur (identité commune). clé => libellé. Le rendu réel
- * (canvas) vit dans share.php — pour ajouter/modifier un modèle : ajouter une
- * clé ici ET son cas de dessin dans le switch de share.php.
+ * Templates of the SHAREABLE PICTURE (share.php), distinct from the mandate's but driven by
+ * the SAME colour (common identity). key => label. The drawing (canvas) lives in share.php —
+ * to add or change a template: add a key here AND its case in the switch of share.php.
  */
 function bk_share_templates()
 {
     return array(
-        'bandeau' => 'Bandeau — bande colorée en haut, fond clair',
-        'degrade' => 'Dégradé — fond plein dégradé, texte clair',
-        'encadre' => 'Encadré — fond clair, large bordure colorée',
-        'moitie'  => 'Deux tons — haut coloré, bas clair',
-        'epure'   => 'Épuré — fond blanc, filets fins',
+        'bandeau' => bk_t('ShTplBandeau'),
+        'degrade' => bk_t('ShTplDegrade'),
+        'encadre' => bk_t('ShTplEncadre'),
+        'moitie'  => bk_t('ShTplMoitie'),
+        'epure'   => bk_t('ShTplEpure'),
     );
 }
 
-/** Blocs de texte libres proposés (clé => libellé). Un bloc vide n'est pas affiché. */
+/** Free text blocks offered (key => label). An empty block is not shown. */
 function bk_mandate_sections()
 {
     return array(
-        'intro'    => 'Présentation / mot du club',
-        'access'   => 'Accès et parking',
-        'lodging'  => 'Hébergement',
-        'catering' => 'Restauration / buvette',
-        'awards'   => 'Récompenses',
-        'contact'  => 'Contact',
-        'misc'     => 'Informations complémentaires',
+        'intro'    => bk_t('MnSecIntro'),
+        'access'   => bk_t('MnSecAccess'),
+        'lodging'  => bk_t('MnSecLodging'),
+        'catering' => bk_t('MnSecCatering'),
+        'awards'   => bk_t('MnSecAwards'),
+        'contact'  => bk_t('MnSecContact'),
+        'misc'     => bk_t('MnSecMisc'),
     );
 }
 
-/** Sections auto-remplies pouvant être masquées (clé => libellé). */
+/** Automatic sections that can be hidden (key => label). */
 function bk_mandate_auto_sections()
 {
     return array(
-        'sessions'   => 'Départs et horaires',
-        'categories' => 'Armes et catégories',
-        'fees'       => 'Tarifs',
-        'payment'    => 'Moyens de paiement',
-        'shop'       => 'Boutique',
-        'register'   => 'Inscriptions en ligne',
+        'sessions'   => bk_t('MnSessions'),
+        'categories' => bk_t('MnCategories'),
+        'fees'       => bk_t('MnFees'),
+        'payment'    => bk_t('PayMeansTitle'),
+        'shop'       => bk_t('Shop'),
+        'register'   => bk_t('Brand'),
     );
 }
 
 /**
- * Configuration du mandat (depuis la colonne BcMandate, JSON), avec valeurs par
- * défaut robustes : une compétition jamais configurée produit un mandat correct.
+ * Settings of the mandate (from the BcMandate JSON column), with sound defaults: a competition
+ * never set up still gives a correct mandate.
  */
 function bk_mandate_get($cfg)
 {
-    // Défaut : toutes les sections auto affichées (y compris 'shop' — la clé DOIT
-    // venir de bk_mandate_auto_sections(), sinon une section ajoutée après coup
-    // ne serait jamais relue depuis le JSON — bug vécu sur la boutique).
+    // Default: every automatic section shown (including 'shop' — the key MUST come from
+    // bk_mandate_auto_sections(), otherwise a section added later would never be read back
+    // from the JSON — real bug on the shop).
     $show = array();
     foreach (bk_mandate_auto_sections() as $k => $_l) $show[$k] = 1;
     $d = array(
         'template'       => 'sobre',
-        'share_template' => 'bandeau',                  // modèle du visuel partageable (share.php)
-        'color'          => '#0254a8',                  // bleu FFTA par défaut (commun mandat + visuel)
+        'share_template' => 'bandeau',                  // template of the shareable picture (share.php)
+        'color'          => '#0254a8',                  // default blue (shared by mandate and picture)
         'logos'          => array('L' => 1, 'R' => 1, 'B' => 1),
         'show'           => $show,
-        'blocks'         => array(),                    // clé de section => texte libre
+        'blocks'         => array(),                    // section key => free text
     );
     $raw = is_object($cfg) ? ($cfg->BcMandate ?? null) : (is_array($cfg) ? ($cfg['BcMandate'] ?? null) : null);
     if ($raw) {
@@ -129,7 +127,7 @@ function bk_mandate_get($cfg)
     return $d;
 }
 
-/** Construit la config depuis un POST. Les champs sont validés/bornés ici. */
+/** Builds the settings from a POST. Fields are validated and limited here. */
 function bk_mandate_from_post($post)
 {
     $tpl = (string) ($post['template'] ?? 'sobre');
@@ -156,7 +154,7 @@ function bk_mandate_from_post($post)
                  'logos' => $logos, 'show' => $show, 'blocks' => $blocks);
 }
 
-/** Enregistre la config du mandat (JSON dans BcMandate). Préserve le reste de la ligne. */
+/** Saves the mandate's settings (JSON in BcMandate), leaving the rest of the row alone. */
 function bk_mandate_save($tourId, $data)
 {
     bk_schema();
@@ -168,8 +166,8 @@ function bk_mandate_save($tourId, $data)
 }
 
 /**
- * Palette dérivée d'une couleur primaire : teinte claire (fonds), teinte foncée
- * (titres) et couleur de texte lisible SUR la primaire (selon la luminance).
+ * Palette derived from a primary colour: light shade (backgrounds), dark shade (titles) and a
+ * text colour readable ON the primary (from its luminance).
  */
 function bk_mandate_palette($hex)
 {
@@ -180,15 +178,15 @@ function bk_mandate_palette($hex)
     $mix = function ($c, $target, $ratio) { return (int) round($c + ($target - $c) * $ratio); };
     $light = sprintf('#%02x%02x%02x', $mix($r, 255, 0.90), $mix($g, 255, 0.90), $mix($b, 255, 0.90));
     $dark  = sprintf('#%02x%02x%02x', $mix($r, 0, 0.30), $mix($g, 0, 0.30), $mix($b, 0, 0.30));
-    $lum   = 0.299 * $r + 0.587 * $g + 0.114 * $b;   // contraste du texte sur la primaire
+    $lum   = 0.299 * $r + 0.587 * $g + 0.114 * $b;   // contrast of the text on the primary
     return array('primary' => strtolower($hex), 'light' => $light, 'dark' => $dark,
                  'on' => ($lum > 150 ? '#20263d' : '#ffffff'));
 }
 
 /**
- * Données auto-remplies du mandat depuis la compétition. Retourne null si la
- * compétition n'existe pas. Ne suppose PAS que les inscriptions soient ouvertes
- * (l'organisateur peut préparer le mandat avant l'ouverture).
+ * Automatic data of the mandate, from the competition. null when the competition does not
+ * exist. Does NOT assume the registration is open (the organiser may prepare the mandate
+ * before opening it).
  */
 function bk_mandate_data($tourId)
 {
@@ -235,16 +233,16 @@ function bk_mandate_data($tourId)
 }
 
 /**
- * Le mandat est-il consultable par les archers ? Tri-état sur BcShowMandate :
- *  - NULL  (jamais choisi)  → visible dès qu'un mandat existe (défaut demandé) ;
- *  - 1                       → visible (si un mandat existe) ;
- *  - 0                       → masqué.
- * Jamais visible s'il n'y a pas de mandat (rien à montrer).
+ * May the archers read the mandate? Three states on BcShowMandate:
+ *  - NULL (never chosen) → visible as soon as a mandate exists (the requested default);
+ *  - 1                   → visible (when a mandate exists);
+ *  - 0                   → hidden.
+ * Never visible without a mandate (nothing to show).
  */
 function bk_mandate_visible($cfg)
 {
-    // Niveau 2 (publication simple) : le mandat est auto-rempli depuis les données et
-    // toujours publié, même sans configuration explicite (BcMandate peut être vide).
+    // Level 2 (simple publication): the mandate is filled from the data and always published,
+    // even without explicit settings (BcMandate may be empty).
     $lvl = intval(is_object($cfg) ? ($cfg->BcPublishLevel ?? 0) : (is_array($cfg) ? ($cfg['BcPublishLevel'] ?? 0) : 0));
     if ($lvl == 2) return true;
 
@@ -256,50 +254,50 @@ function bk_mandate_visible($cfg)
 }
 
 /**
- * Documents officiels ianseo relayables (opt-in de l'organisateur). Chaque entrée :
- * clé => ['label','icon','flag' (colonne BK_Competitions), 'script' (générateur du
- * cœur), 'params' (paramètres GET contrôlés)]. Les scripts sont des points d'entrée
- * PDF du cœur (Prn*.php) qui travaillent sur la session de compétition courante.
+ * Official ianseo documents that can be relayed (the organiser opts in). Each entry:
+ * key => ['label', 'icon', 'flag' (BK_Competitions column), 'script' (core generator), 'params'
+ * (controlled GET parameters)]. The scripts are PDF entry points of the core (Prn*.php) that
+ * work on the current competition session.
  */
 function bk_doc_defs()
 {
     return array(
         'program' => array(
-            'label' => 'Programme', 'icon' => '📋',
+            'label' => bk_t('DocProgram'), 'icon' => '📋',
             'flag' => 'BcShowProgram', 'has' => 'bk_has_program',
             'script' => 'Scheduler/PrnScheduler.php',
             'params' => array('Finalists' => '1', 'PageBreaks' => ''),
         ),
         'participants' => array(
-            'label' => 'Participants par club', 'icon' => '👥',
+            'label' => bk_t('DocByClub'), 'icon' => '👥',
             'flag' => 'BcShowParticipants', 'has' => 'bk_has_participants',
             'script' => 'Partecipants/PrnCountry.php', 'params' => array(),
         ),
         'participants_target' => array(
-            'label' => 'Participants par cible', 'icon' => '🎯',
+            'label' => bk_t('DocByTarget'), 'icon' => '🎯',
             'flag' => 'BcShowParticipants', 'has' => 'bk_has_placements',
             'script' => 'Partecipants/PrnSession.php', 'params' => array(),
         ),
-        // « Résultats » (case BcShowResults) se décline en plusieurs boutons selon
-        // l'avancement de la compétition ; chacun n'apparaît qu'avec sa matière.
+        // "Results" (BcShowResults box) gives several buttons depending on how far the
+        // competition went; each one only shows with its content.
         'qualifications' => array(
-            'label' => 'Résultats — Qualifications', 'icon' => '🏅',
+            'label' => bk_t('DocResQual'), 'icon' => '🏅',
             'flag' => 'BcShowResults', 'has' => 'bk_has_results',
             'script' => 'Qualification/PrnCompleteAbs.php', 'params' => array(),
         ),
-        // 'events' => 'ind'/'team' : le relais injecte la LISTE explicite des épreuves
-        // (bk_final_events) au lieu de « . » (toutes) — sans quoi le générateur imprime
-        // aussi les catégories SANS duel. On reproduit exactement le select id="IndividualEvents"
-        // / "TeamEvents" de Final/PrintOut.php (EvFinalFirstPhase != 0), option « tous » exclue.
+        // 'events' => 'ind'/'team': the relay passes the explicit LIST of events (bk_final_events)
+        // instead of "." (all) — otherwise the generator also prints the categories WITHOUT
+        // matches. Same as the select id="IndividualEvents" / "TeamEvents" of Final/PrintOut.php
+        // (EvFinalFirstPhase != 0), without the "all" option.
         'duels_ind' => array(
-            'label' => 'Résultats — Duels individuels', 'icon' => '🏹',
+            'label' => bk_t('DocResInd'), 'icon' => '🏹',
             'flag' => 'BcShowResults', 'has' => 'bk_has_ind_finals',
             'script' => 'Final/Individual/PrnIndividual.php', 'events' => 'ind',
             'params' => array('IncRankings' => '1', 'IncBrackets' => '1',
                               'ShowTargetNo' => '1', 'ShowSchedule' => '1', 'OrisABD' => 'AB'),
         ),
         'duels_team' => array(
-            'label' => 'Résultats — Matchs par équipe', 'icon' => '🏆',
+            'label' => bk_t('DocResTeam'), 'icon' => '🏆',
             'flag' => 'BcShowResults', 'has' => 'bk_has_team_finals',
             'script' => 'Final/Team/PrnTeam.php', 'events' => 'team',
             'params' => array('IncRankings' => '1', 'IncBrackets' => '1',
@@ -308,7 +306,7 @@ function bk_doc_defs()
     );
 }
 
-/** Y a-t-il au moins un participant inscrit sur cette compétition ? */
+/** At least one participant on this competition? */
 function bk_has_participants($tourId)
 {
     $r = safe_fetch(safe_r_sql("SELECT 1 FROM Entries
@@ -316,7 +314,7 @@ function bk_has_participants($tourId)
     return (bool) $r;
 }
 
-/** Y a-t-il au moins un résultat de qualification (score saisi) ? */
+/** At least one qualification result (score entered)? */
 function bk_has_results($tourId)
 {
     $r = safe_fetch(safe_r_sql("SELECT 1
@@ -326,10 +324,9 @@ function bk_has_results($tourId)
 }
 
 /**
- * Y a-t-il un programme à montrer ? Même logique que le planificateur du cœur
- * (Common/Lib/Fun_Scheduler.php) : soit un élément SAISI À LA MAIN dans le
- * planificateur (table Scheduler), soit un départ HORODATÉ (DistanceInformation
- * avec une date et une heure de début ou d'échauffement).
+ * Is there a programme to show? Same logic as the core's scheduler
+ * (Common/Lib/Fun_Scheduler.php): either an item TYPED in the scheduler (Scheduler table), or a
+ * TIMED departure (DistanceInformation with a date and a start or warm-up time).
  */
 function bk_has_program($tourId)
 {
@@ -341,7 +338,7 @@ function bk_has_program($tourId)
     return (bool) $r;
 }
 
-/** Au moins un archer placé sur une cible ? (pour la liste des participants PAR CIBLE) */
+/** At least one archer on a target? (for the participants BY TARGET list) */
 function bk_has_placements($tourId)
 {
     $r = safe_fetch(safe_r_sql("SELECT 1
@@ -351,10 +348,9 @@ function bk_has_placements($tourId)
 }
 
 /**
- * Des duels INDIVIDUELS ont-ils VRAIMENT été générés ? La table Finals contient la
- * STRUCTURE des grilles (lignes à FinAthlete=0) dès que les épreuves existent ; un
- * duel réel n'existe que quand un archer y est placé → exiger FinAthlete>0 (bug
- * vécu : la 722 avait 102 lignes Finals toutes vides, le bouton s'affichait à tort).
+ * Were INDIVIDUAL matches REALLY generated? Finals holds the bracket STRUCTURE (rows with
+ * FinAthlete=0) as soon as the events exist; a real match only exists once an archer is in it →
+ * FinAthlete>0 required (real bug: competition 722 had 102 empty Finals rows, the button showed).
  */
 function bk_has_ind_finals($tourId)
 {
@@ -363,7 +359,7 @@ function bk_has_ind_finals($tourId)
     return (bool) $r;
 }
 
-/** Des matchs par ÉQUIPE réellement générés ? (TeamFinals avec une équipe placée, TfTeam>0) */
+/** TEAM matches really generated? (TeamFinals with a team in it, TfTeam>0) */
 function bk_has_team_finals($tourId)
 {
     $r = safe_fetch(safe_r_sql("SELECT 1 FROM TeamFinals
@@ -372,10 +368,10 @@ function bk_has_team_finals($tourId)
 }
 
 /**
- * Épreuves (EvCode) proposées par le sélecteur d'impression des duels/matchs du cœur
- * (Final/PrintOut.php : select id="IndividualEvents"/"TeamEvents") — celles qui ont une
- * grille de finale (EvFinalFirstPhase != 0), à l'exclusion de l'option « tous » (« . »).
- * Les passer explicitement au générateur évite d'imprimer les catégories sans duel.
+ * Events (EvCode) offered by the core's print selector of the matches (Final/PrintOut.php:
+ * select id="IndividualEvents"/"TeamEvents") — those with a final bracket
+ * (EvFinalFirstPhase != 0), without the "all" option ("."). Passing them explicitly keeps
+ * the generator from printing the categories without matches.
  */
 function bk_final_events($tourId, $team)
 {
@@ -390,49 +386,48 @@ function bk_final_events($tourId, $team)
 }
 
 /**
- * Documents de la compétition consultables par les archers. Retour : liste de
- * ['key','label','icon','url', 'external'?]. Mandat (si visible) + lien ianseo.net
- * (si renseigné) + documents officiels ianseo dont l'organisateur a coché la case.
+ * Documents of the competition the archers may read. Returns a list of
+ * ['key', 'label', 'icon', 'url', 'external'?]: mandate (when visible) + ianseo.net link (when
+ * set) + the official ianseo documents whose box the organiser ticked.
  */
 function bk_docs_list($cfg, $tourId)
 {
     $tourId = intval($tourId);
     $out = array();
     if (bk_mandate_visible($cfg)) {
-        $out[] = array('key' => 'mandat', 'icon' => '📄', 'label' => 'Mandat de la compétition',
+        $out[] = array('key' => 'mandat', 'icon' => '📄', 'label' => bk_t('DocMandate'),
             'url' => bk_public_url('mandate.php?t=' . $tourId));
     }
     foreach (bk_doc_defs() as $key => $d) {
         $flag = $d['flag'];
         $on = is_object($cfg) ? ($cfg->$flag ?? 0) : (is_array($cfg) ? ($cfg[$flag] ?? 0) : 0);
         if (intval($on) !== 1) continue;
-        // Le document n'a de sens que s'il y a de la matière (bk_has_* du def) :
-        // pas de programme sans horaire, de participants sans inscrit, de résultats
-        // sans score, de duels sans grille générée.
+        // A document only makes sense with content (bk_has_* of the def): no programme
+        // without times, no participants without entries, no results without scores, no
+        // matches without a generated bracket.
         if (!empty($d['has']) && function_exists($d['has']) && !call_user_func($d['has'], $tourId)) continue;
         $out[] = array('key' => $key, 'icon' => $d['icon'], 'label' => $d['label'],
             'url' => bk_public_url('document.php?t=' . $tourId . '&doc=' . $key));
     }
     $url = trim((string) (is_object($cfg) ? ($cfg->BcIanseoUrl ?? '') : ($cfg['BcIanseoUrl'] ?? '')));
     if ($url !== '' && preg_match('#^https?://#i', $url)) {
-        $out[] = array('key' => 'ianseo', 'icon' => '🔗', 'label' => 'Fiche sur ianseo.net',
+        $out[] = array('key' => 'ianseo', 'icon' => '🔗', 'label' => bk_t('DocIanseo'),
             'url' => $url, 'external' => true);
     }
     return $out;
 }
 
 /**
- * Relais BORNÉ vers un générateur PDF officiel de ianseo. Le point sensible : les
- * générateurs du cœur exigent une session de compétition + une ACL organisateur.
- * On établit donc, LE TEMPS DE CETTE SEULE REQUÊTE et pour CETTE SEULE compétition :
- *  - la session de compétition (CreateTourSession, comme bk_with_tournament) ;
- *  - un droit de lecture BORNÉ à ce code (AUTH_COMP = [code]), JAMAIS AUTH_ROOT
- *    (voir authCheckACL : le grant vient de aut_code_allowed(code), pas d'un rôle
- *    admin) — donc le contexte élevé ne peut toucher aucune autre compétition.
- * La session ENTIÈRE de l'archer est sauvegardée puis restaurée (finally + filet
- * register_shutdown_function : un Output()/exit du script du cœur ne doit jamais
- * laisser l'archer avec un contexte élevé). L'appelant a DÉJÀ vérifié l'archer, le
- * tourId et la case d'autorisation.
+ * LIMITED relay to an official ianseo PDF generator. The sensitive point: the core's generators
+ * need a competition session and an organiser ACL. So, FOR THIS SINGLE REQUEST and THIS SINGLE
+ * competition, it sets:
+ *  - the competition session (CreateTourSession, like bk_with_tournament);
+ *  - a read right LIMITED to this code (AUTH_COMP = [code]), NEVER AUTH_ROOT (see authCheckACL:
+ *    the grant comes from aut_code_allowed(code), not from an admin role) — so the elevated
+ *    context cannot touch any other competition.
+ * The archer's WHOLE session is saved then restored (finally + register_shutdown_function as a
+ * net: an Output()/exit of the core script must never leave the archer elevated). The caller
+ * ALREADY checked the archer, the tourId and the permission box.
  */
 function bk_doc_relay($tourId, $code, $spec)
 {
@@ -446,22 +441,22 @@ function bk_doc_relay($tourId, $code, $spec)
     });
 
     try {
-        CreateTourSession($tourId);                 // vide la session, pose TourId/TourCode + réglages
-        $_SESSION['AUTH_User']   = '__doc_relay__'; // identité factice non nulle (grant conditionné au code)
+        CreateTourSession($tourId);                 // empties the session, sets TourId/TourCode + settings
+        $_SESSION['AUTH_User']   = '__doc_relay__'; // dummy non-empty identity (grant depends on the code)
         $_SESSION['AUTH_ENABLE'] = 1;
-        unset($_SESSION['AUTH_ROOT']);              // JAMAIS admin
-        $_SESSION['AUTH_COMP']   = array((string) $code);   // borne le droit à CETTE compétition
+        unset($_SESSION['AUTH_ROOT']);              // NEVER admin
+        $_SESSION['AUTH_COMP']   = array((string) $code);   // limits the right to THIS competition
 
         foreach ((array) ($spec['params'] ?? array()) as $k => $v) { $_GET[$k] = $v; $_REQUEST[$k] = $v; }
 
-        // Duels/matchs : liste explicite des épreuves ayant une grille (jamais « tous »,
-        // qui imprimerait aussi les catégories sans duel). Voir bk_final_events / bk_doc_defs.
+        // Matches: explicit list of the events with a bracket (never "all", which would also
+        // print the categories without matches). See bk_final_events / bk_doc_defs.
         if (!empty($spec['events'])) {
             $evs = bk_final_events($tourId, $spec['events'] === 'team');
             if ($evs) { $_GET['Event'] = $evs; $_REQUEST['Event'] = $evs; }
         }
 
-        include $CFG->DOCUMENT_PATH . $spec['script'];   // génère et streame le PDF officiel
+        include $CFG->DOCUMENT_PATH . $spec['script'];   // generates and streams the official PDF
     } finally {
         $_SESSION = $saved;
         $done = true;
@@ -470,13 +465,13 @@ function bk_doc_relay($tourId, $code, $spec)
 }
 
 /* ------------------------------------------------------------------ */
-/* Dossard (badge Qualification) — impression PAR ARCHER               */
+/* Bib (Qualification badge) — printed PER ARCHER                     */
 /* ------------------------------------------------------------------ */
 
 /**
- * Numéro du gabarit de dossard à utiliser : le PREMIER badge « Qualification »
- * (plus petit IcNumber) de la compétition — « le premier de la liste » (= 0 sur la
- * 185). null s'il n'y a aucun gabarit Q (rien à imprimer).
+ * Number of the bib template to use: the FIRST "Qualification" badge (lowest IcNumber) of the
+ * competition — "the first of the list" (0 on competition 185). null when there is no Q
+ * template (nothing to print).
  */
 function bk_dossard_card($tourId)
 {
@@ -485,7 +480,7 @@ function bk_dossard_card($tourId)
     return ($r && $r->n !== null) ? intval($r->n) : null;
 }
 
-/** Le dossard est-il proposé aux archers ? (opt-in ; ON d'office au niveau 2, comme le mandat). */
+/** Is the bib offered to the archers? (opt-in; always on at level 2, like the mandate) */
 function bk_dossard_visible($cfg)
 {
     $lvl = intval(is_object($cfg) ? ($cfg->BcPublishLevel ?? 0) : (is_array($cfg) ? ($cfg['BcPublishLevel'] ?? 0) : 0));
@@ -494,16 +489,16 @@ function bk_dossard_visible($cfg)
     return intval($flag) === 1;
 }
 
-/** Y a-t-il un dossard imprimable sur cette compétition ? (option activée ET gabarit Q présent). */
+/** Is there a printable bib on this competition? (option on AND a Q template) */
 function bk_dossard_available($cfg, $tourId)
 {
     return bk_dossard_visible($cfg) && bk_dossard_card($tourId) !== null;
 }
 
 /**
- * Inscriptions dont l'archer peut imprimer le dossard sur CETTE compétition : la
- * sienne (BrLicence = sa licence) OU celles qu'il a lui-même créées (BrArcher = lui,
- * inscription d'un camarade de son club). Une ligne par inscription (départ).
+ * Registrations whose bib the archer may print on THIS competition: their own (BrLicence = their
+ * licence) OR those they made (BrArcher = them, a club mate's registration). One row per
+ * registration (departure).
  */
 function bk_dossard_entries($tourId, $archer)
 {
@@ -525,8 +520,8 @@ function bk_dossard_entries($tourId, $archer)
 }
 
 /**
- * L'archer a-t-il le droit d'imprimer le dossard de cette inscription (EnId) ?
- * Retourne la ligne (BrTournament) si oui, null sinon. Défense contre un ?enid forgé.
+ * May the archer print the bib of this registration (EnId)? Returns the row (BrTournament) if so,
+ * null otherwise. Defence against a forged ?enid.
  */
 function bk_dossard_can($enId, $archer)
 {
@@ -538,10 +533,10 @@ function bk_dossard_can($enId, $archer)
 }
 
 /**
- * Relais BORNÉ vers le générateur de badge du cœur (Accreditation/CardCustom.php),
- * ciblant une ou PLUSIEURS inscriptions (Entries[] = liste d'EnId) avec le gabarit
- * Qualification $card. CardCustom.php remplit lui-même les emplacements de chaque A4
- * (« compléter les pages »). Même contexte élevé/borné que bk_doc_relay.
+ * LIMITED relay to the core's badge generator (Accreditation/CardCustom.php), for one or SEVERAL
+ * registrations (Entries[] = list of EnId) with the Qualification template $card. CardCustom.php
+ * fills the slots of each A4 itself ("fill the pages"). Same elevated, limited context as
+ * bk_doc_relay.
  */
 function bk_doc_relay_bib($tourId, $code, $enIds, $card)
 {
@@ -551,21 +546,20 @@ function bk_doc_relay_bib($tourId, $code, $enIds, $card)
         'params' => array(
             'CardType'   => 'Q',
             'CardNumber' => intval($card),
-            'Entries'    => $enIds,   // filtre EnId in (...) dans CommonCard.php
+            'Entries'    => $enIds,   // EnId in (...) filter in CommonCard.php
         ),
     ));
 }
 
 /**
- * Ordre de remplissage des emplacements du dossard : GAUCHE→DROITE puis HAUT→BAS.
+ * Filling order of the bib slots: LEFT→RIGHT then TOP→BOTTOM.
  *
- * CardCustom.php remplit les emplacements dans l'ordre des offsets du gabarit
- * (Badges[0] = premier OffsetX × premier OffsetY). Certains gabarits ont un OffsetX
- * « à l'envers » (ex. la 185 : « 105;0 » → première case en haut à DROITE), si bien
- * qu'un dossard seul tombe en haut à droite. On TRIE les offsets en ordre croissant :
- * les positions restent identiques (une page pleine est inchangée), seul l'ORDRE de
- * remplissage devient naturel → un dossard seul se place en haut à gauche, plusieurs
- * remplissent depuis le haut-gauche. Idempotent (ne réécrit que si nécessaire).
+ * CardCustom.php fills the slots in the order of the template's offsets (Badges[0] = first
+ * OffsetX × first OffsetY). Some templates have a "reversed" OffsetX (e.g. competition 185:
+ * "105;0" → first slot top RIGHT), so a single bib lands top right. The offsets are SORTED
+ * ascending: the positions stay the same (a full page is unchanged), only the filling ORDER
+ * becomes natural → a single bib goes top left, several fill from the top left. Idempotent
+ * (writes only when needed).
  */
 function bk_dossard_normalize_layout($tourId, $card)
 {
@@ -585,7 +579,7 @@ function bk_dossard_normalize_layout($tourId, $card)
     };
     $nx = $sortAxis($o['OffsetX']);
     $ny = $sortAxis($o['OffsetY']);
-    if ($nx === (string) $o['OffsetX'] && $ny === (string) $o['OffsetY']) return;   // déjà naturel
+    if ($nx === (string) $o['OffsetX'] && $ny === (string) $o['OffsetY']) return;   // already natural
 
     $o['OffsetX'] = $nx;
     $o['OffsetY'] = $ny;
@@ -594,17 +588,15 @@ function bk_dossard_normalize_layout($tourId, $card)
 }
 
 /**
- * Rend le document HTML AUTONOME du mandat (doctype → /html) et l'imprime.
- * Mutualisé entre l'aperçu organisateur (admin) et la vue publique (archer) :
- * seul le CONTEXTE change.
+ * Renders the STANDALONE HTML document of the mandate (doctype → /html) and prints it. Shared by
+ * the organiser's preview (admin) and the public view (archer): only the CONTEXT changes.
  *
- * $ctx :
- *   'logo'    => callable($type, $width) : URL d'un logo (L/R/B) — diffère selon
- *                que l'appelant a une session organisateur (TourLogo.php) ou non
- *                (endpoint public borné) ;
- *   'regUrl'  => URL absolue d'inscription en ligne ;
- *   'shopUrl' => URL absolue de la boutique ;
- *   'toolbar' => HTML de la barre supérieure (boutons), ou '' pour l'omettre.
+ * $ctx:
+ *   'logo'    => callable($type, $width): URL of a logo (L/R/B) — differs whether the caller has
+ *                an organiser session (TourLogo.php) or not (limited public endpoint);
+ *   'regUrl'  => absolute URL of the online registration;
+ *   'shopUrl' => absolute URL of the shop;
+ *   'toolbar' => HTML of the top bar (buttons), or '' to leave it out.
  */
 function bk_mandate_document($data, $m, $ctx)
 {
@@ -622,17 +614,21 @@ function bk_mandate_document($data, $m, $ctx)
     };
 
     header('Content-Type: text/html; charset=utf-8');
-    ?><!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mandat — <?= bk_e($t->ToName) ?></title>
+    $tourId = intval($t->ToId);
+    $grey = function ($text) { return ' <span style="color:#7d8183">(' . bk_e($text) . ')</span>'; };
+    $chips = function ($list) {
+        $h = '';
+        foreach ($list as $x) $h .= '<span class="mn-chip">' . bk_e($x) . '</span>';
+        return '<div class="mn-chips">' . $h . '</div>';
+    };
+
+    echo '<!DOCTYPE html><html lang="' . bk_e(aut_lang_code()) . '"><head><meta charset="utf-8">'
+        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        . '<title>' . bk_e(bk_t('MnTitle', $t->ToName)) . '</title>'
+        . '<style>:root{ --pri: ' . $pal['primary'] . '; --light: ' . $pal['light'] . '; --dark: ' . $pal['dark']
+        . '; --on: ' . $pal['on'] . '; }</style>';
+    ?>
 <style>
-:root{
-  --pri: <?= $pal['primary'] ?>; --light: <?= $pal['light'] ?>;
-  --dark: <?= $pal['dark'] ?>; --on: <?= $pal['on'] ?>;
-}
 *{ box-sizing:border-box; }
 body{ margin:0; background:#e9edf2; color:#20263d;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -649,7 +645,7 @@ body{ margin:0; background:#e9edf2; color:#20263d;
   box-shadow:0 2px 14px rgba(0,0,0,.14); }
 .mn-inner{ padding:26px 34px 34px; }
 
-/* En-tête */
+/* Header */
 .mn-head{ display:flex; align-items:center; gap:16px; }
 .mn-head img{ max-height:64px; max-width:130px; object-fit:contain; flex:0 0 auto; }
 .mn-head .mn-title{ flex:1; text-align:center; }
@@ -676,19 +672,19 @@ ul.mn-list li{ margin:3px 0; }
 .mn-bottom{ text-align:center; margin-top:26px; padding-top:14px; border-top:1px solid #e3e6ea; }
 .mn-bottom img{ max-height:70px; max-width:100%; object-fit:contain; }
 
-/* Template : Moderne — accent latéral */
+/* Template: Modern — side accent */
 body.tpl-moderne .mn-inner{ border-left:10px solid var(--pri); }
 body.tpl-moderne .mn-head .mn-title{ text-align:left; }
 body.tpl-moderne .mn-title h1{ font-size:30px; }
 
-/* Template : Compact — dense */
+/* Template: Compact — dense */
 body.tpl-compact{ font-size:13px; }
 body.tpl-compact .mn-inner{ padding:18px 24px 24px; }
 body.tpl-compact .mn-title h1{ font-size:22px; }
 body.tpl-compact h2{ font-size:14px; margin:14px 0 5px; }
 body.tpl-compact .mn-meta th,.tpl-compact .mn-meta td{ padding:3px 8px; }
 
-/* Template : Bandeau — en-tête pleine couleur */
+/* Template: Banner — full-colour header */
 body.tpl-bandeau .mn-inner{ padding-top:0; }
 body.tpl-bandeau .mn-head{ background:var(--pri); color:var(--on); margin:0 -34px 18px;
   padding:22px 34px; align-items:center; }
@@ -697,19 +693,19 @@ body.tpl-bandeau .mn-title .mn-sub, body.tpl-bandeau .mn-title .mn-org{ color:va
 body.tpl-bandeau .mn-head img{ background:#fff; border-radius:6px; padding:4px; }
 body.tpl-bandeau h2{ border-bottom-width:3px; }
 
-/* Template : Encadré — page bordée */
+/* Template: Framed — bordered page */
 body.tpl-encadre .mn-page{ border:3px solid var(--pri); }
 body.tpl-encadre .mn-inner{ padding:24px 30px 30px; }
 body.tpl-encadre h2{ border:0; background:var(--light); color:var(--dark);
   padding:6px 12px; border-left:5px solid var(--pri); border-radius:0 4px 4px 0; }
 
-/* Template : Épuré — filets fins, titres espacés */
+/* Template: Clean — thin rules, spaced titles */
 body.tpl-ligne h2{ border-bottom:1px solid var(--pri); text-transform:uppercase;
   letter-spacing:.12em; font-size:13px; font-weight:700; color:var(--pri); }
 body.tpl-ligne .mn-chip{ background:#fff; }
 body.tpl-ligne .mn-title h1{ font-weight:600; letter-spacing:.01em; }
 
-/* Mobile : logos réduits pour ne pas écraser le titre central sur peu de largeur */
+/* Mobile: smaller logos, so they do not crush the central title on a narrow screen */
 @media (max-width:600px){
   .mn-head{ gap:10px; }
   .mn-head img{ max-height:44px; max-width:74px; }
@@ -728,118 +724,91 @@ body.tpl-ligne .mn-title h1{ font-weight:600; letter-spacing:.01em; }
 }
 </style>
 </head>
-<body class="tpl-<?= bk_e($m['template']) ?>">
-<?php if ($toolbar !== ''): ?><div class="mn-bar no-print"><?= $toolbar ?></div><?php endif; ?>
+<?php
+    $out = '<body class="tpl-' . bk_e($m['template']) . '">'
+        . ($toolbar !== '' ? '<div class="mn-bar no-print">' . $toolbar . '</div>' : '')
+        . '<div class="mn-page"><div class="mn-inner"><div class="mn-head">'
+        . ((!empty($m['logos']['L']) && intval($t->HasL) > 0) ? '<img src="' . bk_e($logo('L', 400)) . '" alt="">' : '')
+        . '<div class="mn-title"><h1>' . bk_e($t->ToName) . '</h1><p class="mn-sub">' . bk_e($data['discLabel'])
+        . ($t->ToWhere ? ' — ' . bk_e($t->ToWhere) : '') . ' — ' . bk_e(bk_date_range($t->ToWhenFrom, $t->ToWhenTo)) . '</p>';
+    $org = array();
+    if ($t->ToComDescr) $org[] = bk_t('OrganisedBy', $t->ToComDescr);
+    if ($data['region']) $org[] = $data['region'];
+    if ($org) $out .= '<p class="mn-org">' . bk_e(implode(' — ', $org)) . '</p>';
+    $out .= '</div>'
+        . ((!empty($m['logos']['R']) && intval($t->HasR) > 0) ? '<img src="' . bk_e($logo('R', 400)) . '" alt="">' : '')
+        . '</div>' . $block('intro');
 
-<div class="mn-page"><div class="mn-inner">
+    if (!empty($m['show']['sessions']) && $data['sessions']) {
+        $out .= '<h2>' . bk_e(bk_t('MnSessions')) . '</h2><ul class="mn-list">';
+        foreach ($data['sessions'] as $s) {
+            $ss = bk_session_start($s);
+            $places = intval($s->Places);
+            $out .= '<li><b>' . bk_e(bk_t('DepCap', intval($s->SesOrder))) . '</b>' . ($s->SesName ? ' — ' . bk_e($s->SesName) : '')
+                . ($ss !== '' ? ' — ' . bk_e(bk_date_time($ss)) : '')
+                . ' — ' . bk_e(bk_t($places > 1 ? 'PlacesMany' : 'PlacesOne', $places)) . '</li>';
+        }
+        $out .= '</ul>';
+    }
 
-  <div class="mn-head">
-    <?php if (!empty($m['logos']['L']) && intval($t->HasL) > 0): ?>
-      <img src="<?= bk_e($logo('L', 400)) ?>" alt="">
-    <?php endif; ?>
-    <div class="mn-title">
-      <h1><?= bk_e($t->ToName) ?></h1>
-      <p class="mn-sub"><?= bk_e($data['discLabel']) ?>
-        <?= $t->ToWhere ? ' — ' . bk_e($t->ToWhere) : '' ?>
-        <?= ' — ' . bk_e(bk_date_range($t->ToWhenFrom, $t->ToWhenTo)) ?></p>
-      <?php if ($t->ToComDescr || $data['region']): ?><p class="mn-org">
-        <?= $t->ToComDescr ? 'Organisé par ' . bk_e($t->ToComDescr) : '' ?><?= ($t->ToComDescr && $data['region']) ? ' — ' : '' ?><?= $data['region'] ? bk_e($data['region']) : '' ?></p><?php endif; ?>
-    </div>
-    <?php if (!empty($m['logos']['R']) && intval($t->HasR) > 0): ?>
-      <img src="<?= bk_e($logo('R', 400)) ?>" alt="">
-    <?php endif; ?>
-  </div>
+    if (!empty($m['show']['categories']) && ($data['divisions'] || $data['classes'])) {
+        $out .= '<h2>' . bk_e(bk_t('MnCategories')) . '</h2>';
+        if ($data['divisions']) $out .= '<p style="margin:0 0 4px"><b>' . bk_e(bk_t('MnBows')) . '</b></p>' . $chips($data['divisions']);
+        if ($data['classes']) $out .= '<p style="margin:8px 0 4px"><b>' . bk_e(bk_t('MnClasses')) . '</b></p>' . $chips($data['classes']);
+    }
 
-  <?= $block('intro') ?>
+    if (!empty($m['show']['fees'])) {
+        $out .= '<h2>' . bk_e(bk_t('MnFees')) . '</h2>';
+        if ($data['fee'] <= 0 && !$data['feeAdvanced']) {
+            $out .= '<p style="margin:0">' . bk_e(bk_t('MnFree')) . '</p>';
+        } else {
+            $out .= '<p style="margin:0"><b>' . bk_e(bk_t('MnBaseFee')) . '</b> ' . bk_e(bk_eur($data['fee'], false, $tourId)) . '</p>';
+            if ($data['feeAdvanced']) $out .= '<p class="mn-text" style="margin:4px 0 0; color:#4c4e50">' . bk_e(bk_t('MnFeeAdjust')) . '</p>';
+        }
+    }
 
-  <?php if (!empty($m['show']['sessions']) && $data['sessions']): ?>
-    <h2>Départs et horaires</h2>
-    <ul class="mn-list">
-      <?php foreach ($data['sessions'] as $s):
-        $ss = bk_session_start($s); $hh = $ss !== '' ? substr($ss, 11, 5) : ''; ?>
-        <li><b>Départ <?= intval($s->SesOrder) ?></b><?= $s->SesName ? ' — ' . bk_e($s->SesName) : '' ?>
-          <?php if ($ss !== ''): ?>— <?= bk_e(bk_date_fr($ss)) ?><?= ($hh !== '' && $hh !== '00:00') ? ' à ' . bk_e(str_replace(':', 'h', $hh)) : '' ?><?php endif; ?>
-          — <?= intval($s->Places) ?> places</li>
-      <?php endforeach; ?>
-    </ul>
-  <?php endif; ?>
+    if (!empty($m['show']['payment']) && $data['pay']) {
+        $out .= '<h2>' . bk_e(bk_t('PayMeansTitle')) . '</h2><ul class="mn-list">';
+        foreach ($data['pay'] as $pi) {
+            $out .= '<li>' . bk_e($pi['label']) . $grey($pi['whenLabel']) . ($pi['info'] !== '' ? ' — ' . bk_e($pi['info']) : '') . '</li>';
+        }
+        $out .= '</ul>';
+    }
 
-  <?php if (!empty($m['show']['categories']) && ($data['divisions'] || $data['classes'])): ?>
-    <h2>Armes et catégories</h2>
-    <?php if ($data['divisions']): ?>
-      <p style="margin:0 0 4px"><b>Armes :</b></p>
-      <div class="mn-chips"><?php foreach ($data['divisions'] as $dv): ?><span class="mn-chip"><?= bk_e($dv) ?></span><?php endforeach; ?></div>
-    <?php endif; ?>
-    <?php if ($data['classes']): ?>
-      <p style="margin:8px 0 4px"><b>Catégories :</b></p>
-      <div class="mn-chips"><?php foreach ($data['classes'] as $cl): ?><span class="mn-chip"><?= bk_e($cl) ?></span><?php endforeach; ?></div>
-    <?php endif; ?>
-  <?php endif; ?>
-
-  <?php if (!empty($m['show']['fees'])): ?>
-    <h2>Tarifs</h2>
-    <?php if ($data['fee'] <= 0 && !$data['feeAdvanced']): ?>
-      <p style="margin:0">Participation gratuite.</p>
-    <?php else: ?>
-      <p style="margin:0"><b>Tarif de base :</b> <?= bk_e(number_format($data['fee'], 2, ',', ' ')) ?> €</p>
-      <?php if ($data['feeAdvanced']): ?>
-        <p class="mn-text" style="margin:4px 0 0; color:#4c4e50">Des ajustements peuvent s'appliquer selon
-           la catégorie, le départ, la provenance géographique et le rang d'inscription. Le montant exact
-           est calculé automatiquement lors de l'inscription en ligne.</p>
-      <?php endif; ?>
-    <?php endif; ?>
-  <?php endif; ?>
-
-  <?php if (!empty($m['show']['payment']) && $data['pay']): ?>
-    <h2>Moyens de paiement</h2>
-    <ul class="mn-list">
-      <?php foreach ($data['pay'] as $pi): ?>
-        <li><?= bk_e($pi['label']) ?> <span style="color:#7d8183">(<?= bk_e($pi['whenLabel']) ?>)</span><?= $pi['info'] !== '' ? ' — ' . bk_e($pi['info']) : '' ?></li>
-      <?php endforeach; ?>
-    </ul>
-  <?php endif; ?>
-
-  <?php if (!empty($m['show']['shop']) && !empty($data['shop']) && $shopUrl !== ''): ?>
-    <h2>Boutique</h2>
-    <ul class="mn-list">
-      <?php foreach ($data['shop'] as $it): ?>
-        <li><?= bk_e($it['label']) ?><?= $it['price'] > 0 ? ' — ' . bk_e(number_format($it['price'], 2, ',', ' ')) . ' €' : '' ?><?= $it['description'] !== '' ? ' <span style="color:#7d8183">(' . bk_e($it['description']) . ')</span>' : '' ?>
-          <?php if (!empty($it['variants'])):
+    if (!empty($m['show']['shop']) && !empty($data['shop']) && $shopUrl !== '') {
+        $out .= '<h2>' . bk_e(bk_t('Shop')) . '</h2><ul class="mn-list">';
+        foreach ($data['shop'] as $it) {
+            $out .= '<li>' . bk_e($it['label']) . ($it['price'] > 0 ? ' — ' . bk_e(bk_eur($it['price'], false, $tourId)) : '')
+                . ($it['description'] !== '' ? $grey($it['description']) : '');
             $vlabels = array();
-            foreach ($it['variants'] as $v) { $vl = trim((string) $v['label']); if ($vl !== '') $vlabels[] = $vl; }
-            if ($vlabels): ?>
-            <div style="color:#4c4e50; font-size:13px"><?= bk_e($it['option'] !== '' ? $it['option'] : 'Options') ?> :
-              <?= bk_e(implode(', ', $vlabels)) ?></div>
-          <?php endif; endif; ?></li>
-      <?php endforeach; ?>
-    </ul>
-    <p class="mn-text" style="margin:4px 0 0; color:#4c4e50">Commande en ligne lors de l'inscription :
-       <a href="<?= bk_e($shopUrl) ?>" style="color:var(--dark)"><?= bk_e($shopUrl) ?></a></p>
-  <?php endif; ?>
+            foreach ($it['variants'] as $v) {
+                $vl = trim((string) $v['label']);
+                if ($vl !== '') $vlabels[] = $vl;
+            }
+            if ($vlabels) {
+                $out .= '<div style="color:#4c4e50; font-size:13px">'
+                    . bk_e(bk_t('LabelColon', $it['option'] !== '' ? $it['option'] : bk_t('MnOptions')))
+                    . ' ' . bk_e(implode(', ', $vlabels)) . '</div>';
+            }
+            $out .= '</li>';
+        }
+        $out .= '</ul><p class="mn-text" style="margin:4px 0 0; color:#4c4e50">' . bk_e(bk_t('MnShopOnline'))
+            . ' <a href="' . bk_e($shopUrl) . '" style="color:var(--dark)">' . bk_e($shopUrl) . '</a></p>';
+    }
 
-  <?php if (!empty($m['show']['register']) && $regUrl !== ''): ?>
-    <h2>Inscriptions en ligne</h2>
-    <div class="mn-reg">
-      <p style="margin:0 0 4px">Inscrivez-vous directement en ligne :</p>
-      <p style="margin:0"><a href="<?= bk_e($regUrl) ?>"><?= bk_e($regUrl) ?></a></p>
-      <?php if (!empty($data['deadline']) && bk_date_fr($data['deadline']) !== ''): ?>
-        <p style="margin:6px 0 0"><b>Clôture des inscriptions :</b> le <?= bk_e(bk_date_fr($data['deadline'])) ?></p>
-      <?php endif; ?>
-    </div>
-  <?php endif; ?>
+    if (!empty($m['show']['register']) && $regUrl !== '') {
+        $out .= '<h2>' . bk_e(bk_t('Brand')) . '</h2><div class="mn-reg"><p style="margin:0 0 4px">' . bk_e(bk_t('MnRegOnline')) . '</p>'
+            . '<p style="margin:0"><a href="' . bk_e($regUrl) . '">' . bk_e($regUrl) . '</a></p>';
+        if (!empty($data['deadline']) && bk_date_fr($data['deadline']) !== '') {
+            $out .= '<p style="margin:6px 0 0"><b>' . bk_e(bk_t('MnDeadline')) . '</b> '
+                . bk_e(bk_t('DateOn', bk_date_fr($data['deadline']))) . '</p>';
+        }
+        $out .= '</div>';
+    }
 
-  <?= $block('access') ?>
-  <?= $block('lodging') ?>
-  <?= $block('catering') ?>
-  <?= $block('awards') ?>
-  <?= $block('misc') ?>
-  <?= $block('contact') ?>
-
-  <?php if (!empty($m['logos']['B']) && intval($t->HasB) > 0): ?>
-    <div class="mn-bottom"><img src="<?= bk_e($logo('B', 1000)) ?>" alt=""></div>
-  <?php endif; ?>
-
-</div></div>
-</body>
-</html><?php
+    foreach (array('access', 'lodging', 'catering', 'awards', 'misc', 'contact') as $k) $out .= $block($k);
+    if (!empty($m['logos']['B']) && intval($t->HasB) > 0) {
+        $out .= '<div class="mn-bottom"><img src="' . bk_e($logo('B', 1000)) . '" alt=""></div>';
+    }
+    echo $out . '</div></div></body></html>';
 }

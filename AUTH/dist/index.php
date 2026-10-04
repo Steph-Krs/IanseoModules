@@ -1,4 +1,4 @@
 <?php
-// Déployé depuis Modules/Custom/AUTH/dist/ — évite le listage du dossier.
+// Deployed from Modules/Custom/AUTH/dist/ — prevents the folder listing.
 header('Location: LogIn.php');
 exit;

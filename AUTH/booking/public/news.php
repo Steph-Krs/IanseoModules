@@ -1,11 +1,11 @@
 <?php
 /**
- * public/news.php — endpoint JSON des actualités FFTA (flux RSS mis en cache).
+ * public/news.php — JSON endpoint of the federation's news (cached RSS feed).
  *
- * Chargé en asynchrone par « Mon espace » : c'est lui (et jamais la page d'accueil)
- * qui déclenche l'éventuel appel réseau. Réservé au licencié connecté — l'info est
- * publique, mais cela évite de transformer le serveur en proxy anonyme. Ne renvoie
- * que titre / lien / date, déjà bornés et échappés côté client (textContent).
+ * Loaded asynchronously by "My space": this endpoint (never the home page) makes the network
+ * call, if any. For the connected licensee only — the news is public, but this keeps the
+ * server from being an anonymous proxy. Returns only title / link / date, limited, and escaped
+ * on the client side (textContent).
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/news.php';

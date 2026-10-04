@@ -1,12 +1,11 @@
 <?php
 /**
- * public/share.php — visuel partageable « J'y serai » d'une participation.
+ * public/share.php — shareable "I'll be there" picture of a participation.
  *
- * Généré 100 % CÔTÉ NAVIGATEUR (canvas → PNG, zéro charge serveur) : le PHP ne
- * fournit que les données. Réutilise l'identité visuelle du MANDAT (template +
- * couleur choisis par l'organisateur) via bk_mandate_get()/bk_mandate_palette().
- * Réservé à l'archer INSCRIT à la compétition (bk_reg_existing) — c'est aussi ce
- * qui autorise l'affichage des logos (voir public/tourlogo.php).
+ * Generated 100 % IN THE BROWSER (canvas → PNG, no server load): PHP only gives the data. Reuses
+ * the visual identity of the MANDATE (template + colour chosen by the organiser) through
+ * bk_mandate_get()/bk_mandate_palette(). For the archer REGISTERED on the competition
+ * (bk_reg_existing) — which is also what allows the logos (see public/tourlogo.php).
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
@@ -16,7 +15,7 @@ require_once dirname(__DIR__) . '/lib/registration.php';
 $archer = bk_require_archer();
 $t = intval($_GET['t'] ?? 0);
 
-// Borne : seul un inscrit génère le visuel de SA compétition.
+// Limit: only a registered archer makes the picture of THEIR competition.
 if (!$t || !bk_reg_existing($t, $archer->BaLicence)) {
     bk_redirect('registrations.php');
 }
@@ -36,16 +35,16 @@ $dd = safe_fetch(safe_r_sql("SELECT DATEDIFF(ToWhenFrom, $lt) AS d,
 $daysTo  = $dd ? intval($dd->d) : 0;
 $daysEnd = $dd ? intval($dd->dEnd) : 0;
 
-if ($daysEnd < 0) {                    // compétition passée
-    $hook = "J'y étais\u{202f}!"; $badge = '';
-} elseif ($daysTo <= 0) {              // en cours / jour même
-    $hook = "J'y suis\u{202f}!"; $badge = 'Jour J';
-} else {                               // à venir
-    $hook = "J'y serai\u{202f}!"; $badge = 'J-' . $daysTo;
+if ($daysEnd < 0) {                    // competition over
+    $hook = bk_t('ShHookPast'); $badge = '';
+} elseif ($daysTo <= 0) {              // under way / the day itself
+    $hook = bk_t('ShHookNow'); $badge = bk_t('ShDayD');
+} else {                               // to come
+    $hook = bk_t('ShHookSoon'); $badge = bk_t('ShDaysLeft', $daysTo);
 }
 
-// Logos réellement présents ET activés dans la config du mandat (mêmes images
-// que le mandat). Servis par tourlogo.php (borné : mandat visible OU inscrit).
+// Logos actually there AND switched on in the mandate's settings (same images as the mandate).
+// Served by tourlogo.php (limited: visible mandate OR registered archer).
 $logos = array();
 foreach (array('L', 'R', 'B') as $k) {
     $has = intval($tour->{'Has' . $k} ?? 0) > 0;
@@ -62,8 +61,8 @@ $conf = array(
     'dates'    => bk_date_range($tour->ToWhenFrom, $tour->ToWhenTo),
     'disc'     => (string) ($data['discLabel'] ?? ''),
     'region'   => (string) ($data['region'] ?? ''),
-    'foot'     => 'Inscription en ligne',
-    'template' => $m['share_template'],   // modèle choisi par l'organisateur (page Mandat)
+    'foot'     => bk_t('Brand'),
+    'template' => $m['share_template'],   // template chosen by the organiser (Mandate page)
     'pal'      => $pal,
     'logos'    => $logos,
 );
@@ -71,34 +70,27 @@ $conf = array(
 $shareText = $hook . ' ' . $tour->ToName . ($tour->ToWhere ? ' — ' . $tour->ToWhere : '')
     . ($badge ? ' (' . $badge . ')' : '');
 
-bk_head('Partager ma participation', 'page');
+bk_head(bk_t('ShTitle'), 'page');
+$fmtBtn = function ($fmt, $key, $on) {
+    return '<button type="button" class="bk-btn bk-fmt' . ($on ? ' on' : '') . '" data-fmt="' . $fmt . '">' . bk_e(bk_t($key)) . '</button> ';
+};
+echo '<div class="bk-share"><h1 class="bk-share-h">' . bk_e(bk_t('ShTitle')) . '</h1>'
+    . '<p class="bk-hint">' . bk_e(bk_t('ShIntro')) . '</p>'
+    . '<div class="bk-share-formats" role="group" aria-label="' . bk_e(bk_t('ShFormat')) . '">'
+    . $fmtBtn('square', 'ShSquare', true) . $fmtBtn('story', 'ShStory', false) . $fmtBtn('wide', 'ShWide', false) . '</div>'
+    . '<div class="bk-share-canvas-wrap"><canvas id="bk-share-c" width="1080" height="1080" aria-label="' . bk_e(bk_t('ShCanvas')) . '"></canvas></div>'
+    . '<div class="bk-share-act"><button type="button" id="bk-share-btn" class="bk-btn bk-btn-primary" style="display:none">' . bk_e(bk_t('ShShareBtn')) . '</button> '
+    . '<button type="button" id="bk-dl-btn" class="bk-btn">' . bk_e(bk_t('ShDownload')) . '</button> '
+    . '<a class="bk-btn" href="' . bk_e(bk_public_url('registrations.php')) . '">' . bk_e(bk_t('BackMyRegs')) . '</a></div>'
+    . '<p class="bk-hint" id="bk-share-hint"></p></div>';
 ?>
-<div class="bk-share">
-  <h1 class="bk-share-h">Partager ma participation</h1>
-  <p class="bk-hint">Une image prête pour vos réseaux — générée sur votre appareil, rien n'est envoyé au serveur.</p>
-
-  <div class="bk-share-formats" role="group" aria-label="Format">
-    <button type="button" class="bk-btn bk-fmt on" data-fmt="square">Carré</button>
-    <button type="button" class="bk-btn bk-fmt" data-fmt="story">Story</button>
-    <button type="button" class="bk-btn bk-fmt" data-fmt="wide">Paysage</button>
-  </div>
-
-  <div class="bk-share-canvas-wrap">
-    <canvas id="bk-share-c" width="1080" height="1080" aria-label="Visuel de participation"></canvas>
-  </div>
-
-  <div class="bk-share-act">
-    <button type="button" id="bk-share-btn" class="bk-btn bk-btn-primary" style="display:none">📣 Partager</button>
-    <button type="button" id="bk-dl-btn" class="bk-btn">⬇️ Télécharger l'image</button>
-    <a class="bk-btn" href="<?= bk_e(bk_public_url('registrations.php')) ?>">← Mes inscriptions</a>
-  </div>
-  <p class="bk-hint" id="bk-share-hint"></p>
-</div>
 
 <script>
 (function () {
   var CONF = <?= json_encode($conf, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   var SHARE_TEXT = <?= json_encode($shareText, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+  var HINT = <?= json_encode(bk_t('ShHint'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
+  var FILE_NAME = <?= json_encode(bk_t('ShFileName') . '.png', JSON_UNESCAPED_UNICODE) ?>;
   var FORMATS = { square: [1080, 1080], story: [1080, 1920], wide: [1200, 630] };
   var fmt = 'square';
 
@@ -106,7 +98,7 @@ bk_head('Partager ma participation', 'page');
   var ctx = canvas.getContext('2d');
   var P = CONF.pal;
 
-  // Préchargement des logos (même origine → canvas non teinté → export PNG OK).
+  // Logos preloaded (same origin → untainted canvas → PNG export works).
   var imgs = {};
   var pending = 0;
   ['L', 'B', 'R'].forEach(function (k) {
@@ -128,7 +120,7 @@ bk_head('Partager ma participation', 'page');
     ctx.closePath();
   }
 
-  // Découpe un texte en lignes tenant dans maxW (police déjà posée sur ctx).
+  // Splits a text into lines that fit in maxW (font already set on ctx).
   function wrap(text, maxW) {
     var words = String(text).split(/\s+/), lines = [], cur = '';
     for (var i = 0; i < words.length; i++) {
@@ -162,9 +154,9 @@ bk_head('Partager ma participation', 'page');
     var tpl = CONF.template;
     var cx = W / 2;
 
-    // ---- Fond selon le modèle + schéma de couleurs ----
-    var onDark = false;    // le corps de texte est-il sur fond sombre ?
-    var splitY = 0;        // ligne de partage (modèle « moitie »)
+    // ---- Background by template + colour scheme ----
+    var onDark = false;    // is the body text on a dark background?
+    var splitY = 0;        // split line ("moitie" template)
     if (tpl === 'degrade') {
       var g = ctx.createLinearGradient(0, 0, W, H);
       g.addColorStop(0, P.primary); g.addColorStop(1, P.dark);
@@ -183,30 +175,30 @@ bk_head('Partager ma participation', 'page');
       ctx.strokeRect(bw / 2, bw / 2, W - bw, H - bw);
     } else if (tpl === 'epure') {
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
-    } else {   // 'bandeau' (défaut)
+    } else {   // 'bandeau' (default)
       ctx.fillStyle = P.light; ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = P.primary; ctx.fillRect(0, 0, W, Math.round(H * (story ? 0.13 : 0.17)));
     }
 
-    var mainCol = onDark ? P.on : P.dark;      // nom
-    var subCol  = onDark ? P.on : '#3a4256';   // méta / lieu
+    var mainCol = onDark ? P.on : P.dark;      // name
+    var subCol  = onDark ? P.on : '#3a4256';   // meta / place
     var accent  = onDark ? P.on : P.primary;   // dates
-    // L'accroche + le badge sont dans une zone COLORÉE pour degrade et moitie.
+    // The hook + badge sit in a COLOURED area for degrade and moitie.
     var hookOn  = onDark || (tpl === 'moitie');
 
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     var y = pad;
 
-    // ---- Logos en haut ----
+    // ---- Logos on top ----
     var logoH = Math.round(H * (story ? 0.10 : 0.13));
     var used = drawLogos(pad, y, innerW, logoH, ['L', 'B', 'R']);
     y += (used ? used + Math.round(H * 0.03) : Math.round(H * 0.02));
-    if (tpl === 'bandeau') {   // rester sous la bande colorée
+    if (tpl === 'bandeau') {   // stay below the coloured band
       var bandH = Math.round(H * (story ? 0.13 : 0.17));
       if (y < bandH + Math.round(H * 0.03)) y = bandH + Math.round(H * 0.03);
     }
 
-    // ---- Accroche « J'y serai ! » ----
+    // ---- "I'll be there!" hook ----
     var hookSize = Math.round(W * (story ? 0.11 : 0.115));
     ctx.font = '800 ' + hookSize + 'px Arial, Helvetica, sans-serif';
     ctx.fillStyle = hookOn ? P.on : P.primary;
@@ -214,7 +206,7 @@ bk_head('Partager ma participation', 'page');
     ctx.fillText(CONF.hook, cx, y);
     y += Math.round(H * 0.02);
 
-    // ---- Badge J-X (pastille) ----
+    // ---- D-X badge (pill) ----
     if (CONF.badge) {
       var bSize = Math.round(W * 0.075);
       ctx.font = '800 ' + bSize + 'px Arial, sans-serif';
@@ -232,10 +224,10 @@ bk_head('Partager ma participation', 'page');
       y += Math.round(H * 0.03);
     }
 
-    // 'moitie' : passer sous la ligne de partage pour la partie « détails »
+    // 'moitie': go below the split line for the "details" part
     if (tpl === 'moitie' && y < splitY + Math.round(H * 0.04)) y = splitY + Math.round(H * 0.06);
 
-    // 'epure' : filet fin au-dessus du nom
+    // 'epure': thin rule above the name
     if (tpl === 'epure') {
       ctx.strokeStyle = P.primary; ctx.lineWidth = Math.max(2, W * 0.004);
       var fl = innerW * 0.26;
@@ -243,13 +235,13 @@ bk_head('Partager ma participation', 'page');
       y += Math.round(H * 0.025);
     }
 
-    // ---- Nom de la compétition (jusqu'à 3 lignes) ----
+    // ---- Competition name (up to 3 lines) ----
     var nSize = Math.round(W * (story ? 0.062 : 0.066));
     ctx.font = '700 ' + nSize + 'px Arial, sans-serif';
     ctx.fillStyle = mainCol;
     wrap(CONF.name, innerW).slice(0, 3).forEach(function (ln) { y += nSize * 1.12; ctx.fillText(ln, cx, y); });
 
-    // ---- Discipline • région ----
+    // ---- Discipline • region ----
     var meta = [CONF.disc, CONF.region].filter(Boolean).join('  •  ');
     if (meta) {
       var mSize = Math.round(W * 0.038);
@@ -257,7 +249,7 @@ bk_head('Partager ma participation', 'page');
       ctx.fillStyle = subCol; y += mSize * 1.9; ctx.fillText(meta, cx, y);
     }
 
-    // ---- Dates + lieu ----
+    // ---- Dates + place ----
     var dSize = Math.round(W * 0.044);
     ctx.font = '700 ' + dSize + 'px Arial, sans-serif';
     ctx.fillStyle = accent;
@@ -269,7 +261,7 @@ bk_head('Partager ma participation', 'page');
       wrap('📍 ' + CONF.place, innerW).slice(0, 2).forEach(function (ln) { y += pSize * 1.4; ctx.fillText(ln, cx, y); });
     }
 
-    // ---- Pied ----
+    // ---- Footer ----
     var fSize = Math.round(W * 0.03);
     ctx.font = '600 ' + fSize + 'px Arial, sans-serif';
     ctx.fillStyle = (tpl === 'degrade') ? P.on : subCol;
@@ -285,22 +277,21 @@ bk_head('Partager ma participation', 'page');
     draw();
   }
 
-  // Fabrique le fichier PNG de façon SYNCHRONE (toDataURL, pas toBlob async) :
-  // sur iOS/Android, navigator.share doit être appelé DANS le geste utilisateur ;
-  // le callback asynchrone de toBlob casse cette « activation » → le partage échoue
-  // silencieusement (cause du bouton qui « ne fait rien » sur mobile).
+  // Builds the PNG file SYNCHRONOUSLY (toDataURL, not the async toBlob): on iOS/Android,
+  // navigator.share must be called WITHIN the user gesture; the async callback of toBlob breaks
+  // that "activation" → the share fails silently (why the button "did nothing" on mobile).
   function canvasFile() {
     var url = canvas.toDataURL('image/png');
     var bin = atob(url.split(',')[1]);
     var n = bin.length, arr = new Uint8Array(n);
     for (var i = 0; i < n; i++) arr[i] = bin.charCodeAt(i);
-    return new File([arr], 'ma-participation.png', { type: 'image/png' });
+    return new File([arr], FILE_NAME, { type: 'image/png' });
   }
 
   function download() {
     var a = document.createElement('a');
     a.href = canvas.toDataURL('image/png');
-    a.download = 'ma-participation.png';
+    a.download = FILE_NAME;
     document.body.appendChild(a); a.click(); a.remove();
   }
 
@@ -309,13 +300,13 @@ bk_head('Partager ma participation', 'page');
     try { file = canvasFile(); } catch (e) { download(); return; }
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       navigator.share({ files: [file], text: SHARE_TEXT })
-        .catch(function (e) { if (!e || e.name !== 'AbortError') download(); });   // échec réel → repli téléchargement
+        .catch(function (e) { if (!e || e.name !== 'AbortError') download(); });   // real failure → download instead
     } else {
       download();
     }
   }
 
-  // Contrôles
+  // Controls
   document.querySelectorAll('.bk-fmt').forEach(function (b) {
     b.addEventListener('click', function () {
       document.querySelectorAll('.bk-fmt').forEach(function (x) { x.classList.remove('on'); });
@@ -326,18 +317,18 @@ bk_head('Partager ma participation', 'page');
   document.getElementById('bk-dl-btn').addEventListener('click', download);
 
   var sBtn = document.getElementById('bk-share-btn');
-  // Handler TOUJOURS attaché (le test « fichier vide » d'avant renvoyait false sur
-  // Chrome Android et laissait le bouton sans action). La détection ne teste QUE la
-  // présence de l'API (le vrai fichier est testé au clic, dans share()). La visibilité
-  // passe par style.display : l'attribut `hidden` est écrasé par « .bk-btn{display:...} ».
+  // Handler ALWAYS attached (the former "empty file" test returned false on Chrome Android and
+  // left the button without action). Detection tests ONLY that the API exists (the real file is
+  // tested on click, in share()). Visibility goes through style.display: the `hidden` attribute
+  // is overridden by ".bk-btn{display:...}".
   sBtn.addEventListener('click', share);
   if (navigator.canShare && navigator.share) {
     sBtn.style.display = 'inline-block';
   } else {
-    document.getElementById('bk-share-hint').textContent = 'Astuce : téléchargez l’image puis publiez-la depuis votre application (Instagram, Facebook, WhatsApp…).';
+    document.getElementById('bk-share-hint').textContent = HINT;
   }
 
-  draw();   // premier rendu (les logos redessineront à leur chargement)
+  draw();   // first drawing (the logos draw again once loaded)
 })();
 </script>
 <?php

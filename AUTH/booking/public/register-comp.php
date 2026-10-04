@@ -1,10 +1,9 @@
 <?php
 /**
- * public/register-comp.php — inscription d'un licencié à une compétition.
+ * public/register-comp.php — registration of a licensee for a competition.
  *
- * Toutes les règles sont revérifiées ICI, côté serveur, au moment de l'écriture :
- * le calendrier informe, il n'autorise pas. Une page publique ne peut faire
- * confiance à rien de ce que le navigateur renvoie.
+ * Every rule is checked again HERE, on the server, when writing: the calendar informs, it
+ * does not allow. A public page can trust nothing the browser sends back.
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
@@ -13,58 +12,48 @@ require_once dirname(__DIR__) . '/lib/pricing.php';
 require_once dirname(__DIR__) . '/lib/caps.php';
 require_once dirname(__DIR__) . '/lib/targets.php';
 require_once dirname(__DIR__) . '/lib/documents.php';   // bk_doc_distances
-require_once dirname(__DIR__) . '/lib/payment.php';     // moyens de paiement
+require_once dirname(__DIR__) . '/lib/payment.php';     // means of payment
 require_once dirname(__DIR__) . '/lib/waitlist.php';
 
 $archer = bk_require_archer();
 
 $tourId = intval($_GET['t'] ?? $_POST['t'] ?? 0);
 $cfg    = bk_comp_config($tourId);
+bk_money_tour($tourId);   // amounts of this page in its currency
 
-// Une compétition non ouverte n'est pas inscriptible, même par URL directe.
-if (!$tourId || empty($cfg->BcIsOpen)) {
-    bk_head('Inscription', 'card');
-    echo '<div class="bk-card"><h1>Inscription impossible</h1>'
-       . bk_msg('err', "Les inscriptions ne sont pas ouvertes pour cette compétition.")
-       . '<p class="bk-alt"><a href="' . bk_e(bk_public_url('calendar.php')) . '">Retour au calendrier</a></p></div>';
-    bk_foot();
-    exit;
-}
-
-$rs = safe_r_sql("SELECT ToId, ToName, ToWhere, ToWhenFrom, ToWhenTo, ToType FROM Tournament WHERE ToId = $tourId");
-$tour = safe_fetch($rs);
-
-// Compétition terminée : inscription impossible même si la fenêtre est restée ouverte.
-if ($tour && bk_is_finished($tour->ToWhenTo)) {
-    bk_head('Inscription', 'card');
-    echo '<div class="bk-card"><h1>Inscription impossible</h1>'
-       . bk_msg('err', "Cette compétition est terminée : les inscriptions ne sont plus possibles.")
-       . '<p class="bk-alt"><a href="' . bk_e(bk_public_url('calendar.php')) . '">Retour au calendrier</a></p></div>';
-    bk_foot();
-    exit;
-}
-
-// A place freed since the last look belongs to the waiting list, not to whoever opens
-// this page first: the list is served BEFORE the places offered below are counted.
-bk_waitlist_process($tourId);
-
-// Identité fédérale de l'archer CONNECTÉ : source de son club (qui borne
-// l'inscription de groupe) et de sa majorité (seul un majeur inscrit un tiers).
-$selfLue = bk_lookup_licence($archer->BaLicence);
-if (!$selfLue) {
-    bk_head('Inscription', 'card');
-    echo '<div class="bk-card"><h1>Inscription impossible</h1>'
-       . bk_msg('err', "Votre licence n'est pas connue de ce serveur. Contactez l'organisateur.")
+/** Stops with a card "registration not possible". */
+function bk_reg_stop($msg, $back = true)
+{
+    bk_head(bk_t('RegTitle'), 'card');
+    echo '<div class="bk-card"><h1>' . bk_e(bk_t('RegImpossible')) . '</h1>' . bk_msg('err', $msg)
+       . ($back ? '<p class="bk-alt"><a href="' . bk_e(bk_public_url('calendar.php')) . '">' . bk_e(bk_t('BackCalendarPlain')) . '</a></p>' : '')
        . '</div>';
     bk_foot();
     exit;
 }
 
-// Inscription de groupe : un licencié MAJEUR peut inscrire un camarade de SON
-// club en saisissant son numéro de licence. Le SUJET de l'inscription est par
-// défaut l'archer connecté (mode « self ») ; il devient le camarade résolu
-// (mode « club ») dès qu'une licence valide de son club est fournie. Tout le
-// reste de la page travaille sur $lue (le sujet) et $subjectLicence.
+// A competition not open cannot be registered for, even by direct address.
+if (!$tourId || empty($cfg->BcIsOpen)) bk_reg_stop(bk_t('RegNotOpen'));
+
+$rs = safe_r_sql("SELECT ToId, ToName, ToWhere, ToWhenFrom, ToWhenTo, ToType FROM Tournament WHERE ToId = $tourId");
+$tour = safe_fetch($rs);
+
+// Competition over: no registration, even if the window was left open.
+if ($tour && bk_is_finished($tour->ToWhenTo)) bk_reg_stop(bk_t('RegOver'));
+
+// A place freed since the last look belongs to the waiting list, not to whoever opens
+// this page first: the list is served BEFORE the places offered below are counted.
+bk_waitlist_process($tourId);
+
+// Federal identity of the SIGNED-IN archer: source of their club (which limits the group
+// registration) and of their age (only an adult registers someone else).
+$selfLue = bk_lookup_licence($archer->BaLicence);
+if (!$selfLue) bk_reg_stop(bk_t('LicenceUnknown'), false);
+
+// Group registration: an ADULT licensee may register a clubmate of THEIR club by typing
+// their licence number. The SUBJECT of the registration is the signed-in archer by default
+// ("self" mode); it becomes the clubmate found ("club" mode) as soon as a valid licence of
+// their club is given. The rest of the page works on $lue (the subject) and $subjectLicence.
 $canGroup   = bk_is_major($selfLue->LueCtrlCode);
 $groupMode  = false;
 $lue        = $selfLue;
@@ -72,18 +61,17 @@ $clubErr    = '';
 $reqSubject = bk_clean_licence($_POST['subject'] ?? $_GET['subject'] ?? '');
 if ($reqSubject !== '' && $reqSubject !== bk_clean_licence($archer->BaLicence)) {
     if (!$canGroup) {
-        $clubErr = "Seul un licencié majeur peut inscrire un autre licencié de son club.";
+        $clubErr = bk_t('OnlyAdultGroup');
     } else {
         $mate = bk_lookup_clubmate($reqSubject, $selfLue->LueCountry);
         if ($mate) { $groupMode = true; $lue = $mate; }
-        else $clubErr = "Licence inconnue, ou cet archer n'appartient pas à votre club.";
+        else $clubErr = bk_t('MateUnknown');
     }
 }
 $subjectLicence = bk_clean_licence($lue->LueCode);
 
-// Camarades déjà inscrits par cet archer et TOUJOURS dans son club (raccourci de
-// l'inscription de groupe). Re-vérifie le club : un archer ayant changé de club
-// n'y figure plus.
+// Clubmates already registered by this archer and STILL in their club (shortcut of the
+// group registration). The club is checked again: an archer who changed club is gone.
 $mates = $canGroup ? bk_authored_clubmates($archer->BaId, $archer->BaLicence, $selfLue->LueCountry) : array();
 
 $divisions = bk_reg_divisions($tourId);
@@ -98,9 +86,8 @@ $sessions = bk_comp_sessions($tourId);
 $sessionOrder = intval($_POST['session'] ?? 0);
 $request = trim((string) ($_POST['request'] ?? ''));
 
-// Blasons réellement possibles pour cette catégorie, d'après la configuration
-// de la compétition — jamais une liste libre. On récupère aussi les tailles de
-// blason (cm) pour les afficher sous la catégorie.
+// Faces really possible for this category, from the competition setup — never a free list.
+// Their sizes (cm) are kept too, to show them under the category.
 $facesDispo = array();
 $faceSizes  = array();
 if ($division !== '' && $class !== '') {
@@ -116,9 +103,8 @@ if ($division !== '' && $class !== '') {
     $faceSizes  = $fi['sizes'];
 }
 
-// Distances applicables à la catégorie (permet de vérifier TAE I / TAE N).
-// On ne garde que les distances DISTINCTES (une compétition déclare souvent le
-// même mètre en deux blocs D1/D2).
+// Distances of the category (lets the archer check outdoor I / outdoor N). Only DISTINCT
+// distances (a competition often declares the same metres in two blocks D1/D2).
 $catDists = ($division !== '' && $class !== '' && !empty($tour->ToType))
     ? bk_doc_distances($tourId, $tour->ToType, $division, $class) : array();
 $catMetres = array();
@@ -126,9 +112,9 @@ foreach ($catDists as $d) if (intval($d['metres']) > 0) $catMetres[intval($d['me
 krsort($catMetres);
 $catMetres = array_keys($catMetres);
 
-// Jauge SPÉCIFIQUE : places restantes PAR DÉPART pour ce PROFIL (arme + catégorie +
-// blason choisi), en plus de la jauge globale. 0 ⇒ le départ est complet pour ce profil
-// et l'inscription y sera refusée (contrôle d'admission, cohabitation des blasons).
+// SPECIFIC gauge: places left PER DEPARTURE for this PROFILE (bow type + category + face
+// chosen), on top of the overall gauge. 0 ⇒ the departure is full for this profile and the
+// registration is refused there (admission check, face sharing).
 $curFace = 0;
 if ($facesDispo) {
     $want = intval($_POST['face'] ?? 0);
@@ -146,11 +132,11 @@ if ($division !== '' && $class !== '' && $curFace > 0 && function_exists('bk_pro
     });
 }
 
-// Inscriptions déjà prises par cet archer sur cette compétition : pour proposer
-// un départ supplémentaire et annoncer l'effet sur la participation aux épreuves.
-$dejaMoi = bk_reg_existing($tourId, $subjectLicence);
-$dejaSessions = array();
-foreach ($dejaMoi as $d) $dejaSessions[intval($d->QuSession)] = true;
+// Registrations this archer already has on this competition: to offer another departure and
+// announce the effect on the events.
+$mine = bk_reg_existing($tourId, $subjectLicence);
+$mineSessions = array();
+foreach ($mine as $d) $mineSessions[intval($d->QuSession)] = true;
 
 // Waiting list (lib/waitlist.php): with the list on, a departure full for this profile
 // stays selectable and the same form puts the archer on its list instead of registering.
@@ -167,12 +153,12 @@ foreach ($sessions as $s) {
     $sessionFull[$o] = bk_waitlist_full($s, $profileLeft[$o] ?? null);
 }
 
-// Tarification : provenance et rang sont fixes pour cette inscription (le club et
-// le nombre d'inscriptions déjà prises ne dépendent pas des choix du formulaire) ;
-// seuls catégorie et départ font varier le prix, recalculés en direct côté client.
+// Tariff: origin and rank are fixed for this registration (the club and the number of
+// registrations already made do not depend on the form); only category and departure change
+// the price, computed again live on the browser side.
 $pricing  = bk_pricing_get($cfg);
 $provTier = bk_prov_tier($pricing, $lue->LueCountry);
-$nextRank = count($dejaMoi) + 1;
+$nextRank = count($mine) + 1;
 $provDelta = $provTier === 'dept' ? (float) $pricing['prov']['dept']
            : ($provTier === 'region' ? (float) $pricing['prov']['region'] : 0.0);
 $rankDelta = 0.0; $rankTh = 0;
@@ -183,7 +169,7 @@ foreach ($pricing['rank'] as $th => $d) {
 $calc = bk_price_calc($cfg->BcFee, $pricing, $division, $class, $sessionOrder, $provTier, $nextRank);
 $showPrice = ((float) $cfg->BcFee > 0) || bk_pricing_is_advanced($pricing);
 
-// Choix de paiement proposés au compétiteur (moyen + quand), s'il y a un tarif.
+// Payment choices offered to the competitor (means + when), when there is a fee.
 $payChoices = array(); $payDecl = '';
 if ($showPrice) {
     $payChoices = bk_payinfo_choices(bk_payinfo_get($cfg));
@@ -193,15 +179,8 @@ if ($showPrice) {
     }
 }
 
-/** Montant € (français). $signed : préfixe +/− explicite (ajustements). */
-function bk_eur($n, $signed = false)
-{
-    $s = $n < 0 ? '−' : ($signed ? '+' : '');
-    return $s . number_format(abs((float) $n), 2, ',', ' ') . ' €';
-}
-
-// Camarades de club déjà inscrits, pour la demande « sur la même cible que… ».
-$camarades = array();
+// Clubmates already registered, for the wish "on the same target as…".
+$clubmates = array();
 if ($lue->LueCountry) {
     $rs = safe_r_sql("SELECT e.EnCode, e.EnFirstName, e.EnName, q.QuSession
         FROM Entries e
@@ -211,14 +190,14 @@ if ($lue->LueCountry) {
           AND c.CoCode = " . StrSafe_DB($lue->LueCountry) . "
           AND e.EnCode <> " . StrSafe_DB($subjectLicence) . "
         ORDER BY e.EnFirstName, e.EnName");
-    while ($r = safe_fetch($rs)) $camarades[] = $r;
+    while ($r = safe_fetch($rs)) $clubmates[] = $r;
 }
 
-// Lettres disponibles sur ce départ (A, B, C… selon SesAth4Target).
-$lettres = array();
+// Letters available on this departure (A, B, C… from SesAth4Target).
+$letters = array();
 foreach ($sessions as $s) {
-    if (intval($s->SesOrder) === $sessionOrder || (!$sessionOrder && !$lettres)) {
-        for ($i = 0; $i < intval($s->SesAth4Target); $i++) $lettres[] = chr(65 + $i);
+    if (intval($s->SesOrder) === $sessionOrder || (!$sessionOrder && !$letters)) {
+        for ($i = 0; $i < intval($s->SesAth4Target); $i++) $letters[] = chr(65 + $i);
     }
 }
 
@@ -227,16 +206,16 @@ $geo = bk_comp_archer_blocked($cfg, $lue->LueCountry);
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1') {
     if (!bk_csrf_check()) {
-        $err = 'Session expirée — merci de réessayer.';
+        $err = bk_t('SessionExpired');
     } elseif ($class === '' || $division === '') {
-        $err = "Choisissez une arme et une catégorie.";
+        $err = bk_t('ChooseWeaponCat');
     } elseif ((string) ($_POST['class'] ?? '') !== $class) {
-        // La catégorie postée n'est pas dans la liste autorisée : on ne la
-        // remplace pas en silence, on le dit (POST forgé ou formulaire périmé).
-        $err = "Cette catégorie ne correspond pas à votre âge pour cette arme.";
+        // The category posted is not in the allowed list: it is not replaced silently, the
+        // archer is told (forged POST or stale form).
+        $err = bk_t('CatNotForAge');
     } elseif ($groupMode && !$canGroup) {
-        // Défense côté écriture : un POST forgé ne doit pas contourner la majorité.
-        $err = "Seul un licencié majeur peut inscrire un autre licencié de son club.";
+        // Guard on the write side: a forged POST must not get round the age rule.
+        $err = bk_t('OnlyAdultGroup');
     } elseif ($waitOn && !empty($sessionFull[$sessionOrder])) {
         // Full departure: the SERVER decides to queue, from the state seen after the list
         // was served above — never the label of the button, which is only a display.
@@ -256,7 +235,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1
         if ($err === '') {
             $res = bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, array(
                 'role'   => $groupMode ? 'CLUB' : 'SELF',
-                'who'    => $archer->BaLicence,   // auteur de l'inscription
+                'who'    => $archer->BaLicence,   // author of the registration
                 'archer' => $archer->BaId,
             ), array(
                 'face'   => intval($_POST['face'] ?? 0),
@@ -265,332 +244,262 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1
             ));
             if (!empty($res['ok'])) {
                 bk_log('REG_NEW', $subjectLicence);
-                // Moyen de paiement souhaité, attribué au SUJET (montant dû de sa
-                // fiche) — informe l'organisateur, même pour une inscription de groupe.
+                // Means of payment wished, given to the SUBJECT (amount due of their account)
+                // — informs the organiser, also for a group registration.
                 if (!empty($_POST['pay_choice'])) {
                     $pc = explode('|', (string) $_POST['pay_choice'], 2);
                     if (count($pc) === 2) bk_payment_declare($tourId, $subjectLicence, $pc[0], $pc[1]);
                 }
-                // Placement seulement si l'inscription est validée (auto). En mode
-                // validation manuelle, l'affectation attend la validation de l'orga.
+                // Placement only when the registration is validated (automatic). With manual
+                // validation, the placement waits for the organiser.
                 if (!empty($res['validated'])) {
                     bk_replan_session($tourId, $sessionOrder, $cfg);
                 }
                 bk_redirect('registrations.php?ok=1&t=' . $tourId
                     . ($groupMode ? '&s=' . rawurlencode($subjectLicence) : ''));
             }
-            $err = $res['msg'] ?? "L'inscription n'a pas pu être enregistrée.";
+            $err = $res['msg'] ?? bk_t('RegFailed');
         }
     }
 }
 
-bk_head('Inscription');
+$mateName = trim($lue->LueFamilyName . ' ' . $lue->LueName);
+$sel = function ($on) { return $on ? ' selected' : ''; };
+
+bk_head(bk_t('RegTitle'));
+echo '<div class="bk-block" style="margin-bottom:16px"><h2>' . bk_e($tour->ToName) . '</h2><p class="bk-meta">'
+    . '<span>' . bk_e(bk_date_range($tour->ToWhenFrom, $tour->ToWhenTo)) . '</span>'
+    . ($tour->ToWhere ? '<span>' . bk_e($tour->ToWhere) . '</span>' : '') . '</p></div>';
+
+if ($geo !== '') {
+    echo bk_msg('err', $geo);
+    bk_foot();
+    exit;
+}
+echo ($err ? bk_msg('err', $err) : '') . ($clubErr ? bk_msg('err', $clubErr) : '');
+
+// Who is registered.
+echo '<div class="bk-block"><h2>' . bk_e(bk_t($groupMode ? 'RegClubMate' : 'YourInfo')) . '</h2><dl class="bk-dl">'
+    . '<dt>' . bk_e(bk_t('Licence')) . '</dt><dd>' . bk_e($lue->LueCode) . '</dd>'
+    . '<dt>' . bk_e(bk_t('FullName')) . '</dt><dd>' . bk_e($lue->LueFamilyName) . ' ' . bk_e($lue->LueName) . '</dd>'
+    . '<dt>' . bk_e(bk_t('BornOn')) . '</dt><dd>' . bk_e(bk_date_fr($lue->LueCtrlCode)) . '</dd>'
+    . '<dt>' . bk_e(bk_t('Club')) . '</dt><dd>' . bk_e($lue->LueCoDescr) . '</dd></dl>';
+if ($groupMode) {
+    echo '<p class="bk-hint">' . bk_e(bk_t('GroupHint', $archer->BaLicence)) . '</p>'
+        . '<p><a class="bk-btn" href="' . bk_e(bk_public_url('register-comp.php?t=' . $tourId)) . '">' . bk_e(bk_t('BackOwnReg')) . '</a></p>';
+} else {
+    echo '<p class="bk-hint">' . bk_e(bk_t('InfoFromFile')) . '</p>';
+}
+if ($canGroup) {
+    echo '<details class="bk-group-switch"' . (($clubErr && !$groupMode) ? ' open' : '') . '><summary>'
+        . bk_e(bk_t($groupMode ? 'RegisterOtherMate' : 'RegisterMate')) . '</summary><div class="bk-group-body">';
+    if ($mates) {
+        echo '<label for="matesel">' . bk_e(bk_t('MateAlready')) . '</label>'
+            . '<select id="matesel" data-base="' . bk_e(bk_public_url('register-comp.php?t=' . $tourId . '&subject=')) . '"'
+            . ' onchange="if(this.value){location.href=this.getAttribute(\'data-base\')+encodeURIComponent(this.value);}">'
+            . '<option value="">' . bk_e(bk_t('Choose')) . '</option>';
+        foreach ($mates as $lic => $name) {
+            echo '<option value="' . bk_e($lic) . '"' . $sel($groupMode && $lic === $subjectLicence) . '>'
+                . bk_e($name) . ' (' . bk_e($lic) . ')</option>';
+        }
+        echo '</select><p class="bk-hint" style="margin-bottom:8px">' . bk_e(bk_t('OrNewLicence')) . '</p>';
+    } else {
+        echo '<p class="bk-hint">' . bk_t('MateHint') . '</p>';
+    }
+    echo '<form method="get" action="' . bk_e(bk_public_url('register-comp.php')) . '" class="bk-group-form">'
+        . '<input type="hidden" name="t" value="' . intval($tourId) . '">'
+        . '<label for="subjlic">' . bk_e(bk_t('LicenceNumber')) . '</label>'
+        . '<input type="text" id="subjlic" name="subject" placeholder="' . bk_e(bk_t('ExampleX', $archer->BaLicence)) . '" autocomplete="off" required>'
+        . '<button type="submit" class="bk-btn bk-btn-primary">' . bk_e(bk_t('Continue')) . '</button></form></div></details>';
+}
+echo '</div>';
+
+if (intval($lue->LueStatus) === 9) {
+    // Licence without practice: no registration for this subject.
+    echo '<div class="bk-block" style="margin-top:14px"><h2>' . bk_e($groupMode ? $mateName : bk_t('YourReg')) . '</h2>'
+        . '<p class="bk-blocked">' . bk_t($groupMode ? 'NoPracticeMate' : 'NoPracticeSelf') . '</p></div>';
+    bk_foot();
+    exit;
+}
+
+echo '<form method="post" class="bk-block" style="margin-top:14px" id="bkreg">' . bk_csrf_field()
+    . '<input type="hidden" name="t" value="' . intval($tourId) . '"><input type="hidden" name="go" value="1">'
+    . ($groupMode ? '<input type="hidden" name="subject" value="' . bk_e($subjectLicence) . '">' : '')
+    . '<h2>' . bk_e($groupMode ? bk_t('TheirReg', $mateName) : bk_t('YourReg')) . '</h2>';
+
+// Bow type and category: a change reloads the form (the categories depend on the bow type).
+echo '<label for="division">' . bk_e(bk_t('Weapon')) . '</label>'
+    . '<select id="division" name="division" onchange="this.form.go.value=\'0\';this.form.submit()">';
+foreach ($divisions as $k => $lab) echo '<option value="' . bk_e($k) . '"' . $sel($division === (string) $k) . '>' . bk_e($lab) . '</option>';
+echo '</select><label for="class">' . bk_e(bk_t('Category')) . '</label>';
+if (!$classes) {
+    echo '<p class="bk-blocked">' . bk_e(bk_t('NoCatForAge')) . '</p>';
+} else {
+    echo '<select id="class" name="class" onchange="this.form.go.value=\'0\';this.form.submit()">';
+    foreach ($classes as $k => $lab) echo '<option value="' . bk_e($k) . '"' . $sel($class === (string) $k) . '>' . bk_e($lab) . '</option>';
+    echo '</select><p class="bk-hint">' . bk_e(bk_t('CatFromBirth')) . '</p>';
+    if ($catMetres || $faceSizes) {
+        echo '<p class="bk-catinfo">'
+            . ($catMetres ? '<b>' . bk_e(bk_t('DistanceLbl')) . '</b> ' . bk_e(implode(' / ', array_map(function ($m) { return $m . ' m'; }, $catMetres))) : '')
+            . ($faceSizes ? ($catMetres ? ' &nbsp;—&nbsp; ' : '') . '<b>' . bk_e(bk_t('FaceLbl')) . '</b> '
+                . bk_e(implode(' / ', array_map(function ($cm) { return $cm . ' cm'; }, $faceSizes))) : '')
+            . '</p>';
+    }
+}
+
+// Face: chosen among those the setup plans for the category. A change reloads the form:
+// the gauge "places for your face" per departure depends on it, computed on the server.
+if (count($facesDispo) > 1) {
+    echo '<label for="face">' . bk_e(bk_t('FaceType')) . '</label>'
+        . '<select id="face" name="face" onchange="this.form.go.value=\'0\';this.form.submit()">';
+    foreach ($facesDispo as $id => $lab) {
+        echo '<option value="' . intval($id) . '"' . $sel(intval($_POST['face'] ?? 0) === intval($id)) . '>' . bk_e($lab) . '</option>';
+    }
+    echo '</select><p class="bk-hint">' . bk_e(bk_t('FaceTypeHint')) . '</p>';
+} elseif ($facesDispo) {
+    echo '<label>' . bk_e(bk_t('Face')) . '</label><p class="bk-fixed">' . bk_e(reset($facesDispo))
+        . ' <span class="bk-hint">' . bk_e(bk_t('FaceForCat')) . '</span></p>';
+}
+
+// Waiting rows of this archer on this competition (one per weapon).
+foreach ($myWait as $w) {
+    $what = ($w->DivDescription ?: $w->BwDivision) . ', '
+        . (intval($w->BwSession) ? bk_t('DepLower', intval($w->BwSession)) : bk_t('AnyDep'));
+    echo '<p class="bk-note">' . bk_t($groupMode ? 'WaitOnListMate' : 'WaitOnListYou',
+        array('what' => bk_e($what), 'pos' => bk_waitlist_position($w))) . '</p>';
+}
+
+// Departures, with what is left of each one.
+$free = 0; $waitable = 0; $selWait = false;
+echo '<label for="session">' . bk_e(bk_t('DepartureLbl')) . '</label><select id="session" name="session" required>'
+    . '<option value="">' . bk_e(bk_t('Choose')) . '</option>';
+foreach ($sessions as $s) {
+    $o = intval($s->SesOrder);
+    $left = max(0, intval($s->Places) - intval($s->Pris));
+    $taken = isset($mineSessions[$o]);
+    // Specific gauge: places for THIS profile. null = no constraint known.
+    $pl = array_key_exists($o, $profileLeft) ? $profileLeft[$o] : null;
+    $profFull = ($pl !== null && $pl < 1);
+    $avail = ($left > 0 && !$taken && !$profFull);
+    // Full departure: selectable when the waiting list is on and this weapon is not already
+    // waited for — the form then joins the list (data-wait, script below).
+    $wait = !$avail && !$taken && $waitOn && !isset($myWait[$division]);
+    if ($avail) $free++;
+    if ($wait) $waitable++;
+    if ($wait && $sessionOrder === $o) $selWait = true;
+
+    $label = bk_t('DepCap', $o) . ($s->SesName ? ' — ' . $s->SesName : '');
+    $ss = bk_session_start($s);
+    if ($ss !== '') {
+        $hm = substr($ss, 11, 5);   // bytes: ASCII time
+        $label .= ' (' . (($hm !== '' && $hm !== '00:00')
+            ? bk_t('DateAt', array('date' => bk_date_fr($ss), 'time' => date(bk_t('TimeFormat'), strtotime($ss))))
+            : bk_date_fr($ss)) . ')';
+    }
+    if ($taken) {
+        $state = bk_t('StAlready');
+    } elseif (!$avail) {
+        $state = bk_t($left === 0 ? 'StFull' : 'StFullFace');
+        if ($wait) $state .= ' · ' . bk_t('StWait');
+        elseif ($waitOn && isset($myWait[$division])) $state .= ' · ' . bk_t('StWaitAlready');
+    } else {
+        $state = bk_t($left > 1 ? 'PlacesMany' : 'PlacesOne', $left);
+        if ($pl !== null) $state .= ' · ' . bk_t('StForFace', intval($pl));
+    }
+    echo '<option value="' . $o . '"' . ((!$avail && !$wait) ? ' disabled' : '') . ($wait ? ' data-wait="1"' : '')
+        . $sel($sessionOrder === $o) . '>' . bk_e($label . ' — ' . $state) . '</option>';
+}
+echo '</select>';
+if (!$free && !$waitable) {
+    echo '<p class="bk-blocked">' . bk_e(bk_t('NoDepAvail')) . '</p>';
+} else {
+    echo '<p class="bk-hint">' . bk_e(bk_t('ForFaceHint') . ' ' . bk_t($waitable ? 'ForFaceWait' : 'ForFaceNoWait')) . '</p>';
+}
+
+// Shown when the departure chosen is full (script below; rendered visible already when the
+// page comes back with such a departure selected, so it also reads without script).
+echo '<div class="bk-note" id="bk-wait-note"' . ($selWait ? '' : ' hidden') . '>'
+    . bk_t($groupMode ? 'WaitNoteMate' : 'WaitNoteSelf') . '</div>';
+
+// Extra shoot: with the same weapon, only the first shoot OF THE COMPETITION counts for its
+// ranking (lib/registration.php, bk_events_to_first_shoot) — an earlier departure added
+// later takes the ranking over from the one already registered.
+if ($mine) {
+    $sameWeapon = array();
+    foreach ($mine as $d) if ((string) $d->EnDivision === (string) $division) $sameWeapon[] = intval($d->QuSession);
+    sort($sameWeapon);
+    $n = count($mine);
+    echo '<div class="bk-note">' . bk_t(($groupMode ? 'ExtraMate' : 'ExtraSelf') . ($n > 1 ? 'Many' : 'One'), $n) . ' ';
+    if ($sameWeapon) {
+        $last = array_pop($sameWeapon);
+        echo bk_t($groupMode ? 'ExtraSameMate' : 'ExtraSameSelf', array(
+            'weapon' => bk_e($divisions[$division] ?? $division),
+            'where'  => $sameWeapon ? bk_t('AtDeps', array('list' => implode(', ', $sameWeapon), 'last' => $last)) : bk_t('AtDep', $last),
+            'then'   => $sameWeapon ? bk_t('ThenOthersWill') : bk_t('ThenDepWill', $last),
+        ));
+    } else {
+        echo bk_e(bk_t('ExtraOtherWeapon'));
+    }
+    echo '</div>';
+}
+
+// Wishes offered by the organiser.
+if ($cfg->BcWishLetter || $cfg->BcWishWith || $cfg->BcWishFree) {
+    echo '<fieldset class="bk-wishes"><legend>' . bk_e(bk_t('MyWishes')) . ' <span class="bk-opt">' . bk_e(bk_t('Optional')) . '</span></legend>';
+    if ($cfg->BcWishLetter) {
+        echo '<label for="letter">' . bk_e(bk_t('WishLetter')) . '</label><select id="letter" name="letter">'
+            . '<option value="">' . bk_e(bk_t('NoMatter')) . '</option>';
+        foreach ($letters as $L) echo '<option value="' . bk_e($L) . '"' . $sel(($_POST['letter'] ?? '') === $L) . '>' . bk_e($L) . '</option>';
+        echo '</select>';
+    }
+    if ($cfg->BcWishWith) {
+        echo '<label for="with">' . bk_e(bk_t('WishWith')) . '</label>';
+        if ($clubmates) {
+            echo '<select id="with" name="with"><option value="">' . bk_e(bk_t('NoMatter')) . '</option>';
+            foreach ($clubmates as $c) {
+                echo '<option value="' . bk_e($c->EnCode) . '"' . $sel(($_POST['with'] ?? '') === $c->EnCode) . '>'
+                    . bk_e($c->EnFirstName . ' ' . $c->EnName) . ' (' . bk_e(bk_t('DepLower', intval($c->QuSession))) . ')</option>';
+            }
+            echo '</select><p class="bk-hint">' . bk_e(bk_t('WishWithHint')) . '</p>';
+        } else {
+            echo '<p class="bk-fixed bk-hint">' . bk_e(bk_t('WishNoMate')) . '</p><input type="hidden" name="with" value="">';
+        }
+    }
+    if ($cfg->BcWishFree) {
+        echo '<label for="request">' . bk_e(bk_t('WishFree')) . '</label>'
+            . '<textarea id="request" name="request" rows="2" maxlength="2000" placeholder="' . bk_e(bk_t('WishFreePh')) . '">'
+            . bk_e($request) . '</textarea><p class="bk-hint">' . bk_e(bk_t('WishFreeHint')) . '</p>';
+    }
+    if ($cfg->BcWishLetter || $cfg->BcWishWith) echo '<p class="bk-hint">' . bk_e(bk_t('WishPlaceHint')) . '</p>';
+    echo '</fieldset>';
+}
+
+// Tariff, recomputed live by the script below.
+if ($showPrice) {
+    echo '<div class="bk-price" id="bk-price"><h3>' . bk_e(bk_t('Tariff')) . '</h3>'
+        . '<table class="bk-price-t"><tbody id="bk-price-lines">';
+    foreach ($calc['lines'] as $i => $ln) {
+        echo '<tr><td>' . bk_e($ln['label']) . '</td><td class="bk-price-num">' . bk_e(bk_eur($ln['amount'], $i > 0)) . '</td></tr>';
+    }
+    echo '</tbody></table><p class="bk-price-tot">' . bk_e(bk_t('TotalLbl')) . ' <b id="bk-price-total">'
+        . bk_e(bk_eur($calc['total'])) . '</b></p><p class="bk-hint">' . bk_e(bk_t('PriceEstimate')) . '</p></div>';
+}
+
+if ($payChoices) {
+    echo '<fieldset class="bk-wishes"><legend>' . bk_e(bk_t('Payment')) . ' <span class="bk-opt">' . bk_e(bk_t('Optional')) . '</span></legend>'
+        . '<p class="bk-hint">' . bk_e(bk_t('PayHint')) . '</p>'
+        . '<label for="pay_choice">' . bk_e(bk_t('PayChoiceLbl')) . '</label><select id="pay_choice" name="pay_choice">'
+        . '<option value="">' . bk_e(bk_t('PayLater')) . '</option>';
+    foreach ($payChoices as $pc) echo '<option value="' . bk_e($pc['value']) . '"' . $sel($payDecl === $pc['value']) . '>' . bk_e($pc['label']) . '</option>';
+    echo '</select></fieldset>';
+}
+
+$lblReg  = bk_t($groupMode ? 'ConfirmMate' : 'ConfirmSelf');
+$lblWait = bk_t($groupMode ? 'WaitJoinMate' : 'WaitJoinSelf');
+echo '<button type="submit" class="bk-btn bk-btn-primary" id="bk-submit" data-reg="' . bk_e($lblReg)
+    . '" data-wait="' . bk_e($lblWait) . '"' . ((!$classes || (!$free && !$waitable)) ? ' disabled' : '') . '>'
+    . bk_e($selWait ? $lblWait : $lblReg) . '</button></form>';
 ?>
-
-<div class="bk-block" style="margin-bottom:16px">
-  <h2><?= bk_e($tour->ToName) ?></h2>
-  <p class="bk-meta">
-    <span><?= bk_e(bk_date_range($tour->ToWhenFrom, $tour->ToWhenTo)) ?></span>
-    <?php if ($tour->ToWhere): ?><span><?= bk_e($tour->ToWhere) ?></span><?php endif; ?>
-  </p>
-</div>
-
-<?php if ($geo !== ''): ?>
-  <?= bk_msg('err', $geo) ?>
-  <?php bk_foot(); exit; ?>
-<?php endif; ?>
-
-<?= $err ? bk_msg('err', $err) : '' ?>
-<?= $clubErr ? bk_msg('err', $clubErr) : '' ?>
-
-<div class="bk-block">
-  <?php if ($groupMode): ?>
-    <h2>Inscription d'un licencié de votre club</h2>
-  <?php else: ?>
-    <h2>Vos informations</h2>
-  <?php endif; ?>
-  <dl class="bk-dl">
-    <dt>Licence</dt><dd><?= bk_e($lue->LueCode) ?></dd>
-    <dt>Nom</dt><dd><?= bk_e($lue->LueFamilyName) ?> <?= bk_e($lue->LueName) ?></dd>
-    <dt>Né(e) le</dt><dd><?= bk_e(bk_date_fr($lue->LueCtrlCode)) ?></dd>
-    <dt>Club</dt><dd><?= bk_e($lue->LueCoDescr) ?></dd>
-  </dl>
-  <?php if ($groupMode): ?>
-    <p class="bk-hint">Vous inscrivez ce licencié de votre club (vous en êtes l'auteur, licence
-       <?= bk_e($archer->BaLicence) ?>). Ces informations proviennent du fichier des licences.</p>
-    <p><a class="bk-btn" href="<?= bk_e(bk_public_url('register-comp.php?t=' . $tourId)) ?>">← Revenir à ma propre inscription</a></p>
-  <?php else: ?>
-    <p class="bk-hint">Ces informations proviennent du fichier des licences et ne sont pas
-       modifiables ici.</p>
-  <?php endif; ?>
-
-  <?php if ($canGroup): ?>
-    <details class="bk-group-switch" <?= ($clubErr && !$groupMode) ? 'open' : '' ?>>
-      <summary><?= $groupMode ? 'Inscrire un autre licencié de mon club' : 'Inscrire un licencié de mon club' ?></summary>
-      <div class="bk-group-body">
-        <?php if ($mates): ?>
-          <label for="matesel">Un licencié déjà inscrit par vous</label>
-          <select id="matesel" data-base="<?= bk_e(bk_public_url('register-comp.php?t=' . $tourId . '&subject=')) ?>"
-                  onchange="if(this.value){location.href=this.getAttribute('data-base')+encodeURIComponent(this.value);}">
-            <option value="">— choisir —</option>
-            <?php foreach ($mates as $lic => $nom): ?>
-              <option value="<?= bk_e($lic) ?>" <?= ($groupMode && $lic === $subjectLicence) ? 'selected' : '' ?>>
-                <?= bk_e($nom) ?> (<?= bk_e($lic) ?>)</option>
-            <?php endforeach; ?>
-          </select>
-          <p class="bk-hint" style="margin-bottom:8px">ou saisissez un nouveau numéro de licence :</p>
-        <?php else: ?>
-          <p class="bk-hint">Saisissez le numéro de licence d'un archer de <b>votre club</b> pour
-             l'inscrire à sa place. Une licence inconnue ou d'un autre club est refusée.</p>
-        <?php endif; ?>
-        <form method="get" action="<?= bk_e(bk_public_url('register-comp.php')) ?>" class="bk-group-form">
-          <input type="hidden" name="t" value="<?= intval($tourId) ?>">
-          <label for="subjlic">Numéro de licence</label>
-          <input type="text" id="subjlic" name="subject" placeholder="Ex. <?= bk_e($archer->BaLicence) ?>"
-                 autocomplete="off" required>
-          <button type="submit" class="bk-btn bk-btn-primary">Continuer</button>
-        </form>
-      </div>
-    </details>
-  <?php endif; ?>
-</div>
-
-<?php if (intval($lue->LueStatus) === 9): /* licence sans pratique : pas d'inscription pour ce sujet */ ?>
-<div class="bk-block" style="margin-top:14px">
-  <h2><?= $groupMode ? bk_e(trim($lue->LueFamilyName . ' ' . $lue->LueName)) : 'Votre inscription' ?></h2>
-  <p class="bk-blocked"><?= $groupMode
-      ? "Cette licence est « <b>sans pratique</b> » : ce licencié ne peut pas être inscrit à une compétition."
-      : "Votre licence est « <b>sans pratique</b> » (dirigeant) : vous ne pouvez pas vous inscrire à une compétition. Vous pouvez en revanche <b>inscrire les licenciés de votre club</b> à l'aide de « Inscrire un licencié de mon club » ci-dessus." ?></p>
-</div>
-<?php else: ?>
-<form method="post" class="bk-block" style="margin-top:14px" id="bkreg">
-  <?= bk_csrf_field() ?>
-  <input type="hidden" name="t" value="<?= intval($tourId) ?>">
-  <input type="hidden" name="go" value="1">
-  <?php if ($groupMode): ?><input type="hidden" name="subject" value="<?= bk_e($subjectLicence) ?>"><?php endif; ?>
-
-  <h2><?= $groupMode ? 'Son inscription (' . bk_e(trim($lue->LueFamilyName . ' ' . $lue->LueName)) . ')' : 'Votre inscription' ?></h2>
-
-  <label for="division">Arme</label>
-  <select id="division" name="division" onchange="this.form.go.value='0';this.form.submit()">
-    <?php foreach ($divisions as $k => $lab): ?>
-      <option value="<?= bk_e($k) ?>" <?= $division === $k ? 'selected' : '' ?>><?= bk_e($lab) ?></option>
-    <?php endforeach; ?>
-  </select>
-
-  <label for="class">Catégorie</label>
-  <?php if (!$classes): ?>
-    <p class="bk-blocked">Aucune catégorie ne correspond à votre âge pour cette arme.</p>
-  <?php else: ?>
-    <select id="class" name="class" onchange="this.form.go.value='0';this.form.submit()">
-      <?php foreach ($classes as $k => $lab): ?>
-        <option value="<?= bk_e($k) ?>" <?= $class === $k ? 'selected' : '' ?>><?= bk_e($lab) ?></option>
-      <?php endforeach; ?>
-    </select>
-    <p class="bk-hint">Déterminée par votre année de naissance et votre sexe.</p>
-    <?php if ($catMetres || $faceSizes): ?>
-      <p class="bk-catinfo">
-        <?php if ($catMetres): ?><b>Distance :</b>
-          <?= bk_e(implode(' / ', array_map(function ($m) { return $m . ' m'; }, $catMetres))) ?><?php endif; ?>
-        <?php if ($faceSizes): ?><?= $catMetres ? ' &nbsp;—&nbsp; ' : '' ?><b>Blason :</b>
-          <?= bk_e(implode(' / ', array_map(function ($cm) { return $cm . ' cm'; }, $faceSizes))) ?><?php endif; ?>
-      </p>
-    <?php endif; ?>
-  <?php endif; ?>
-
-  <?php if (count($facesDispo) > 1): ?>
-    <label for="face">Type de blason</label>
-    <?php // Recharge le formulaire au changement : la jauge « places pour votre blason »
-          // par départ dépend du blason choisi, elle doit être recalculée côté serveur. ?>
-    <select id="face" name="face" onchange="this.form.go.value='0';this.form.submit()">
-      <?php foreach ($facesDispo as $id => $lab): ?>
-        <option value="<?= intval($id) ?>" <?= intval($_POST['face'] ?? 0) === intval($id) ? 'selected' : '' ?>>
-          <?= bk_e($lab) ?></option>
-      <?php endforeach; ?>
-    </select>
-    <p class="bk-hint">Plusieurs types de blasons sont possibles pour votre catégorie — la taille, elle,
-       dépend de la catégorie choisie ci-dessus. Les places restantes par départ se mettent à jour selon le blason.</p>
-  <?php elseif ($facesDispo): $lab = reset($facesDispo); ?>
-    <label>Blason</label>
-    <p class="bk-fixed"><?= bk_e($lab) ?> <span class="bk-hint">(blason prévu pour votre catégorie)</span></p>
-  <?php endif; ?>
-
-  <?php
-  // Waiting rows of this archer on this competition (one per weapon).
-  foreach ($myWait as $w) {
-      echo '<p class="bk-note">' . ($groupMode ? 'Ce licencié est' : 'Vous êtes') . ' sur la liste d\'attente ('
-          . bk_e($w->DivDescription ?: $w->BwDivision) . ', '
-          . (intval($w->BwSession) ? 'départ ' . intval($w->BwSession) : 'n\'importe quel départ')
-          . ') : position <b>' . bk_waitlist_position($w) . '</b> pour ce profil.</p>';
-  }
-  ?>
-
-  <label for="session">Départ</label>
-  <?php $libres = 0; $attente = 0; $selWait = false; ?>
-  <select id="session" name="session" required>
-    <option value="">— choisir —</option>
-    <?php foreach ($sessions as $s):
-      $o = intval($s->SesOrder);
-      $left = max(0, intval($s->Places) - intval($s->Pris));
-      $pris = isset($dejaSessions[$o]);
-      // Jauge spécifique : places pour CE profil. null = pas de contrainte connue.
-      $pl = array_key_exists($o, $profileLeft) ? $profileLeft[$o] : null;
-      $profFull = ($pl !== null && $pl < 1);
-      $dispo = ($left > 0 && !$pris && !$profFull);
-      // Full departure: selectable when the waiting list is on and this weapon is not
-      // already waited for — the form then joins the list (data-wait, script below).
-      $wait = !$dispo && !$pris && $waitOn && !isset($myWait[$division]);
-      if ($dispo) $libres++;
-      if ($wait) $attente++;
-      if ($wait && $sessionOrder === $o) $selWait = true; ?>
-      <option value="<?= $o ?>" <?= (!$dispo && !$wait) ? 'disabled' : '' ?> <?= $wait ? 'data-wait="1"' : '' ?>
-        <?= $sessionOrder === $o ? 'selected' : '' ?>>
-        Départ <?= $o ?><?= $s->SesName ? ' — ' . bk_e($s->SesName) : '' ?>
-        <?php $ss = bk_session_start($s); if ($ss !== ''): $sh = substr($ss, 11, 5); ?>
-          (<?= bk_e(bk_date_fr($ss)) ?><?= ($sh !== '' && $sh !== '00:00') ? ' à ' . bk_e(str_replace(':', 'h', $sh)) : '' ?>)
-        <?php endif; ?>
-        — <?php
-          if ($pris) echo 'déjà inscrit';
-          elseif (!$dispo) {
-            echo $left === 0 ? 'complet' : 'complet pour votre blason';
-            if ($wait) echo ' · liste d\'attente';
-            elseif ($waitOn && isset($myWait[$division])) echo ' · déjà sur la liste d\'attente';
-          } else {
-            echo $left . ' place' . ($left > 1 ? 's' : '');
-            if ($pl !== null) echo ' · ' . intval($pl) . ' pour votre blason';
-          }
-        ?>
-      </option>
-    <?php endforeach; ?>
-  </select>
-  <?php if (!$libres && !$attente): ?>
-    <p class="bk-blocked">Aucun départ disponible : ils sont complets (y compris pour votre blason), ou vous y êtes déjà inscrit.</p>
-  <?php else: ?>
-    <p class="bk-hint">« pour votre blason » = nombre d'archers comme vous (même catégorie, même blason)
-       que les cibles de ce départ peuvent encore accueillir.<?= $attente
-         ? ' Un départ complet reste sélectionnable : l\'inscription se fait alors sur sa liste d\'attente.'
-         : ' Un départ complet pour ce blason n\'est pas sélectionnable.' ?></p>
-  <?php endif; ?>
-
-  <?php
-  // Shown when the departure chosen is full (script below; rendered visible already when
-  // the page comes back with such a departure selected, so it also reads without script).
-  echo '<div class="bk-note" id="bk-wait-note"' . ($selWait ? '' : ' hidden') . '><b>Départ complet</b> pour '
-      . ($groupMode ? 'son' : 'votre') . ' arme, ' . ($groupMode ? 'sa' : 'votre') . ' catégorie et '
-      . ($groupMode ? 'son' : 'votre') . ' blason. ' . ($groupMode ? 'Ce licencié sera inscrit' : 'Vous serez inscrit')
-      . ' sur la <b>liste d\'attente</b> : dès qu\'une place se libère, le premier de la liste est '
-      . '<b>inscrit automatiquement</b>, avec les choix de ce formulaire (souhaits, moyen de paiement), et prévenu dans '
-      . 'son espace (« Mes inscriptions »). S\'il ne vient plus, il annule son départ, et la place passe au suivant.</div>';
-  ?>
-
-  <?php
-  // Extra shoot: with the same weapon, only the first shoot OF THE COMPETITION counts for its
-  // ranking (lib/registration.php, bk_events_to_first_shoot) — an earlier departure added
-  // later takes the ranking over from the one already registered.
-  if ($dejaMoi) {
-      $sameWeapon = array();
-      foreach ($dejaMoi as $d) if ((string) $d->EnDivision === (string) $division) $sameWeapon[] = intval($d->QuSession);
-      sort($sameWeapon);
-      echo '<div class="bk-note"><b>Tir supplémentaire</b> — ' . ($groupMode ? 'ce licencié a' : 'vous avez') . ' déjà '
-          . count($dejaMoi) . ' inscription' . (count($dejaMoi) > 1 ? 's' : '') . ' sur cette compétition. ';
-      if ($sameWeapon) {
-          $last = array_pop($sameWeapon);
-          $where = $sameWeapon ? 'aux départs ' . implode(', ', $sameWeapon) . ' et ' . $last : 'au départ ' . $last;
-          echo 'Avec la même arme (' . bk_e($divisions[$division] ?? $division) . '), ' . ($groupMode ? 'il est' : 'vous êtes')
-              . ' déjà inscrit ' . $where . '. Seul le <b>premier tir de la compétition</b> (dans l\'ordre des départs) '
-              . 'compte pour son classement ; les suivants sont <b>hors épreuve</b>. Si ce nouveau départ a lieu avant, '
-              . 'c\'est lui qui comptera, et ' . ($sameWeapon ? 'les autres départs passeront' : 'le départ ' . $last . ' passera')
-              . ' hors épreuve.';
-      } else {
-          echo 'Avec une arme différente, ce tir comptera pour sa propre épreuve.';
-      }
-      echo '</div>';
-  }
-  ?>
-
-  <?php if ($cfg->BcWishLetter || $cfg->BcWishWith || $cfg->BcWishFree): ?>
-  <fieldset class="bk-wishes">
-    <legend>Mes souhaits <span class="bk-opt">(facultatif)</span></legend>
-
-    <?php if ($cfg->BcWishLetter): ?>
-    <label for="letter">Position sur la cible</label>
-    <select id="letter" name="letter">
-      <option value="">Peu importe</option>
-      <?php foreach ($lettres as $L): ?>
-        <option value="<?= bk_e($L) ?>" <?= ($_POST['letter'] ?? '') === $L ? 'selected' : '' ?>><?= bk_e($L) ?></option>
-      <?php endforeach; ?>
-    </select>
-    <?php endif; ?>
-
-    <?php if ($cfg->BcWishWith): ?>
-    <label for="with">Sur la même cible que</label>
-    <?php if ($camarades): ?>
-      <select id="with" name="with">
-        <option value="">Peu importe</option>
-        <?php foreach ($camarades as $c): ?>
-          <option value="<?= bk_e($c->EnCode) ?>" <?= ($_POST['with'] ?? '') === $c->EnCode ? 'selected' : '' ?>>
-            <?= bk_e($c->EnFirstName . ' ' . $c->EnName) ?> (départ <?= intval($c->QuSession) ?>)</option>
-        <?php endforeach; ?>
-      </select>
-      <p class="bk-hint">Uniquement des archers de votre club déjà inscrits. Le souhait n'est
-         retenu que s'il reste compatible avec le règlement et les contraintes d'affectation du terrain.</p>
-    <?php else: ?>
-      <p class="bk-fixed bk-hint">Aucun archer de votre club n'est encore inscrit.</p>
-      <input type="hidden" name="with" value="">
-    <?php endif; ?>
-    <?php endif; ?>
-
-    <?php if ($cfg->BcWishFree): ?>
-    <label for="request">Autre demande</label>
-    <textarea id="request" name="request" rows="2" maxlength="2000"
-              placeholder="Précision à transmettre à l'organisateur."><?= bk_e($request) ?></textarea>
-    <p class="bk-hint">Ce champ libre est simplement transmis à l'organisateur.</p>
-    <?php endif; ?>
-
-    <?php if ($cfg->BcWishLetter || $cfg->BcWishWith): ?>
-    <p class="bk-hint">Les souhaits de placement sont pris en compte automatiquement, dans la
-       limite du règlement et des contraintes d'affectation du terrain.</p>
-    <?php endif; ?>
-  </fieldset>
-  <?php endif; ?>
-
-  <?php if ($showPrice): ?>
-  <div class="bk-price" id="bk-price">
-    <h3>Tarif</h3>
-    <table class="bk-price-t"><tbody id="bk-price-lines">
-      <?php foreach ($calc['lines'] as $i => $ln): ?>
-        <tr><td><?= bk_e($ln['label']) ?></td>
-            <td class="bk-price-num"><?= bk_e(bk_eur($ln['amount'], $i > 0)) ?></td></tr>
-      <?php endforeach; ?>
-    </tbody></table>
-    <p class="bk-price-tot">Total : <b id="bk-price-total"><?= bk_e(bk_eur($calc['total'])) ?></b></p>
-    <p class="bk-hint">Estimation d'après vos choix. Le montant définitif figure sur votre reçu.</p>
-  </div>
-  <?php endif; ?>
-
-  <?php if ($payChoices): ?>
-  <fieldset class="bk-wishes">
-    <legend>Paiement <span class="bk-opt">(facultatif)</span></legend>
-    <p class="bk-hint">Indiquez comment et quand vous comptez régler — cela informe l'organisateur.
-       Le règlement se fait selon ses modalités.</p>
-    <label for="pay_choice">Moyen de paiement souhaité</label>
-    <select id="pay_choice" name="pay_choice">
-      <option value="">— je verrai plus tard —</option>
-      <?php foreach ($payChoices as $pc): ?>
-        <option value="<?= bk_e($pc['value']) ?>" <?= $payDecl === $pc['value'] ? 'selected' : '' ?>><?= bk_e($pc['label']) ?></option>
-      <?php endforeach; ?>
-    </select>
-  </fieldset>
-  <?php endif; ?>
-
-  <?php
-  $lblReg  = $groupMode ? 'Confirmer son inscription' : 'Confirmer mon inscription';
-  $lblWait = $groupMode ? 'L\'inscrire sur la liste d\'attente' : 'Rejoindre la liste d\'attente';
-  echo '<button type="submit" class="bk-btn bk-btn-primary" id="bk-submit" data-reg="' . bk_e($lblReg)
-      . '" data-wait="' . bk_e($lblWait) . '"' . ((!$classes || (!$libres && !$attente)) ? ' disabled' : '') . '>'
-      . bk_e($selWait ? $lblWait : $lblReg) . '</button>';
-  ?>
-</form>
 <script>
 // Full departure chosen: the button says what will happen (the server decides anyway).
 (function () {
@@ -606,8 +515,6 @@ bk_head('Inscription');
   upd();
 })();
 </script>
-<?php endif; /* fin licence sans pratique */ ?>
-
 <?php if ($showPrice): ?>
 <script>
 var BK_PRICE = <?= json_encode(array(
@@ -618,28 +525,35 @@ var BK_PRICE = <?= json_encode(array(
                    }, $pricing['categories']),
     'deps'      => (object) $pricing['departures'],
     'prov'      => $provDelta,
-    'provLabel' => $provTier === 'dept' ? 'Tarif départemental'
-                 : ($provTier === 'region' ? 'Tarif régional' : ''),
+    'provLabel' => $provTier === 'dept' ? bk_t('PriceDept') : ($provTier === 'region' ? bk_t('PriceRegion') : ''),
     'rank'      => $rankDelta,
-    'rankLabel' => $rankTh > 0 ? ($nextRank . 'ᵉ inscription') : '',
+    'rankLabel' => $rankTh > 0 ? bk_t('PriceRank', $nextRank) : '',
+    // Texts of the visitor's language, number separators of the core, currency of the competition.
+    't'         => array('base' => bk_t('PriceBase'), 'cat' => bk_t('PriceCat'), 'catNamed' => bk_t('PriceCatNamed'),
+                         'dep' => bk_t('DepCap'), 'cur' => bk_currency($tourId)) + bk_number_seps(),
 ), JSON_UNESCAPED_UNICODE) ?>;
 (function () {
   var f = document.getElementById('bkreg'); if (!f) return;
+  var T = BK_PRICE.t;
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-  function eur(n, signed){ var s = n < 0 ? '−' : (signed ? '+' : ''); return s + Math.abs(n).toFixed(2).replace('.', ',') + ' €'; }
+  // As the server (bk_eur): number with the separators of the language, a space, the currency.
+  function eur(n, signed){
+    var s = n < 0 ? '−' : (signed ? '+' : ''), p = Math.abs(n).toFixed(2).split('.');
+    return s + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, T.thousands) + T.dec + p[1] + ' ' + T.cur;
+  }
   function calc() {
     var div = f['division'] ? f['division'].value : '',
         cls = f['class'] ? f['class'].value : '',
         ses = f['session'] ? f['session'].value : '';
-    var base = BK_PRICE.base, label = 'Tarif de base';
+    var base = BK_PRICE.base, label = T.base;
     for (var i = 0; i < BK_PRICE.cats.length; i++) {
       var c = BK_PRICE.cats[i];
       var okD = !c.div.length || c.div.indexOf(div) >= 0;
       var okC = !c.cls.length || c.cls.indexOf(cls) >= 0;
-      if (okD && okC) { base = c.price; label = 'Tarif' + (c.label ? ' ' + c.label : ' catégorie'); break; }
+      if (okD && okC) { base = c.price; label = c.label ? T.catNamed.replace('{$a}', c.label) : T.cat; break; }
     }
     var lines = [[label, base, false]], total = base;
-    if (ses && BK_PRICE.deps[ses] !== undefined) { lines.push(['Départ ' + ses, BK_PRICE.deps[ses], true]); total += BK_PRICE.deps[ses]; }
+    if (ses && BK_PRICE.deps[ses] !== undefined) { lines.push([T.dep.replace('{$a}', ses), BK_PRICE.deps[ses], true]); total += BK_PRICE.deps[ses]; }
     if (BK_PRICE.prov) { lines.push([BK_PRICE.provLabel, BK_PRICE.prov, true]); total += BK_PRICE.prov; }
     if (BK_PRICE.rank) { lines.push([BK_PRICE.rankLabel, BK_PRICE.rank, true]); total += BK_PRICE.rank; }
     total = Math.max(0, total);

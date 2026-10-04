@@ -1,25 +1,25 @@
 <?php
 /**
- * public/legal-accept.php — acceptation des CGU par un ARCHER connecté.
+ * public/legal-accept.php — acceptance of the terms of use by a connected ARCHER.
  *
- * Écran BLOQUANT : bk_require_archer() y redirige tout archer connecté n'ayant pas
- * accepté la version courante des CGU. L'acceptation est HORODATÉE (BK_Archers.BaCguAt)
- * et VERSIONNÉE (BaCguVer). bk_require_archer s'exempte lui-même sur cette page (anti-boucle).
+ * BLOCKING screen: bk_require_archer() sends here every connected archer who has not accepted
+ * the current version of the terms. The acceptance is TIMESTAMPED (BK_Archers.BaCguAt) and
+ * VERSIONED (BaCguVer). bk_require_archer exempts this page itself (no loop).
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__, 2) . '/legal-lib.php';
 
 $archer = bk_require_archer();
 
-// Déjà accepté → son espace.
+// Already accepted → their space.
 if (aut_legal_archer_ok($archer)) bk_redirect('index.php');
 
 $err = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
-        $err = 'Session expirée — réessayez.';
+        $err = bk_t('SessionExpired');
     } elseif (empty($_POST['accept'])) {
-        $err = "Vous devez cocher la case pour accepter les conditions.";
+        $err = bk_t('CguTickBox');
     } else {
         aut_legal_archer_record($archer->BaId);
         bk_log('CGU_ACCEPT', $archer->BaLicence);
@@ -27,11 +27,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     }
 }
 
-bk_head("Conditions d'utilisation", 'card');
+bk_head(bk_t('CguHeadTitle'), 'card');
 ?>
 <style>
-/* La carte « card » de bk.css cape .bk-main à 420px : on l'élargit ici et on fait remplir
-   .bk-cgu à 100% (jamais de valeur en vw qui déborderait). Centrage assuré par #bk.bk-card. */
+/* The "card" layout of bk.css caps .bk-main at 420px: widened here, and .bk-cgu fills 100%
+   (never a vw value, which would overflow). Centred by #bk.bk-card. */
 #bk.bk-card .bk-main { max-width:820px; }
 #bk .bk-cgu { width:100%; max-width:100%; box-sizing:border-box; }
 #bk .bk-cgu-box { background:#fff; border:1px solid #c9d4df; border-radius:10px; padding:4px 16px;
@@ -50,33 +50,20 @@ bk_head("Conditions d'utilisation", 'card');
 #bk .bk-cgu-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
 #bk .bk-cgu-out { color:#8a92a0; text-decoration:none; font-size:13px; }
 </style>
-<div class="bk-cgu">
-  <h1 style="text-align:left">Conditions générales d'utilisation</h1>
-  <p class="bk-hint" style="text-align:left">Avant d'accéder à votre espace, merci de lire et d'accepter les
-     conditions générales d'utilisation et la politique de confidentialité de ce serveur.</p>
-
-  <?php if ($err) echo bk_msg('err', $err); ?>
-
-  <div class="bk-cgu-box"><?= aut_legal_render('cgu') ?></div>
-
-  <p class="bk-cgu-links">Documents complets :
-    <a href="<?= bk_e(aut_legal_url('cgu')) ?>" target="_blank" rel="noopener">CGU</a>
-    <a href="<?= bk_e(aut_legal_url('confidentialite')) ?>" target="_blank" rel="noopener">Confidentialité</a>
-    <a href="<?= bk_e(aut_legal_url('mentions')) ?>" target="_blank" rel="noopener">Mentions légales</a>
-    <a href="<?= bk_e(aut_legal_url('cookies')) ?>" target="_blank" rel="noopener">Cookies</a>
-  </p>
-
-  <form method="post">
-    <?= bk_csrf_field() ?>
-    <label class="bk-cgu-accept">
-      <input type="checkbox" name="accept" value="1">
-      <span>J'ai lu et j'accepte les <b>conditions générales d'utilisation</b> et la
-        <b>politique de confidentialité</b> (version <?= bk_e(aut_legal_version()) ?>).</span>
-    </label>
-    <div class="bk-cgu-row">
-      <button type="submit" class="bk-btn bk-btn-primary">Accepter et continuer</button>
-      <a class="bk-cgu-out" href="<?= bk_e(bk_public_url('logout.php')) ?>">Refuser et se déconnecter</a>
-    </div>
-  </form>
-</div>
-<?php bk_foot(); ?>
+<?php
+$link = function ($doc, $key) {
+    return '<a href="' . bk_e(aut_legal_url($doc)) . '" target="_blank" rel="noopener">' . bk_e(bk_t($key)) . '</a> ';
+};
+echo '<div class="bk-cgu"><h1 style="text-align:left">' . bk_e(bk_t('CguTitle')) . '</h1>'
+    . '<p class="bk-hint" style="text-align:left">' . bk_e(bk_t('CguIntro')) . '</p>'
+    . ($err ? bk_msg('err', $err) : '')
+    . '<div class="bk-cgu-box">' . aut_legal_render('cgu') . '</div>'
+    . '<p class="bk-cgu-links">' . bk_e(bk_t('CguFullDocs')) . ' '
+    . $link('cgu', 'CguShort') . $link('confidentialite', 'Privacy') . $link('mentions', 'LegalNotice') . $link('cookies', 'Cookies') . '</p>'
+    . '<form method="post">' . bk_csrf_field()
+    . '<label class="bk-cgu-accept"><input type="checkbox" name="accept" value="1"><span>'
+    . bk_t('CguAccept', bk_e(aut_legal_version())) . '</span></label>'
+    . '<div class="bk-cgu-row"><button type="submit" class="bk-btn bk-btn-primary">' . bk_e(bk_t('CguAcceptBtn')) . '</button>'
+    . '<a class="bk-cgu-out" href="' . bk_e(bk_public_url('logout.php')) . '">' . bk_e(bk_t('CguRefuse')) . '</a></div>'
+    . '</form></div>';
+bk_foot();

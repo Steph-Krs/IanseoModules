@@ -1,11 +1,11 @@
 <?php
 /**
- * admin/field.php — contraintes d'affectation du terrain : capacités de chaque cible.
- * (« Plan du terrain » désigne le plan de cibles visuel du module DragDropTarget.)
+ * admin/field.php — field assignment constraints: capabilities of each target.
+ * ("Field plan" is the visual target plan of the DragDropTarget module.)
  *
- * Édition graphique : palette de distances et de blasons à glisser sur les
- * cibles, sélection multiple pour appliquer d'un coup. Enregistrement en AJAX
- * (ajax-field.php) — aucune soumission de page pendant l'édition.
+ * Graphical editing: palette of distances and faces to drag onto the targets, multiple
+ * selection to apply at once. Saved through AJAX (ajax-field.php) — no page submission while
+ * editing. Markup produced in PHP.
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -38,7 +38,7 @@ $dists = bk_caps_distances($TOUR, $type);
 $faces = bk_caps_faces($TOUR);
 $caps  = $ses ? bk_caps_get($TOUR, $ses) : array();
 
-// Parcours : les « blasons » sont des PIQUETS de couleur (Campagne/3D/Nature).
+// Courses: the "faces" are coloured PEGS (field/3D/nature).
 $hasPegs = false;
 foreach ($faces as $f) if (!empty($f['peg'])) { $hasPegs = true; break; }
 
@@ -48,9 +48,8 @@ if ($sesRow) {
     for ($i = 0; $i < intval($sesRow->SesTar4Session); $i++) $targets[] = $first + $i;
 }
 
-// Échelle de l'axe : les distances RÉELLEMENT utilisées par la compétition,
-// espacées régulièrement. Un réglage au mètre près n'a aucun sens — une cible
-// se pose à l'une des distances du règlement, pas entre deux.
+// Axis scale: the distances REALLY used by the competition, evenly spaced. A setting to the
+// metre makes no sense — a target sits at one of the rules' distances, not between two.
 $steps = array_keys($dists);
 sort($steps);
 
@@ -68,159 +67,108 @@ $boot = array(
     'sessions' => array_map(function ($s) { return intval($s->SesOrder); }, $sessions),
 );
 
-$PAGE_TITLE = "Contraintes d'affectation du terrain";
+$boot['t'] = bk_ts(array('FjClickRemove', 'FjMin', 'FjDef', 'FjMax', 'FjSel0', 'FjSel1', 'FjSelN', 'FjSaving',
+    'FjSaveFail', 'FjServerDown', 'FjSaved1', 'FjSavedN', 'FjSelectFirst', 'FjPickValue', 'FjCleared',
+    'FjClearAllConfirm', 'FjDepCleared', 'FjPickDest', 'FjCopyConfirm', 'FjCopied', 'FjPickSrc',
+    'FjCopyFromConfirm', 'FjCopiedFrom'));
+
+$PAGE_TITLE = bk_t('MnuField');
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
-?>
-<link rel="stylesheet" href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/assets/field.css?v=<?= bk_e(bk_version()) ?>">
 
-<div id="bkfield">
-<h1>Contraintes d'affectation du terrain</h1>
-<p class="bkf-back"><a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/competition.php">← Inscriptions en ligne</a>
-   &nbsp;·&nbsp; <a href="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/targets.php">Attribution des cibles →</a></p>
+$base = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/';
+$out = '<link rel="stylesheet" href="' . $base . 'assets/field.css?v=' . bk_e(bk_version()) . '">'
+    . '<div id="bkfield"><h1>' . bk_e(bk_t('MnuField')) . '</h1>'
+    . '<p class="bkf-back"><a href="' . $base . 'competition.php">← ' . bk_e(bk_t('Brand')) . '</a>'
+    . ' &nbsp;·&nbsp; <a href="' . $base . 'targets.php">' . bk_e(bk_t('MnuTargets')) . ' →</a></p>';
 
-<?php if (!$sessions): ?>
-  <p class="bkf-warn">Aucun départ de qualification n'est configuré. Renseignez-les dans
-     <b>Compétition › Départs</b> : le nombre de cibles en découle.</p>
-<?php elseif (!$steps && !$faces): ?>
-  <p class="bkf-warn">Ni distances ni blasons exploitables ne sont définis sur cette compétition.
-     Renseignez-les dans <b>Compétition › Distances</b> et <b>Compétition › Blasons</b>.</p>
-<?php else: ?>
+if (!$sessions) {
+    $out .= '<p class="bkf-warn">' . bk_t('FldNoSession') . '</p>';
+} elseif (!$steps && !$faces) {
+    $out .= '<p class="bkf-warn">' . bk_t('FldNothing') . '</p>';
+} else {
+    if (!$steps) $out .= '<p class="bkf-warn">' . bk_e(bk_t('FldNoMetres')) . '</p>';
 
-<?php if (!$steps): ?>
-  <p class="bkf-warn">Cette compétition ne déclare aucune distance en mètres (parcours,
-     distances non chiffrées) : seuls les blasons peuvent être réglés ici. L'attribution ne
-     posera donc pas de contrainte de distance.</p>
-<?php endif; ?>
+    $out .= '<div class="bkf-tabs">';
+    foreach ($sessions as $s) {
+        $o = intval($s->SesOrder);
+        $out .= '<a class="bkf-tab' . ($o === $ses ? ' bkf-tab-on' : '') . '" href="?s=' . $o . '">'
+            . bk_e(bk_t('DepCap', $o) . ($s->SesName ? ' — ' . $s->SesName : '')) . '</a>';
+    }
+    $out .= '</div>';
 
-  <div class="bkf-tabs">
-    <?php foreach ($sessions as $s): $o = intval($s->SesOrder); ?>
-      <a class="bkf-tab<?= $o === $ses ? ' bkf-tab-on' : '' ?>" href="?s=<?= $o ?>">
-        Départ <?= $o ?><?= $s->SesName ? ' — ' . bk_e($s->SesName) : '' ?></a>
-    <?php endforeach; ?>
-  </div>
+    // Distances column.
+    $out .= '<div class="bkf-wrap"><aside class="bkf-palette"><div class="bkf-pcol"><h2>' . bk_e(bk_t('FldDistances')) . '</h2>';
+    if (!$dists) {
+        $out .= '<p class="bkf-none">' . bk_e(bk_t('FldNoDist')) . '</p>';
+    } else {
+        $sel = function ($id, $key) use ($steps) {
+            $o = '<option value="">—</option>';
+            foreach ($steps as $m) $o .= '<option value="' . $m . '">' . $m . ' m</option>';
+            return '<label>' . bk_e(bk_t($key)) . ' <select id="' . $id . '">' . $o . '</select></label>';
+        };
+        $out .= '<div class="bkf-dform">' . $sel('bkf-min', 'FldMin') . $sel('bkf-def', 'FldDef') . $sel('bkf-max', 'FldMax')
+            . '<button type="button" class="bkf-btn bkf-btn-go" data-act="applyd">' . bk_e(bk_t('FldApply')) . '</button></div>'
+            . '<div class="bkf-quicks"><span class="bkf-quick">' . bk_e(bk_t('FldSetTo')) . '</span>';
+        foreach ($steps as $m) $out .= ' <button type="button" class="bkf-chip bkf-chip-d" data-quick="' . $m . '">' . $m . ' m</button>';
+        $out .= '</div>';
+    }
+    $out .= '</div>';
 
-  <div class="bkf-wrap">
-    <aside class="bkf-palette">
-      <div class="bkf-pcol">
-        <h2>Distances</h2>
-        <?php if (!$dists): ?>
-          <p class="bkf-none">Aucune distance définie sur cette compétition.</p>
-        <?php else: ?>
-          <div class="bkf-dform">
-            <label>Mini
-              <select id="bkf-min"><option value="">—</option>
-                <?php foreach ($steps as $m): ?><option value="<?= $m ?>"><?= $m ?> m</option><?php endforeach; ?>
-              </select></label>
-            <label>Défaut
-              <select id="bkf-def"><option value="">—</option>
-                <?php foreach ($steps as $m): ?><option value="<?= $m ?>"><?= $m ?> m</option><?php endforeach; ?>
-              </select></label>
-            <label>Maxi
-              <select id="bkf-max"><option value="">—</option>
-                <?php foreach ($steps as $m): ?><option value="<?= $m ?>"><?= $m ?> m</option><?php endforeach; ?>
-              </select></label>
-            <button type="button" class="bkf-btn bkf-btn-go" data-act="applyd">Appliquer à la sélection</button>
-          </div>
-          <div class="bkf-quicks">
-            <span class="bkf-quick">Fixer à :</span>
-            <?php foreach ($steps as $m): ?>
-              <button type="button" class="bkf-chip bkf-chip-d" data-quick="<?= $m ?>"><?= $m ?> m</button>
-            <?php endforeach; ?>
-          </div>
-        <?php endif; ?>
-      </div>
+    // Faces column. One colour per face (bk_caps_faces: text, background, border), the same as
+    // its tags on the targets, given as CSS variables (field.css). Here there is room: picture,
+    // size and the name of the face.
+    $out .= '<div class="bkf-pcol"><h2>' . bk_e(bk_t($hasPegs ? 'FldPegs' : 'FldFaces')) . ' <span class="bkf-h2sub">'
+        . bk_e(bk_t('FldDragHint')) . '</span></h2>'
+        . (!$faces ? '<p class="bkf-none">' . bk_e(bk_t($hasPegs ? 'FldNoPeg' : 'FldNoFace')) . '</p>' : '')
+        . '<div class="bkf-chips">';
+    foreach ($faces as $f) {
+        $out .= '<div class="bkf-chip bkf-chip-f" draggable="true" data-kind="f" data-val="' . intval($f['id']) . '"'
+            . ' style="--fc:' . bk_e($f['fg']) . ';--fb:' . bk_e($f['bg']) . ';--fd:' . bk_e($f['bd']) . '">';
+        if (!empty($f['peg'])) {
+            $out .= bk_piquet_svg($f['color'], 22)
+                . '<span class="bkf-chip-txt"><span class="bkf-chip-main">' . bk_e($f['name']) . '</span></span>';
+        } else {
+            $out .= '<img class="bkf-face-ic" src="' . bk_e($CFG->ROOT_DIR . 'Common/Images/Targets/' . $f['svg']) . '"'
+                . ' width="22" height="22" alt="" draggable="false"><span class="bkf-chip-txt">'
+                . '<span class="bkf-chip-main">' . bk_e($f['cm'] ? $f['cm'] . ' cm' : bk_t('FldFace')) . '</span>'
+                . ($f['name'] !== '' ? '<span class="bkf-chip-sub">' . bk_e($f['name']) . '</span>' : '') . '</span>';
+        }
+        $out .= '</div>';
+    }
+    $out .= '</div></div>'
+        . '<div class="bkf-pcol bkf-help"><p>' . bk_t('FldHelp1') . '</p><p>' . bk_t('FldHelp2') . '</p><p>' . bk_t('FldHelp3') . '</p></div>'
+        . '</aside>';
 
-      <div class="bkf-pcol">
-        <h2><?= $hasPegs ? 'Piquets' : 'Blasons' ?> <span class="bkf-h2sub">(glisser sur une cible)</span></h2>
-        <?php if (!$faces): ?><p class="bkf-none">Aucun <?= $hasPegs ? 'piquet' : 'blason' ?> défini.</p><?php endif; ?>
-        <div class="bkf-chips">
-          <?php
-          // One colour per face (bk_caps_faces: text, background, border), the same as its tags
-          // on the targets, given as CSS variables (field.css). Here there is room: picture, size
-          // and the name of the face.
-          foreach ($faces as $f) {
-              echo '<div class="bkf-chip bkf-chip-f" draggable="true" data-kind="f" data-val="' . intval($f['id']) . '"'
-                  . ' style="--fc:' . bk_e($f['fg']) . ';--fb:' . bk_e($f['bg']) . ';--fd:' . bk_e($f['bd']) . '">';
-              if (!empty($f['peg'])) {
-                  echo bk_piquet_svg($f['color'], 22)
-                      . '<span class="bkf-chip-txt"><span class="bkf-chip-main">' . bk_e($f['name']) . '</span></span>';
-              } else {
-                  echo '<img class="bkf-face-ic" src="' . bk_e($CFG->ROOT_DIR . 'Common/Images/Targets/' . $f['svg']) . '"'
-                      . ' width="22" height="22" alt="" draggable="false"><span class="bkf-chip-txt">'
-                      . '<span class="bkf-chip-main">' . bk_e($f['cm'] ? $f['cm'] . ' cm' : 'Blason') . '</span>'
-                      . ($f['name'] !== '' ? '<span class="bkf-chip-sub">' . bk_e($f['name']) . '</span>' : '') . '</span>';
-              }
-              echo '</div>';
-          }
-          ?>
-        </div>
-      </div>
-
-      <div class="bkf-pcol bkf-help">
-        <p>Chaque cible est une <b>plage</b> : la barre va du mini au maxi, le repère plein
-           marque la distance <b>par défaut</b>. Glissez une poignée pour la déplacer — elle
-           s'aligne sur les distances de la compétition.</p>
-        <p>Sélectionnez plusieurs cibles (clic-glissé, ou <kbd>Maj</kbd>+clic), puis réglez
-           d'un coup ci-dessus.</p>
-        <p>Une cible <b>sans réglage</b> n'est pas contrainte : elle accepte tout.</p>
-      </div>
-    </aside>
-
-    <section class="bkf-field">
-      <div class="bkf-toolbar">
-        <span id="bkf-count" class="bkf-count">Aucune cible sélectionnée</span>
-        <button type="button" class="bkf-btn" data-act="all">Tout sélectionner</button>
-        <button type="button" class="bkf-btn" data-act="none">Désélectionner</button>
-        <button type="button" class="bkf-btn" data-act="clearsel">Vider la sélection</button>
-        <span class="bkf-sep"></span>
-        <?php if (count($sessions) > 1): ?>
-          <label class="bkf-copy">Reprendre depuis
-            <select id="bkf-copyfrom">
-              <option value="">— départ —</option>
-              <?php foreach ($sessions as $s): $o = intval($s->SesOrder);
-                if ($o === $ses) continue; ?>
-                <option value="<?= $o ?>">Départ <?= $o ?></option>
-              <?php endforeach; ?>
-            </select>
-          </label>
-          <button type="button" class="bkf-btn" data-act="copyfrom" title="Copier la configuration d'un autre départ sur ce départ">Reprendre</button>
-          <span class="bkf-sep"></span>
-          <label class="bkf-copy">Copier vers
-            <select id="bkf-copyto">
-              <option value="">— départ —</option>
-              <?php foreach ($sessions as $s): $o = intval($s->SesOrder);
-                if ($o === $ses) continue; ?>
-                <option value="<?= $o ?>">Départ <?= $o ?></option>
-              <?php endforeach; ?>
-            </select>
-          </label>
-          <button type="button" class="bkf-btn" data-act="copy" title="Copier la configuration de ce départ vers un autre">Copier</button>
-        <?php endif; ?>
-        <span class="bkf-sep"></span>
-        <button type="button" class="bkf-btn bkf-btn-danger" data-act="clearall">Tout effacer</button>
-        <span id="bkf-state" class="bkf-state"></span>
-      </div>
-
-      <div class="bkf-zoom">
-        <label>Taille de l'affichage
-          <input type="range" id="bkf-size" min="34" max="110" value="56" step="2"></label>
-        <span class="bkf-hint-inline">Réduisez pour voir 50 à 70 cibles d'un coup.</span>
-      </div>
-
-      <div class="bkf-plot">
-        <div id="bkf-axis" class="bkf-axis"></div>
-        <div id="bkf-grid" class="bkf-grid"></div>
-      </div>
-
-      <p class="bkf-legend">Les cibles sans contrainte apparaissent en gris clair. L'attribution
-         automatique ne placera un archer que sur une cible dont la plage couvre sa distance et
-         qui accepte son blason, et ne mélangera jamais deux distances sur une même cible.</p>
-    </section>
-  </div>
-
-<?php endif; ?>
-</div>
-
-<script>window.BKF = <?= json_encode($boot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script>
-<script src="<?= $CFG->ROOT_DIR ?>Modules/Custom/AUTH/booking/admin/assets/field.js?v=<?= bk_e(bk_version()) ?>"></script>
-<?php include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php'); ?>
+    // Field: toolbar, zoom, chart.
+    $out .= '<section class="bkf-field"><div class="bkf-toolbar">'
+        . '<span id="bkf-count" class="bkf-count">' . bk_e(bk_t('FjSel0')) . '</span> '
+        . '<button type="button" class="bkf-btn" data-act="all">' . bk_e(bk_t('FldSelAll')) . '</button> '
+        . '<button type="button" class="bkf-btn" data-act="none">' . bk_e(bk_t('FldSelNone')) . '</button> '
+        . '<button type="button" class="bkf-btn" data-act="clearsel">' . bk_e(bk_t('FldClearSel')) . '</button>'
+        . '<span class="bkf-sep"></span>';
+    if (count($sessions) > 1) {
+        $depOpts = '<option value="">' . bk_e(bk_t('FldDepPh')) . '</option>';
+        foreach ($sessions as $s) {
+            $o = intval($s->SesOrder);
+            if ($o !== $ses) $depOpts .= '<option value="' . $o . '">' . bk_e(bk_t('DepCap', $o)) . '</option>';
+        }
+        $out .= '<label class="bkf-copy">' . bk_e(bk_t('FldCopyFrom')) . ' <select id="bkf-copyfrom">' . $depOpts . '</select></label> '
+            . '<button type="button" class="bkf-btn" data-act="copyfrom" title="' . bk_e(bk_t('FldCopyFromTip')) . '">' . bk_e(bk_t('FldCopyFromBtn')) . '</button>'
+            . '<span class="bkf-sep"></span>'
+            . '<label class="bkf-copy">' . bk_e(bk_t('FldCopyTo')) . ' <select id="bkf-copyto">' . $depOpts . '</select></label> '
+            . '<button type="button" class="bkf-btn" data-act="copy" title="' . bk_e(bk_t('FldCopyToTip')) . '">' . bk_e(bk_t('FldCopyToBtn')) . '</button>';
+    }
+    $out .= '<span class="bkf-sep"></span>'
+        . '<button type="button" class="bkf-btn bkf-btn-danger" data-act="clearall">' . bk_e(bk_t('FldClearAll')) . '</button>'
+        . '<span id="bkf-state" class="bkf-state"></span></div>'
+        . '<div class="bkf-zoom"><label>' . bk_e(bk_t('FldSize'))
+        . ' <input type="range" id="bkf-size" min="34" max="110" value="56" step="2"></label>'
+        . ' <span class="bkf-hint-inline">' . bk_e(bk_t('FldSizeHint')) . '</span></div>'
+        . '<div class="bkf-plot"><div id="bkf-axis" class="bkf-axis"></div><div id="bkf-grid" class="bkf-grid"></div></div>'
+        . '<p class="bkf-legend">' . bk_e(bk_t('FldLegend')) . '</p></section></div>';
+}
+$out .= '</div>'
+    . '<script>window.BKF = ' . json_encode($boot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . ';</script>'
+    . '<script src="' . $base . 'assets/field.js?v=' . bk_e(bk_version()) . '"></script>';
+echo $out;
+include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

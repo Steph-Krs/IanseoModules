@@ -1,26 +1,25 @@
 <?php
 /**
- * lib/adopt.php — persistance des données d'inscription à travers un RÉIMPORT.
+ * lib/adopt.php — registration data kept across a RE-IMPORT.
  *
- * Problème (Common/Fun_TourDelete.php:tour_import) : réimporter une version plus
- * récente d'une compétition déjà présente (MÊME ToCode) SUPPRIME l'ancien tournoi
- * et en crée un nouveau avec un ToId DIFFÉRENT. Toutes les tables BK_ sont liées au
- * ToId → elles deviennent orphelines, et les inscriptions en ligne (Entries)
- * disparaissent avec l'ancien tournoi.
+ * Problem (Common/Fun_TourDelete.php:tour_import): re-importing a newer version of a competition
+ * already there (SAME ToCode) DELETES the old tournament and creates a new one with a DIFFERENT
+ * ToId. Every BK_ table is tied to the ToId → they are orphaned, and the online registrations
+ * (Entries) disappear with the old tournament.
  *
- * Solution (même principe que PRONO) : on ancre BK_Competitions sur le ToCode
- * (stable). Quand l'organisateur ouvre la nouvelle version, bk_adopt_check() détecte
- * l'orphelin (même code, ToId différent) et bk_adopt() :
- *   1. déplace toutes les tables liées au ToId de l'ancien vers le nouveau ;
- *   2. réconcilie les inscriptions avec le nouvel import :
- *      - présentes des deux côtés  → re-liées (placement/départ du NOUVEL IMPORT) ;
- *        catégorie divergente      → conflit 'category' (import gardé, orga tranche) ;
- *      - présentes seulement dans booking → RÉ-INJECTÉES dans la nouvelle version ;
- *      - présentes seulement dans l'import → capturées (visibles dans l'espace de
- *        l'archer), SANS info de paiement (BrByRole='IMPORT').
+ * Solution (same principle as PRONO): BK_Competitions is anchored on the (stable) ToCode. When
+ * the organiser opens the new version, bk_adopt_check() finds the orphan (same code, different
+ * ToId) and bk_adopt():
+ *   1. moves every table tied to the ToId from the old one to the new one;
+ *   2. reconciles the registrations with the new import:
+ *      - on both sides             → linked again (placement/departure of the NEW IMPORT);
+ *        different category        → 'category' conflict (import kept, organiser decides);
+ *      - only in booking           → INJECTED AGAIN into the new version;
+ *      - only in the import        → captured (visible in the archer's space), WITHOUT
+ *        payment information (BrByRole='IMPORT').
  *
- * ⚠️ Réutilise bk_register() pour la ré-injection (chemin d'écriture testé, hooks de
- * recalcul du cœur) plutôt que de recréer une Entry à la main.
+ * ⚠️ Reuses bk_register() for the injection (tested write path, core recomputation hooks)
+ * rather than creating an Entry by hand.
  */
 
 if (defined('BK_ADOPT_LOADED')) return;
@@ -29,7 +28,7 @@ define('BK_ADOPT_LOADED', true);
 require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/registration.php';   // bk_register, bk_lookup_licence, bk_comp_finished
 
-/** ToCode (stable) d'une compétition VIVANTE. '' si le tournoi n'existe pas/plus. */
+/** ToCode (stable) of a LIVE competition. '' when the tournament does not exist (any more). */
 function bk_tour_code($tourId)
 {
     $r = safe_fetch(safe_r_sql("SELECT ToCode FROM Tournament WHERE ToId = " . intval($tourId)));
@@ -37,8 +36,8 @@ function bk_tour_code($tourId)
 }
 
 /**
- * Ancien tournoi orphelin correspondant à ce code (données booking d'une version
- * précédente), ou 0. On prend la version précédente la plus récente.
+ * Old orphan tournament matching this code (booking data of a previous version), or 0. The most
+ * recent previous version is taken.
  */
 function bk_adopt_orphan($newId, $code)
 {
@@ -51,7 +50,7 @@ function bk_adopt_orphan($newId, $code)
     return $r ? intval($r->BcTournament) : 0;
 }
 
-/** La compétition (nouveau ToId) porte-t-elle déjà des données booking propres ? */
+/** Does the competition (new ToId) already have booking data of its own? */
 function bk_has_booking_data($tourId)
 {
     $tourId = intval($tourId);
@@ -64,11 +63,10 @@ function bk_has_booking_data($tourId)
 }
 
 /**
- * Déclencheur bon marché, appelé à l'ouverture d'une compétition côté organisateur.
- * Ne fait rien (un SELECT indexé) tant qu'il n'y a rien à adopter. Lance l'adoption
- * UNIQUEMENT si la nouvelle compétition n'a encore aucune donnée booille propre et
- * qu'un orphelin du même code existe. Mémorise le compte-rendu en session pour que
- * la page admin l'affiche. Retourne le compte-rendu ou null.
+ * Cheap trigger, called when a competition is opened on the organiser side. Does nothing (one
+ * indexed SELECT) while there is nothing to adopt. Starts the adoption ONLY when the new
+ * competition has no booking data of its own yet and an orphan with the same code exists.
+ * Keeps the report in the session for the admin page to show. Returns the report or null.
  */
 function bk_adopt_check($tourId)
 {
@@ -76,7 +74,7 @@ function bk_adopt_check($tourId)
     $tourId = intval($tourId);
     if ($tourId <= 0) return null;
 
-    // Déjà des données propres ? → soit déjà adopté, soit compétition non concernée.
+    // Already has its own data? → either already adopted, or a competition not concerned.
     if (bk_has_booking_data($tourId)) return null;
 
     $code = bk_tour_code($tourId);
@@ -91,7 +89,7 @@ function bk_adopt_check($tourId)
     return $report;
 }
 
-/** Compte-rendu de la dernière adoption (affiché une fois par la page admin). */
+/** Report of the last adoption (shown once by the admin page). */
 function bk_adopt_report_pull()
 {
     if (empty($_SESSION['BK_ADOPT_REPORT'])) return null;
@@ -100,7 +98,7 @@ function bk_adopt_report_pull()
     return $r;
 }
 
-/** Enregistre une incohérence à trancher par l'organisateur. */
+/** Records an inconsistency for the organiser to settle. */
 function bk_reimport_conflict($tourId, $code, $licence, $name, $kind, $enId, $booking, $import)
 {
     safe_w_sql("INSERT INTO BK_ReimportConflicts SET
@@ -114,7 +112,7 @@ function bk_reimport_conflict($tourId, $code, $licence, $name, $kind, $enId, $bo
         RcImport = "   . StrSafe_DB(json_encode($import, JSON_UNESCAPED_UNICODE)));
 }
 
-/** Incohérences non résolues d'une compétition (pour la page admin). */
+/** Unsettled inconsistencies of a competition (for the admin page). */
 function bk_reimport_conflicts($tourId, $onlyOpen = true)
 {
     bk_schema();
@@ -126,7 +124,7 @@ function bk_reimport_conflicts($tourId, $onlyOpen = true)
     return $out;
 }
 
-/** Inscriptions capturées depuis l'import (saisies hors module, sans paiement). */
+/** Registrations captured from the import (entered outside the module, without payment). */
 function bk_reimport_imported($tourId)
 {
     bk_schema();
@@ -142,15 +140,15 @@ function bk_reimport_imported($tourId)
 }
 
 /**
- * Ré-injecte une inscription booking (absente du nouvel import) dans la nouvelle
- * compétition, via le chemin d'écriture standard. Préserve l'auteur, la date et le
- * statut de validation d'origine. Retourne ['ok'=>bool, 'msg'=>...].
+ * Injects a booking registration (missing from the new import) into the new competition again,
+ * through the standard write path. Keeps the original author, date and validation status.
+ * Returns ['ok'=>bool, 'msg'=>...].
  */
 function bk_adopt_reinject($newId, $reg)
 {
     $lue = bk_lookup_licence($reg->BrLicence);
     if (!$lue) {
-        return array('ok' => false, 'msg' => 'licence inconnue du fichier fédéral');
+        return array('ok' => false, 'msg' => bk_t('AdLicUnknown'));
     }
     $by = array(
         'archer' => intval($reg->BrArcher),
@@ -161,16 +159,16 @@ function bk_adopt_reinject($newId, $reg)
         'face'   => intval($reg->BrFace),
         'letter' => (string) $reg->BrWantLetter,
         'with'   => (string) $reg->BrWantWith,
-        'skip_capacity' => true,   // ré-injection d'une inscription historique : jamais refusée par l'admission
+        'skip_capacity' => true,   // injection of a past registration: never refused by the admission check
     );
     $res = bk_register($newId, $lue, $reg->BrDivision, $reg->BrClass,
         intval($reg->BrSession), (string) $reg->BrRequest, $by, $opts);
     if (empty($res['ok'])) {
-        return array('ok' => false, 'msg' => $res['msg'] ?? 'échec');
+        return array('ok' => false, 'msg' => $res['msg'] ?? bk_t('AdFailed'));
     }
     $newEn = intval($res['enid']);
-    // bk_register a recalculé BrValidated (mode validation) et posé BrCreated=maintenant :
-    // on restaure les valeurs d'origine, puis on supprime l'ancienne ligne orpheline.
+    // bk_register computed BrValidated again (validation mode) and set BrCreated=now: the
+    // original values are restored, then the old orphan row is deleted.
     safe_w_sql("UPDATE BK_Registrations SET
         BrValidated = " . intval($reg->BrValidated) . ",
         BrCreated = "   . StrSafe_DB((string) $reg->BrCreated) . "
@@ -180,19 +178,19 @@ function bk_adopt_reinject($newId, $reg)
 }
 
 /* ------------------------------------------------------------------ */
-/* Résolution des incohérences (page admin/reimport.php)               */
+/* Settling the inconsistencies (admin/reimport.php page)             */
 /* ------------------------------------------------------------------ */
 
-/** Marque une incohérence comme résolue. */
+/** Marks an inconsistency as settled. */
 function bk_reimport_resolve($rcId)
 {
     safe_w_sql("UPDATE BK_ReimportConflicts SET RcResolved = 1 WHERE RcId = " . intval($rcId));
 }
 
 /**
- * Applique la catégorie de l'inscription booking à l'Entry de l'import (conflit
- * 'category'). On garde le PLACEMENT de l'import (QuTarget inchangé) et on ne change
- * que la catégorie — édition en place, comme PopEdit.php, suivie des hooks de recalcul.
+ * Applies the category of the booking registration to the import's Entry ('category'
+ * conflict). The import's PLACEMENT is kept (QuTarget unchanged) and only the category changes —
+ * edited in place, like PopEdit.php, followed by the recomputation hooks.
  */
 function bk_reimport_apply_booking($tourId, $rc)
 {
@@ -200,7 +198,7 @@ function bk_reimport_apply_booking($tourId, $rc)
     $enId   = intval($rc->RcEnId);
     $book   = json_decode((string) $rc->RcBooking, true);
     if (!$enId || !is_array($book) || empty($book['division']) || empty($book['class'])) {
-        return array('ok' => false, 'msg' => 'données incomplètes');
+        return array('ok' => false, 'msg' => bk_t('AdIncomplete'));
     }
     $division = (string) $book['division'];
     $class    = (string) $book['class'];
@@ -213,7 +211,7 @@ function bk_reimport_apply_booking($tourId, $rc)
             WHERE DivTournament = $tourId
               AND DivId = " . StrSafe_DB($division) . "
               AND ClId  = " . StrSafe_DB($class)));
-        if (!$r || !$r->Athlete) return array('ok' => false, 'msg' => 'catégorie invalide pour cette compétition');
+        if (!$r || !$r->Athlete) return array('ok' => false, 'msg' => bk_t('AdBadCategory'));
 
         $face = 0;
         $all = getTargets(true);
@@ -250,7 +248,7 @@ function bk_reimport_apply_booking($tourId, $rc)
     });
 }
 
-/** Ligne orpheline booking encore non ré-injectée (Entry disparue) pour une licence. */
+/** Booking orphan row not injected yet (Entry gone) for a licence. */
 function bk_reimport_orphan_row($tourId, $licence)
 {
     $tourId = intval($tourId);
@@ -263,15 +261,15 @@ function bk_reimport_orphan_row($tourId, $licence)
         ORDER BY r.BrId LIMIT 1")) ?: null;
 }
 
-/** Nouvelle tentative de ré-injection d'un conflit 'reinject'. */
+/** New try at injecting a 'reinject' conflict. */
 function bk_reimport_retry($tourId, $rc)
 {
     $reg = bk_reimport_orphan_row($tourId, $rc->RcLicence);
-    if (!$reg) return array('ok' => false, 'msg' => 'trace introuvable (déjà traitée ?)');
+    if (!$reg) return array('ok' => false, 'msg' => bk_t('AdTraceGone'));
     return bk_adopt_reinject($tourId, $reg);
 }
 
-/** Abandon d'une ré-injection : supprime la trace orpheline. */
+/** Gives up an injection: deletes the orphan trace. */
 function bk_reimport_drop($tourId, $rc)
 {
     $reg = bk_reimport_orphan_row($tourId, $rc->RcLicence);
@@ -280,19 +278,19 @@ function bk_reimport_drop($tourId, $rc)
 }
 
 /**
- * RETIRE une inscription de la compétition (Entry supprimée du cœur ianseo + ligne
- * BK_Registrations). Action ADMINISTRATEUR (pas d'auth archer) : réservée à la
- * réconciliation de réimport. Suit exactement bk_unregister (deleteArcher + promotion
- * de l'épreuve + hooks de recalcul), pour ne pas laisser classements/équipes obsolètes.
+ * REMOVES a registration from the competition (Entry deleted from the ianseo core +
+ * BK_Registrations row). ADMINISTRATOR action (no archer authentication): only for the
+ * re-import reconciliation. Follows bk_unregister exactly (deleteArcher + event promotion +
+ * recomputation hooks), so rankings/teams are not left outdated.
  */
 function bk_reimport_remove_entry($tourId, $enId)
 {
     $tourId = intval($tourId);
     $enId   = intval($enId);
-    if (!$enId) return array('ok' => false, 'msg' => 'inscription manquante');
+    if (!$enId) return array('ok' => false, 'msg' => bk_t('AdRegMissing'));
 
     return bk_with_tournament($tourId, function () use ($tourId, $enId) {
-        if (IsBlocked(BIT_BLOCK_PARTICIPANT)) return array('ok' => false, 'msg' => 'compétition verrouillée');
+        if (IsBlocked(BIT_BLOCK_PARTICIPANT)) return array('ok' => false, 'msg' => bk_t('AdLocked'));
 
         $old = safe_fetch(safe_r_sql("SELECT EnCode, EnDivision, " . implode(', ', bk_event_cols()) . "
             FROM Entries WHERE EnId = $enId AND EnTournament = $tourId"));
@@ -320,15 +318,15 @@ function bk_reimport_remove_entry($tourId, $enId)
 }
 
 /**
- * Applique une décision à un conflit selon le CÔTÉ retenu ('import' | 'booking').
- * Sémantique par type :
- *   category    import → garder la catégorie de l'import ; booking → appliquer celle du licencié.
- *   onlybooking import → RETIRER l'inscription (l'import ne la contient pas) ;
- *                booking → la garder (déjà ré-injectée).
- *   onlyimport  import → garder le participant (déjà visible) ;
- *                booking → le RETIRER de la compétition (Entry supprimée).
- *   reinject    import → abandonner la trace ; booking → réessayer la ré-injection.
- * Retourne ['ok'=>bool, 'msg'=>...]. Marque le conflit résolu si succès.
+ * Applies a decision to a conflict depending on the SIDE chosen ('import' | 'booking').
+ * Meaning per type:
+ *   category    import → keep the import's category; booking → apply the licensee's.
+ *   onlybooking import → REMOVE the registration (the import does not have it);
+ *                booking → keep it (already injected again).
+ *   onlyimport  import → keep the participant (already visible);
+ *                booking → REMOVE them from the competition (Entry deleted).
+ *   reinject    import → give up the trace; booking → try the injection again.
+ * Returns ['ok'=>bool, 'msg'=>...]. Marks the conflict settled on success.
  */
 function bk_reimport_apply($tourId, $rc, $side)
 {
@@ -338,13 +336,13 @@ function bk_reimport_apply($tourId, $rc, $side)
 
     if ($kind === 'category') {
         if ($side === 'booking') $r = bk_reimport_apply_booking($tourId, $rc);
-        // import → rien à faire (l'import est déjà en place).
+        // import → nothing to do (the import is already in place).
     } elseif ($kind === 'onlybooking') {
         if ($side === 'import') $r = bk_reimport_remove_entry($tourId, intval($rc->RcEnId));
-        // booking → garder (déjà ré-injectée).
+        // booking → keep (already injected again).
     } elseif ($kind === 'onlyimport') {
         if ($side === 'booking') $r = bk_reimport_remove_entry($tourId, intval($rc->RcEnId));
-        // import → garder (déjà capturée).
+        // import → keep (already captured).
     } elseif ($kind === 'reinject') {
         if ($side === 'booking') { $r = bk_reimport_retry($tourId, $rc); }
         else { $r = bk_reimport_drop($tourId, $rc); }
@@ -355,8 +353,8 @@ function bk_reimport_apply($tourId, $rc, $side)
 }
 
 /**
- * Bouton global : tranche TOUS les conflits non résolus du même côté. Retourne un
- * compte-rendu (traités, retirés, échecs). Peut être long si beaucoup de suppressions.
+ * Global button: settles ALL the unsettled conflicts on the same side. Returns a report (handled,
+ * removed, failures). May take a while with many deletions.
  */
 function bk_reimport_bulk($tourId, $side)
 {
@@ -376,9 +374,8 @@ function bk_reimport_bulk($tourId, $side)
 }
 
 /**
- * Adopte les données booking d'une version précédente vers la nouvelle compétition.
- * À n'appeler que via bk_adopt_check() (qui garantit les préconditions). Retourne un
- * compte-rendu.
+ * Adopts the booking data of a previous version into the new competition. Call only through
+ * bk_adopt_check() (which ensures the preconditions). Returns a report.
  */
 function bk_adopt($newId)
 {
@@ -390,8 +387,8 @@ function bk_adopt($newId)
     $old = bk_adopt_orphan($newId, $code);
     if (!$old) return array('ok' => false, 'reason' => 'no_orphan');
 
-    // Garde : ne jamais écraser des données booking déjà présentes sur la nouvelle
-    // compétition (cas ambigu : l'orga aurait reconfiguré booking sur le nouvel import).
+    // Guard: never overwrite booking data already on the new competition (ambiguous case: the
+    // organiser would have set booking up again on the new import).
     if (bk_has_booking_data($newId)) {
         return array('ok' => false, 'reason' => 'target_has_data', 'old' => $old, 'new' => $newId);
     }
@@ -400,11 +397,11 @@ function bk_adopt($newId)
         'relinked' => 0, 'reinjected' => 0, 'reinject_fail' => 0, 'imported' => 0,
         'category' => 0, 'payments' => 0);
 
-    // Combien de paiements déplacés (pour le compte-rendu).
+    // How many payments moved (for the report).
     $p = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BK_Payments WHERE PyTournament = $old"));
     $rep['payments'] = $p ? intval($p->n) : 0;
 
-    // ---- Phase A : déplacer les tables liées au ToId (ancien → nouveau) ----
+    // ---- Phase A: move the tables tied to the ToId (old → new) ----
     safe_w_sql("START TRANSACTION");
     safe_w_sql("UPDATE BK_Competitions   SET BcTournament = $newId, BcCode = " . StrSafe_DB($code) . " WHERE BcTournament = $old");
     safe_w_sql("UPDATE BK_TargetCaps     SET BtTournament = $newId WHERE BtTournament = $old");
@@ -423,25 +420,24 @@ function bk_adopt($newId)
     safe_w_sql("UPDATE BK_Ledger         SET BlgTournament = $newId WHERE BlgTournament = $old");
     safe_w_sql("COMMIT");
 
-    // ---- Phase B : réconcilier les inscriptions avec le nouvel import ----
+    // ---- Phase B: reconcile the registrations with the new import ----
 
-    // Inscriptions booking (désormais sur le nouveau ToId, mais BrEnId pointe encore
-    // sur les Entries supprimées). Capturées en tableau : la boucle modifie la table.
+    // Booking registrations (now on the new ToId, but BrEnId still points to the deleted
+    // Entries). Captured in an array: the loop changes the table.
     $regs = array();
     $q = safe_r_sql("SELECT * FROM BK_Registrations WHERE BrTournament = $newId ORDER BY BrId");
     while ($r = safe_fetch($q)) $regs[] = $r;
 
-    // Entries du nouvel import, indexées par licence (chacune « à réclamer »).
+    // Entries of the new import, indexed by licence (each one "to be claimed").
     $importByLic = array();
     $q = safe_r_sql("SELECT e.EnId, e.EnCode, e.EnDivision, e.EnClass, e.EnTargetFace,
                 e.EnFirstName, e.EnName, q.QuSession, q.QuTarget
-        /* ⚠ Le SEUL endroit du module où Qualifications se joint en LEFT, et il
-           faut le garder. Ailleurs la relation est 1:1 (INNER JOIN) parce que le
-           cœur la répare en tête de Partecipants/index.php — mais ici la
-           compétition VIENT d'être importée et cet écran n'a encore jamais été
-           ouvert. Un INNER JOIN ferait disparaître de $importByLic un archer sans
-           ligne de placement : la réconciliation le croirait absent de l'import et
-           ré-injecterait un doublon. */
+        /* ⚠ One of the few places of the module where Qualifications is LEFT joined, and it
+           must stay so. Elsewhere the relation is 1:1 (INNER JOIN) because the core repairs
+           it at the top of Partecipants/index.php — but here the competition HAS JUST been
+           imported and that screen was never opened. An INNER JOIN would leave an archer
+           without a placement row out of the per-licence index: the reconciliation would
+           believe them absent in the import and inject a duplicate. */
         FROM Entries e LEFT JOIN Qualifications q ON q.QuId = e.EnId
         WHERE e.EnTournament = $newId");
     while ($e = safe_fetch($q)) {
@@ -449,16 +445,16 @@ function bk_adopt($newId)
         $importByLic[$lic][] = array('e' => $e, 'claimed' => false);
     }
 
-    // Appariement, une inscription booking à la fois. On indexe directement dans
-    // $importByLic (pas de référence : `=& $importByLic[$lic]` auto-créerait une
-    // entrée nulle pour une licence absente, parcourue ensuite comme un nouvel inscrit).
+    // Matching, one booking registration at a time. Indexed straight into $importByLic (no
+    // reference: `=& $importByLic[$lic]` would create a null entry for a missing licence, then
+    // walked through as a new participant).
     foreach ($regs as $reg) {
         $lic = trim((string) $reg->BrLicence);
         $pickIdx = -1;
 
         if (!empty($importByLic[$lic])) {
-            // Priorité : même départ ET même arme ; puis même départ ; puis même arme ;
-            // puis n'importe quelle Entry non réclamée de cette licence.
+            // Priority: same departure AND same bow; then same departure; then same bow; then
+            // any unclaimed Entry of this licence.
             $prefs = array(
                 function ($e) use ($reg) { return intval($e->QuSession) === intval($reg->BrSession) && (string) $e->EnDivision === (string) $reg->BrDivision; },
                 function ($e) use ($reg) { return intval($e->QuSession) === intval($reg->BrSession); },
@@ -479,7 +475,7 @@ function bk_adopt($newId)
             $importByLic[$lic][$pickIdx]['claimed'] = true;
             $enId = intval($e->EnId);
 
-            // Placement / départ : autorité au NOUVEL IMPORT (on synchronise l'instantané).
+            // Placement / departure: the NEW IMPORT decides (the snapshot is synchronised).
             $catDiff = ((string) $e->EnDivision !== (string) $reg->BrDivision)
                     || ((string) $e->EnClass    !== (string) $reg->BrClass);
             safe_w_sql("UPDATE BK_Registrations SET
@@ -492,8 +488,8 @@ function bk_adopt($newId)
             $rep['relinked']++;
 
             if ($catDiff) {
-                // Même personne + même départ, catégorie différente : on garde l'import,
-                // l'organisateur confirmera sur la page dédiée.
+                // Same person + same departure, different category: the import is kept, the
+                // organiser confirms on the dedicated page.
                 $rep['category']++;
                 bk_reimport_conflict($newId, $code, $lic,
                     trim($e->EnFirstName . ' ' . $e->EnName), 'category', $enId,
@@ -501,10 +497,9 @@ function bk_adopt($newId)
                     array('division' => $e->EnDivision, 'class' => $e->EnClass));
             }
         } else {
-            // Absente de l'import → ré-injecter dans la nouvelle version (défaut sûr :
-            // ne jamais perdre une inscription en ligne). Enregistrée comme conflit
-            // 'onlybooking' pour que l'orga puisse la GARDER (défaut) ou la RETIRER
-            // (l'import ne la contient pas).
+            // Missing from the import → injected into the new version (safe default: never lose
+            // an online registration). Recorded as an 'onlybooking' conflict so the organiser
+            // can KEEP it (default) or REMOVE it (the import does not have it).
             $res = bk_adopt_reinject($newId, $reg);
             if (!empty($res['ok'])) {
                 $rep['reinjected']++;
@@ -521,16 +516,15 @@ function bk_adopt($newId)
                     array('division' => $reg->BrDivision, 'class' => $reg->BrClass,
                           'session' => $reg->BrSession, 'msg' => $res['msg'] ?? ''),
                     null);
-                // On conserve l'ancienne ligne orpheline pour trace/traitement manuel.
+                // The old orphan row is kept for tracing / manual handling.
             }
         }
     }
 
-    // Participants présents SEULEMENT dans l'import (saisis hors module) → capturés
-    // dans l'espace de l'archer (BrByRole='IMPORT'), sans info de paiement (défaut sûr :
-    // on ne supprime jamais un participant sans décision). Enregistrés comme conflit
-    // 'onlyimport' pour que l'orga puisse les GARDER (défaut) ou les RETIRER de la
-    // compétition (choix « côté booking »).
+    // Participants ONLY in the import (entered outside the module) → captured in the archer's
+    // space (BrByRole='IMPORT'), without payment information (safe default: a participant is
+    // never deleted without a decision). Recorded as 'onlyimport' conflicts so the organiser
+    // can KEEP them (default) or REMOVE them from the competition ("booking side" choice).
     $now = date('Y-m-d H:i:s');
     foreach ($importByLic as $lic => $cands) {
         foreach ($cands as $cand) {

@@ -1,22 +1,20 @@
-# /etc/sudoers.d/ianseo-maintenance — droits minimaux du compte web.
+# /etc/sudoers.d/ianseo-maintenance — minimal rights of the web account.
 #
-# Installation OBLIGATOIREMENT vérifiée (une erreur de syntaxe dans sudoers peut
-# rendre sudo inutilisable sur toute la machine) :
+# Installation that MUST be checked (a syntax error in sudoers can make sudo unusable on the
+# whole machine):
 #   sudo install -m 0440 -o root -g root ianseo-maintenance /etc/sudoers.d/ianseo-maintenance
-#   sudo visudo -c        # doit afficher « parsed OK »
+#   sudo visudo -c        # must print "parsed OK"
 #
-# Permet au cron de maintenance (exécuté sous www-data) de basculer la page de
-# maintenance. Rien d'autre : chaque commande est nommée par son chemin ABSOLU,
-# sans joker, et sans argument libre.
+# Allows the maintenance cron (run as www-data) to switch the maintenance page. Nothing else:
+# each command is named by its ABSOLUTE path, without wildcard, and without free argument.
 
 www-data ALL=(root) NOPASSWD: /usr/local/bin/ianseo-maintenance-on, /usr/local/bin/ianseo-maintenance-off
 
 # ---------------------------------------------------------------------------
-# ianseo-unlock / ianseo-lock ne sont PAS accordés à www-data, et ne doivent pas
-# l'être : ce serait donner au compte web le pouvoir de rendre TOUT l'arbre ianseo
-# inscriptible, donc à une faille du site celui de réécrire le code du cœur — ce
-# qui annule la protection apportée par ianseo-lock.
+# ianseo-unlock / ianseo-lock are NOT granted to www-data, and must not be: it would give the
+# web account the power to make the WHOLE ianseo tree writable, hence to a flaw of the site
+# the power to rewrite the code of the core — which cancels the protection given by
+# ianseo-lock.
 #
-# La mise à jour automatique du cœur n'en a pas besoin : c'est la ligne cron,
-# lancée par root, qui déverrouille avant et reverrouille après le script
-# (voir serveur/cron/ianseo-nightly).
+# The automatic core update does not need it: the cron line, started by root, unlocks before
+# and locks again after the script (see serveur/cron/ianseo-nightly).

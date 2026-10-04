@@ -1,14 +1,14 @@
 <?php
 /**
- * lib/registration.php — création et suppression d'une inscription.
+ * lib/registration.php — creating and deleting a registration.
  *
- * Écrit dans les tables du CŒUR ianseo (Entries, Qualifications, Countries) en
- * suivant exactement le chemin de Partecipants/PopEdit.php, hooks de recalcul
- * compris. Toute divergence laisserait classements et équipes obsolètes.
+ * Writes into the ianseo CORE tables (Entries, Qualifications, Countries) following exactly the
+ * path of Partecipants/PopEdit.php, recomputation hooks included. Any difference would leave
+ * rankings and teams outdated.
  *
- * Une inscription BOOKING = une ligne Entries + une ligne Qualifications (1:1
- * par QuId=EnId, comme le cœur) + une ligne BK_Registrations qui trace l'auteur
- * (Entries n'a aucune notion d'auteur d'inscription).
+ * A booking registration = one Entries row + one Qualifications row (1:1 by QuId=EnId, like the
+ * core) + one BK_Registrations row that records the author (Entries has no notion of who made a
+ * registration).
  */
 
 if (defined('BK_REG_LOADED')) return;
@@ -18,9 +18,9 @@ require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/competition.php';
 require_once __DIR__ . '/archer.php';   // bk_lookup_licence, bk_clean_licence
 
-// Fonctions du cœur ianseo utilisées pour écrire une inscription et déclencher
-// les recalculs. Chargées par chemin relatif : config.php ajoute htdocs à
-// l'include_path, ces fichiers s'incluent donc les uns les autres normalement.
+// Core ianseo functions used to write a registration and start the recomputations. Loaded by
+// relative path: config.php adds htdocs to the include_path, so these files include each
+// other normally.
 require_once('Common/Fun_FormatText.inc.php');              // AdjustCaseTitle
 require_once('Common/Fun_Various.inc.php');                 // checkAgainstLUE
 require_once('Partecipants/Fun_Targets.php');               // getTargets
@@ -28,19 +28,17 @@ require_once('Partecipants/Fun_Partecipants.local.inc.php');// Params4Recalc, Re
 require_once('Qualification/Fun_Qualification.local.inc.php');// CalcQualRank, MakeIndAbs
 
 /**
- * Exécute $fn avec la session de compétition de ianseo positionnée sur $tourId,
- * puis REMET la session dans son état d'origine.
+ * Runs $fn with the ianseo competition session set to $tourId, then PUTS the session BACK in
+ * its original state.
  *
- * Indispensable : les fonctions de recalcul du cœur (RecalculateShootoffAndTeams,
- * CalcQualRank, MakeIndAbs…) lisent $_SESSION['TourId'] et compagnie. Or l'espace
- * licencié n'a aucune compétition ouverte — et le navigateur peut par ailleurs
- * porter la session d'un organisateur sur une AUTRE compétition.
+ * Needed: the core's recomputation functions (RecalculateShootoffAndTeams, CalcQualRank,
+ * MakeIndAbs…) read $_SESSION['TourId'] and the like. But the licensee space has no open
+ * competition — and the browser may also carry an organiser's session on ANOTHER competition.
  *
- * ⚠️ CreateTourSession() VIDE $_SESSION (Globals.inc.php) : elle effacerait le
- * jeton de session de l'archer. On sauvegarde donc la session ENTIÈRE et on la
- * restaure telle quelle — y compris via register_shutdown_function, pour qu'une
- * erreur fatale ne laisse jamais l'archer déconnecté ni un organisateur avec la
- * mauvaise compétition ouverte.
+ * ⚠️ CreateTourSession() EMPTIES $_SESSION (Globals.inc.php): it would erase the archer's session
+ * token. The WHOLE session is therefore saved and restored as is — also through
+ * register_shutdown_function, so a fatal error never leaves the archer signed out nor an
+ * organiser with the wrong competition open.
  */
 function bk_with_tournament($tourId, $fn)
 {
@@ -61,10 +59,10 @@ function bk_with_tournament($tourId, $fn)
 }
 
 /* ------------------------------------------------------------------ */
-/* Catégories proposées                                                */
+/* Categories offered                                                  */
 /* ------------------------------------------------------------------ */
 
-/** Armes (divisions) ouvertes aux athlètes sur cette compétition. */
+/** Bows (divisions) open to athletes on this competition. */
 function bk_reg_divisions($tourId)
 {
     $rs = safe_r_sql("SELECT DivId, DivDescription FROM Divisions
@@ -76,11 +74,10 @@ function bk_reg_divisions($tourId)
 }
 
 /**
- * Catégories (classes) ouvertes à cet archer pour cette arme.
+ * Categories (classes) open to this archer for this bow.
  *
- * Règle du cœur ianseo (Partecipants/Get-Classes.php, Participants/lib.php) :
- * l'âge est l'ANNÉE de fin de compétition moins l'ANNÉE de naissance — jamais
- * un âge révolu à la date du jour.
+ * Rule of the ianseo core (Partecipants/Get-Classes.php, Participants/lib.php): the age is the
+ * YEAR the competition ends minus the YEAR of birth — never the age reached on today's date.
  */
 function bk_reg_classes($tourId, $dob, $sex, $division)
 {
@@ -95,22 +92,21 @@ function bk_reg_classes($tourId, $dob, $sex, $division)
           AND ClSex IN (-1, $sex)
           AND (YEAR(ToWhenTo) - YEAR(" . StrSafe_DB($dob) . ")) BETWEEN ClAgeFrom AND ClAgeTo
           AND (ClDivisionsAllowed = '' OR FIND_IN_SET(" . StrSafe_DB($division) . ", ClDivisionsAllowed))
-        ORDER BY (ClAgeTo - ClAgeFrom) ASC, ClId");   // la plus spécifique d'abord
+        ORDER BY (ClAgeTo - ClAgeFrom) ASC, ClId");   // the most specific first
     $out = array();
     while ($r = safe_fetch($rs)) $out[$r->ClId] = $r->ClDescription;
     return $out;
 }
 
 /* ------------------------------------------------------------------ */
-/* Inscription de groupe (un licencié inscrit un camarade de son club) */
+/* Group registration (a licensee registers a club mate)               */
 /* ------------------------------------------------------------------ */
 
 /**
- * Le licencié est-il MAJEUR ? (18 ans révolus à la date du jour.)
+ * Is the licensee an ADULT? (18 years reached on today's date.)
  *
- * Seul un majeur peut inscrire d'autres licenciés. Calcul côté SQL (CURDATE()) :
- * ianseo change le time_zone MySQL par compétition, on ne compare jamais à
- * l'horloge PHP. $dob au format AAAA-MM-JJ (LueCtrlCode).
+ * Only an adult may register other licensees. $dob as YYYY-MM-DD (LueCtrlCode); today's date
+ * is the server zone's (bk_today()).
  */
 function bk_is_major($dob)
 {
@@ -122,12 +118,12 @@ function bk_is_major($dob)
 }
 
 /**
- * Résout un camarade de club à partir d'un numéro de licence saisi, borné au
- * club de l'archer connecté. Retourne la fiche fédérale (LookUpEntries) ou null.
+ * Resolves a club mate from a typed licence number, limited to the connected archer's club.
+ * Returns the federation record (LookUpEntries) or null.
  *
- * null si : licence vide, licence inconnue du fichier fédéral, OU archer d'un
- * autre club — dans tous ces cas « rien ne doit se passer » (exigence métier :
- * on n'inscrit jamais un tiers hors de son propre club).
+ * null when: empty licence, licence unknown to the federation file, OR archer of another club —
+ * in all these cases "nothing must happen" (business rule: a third party outside one's own club
+ * is never registered).
  */
 function bk_lookup_clubmate($licence, $selfClubCode)
 {
@@ -141,11 +137,10 @@ function bk_lookup_clubmate($licence, $selfClubCode)
 }
 
 /**
- * Camarades DISTINCTS déjà inscrits par cet archer, restreints à ceux qui sont
- * ENCORE dans son club aujourd'hui. Sert la liste déroulante d'inscription de
- * groupe (raccourci vers un licencié déjà inscrit). Le contrôle de club est
- * REJOUÉ ici (`bk_lookup_clubmate`) : un archer qui a changé de club en cours de
- * saison ne doit plus pouvoir être inscrit. Retourne [licence => "Nom Prénom"].
+ * DISTINCT club mates already registered by this archer, restricted to those STILL in their club
+ * today. Feeds the drop-down of the group registration (shortcut to a licensee already
+ * registered). The club check is DONE AGAIN here (`bk_lookup_clubmate`): an archer who changed
+ * club during the season can no longer be registered. Returns [licence => "Name Given name"].
  */
 function bk_authored_clubmates($archerId, $selfLicence, $selfClubCode)
 {
@@ -157,7 +152,7 @@ function bk_authored_clubmates($archerId, $selfLicence, $selfClubCode)
         WHERE BrArcher = $archerId AND BrLicence <> " . StrSafe_DB($selfLic));
     $out = array();
     while ($r = safe_fetch($rs)) {
-        $mate = bk_lookup_clubmate($r->BrLicence, $selfClubCode);   // re-vérifie le club courant
+        $mate = bk_lookup_clubmate($r->BrLicence, $selfClubCode);   // checks the current club again
         if ($mate) $out[$mate->LueCode] = trim($mate->LueFamilyName . ' ' . $mate->LueName);
     }
     asort($out);
@@ -165,9 +160,9 @@ function bk_authored_clubmates($archerId, $selfLicence, $selfClubCode)
 }
 
 /**
- * Inscriptions qu'un archer a créées POUR d'AUTRES licenciés (inscription de
- * groupe) — pour qu'il puisse les suivre et les annuler depuis « Mes
- * inscriptions ». Exclut ses propres inscriptions (BrLicence = sa licence).
+ * Registrations an archer made FOR OTHER licensees (group registration) — so they can follow
+ * and cancel them from "My registrations". Leaves out their own registrations (BrLicence =
+ * their licence).
  */
 function bk_authored_registrations($archerId, $selfLicence)
 {
@@ -198,10 +193,10 @@ function bk_authored_registrations($archerId, $selfLicence)
 }
 
 /* ------------------------------------------------------------------ */
-/* Contrôles                                                           */
+/* Checks                                                              */
 /* ------------------------------------------------------------------ */
 
-/** Inscriptions existantes de cette licence sur cette compétition. */
+/** Existing registrations of this licence on this competition. */
 function bk_reg_existing($tourId, $licence)
 {
     $rs = safe_r_sql("SELECT e.EnId, e.EnDivision, e.EnClass, q.QuSession
@@ -215,7 +210,7 @@ function bk_reg_existing($tourId, $licence)
     return $out;
 }
 
-/** Places restantes sur un départ (0 si le départ n'existe pas). */
+/** Places left on a departure (0 when the departure does not exist). */
 function bk_reg_session_left($tourId, $order)
 {
     foreach (bk_comp_sessions($tourId) as $s) {
@@ -223,74 +218,72 @@ function bk_reg_session_left($tourId, $order)
             return max(0, intval($s->Places) - intval($s->Pris));
         }
     }
-    return -1;   // départ inconnu
+    return -1;   // unknown departure
 }
 
 /**
- * Toutes les règles à passer avant d'inscrire. Retourne '' si tout va bien,
- * sinon le motif du refus (message affichable).
+ * Every rule to pass before registering. Returns '' when all is well, otherwise the reason of
+ * the refusal (a displayable message).
  *
- * Revérifié côté serveur au moment de l'écriture : le calendrier informe, il
- * n'autorise pas.
+ * Checked again by the server when writing: the calendar informs, it does not authorise.
  */
 function bk_reg_blocked($tourId, $cfg, $licence, $clubCode, $division, $class, $sessionOrder, $lue = null, $ignoreFull = false)
 {
     // $ignoreFull: every rule but "this departure is full" — used to join the waiting list.
-    if (empty($cfg->BcIsOpen)) return "Les inscriptions ne sont pas ouvertes pour cette compétition.";
+    if (empty($cfg->BcIsOpen)) return bk_t('ClubRegsNotOpen');
 
-    // Une compétition terminée n'est plus inscriptible, même si la fenêtre
-    // d'inscription a été laissée ouverte au-delà de sa date.
-    if (bk_comp_finished($tourId)) return "Cette compétition est terminée : les inscriptions ne sont plus possibles.";
+    // A finished competition can no longer be registered for, even if the registration window
+    // was left open past its date.
+    if (bk_comp_finished($tourId)) return bk_t('RgFinished');
 
-    // Licence « sans pratique » (LueStatus = 9, ex. dirigeant/trésorier) : ne peut PAS
-    // s'inscrire à une compétition (mais peut en inscrire d'autres — c'est l'AUTEUR, pas
-    // le SUJET, qui inscrit ; ici $lue = le sujet). Vaut pour l'auto-inscription comme
-    // pour une inscription de camarade dont le sujet serait sans pratique.
+    // "Non-practising" licence (LueStatus = 9, e.g. officer/treasurer): can NOT register for a
+    // competition (but may register others — the AUTHOR registers, not the SUBJECT; here
+    // $lue = the subject). Applies to self-registration as to a club mate's registration whose
+    // subject would be non-practising.
     if ($lue && intval($lue->LueStatus) === 9) {
-        return "Cette licence est « sans pratique » : elle ne permet pas de s'inscrire à une compétition.";
+        return bk_t('RgNoPractice');
     }
 
     $geo = bk_comp_archer_blocked($cfg, $clubCode);
     if ($geo !== '') return $geo;
 
     if (!array_key_exists($division, bk_reg_divisions($tourId))) {
-        return "Cette arme n'est pas proposée sur cette compétition.";
+        return bk_t('RgBadBow');
     }
 
-    // La catégorie doit être l'une de celles que l'âge et le sexe autorisent —
-    // vérifié ICI et pas seulement à l'affichage du formulaire : un POST forgé
-    // ne doit pas pouvoir inscrire un adulte en catégorie jeune.
+    // The category must be one that age and sex allow — checked HERE and not only when the
+    // form is shown: a forged POST must not register an adult in a youth category.
     if ($lue) {
         $classes = bk_reg_classes($tourId, $lue->LueCtrlCode, $lue->LueSex, $division);
         if (!array_key_exists($class, $classes)) {
-            return "Cette catégorie ne correspond pas à votre âge pour cette arme.";
+            return bk_t('RgBadAge');
         }
     }
 
     $left = bk_reg_session_left($tourId, $sessionOrder);
-    if ($left < 0)  return "Ce départ n'existe pas sur cette compétition.";
-    if ($left === 0 && !$ignoreFull) return "Ce départ est complet.";
+    if ($left < 0)  return bk_t('WlNoDep');
+    if ($left === 0 && !$ignoreFull) return bk_t('RgDepFull');
 
-    // Règlement : pas deux tirs pour un même archer sur un même départ.
+    // Rule: never two shoots for one archer on the same departure.
     foreach (bk_reg_existing($tourId, $licence) as $e) {
         if (intval($e->QuSession) === intval($sessionOrder)) {
-            return "Vous êtes déjà inscrit sur ce départ.";
+            return bk_t('RgAlreadyDep');
         }
     }
 
-    // La compétition peut être verrouillée par l'organisateur.
+    // The competition may be locked by the organiser.
     if (bk_with_tournament($tourId, function () { return IsBlocked(BIT_BLOCK_PARTICIPANT); })) {
-        return "Les inscriptions de cette compétition sont verrouillées.";
+        return bk_t('RgLocked');
     }
 
     return '';
 }
 
 /* ------------------------------------------------------------------ */
-/* Écriture                                                            */
+/* Writing                                                             */
 /* ------------------------------------------------------------------ */
 
-/** Résout (ou crée) le club dans Countries — repris de PopEdit.php. */
+/** Resolves (or creates) the club in Countries — taken from PopEdit.php. */
 function bk_reg_club_id($tourId, $code, $name)
 {
     $tourId = intval($tourId);
@@ -310,10 +303,10 @@ function bk_reg_club_id($tourId, $code, $name)
             . " WHERE CoId = $coId AND CoTournament = $tourId");
     }
 
-    // Logo du club : dès qu'un club entre dans une compétition, on pose son logo
-    // (drapeau ianseo) depuis le cache mutualisé, pour que les impressions du cœur
-    // l'aient tout de suite sans attendre le cron nocturne. Purement LOCAL (aucun
-    // accès réseau), et totalement isolé : ne peut jamais faire échouer l'inscription.
+    // Club logo: as soon as a club enters a competition, its logo (ianseo flag) is set from the
+    // shared cache, so the core's printouts have it at once without waiting for the nightly
+    // cron. Purely LOCAL (no network access), and fully isolated: it can never make the
+    // registration fail.
     $lg = dirname(__DIR__, 2) . '/logos-lib.php';
     if (is_file($lg)) {
         require_once $lg;
@@ -401,25 +394,25 @@ function bk_events_after_removal($tourId, $old)
 }
 
 /**
- * Inscrit un archer. Retourne ['ok'=>true,'enid'=>N] ou ['ok'=>false,'msg'=>…].
+ * Registers an archer. Returns ['ok'=>true, 'enid'=>N] or ['ok'=>false, 'msg'=>…].
  *
- * $lue     : fiche LookUpEntries (identité fédérale)
- * $by      : ['role'=>'SELF'|'MANAGER', 'who'=>identifiant, 'archer'=>BaId]
+ * $lue     : LookUpEntries record (federation identity)
+ * $by      : ['role'=>'SELF'|'MANAGER', 'who'=>identifier, 'archer'=>BaId]
  */
 function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, $by, $opts = array())
 {
     $tourId = intval($tourId);
 
-    // Garde ultime : toutes les voies d'inscription passent ici. Jamais d'écriture
-    // sur une compétition terminée, quelles que soient les manipulations en amont.
+    // Last guard: every registration path goes through here. Never a write on a finished
+    // competition, whatever happened upstream.
     if (bk_comp_finished($tourId)) {
-        return array('ok' => false, 'msg' => "Cette compétition est terminée : les inscriptions ne sont plus possibles.");
+        return array('ok' => false, 'msg' => bk_t('RgFinished'));
     }
 
-    // Garde ultime « sans pratique » (LueStatus = 9) : le sujet ne peut jamais être inscrit
-    // à une compétition, quelle que soit la voie (auto-inscription ou inscription de groupe).
+    // Last "non-practising" guard (LueStatus = 9): the subject can never be registered for a
+    // competition, whatever the path (self-registration or group registration).
     if (intval($lue->LueStatus ?? 0) === 9) {
-        return array('ok' => false, 'msg' => "Cette licence est « sans pratique » : elle ne permet pas de s'inscrire à une compétition.");
+        return array('ok' => false, 'msg' => bk_t('RgNoPractice'));
     }
 
     return bk_with_tournament($tourId, function () use ($tourId, $lue, $division, $class, $sessionOrder, $request, $by, $opts) {
@@ -427,7 +420,7 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
         $now  = date('Y-m-d H:i:s');
         $coId = bk_reg_club_id($tourId, $lue->LueCountry, $lue->LueCoDescr);
 
-        // EnAthlete : dérivé de la division et de la classe, comme PopEdit.php.
+        // EnAthlete: derived from the division and the class, like PopEdit.php.
         $rs = safe_r_sql("SELECT (DivAthlete AND ClAthlete) AS Athlete
             FROM Divisions INNER JOIN Classes ON DivTournament = ClTournament
             WHERE DivTournament = $tourId
@@ -435,11 +428,11 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
               AND ClId  = " . StrSafe_DB($class));
         $r = safe_fetch($rs);
         $athlete = ($r && $r->Athlete) ? 1 : 0;
-        if (!$athlete) return array('ok' => false, 'msg' => "Catégorie invalide pour cette compétition.");
+        if (!$athlete) return array('ok' => false, 'msg' => bk_t('RgBadCategory'));
 
-        // Blason : celui choisi par l'archer s'il figure parmi ceux que la
-        // configuration autorise pour sa catégorie, sinon le premier proposé
-        // (getTargets trie du plus spécifique au plus générique).
+        // Target face: the one the archer chose when it is among those the settings allow for
+        // their category, otherwise the first offered (getTargets sorts from the most specific
+        // to the most generic).
         $face = 0;
         $all = getTargets(true);
         if (!empty($all[$division][$class])) {
@@ -448,15 +441,15 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
             $face = ($want && in_array($want, $ids, true)) ? $want : $ids[0];
         }
 
-        // Contrôle d'admission (cohabitation des blasons) : le plan du terrain définit
-        // ce qui est possible techniquement. Si plus aucune cible de ce départ ne peut
-        // recevoir ce profil (arme + catégorie + blason), l'inscription est REFUSÉE —
-        // sinon l'archer resterait non plaçable. bk_profile_remaining vit dans
-        // targets.php (chargé dès qu'il y a placement) ; en son absence, on ne bloque pas.
+        // Admission check (faces sharing a target): the field plan defines what is technically
+        // possible. When no target of this departure can take this profile any more (bow +
+        // category + face), the registration is REFUSED — otherwise the archer could never be
+        // placed. bk_profile_remaining lives in targets.php (loaded as soon as there is
+        // placement); without it, nothing is blocked.
         if (empty($opts['skip_capacity']) && function_exists('bk_profile_remaining')) {
             $rem = bk_profile_remaining($tourId, $sessionOrder, $division, $class, $face);
             if ($rem !== null && $rem < 1) {
-                return array('ok' => false, 'msg' => "Ce départ est complet pour votre catégorie et votre blason : aucune cible ne peut plus vous recevoir. Choisissez un autre départ.");
+                return array('ok' => false, 'msg' => bk_t('RgProfileFull'));
             }
         }
 
@@ -491,11 +484,11 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
 
         safe_w_sql("INSERT INTO Entries SET EnTimestamp = '$now', EnMainInfoUpdate = '$now', $sql");
         $enId = intval(safe_w_last_id());
-        if (!$enId) return array('ok' => false, 'msg' => "L'inscription n'a pas pu être enregistrée.");
+        if (!$enId) return array('ok' => false, 'msg' => bk_t('RegFailed'));
 
-        // EnIocCode vide = hérite du ToIocCode de la compétition (convention du
-        // cœur : LueIocCode = IF(EnIocCode!='', EnIocCode, ToIocCode)). On ne le
-        // renseigne que si l'archer relève d'une autre fédération.
+        // Empty EnIocCode = inherits the competition's ToIocCode (core convention:
+        // LueIocCode = IF(EnIocCode!='', EnIocCode, ToIocCode)). Only set when the archer
+        // belongs to another federation.
         $rs = safe_r_sql("SELECT ToIocCode FROM Tournament WHERE ToId = $tourId");
         $to = safe_fetch($rs);
         if ($to && $lue->LueIocCode && $lue->LueIocCode !== $to->ToIocCode) {
@@ -503,7 +496,7 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
                 . ", EnTimestamp = EnTimestamp WHERE EnId = $enId");
         }
 
-        // Ligne Qualifications appariée (1:1, QuId = EnId), puis le départ.
+        // Matching Qualifications row (1:1, QuId = EnId), then the departure.
         safe_w_sql("INSERT INTO Qualifications (QuId, QuSession) VALUES ($enId, 0)");
         safe_w_sql("UPDATE Qualifications SET QuSession = " . intval($sessionOrder)
             . ", QuTarget = 0, QuLetter = '', QuTimestamp = QuTimestamp WHERE QuId = $enId");
@@ -526,12 +519,12 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
         MakeIndAbs();
         checkAgainstLUE($enId);
 
-        // Souhaits : n'honorer que ceux que l'organisateur propose. Revérifié
-        // ici (côté écriture) : un POST forgé ne doit pas activer un souhait
-        // désactivé, quel que soit l'appelant (archer ou gestionnaire de club).
+        // Wishes: only those the organiser offers are honoured. Checked again here (write side):
+        // a forged POST must not turn on a disabled wish, whoever calls (archer or club
+        // manager).
         $wLetter = strtoupper(substr(trim((string) ($opts['letter'] ?? '')), 0, 2));
         $wWith   = bk_clean_licence($opts['with'] ?? '');
-        $wReq    = substr(trim((string) $request), 0, 2000);
+        $wReq    = mb_substr(trim((string) $request), 0, 2000);
         if (function_exists('bk_comp_config')) {
             $wc = bk_comp_config($tourId);
             if (empty($wc->BcWishLetter)) $wLetter = '';
@@ -539,12 +532,12 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
             if (empty($wc->BcWishFree))   $wReq    = '';
         }
 
-        // Validation manuelle : en mode manuel, l'inscription arrive « en attente »
-        // (BrValidated=0) et n'est pas placée tant que l'organisateur n'a pas validé.
+        // Manual validation: in manual mode the registration arrives "pending" (BrValidated=0)
+        // and is not placed until the organiser validates it.
         $mv = safe_fetch(safe_r_sql("SELECT BcManualValidation FROM BK_Competitions WHERE BcTournament = $tourId"));
         $validated = ($mv && intval($mv->BcManualValidation) === 1) ? 0 : 1;
 
-        // Traçage BOOKING (auteur, demandes spéciales).
+        // Booking tracking (author, special requests).
         safe_w_sql("INSERT INTO BK_Registrations SET
             BrEnId = $enId,
             BrTournament = $tourId,
@@ -566,11 +559,10 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
 }
 
 /**
- * Annule une inscription. N'accepte QUE des inscriptions créées par BOOKING
- * (présentes dans BK_Registrations) : un archer ne doit jamais pouvoir supprimer
- * un participant saisi par l'organisateur. Autorisée si l'inscription est celle
- * de l'archer ($licence) OU s'il en est l'AUTEUR (inscription de groupe qu'il a
- * faite pour un camarade de son club, BrArcher = $archerId).
+ * Cancels a registration. Accepts ONLY registrations made through booking (in
+ * BK_Registrations): an archer must never be able to delete a participant entered by the
+ * organiser. Allowed when the registration is the archer's ($licence) OR when they are its
+ * AUTHOR (group registration made for a club mate, BrArcher = $archerId).
  */
 function bk_unregister($enId, $archerId, $licence)
 {
@@ -583,31 +575,31 @@ function bk_unregister($enId, $archerId, $licence)
         WHERE r.BrEnId = $enId");
     $r = safe_fetch($rs);
     if (!$r) return array('ok' => false, 'msg' => "Inscription introuvable.");
-    // Inscription reprise d'un import (saisie hors module par l'organisateur) : visible
-    // dans l'espace de l'archer, mais NON annulable par lui — l'invariant « un archer ne
-    // supprime jamais un participant saisi par l'organisateur » reste vrai malgré la reprise.
+    // Registration taken from an import (entered outside the module by the organiser): visible in
+    // the archer's space, but NOT cancellable by them — the rule "an archer never deletes a
+    // participant entered by the organiser" holds despite the takeover.
     if ((string) $r->BrByRole === 'IMPORT') {
-        return array('ok' => false, 'msg' => "Cette inscription a été saisie par l'organisateur : contactez-le pour toute modification.");
+        return array('ok' => false, 'msg' => bk_t('RgByOrganiser'));
     }
     $isOwn    = bk_clean_licence($r->BrLicence) === bk_clean_licence($licence);
     $isAuthor = $archerId > 0 && intval($r->BrArcher) === $archerId;
     if (!$isOwn && !$isAuthor) {
-        return array('ok' => false, 'msg' => "Cette inscription n'est pas la vôtre.");
+        return array('ok' => false, 'msg' => bk_t('NotYourReg'));
     }
 
     $tourId = intval($r->BrTournament);
     $cfg    = bk_comp_config($tourId);
     if (empty($cfg->BcIsOpen)) {
-        return array('ok' => false, 'msg' => "Les inscriptions sont closes : contactez l'organisateur.");
+        return array('ok' => false, 'msg' => bk_t('RgClosed'));
     }
 
     $res = bk_with_tournament($tourId, function () use ($enId, $tourId) {
         if (IsBlocked(BIT_BLOCK_PARTICIPANT)) return false;
 
-        // Mémoriser l'arme et le drapeau d'épreuve AVANT suppression : si on
-        // supprime l'inscription porteuse de l'épreuve alors que l'archer garde
-        // d'autres tirs avec la même arme, il faut en promouvoir une, sinon il
-        // disparaîtrait du classement tout en restant inscrit.
+        // Keep the bow and the event flags BEFORE deletion: when the registration carrying the
+        // event is deleted while the archer keeps other shoots with the same bow, one of them
+        // must take it over, otherwise they would vanish from the ranking while still
+        // registered.
         $rs = safe_r_sql("SELECT EnCode, EnDivision, " . implode(', ', bk_event_cols()) . " FROM Entries WHERE EnId = $enId");
         $old = safe_fetch($rs);
 
@@ -629,13 +621,13 @@ function bk_unregister($enId, $archerId, $licence)
         return true;
     });
 
-    if (!$res) return array('ok' => false, 'msg' => "Les inscriptions de cette compétition sont verrouillées.");
+    if (!$res) return array('ok' => false, 'msg' => bk_t('RgLocked'));
 
     safe_w_sql("DELETE FROM BK_Registrations WHERE BrEnId = $enId");
     return array('ok' => true);
 }
 
-/** Inscriptions d'un archer (toutes compétitions), les plus récentes d'abord. */
+/** Registrations of an archer (all competitions), the most recent first. */
 function bk_my_registrations($licence)
 {
     bk_schema();

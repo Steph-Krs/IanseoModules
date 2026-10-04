@@ -1,5 +1,5 @@
-/* Espace licencié — palette FFTA (voir CHARTE_GRAPHIQUE.md).
-   Portée limitée à #bk : cette face publique est autonome (pas d'habillage ianseo). */
+/* Licensee space — federation palette (see CHARTE_GRAPHIQUE.md).
+   Scoped to #bk: this public side stands alone (no ianseo look). */
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -13,7 +13,7 @@ body {
 #bk a { color: #0254a8; }
 #bk a:hover { color: #01367c; }
 
-/* ---- Carte centrée (connexion, création de compte) ---- */
+/* ---- Centred card (sign-in, account creation) ---- */
 
 #bk.bk-card { display: flex; align-items: center; justify-content: center;
     min-height: 100vh; padding: 24px 16px; }
@@ -47,11 +47,11 @@ body {
     color: #20263d; cursor: pointer; text-align: center;
 }
 #bk .bk-btn-primary { width: 100%; background: #0254a8; border-color: #0254a8; color: #fff; font-weight: 600; }
-/* Le texte reste blanc au survol : #bk a:hover (bleu foncé) le rendait invisible sur le fond foncé. */
+/* The text stays white on hover: #bk a:hover (dark blue) made it invisible on the dark background. */
 #bk .bk-btn-primary:hover { background: #01367c; border-color: #01367c; color: #fff; }
 #bk a.bk-btn:hover { color: #20263d; }
 #bk a.bk-btn-primary:hover { color: #fff; }
-/* Rangée de boutons secondaires (raccourcis « Mon suivi ») : retour à la ligne propre. */
+/* Row of secondary buttons ("My follow-up" shortcuts): clean line wrapping. */
 #bk .bk-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 #bk .bk-actions .bk-btn { margin-top: 12px; }
 
@@ -63,18 +63,18 @@ body {
 #bk .bk-msg-err { background: #ffd6db; border: 1px solid #bb7575; color: #a80000; }
 #bk .bk-msg-ok  { background: #d2f4cd; border: 1px solid #75ae77; color: #04ac0b; }
 
-/* ---- Maintenance imminente (bandeau d'avertissement) ---- */
+/* ---- Maintenance coming (warning banner) ---- */
 #bk .bk-maint { position: sticky; top: 0; z-index: 70; background: #8a4b00; color: #fff;
     font-size: 13px; text-align: center; padding: 8px 14px; line-height: 1.4; }
 
-/* ---- Vue « depuis un autre compte » (admin, lecture seule) ---- */
+/* ---- "From another account" view (admin, read only) ---- */
 #bk .bk-imp { position: sticky; top: 0; z-index: 60; background: #5b2a86; color: #fff;
     font-size: 13px; text-align: center; padding: 8px 14px; }
 #bk .bk-imp b { font-weight: 700; }
 #bk .bk-imp .bk-imp-x { color: #fff; margin-left: 12px; background: rgba(255, 255, 255, .2);
     padding: 2px 10px; border-radius: 10px; text-decoration: none; font-weight: 700; }
 
-/* ---- Visuel partageable (share.php) — rendu canvas côté navigateur ---- */
+/* ---- Shareable picture (share.php) — canvas drawn in the browser ---- */
 #bk .bk-share { max-width: 640px; margin: 0 auto; text-align: center; }
 #bk .bk-share-h { margin: 0 0 4px; }
 #bk .bk-share-formats { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 14px 0; }
@@ -85,7 +85,7 @@ body {
 #bk .bk-share-act { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 16px 0 6px; }
 #bk .bk-confirm-share { margin: 10px 0 4px; }
 
-/* ---- Actualités FFTA (Mon espace) ---- */
+/* ---- Federation news (My space) ---- */
 #bk .bk-news-list { list-style: none; margin: 0; padding: 0; }
 #bk .bk-news-list li { padding: 8px 0; border-bottom: 1px solid #eef1f4; display: flex;
     flex-direction: column; gap: 2px; }
@@ -94,26 +94,26 @@ body {
 #bk .bk-news-list a:hover { text-decoration: underline; }
 #bk .bk-news-date { font-size: 12px; color: #7d8183; }
 
-/* ---- Espace connecté ---- */
+/* ---- Signed-in space ---- */
 
 #bk .bk-top {
     display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
     gap: 8px; padding: 10px 18px; background: #01367c; color: #fff;
 }
 #bk .bk-brand { font-weight: 600; font-size: 15px; color: #fff; text-decoration: none; }
-#bk .bk-brand:hover { color: #fff; }   /* sinon #bk a:hover le rend invisible sur l'en-tête foncé */
+#bk .bk-brand:hover { color: #fff; }   /* otherwise #bk a:hover makes it invisible on the dark header */
 #bk .bk-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
 #bk .bk-nav a { color: #a7d6ff; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
 #bk .bk-nav a:hover { color: #fff; }
 #bk .bk-nav-ic { display: block; flex: 0 0 auto; }
 #bk .bk-who { color: #fff; opacity: .85; }
 
-/* Barre de navigation BASSE (mobile uniquement) — style « app », translucide pour
-   laisser deviner du contenu dessous ; item central (Calendrier) plus gros et en relief. */
+/* BOTTOM navigation bar (phones only) — "app" style, translucent to hint at the content
+   below; central item (Calendar) bigger and raised. */
 #bk .bk-botnav { display: none; }
 
 @media (max-width:640px){
-  #bk .bk-top { display: none; }                                   /* le bandeau haut cède la place à la barre basse */
+  #bk .bk-top { display: none; }                                   /* the top banner gives way to the bottom bar */
   #bk .bk-botnav {
     display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 99990;
     align-items: flex-end;
@@ -130,7 +130,7 @@ body {
   #bk .bk-botnav .bk-bn span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #bk .bk-botnav .bk-bn .bk-nav-ic { width: 23px; height: 23px; }
   #bk .bk-botnav .bk-bn.on, #bk .bk-botnav .bk-bn.on:hover { color: #0254a8; }
-  /* Élément central : gros bouton rond bleu FFTA en relief (façon YouTube). */
+  /* Central item: big raised round blue button (YouTube style). */
   #bk .bk-botnav .bk-bn-center .bk-bn-ic {
     display: flex; align-items: center; justify-content: center; width: 54px; height: 54px;
     margin: -24px auto 1px; border-radius: 50%; background: #0254a8; color: #fff;
@@ -141,9 +141,9 @@ body {
 }
 
 #bk .bk-main { padding: 20px 18px 40px; }
-/* Mobile : réserver sous le contenu la hauteur de la barre basse fixe (+ le bouton central
-   qui dépasse, + la zone sûre iOS), sinon elle masque le bas de page. Placée APRÈS la règle
-   de base pour la surcharger (même spécificité → la dernière l'emporte). */
+/* Phones: keep the height of the fixed bottom bar free under the content (+ the central
+   button sticking out, + the iOS safe area), otherwise it hides the bottom of the page. Placed
+   AFTER the base rule to override it (same specificity → the last one wins). */
 @media (max-width:640px){
   #bk .bk-main { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
 }
@@ -160,7 +160,7 @@ body {
 #bk .bk-dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 13px; }
 #bk .bk-dl dt { color: #7d8183; }
 #bk .bk-dl dd { margin: 0; }
-/* ---- Calendrier ---- */
+/* ---- Calendar ---- */
 
 #bk .bk-filters {
     display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 0 0 18px;
@@ -226,7 +226,7 @@ body {
 #bk .bk-rf-disc { font-size: 13px; font-weight: 600; color: #7d8183; display: flex; align-items: center; gap: 8px; }
 #bk .bk-rf-disc select { width: auto; padding: 6px 8px; font-size: 14px; }
 
-/* ---- Inscription / mes inscriptions ---- */
+/* ---- Registration / my registrations ---- */
 
 #bk .bk-back { margin: 0 0 10px; font-size: 13px; }
 #bk textarea {
@@ -270,7 +270,7 @@ body {
 #bk .bk-catinfo { margin: 6px 0 0; padding: 8px 11px; font-size: 13px; border-radius: 6px;
     background: #f0f4ff; border: 1px solid #a7d6ff; color: #01367c; }
 
-/* ==== Inscription de groupe (register-comp.php + registrations.php) ==== */
+/* ==== Group registration (register-comp.php + registrations.php) ==== */
 #bk .bk-group-switch { margin-top: 12px; border-top: 1px dashed #d2d4d6; padding-top: 10px; }
 #bk .bk-group-switch > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: #0254a8;
     list-style: none; padding: 4px 0; }
@@ -287,7 +287,7 @@ body {
 #bk .bk-authored-list { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
 #bk .bk-authored-list h3 { margin: 0 0 4px; font-size: 15px; color: #20263d; }
 
-/* ==== Onglets « Mes inscriptions » / « Mon club » ==== */
+/* ==== "My registrations" / "My club" tabs ==== */
 #bk .bk-tabs { display: flex; gap: 4px; border-bottom: 2px solid #d2e3f5; margin: 4px 0 16px; }
 #bk .bk-tab { font: inherit; font-size: 14px; font-weight: 600; padding: 9px 16px; cursor: pointer;
   border: 0; background: transparent; color: #5b6470; border-bottom: 3px solid transparent; margin-bottom: -2px; }
@@ -296,12 +296,12 @@ body {
 #bk .bk-tab-count { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px;
   background: #0254a8; color: #fff; font-size: 11px; line-height: 18px; text-align: center; vertical-align: 1px; }
 
-/* Titre de compétition avec pictogramme de discipline */
+/* Competition title with the discipline picture */
 #bk .bk-item-h { display: flex; align-items: center; gap: 8px; }
 #bk .bk-item-ic { display: inline-flex; color: #0254a8; flex: 0 0 auto; }
 #bk .bk-item-ic .bk-disc-img { display: block; }
 
-/* ==== Page « Documents de la compétition » ==== */
+/* ==== "Documents of the competition" page ==== */
 #bk .bk-doclist { display: flex; flex-direction: column; gap: 10px; max-width: 520px; }
 #bk .bk-doc { display: flex; align-items: center; gap: 12px; text-decoration: none;
   background: #fff; border: 1px solid #d8dde3; border-radius: 10px; padding: 14px 16px;
@@ -311,7 +311,7 @@ body {
 #bk .bk-doc-lab { font-weight: 600; font-size: 15px; }
 #bk .bk-doc-ext { font-weight: 400; font-size: 12px; color: #7d8183; margin-left: 4px; }
 
-/* Tag « en attente de validation » + choix de paiement en lumière */
+/* "Awaiting validation" tag + payment choice highlighted */
 #bk .bk-tag-wait { background: #fdf0e6; border-color: #cb8137; color: #cb8137; }
 #bk .bk-pay-chosen { background: #eef6ff; border-radius: 6px; padding: 2px 6px; margin-left: -6px; }
 #bk .bk-pay-badge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 5px;
@@ -326,7 +326,7 @@ body {
     background: #f0f4ff; border: 1px solid #a7d6ff; font-size: 11px; color: #01367c;
 }
 
-/* ==== Calendrier en grille (calendar.php) ==== */
+/* ==== Grid calendar (calendar.php) ==== */
 #bk .bk-cal-filters { display:flex; flex-wrap:wrap; gap:14px 20px; align-items:center;
     margin:0 0 14px; padding:12px 14px; background:#fff; border:1px solid #d2d4d6; border-radius:8px; }
 #bk .bk-cal-disc { display:flex; flex-wrap:wrap; gap:8px; }
@@ -343,11 +343,10 @@ body {
 #bk .bk-cal-title { font-size:17px; color:#01367c; text-align:center; flex:1; line-height:1.05; }
 #bk .bk-cal-year { display:block; font-size:11px; font-weight:400; color:#7d8183; }
 
-/* Grille de CASES (date en haut à droite) + calque de BARRES superposé (axe Z) :
-   une compétition multi-jours = une barre qui s'étend de sa 1re à sa dernière case.
-   Chaque ligne est complète (lundi→dimanche) ; les jours des mois voisins sont
-   affichés en semi-transparence (une compét à cheval sur 2 mois reste lisible).
-   La hauteur des cases s'adapte au nombre de pistes de la semaine (--lanes). */
+/* Grid of CELLS (date top right) + a layer of BARS on top (Z axis): a multi-day competition =
+   one bar spanning from its first to its last cell. Each row is complete (Monday→Sunday); the
+   days of the neighbouring months are semi-transparent (a competition across 2 months stays
+   readable). The cell height follows the number of lanes of the week (--lanes). */
 #bk .bk-cal-month { min-width:680px; }
 #bk .bk-cal-dow { text-align:center; font-weight:700; font-size:12px; color:#4c4e50; padding:2px 0; }
 #bk .bk-cal-dows { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:4px; }
@@ -363,8 +362,8 @@ body {
 #bk .bk-cal-overlay { position:absolute; inset:0; display:grid; grid-template-columns:repeat(7,1fr);
     grid-auto-rows:21px; gap:3px 6px; padding:24px 0 3px; pointer-events:none; }
 #bk .bk-cal-bar { pointer-events:auto; align-self:start; min-width:0; margin-bottom:0; overflow:hidden; }
-#bk .bk-cal-contl { border-top-left-radius:1px; border-bottom-left-radius:1px; }   /* la compét continue AVANT */
-#bk .bk-cal-contr { border-top-right-radius:1px; border-bottom-right-radius:1px; } /* … et/ou APRÈS ce segment */
+#bk .bk-cal-contl { border-top-left-radius:1px; border-bottom-left-radius:1px; }   /* the competition goes on BEFORE */
+#bk .bk-cal-contr { border-top-right-radius:1px; border-bottom-right-radius:1px; } /* … and/or AFTER this segment */
 #bk .bk-cal-comp { display:flex; align-items:center; gap:5px; text-decoration:none; color:#20263d;
     background:#eaf2ff; border:1px solid #c8ddf7; border-radius:5px; padding:3px 5px; margin-bottom:3px;
     font-size:12px; line-height:1.15; }
@@ -376,7 +375,7 @@ body {
 #bk .bk-cal-comp.bk-cal-in::after { content:"✓"; color:#1a8a3f; font-weight:700; margin-left:auto; }
 #bk .bk-cal-comp:hover.bk-cal-in::after { color:#fff; }
 
-/* ==== Détail d'une compétition (competition.php) ==== */
+/* ==== Competition details (competition.php) ==== */
 #bk .bk-back { margin:0 0 12px; font-size:13px; }
 #bk .bk-detail { background:#fff; border:1px solid #d2d4d6; border-radius:8px; padding:20px 22px; }
 #bk .bk-detail-head { display:flex; gap:16px; align-items:flex-start; }
@@ -397,8 +396,8 @@ body {
 #bk .bk-fee { margin:0 8px 0 0; font-weight:700; color:#01367c; }
 
 @media (max-width:640px){
-  /* Grille compacte : la semaine tient en largeur. Les barres multi-jours GARDENT
-     leur libellé (elles s'étendent) ; les compétitions d'un seul jour se réduisent au picto. */
+  /* Compact grid: the week fits the width. Multi-day bars KEEP their label (they span);
+     one-day competitions shrink to the picture. */
   #bk .bk-cal-month { min-width:0; }
   #bk .bk-cal-dows, #bk .bk-cal-cells { gap:3px; }
   #bk .bk-cal-cell { min-height:max(46px, calc(20px + var(--lanes,0) * 20px)); }
@@ -419,7 +418,7 @@ body {
 #bk .bk-disc-frame { display:inline-flex; align-items:center; justify-content:center;
     border:1.5px solid currentColor; border-radius:2px; padding:1px; line-height:0; box-sizing:border-box; }
 
-/* ==== Preview d'une compétition (modal / bottom-sheet, calendar.php) ==== */
+/* ==== Competition preview (modal / bottom sheet, calendar.php) ==== */
 body.bk-modal-open { overflow:hidden; }
 #bk-preview.bk-modal { position:fixed; inset:0; z-index:100000;
     display:flex; align-items:center; justify-content:center; }
@@ -448,7 +447,7 @@ body.bk-modal-open { overflow:hidden; }
   @keyframes bk-sheet-up { from { transform:translateY(100%); } to { transform:translateY(0); } }
 }
 
-/* ==== Mes inscriptions : regroupement par compétition ==== */
+/* ==== My registrations: grouped by competition ==== */
 #bk .bk-reg-list { margin-top:10px; display:flex; flex-direction:column; gap:8px; }
 #bk .bk-reg { padding:9px 11px; border:1px solid #e2e6ee; border-radius:7px; background:#fafbfe; }
 #bk .bk-reg .bk-tags { margin-top:0; }
@@ -457,7 +456,7 @@ body.bk-modal-open { overflow:hidden; }
 #bk .bk-reg-act .bk-btn { margin-top:0; padding:6px 12px; font-size:13px; }
 #bk .bk-reg-act form { margin:0; }
 
-/* ==== Cartes de compétition dépliables (Mes inscriptions / Mon club) ==== */
+/* ==== Folding competition cards (My registrations / My club) ==== */
 #bk .bk-item.bk-collapsible .bk-item-h { cursor:pointer; }
 #bk .bk-item.bk-collapsible .bk-item-main { flex-basis:100%; }
 #bk .bk-item-toggle { margin-left:auto; flex:0 0 auto; color:#0254a8; font-size:13px;
@@ -467,7 +466,7 @@ body.bk-modal-open { overflow:hidden; }
 #bk .bk-item.bk-collapsible:not(.bk-open) .bk-payinfo,
 #bk .bk-item.bk-collapsible:not(.bk-open) .bk-item-act { display:none; }
 
-/* ==== Mobile : empilement en colonne + cibles tactiles ==== */
+/* ==== Phones: stacked in a column + touch targets ==== */
 @media (max-width:640px){
   #bk .bk-item { flex-direction:column; }
   #bk .bk-item-act { max-width:none; width:100%; text-align:left; }
@@ -481,7 +480,7 @@ body.bk-modal-open { overflow:hidden; }
   #bk .bk-detail-act .bk-btn { width:100%; text-align:center; }
 }
 
-/* ==== Détail du tarif (register-comp.php) ==== */
+/* ==== Tariff details (register-comp.php) ==== */
 #bk .bk-price { margin:16px 0 0; padding:12px 14px; border:1px solid #a7d6ff;
     border-radius:8px; background:#f7faff; }
 #bk .bk-price h3 { margin:0 0 8px; font-size:14px; color:#01367c; }
@@ -492,7 +491,7 @@ body.bk-modal-open { overflow:hidden; }
     border-top:1px solid #cfe0f5; }
 #bk .bk-price-tot b { font-size:18px; }
 
-/* ==== Boutique (shop.php) ==== */
+/* ==== Shop (shop.php) ==== */
 #bk .bk-shop-sec h2 { margin:0 0 10px; }
 #bk .bk-shop-item { padding:10px 0; border-top:1px solid #eef0f5; }
 #bk .bk-shop-item:first-of-type { border-top:0; padding-top:0; }
@@ -514,15 +513,15 @@ body.bk-modal-open { overflow:hidden; }
 #bk .bk-shop-bar .bk-btn { margin-top:0; width:auto; }
 @media (max-width:640px){
   #bk .bk-shop-bar .bk-btn { width:100%; }
-  /* La barre boutique collante doit flotter AU-DESSUS de la barre de navigation basse
-     (et du bouton central en relief), sinon elle passe derrière. */
+  /* The sticky shop bar must float ABOVE the bottom navigation bar (and the raised central
+     button), otherwise it goes behind. */
   #bk .bk-shop-bar { bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     box-shadow: 0 4px 14px rgba(20,60,120,.16); }
 }
 #bk .bk-doc-mut { color:#7d8183; }
 #bk .bk-doc-grand { margin:12px 0 0; text-align:right; font-size:16px; color:#01367c; }
 #bk .bk-doc-grand b { font-size:19px; }
-/* Reçu sur mobile : le tableau défile dans son cadre au lieu de déborder la page. */
+/* Receipt on a phone: the table scrolls in its frame instead of overflowing the page. */
 #bk .bk-doc-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
 #bk .bk-doc-scroll table { min-width:520px; }
 @media print { #bk .bk-doc-scroll { overflow:visible; } #bk .bk-doc-scroll table { min-width:0; } }

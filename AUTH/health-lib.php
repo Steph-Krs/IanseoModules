@@ -76,7 +76,7 @@ function aut_health_php_workers()
 function aut_health_checks()
 {
     $out = array();
-    $mb  = function ($b) { return round($b / 1048576) . ' Mo'; };
+    $mb  = function ($b) { return aut_t('CfMb', round($b / 1048576)); };
     $ini = php_ini_loaded_file() ?: 'php.ini';
 
     // Database engine — MySQL 8.0.22+ pushes the outer filter into each branch of the core's
@@ -86,18 +86,13 @@ function aut_health_checks()
     $num   = preg_replace('/[^0-9.].*$/', '', $ver);
     if ($ver !== '' && !$maria && version_compare($num, '8.0.22', '>=')) {
         if (strpos((string) aut_health_var('optimizer_switch'), 'derived_condition_pushdown=on') !== false) {
-            $out[] = aut_health_item('warn', 'MySQL ' . $num . ' : réglage de vitesse manquant',
-                'L\'optimisation « derived_condition_pushdown » de MySQL 8 rend la vérification des numéros de '
-                . 'cible du cœur ianseo quadratique : sur un serveur réel, ajouter un archer sur un départ de '
-                . '80 000 places prenait 10 minutes (1,2 s une fois coupée), processeur saturé pour tout le monde. '
-                . 'Réglage de vitesse seulement : résultats identiques, conservé au redémarrage, réversible (=on).',
+            $out[] = aut_health_item('warn', aut_t('HlMysqlSlowT', $num), aut_t('HlMysqlSlow'),
                 "sudo mysql -e \"SET PERSIST optimizer_switch='derived_condition_pushdown=off';\"");
         } else {
-            $out[] = aut_health_item('ok', 'MySQL ' . $num, 'Réglage derived_condition_pushdown=off en place.');
+            $out[] = aut_health_item('ok', 'MySQL ' . $num, aut_t('HlMysqlOk'));
         }
     } elseif ($ver !== '') {
-        $out[] = aut_health_item('ok', ($maria ? 'MariaDB ' : 'MySQL ') . $num,
-            'Moteur non concerné par le piège de MySQL 8 sur les grands départs.');
+        $out[] = aut_health_item('ok', ($maria ? 'MariaDB ' : 'MySQL ') . $num, aut_t('HlEngineOk'));
     }
 
     // Connections — ianseo opens TWO per page (reading and writing).
@@ -107,20 +102,16 @@ function aut_health_checks()
         $refused = (int) aut_health_status('Connection_errors_max_connections');
         $w       = aut_health_php_workers();
         $need    = $w ? 2 * $w[0] + 20 : 0;
-        $txt = 'max_connections = ' . $max . ', pic depuis le démarrage de la base : ' . $used
-            . '. ianseo ouvre deux connexions par page (lecture et écriture)';
-        $fix = 'max_connections = ' . max($need, 200)
-            . "\n(fichier /etc/mysql/…/99-ianseo.cnf, gabarit serveur/mysql/ianseo.cnf, puis redémarrer la base)";
+        $txt = aut_t('HlConnTxt', array('max' => $max, 'used' => $used));
+        $fix = 'max_connections = ' . max($need, 200) . "\n" . aut_t('HlConnFix');
         if ($refused > 0) {
-            $out[] = aut_health_item('warn', 'Connexions à la base refusées', $refused . ' connexion(s) refusée(s) '
-                . 'depuis le démarrage : la limite a été atteinte, des utilisateurs ont eu une page d\'erreur. ' . $txt . '.', $fix);
+            $out[] = aut_health_item('warn', aut_t('HlConnRefusedT'), aut_t('HlConnRefused', $refused) . ' ' . $txt . '.', $fix);
         } elseif ($w && $max < $need) {
-            $out[] = aut_health_item('warn', 'Connexions à la base', $txt . ' : ' . $w[0] . ' processus PHP au plus ('
-                . $w[1] . ') en demanderaient ' . (2 * $w[0]) . ' au plus fort de la charge, au-delà de la limite.', $fix);
+            $out[] = aut_health_item('warn', aut_t('HlConnT'), $txt . aut_t('HlConnWorkers', array('n' => $w[0], 'where' => $w[1], 'need' => 2 * $w[0])), $fix);
         } elseif ($used >= 0.8 * $max) {
-            $out[] = aut_health_item('warn', 'Connexions à la base', $txt . ' : le pic approche la limite.', $fix);
+            $out[] = aut_health_item('warn', aut_t('HlConnT'), $txt . aut_t('HlConnPeak'), $fix);
         } else {
-            $out[] = aut_health_item('ok', 'Connexions à la base', $txt . ($w ? ' ; ' . $w[0] . ' processus PHP au plus' : '') . '.');
+            $out[] = aut_health_item('ok', aut_t('HlConnT'), $txt . ($w ? aut_t('HlConnMax', $w[0]) : '') . '.');
         }
     }
 
@@ -130,15 +121,14 @@ function aut_health_checks()
         WHERE TABLE_SCHEMA = DATABASE()", false, true);
     $size = ($rs && ($r = safe_fetch($rs))) ? (float) $r->s : 0;
     if ($pool > 0 && $size > 0) {
-        $txt = 'innodb_buffer_pool_size = ' . $mb($pool) . ' pour une base de ' . $mb($size);
-        $fix = 'innodb_buffer_pool_size = ' . max(1, (int) ceil($size * 2 / 1073741824)) . 'G'
-            . "\n(au moins la taille de la base ; jusqu'à 50-70 % de la RAM sur une machine dédiée — gabarit serveur/mysql/ianseo.cnf)";
+        $txt = aut_t('HlPoolTxt', array('pool' => $mb($pool), 'size' => $mb($size)));
+        $fix = 'innodb_buffer_pool_size = ' . max(1, (int) ceil($size * 2 / 1073741824)) . 'G' . "\n" . aut_t('HlPoolFix');
         if ($pool < $size) {
-            $out[] = aut_health_item('warn', 'Mémoire de la base', $txt . ' : elle ne tient plus en mémoire, les pages relisent le disque.', $fix);
+            $out[] = aut_health_item('warn', aut_t('HlPoolT'), $txt . aut_t('HlPoolSmall'), $fix);
         } elseif ($pool < 1.5 * $size) {
-            $out[] = aut_health_item('info', 'Mémoire de la base', $txt . ' : la marge se réduit à mesure que les compétitions s\'accumulent.', $fix);
+            $out[] = aut_health_item('info', aut_t('HlPoolT'), $txt . aut_t('HlPoolMargin'), $fix);
         } else {
-            $out[] = aut_health_item('ok', 'Mémoire de la base', $txt . '.');
+            $out[] = aut_health_item('ok', aut_t('HlPoolT'), $txt . '.');
         }
     }
 
@@ -146,57 +136,50 @@ function aut_health_checks()
     $slow = (string) aut_health_var('slow_query_log');
     if ($slow !== '') {
         if ($slow === '0' || strcasecmp($slow, 'OFF') === 0) {
-            $out[] = aut_health_item('info', 'Journal des requêtes lentes inactif',
-                'C\'est lui qui désigne la requête en cause quand le serveur ralentit. Seuil conseillé : 2 s.',
-                "sudo mysql -e \"SET GLOBAL slow_query_log = 1; SET GLOBAL long_query_time = 2;\""
-                . "\n(et dans le .cnf pour le garder au redémarrage — gabarit serveur/mysql/ianseo.cnf)");
+            $out[] = aut_health_item('info', aut_t('HlSlowOffT'), aut_t('HlSlowOff'),
+                "sudo mysql -e \"SET GLOBAL slow_query_log = 1; SET GLOBAL long_query_time = 2;\"" . "\n" . aut_t('HlSlowFix'));
         } else {
-            $out[] = aut_health_item('ok', 'Journal des requêtes lentes', 'Actif, seuil '
-                . (float) aut_health_var('long_query_time') . ' s : ' . aut_health_var('slow_query_log_file') . '.');
+            $out[] = aut_health_item('ok', aut_t('HlSlowT'), aut_t('HlSlowOn', array(
+                'sec' => (float) aut_health_var('long_query_time'), 'file' => aut_health_var('slow_query_log_file'))));
         }
     }
 
     // PHP sessions — the default 24 min logs people out and loses their open competition.
     $gc  = (int) ini_get('session.gc_maxlifetime');
     $dur = $gc >= 3600 ? round($gc / 3600, 1) . ' h' : round($gc / 60) . ' min';
-    $fix = 'session.gc_maxlifetime = 43200' . "\n(dans " . $ini . ', puis redémarrer Apache)';
+    $restart = aut_t('HlRestartApache', $ini);
+    $fix = 'session.gc_maxlifetime = 43200' . "\n" . $restart;
     if ($gc > 0 && $gc < 3600) {
-        $out[] = aut_health_item('warn', 'Sessions PHP courtes', 'Une session inactive est effacée après ' . $dur
-            . ' : l\'utilisateur est déconnecté et perd la compétition ouverte.', $fix);
+        $out[] = aut_health_item('warn', aut_t('HlSessShortT'), aut_t('HlSessShort', $dur), $fix);
     } elseif ($gc > 0 && $gc < 43200) {
-        $out[] = aut_health_item('info', 'Sessions PHP', 'Une session inactive est effacée après ' . $dur
-            . ', avant les 12 h d\'inactivité prévues par le module.', $fix);
+        $out[] = aut_health_item('info', aut_t('HlSessT'), aut_t('HlSessMid', $dur), $fix);
     } elseif ($gc > 0) {
-        $out[] = aut_health_item('ok', 'Sessions PHP', 'Effacées après ' . $dur . ' d\'inactivité.');
+        $out[] = aut_health_item('ok', aut_t('HlSessT'), aut_t('HlSessOk', $dur));
     }
 
     // Upload size — PHP, then ModSecurity, which has its own, smaller limit.
     $lim = min(aut_health_bytes(ini_get('upload_max_filesize')), aut_health_bytes(ini_get('post_max_size')));
     if ($lim > 0 && $lim < (64 << 20)) {
-        $out[] = aut_health_item('warn', 'Taille des imports', 'PHP refuse les envois de plus de ' . $mb($lim)
-            . ' : l\'import d\'une grosse compétition échouera.',
-            "upload_max_filesize = 64M\npost_max_size = 64M\n(dans " . $ini . ', puis redémarrer Apache)');
+        $out[] = aut_health_item('warn', aut_t('HlUploadT'), aut_t('HlUploadSmall', $mb($lim)),
+            "upload_max_filesize = 64M\npost_max_size = 64M\n" . $restart);
     } elseif ($lim > 0) {
-        $out[] = aut_health_item('ok', 'Taille des imports', 'Jusqu\'à ' . $mb($lim) . ' côté PHP.');
+        $out[] = aut_health_item('ok', aut_t('HlUploadT'), aut_t('HlUploadOk', $mb($lim)));
     }
     $ms = aut_health_read('/etc/modsecurity/modsecurity.conf');
     if ($ms !== '' && preg_match('/^\s*SecRequestBodyLimit\s+(\d+)/mi', $ms, $m) && (int) $m[1] < (64 << 20)) {
         $engine = preg_match('/^\s*SecRuleEngine\s+(\w+)/mi', $ms, $e) ? $e[1] : '?';
         $on = strcasecmp($engine, 'On') === 0;
-        $out[] = aut_health_item($on ? 'warn' : 'info', 'ModSecurity : taille des envois',
-            'ModSecurity (' . $engine . ') limite les envois à ' . $mb((int) $m[1]) . ($on
-                ? ' : un import plus lourd est refusé (erreur 413) alors que PHP l\'accepterait.'
-                : ' : sans effet tant qu\'il ne fait qu\'observer, mais un import plus lourd sera refusé dès son passage en blocage (On).'),
-            'SecRequestBodyLimit 67108864' . "\n(dans /etc/modsecurity/modsecurity.conf, puis recharger Apache)");
+        $out[] = aut_health_item($on ? 'warn' : 'info', aut_t('HlModsecT'),
+            aut_t($on ? 'HlModsecOn' : 'HlModsecWatch', array('engine' => $engine, 'size' => $mb((int) $m[1]))),
+            'SecRequestBodyLimit 67108864' . "\n" . aut_t('HlModsecFix'));
     }
 
     // OPcache — without it every page compiles ianseo again.
     if (!extension_loaded('Zend OPcache') || !filter_var(ini_get('opcache.enable'), FILTER_VALIDATE_BOOLEAN)) {
-        $out[] = aut_health_item('warn', 'OPcache inactif', 'Chaque page recompile le code de ianseo : trois à cinq '
-            . 'fois plus de processeur pour le même trafic.',
-            "sudo apt install php-opcache\n(opcache.enable = 1 dans " . $ini . ', puis redémarrer Apache)');
+        $out[] = aut_health_item('warn', aut_t('HlOpcacheOffT'), aut_t('HlOpcacheOff'),
+            "sudo apt install php-opcache\n" . aut_t('HlOpcacheFix', $ini));
     } else {
-        $out[] = aut_health_item('ok', 'OPcache', 'Actif.');
+        $out[] = aut_health_item('ok', 'OPcache', aut_t('HlActive'));
     }
 
     // Departure size — the core builds one UNION branch per place to check a target number.
@@ -205,20 +188,17 @@ function aut_health_checks()
         WHERE SesType = 'Q' AND SesTar4Session * SesAth4Target > " . AUT_BIG_SESSION_PLACES . "
           AND ToWhenTo >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
         ORDER BY SesTar4Session * SesAth4Target DESC LIMIT 10", false, true);
+    $thousands = function_exists('get_text') ? get_text('NumberThousandsSeparator') : ' ';
     $big = array();
     while ($rs && ($r = safe_fetch($rs))) {
-        $big[] = $r->ToCode . ' (' . $r->ToName . '), départ ' . $r->SesOrder . ' : ' . $r->SesTar4Session
-            . ' cibles × ' . $r->SesAth4Target . ' = '
-            . number_format($r->SesTar4Session * $r->SesAth4Target, 0, ',', ' ') . ' places';
+        $big[] = aut_t('HlBigLine', array('code' => $r->ToCode, 'name' => $r->ToName, 'ses' => $r->SesOrder,
+            'targets' => $r->SesTar4Session, 'per' => $r->SesAth4Target,
+            'places' => number_format($r->SesTar4Session * $r->SesAth4Target, 0, '', $thousands)));
     }
     if ($big) {
-        $out[] = aut_health_item('warn', 'Départs surdimensionnés', 'Pour vérifier un numéro de cible, ianseo '
-            . 'fabrique une requête d\'une ligne par place du départ : au-delà de quelques milliers de places, '
-            . 'ajouter ou déplacer un archer devient lent pour tout le serveur (très lent sous MySQL 8). '
-            . 'À ramener au besoin réel, dans Compétition › Départs :', '', $big);
+        $out[] = aut_health_item('warn', aut_t('HlBigT'), aut_t('HlBig'), '', $big);
     } else {
-        $out[] = aut_health_item('ok', 'Taille des départs', 'Aucun départ de plus de '
-            . AUT_BIG_SESSION_PLACES . ' places dans les compétitions en cours ou à venir.');
+        $out[] = aut_health_item('ok', aut_t('HlBigOkT'), aut_t('HlBigOk', AUT_BIG_SESSION_PLACES));
     }
 
     // System updates — by default around 06:00-07:00, restarting the database and Apache.
@@ -226,31 +206,31 @@ function aut_health_checks()
     $g = @glob('/etc/systemd/system/apt-daily-upgrade.timer.d/*.conf');
     foreach (is_array($g) ? $g : array() as $f) $over .= aut_health_read($f) . "\n";
     if (preg_match_all('/^\s*OnCalendar\s*=\s*(\S.*)$/mi', $over, $m)) {
-        $out[] = aut_health_item('ok', 'Mises à jour du système', 'Installation programmée : ' . trim(end($m[1])) . '.');
+        $out[] = aut_health_item('ok', aut_t('HlAptT'), aut_t('HlAptOk', trim(end($m[1]))));
     } elseif (aut_health_read('/lib/systemd/system/apt-daily-upgrade.timer') !== '') {
-        $out[] = aut_health_item('warn', 'Mises à jour du système', 'Heure par défaut : vers 6 h, avec un délai '
-            . 'aléatoire d\'une heure. Elles redémarrent la base et Apache — sur un autre serveur ianseo, trois fois '
-            . 'en pleine compétition en un semestre.',
-            'Gabarits serveur/apt (installation à 04:30, après la maintenance de 03:15) — SERVEUR.md § 4.1');
+        $out[] = aut_health_item('warn', aut_t('HlAptT'), aut_t('HlAptDefault'), aut_t('HlAptFix'));
     }
 
     // Backups — age of the last nightly set and of the last live copy.
     if (function_exists('aut_backup_config')) {
         $c = aut_backup_config();
         if (!$c['enabled']) {
-            $out[] = aut_health_item('warn', 'Sauvegardes', 'Désactivées (backup.enabled).');
+            $out[] = aut_health_item('warn', aut_t('HlBackupT'), aut_t('HlBackupOff'));
         } else {
             $night = null; $live = null;
             foreach (aut_backup_list($c['dir']) as $b) {
                 if ($b['kind'] === 'db' && !$night) $night = $b;
                 if ($b['kind'] === 'live' && !$live) $live = $b;
             }
-            $age = function ($b) { $h = (time() - $b['time']) / 3600; return $h < 48 ? round($h) . ' h' : round($h / 24) . ' jours'; };
-            $txt = $night ? 'Dernière nuit : il y a ' . $age($night) . ' (' . round($night['size'] / 1048576, 1) . ' Mo)'
-                : 'Aucune sauvegarde nocturne dans ' . $c['dir'];
-            $txt .= $live ? ' ; dernière copie à chaud : il y a ' . $age($live) . '.' : ' ; pas de copie à chaud (gabarit serveur/cron/ianseo-backup-live).';
+            $age = function ($b) {
+                $h = (time() - $b['time']) / 3600;
+                return $h < 48 ? aut_t('HlAgeHours', round($h)) : aut_t('HlAgeDays', round($h / 24));
+            };
+            $txt = $night ? aut_t('HlBackupNight', array('age' => $age($night), 'size' => aut_t('CfMb', round($night['size'] / 1048576, 1))))
+                : aut_t('HlBackupNone', $c['dir']);
+            $txt .= $live ? aut_t('HlBackupLive', $age($live)) : aut_t('HlBackupNoLive');
             $stale = $night && (time() - $night['time']) > 30 * 3600;
-            $out[] = aut_health_item(($night && !$stale) ? 'ok' : 'warn', 'Sauvegardes', $txt);
+            $out[] = aut_health_item(($night && !$stale) ? 'ok' : 'warn', aut_t('HlBackupT'), $txt);
         }
     }
     return $out;

@@ -1,8 +1,8 @@
 <?php
 /**
- * admin/shop.php — Boutique de la compétition (organisateur).
- * Sections libres, articles simples ou à variantes (stock propre), plafond par
- * personne, date limite propre. Le moteur (lib/shop.php) fait foi côté serveur.
+ * admin/shop.php — the competition's shop (organiser).
+ * Free sections, simple items or items with variants (own stock), limit per person, own
+ * deadline. The engine (lib/shop.php) has the last word on the server side.
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -24,16 +24,16 @@ $err = '';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
-        $err = 'Session expirée — rechargez la page et réessayez.';
+        $err = bk_t('SessionExpired');
     } else {
-        // Enregistre les articles (upsert), leurs variantes, et supprime ce qui a
-        // été retiré de l'écran (réconciliation par identifiants).
+        // Saves the items (upsert), their variants, and deletes what was removed from the screen
+        // (reconciled by id).
         $keptItems = array();
         $order = 0;
         foreach ((array) ($_POST['item'] ?? array()) as $row) {
             if (!is_array($row)) continue;
             $label = trim((string) ($row['label'] ?? ''));
-            if ($label === '') continue;                       // ligne vide ignorée
+            if ($label === '') continue;                       // empty line ignored
             $itemId = bk_shop_item_upsert($TOUR, array(
                 'id' => $row['id'] ?? 0, 'section' => $row['section'] ?? '', 'label' => $label,
                 'description' => $row['description'] ?? '', 'price' => $row['price'] ?? 0,
@@ -54,20 +54,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                     ));
                 }
             }
-            // supprime les variantes retirées de cet article
+            // deletes the variants removed from this item
             $existing = array();
             $rs = safe_r_sql("SELECT SvId FROM BK_ShopVariants WHERE SvItem = " . intval($itemId));
             while ($r = safe_fetch($rs)) $existing[] = intval($r->SvId);
             foreach (array_diff($existing, $keptVars) as $del) bk_shop_variant_delete($del);
         }
-        // supprime les articles retirés de la compétition
+        // deletes the items removed from the competition
         $existing = array();
         $rs = safe_r_sql("SELECT SiId FROM BK_ShopItems WHERE SiTournament = $TOUR");
         while ($r = safe_fetch($rs)) $existing[] = intval($r->SiId);
         foreach (array_diff($existing, $keptItems) as $del) bk_shop_item_delete($TOUR, $del);
 
         bk_shop_set_deadline($TOUR, $_POST['shop_until'] ?? '');
-        $msg = 'Boutique enregistrée.';
+        $msg = bk_t('AshSaved');
     }
 }
 
@@ -78,76 +78,64 @@ $open  = bk_shop_open($cfg);
 $sections = array();
 foreach ($items as $it) if ($it['section'] !== '' && !in_array($it['section'], $sections, true)) $sections[] = $it['section'];
 
-/** Champ datetime-local depuis une colonne DATETIME. */
+/** datetime-local field from a DATETIME column. */
 function bk_shop_dtval($v)
 {
     $v = trim((string) $v);
-    return ($v === '' || strpos($v, '0000') === 0) ? '' : str_replace(' ', 'T', substr($v, 0, 16));
+    return ($v === '' || strpos($v, '0000') === 0) ? '' : str_replace(' ', 'T', substr($v, 0, 16));   // bytes: ASCII date
 }
 
-/** Montant en champ texte (2 déc., virgule) ; vide si null/''. */
+/** Amount in a text field (2 decimals, the language's separator); empty when null/''. */
 function bk_amt2($v)
 {
-    return ($v === '' || $v === null) ? '' : number_format((float) $v, 2, ',', '');
+    return ($v === '' || $v === null) ? '' : number_format((float) $v, 2, bk_number_seps()['dec'], '');
 }
 
-/** Une variante (rendu serveur ET gabarit JS avec indices '__i__' / '__v__'). */
+/** One variant (server rendering AND script template with the '__i__' / '__v__' indexes). */
 function bk_var_row($iidx, $vidx, $v)
 {
     $v = array_merge(array('id' => 0, 'label' => '', 'stock' => 0), (array) $v);
-    ob_start(); ?>
-    <div class="si-var">
-      <input type="hidden" name="item[<?= $iidx ?>][var][<?= $vidx ?>][id]" value="<?= intval($v['id']) ?>">
-      <input type="text" name="item[<?= $iidx ?>][var][<?= $vidx ?>][label]" value="<?= bk_e($v['label']) ?>" placeholder="ex. M">
-      <input type="number" min="0" name="item[<?= $iidx ?>][var][<?= $vidx ?>][stock]" value="<?= intval($v['stock']) ?>" title="Stock (0 = illimité)">
-      <button type="button" class="si-vdel" title="Retirer cette variante">✕</button>
-    </div>
-    <?php return ob_get_clean();
+    $n = 'item[' . $iidx . '][var][' . $vidx . ']';
+    return '<div class="si-var"><input type="hidden" name="' . $n . '[id]" value="' . intval($v['id']) . '">'
+        . '<input type="text" name="' . $n . '[label]" value="' . bk_e($v['label']) . '" placeholder="' . bk_e(bk_t('AshVarPh')) . '">'
+        . '<input type="number" min="0" name="' . $n . '[stock]" value="' . intval($v['stock']) . '" title="' . bk_e(bk_t('AshStock')) . '">'
+        . '<button type="button" class="si-vdel" title="' . bk_e(bk_t('AshVarDel')) . '" aria-label="' . bk_e(bk_t('AshVarDel')) . '">✕</button></div>';
 }
 
-/** Une carte d'article (rendu serveur ET gabarit JS avec indice '__i__'). */
-function bk_item_card($idx, $it)
+/** One item card (server rendering AND script template with the '__i__' index). */
+function bk_item_card($idx, $it, $cur)
 {
     $it = array_merge(array('id' => 0, 'section' => '', 'label' => '', 'description' => '',
         'price' => '', 'stock' => 0, 'maxper' => 0, 'option' => '', 'active' => 1, 'variants' => array()), $it);
     $hasOpt = trim((string) $it['option']) !== '';
-    ob_start(); ?>
-    <div class="shop-item" data-i="<?= $idx ?>">
-      <input type="hidden" name="item[<?= $idx ?>][id]" value="<?= intval($it['id']) ?>">
-      <div class="si-row">
-        <label class="si-f"><span>Section</span>
-          <input type="text" list="shop-sections" name="item[<?= $idx ?>][section]" value="<?= bk_e($it['section']) ?>" placeholder="ex. Buvette"></label>
-        <label class="si-f si-grow"><span>Article</span>
-          <input type="text" name="item[<?= $idx ?>][label]" value="<?= bk_e($it['label']) ?>" placeholder="ex. Sandwich"></label>
-        <label class="si-f"><span>Prix (€)</span>
-          <input type="text" name="item[<?= $idx ?>][price]" value="<?= bk_e(bk_amt2($it['price'])) ?>" size="6"></label>
-      </div>
-      <label class="si-f si-grow"><span>Description (facultative)</span>
-        <input type="text" name="item[<?= $idx ?>][description]" value="<?= bk_e($it['description']) ?>"></label>
-      <div class="si-row">
-        <label class="si-f si-grow"><span>Options / variantes</span>
-          <input type="text" class="si-opt" name="item[<?= $idx ?>][option]" value="<?= bk_e($it['option']) ?>" placeholder="ex. Taille — vide = article simple"></label>
-        <label class="si-f si-simple-stock"<?= $hasOpt ? ' style="display:none"' : '' ?>><span>Stock (0 = illimité)</span>
-          <input type="number" min="0" name="item[<?= $idx ?>][stock]" value="<?= intval($it['stock']) ?>"></label>
-        <label class="si-f"><span>Max / pers. (0 = illimité)</span>
-          <input type="number" min="0" name="item[<?= $idx ?>][maxper]" value="<?= intval($it['maxper']) ?>"></label>
-      </div>
-      <div class="si-variants"<?= $hasOpt ? '' : ' style="display:none"' ?>>
-        <div class="si-vhead">Variantes — chacune avec son stock</div>
-        <div class="si-vlist">
-          <?php foreach ((array) $it['variants'] as $vid => $v) echo bk_var_row($idx, $vid, $v); ?>
-        </div>
-        <button type="button" class="bk-btn bk-add si-addvar">+ Ajouter une variante</button>
-      </div>
-      <div class="si-foot">
-        <label class="si-chk"><input type="checkbox" name="item[<?= $idx ?>][active]" value="1" <?= $it['active'] ? 'checked' : '' ?>> Visible par les archers</label>
-        <button type="button" class="bk-btn si-del">Supprimer l'article</button>
-      </div>
-    </div>
-    <?php return ob_get_clean();
+    $n = 'item[' . $idx . ']';
+    $field = function ($cls, $label, $input) {
+        return '<label class="si-f' . $cls . '"><span>' . bk_e($label) . '</span>' . $input . '</label>';
+    };
+    $vars = '';
+    foreach ((array) $it['variants'] as $vid => $v) $vars .= bk_var_row($idx, $vid, $v);
+    return '<div class="shop-item" data-i="' . $idx . '"><input type="hidden" name="' . $n . '[id]" value="' . intval($it['id']) . '">'
+        . '<div class="si-row">'
+        . $field('', bk_t('AshSection'), '<input type="text" list="shop-sections" name="' . $n . '[section]" value="' . bk_e($it['section']) . '" placeholder="' . bk_e(bk_t('AshSectionPh')) . '">')
+        . $field(' si-grow', bk_t('AshItem'), '<input type="text" name="' . $n . '[label]" value="' . bk_e($it['label']) . '" placeholder="' . bk_e(bk_t('AshItemPh')) . '">')
+        . $field('', bk_t('AshPrice', $cur), '<input type="text" name="' . $n . '[price]" value="' . bk_e(bk_amt2($it['price'])) . '" size="6">')
+        . '</div>'
+        . $field(' si-grow', bk_t('AshDescr'), '<input type="text" name="' . $n . '[description]" value="' . bk_e($it['description']) . '">')
+        . '<div class="si-row">'
+        . $field(' si-grow', bk_t('AshOptions'), '<input type="text" class="si-opt" name="' . $n . '[option]" value="' . bk_e($it['option']) . '" placeholder="' . bk_e(bk_t('AshOptionsPh')) . '">')
+        . '<label class="si-f si-simple-stock"' . ($hasOpt ? ' style="display:none"' : '') . '><span>' . bk_e(bk_t('AshStock')) . '</span>'
+        . '<input type="number" min="0" name="' . $n . '[stock]" value="' . intval($it['stock']) . '"></label>'
+        . $field('', bk_t('AshMaxPer'), '<input type="number" min="0" name="' . $n . '[maxper]" value="' . intval($it['maxper']) . '">')
+        . '</div>'
+        . '<div class="si-variants"' . ($hasOpt ? '' : ' style="display:none"') . '><div class="si-vhead">' . bk_e(bk_t('AshVariants')) . '</div>'
+        . '<div class="si-vlist">' . $vars . '</div>'
+        . '<button type="button" class="bk-btn bk-add si-addvar">' . bk_e(bk_t('AshAddVar')) . '</button></div>'
+        . '<div class="si-foot"><label class="si-chk"><input type="checkbox" name="' . $n . '[active]" value="1"' . ($it['active'] ? ' checked' : '') . '> '
+        . bk_e(bk_t('AshVisible')) . '</label><button type="button" class="bk-btn si-del">' . bk_e(bk_t('AshDelItem')) . '</button></div></div>';
 }
 
-$PAGE_TITLE = 'Boutique de la compétition';
+$cur = bk_currency($TOUR);
+$PAGE_TITLE = bk_t('AshTitle');
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <style>
@@ -192,54 +180,31 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #bkshop .bk-on  { background:#d2f4cd; border:1px solid #75ae77; color:#04ac0b; }
 #bkshop .bk-off { background:#fdecea; border:1px solid #e8b4ae; color:#c0392b; }
 </style>
+<?php
+$cards = '';
+foreach ($items as $idx => $it) $cards .= bk_item_card($idx, $it, $cur);
+$opts = '';
+foreach ($sections as $s) $opts .= '<option value="' . bk_e($s) . '"></option>';
 
-<div id="bkshop">
-<h1>Boutique</h1>
-<p class="bk-lead">Proposez aux archers des articles à réserver (buvette, repas, souvenirs,
-   hébergement, accès…). Ils commandent depuis leur espace ; les montants s'ajoutent à leur reçu.</p>
-
-<?php if ($msg): ?><div class="bk-msg bk-ok"><?= bk_e($msg) ?></div><?php endif; ?>
-<?php if ($err): ?><div class="bk-msg bk-err"><?= bk_e($err) ?></div><?php endif; ?>
-<?= bk_comp_payments_on($cfg) ? '' : '<div class="bk-msg bk-err">Compétition fermée sans gestion des paiements : les archers ne voient '
-    . 'pas la boutique. Cochez « Utiliser la gestion des paiements et la boutique » dans <a href="' . $CFG->ROOT_DIR
-    . 'Modules/Custom/AUTH/booking/admin/competition.php">Inscriptions en ligne</a>.</div>' ?>
-
-<form method="post">
-<?= bk_csrf_field() ?>
-
-<div class="bk-sec">
-  <h2>Disponibilité</h2>
-  <div class="si-row">
-    <label class="si-f"><span>Ouverte jusqu'au (facultatif)</span>
-      <input type="datetime-local" name="shop_until" value="<?= bk_e(bk_shop_dtval($cfg->BcShopUntil ?? '')) ?>"></label>
-    <span class="bk-tag <?= $open ? 'bk-on' : 'bk-off' ?>"><?= $open ? 'Boutique ouverte' : 'Boutique fermée' ?></span>
-  </div>
-  <p class="bk-hint">Sans date, la boutique suit l'ouverture des inscriptions — pour une compétition
-     fermée, elle reste ouverte jusqu'à la fin de la compétition. Avec une date, elle reste commandable
-     jusque-là (même après la clôture des inscriptions, ou l'inverse).</p>
-</div>
-
-<div class="bk-sec">
-  <h2>Articles</h2>
-  <div id="shop-items">
-    <?php foreach ($items as $idx => $it) echo bk_item_card($idx, $it); ?>
-  </div>
-  <button type="button" class="bk-btn bk-add" onclick="shopAddItem()">+ Ajouter un article</button>
-  <p class="bk-hint">Un article sans « option » est simple (un seul stock). Renseignez une option
-     (ex. « Taille », « Menu ») pour lui donner des variantes, chacune avec son propre stock.</p>
-</div>
-
-<button type="submit" class="bk-btn">Enregistrer la boutique</button>
-</form>
-
-<datalist id="shop-sections">
-  <?php foreach ($sections as $s): ?><option value="<?= bk_e($s) ?>"></option><?php endforeach; ?>
-</datalist>
-
-<template id="shop-item-tpl"><?= bk_item_card('__i__', array()) ?></template>
-<template id="shop-var-tpl"><?= bk_var_row('__i__', '__v__', array()) ?></template>
-</div>
-
+echo '<div id="bkshop"><h1>' . bk_e(bk_t('Shop')) . '</h1><p class="bk-lead">' . bk_e(bk_t('AshLead')) . '</p>'
+    . ($msg ? '<div class="bk-msg bk-ok">' . bk_e($msg) . '</div>' : '')
+    . ($err ? '<div class="bk-msg bk-err">' . bk_e($err) . '</div>' : '')
+    . (bk_comp_payments_on($cfg) ? '' : '<div class="bk-msg bk-err">'
+        . bk_t('AshClosedComp', bk_e($CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php')) . '</div>')
+    . '<form method="post">' . bk_csrf_field()
+    . '<div class="bk-sec"><h2>' . bk_e(bk_t('AshAvailability')) . '</h2><div class="si-row">'
+    . '<label class="si-f"><span>' . bk_e(bk_t('AshUntil')) . '</span>'
+    . '<input type="datetime-local" name="shop_until" value="' . bk_e(bk_shop_dtval($cfg->BcShopUntil ?? '')) . '"></label>'
+    . '<span class="bk-tag ' . ($open ? 'bk-on' : 'bk-off') . '">' . bk_e(bk_t($open ? 'AshOpen' : 'AshClosed')) . '</span></div>'
+    . '<p class="bk-hint">' . bk_e(bk_t('AshUntilHint')) . '</p></div>'
+    . '<div class="bk-sec"><h2>' . bk_e(bk_t('ShopItems')) . '</h2><div id="shop-items">' . $cards . '</div>'
+    . '<button type="button" class="bk-btn bk-add" onclick="shopAddItem()">' . bk_e(bk_t('AshAddItem')) . '</button>'
+    . '<p class="bk-hint">' . bk_e(bk_t('AshOptionHint')) . '</p></div>'
+    . '<button type="submit" class="bk-btn">' . bk_e(bk_t('AshSave')) . '</button></form>'
+    . '<datalist id="shop-sections">' . $opts . '</datalist>'
+    . '<template id="shop-item-tpl">' . bk_item_card('__i__', array(), $cur) . '</template>'
+    . '<template id="shop-var-tpl">' . bk_var_row('__i__', '__v__', array()) . '</template></div>';
+?>
 <script>
 var shopIC = <?= count($items) ?>, shopVC = 100000;
 function shopAddItem() {
@@ -257,7 +222,7 @@ document.addEventListener('click', function (e) {
   var el = e.target.closest ? e.target : e.target.parentElement;
   if (!el || !el.closest) return;
   if (el.closest('.si-addvar')) { e.preventDefault(); shopAddVar(el.closest('.shop-item')); }
-  else if (el.closest('.si-del')) { e.preventDefault(); if (confirm('Supprimer cet article ?')) el.closest('.shop-item').remove(); }
+  else if (el.closest('.si-del')) { e.preventDefault(); if (confirm(<?= json_encode(bk_t('AshDelConfirm'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>)) el.closest('.shop-item').remove(); }
   else if (el.closest('.si-vdel')) { e.preventDefault(); el.closest('.si-var').remove(); }
 });
 document.addEventListener('input', function (e) {
@@ -268,4 +233,5 @@ document.addEventListener('input', function (e) {
   }
 });
 </script>
-<?php include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php'); ?>
+<?php
+include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

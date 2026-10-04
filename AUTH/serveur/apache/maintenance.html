@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="utf-8">
 
-    <title>Maintenance en cours</title>
+    <title>Maintenance under way</title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- Rafraîchissement automatique de la page toutes les 30 secondes -->
+    <!-- The page reloads itself every 30 seconds -->
     <meta http-equiv="refresh" content="30">
 
     <style>
@@ -58,7 +58,7 @@
         }
 
         /*
-         * Carte principale
+         * Main card
          */
         .maintenance-card {
             position: relative;
@@ -78,7 +78,7 @@
         }
 
         /*
-         * Bandeau bleu supérieur
+         * Top blue band
          */
         .maintenance-card::before {
             content: "";
@@ -94,7 +94,7 @@
         }
 
         /*
-         * Cible
+         * Target
          */
         .target {
             position: relative;
@@ -123,13 +123,13 @@
         }
 
         /*
-         * Flèche centrée sur la cible
+         * Arrow centred on the target
          */
         .arrow {
             position: absolute;
 
-            /* Décalée de 55px (44px de demi-hauteur + 11px de décalage de la pointe)
-               pour que la pointe de la flèche tombe exactement au centre de la cible */
+            /* Shifted by 55px (44px of half height + 11px of tip offset)
+               so that the tip of the arrow lands exactly in the centre of the target */
             top: calc(0% + 10px);
             left: 0%;
 
@@ -147,7 +147,7 @@
         }
 
         /*
-         * Pointe de la flèche
+         * Arrow tip
          */
         .arrow::before {
             content: "";
@@ -168,7 +168,7 @@
         }
 
         /*
-         * Empennage stylisé
+         * Stylised fletching
          */
         .arrow::after {
             content: "";
@@ -199,7 +199,7 @@
         }
 
         /*
-         * Titre
+         * Title
          */
         h1 {
             margin: 0 0 14px;
@@ -211,7 +211,7 @@
         }
 
         /*
-         * Message principal
+         * Main message
          */
         .message {
             margin: 0;
@@ -223,7 +223,7 @@
         }
 
         /*
-         * Bloc d'attente
+         * Waiting block
          */
         .waiting {
             display: inline-flex;
@@ -244,7 +244,7 @@
         }
 
         /*
-         * Trois points animés
+         * Three animated dots
          */
         .dots {
             display: inline-flex;
@@ -288,7 +288,7 @@
         }
 
         /*
-         * Changement en douceur du message d'attente
+         * Smooth change of the waiting message
          */
         #status-message {
             transition: opacity 0.3s ease;
@@ -299,7 +299,7 @@
         }
 
         /*
-         * Informations en bas de la carte
+         * Information at the bottom of the card
          */
         .footer-info {
             margin-top: 30px;
@@ -321,7 +321,7 @@
         }
 
         /*
-         * Mode réduction des animations
+         * Reduced motion mode
          */
         @media (prefers-reduced-motion: reduce) {
             .arrow {
@@ -349,7 +349,7 @@
         }
 
         /* ==========================================================
-         * Scène d'archer (amélioration progressive du visuel statique)
+         * Archer scene (progressive enhancement of the static picture)
          * ========================================================== */
         .archery-scene {
             width: 100%;
@@ -377,7 +377,7 @@
         }
 
         /*
-         * Adaptation mobile
+         * Phones
          */
         @media (max-width: 520px) {
             body {
@@ -408,12 +408,12 @@
 
     <main class="maintenance-card">
 
-        <!-- Cible et flèche statiques : repli si JS désactivé ou animations réduites -->
+        <!-- Static target and arrow: fallback when JS is off or motion reduced -->
         <div class="target" id="staticTarget" aria-hidden="true">
             <div class="arrow"></div>
         </div>
 
-        <!-- Scène d'archer animée : activée en JS quand les animations sont autorisées -->
+        <!-- Animated archer scene: turned on in JS when animations are allowed -->
         <div class="archery-scene" id="archeryScene" aria-hidden="true" hidden>
             <svg id="archerySvg" viewBox="0 0 600 170" xmlns="http://www.w3.org/2000/svg">
                 <line x1="0" y1="150.5" x2="600" y2="150.5" stroke="var(--border)" stroke-width="1"></line>
@@ -423,17 +423,17 @@
             </svg>
         </div>
 
-        <h1>Maintenance en cours</h1>
+        <h1 id="mt-title">Maintenance under way</h1>
 
         <p class="message">
-            Le serveur IANSEO est actuellement en cours de mise à jour.
+            <span id="mt-line1">The IANSEO server is being updated.</span>
             <br>
-            Il sera de nouveau disponible dans quelques instants.
+            <span id="mt-line2">It will be available again in a few moments.</span>
         </p>
 
-        <!-- Message d'attente animé -->
+        <!-- Animated waiting message -->
         <div class="waiting" aria-live="polite">
-            <span id="status-message">Préparation du serveur</span>
+            <span id="status-message">Preparing the server</span>
 
             <span class="dots" aria-hidden="true">
                 <i></i>
@@ -442,12 +442,12 @@
             </span>
         </div>
 
-        <!-- Information sur le rafraîchissement -->
+        <!-- Information about the reload -->
         <div class="footer-info">
-            Vous n'avez rien à faire : la page se mettra à jour automatiquement.
+            <span id="mt-nothing">You have nothing to do: the page will update by itself.</span>
 
-            <div class="refresh-info">
-                Nouvelle vérification dans moins de 30 secondes
+            <div class="refresh-info" id="mt-refresh">
+                Next check in less than 30 seconds
             </div>
         </div>
 
@@ -455,11 +455,64 @@
 
     <script>
         /*
-         * Messages affichés successivement pendant la maintenance.
-         * Les messages alternent entre informations techniques
-         * et références à l'univers du tir à l'arc.
+         * Texts of the page in the visitor's language (browser setting), English otherwise —
+         * this page is served by Apache while ianseo is closed, so it cannot ask ianseo.
+         * "status": shown one after the other during the maintenance, mixing technical
+         * information and archery jokes.
          */
-        const messages = [
+        const TEXTS = {
+            en: {
+                title: "Maintenance under way",
+                line1: "The IANSEO server is being updated.",
+                line2: "It will be available again in a few moments.",
+                nothing: "You have nothing to do: the page will update by itself.",
+                refresh: "Next check in less than 30 seconds",
+                status: [
+                    "Preparing the server",
+                    "Checking the services",
+                    "Update under way",
+                    "Installing the latest improvements",
+                    "Checking the database",
+                    "Synchronising the services",
+                    "Preparing the competitions",
+                    "Installing the updates",
+                    "Checking the results",
+                    "Setting up the targets",
+                    "Adjusting the sights",
+                    "Checking the draw weights",
+                    "Counting the arrows",
+                    "Looking for the lost arrows",
+                    "Preparing the shooting line",
+                    "Archers warming up",
+                    "The judges take their places",
+                    "Preparing the shooting range",
+                    "Checking the target faces",
+                    "The targets are almost ready",
+                    "Checking the registrations",
+                    "Updating the competitions",
+                    "Preparing the rankings",
+                    "Checking the scores",
+                    "Synchronising the results",
+                    "Last adjustments under way",
+                    "Just a few more arrows to shoot",
+                    "Making sure everything is in the gold",
+                    "The last end is under way",
+                    "The results are almost ready",
+                    "Making sure everything is on the right target",
+                    "Walking back to the shooting line",
+                    "Only a few adjustments left",
+                    "The server is catching its breath",
+                    "Almost ready...",
+                    "Thank you for your patience"
+                ]
+            },
+            fr: {
+                title: "Maintenance en cours",
+                line1: "Le serveur IANSEO est actuellement en cours de mise à jour.",
+                line2: "Il sera de nouveau disponible dans quelques instants.",
+                nothing: "Vous n'avez rien à faire : la page se mettra à jour automatiquement.",
+                refresh: "Nouvelle vérification dans moins de 30 secondes",
+                status: [
             "Préparation du serveur",
             "Vérification des services",
             "Mise à jour en cours",
@@ -496,13 +549,168 @@
             "Le serveur reprend son souffle",
             "Presque prêt...",
             "Merci de votre patience"
-        ];
+                ]
+            },
+            es: {
+                title: "Mantenimiento en curso",
+                line1: "El servidor IANSEO se está actualizando.",
+                line2: "Volverá a estar disponible en unos instantes.",
+                nothing: "No tiene que hacer nada: la página se actualizará sola.",
+                refresh: "Nueva comprobación en menos de 30 segundos",
+                status: [
+                    "Preparando el servidor",
+                    "Comprobando los servicios",
+                    "Actualización en curso",
+                    "Instalando las últimas mejoras",
+                    "Comprobando la base de datos",
+                    "Sincronizando los servicios",
+                    "Preparando las competiciones",
+                    "Instalando las actualizaciones",
+                    "Comprobando los resultados",
+                    "Colocando las dianas",
+                    "Ajustando los visores",
+                    "Comprobando la potencia de los arcos",
+                    "Contando las flechas",
+                    "Buscando las flechas perdidas",
+                    "Preparando la línea de tiro",
+                    "Los arqueros calientan",
+                    "Los jueces ocupan sus puestos",
+                    "Preparando el campo de tiro",
+                    "Comprobando los blasones",
+                    "Las dianas están casi listas",
+                    "Comprobando las inscripciones",
+                    "Actualizando las competiciones",
+                    "Preparando las clasificaciones",
+                    "Comprobando las puntuaciones",
+                    "Sincronizando los resultados",
+                    "Últimos ajustes en curso",
+                    "Quedan unas pocas flechas por tirar",
+                    "Comprobando que todo está en el oro",
+                    "La última tanda está en curso",
+                    "Los resultados están casi listos",
+                    "Asegurándonos de que todo está en la diana correcta",
+                    "Volviendo poco a poco a la línea de tiro",
+                    "Solo quedan unos pocos ajustes",
+                    "El servidor recupera el aliento",
+                    "Casi listo...",
+                    "Gracias por su paciencia"
+                ]
+            },
+            de: {
+                title: "Wartung läuft",
+                line1: "Der IANSEO-Server wird gerade aktualisiert.",
+                line2: "Er ist in wenigen Augenblicken wieder verfügbar.",
+                nothing: "Sie müssen nichts tun: Die Seite aktualisiert sich von selbst.",
+                refresh: "Nächste Prüfung in weniger als 30 Sekunden",
+                status: [
+                    "Server wird vorbereitet",
+                    "Dienste werden geprüft",
+                    "Aktualisierung läuft",
+                    "Die neuesten Verbesserungen werden installiert",
+                    "Datenbank wird geprüft",
+                    "Dienste werden synchronisiert",
+                    "Turniere werden vorbereitet",
+                    "Updates werden installiert",
+                    "Ergebnisse werden geprüft",
+                    "Scheiben werden aufgestellt",
+                    "Visiere werden eingestellt",
+                    "Zuggewichte der Bögen werden geprüft",
+                    "Pfeile werden gezählt",
+                    "Verlorene Pfeile werden gesucht",
+                    "Schießlinie wird vorbereitet",
+                    "Die Schützen wärmen sich auf",
+                    "Die Kampfrichter nehmen ihre Plätze ein",
+                    "Schießplatz wird vorbereitet",
+                    "Scheibenauflagen werden geprüft",
+                    "Die Scheiben sind fast bereit",
+                    "Anmeldungen werden geprüft",
+                    "Turniere werden aktualisiert",
+                    "Ranglisten werden vorbereitet",
+                    "Ergebnisse werden geprüft",
+                    "Ergebnisse werden synchronisiert",
+                    "Letzte Einstellungen laufen",
+                    "Noch ein paar Pfeile zu schießen",
+                    "Wir prüfen, ob alles im Gold ist",
+                    "Die letzte Passe läuft",
+                    "Die Ergebnisse sind fast fertig",
+                    "Wir stellen sicher, dass alles auf der richtigen Scheibe ist",
+                    "Langsam zurück zur Schießlinie",
+                    "Nur noch ein paar Einstellungen",
+                    "Der Server holt Luft",
+                    "Fast fertig...",
+                    "Danke für Ihre Geduld"
+                ]
+            },
+            it: {
+                title: "Manutenzione in corso",
+                line1: "Il server IANSEO è in fase di aggiornamento.",
+                line2: "Sarà di nuovo disponibile tra pochi istanti.",
+                nothing: "Non deve fare nulla: la pagina si aggiornerà da sola.",
+                refresh: "Nuova verifica entro 30 secondi",
+                status: [
+                    "Preparazione del server",
+                    "Verifica dei servizi",
+                    "Aggiornamento in corso",
+                    "Installazione degli ultimi miglioramenti",
+                    "Verifica del database",
+                    "Sincronizzazione dei servizi",
+                    "Preparazione delle competizioni",
+                    "Installazione degli aggiornamenti",
+                    "Verifica dei risultati",
+                    "Posizionamento dei bersagli",
+                    "Regolazione dei mirini",
+                    "Controllo della potenza degli archi",
+                    "Conteggio delle frecce",
+                    "Ricerca delle frecce perdute",
+                    "Preparazione della linea di tiro",
+                    "Gli arcieri si riscaldano",
+                    "I giudici prendono posizione",
+                    "Preparazione del campo di tiro",
+                    "Verifica dei bersagli",
+                    "Le piazzole sono quasi pronte",
+                    "Verifica delle iscrizioni",
+                    "Aggiornamento delle competizioni",
+                    "Preparazione delle classifiche",
+                    "Verifica dei punteggi",
+                    "Sincronizzazione dei risultati",
+                    "Ultime regolazioni in corso",
+                    "Ancora qualche freccia da tirare",
+                    "Controlliamo che tutto sia nel giallo",
+                    "L'ultima volée è in corso",
+                    "I risultati sono quasi pronti",
+                    "Ci assicuriamo che tutto sia sul bersaglio giusto",
+                    "Ritorno graduale alla linea di tiro",
+                    "Mancano solo poche regolazioni",
+                    "Il server riprende fiato",
+                    "Quasi pronto...",
+                    "Grazie per la pazienza"
+                ]
+            }
+        };
+
+        /* First language of the browser that the page knows, English otherwise. */
+        const langs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language || "en"];
+        let lang = "en";
+        for (let i = 0; i < langs.length; i++) {
+            const code = String(langs[i]).toLowerCase().slice(0, 2);
+            if (TEXTS[code]) { lang = code; break; }
+        }
+        const T = TEXTS[lang];
+        document.documentElement.lang = lang;
+        document.title = T.title;
+        document.getElementById("mt-title").textContent = T.title;
+        document.getElementById("mt-line1").textContent = T.line1;
+        document.getElementById("mt-line2").textContent = T.line2;
+        document.getElementById("mt-nothing").textContent = T.nothing;
+        document.getElementById("mt-refresh").textContent = T.refresh;
+        const messages = T.status;
 
         const statusMessage = document.getElementById("status-message");
+        statusMessage.textContent = messages[0];
         let currentMessage = 0;
 
         /*
-         * Changement du message toutes les 5 secondes.
+         * The message changes every 5 seconds.
          */
         setInterval(function () {
             statusMessage.classList.add("fade-out");
@@ -522,14 +730,14 @@
 
     <script>
         /*
-         * Scène d'archer : remplace la cible statique par une petite
-         * animation où un archer détaillé, positionné aléatoirement,
-         * tire une volée de 3 flèches vers des points aléatoires de
-         * la cible, placée à droite (l'archer tire donc vers la droite).
+         * Archer scene: replaces the static target with a small animation where a
+         * detailed archer, placed at random, shoots an end of 3 arrows towards random
+         * points of the target, placed on the right (the archer therefore shoots to
+         * the right).
          *
-         * Respecte prefers-reduced-motion : si l'utilisateur préfère
-         * moins d'animations, on garde la cible/flèche statique (déjà
-         * positionnée correctement) et on n'active pas la scène.
+         * Follows prefers-reduced-motion: when the user prefers less motion, the
+         * static target/arrow (already placed correctly) is kept and the scene is not
+         * turned on.
          */
         (function () {
             var prefersReducedMotion =
@@ -552,11 +760,11 @@
                 return;
             }
 
-            // Bascule du repli statique vers la scène animée.
+            // Switch from the static fallback to the animated scene.
             staticTarget.style.display = "none";
             scene.hidden = false;
 
-            /* ----- Constantes de la scène (unités SVG) ----- */
+            /* ----- Scene constants (SVG units) ----- */
             var GROUND_Y = 150;
             var TARGET_X = 528;
             var TARGET_CENTER_Y = 78;
@@ -566,8 +774,8 @@
             var ARCHER_X_MAX = 340;
             var ARCHER_SCALE = 0.5;
 
-            // Points de repère de l'archer, en coordonnées locales
-            // (avant mise à l'échelle et mise en miroir).
+            // Landmarks of the archer, in local coordinates
+            // (before scaling and mirroring).
             var GRIP_LOCAL = { x: -80, y: -150 };
             var DRAWN_HAND_LOCAL = { x: 34, y: -150 };
             var ARROW_VISUAL_LEN = 125;
@@ -578,7 +786,7 @@
                 return Math.random() * (max - min) + min;
             }
 
-            /* ----- Cible ----- */
+            /* ----- Target ----- */
             function buildTarget() {
                 var rings = [
                     { r: TARGET_OUTER_R, fill: "var(--white)" },
@@ -599,9 +807,9 @@
             }
 
             /*
-             * Archer détaillé, à pleine détente, flèche encochée.
-             * Dessiné en position "de base" (tirant vers la gauche) puis
-             * mis en miroir horizontalement pour tirer vers la droite.
+             * Detailed archer, at full draw, arrow nocked.
+             * Drawn in the "base" position (shooting to the left) then mirrored
+             * horizontally to shoot to the right.
              */
             function archerTemplateSVG() {
                 var hand = DRAWN_HAND_LOCAL;
@@ -616,27 +824,27 @@
                 var tipY = hand.y + uy * ARROW_VISUAL_LEN;
 
                 return ''
-                    // jambe arrière
+                    // back leg
                     + '<path d="M 4,-78 L 24,-38 L 32,4" fill="none" stroke="' + STROKE + '" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>'
-                    // jambe avant
+                    // front leg
                     + '<path d="M 4,-78 L -16,-40 L -22,4" fill="none" stroke="' + STROKE + '" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>'
-                    // arc
+                    // bow
                     + '<path d="M -70,-220 Q -100,-175 ' + GRIP_LOCAL.x + ',' + GRIP_LOCAL.y + ' Q -100,-125 -70,-80" fill="none" stroke="' + STROKE + '" stroke-width="7" stroke-linecap="round"/>'
-                    // torse
+                    // torso
                     + '<path d="M -4,-150 L 4,-78" fill="none" stroke="' + STROKE + '" stroke-width="21" stroke-linecap="round"/>'
-                    // bras avant (tient l'arc)
+                    // bow arm (holds the bow)
                     + '<path d="M -8,-146 L ' + GRIP_LOCAL.x + ',' + GRIP_LOCAL.y + '" fill="none" stroke="' + STROKE + '" stroke-width="13" stroke-linecap="round"/>'
-                    // bras arrière (arme la corde)
+                    // drawing arm (draws the string)
                     + '<path d="M 0,-142 L ' + hand.x + ',' + hand.y + '" fill="none" stroke="' + STROKE + '" stroke-width="13" stroke-linecap="round"/>'
-                    // corde tendue
+                    // drawn string
                     + '<path d="M -70,-220 L ' + hand.x + ',' + hand.y + ' L -70,-80" fill="none" stroke="#d7d7d7" stroke-width="2.4"/>'
-                    // flèche encochée
+                    // nocked arrow
                     + '<line x1="' + tailX + '" y1="' + tailY + '" x2="' + tipX + '" y2="' + tipY + '" stroke="#5a3b23" stroke-width="3.2" stroke-linecap="round"/>'
                     + '<polygon points="' + tipX + ',' + tipY + ' ' +
                         (tipX - uy * 6 - ux * 12) + ',' + (tipY + ux * 6 - uy * 12) + ' ' +
                         (tipX + uy * 6 - ux * 12) + ',' + (tipY - ux * 6 - uy * 12) +
                         '" fill="' + STROKE + '"/>'
-                    // tête
+                    // head
                     + '<circle cx="-4" cy="-168" r="17" stroke="' + STROKE + '" stroke-width="6"/>';
             }
 
@@ -645,9 +853,9 @@
             }
 
             /*
-             * Convertit un point exprimé dans le repère local de l'archer
-             * (avant mise à l'échelle / miroir) en coordonnées de la scène,
-             * en tenant compte de la position aléatoire de l'archer.
+             * Converts a point given in the local frame of the archer (before scaling /
+             * mirroring) into scene coordinates, taking the random position of the
+             * archer into account.
              */
             function localToScene(archerX, point) {
                 return {
@@ -667,8 +875,8 @@
             }
 
             /*
-             * Choisit un point aléatoire à l'intérieur de la cible
-             * (distribution uniforme sur le disque).
+             * Picks a random point inside the target (uniform distribution over the
+             * disc).
              */
             function randomTargetPoint() {
                 var maxRadius = TARGET_OUTER_R * 0.82;
@@ -703,8 +911,8 @@
                     "translate(" + start.x + "px," + start.y + "px) rotate(" + angleDeg + "deg) translateX(0px)";
                 shotsLayer.appendChild(arrowEl);
 
-                // Laisse le navigateur peindre l'état initial avant de
-                // déclencher la transition vers le point d'impact.
+                // Lets the browser paint the initial state before
+                // starting the transition to the impact point.
                 requestAnimationFrame(function () {
                     requestAnimationFrame(function () {
                         arrowEl.style.transform =
@@ -748,9 +956,8 @@
             }
 
             /*
-             * Une volée = 3 flèches tirées depuis une même position
-             * d'archer, puis nettoyage et nouvelle position pour la
-             * volée suivante.
+             * One end = 3 arrows shot from the same archer position, then clean-up
+             * and a new position for the next end.
              */
             function runVolley() {
                 repositionArcher();

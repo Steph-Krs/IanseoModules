@@ -1,14 +1,13 @@
 #!/bin/sh
-# ianseo-unlock — ouvre TEMPORAIREMENT le cœur ianseo en écriture.
+# ianseo-unlock — opens the ianseo core for writing, TEMPORARILY.
 #
-# À installer dans /usr/local/bin/ianseo-unlock (root, chmod 750).
+# To install as /usr/local/bin/ianseo-unlock (root, chmod 750).
 #
-# ⚠️ État volontairement TRANSITOIRE : à n'utiliser que le temps d'une mise à
-# jour du cœur, puis relancer immédiatement `ianseo-lock`. Laisser le serveur
-# déverrouillé annule la principale protection contre une faille du cœur.
+# ⚠️ A deliberately TRANSIENT state: only for the time of a core update, then run `ianseo-lock`
+# at once. Leaving the server unlocked cancels the main protection against a flaw of the core.
 #
-# La mise à jour automatisée (cron/maintenance.php, étape « cœur ») encadre déjà
-# l'opération : unlock → mise à jour → lock.
+# The automated update (cron/maintenance.php, "core" step) already frames the operation:
+# unlock → update → lock.
 set -e
 
 IANSEO=/var/www/ianseo
@@ -18,4 +17,4 @@ chown -R ${WEBUSER}:${WEBUSER} "$IANSEO"
 find "$IANSEO" -type d -exec chmod 770 {} \;
 find "$IANSEO" -type f -exec chmod 660 {} \;
 
-echo "ianseo déverrouillé pour mise à jour — pense à relancer ianseo-lock après."
+echo "ianseo unlocked for an update — remember to run ianseo-lock afterwards."

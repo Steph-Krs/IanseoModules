@@ -1,10 +1,10 @@
 <?php
 /**
- * Module AUTH — Statistiques d'usage du serveur (ADMIN uniquement).
+ * AUTH module — usage statistics of the server (ADMIN only).
  *
- * Lecture seule des compteurs agrégés de stats-usage.php (aucune donnée
- * personnelle) + quelques métriques métier issues des comptes/inscriptions.
- * Deux onglets, Organisateurs / Archers, pour distinguer les publics.
+ * Read-only view of the aggregated counters of stats-usage.php (no personal data) + a few
+ * business figures taken from the accounts/registrations. Two tabs, Organisers / Archers, to
+ * tell the audiences apart.
  */
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
@@ -13,7 +13,7 @@ require_once(dirname(__DIR__) . '/legal-lib.php');
 require_once(dirname(__DIR__) . '/stats-usage.php');
 
 checkFullACL(AclRoot, '', AclReadWrite);
-// même verrou que Update/index.php : réservé au compte ADMIN quand l'auth est active
+// same lock as Update/index.php: reserved to the ADMIN account when the authentication is on
 if (!empty($_SESSION['AUTH_ENABLE']) && empty($_SESSION['AUTH_ROOT'])) {
     CD_redirect($CFG->ROOT_DIR . 'noAccess.php');
     die();
@@ -32,7 +32,7 @@ $activeTab = (($_REQUEST['tab'] ?? '') === 'archers' && $hasArchers) ? 'archers'
 // Device filter: every figure of the page (both tabs) is restricted to that device.
 $dev = aut_stats_dev($_GET['dev'] ?? '');
 
-/* ---- Données ---- */
+/* ---- Data ---- */
 $publicUniq  = aut_stats_uniques('public', $days, $dev);
 $publicViews = aut_stats_views('public', $days, $dev);
 
@@ -50,47 +50,50 @@ foreach (array('org', 'archer') as $sp) {
 $orgBiz = aut_stats_org_business($days);
 $arcBiz = $hasArchers ? aut_stats_archer_business() : null;
 
-/* ---- Helpers de rendu ---- */
+/* ---- Rendering helpers ---- */
 function st_h($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
 
 function st_kpi($value, $label, $sub = '') {
-    echo '<div class="st-kpi"><div class="st-kv">' . st_h($value) . '</div>'
+    return '<div class="st-kpi"><div class="st-kv">' . st_h($value) . '</div>'
        . '<div class="st-kl">' . st_h($label) . '</div>'
        . ($sub !== '' ? '<div class="st-ks">' . st_h($sub) . '</div>' : '') . '</div>';
 }
 
-/** Barres verticales. $items = [ ['label'=>, 'value'=>, 'title'=>], ... ] */
+/** Vertical bars. $items = [ ['label'=>, 'value'=>, 'title'=>], ... ] */
 function st_vbars($items) {
     $vals = array_map(function ($i) { return $i['value']; }, $items);
     $max = max(1, $vals ? max($vals) : 0);
-    echo '<div class="st-chart">';
+    $out = '<div class="st-chart">';
     foreach ($items as $i) {
         $hpc = round(100 * $i['value'] / $max);
-        echo '<div class="st-col" title="' . st_h($i['title']) . '">'
+        $out .= '<div class="st-col" title="' . st_h($i['title']) . '">'
            . '<div class="st-bar" style="height:' . $hpc . '%"></div>'
            . '<span class="st-xl">' . st_h($i['label']) . '</span></div>';
     }
-    echo '</div>';
+    return $out . '</div>';
 }
 
-/** Barres horizontales pour le top pages. */
+/** Horizontal bars for the top pages. */
 function st_hbars($items) {
-    if (!$items) { echo '<p class="st-empty">Aucune donnée sur la période.</p>'; return; }
+    if (!$items) return '<p class="st-empty">' . st_h(aut_t('StNoData')) . '</p>';
     $max = max(1, max(array_map(function ($i) { return $i['views']; }, $items)));
-    echo '<div class="st-hb">';
+    $out = '<div class="st-hb">';
     foreach ($items as $i) {
         $w = round(100 * $i['views'] / $max);
-        echo '<div class="st-row"><span class="st-rl">' . st_h($i['page']) . '</span>'
+        $out .= '<div class="st-row"><span class="st-rl">' . st_h($i['page']) . '</span>'
            . '<span class="st-track"><span class="st-fill" style="width:' . $w . '%"></span></span>'
            . '<span class="st-rv">' . st_h($i['views']) . '</span></div>';
     }
-    echo '</div>';
+    return $out . '</div>';
 }
 
-function st_dev_labels() { return array('mobile' => 'Téléphone', 'tablet' => 'Tablette', 'desktop' => 'Ordinateur'); }
+function st_dev_labels() { return array('mobile' => aut_t('StPhone'), 'tablet' => aut_t('StTablet'), 'desktop' => aut_t('StComputer')); }
 
 /** '2026-09-29' → '29/09/2026'. */
-function st_dmy($d) { return substr($d, 8, 2) . '/' . substr($d, 5, 2) . '/' . substr($d, 0, 4); }
+function st_dmy($d) {
+    // bytes: a SQL date is ASCII
+    return substr($d, 8, 2) . '/' . substr($d, 5, 2) . '/' . substr($d, 0, 4);
+}
 
 /**
  * Split by device, one bar per device class. Each row is a link that filters the whole
@@ -99,68 +102,67 @@ function st_dmy($d) { return substr($d, 8, 2) . '/' . substr($d, 5, 2) . '/' . s
 function st_devices($dev, $tab, $days, $sel) {
     $totU = 0; $totV = 0;
     foreach ($dev['rows'] as $r) { $totU += $r['uniques']; $totV += $r['views']; }
-    echo '<h3 class="st-h3">Appareils utilisés <span class="st-note">(cliquez un appareil pour n\'afficher que ses chiffres'
-       . ($dev['since'] ? ' ; mesuré depuis le ' . st_h(st_dmy($dev['since'])) : '')
-       . ' ; iPad récents comptés comme ordinateurs)</span></h3>';
-    if ($totU === 0) { echo '<p class="st-empty">Aucune donnée sur la période.</p>'; return; }
-    echo '<div class="st-hb">';
+    $out = '<h3 class="st-h3">' . st_h(aut_t('StDevices')) . ' <span class="st-note">('
+       . st_h(aut_t('StDevicesNote') . ($dev['since'] ? ' ; ' . aut_t('StDevicesSince', st_dmy($dev['since'])) : '') . ' ; ' . aut_t('StDevicesIpad'))
+       . ')</span></h3>';
+    if ($totU === 0) return $out . '<p class="st-empty">' . st_h(aut_t('StNoData')) . '</p>';
+    $out .= '<div class="st-hb">';
     foreach (st_dev_labels() as $k => $lab) {
         $r = $dev['rows'][$k];
         $pc = round(100 * $r['uniques'] / $totU);
         $pv = $totV ? round(100 * $r['views'] / $totV) : 0;
         $on = ($sel === $k);
         $href = '?tab=' . $tab . '&days=' . (int) $days . ($on ? '' : '&dev=' . $k);
-        echo '<a class="st-row st-devrow' . ($on ? ' on' : '') . '" href="' . st_h($href) . '"'
-           . ' title="' . st_h($on ? 'Retirer le filtre' : 'N\'afficher que : ' . $lab) . '">'
+        $out .= '<a class="st-row st-devrow' . ($on ? ' on' : '') . '" href="' . st_h($href) . '"'
+           . ' title="' . st_h($on ? aut_t('StFilterOff') : aut_t('StFilterOn', $lab)) . '">'
            . '<span class="st-rl">' . ($on ? '✓ ' : '') . st_h($lab) . '</span>'
            . '<span class="st-track"><span class="st-fill" style="width:' . $pc . '%"></span></span>'
-           . '<span class="st-rv" style="min-width:210px">' . $pc . ' % des visiteurs · ' . $pv . ' % des vues</span></a>';
+           . '<span class="st-rv" style="min-width:210px">' . st_h(aut_t('StDevShare', array('u' => $pc, 'v' => $pv))) . '</span></a>';
     }
-    echo '</div>';
+    return $out . '</div>';
 }
 
-/** Prépare les items d'une série quotidienne. */
+/** Items of a daily series. */
 function st_daily_items($daily) {
     $out = array(); $i = 0;
     foreach ($daily as $d) {
+        // bytes: a SQL date is ASCII
         $lab = ($i % 5 === 0) ? substr($d['day'], 8, 2) : '';
         $dm  = substr($d['day'], 8, 2) . '/' . substr($d['day'], 5, 2);
         $out[] = array('label' => $lab, 'value' => $d['views'],
-            'title' => "$dm — {$d['views']} vues, {$d['uniques']} visiteurs");
+            'title' => aut_t('StDayTip', array('day' => $dm, 'v' => $d['views'], 'u' => $d['uniques'])));
         $i++;
     }
     return $out;
 }
 
-/** Prépare les items d'une répartition horaire. */
+/** Items of an hourly split. */
 function st_hourly_items($hours) {
     $out = array();
     for ($h = 0; $h < 24; $h++) {
         $out[] = array('label' => ($h % 3 === 0) ? sprintf('%02d', $h) : '',
-            'value' => $hours[$h], 'title' => sprintf('%02d h — %d vues', $h, $hours[$h]));
+            'value' => $hours[$h], 'title' => aut_t('StHourTip', array('h' => sprintf('%02d', $h), 'v' => $hours[$h])));
     }
     return $out;
 }
 
-/** Rend un onglet complet (graphiques d'audience communs org/archer). */
+/** Renders a whole tab (audience charts shared by org/archer). */
 function st_render_traffic($d, $days, $tab, $sel) {
     $on = $sel !== '' ? ' · ' . mb_strtolower(st_dev_labels()[$sel]) : '';
-    ?>
-    <div class="st-cards">
-        <?php st_kpi($d['views'],   'Pages vues',       "sur $days j" . $on); ?>
-        <?php st_kpi($d['uniques'], 'Visiteurs uniques', "sur $days j" . $on); ?>
-    </div>
-    <?php st_devices($d['devices'], $tab, $days, $sel); ?>
-    <h3 class="st-h3">Fréquentation — pages vues par jour</h3>
-    <?php st_vbars(st_daily_items($d['daily'])); ?>
-    <h3 class="st-h3">Charge — pages vues par heure <span class="st-note">(cumul de la période : repérer les pics)</span></h3>
-    <?php st_vbars(st_hourly_items($d['hourly'])); ?>
-    <h3 class="st-h3">Pages les plus consultées</h3>
-    <?php st_hbars($d['top']); ?>
-    <?php
+    return '<div class="st-cards">'
+        . st_kpi($d['views'], aut_t('StViews'), aut_t('StOverDays', $days) . $on)
+        . st_kpi($d['uniques'], aut_t('StUniques'), aut_t('StOverDays', $days) . $on)
+        . "</div>\n"
+        . st_devices($d['devices'], $tab, $days, $sel) . "\n"
+        . '<h3 class="st-h3">' . st_h(aut_t('StDaily')) . "</h3>\n"
+        . st_vbars(st_daily_items($d['daily'])) . "\n"
+        . '<h3 class="st-h3">' . st_h(aut_t('StHourly')) . ' <span class="st-note">(' . st_h(aut_t('StHourlyNote')) . ")</span></h3>\n"
+        . st_vbars(st_hourly_items($d['hourly'])) . "\n"
+        . '<h3 class="st-h3">' . st_h(aut_t('StTopPages')) . "</h3>\n"
+        . st_hbars($d['top']) . "\n";
 }
 
-$PAGE_TITLE = 'Statistiques d’usage';
+$PAGE_TITLE = aut_t('MenuStats');
 include('Common/Templates/head.php');
 $cookieUrl = function_exists('aut_legal_url') ? aut_legal_url('cookies') : '';
 ?>
@@ -208,68 +210,56 @@ $cookieUrl = function_exists('aut_legal_url') ? aut_legal_url('cookies') : '';
 .st-filter a { font-weight:600; margin-left:6px; }
 @media (max-width:600px){ .st-rl { flex-basis:120px; } }
 </style>
-
-<div class="st-intro">
-    Mesure d’audience <b>agrégée</b> : aucune donnée personnelle, aucune adresse IP, aucun parcours
-    nominatif. Les utilisateurs connectés sont comptés par leur compte ; les visiteurs anonymes de la
-    page d’accueil via un cookie de mesure d’audience <b>exempté de consentement</b><?php
-    if ($cookieUrl) echo ' (voir la <a href="' . st_h($cookieUrl) . '">politique cookies</a>)'; ?>.
-</div>
-
-<div class="st-period">Période :
-    <?php foreach (array(7 => '7 jours', 30 => '30 jours', 90 => '90 jours') as $k => $lab): ?>
-        <a href="?tab=<?= st_h($activeTab) ?>&amp;days=<?= $k ?><?= $dev !== '' ? '&amp;dev=' . st_h($dev) : '' ?>" class="<?= $days === $k ? 'on' : '' ?>"><?= st_h($lab) ?></a>
-    <?php endforeach; ?>
-    &nbsp;·&nbsp; <span class="st-note">Accueil (anonyme) : <?= (int) $publicUniq ?> visiteurs · <?= (int) $publicViews ?> vues</span>
-</div>
 <?php
+echo '<div class="st-intro">' . aut_t('StIntro')
+    . ($cookieUrl ? ' ' . aut_t('StIntroCookies', st_h($cookieUrl)) : '') . ".</div>\n";
+
+echo '<div class="st-period">' . st_h(aut_t('StPeriod')) . ' ';
+foreach (array(7, 30, 90) as $k) {
+    echo '<a href="?tab=' . st_h($activeTab) . '&amp;days=' . $k . ($dev !== '' ? '&amp;dev=' . st_h($dev) : '') . '" class="' . ($days === $k ? 'on' : '') . '">'
+        . st_h(aut_t('StDays', $k)) . '</a> ';
+}
+echo '&nbsp;·&nbsp; <span class="st-note">' . st_h(aut_t('StPublic', array('u' => (int) $publicUniq, 'v' => (int) $publicViews))) . "</span></div>\n";
+
 if ($dev !== '') {
     $since = aut_stats_devices('org', $days)['since'];
-    echo '<div class="st-filter">Filtre : <b>' . st_h(st_dev_labels()[$dev]) . '</b> — les chiffres de la page '
-       . '(les deux onglets) ne concernent que ce type d\'appareil.'
-       . ($since && $since > aut_stats_from($days) ? ' Mesure par appareil disponible depuis le ' . st_h(st_dmy($since)) . '.' : '')
-       . ' <a href="?tab=' . st_h($activeTab) . '&amp;days=' . (int) $days . '">✕ Tous les appareils</a></div>';
+    echo '<div class="st-filter">' . aut_t('StFilterIs', '<b>' . st_h(st_dev_labels()[$dev]) . '</b>')
+       . ($since && $since > aut_stats_from($days) ? ' ' . st_h(aut_t('StFilterSince', st_dmy($since))) : '')
+       . ' <a href="?tab=' . st_h($activeTab) . '&amp;days=' . (int) $days . '">✕ ' . st_h(aut_t('StAllDevices')) . "</a></div>\n";
+}
+
+echo '<div id="aut-tabs">'
+    . '<button type="button" data-pane="org" class="' . ($activeTab === 'org' ? 'on' : '') . '">🏹 ' . st_h(aut_t('UsOrgTitle')) . '</button>'
+    . ($hasArchers ? '<button type="button" data-pane="archers" class="' . ($activeTab === 'archers' ? 'on' : '') . '">🎯 ' . st_h(aut_t('StArchers')) . '</button>' : '')
+    . "</div>\n";
+
+$lbl = array('CLUB' => 'Club', 'CD' => 'CD', 'CR' => 'CR', 'FED' => 'FFTA', 'ADMIN' => 'Admin');
+$parts = array();
+foreach ($lbl as $k => $v) if (!empty($orgBiz['roles'][$k])) $parts[] = '<code>' . st_h($v) . ' ' . (int) $orgBiz['roles'][$k] . '</code>';
+echo '<div class="aut-pane' . ($activeTab === 'org' ? ' on' : '') . '" id="pane-org">'
+    . '<div class="st-cards">'
+    . st_kpi($orgBiz['total'], aut_t('StOrgAccounts'))
+    . st_kpi($orgBiz['active'], aut_t('StActiveAccounts'))
+    . st_kpi($orgBiz['logins'], aut_t('StLogins'), aut_t('StOverDays', $days))
+    . "</div>\n"
+    . '<p class="st-roles">' . st_h(aut_t('StByRole')) . ' '
+    . ($parts ? implode(' ', $parts) : '<span class="st-empty">' . st_h(aut_t('StNoAccount')) . '</span>')
+    . "</p>\n"
+    . st_render_traffic($data['org'], $days, 'org', $dev)
+    . "</div>\n";
+
+if ($hasArchers) {
+    echo '<div class="aut-pane' . ($activeTab === 'archers' ? ' on' : '') . '" id="pane-archers">'
+        . '<div class="st-cards">'
+        . st_kpi($arcBiz['total'], aut_t('StArcAccounts'))
+        . st_kpi($arcBiz['active'], aut_t('StActiveAccounts'))
+        . st_kpi($arcBiz['conv_rate'] . ' %', aut_t('StConversion'), aut_t('StConverted', array('n' => $arcBiz['converted'], 'total' => $arcBiz['total'])))
+        . st_kpi($arcBiz['registrars'], aut_t('StRegistrars'))
+        . "</div>\n"
+        . st_render_traffic($data['archer'], $days, 'archers', $dev)
+        . "</div>\n";
 }
 ?>
-
-<div id="aut-tabs">
-  <button type="button" data-pane="org" class="<?= $activeTab === 'org' ? 'on' : '' ?>">🏹 Organisateurs</button>
-  <?php if ($hasArchers): ?><button type="button" data-pane="archers" class="<?= $activeTab === 'archers' ? 'on' : '' ?>">🎯 Archers</button><?php endif; ?>
-</div>
-
-<div class="aut-pane<?= $activeTab === 'org' ? ' on' : '' ?>" id="pane-org">
-    <div class="st-cards">
-        <?php
-        st_kpi($orgBiz['total'],  'Comptes organisateurs');
-        st_kpi($orgBiz['active'], 'Comptes actifs');
-        st_kpi($orgBiz['logins'], 'Connexions', "sur $days j");
-        ?>
-    </div>
-    <p class="st-roles">Répartition par rôle :
-        <?php
-        $lbl = array('CLUB' => 'Club', 'CD' => 'CD', 'CR' => 'CR', 'FED' => 'FFTA', 'ADMIN' => 'Admin');
-        $parts = array();
-        foreach ($lbl as $k => $v) if (!empty($orgBiz['roles'][$k])) $parts[] = '<code>' . st_h($v) . ' ' . (int) $orgBiz['roles'][$k] . '</code>';
-        echo $parts ? implode(' ', $parts) : '<span class="st-empty">aucun compte</span>';
-        ?>
-    </p>
-    <?php st_render_traffic($data['org'], $days, 'org', $dev); ?>
-</div>
-
-<?php if ($hasArchers): ?>
-<div class="aut-pane<?= $activeTab === 'archers' ? ' on' : '' ?>" id="pane-archers">
-    <div class="st-cards">
-        <?php
-        st_kpi($arcBiz['total'],     'Comptes archers');
-        st_kpi($arcBiz['active'],    'Comptes actifs');
-        st_kpi($arcBiz['conv_rate'] . ' %', 'Taux de conversion', $arcBiz['converted'] . ' inscrits / ' . $arcBiz['total']);
-        st_kpi($arcBiz['registrars'], 'Inscrivent d’autres archers');
-        ?>
-    </div>
-    <?php st_render_traffic($data['archer'], $days, 'archers', $dev); ?>
-</div>
-<?php endif; ?>
-
 <script>
 (function () {
     var tabs = [].slice.call(document.querySelectorAll('#aut-tabs button'));

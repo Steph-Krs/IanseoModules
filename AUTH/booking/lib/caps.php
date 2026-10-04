@@ -1,17 +1,15 @@
 <?php
 /**
- * lib/caps.php — possibilités techniques du terrain, cible par cible.
+ * lib/caps.php — technical possibilities of the field, target by target.
  *
- * L'organisateur déclare, pour chaque cible de chaque départ, les distances et
- * les blasons qu'elle peut recevoir. L'attribution s'y conforme ensuite.
+ * For each target of each departure, the organiser declares the distances and target faces it
+ * can take. The assignment then follows them.
  *
- * Les distances et blasons PROPOSÉS ne sont pas saisis : ils sont lus dans la
- * configuration de la compétition (TournamentDistances et TargetFaces), donc
- * toujours cohérents avec ce que ianseo sait déjà.
+ * The OFFERED distances and faces are not typed: they are read from the competition's settings
+ * (TournamentDistances and TargetFaces), so always in line with what ianseo already knows.
  *
- * Défaut = aucune contrainte : une cible sans ligne dans BK_TargetCaps accepte
- * tout. Une compétition jamais configurée se comporte donc exactement comme
- * avant l'existence de cette table.
+ * Default = no constraint: a target without a row in BK_TargetCaps accepts everything. A
+ * competition never set up therefore behaves exactly as before this table existed.
  */
 
 if (defined('BK_CAPS_LOADED')) return;
@@ -20,8 +18,8 @@ define('BK_CAPS_LOADED', true);
 require_once __DIR__ . '/schema.php';
 
 /**
- * Distances utilisées par la compétition, avec les catégories concernées.
- * Retour : [metres => ['m'=>int, 'labels'=>[...], 'classes'=>[...]]]
+ * Distances used by the competition, with the categories concerned.
+ * Returns [metres => ['m'=>int, 'labels'=>[...], 'classes'=>[...]]]
  */
 function bk_caps_distances($tourId, $type)
 {
@@ -48,18 +46,17 @@ function bk_caps_distances($tourId, $type)
 }
 
 /**
- * Blasons définis sur la compétition. Retour : [TfId => ['id','label','cm','who','name']]
- *  - 'cm'   : diamètre (mm→cm de TfW1)
- *  - 'name' : TYPE du blason (TfName) — ce qui distingue vraiment deux blasons
- *  - 'label': « 40 cm », désambiguïsé par le TYPE quand plusieurs blasons partagent
- *             le même diamètre (« 40 cm · Trispot ») — jamais un repère (a)/(b) qui
- *             n'évoque rien pour l'organisateur.
- *  - 'who'  : catégories/regex ianseo — donnée interne, JAMAIS affichée (illisible).
+ * Target faces defined on the competition. Returns [TfId => ['id','label','cm','who','name']]
+ *  - 'cm'   : diameter (mm→cm of TfW1)
+ *  - 'name' : TYPE of the face (TfName) — what really tells two faces apart
+ *  - 'label': "40 cm", told apart by the TYPE when several faces share the same diameter
+ *             ("40 cm · Trispot") — never an (a)/(b) mark that means nothing to the organiser.
+ *  - 'who'  : ianseo categories/regex — internal data, NEVER shown (unreadable).
  */
 function bk_caps_faces($tourId)
 {
-    // Jointure sur Targets (TfT1 → TarId) pour la clé « TarDescr-diamètre » qui
-    // détermine le VISUEL du blason, exactement comme le module PlanQualifs.
+    // Join on Targets (TfT1 → TarId) for the "TarDescr-diameter" key that sets the face's
+    // PICTURE, exactly like the PlanQualifs module.
     $rs = safe_r_sql("SELECT TF.TfId, TF.TfName, TF.TfW1, TF.TfClasses, TF.TfRegExp, T.TarDescr
         FROM TargetFaces TF
         LEFT JOIN Targets T ON T.TarId = TF.TfT1
@@ -71,8 +68,8 @@ function bk_caps_faces($tourId)
         $cm   = intval($r->TfW1);
         $id   = intval($r->TfId);
         $name = trim((string) $r->TfName);
-        // Parcours : les « blasons » sont en réalité des PIQUETS de couleur
-        // (« Piquet Rouge/Bleu/Blanc/Rose ») → on les marque pour un rendu dédié.
+        // Courses: the "faces" are really coloured PEGS ("Piquet Rouge/Bleu/Blanc/Rose") →
+        // marked for a dedicated rendering.
         $isPeg = (stripos($name, 'piquet') !== false);
         $parCm[$cm][] = $id;
         $out[$id] = array('id' => $id, 'cm' => $cm,
@@ -84,7 +81,7 @@ function bk_caps_faces($tourId)
                           'label' => $isPeg ? ($name !== '' ? $name : ('Piquet ' . $id))
                                             : ($cm ? ($cm . ' cm') : ($name !== '' ? $name : ('Blason ' . $id))));
     }
-    // Plusieurs blasons du même diamètre → on distingue par le TYPE (nom du blason).
+    // Several faces of the same diameter → told apart by TYPE (the face's name).
     foreach ($parCm as $cm => $ids) {
         if (count($ids) < 2 || !$cm) continue;
         foreach ($ids as $n => $id) {
@@ -134,11 +131,10 @@ function bk_face_palette()
 }
 
 /**
- * Fichier SVG du blason (dans Common/Images/Targets/) d'après le descriptif de
- * cible + le diamètre — table reprise à l'IDENTIQUE de PlanQualifs
- * (QP_Blason::svgForKey) pour que les pictogrammes correspondent. On NE requiert
- * PAS PlanQualifs (les modules restent autonomes) : la table est recopiée ici.
- * '0.svg' = blason « inconnu » (repli), comme dans PlanQualifs.
+ * SVG file of the face (in Common/Images/Targets/) from the target description + diameter —
+ * table taken AS IS from PlanQualifs (QP_Blason::svgForKey) so the pictures match. PlanQualifs
+ * is NOT required (the modules stay standalone): the table is copied here. '0.svg' = "unknown"
+ * face (fallback), as in PlanQualifs.
  */
 function bk_face_svg($tarDescr, $diameter)
 {
@@ -160,9 +156,9 @@ function bk_face_svg($tarDescr, $diameter)
 }
 
 /**
- * Capacités enregistrées d'un départ.
- * Retour : [cible => ['def'=>m, 'min'=>m, 'max'=>m, 'f'=>[TfId,…]]]
- * 0 = non renseigné (donc pas de contrainte sur cet axe).
+ * Saved capabilities of a departure.
+ * Returns [target => ['def'=>m, 'min'=>m, 'max'=>m, 'f'=>[TfId,…]]]
+ * 0 = not set (so no constraint on that axis).
  */
 function bk_caps_get($tourId, $session)
 {
@@ -182,13 +178,12 @@ function bk_caps_get($tourId, $session)
 }
 
 /**
- * Enregistre les capacités d'une cible.
+ * Saves the capabilities of a target.
  *
- * Tout à zéro/vide supprime la ligne : « aucune contrainte » ne se distingue pas
- * d'« aucune configuration », et une ligne vide ne doit pas bloquer les
- * affectations. Les bornes sont réordonnées si elles sont inversées, et la
- * valeur par défaut est ramenée dans la plage — un réglage incohérent ne doit
- * jamais produire une cible que rien ne peut occuper.
+ * All zero/empty deletes the row: "no constraint" is the same as "no setting", and an empty row
+ * must not block assignments. Bounds are reordered when inverted, and the default value is
+ * brought back into the range — an inconsistent setting must never produce a target nothing
+ * can occupy.
  */
 function bk_caps_set($tourId, $session, $target, $def, $min, $max, $faces)
 {
@@ -218,7 +213,7 @@ function bk_caps_set($tourId, $session, $target, $def, $min, $max, $faces)
         BtTarget = $target, $set ON DUPLICATE KEY UPDATE $set");
 }
 
-/** Efface toutes les capacités d'un départ (retour à « aucune contrainte »). */
+/** Clears every capability of a departure (back to "no constraint"). */
 function bk_caps_clear($tourId, $session)
 {
     bk_schema();
@@ -226,7 +221,7 @@ function bk_caps_clear($tourId, $session)
         . " AND BtSession = " . intval($session));
 }
 
-/** Recopie les capacités d'un départ vers un autre. */
+/** Copies the capabilities of one departure to another. */
 function bk_caps_copy($tourId, $from, $to)
 {
     bk_caps_clear($tourId, $to);
@@ -236,9 +231,8 @@ function bk_caps_copy($tourId, $from, $to)
 }
 
 /**
- * Besoins d'un archer : distances (mètres) et blason.
- * Même correspondance que le cœur : CONCAT(Division, Classe) LIKE TdClasses,
- * motif le plus long prioritaire.
+ * Needs of an archer: distances (metres) and target face.
+ * Same matching as the core: CONCAT(Division, Class) LIKE TdClasses, longest pattern first.
  */
 function bk_caps_needs($tourId, $type, $division, $class, $faceId)
 {
@@ -261,16 +255,16 @@ function bk_caps_needs($tourId, $type, $division, $class, $faceId)
 }
 
 /**
- * Une cible peut-elle recevoir cet archer ?
- * Une capacité NON déclarée (liste vide) n'impose rien — on n'invente jamais
- * une contrainte que l'organisateur n'a pas posée.
+ * Can a target take this archer?
+ * A capability NOT declared (empty list) imposes nothing — never invent a constraint the
+ * organiser did not set.
  */
 function bk_caps_target_ok($caps, $target, $needs)
 {
     $c = $caps[$target] ?? null;
     if (!$c) return true;
 
-    // Chaque distance dont l'archer a besoin doit tenir dans la plage de la cible.
+    // Each distance the archer needs must fit in the target's range.
     foreach ($needs['d'] as $m) {
         if (!empty($c['min']) && $m < $c['min']) return false;
         if (!empty($c['max']) && $m > $c['max']) return false;
@@ -282,24 +276,23 @@ function bk_caps_target_ok($caps, $target, $needs)
 }
 
 /**
- * Empreinte de distances d'un archer — deux archers d'une même cible doivent
- * l'avoir identique : ils tirent ensemble, la cible est à une seule distance.
- * Contrainte PHYSIQUE, pas une règle de cohabitation de blasons (celles-ci
- * restent à définir, voir M7).
+ * Distance fingerprint of an archer — two archers of one target must have the same: they shoot
+ * together, the target is at a single distance. A PHYSICAL constraint, not a rule on faces
+ * sharing a target (those are in lib/cohabitation.php).
  */
 function bk_caps_dist_key($needs)
 {
     return implode('-', $needs['d']);
 }
 
-/** Récapitulatif texte d'une capacité, pour l'affichage. */
+/** Text summary of a capability, for display. */
 function bk_caps_label($c, $faces)
 {
     if (!$c) return '';
     $p = array();
     if (!empty($c['min']) || !empty($c['max'])) {
         $p[] = ($c['min'] ?: '?') . '–' . ($c['max'] ?: '?') . ' m'
-             . (!empty($c['def']) ? ' (déf. ' . $c['def'] . ')' : '');
+             . (!empty($c['def']) ? ' (' . bk_t('CapsDefault', $c['def']) . ')' : '');
     } elseif (!empty($c['def'])) {
         $p[] = $c['def'] . ' m';
     }
@@ -312,10 +305,9 @@ function bk_caps_label($c, $faces)
 }
 
 /**
- * Blasons réellement possibles pour une catégorie, d'après la configuration de
- * la compétition. C'est ce qu'on propose à l'archer : jamais une liste libre.
- * getTargets() renvoie [DivId][ClId][TfId] => nom, trié du plus spécifique au
- * plus générique — le premier est donc le choix par défaut.
+ * Target faces really possible for a category, from the competition's settings. This is what
+ * the archer is offered: never a free list. getTargets() returns [DivId][ClId][TfId] => name,
+ * sorted from the most specific to the most generic — the first is the default choice.
  */
 function bk_caps_faces_for($tourId, $division, $class, $faces = null)
 {
@@ -332,16 +324,15 @@ function bk_caps_faces_for($tourId, $division, $class, $faces = null)
 }
 
 /**
- * Choix de blason proposés à l'ARCHER pour sa catégorie, dédupliqués par TYPE.
+ * Target faces offered to the ARCHER for their category, deduplicated by TYPE.
  *
- * La taille du blason découle de la catégorie (choisie au-dessus). L'archer ne
- * doit donc choisir qu'entre des blasons réellement différents (leur type / nom).
- * Deux entrées de configuration qui désignent le même blason (mêmes visuels,
- * régex de catégories différentes) ne forment qu'un seul choix — pas de
- * « 40 cm (a) / 40 cm (b) » incompréhensible. On garde le TfId le plus
- * spécifique comme représentant (celui que ianseo attribuerait par défaut).
+ * The face size follows from the category (chosen above). The archer must only choose between
+ * really different faces (their type / name). Two setting entries meaning the same face (same
+ * pictures, different category regex) make a single choice — no puzzling "40 cm (a) / 40 cm
+ * (b)". The most specific TfId is kept as representative (the one ianseo would give by
+ * default).
  *
- * Retour : [TfId représentatif => libellé du type].
+ * Returns [representative TfId => type label].
  */
 function bk_caps_face_choices($tourId, $division, $class, $faces = null)
 {
@@ -352,7 +343,7 @@ function bk_caps_face_choices($tourId, $division, $class, $faces = null)
         $name  = trim((string) ($f['name'] ?? ''));
         $label = $name !== '' ? $name : ($f['cm'] ? $f['cm'] . ' cm' : 'Blason');
         $sig   = $name !== '' ? 'n:' . mb_strtolower($name) : 'c:' . intval($f['cm']);
-        if (isset($seen[$sig])) continue;   // même blason → un seul choix
+        if (isset($seen[$sig])) continue;   // same face → one choice
         $seen[$sig] = true;
         $out[intval($f['id'])] = $label;
     }

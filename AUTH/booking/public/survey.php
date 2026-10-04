@@ -17,9 +17,9 @@ $err = '';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
-        $err = 'Session expirée — merci de réessayer.';
+        $err = bk_t('SessionExpired');
     } elseif (!$acc['ok']) {
-        $err = 'Ce questionnaire n\'est pas ou plus ouvert : vos réponses n\'ont pas été enregistrées.';
+        $err = bk_t('SvNotOpenSaved');
     } else {
         $r = bk_survey_save($tourId, $archer->BaLicence, $_POST);
         bk_log($r === 'saved' ? 'SURVEY_SAVED' : 'SURVEY_EMPTY', $archer->BaLicence);
@@ -31,43 +31,41 @@ $comp = $acc['comp'];
 $ans = $acc['answer'];
 $done = (string) ($_GET['done'] ?? '');
 
-bk_head('Votre avis');
+bk_head(bk_t('SvHead'));
 $h = '';
 if (!$comp) {
-    $h .= bk_msg('err', 'Compétition introuvable.');
-    $h .= '<p><a class="bk-btn" href="' . bk_e(bk_public_url()) . '">← Mon espace</a></p>';
+    $h .= bk_msg('err', bk_t('CompNotFound'));
+    $h .= '<p><a class="bk-btn" href="' . bk_e(bk_public_url()) . '">' . bk_e(bk_t('BackMySpace')) . '</a></p>';
     echo $h;
     bk_foot();
     exit;
 }
 
-$h .= '<h1>Votre avis sur « ' . bk_e($comp->ToName) . ' »</h1>';
+$h .= '<h1>' . bk_e(bk_t('SvTitle', $comp->ToName)) . '</h1>';
 $h .= '<p class="bk-hint bk-sv-where">' . bk_e(trim($comp->ToWhere . ' — ' . bk_date_range($comp->ToWhenFrom, $comp->ToWhenTo), ' —')) . '</p>';
 if ($err !== '') $h .= bk_msg('err', $err);
 if ($done === 'saved') {
-    $h .= bk_msg('ok', 'Merci ! Votre avis est enregistré. Vous pouvez le modifier jusqu\'au ' . bk_date_fr($comp->CloseOn) . '.');
+    $h .= bk_msg('ok', bk_t('SvSaved', bk_date_fr($comp->CloseOn)));
 } elseif ($done === 'empty') {
-    $h .= bk_msg('ok', 'Aucune réponse : rien n\'a été enregistré.');
+    $h .= bk_msg('ok', bk_t('SvEmpty'));
 }
 
 if (!$acc['ok']) {
     $why = array(
-        'off'             => 'L\'organisateur ne propose pas de questionnaire pour cette compétition.',
-        'not_yet'         => 'Le questionnaire ouvrira le ' . bk_date_fr($comp->OpenOn) . ', au lendemain de la compétition.',
-        'closed'          => 'Le questionnaire est clos depuis le ' . bk_date_fr($comp->ClosedOn) . '. Merci !',
-        'not_participant' => 'Ce questionnaire est réservé aux archers classés dans cette compétition.',
-        'already'         => 'Vous avez déjà donné votre avis sur cette compétition : un seul avis par archer. Merci !',
+        'off'             => bk_t('SvWhyOff'),
+        'not_yet'         => bk_t('SvWhyNotYet', bk_date_fr($comp->OpenOn)),
+        'closed'          => bk_t('SvWhyClosed', bk_date_fr($comp->ClosedOn)),
+        'not_participant' => bk_t('SvWhyNotRanked'),
+        'already'         => bk_t('SvWhyAlready'),
     );
-    $h .= '<div class="bk-block"><p class="bk-empty">' . bk_e($why[$acc['reason']] ?? 'Questionnaire indisponible.') . '</p>'
-        . '<p class="bk-actions"><a class="bk-btn" href="' . bk_e(bk_public_url()) . '">← Mon espace</a></p></div>';
+    $h .= '<div class="bk-block"><p class="bk-empty">' . bk_e($why[$acc['reason']] ?? bk_t('SvUnavailable')) . '</p>'
+        . '<p class="bk-actions"><a class="bk-btn" href="' . bk_e(bk_public_url()) . '">' . bk_e(bk_t('BackMySpace')) . '</a></p></div>';
     echo $h;
     bk_foot();
     exit;
 }
 
-$h .= '<div class="bk-sv-intro">Moins de 2 minutes, et <b>aucune réponse n\'est obligatoire</b>. '
-    . 'L\'organisateur ne voit que des résultats <b>anonymes</b> : jamais qui a répondu quoi. '
-    . 'Vos réponses restent modifiables jusqu\'au ' . bk_e(bk_date_fr($comp->CloseOn)) . '.</div>';
+$h .= '<div class="bk-sv-intro">' . bk_t('SvIntro', bk_e(bk_date_fr($comp->CloseOn))) . '</div>';
 
 $h .= '<form method="post" action="' . bk_e(bk_public_url('survey.php?t=' . $tourId)) . '" class="bk-sv">'
     . bk_csrf_field() . '<input type="hidden" name="t" value="' . $tourId . '">';
@@ -85,7 +83,7 @@ foreach (bk_survey_questions() as $sec) {
             $h .= '<label><input type="radio" name="' . $it['col'] . '" value="' . $v . '"' . ($cur === $v ? ' checked' : '') . '>'
                 . '<span>' . $v . '</span></label>';
         }
-        $h .= '</div><div class="bk-sv-ends"><span>' . bk_e($it['low'] ?? 'Mauvais') . ' 👎</span><span>Excellent 👍</span></div>'
+        $h .= '</div><div class="bk-sv-ends"><span>' . bk_e($it['low'] ?? bk_t('SvBad')) . ' 👎</span><span>' . bk_e(bk_t('SvExcellent')) . ' 👍</span></div>'
             . '</fieldset>';
     }
     foreach ($sec['texts'] as $tx) {
@@ -96,7 +94,7 @@ foreach (bk_survey_questions() as $sec) {
     $h .= '</section>';
 }
 $h .= '<p class="bk-sv-send"><button type="submit" class="bk-btn bk-btn-primary">'
-    . ($ans ? 'Mettre à jour mon avis' : 'Envoyer mon avis') . '</button></p></form>';
+    . bk_e(bk_t($ans ? 'SvUpdate' : 'SvSend')) . '</button></p></form>';
 echo $h;
 ?>
 <script>
