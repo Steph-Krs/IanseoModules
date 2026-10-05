@@ -12,7 +12,7 @@
  *   always at level 2, a checkbox at level 3 (BcSurvey).
  * - ONE ANSWER per archer and per competition, for good. While the survey is open the
  *   answer row carries the licence (UNIQUE key: sending again UPDATES it). Who has
- *   answered is also written to BK_SurveyVoters, apart from the answers, and never
+ *   answered is also written to BookingSurveyVoters, apart from the answers, and never
  *   detached: that roll still refuses a second answer once the answers are anonymised,
  *   if the dates are changed and the window reopens, or after a re-import.
  * - ANONYMITY: the organiser only sees aggregated figures and comments, never who wrote
@@ -27,7 +27,7 @@ require_once __DIR__ . '/lang.php';
 if (!defined('BK_SURVEY_DAYS')) define('BK_SURVEY_DAYS', 30);
 if (!defined('BK_SURVEY_TEXT_MAX')) define('BK_SURVEY_TEXT_MAX', 2000);
 
-/** The questionnaire: sections, 1-5 ratings and free texts, mapped to BK_Surveys columns. */
+/** The questionnaire: sections, 1-5 ratings and free texts, mapped to BookingSurveys columns. */
 function bk_survey_questions()
 {
     $intro = bk_t('SvIntroThemes');
@@ -104,9 +104,9 @@ function bk_survey_open_for($licence)
     if ($licence === '') return $out;
     $q = safe_r_sql("SELECT ToId, ToName, ToWhere, ToWhenFrom, ToWhenTo,
             DATE_ADD(ToWhenTo, INTERVAL " . intval(BK_SURVEY_DAYS) . " DAY) AS CloseOn,
-            (SELECT COUNT(*) FROM BK_SurveyVoters WHERE BvTournament = ToId AND BvLicence = " . StrSafe_DB($licence) . ") AS Answered
+            (SELECT COUNT(*) FROM BookingSurveyVoters WHERE BvTournament = ToId AND BvLicence = " . StrSafe_DB($licence) . ") AS Answered
         FROM Tournament
-        INNER JOIN BK_Competitions ON BcTournament = ToId
+        INNER JOIN BookingCompetitions ON BcTournament = ToId
         WHERE BcPublishLevel >= 2 AND BcSurvey = 1
           AND " . bk_survey_open_sql() . "
           AND " . bk_survey_participant_sql($licence) . "
@@ -136,7 +136,7 @@ function bk_survey_access($tourId, $licence)
             ($today > ToWhenTo) AS Started,
             ($today > DATE_ADD(ToWhenTo, INTERVAL " . intval(BK_SURVEY_DAYS) . " DAY)) AS Ended,
             " . bk_survey_participant_sql($licence) . " AS Participant
-        FROM Tournament LEFT JOIN BK_Competitions ON BcTournament = ToId
+        FROM Tournament LEFT JOIN BookingCompetitions ON BcTournament = ToId
         WHERE ToId = $tourId"));
     if (!$comp) return $res;
     $res['comp'] = $comp;
@@ -144,9 +144,9 @@ function bk_survey_access($tourId, $licence)
     if (!intval($comp->Started))                                { $res['reason'] = 'not_yet'; return $res; }
     if (intval($comp->Ended))                                   { $res['reason'] = 'closed'; return $res; }
     if ($licence === '' || !intval($comp->Participant))         { $res['reason'] = 'not_participant'; return $res; }
-    $res['answer'] = safe_fetch(safe_r_sql("SELECT * FROM BK_Surveys
+    $res['answer'] = safe_fetch(safe_r_sql("SELECT * FROM BookingSurveys
         WHERE BqTournament = $tourId AND BqLicence = " . StrSafe_DB($licence))) ?: null;
-    if (!$res['answer'] && safe_fetch(safe_r_sql("SELECT 1 AS x FROM BK_SurveyVoters
+    if (!$res['answer'] && safe_fetch(safe_r_sql("SELECT 1 AS x FROM BookingSurveyVoters
             WHERE BvTournament = $tourId AND BvLicence = " . StrSafe_DB($licence)))) {
         $res['reason'] = 'already';
         return $res;
@@ -182,18 +182,18 @@ function bk_survey_save($tourId, $licence, $post)
     }
     $lic = StrSafe_DB($licence);
     if (!$any) {
-        safe_w_sql("DELETE FROM BK_Surveys WHERE BqTournament = $tourId AND BqLicence = $lic");
-        safe_w_sql("DELETE FROM BK_SurveyVoters WHERE BvTournament = $tourId AND BvLicence = $lic");
+        safe_w_sql("DELETE FROM BookingSurveys WHERE BqTournament = $tourId AND BqLicence = $lic");
+        safe_w_sql("DELETE FROM BookingSurveyVoters WHERE BvTournament = $tourId AND BvLicence = $lic");
         return 'empty';
     }
     $names = implode(', ', array_keys($set));
     $values = implode(', ', array_values($set));
     $upd = array();
     foreach ($set as $c => $v) $upd[] = "$c = $v";
-    safe_w_sql("INSERT INTO BK_Surveys (BqTournament, BqLicence, $names)
+    safe_w_sql("INSERT INTO BookingSurveys (BqTournament, BqLicence, $names)
         VALUES ($tourId, $lic, $values)
         ON DUPLICATE KEY UPDATE " . implode(', ', $upd) . ", BqUpdated = NOW()");
-    safe_w_sql("INSERT IGNORE INTO BK_SurveyVoters (BvTournament, BvLicence) VALUES ($tourId, $lic)");
+    safe_w_sql("INSERT IGNORE INTO BookingSurveyVoters (BvTournament, BvLicence) VALUES ($tourId, $lic)");
     return 'saved';
 }
 
@@ -220,7 +220,7 @@ function bk_survey_results($tourId)
         $sel[] = "AVG($c) AS {$c}_avg";
         for ($v = 1; $v <= 5; $v++) $sel[] = "SUM($c = $v) AS {$c}_$v";
     }
-    $r = safe_fetch(safe_r_sql("SELECT " . implode(', ', $sel) . " FROM BK_Surveys WHERE BqTournament = $tourId"));
+    $r = safe_fetch(safe_r_sql("SELECT " . implode(', ', $sel) . " FROM BookingSurveys WHERE BqTournament = $tourId"));
     $out = array('answers' => $r ? intval($r->answers) : 0, 'q' => array(), 'texts' => array());
     foreach ($cols['ratings'] as $c) {
         $dist = array();
@@ -230,7 +230,7 @@ function bk_survey_results($tourId)
     }
     foreach ($cols['texts'] as $c) {
         $out['texts'][$c] = array();
-        $q = safe_r_sql("SELECT $c AS t FROM BK_Surveys WHERE BqTournament = $tourId AND $c IS NOT NULL AND $c <> ''
+        $q = safe_r_sql("SELECT $c AS t FROM BookingSurveys WHERE BqTournament = $tourId AND $c IS NOT NULL AND $c <> ''
             ORDER BY BqId DESC");
         while ($q && ($x = safe_fetch($q))) $out['texts'][$c][] = $x->t;
     }
@@ -252,7 +252,7 @@ function bk_survey_server_avg($excludeTourId)
     }
     // Derived table alias required by MySQL; Tournament joined to ignore deleted competitions.
     $r = safe_fetch(safe_r_sql("SELECT " . implode(', ', $outer) . " FROM (
-            SELECT " . implode(', ', $inner) . " FROM BK_Surveys
+            SELECT " . implode(', ', $inner) . " FROM BookingSurveys
             INNER JOIN Tournament ON ToId = BqTournament
             WHERE BqTournament <> " . intval($excludeTourId) . "
             GROUP BY BqTournament) AS per_comp"));
@@ -263,16 +263,16 @@ function bk_survey_server_avg($excludeTourId)
 
 /**
  * Detaches the licence from the answers of closed surveys (and of deleted competitions):
- * once the survey is closed, the answer needs it no more. BK_SurveyVoters is left alone:
+ * once the survey is closed, the answer needs it no more. BookingSurveyVoters is left alone:
  * it keeps refusing a second answer. Guarded: never fatal if the table does not exist
  * yet. Called by the nightly purge (aut_log_purge).
  */
 function bk_survey_anonymise()
 {
     $t = safe_fetch(safe_r_sql("SELECT 1 AS x FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Surveys'", false, true));
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BookingSurveys'", false, true));
     if (!$t) return;
-    safe_w_sql("UPDATE BK_Surveys LEFT JOIN Tournament ON ToId = BqTournament
+    safe_w_sql("UPDATE BookingSurveys LEFT JOIN Tournament ON ToId = BqTournament
         SET BqLicence = CONCAT('#', BqId)
         WHERE BqLicence NOT LIKE '#%'
           AND (ToId IS NULL OR " . bk_local_today_sql('ToTimeZone') . " > DATE_ADD(ToWhenTo, INTERVAL " . intval(BK_SURVEY_DAYS) . " DAY))");

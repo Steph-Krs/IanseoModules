@@ -2,7 +2,7 @@
 /**
  * lib/pricing.php — detailed tariff (calculation engine).
  *
- * The setup lives as JSON in BK_Competitions.BcPricing (empty = single fee BcFee, the
+ * The setup lives as JSON in BookingCompetitions.BcPricing (empty = single fee BcFee, the
  * original behaviour). The price of a registration is made of:
  *
  *   price = max(0,  BASE                       (base fee, or the fixed price of the category
@@ -81,6 +81,7 @@ function bk_prov_tier($p, $clubCode)
     if (strlen($club) < 2) return '';
     $dept   = $p['prov']['deptCode'];
     $region = $p['prov']['regionCode'];
+    // bytes: licence numbers and club codes are ASCII letters and digits
     if ($dept !== '' && $p['prov']['dept'] != 0.0 && strtoupper($dept) === substr($club, 2, 2)) return 'dept';
     if ($region !== '' && $p['prov']['region'] != 0.0 && strtoupper($region) === substr($club, 0, 2)) return 'region';
     return '';
@@ -159,7 +160,7 @@ function bk_price_of($base, $p, $division, $class, $sessionOrder, $tier, $rank)
  */
 function bk_rank_map($tourId, $licence)
 {
-    $rs = safe_r_sql("SELECT BrEnId FROM BK_Registrations
+    $rs = safe_r_sql("SELECT BrEnId FROM BookingRegistrations
         WHERE BrTournament = " . intval($tourId) . "
           AND BrLicence = " . StrSafe_DB($licence) . "
         ORDER BY BrCreated, BrId");

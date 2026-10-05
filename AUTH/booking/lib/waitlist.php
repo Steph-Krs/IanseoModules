@@ -95,13 +95,13 @@ function bk_waitlist_join($tourId, $cfg, $lue, $division, $class, $face, $sessio
     }
     if ($err !== '') return array('ok' => false, 'msg' => $err);
 
-    $dup = safe_fetch(safe_r_sql("SELECT BwId FROM BK_Waitlist
+    $dup = safe_fetch(safe_r_sql("SELECT BwId FROM BookingWaitlist
         WHERE BwTournament = $tourId AND BwStatus = 0
           AND BwLicence = " . StrSafe_DB($lic) . " AND BwDivision = " . StrSafe_DB($division)));
     if ($dup) {
         return array('ok' => false, 'msg' => bk_t('WlAlready'));
     }
-    safe_w_sql("INSERT INTO BK_Waitlist SET
+    safe_w_sql("INSERT INTO BookingWaitlist SET
         BwTournament = $tourId,
         BwLicence = "    . StrSafe_DB($lic) . ",
         BwArcher = "     . intval($by['archer'] ?? 0) . ",
@@ -123,7 +123,7 @@ function bk_waitlist_join($tourId, $cfg, $lue, $division, $class, $face, $sessio
 /** Closes a row that can no longer succeed; the archer sees why in "Mes inscriptions". */
 function bk_waitlist_close($id, $tourId, $note)
 {
-    safe_w_sql("UPDATE BK_Waitlist SET BwStatus = 2, BwSeen = 0, BwNote = " . StrSafe_DB(mb_substr($note, 0, 120))
+    safe_w_sql("UPDATE BookingWaitlist SET BwStatus = 2, BwSeen = 0, BwNote = " . StrSafe_DB(mb_substr($note, 0, 120))
         . ", BwDone = " . bk_waitlist_now_sql($tourId) . " WHERE BwId = " . intval($id));
 }
 
@@ -134,7 +134,7 @@ function bk_waitlist_close($id, $tourId, $note)
  */
 function bk_waitlist_pending($tourId, $session, $division, $class, $face)
 {
-    $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BK_Registrations
+    $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BookingRegistrations
         WHERE BrTournament = " . intval($tourId) . " AND BrValidated = 0 AND BrSession = " . intval($session) . "
           AND BrDivision = " . StrSafe_DB($division) . " AND BrClass = " . StrSafe_DB($class) . "
           AND BrFace = " . intval($face)));
@@ -149,7 +149,7 @@ function bk_waitlist_pending($tourId, $session, $division, $class, $face)
 function bk_waitlist_process($tourId)
 {
     $tourId = intval($tourId);
-    $rs = safe_r_sql("SELECT BwId FROM BK_Waitlist WHERE BwTournament = $tourId AND BwStatus = 0 LIMIT 1", false, true);
+    $rs = safe_r_sql("SELECT BwId FROM BookingWaitlist WHERE BwTournament = $tourId AND BwStatus = 0 LIMIT 1", false, true);
     if (!$rs || !safe_fetch($rs)) return 0;
     $cfg = bk_comp_config($tourId);
     if (!bk_waitlist_on($cfg) || empty($cfg->BcIsOpen) || bk_comp_finished($tourId)) return 0;
@@ -163,7 +163,7 @@ function bk_waitlist_process($tourId)
         $orders = array();
         foreach (bk_comp_sessions($tourId) as $s) $orders[] = intval($s->SesOrder);
         $rows = array();
-        $q = safe_r_sql("SELECT * FROM BK_Waitlist WHERE BwTournament = $tourId AND BwStatus = 0 ORDER BY BwId");
+        $q = safe_r_sql("SELECT * FROM BookingWaitlist WHERE BwTournament = $tourId AND BwStatus = 0 ORDER BY BwId");
         while ($r = safe_fetch($q)) $rows[] = $r;
         $rem = array();   // places left per departure and profile, for this run
 
@@ -202,7 +202,7 @@ function bk_waitlist_process($tourId)
                     array('face' => intval($w->BwFace), 'letter' => $w->BwWantLetter, 'with' => $w->BwWantWith));
                 if (empty($res['ok'])) continue;
 
-                safe_w_sql("UPDATE BK_Waitlist SET BwStatus = 1, BwSeen = 0, BwEnId = " . intval($res['enid'])
+                safe_w_sql("UPDATE BookingWaitlist SET BwStatus = 1, BwSeen = 0, BwEnId = " . intval($res['enid'])
                     . ", BwSession = $o, BwDone = " . bk_waitlist_now_sql($tourId) . " WHERE BwId = " . intval($w->BwId));
                 bk_log('WAIT_PROMOTE', $w->BwLicence);
                 bk_waitlist_declare_payment($tourId, $w);
@@ -222,10 +222,10 @@ function bk_waitlist_process($tourId)
 function bk_waitlist_sweep()
 {
     $t = safe_fetch(safe_r_sql("SELECT 1 AS x FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Waitlist'", false, true));
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BookingWaitlist'", false, true));
     if (!$t) return 0;
     $done = 0;
-    $rs = safe_r_sql("SELECT DISTINCT BwTournament FROM BK_Waitlist WHERE BwStatus = 0");
+    $rs = safe_r_sql("SELECT DISTINCT BwTournament FROM BookingWaitlist WHERE BwStatus = 0");
     $tours = array();
     while ($r = safe_fetch($rs)) $tours[] = intval($r->BwTournament);
     foreach ($tours as $t) $done += bk_waitlist_process($t);
@@ -238,7 +238,7 @@ function bk_waitlist_sweep()
  */
 function bk_waitlist_process_for($archerId, $licence)
 {
-    $rs = safe_r_sql("SELECT DISTINCT BwTournament FROM BK_Waitlist WHERE BwStatus = 0
+    $rs = safe_r_sql("SELECT DISTINCT BwTournament FROM BookingWaitlist WHERE BwStatus = 0
         AND " . bk_waitlist_who_sql($archerId, $licence), false, true);
     while ($rs && ($r = safe_fetch($rs))) {
         $t = intval($r->BwTournament);
@@ -252,7 +252,7 @@ function bk_waitlist_process_for($archerId, $licence)
 function bk_waitlist_position($w)
 {
     $s = intval($w->BwSession);
-    $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BK_Waitlist
+    $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BookingWaitlist
         WHERE BwTournament = " . intval($w->BwTournament) . " AND BwStatus = 0 AND BwId < " . intval($w->BwId) . "
           AND BwDivision = " . StrSafe_DB($w->BwDivision) . " AND BwClass = " . StrSafe_DB($w->BwClass) . "
           AND BwFace = " . intval($w->BwFace) . ($s ? " AND (BwSession = 0 OR BwSession = $s)" : '')));
@@ -262,13 +262,13 @@ function bk_waitlist_position($w)
 /** SELECT part shared by the archer and organiser views (competition, weapon, category). */
 function bk_waitlist_select_sql()
 {
-    return "SELECT w.*, t.ToName, t.ToWhere, t.ToWhenFrom, t.ToWhenTo,
-            d.DivDescription, c.ClDescription, l.LueFamilyName, l.LueName, l.LueCoDescr
-        FROM BK_Waitlist w
-        INNER JOIN Tournament t ON t.ToId = w.BwTournament
-        LEFT JOIN Divisions d ON d.DivTournament = w.BwTournament AND d.DivId = w.BwDivision" . bk_coll() . "
-        LEFT JOIN Classes c ON c.ClTournament = w.BwTournament AND c.ClId = w.BwClass" . bk_coll() . "
-        LEFT JOIN LookUpEntries l ON l.LueCode = w.BwLicence" . bk_coll();
+    return "SELECT BookingWaitlist.*, ToName, ToWhere, ToWhenFrom, ToWhenTo,
+            DivDescription, ClDescription, LueFamilyName, LueName, LueCoDescr
+        FROM BookingWaitlist
+        INNER JOIN Tournament ON ToId = BwTournament
+        LEFT JOIN Divisions ON DivTournament = BwTournament AND DivId = BwDivision" . bk_coll() . "
+        LEFT JOIN Classes ON ClTournament = BwTournament AND ClId = BwClass" . bk_coll() . "
+        LEFT JOIN LookUpEntries ON LueCode = BwLicence" . bk_coll();
 }
 
 /**
@@ -279,10 +279,10 @@ function bk_waitlist_for_archer($archerId, $licence)
 {
     $out = array();
     $rs = safe_r_sql(bk_waitlist_select_sql() . "
-        WHERE " . bk_waitlist_who_sql($archerId, $licence, 'w') . "
-          AND (w.BwStatus = 0 OR w.BwSeen = 0)
-          AND t.ToWhenTo >= " . bk_local_today_sql('t.ToTimeZone') . "
-        ORDER BY t.ToWhenFrom, w.BwId", false, true);
+        WHERE " . bk_waitlist_who_sql($archerId, $licence) . "
+          AND (BwStatus = 0 OR BwSeen = 0)
+          AND ToWhenTo >= " . bk_local_today_sql('ToTimeZone') . "
+        ORDER BY ToWhenFrom, BwId", false, true);
     while ($rs && ($r = safe_fetch($rs))) $out[] = $r;
     return $out;
 }
@@ -290,14 +290,14 @@ function bk_waitlist_for_archer($archerId, $licence)
 /** The archer has seen what happened to their waiting rows. */
 function bk_waitlist_mark_seen($archerId, $licence)
 {
-    safe_w_sql("UPDATE BK_Waitlist SET BwSeen = 1 WHERE BwStatus IN (1, 2) AND BwSeen = 0
+    safe_w_sql("UPDATE BookingWaitlist SET BwSeen = 1 WHERE BwStatus IN (1, 2) AND BwSeen = 0
         AND " . bk_waitlist_who_sql($archerId, $licence));
 }
 
 /** Leaves the list: only the archer concerned, or the one who put them on it. */
 function bk_waitlist_leave($id, $archerId, $licence)
 {
-    safe_w_sql("DELETE FROM BK_Waitlist WHERE BwId = " . intval($id) . " AND BwStatus = 0
+    safe_w_sql("DELETE FROM BookingWaitlist WHERE BwId = " . intval($id) . " AND BwStatus = 0
         AND " . bk_waitlist_who_sql($archerId, $licence));
     return safe_w_affected_rows() > 0;
 }
@@ -307,10 +307,10 @@ function bk_waitlist_of_tournament($tourId)
 {
     $tourId = intval($tourId);
     $out = array('waiting' => array(), 'done' => array());
-    $rs = safe_r_sql(bk_waitlist_select_sql() . " WHERE w.BwTournament = $tourId AND w.BwStatus = 0 ORDER BY w.BwId", false, true);
+    $rs = safe_r_sql(bk_waitlist_select_sql() . " WHERE BwTournament = $tourId AND BwStatus = 0 ORDER BY BwId", false, true);
     while ($rs && ($r = safe_fetch($rs))) $out['waiting'][] = $r;
-    $rs = safe_r_sql(bk_waitlist_select_sql() . " WHERE w.BwTournament = $tourId AND w.BwStatus IN (1, 2)
-        ORDER BY w.BwDone DESC, w.BwId DESC LIMIT 20", false, true);
+    $rs = safe_r_sql(bk_waitlist_select_sql() . " WHERE BwTournament = $tourId AND BwStatus IN (1, 2)
+        ORDER BY BwDone DESC, BwId DESC LIMIT 20", false, true);
     while ($rs && ($r = safe_fetch($rs))) $out['done'][] = $r;
     return $out;
 }
@@ -318,7 +318,7 @@ function bk_waitlist_of_tournament($tourId)
 /** Organiser: removes a waiting archer from the list. */
 function bk_waitlist_remove($tourId, $id)
 {
-    safe_w_sql("DELETE FROM BK_Waitlist WHERE BwId = " . intval($id) . " AND BwTournament = " . intval($tourId) . " AND BwStatus = 0");
+    safe_w_sql("DELETE FROM BookingWaitlist WHERE BwId = " . intval($id) . " AND BwTournament = " . intval($tourId) . " AND BwStatus = 0");
 }
 
 /**
@@ -328,7 +328,7 @@ function bk_waitlist_remove($tourId, $id)
 function bk_waitlist_register_now($tourId, $id, $session)
 {
     $tourId = intval($tourId);
-    $w = safe_fetch(safe_r_sql("SELECT * FROM BK_Waitlist WHERE BwId = " . intval($id) . "
+    $w = safe_fetch(safe_r_sql("SELECT * FROM BookingWaitlist WHERE BwId = " . intval($id) . "
         AND BwTournament = $tourId AND BwStatus = 0"));
     if (!$w) return array('ok' => false, 'msg' => bk_t('WlNotOnList'));
     $lue = bk_lookup_licence($w->BwLicence);
@@ -351,7 +351,7 @@ function bk_waitlist_register_now($tourId, $id, $session)
         array('role' => $w->BwByRole, 'who' => $w->BwBy, 'archer' => intval($w->BwArcher)),
         array('face' => intval($w->BwFace), 'letter' => $w->BwWantLetter, 'with' => $w->BwWantWith, 'skip_capacity' => true));
     if (empty($res['ok'])) return array('ok' => false, 'msg' => $res['msg'] ?? bk_t('RegFailed'));
-    safe_w_sql("UPDATE BK_Waitlist SET BwStatus = 1, BwSeen = 0, BwEnId = " . intval($res['enid'])
+    safe_w_sql("UPDATE BookingWaitlist SET BwStatus = 1, BwSeen = 0, BwEnId = " . intval($res['enid'])
         . ", BwSession = $session, BwDone = " . bk_waitlist_now_sql($tourId) . " WHERE BwId = " . intval($w->BwId));
     bk_waitlist_declare_payment($tourId, $w);
     if (!empty($res['validated'])) bk_replan_session($tourId, $session, $cfg);

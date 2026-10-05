@@ -57,6 +57,7 @@ $SKIP_AUTH = 1;
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+aut_table_names();   // module updated since the last page opened: see names-lib.php
 
 @set_time_limit(0);
 ini_set('memory_limit', '512M');
@@ -73,6 +74,7 @@ function mt_step($t)  { mt_log(''); mt_log('=== ' . $t . ' ==='); }
 $args    = array_slice($argv, 1);
 $argsStr = implode(' ', $args);
 $dryRun  = in_array('--dry-run', $args, true);
+// bytes: an ASCII command-line option
 $only    = preg_match('/--only=([a-z,]+)/i', $argsStr, $m) ? array_filter(explode(',', strtolower($m[1]))) : null;
 
 $cfg   = aut_local_config()['maintenance'] ?? array();

@@ -27,6 +27,7 @@ $SKIP_AUTH = 1;
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+aut_table_names();   // module updated since the last page opened: see names-lib.php
 require_once(dirname(__DIR__) . '/backup-lib.php');
 
 @set_time_limit(0);

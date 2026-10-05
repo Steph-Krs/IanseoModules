@@ -22,15 +22,15 @@ $enid = intval($_GET['enid'] ?? 0);
 if (!$enid) { http_response_code(404); exit; }
 
 // Allowed when the registration is the archer's OWN (Entries.EnCode = their licence) OR when
-// they made it for a club mate (group registration: BK_Registrations.BrArcher = their account).
+// they made it for a club mate (group registration: BookingRegistrations.BrArcher = their account).
 // Nothing else.
-$row = safe_fetch(safe_r_sql("SELECT e.EnTournament, q.QuSession, q.QuTarget
-    FROM Entries e
-    INNER JOIN Qualifications q ON q.QuId = e.EnId
-    LEFT  JOIN BK_Registrations r ON r.BrEnId = e.EnId
-    WHERE e.EnId = $enid
-      AND (e.EnCode = " . StrSafe_DB($archer->BaLicence) . "
-           OR r.BrArcher = " . intval($archer->BaId) . ")"));
+$row = safe_fetch(safe_r_sql("SELECT EnTournament, QuSession, QuTarget
+    FROM Entries
+    INNER JOIN Qualifications ON QuId = EnId
+    LEFT  JOIN BookingRegistrations ON BrEnId = EnId
+    WHERE EnId = $enid
+      AND (EnCode = " . StrSafe_DB($archer->BaLicence) . "
+           OR BrArcher = " . intval($archer->BaId) . ")"));
 if (!$row) { http_response_code(404); exit; }
 
 $tourId = intval($row->EnTournament);

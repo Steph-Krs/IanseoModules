@@ -19,6 +19,7 @@ if (defined('AUT_LEGAL_LOADED')) return;
 define('AUT_LEGAL_LOADED', true);
 
 require_once __DIR__ . '/lang-lib.php';
+require_once __DIR__ . '/names-lib.php';
 
 /** Legal configuration file (not versioned, specific to each server). */
 function aut_legal_file()
@@ -71,12 +72,30 @@ function aut_legal_fields()
     return $out;
 }
 
+/** Legal statuses of the operator: stored code => translated label. */
+function aut_legal_statuses()
+{
+    return array('person' => aut_t('AlStatusPerson'), 'association' => aut_t('AlStatusAssociation'),
+        'company' => aut_t('AlStatusCompany'), 'public' => aut_t('AlStatusPublic'));
+}
+
+/**
+ * Stored code of a status. Versions up to 1.1.16 stored the French words: they are read as the
+ * matching code, and saved as such at the next save. Any other value is kept as it is.
+ */
+function aut_legal_status_code($v)
+{
+    $legacy = array('particulier' => 'person', "soci\u{e9}t\u{e9}" => 'company', 'structure publique' => 'public');
+    return $legacy[$v] ?? $v;
+}
+
 /** Values of the operator (every key present, empty by default). */
 function aut_legal_operator()
 {
     $op = aut_legal_conf()['operator'];
     $out = array();
     foreach (array_keys(aut_legal_fields()) as $k) $out[$k] = trim((string) ($op[$k] ?? ''));
+    $out['status'] = aut_legal_status_code($out['status']);
     return $out;
 }
 
@@ -188,7 +207,7 @@ function aut_legal_gen_mentions($op)
     $pub  = _lop($op, 'publisher', $name);
     $h  = '<p>' . aut_t('LgMIntro', _le($site)) . '</p>';
     $h .= '<h2>' . _le(aut_t('LgMPublisherH')) . '</h2><ul>';
-    $h .= '<li>' . aut_t('LgMOperator', _le($name)) . ($op['status'] !== '' ? ' (' . _le($op['status']) . ')' : '') . '</li>';
+    $h .= '<li>' . aut_t('LgMOperator', _le($name)) . ($op['status'] !== '' ? ' (' . _le(aut_legal_statuses()[$op['status']] ?? $op['status']) . ')' : '') . '</li>';
     if ($op['siret'] !== '')   $h .= '<li>' . aut_t('LgMId', _le($op['siret'])) . '</li>';
     if ($op['address'] !== '') $h .= '<li>' . aut_t('LgMAddress', _le($op['address'])) . '</li>';
     if ($op['email'] !== '')   $h .= '<li>' . aut_t('LgMContact', '<a href="mailto:' . _le($op['email']) . '">' . _le($op['email']) . '</a>') . '</li>';
@@ -262,25 +281,26 @@ function aut_legal_gen_cookies($op)
 /* Acceptance of the terms of use (time-stamped + versioned)           */
 /* ------------------------------------------------------------------ */
 
-/** Schema: acceptance columns on AUT_Users (organisers). Idempotent. */
+/** Schema: acceptance columns on AuthUsers (organisers). Idempotent. */
 function aut_legal_ensure_schema()
 {
     static $done = false;
     if ($done) return;
     $done = true;
-    $q = safe_r_sql("SHOW COLUMNS FROM AUT_Users LIKE 'AuCguVer'");
+    aut_table_names();
+    $q = safe_r_sql("SHOW COLUMNS FROM AuthUsers LIKE 'AuCguVer'");
     if (!safe_fetch($q)) {
-        safe_w_sql("ALTER TABLE AUT_Users
+        safe_w_sql("ALTER TABLE AuthUsers
             ADD COLUMN AuCguVer VARCHAR(16) NOT NULL DEFAULT '' AFTER AuLastLogin,
             ADD COLUMN AuCguAt  DATETIME NULL AFTER AuCguVer");
     }
 }
 
-/** Has the organiser (AUT_Users.AuUsername) accepted the current version of the terms? */
+/** Has the organiser (AuthUsers.AuUsername) accepted the current version of the terms? */
 function aut_legal_org_ok($username)
 {
     aut_legal_ensure_schema();
-    $r = safe_fetch(safe_r_sql("SELECT AuCguVer FROM AUT_Users WHERE AuUsername = " . StrSafe_DB($username)));
+    $r = safe_fetch(safe_r_sql("SELECT AuCguVer FROM AuthUsers WHERE AuUsername = " . StrSafe_DB($username)));
     return $r && (string) $r->AuCguVer === (string) aut_legal_version();
 }
 
@@ -288,12 +308,12 @@ function aut_legal_org_ok($username)
 function aut_legal_org_record($username)
 {
     aut_legal_ensure_schema();
-    safe_w_sql("UPDATE AUT_Users SET AuCguVer = " . StrSafe_DB(aut_legal_version()) . ", AuCguAt = NOW()
+    safe_w_sql("UPDATE AuthUsers SET AuCguVer = " . StrSafe_DB(aut_legal_version()) . ", AuCguAt = NOW()
         WHERE AuUsername = " . StrSafe_DB($username));
 }
 
 /**
- * ARCHER side (BK_Archers): the column is created by the booking schema (bk_schema, v19).
+ * ARCHER side (BookingArchers): the column is created by the booking schema (bk_schema, v19).
  * The value already loaded on the archer object is read (bk_current_archer does SELECT a.*).
  */
 function aut_legal_archer_ok($archer)
@@ -304,6 +324,6 @@ function aut_legal_archer_ok($archer)
 /** Records the acceptance by an archer (server date/time + version). */
 function aut_legal_archer_record($archerId)
 {
-    safe_w_sql("UPDATE BK_Archers SET BaCguVer = " . StrSafe_DB(aut_legal_version()) . ", BaCguAt = NOW()
+    safe_w_sql("UPDATE BookingArchers SET BaCguVer = " . StrSafe_DB(aut_legal_version()) . ", BaCguAt = NOW()
         WHERE BaId = " . intval($archerId));
 }

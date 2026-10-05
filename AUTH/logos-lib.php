@@ -10,7 +10,7 @@
  * without logos.
  *
  * SOLUTION, in two clearly separate layers:
- *   1. a GLOBAL CACHE (AUT_ClubLogos, one logo per approval number) filled ONCE a day by
+ *   1. a GLOBAL CACHE (AuthClubLogos, one logo per approval number) filled ONCE a day by
  *      cron/sync-logos.php — the only layer that goes out on the network;
  *   2. a purely LOCAL PROPAGATION (no network) cache → `Flags` table + files
  *      "TV/Photos/{ToCode}-Fl-{approval}.jpg", which is what the core's printouts really
@@ -48,6 +48,7 @@ function aut_logos_config()
         // (see aut_json_strip_bom — a BOM would make json_decode fail silently).
         $f = __DIR__ . '/config.local.json';
         $raw = is_file($f) ? (string) @file_get_contents($f) : '';
+        // bytes: the UTF-8 BOM is three raw bytes
         if (substr($raw, 0, 3) === "\xEF\xBB\xBF") $raw = substr($raw, 3);
         $all = $raw !== '' ? (json_decode($raw, true) ?: array()) : array();
     }
@@ -93,15 +94,17 @@ function aut_logos_schema()
     static $done = false;
     if ($done) return;
     $done = true;
-    safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_ClubLogos (
-        ClgCode    VARCHAR(10) NOT NULL,
-        ClgJpg     MEDIUMBLOB NULL,
-        ClgHash    CHAR(32)  NOT NULL DEFAULT '',
-        ClgBytes   INT       NOT NULL DEFAULT 0,
-        ClgMissing TINYINT   NOT NULL DEFAULT 0,
-        ClgFetched DATETIME  NULL,
-        ClgTried   DATETIME  NULL,
-        PRIMARY KEY (ClgCode)
+    require_once __DIR__ . '/names-lib.php';
+    aut_table_names();   // before the CREATE: see names-lib.php
+    safe_w_sql("CREATE TABLE IF NOT EXISTS AuthClubLogos (
+        LgCode    VARCHAR(10) NOT NULL,
+        LgJpg     MEDIUMBLOB NULL,
+        LgHash    CHAR(32)  NOT NULL DEFAULT '',
+        LgBytes   INT       NOT NULL DEFAULT 0,
+        LgMissing TINYINT   NOT NULL DEFAULT 0,
+        LgFetched DATETIME  NULL,
+        LgTried   DATETIME  NULL,
+        PRIMARY KEY (LgCode)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 }
 
@@ -115,8 +118,8 @@ function aut_logos_club_codes()
     $out = array();
     $rs = safe_r_sql("SELECT DISTINCT LueCountry AS c FROM LookUpEntries WHERE LueCountry <> ''", false, true);
     while ($rs && ($r = safe_fetch($rs))) $out[trim($r->c)] = true;
-    $rs = safe_r_sql("SELECT DISTINCT c.CoCode AS c FROM Entries e
-        INNER JOIN Countries c ON c.CoId = e.EnCountry WHERE c.CoCode <> ''", false, true);
+    $rs = safe_r_sql("SELECT DISTINCT CoCode AS c FROM Entries
+        INNER JOIN Countries ON CoId = EnCountry WHERE CoCode <> ''", false, true);
     while ($rs && ($r = safe_fetch($rs))) $out[trim($r->c)] = true;
     unset($out['']);
     return array_keys($out);
@@ -152,16 +155,16 @@ function aut_logos_fetch_one($code, $timeout = 15)
     $http = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $ctype = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
 
-    safe_w_sql("INSERT INTO AUT_ClubLogos (ClgCode, ClgTried) VALUES ($q, NOW())
-        ON DUPLICATE KEY UPDATE ClgTried = NOW()");
+    safe_w_sql("INSERT INTO AuthClubLogos (LgCode, LgTried) VALUES ($q, NOW())
+        ON DUPLICATE KEY UPDATE LgTried = NOW()");
 
     if ($body === false || $http < 200 || $http >= 300) return 'fail';
 
     // Club without a logo: the endpoint answers 200 with an EMPTY body (text/html) — not an
     // outage, it is remembered so as not to mistake it for a failure.
     if ($body === '' || stripos($ctype, 'image/') !== 0) {
-        safe_w_sql("UPDATE AUT_ClubLogos SET ClgMissing = 1, ClgJpg = NULL, ClgHash = '',
-            ClgBytes = 0, ClgFetched = NOW() WHERE ClgCode = $q");
+        safe_w_sql("UPDATE AuthClubLogos SET LgMissing = 1, LgJpg = NULL, LgHash = '',
+            LgBytes = 0, LgFetched = NOW() WHERE LgCode = $q");
         return 'none';
     }
 
@@ -169,10 +172,10 @@ function aut_logos_fetch_one($code, $timeout = 15)
     if ($jpg === null) return 'fail';
 
     $hash = md5($jpg);
-    $cur = safe_fetch(safe_r_sql("SELECT ClgHash FROM AUT_ClubLogos WHERE ClgCode = $q", false, true));
-    $same = ($cur && (string) $cur->ClgHash === $hash);
-    safe_w_sql("UPDATE AUT_ClubLogos SET ClgJpg = " . StrSafe_DB($jpg) . ", ClgHash = " . StrSafe_DB($hash)
-        . ", ClgBytes = " . strlen($jpg) . ", ClgMissing = 0, ClgFetched = NOW() WHERE ClgCode = $q");
+    $cur = safe_fetch(safe_r_sql("SELECT LgHash FROM AuthClubLogos WHERE LgCode = $q", false, true));
+    $same = ($cur && (string) $cur->LgHash === $hash);
+    safe_w_sql("UPDATE AuthClubLogos SET LgJpg = " . StrSafe_DB($jpg) . ", LgHash = " . StrSafe_DB($hash)
+        . ", LgBytes = " . strlen($jpg) . ", LgMissing = 0, LgFetched = NOW() WHERE LgCode = $q");
     return $same ? 'same' : 'ok';
 }
 
@@ -231,9 +234,9 @@ function aut_logos_sync_tournament($tourId)
 
     // Clubs of the participants of THIS competition.
     $codes = array();
-    $rs = safe_r_sql("SELECT DISTINCT c.CoCode AS c FROM Entries e
-        INNER JOIN Countries c ON c.CoId = e.EnCountry
-        WHERE e.EnTournament = $tourId AND c.CoCode <> ''");
+    $rs = safe_r_sql("SELECT DISTINCT CoCode AS c FROM Entries
+        INNER JOIN Countries ON CoId = EnCountry
+        WHERE EnTournament = $tourId AND CoCode <> ''");
     while ($r = safe_fetch($rs)) $codes[] = trim($r->c);
     if (!$codes) return $res;
 
@@ -242,9 +245,9 @@ function aut_logos_sync_tournament($tourId)
     $in = array();
     foreach ($codes as $c) $in[] = StrSafe_DB($c);
     $logos = array();
-    $rs = safe_r_sql("SELECT ClgCode, ClgJpg FROM AUT_ClubLogos
-        WHERE ClgMissing = 0 AND ClgBytes > 0 AND ClgCode IN (" . implode(',', $in) . ")", false, true);
-    while ($rs && ($r = safe_fetch($rs))) $logos[trim($r->ClgCode)] = $r->ClgJpg;
+    $rs = safe_r_sql("SELECT LgCode, LgJpg FROM AuthClubLogos
+        WHERE LgMissing = 0 AND LgBytes > 0 AND LgCode IN (" . implode(',', $in) . ")", false, true);
+    while ($rs && ($r = safe_fetch($rs))) $logos[trim($r->LgCode)] = $r->LgJpg;
 
     $dir = $CFG->DOCUMENT_PATH . 'TV/Photos/';
     if (!is_dir($dir)) @mkdir($dir, 0775, true);
@@ -297,8 +300,8 @@ function aut_logos_ensure_club($tourId, $clubCode)
         $code = trim((string) $clubCode);
         if (!$tourId || $code === '') return false;
 
-        $r = safe_fetch(safe_r_sql("SELECT ClgJpg FROM AUT_ClubLogos WHERE ClgCode = " . StrSafe_DB($code)
-            . " AND ClgMissing = 0 AND ClgBytes > 0", false, true));
+        $r = safe_fetch(safe_r_sql("SELECT LgJpg FROM AuthClubLogos WHERE LgCode = " . StrSafe_DB($code)
+            . " AND LgMissing = 0 AND LgBytes > 0", false, true));
         if (!$r) return false;                       // not in the cache yet → the cron will deal with it
 
         $t = safe_fetch(safe_r_sql("SELECT ToCode FROM Tournament WHERE ToId = $tourId"));
@@ -306,15 +309,15 @@ function aut_logos_ensure_club($tourId, $clubCode)
         $safe = aut_logos_safe_code($t->ToCode);
         if ($safe === '') return false;
 
-        $set = "FlIocCode = " . StrSafe_DB(aut_logos_ioc()) . ", FlJPG = " . StrSafe_DB(base64_encode($r->ClgJpg));
+        $set = "FlIocCode = " . StrSafe_DB(aut_logos_ioc()) . ", FlJPG = " . StrSafe_DB(base64_encode($r->LgJpg));
         safe_w_sql("INSERT INTO Flags SET FlTournament = $tourId, FlCode = " . StrSafe_DB($code)
             . ", $set, FlSVG = '', FlContAssoc = '' ON DUPLICATE KEY UPDATE $set");
 
         $dir = $CFG->DOCUMENT_PATH . 'TV/Photos/';
         if (!is_dir($dir)) @mkdir($dir, 0775, true);
         $file = $dir . $safe . '-Fl-' . $code . '.jpg';
-        if (!is_file($file) || md5_file($file) !== md5($r->ClgJpg)) {
-            @file_put_contents($file, $r->ClgJpg);
+        if (!is_file($file) || md5_file($file) !== md5($r->LgJpg)) {
+            @file_put_contents($file, $r->LgJpg);
         }
         return true;
     } catch (\Throwable $e) {
@@ -327,9 +330,9 @@ function aut_logos_stats()
 {
     aut_logos_schema();
     $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS total,
-            SUM(ClgBytes > 0) AS withLogo, SUM(ClgMissing = 1) AS withoutLogo,
-            MAX(ClgFetched) AS lastFetch, SUM(ClgBytes) AS bytes
-        FROM AUT_ClubLogos", false, true));
+            SUM(LgBytes > 0) AS withLogo, SUM(LgMissing = 1) AS withoutLogo,
+            MAX(LgFetched) AS lastFetch, SUM(LgBytes) AS bytes
+        FROM AuthClubLogos", false, true));
     return $r ? array(
         'total'   => intval($r->total), 'with' => intval($r->withLogo),
         'without' => intval($r->withoutLogo), 'last' => $r->lastFetch,

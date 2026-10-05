@@ -3,9 +3,9 @@
  * lib/shop.php — the competition's shop (a generalised refreshment stall: souvenirs,
  * accommodation, access…).
  *
- * An item (BK_ShopItems) belongs to a free section (Refreshments, Souvenirs…). When it has an
- * option name (SiOptionName, e.g. "Size"), it has variants (BK_ShopVariants, e.g. S/M/L), each
- * with its own stock; otherwise it is a simple item with one stock. Orders (BK_ShopOrders) are a
+ * An item (BookingShopItems) belongs to a free section (Refreshments, Souvenirs…). When it has an
+ * option name (SiOptionName, e.g. "Size"), it has variants (BookingShopVariants, e.g. S/M/L), each
+ * with its own stock; otherwise it is a simple item with one stock. Orders (BookingShopOrders) are a
  * quantity per (competition, licence, item, variant), editable while the shop is open.
  * Stock 0 = unlimited; SiMaxPerPerson 0 = unlimited.
  *
@@ -43,7 +43,7 @@ function bk_shop_open($cfg)
 function bk_shop_has_items($tourId)
 {
     bk_schema();
-    $rs = safe_r_sql("SELECT 1 FROM BK_ShopItems
+    $rs = safe_r_sql("SELECT 1 FROM BookingShopItems
         WHERE SiTournament = " . intval($tourId) . " AND SiActive = 1 LIMIT 1");
     return (bool) safe_fetch($rs);
 }
@@ -58,7 +58,7 @@ function bk_shop_items($tourId, $activeOnly = false, $licence = null)
 {
     bk_schema();
     $tourId = intval($tourId);
-    $rs = safe_r_sql("SELECT * FROM BK_ShopItems WHERE SiTournament = $tourId"
+    $rs = safe_r_sql("SELECT * FROM BookingShopItems WHERE SiTournament = $tourId"
         . ($activeOnly ? " AND SiActive = 1" : "") . " ORDER BY SiOrder, SiId");
     $items = array();
     while ($r = safe_fetch($rs)) {
@@ -73,7 +73,7 @@ function bk_shop_items($tourId, $activeOnly = false, $licence = null)
     if (!$items) return array();
     $ids = implode(',', array_map('intval', array_keys($items)));
 
-    $rs = safe_r_sql("SELECT * FROM BK_ShopVariants WHERE SvItem IN ($ids) ORDER BY SvOrder, SvId");
+    $rs = safe_r_sql("SELECT * FROM BookingShopVariants WHERE SvItem IN ($ids) ORDER BY SvOrder, SvId");
     while ($r = safe_fetch($rs)) {
         $it = intval($r->SvItem);
         if (isset($items[$it])) $items[$it]['variants'][intval($r->SvId)] = array(
@@ -82,14 +82,14 @@ function bk_shop_items($tourId, $activeOnly = false, $licence = null)
         );
     }
 
-    $rs = safe_r_sql("SELECT SoItem, SoVariant, SUM(SoQty) q FROM BK_ShopOrders
+    $rs = safe_r_sql("SELECT SoItem, SoVariant, SUM(SoQty) q FROM BookingShopOrders
         WHERE SoTournament = $tourId GROUP BY SoItem, SoVariant");
     $ord = array();
     while ($r = safe_fetch($rs)) $ord[intval($r->SoItem) . ':' . intval($r->SoVariant)] = intval($r->q);
 
     $mine = array();
     if ($licence !== null) {
-        $rs = safe_r_sql("SELECT SoItem, SoVariant, SoQty FROM BK_ShopOrders
+        $rs = safe_r_sql("SELECT SoItem, SoVariant, SoQty FROM BookingShopOrders
             WHERE SoTournament = $tourId AND SoLicence = " . StrSafe_DB($licence));
         while ($r = safe_fetch($rs)) $mine[intval($r->SoItem) . ':' . intval($r->SoVariant)] = intval($r->SoQty);
     }
@@ -123,13 +123,13 @@ function bk_shop_order_set($tourId, $licence, $itemId, $variantId, $qty)
     $variantId = intval($variantId); $qty = max(0, intval($qty));
     $lic = StrSafe_DB($licence);
 
-    $rs = safe_r_sql("SELECT * FROM BK_ShopItems WHERE SiId = $itemId AND SiTournament = $tourId AND SiActive = 1");
+    $rs = safe_r_sql("SELECT * FROM BookingShopItems WHERE SiId = $itemId AND SiTournament = $tourId AND SiActive = 1");
     $it = safe_fetch($rs);
     if (!$it) return array('ok' => false, 'msg' => bk_t('ShopItemGone'));
 
     if (trim((string) $it->SiOptionName) !== '') {
         if ($variantId <= 0) return array('ok' => false, 'msg' => bk_t('ShopPickOption'));
-        $rs = safe_r_sql("SELECT SvStock FROM BK_ShopVariants WHERE SvId = $variantId AND SvItem = $itemId");
+        $rs = safe_r_sql("SELECT SvStock FROM BookingShopVariants WHERE SvId = $variantId AND SvItem = $itemId");
         $v = safe_fetch($rs);
         if (!$v) return array('ok' => false, 'msg' => bk_t('ShopBadOption'));
         $stock = intval($v->SvStock);
@@ -138,11 +138,11 @@ function bk_shop_order_set($tourId, $licence, $itemId, $variantId, $qty)
         $stock = intval($it->SiStock);
     }
 
-    $rs = safe_r_sql("SELECT SoQty FROM BK_ShopOrders WHERE SoTournament = $tourId
+    $rs = safe_r_sql("SELECT SoQty FROM BookingShopOrders WHERE SoTournament = $tourId
         AND SoLicence = $lic AND SoItem = $itemId AND SoVariant = $variantId");
     $cur = safe_fetch($rs); $mineOld = $cur ? intval($cur->SoQty) : 0;
 
-    $rs = safe_r_sql("SELECT COALESCE(SUM(SoQty),0) q FROM BK_ShopOrders
+    $rs = safe_r_sql("SELECT COALESCE(SUM(SoQty),0) q FROM BookingShopOrders
         WHERE SoTournament = $tourId AND SoItem = $itemId AND SoVariant = $variantId");
     $others = intval(safe_fetch($rs)->q) - $mineOld;
     if ($stock > 0 && $qty > $stock - $others) {
@@ -151,7 +151,7 @@ function bk_shop_order_set($tourId, $licence, $itemId, $variantId, $qty)
 
     $maxper = intval($it->SiMaxPerPerson);
     if ($maxper > 0) {
-        $rs = safe_r_sql("SELECT COALESCE(SUM(SoQty),0) q FROM BK_ShopOrders
+        $rs = safe_r_sql("SELECT COALESCE(SUM(SoQty),0) q FROM BookingShopOrders
             WHERE SoTournament = $tourId AND SoLicence = $lic AND SoItem = $itemId AND SoVariant <> $variantId");
         if (intval(safe_fetch($rs)->q) + $qty > $maxper) {
             return array('ok' => false, 'msg' => bk_t('ShopMaxPer', $maxper));
@@ -159,10 +159,10 @@ function bk_shop_order_set($tourId, $licence, $itemId, $variantId, $qty)
     }
 
     if ($qty === 0) {
-        safe_w_sql("DELETE FROM BK_ShopOrders WHERE SoTournament = $tourId
+        safe_w_sql("DELETE FROM BookingShopOrders WHERE SoTournament = $tourId
             AND SoLicence = $lic AND SoItem = $itemId AND SoVariant = $variantId");
     } else {
-        safe_w_sql("INSERT INTO BK_ShopOrders (SoTournament, SoLicence, SoItem, SoVariant, SoQty)
+        safe_w_sql("INSERT INTO BookingShopOrders (SoTournament, SoLicence, SoItem, SoVariant, SoQty)
             VALUES ($tourId, $lic, $itemId, $variantId, $qty)
             ON DUPLICATE KEY UPDATE SoQty = $qty");
     }
@@ -173,9 +173,9 @@ function bk_shop_order_set($tourId, $licence, $itemId, $variantId, $qty)
 function bk_shop_order_total($tourId, $licence)
 {
     bk_schema();
-    $rs = safe_r_sql("SELECT COALESCE(SUM(o.SoQty * i.SiPrice), 0) t FROM BK_ShopOrders o
-        INNER JOIN BK_ShopItems i ON i.SiId = o.SoItem
-        WHERE o.SoTournament = " . intval($tourId) . " AND o.SoLicence = " . StrSafe_DB($licence) . " AND o.SoQty > 0");
+    $rs = safe_r_sql("SELECT COALESCE(SUM(SoQty * SiPrice), 0) t FROM BookingShopOrders
+        INNER JOIN BookingShopItems ON SiId = SoItem
+        WHERE SoTournament = " . intval($tourId) . " AND SoLicence = " . StrSafe_DB($licence) . " AND SoQty > 0");
     $r = safe_fetch($rs);
     return $r ? (float) $r->t : 0.0;
 }
@@ -184,12 +184,12 @@ function bk_shop_order_total($tourId, $licence)
 function bk_shop_order_lines($tourId, $licence)
 {
     bk_schema();
-    $rs = safe_r_sql("SELECT i.SiLabel, i.SiSection, i.SiPrice, v.SvLabel, o.SoQty
-        FROM BK_ShopOrders o
-        INNER JOIN BK_ShopItems i ON i.SiId = o.SoItem
-        LEFT  JOIN BK_ShopVariants v ON v.SvId = o.SoVariant
-        WHERE o.SoTournament = " . intval($tourId) . " AND o.SoLicence = " . StrSafe_DB($licence) . " AND o.SoQty > 0
-        ORDER BY i.SiOrder, i.SiId");
+    $rs = safe_r_sql("SELECT SiLabel, SiSection, SiPrice, SvLabel, SoQty
+        FROM BookingShopOrders
+        INNER JOIN BookingShopItems ON SiId = SoItem
+        LEFT  JOIN BookingShopVariants ON SvId = SoVariant
+        WHERE SoTournament = " . intval($tourId) . " AND SoLicence = " . StrSafe_DB($licence) . " AND SoQty > 0
+        ORDER BY SiOrder, SiId");
     $out = array();
     while ($r = safe_fetch($rs)) {
         $out[] = array(
@@ -228,10 +228,10 @@ function bk_shop_item_upsert($tourId, $d)
         . ", SiActive = " . (empty($d['active']) ? 0 : 1);
     $id = intval($d['id'] ?? 0);
     if ($id > 0) {
-        safe_w_sql("UPDATE BK_ShopItems SET $set WHERE SiId = $id AND SiTournament = $tourId");
+        safe_w_sql("UPDATE BookingShopItems SET $set WHERE SiId = $id AND SiTournament = $tourId");
         return $id;
     }
-    safe_w_sql("INSERT INTO BK_ShopItems SET SiTournament = $tourId, $set");
+    safe_w_sql("INSERT INTO BookingShopItems SET SiTournament = $tourId, $set");
     return intval(safe_w_last_id());   // id on the WRITE connection (READ_CON would give 0)
 }
 
@@ -239,10 +239,10 @@ function bk_shop_item_delete($tourId, $itemId)
 {
     bk_schema();
     $tourId = intval($tourId); $itemId = intval($itemId);
-    if (!safe_fetch(safe_r_sql("SELECT SiId FROM BK_ShopItems WHERE SiId = $itemId AND SiTournament = $tourId"))) return;
-    safe_w_sql("DELETE FROM BK_ShopVariants WHERE SvItem = $itemId");
-    safe_w_sql("DELETE FROM BK_ShopOrders WHERE SoItem = $itemId AND SoTournament = $tourId");
-    safe_w_sql("DELETE FROM BK_ShopItems WHERE SiId = $itemId AND SiTournament = $tourId");
+    if (!safe_fetch(safe_r_sql("SELECT SiId FROM BookingShopItems WHERE SiId = $itemId AND SiTournament = $tourId"))) return;
+    safe_w_sql("DELETE FROM BookingShopVariants WHERE SvItem = $itemId");
+    safe_w_sql("DELETE FROM BookingShopOrders WHERE SoItem = $itemId AND SoTournament = $tourId");
+    safe_w_sql("DELETE FROM BookingShopItems WHERE SiId = $itemId AND SiTournament = $tourId");
 }
 
 function bk_shop_variant_upsert($itemId, $d)
@@ -254,10 +254,10 @@ function bk_shop_variant_upsert($itemId, $d)
         . ", SvOrder = " . max(0, intval($d['order'] ?? 0));
     $id = intval($d['id'] ?? 0);
     if ($id > 0) {
-        safe_w_sql("UPDATE BK_ShopVariants SET $set WHERE SvId = $id AND SvItem = $itemId");
+        safe_w_sql("UPDATE BookingShopVariants SET $set WHERE SvId = $id AND SvItem = $itemId");
         return $id;
     }
-    safe_w_sql("INSERT INTO BK_ShopVariants SET SvItem = $itemId, $set");
+    safe_w_sql("INSERT INTO BookingShopVariants SET SvItem = $itemId, $set");
     return intval(safe_w_last_id());   // id on the WRITE connection (READ_CON would give 0)
 }
 
@@ -265,6 +265,6 @@ function bk_shop_variant_delete($variantId)
 {
     bk_schema();
     $variantId = intval($variantId);
-    safe_w_sql("DELETE FROM BK_ShopOrders WHERE SoVariant = $variantId");
-    safe_w_sql("DELETE FROM BK_ShopVariants WHERE SvId = $variantId");
+    safe_w_sql("DELETE FROM BookingShopOrders WHERE SoVariant = $variantId");
+    safe_w_sql("DELETE FROM BookingShopVariants WHERE SvId = $variantId");
 }

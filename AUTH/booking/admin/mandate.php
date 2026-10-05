@@ -5,8 +5,9 @@
  * Two roles:
  *  1. Settings page (ianseo look): template, colour, logos to show, automatic sections to hide,
  *     free text blocks.
- *  2. Printable preview (?print=1): standalone HTML document in the chosen colours. The rendering
- *     itself lives in bk_mandate_document() (lib), shared with the public view the archers read.
+ *  2. Preview (?print=1): standalone HTML document in the chosen colours. The rendering itself
+ *     lives in bk_mandate_document() (lib), shared with the public view the archers read.
+ *  3. Paper (?pdf=1): the same content through the core's PDF classes (lib/mandate-pdf.php).
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -36,7 +37,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         // Visibility to the archers (same effect as the box of "What the archers see"). Three
         // states in BcShowMandate: 1 or 0 written explicitly. PRG (reload).
         $v = (intval($_POST['set_visible']) === 1) ? 1 : 0;
-        safe_w_sql("UPDATE BK_Competitions SET BcShowMandate = $v WHERE BcTournament = $TOUR");
+        safe_w_sql("UPDATE BookingCompetitions SET BcShowMandate = $v WHERE BcTournament = $TOUR");
         header('Location: ' . $self . ($v ? '?vis=1' : '?vis=0'));
         exit;
     } else {
@@ -55,11 +56,20 @@ $hasMandate     = trim((string) ($cfg->BcMandate ?? '')) !== '';
 $mandateVisible = bk_mandate_visible($cfg);
 
 /* ================================================================== */
-/* Printable preview — the shared rendering does the work (lib)       */
+/* Preview and PDF — the shared renderings do the work (lib)          */
 /* ================================================================== */
+// bytes: an ASCII server variable
+$scheme = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
+$abs    = ($_SERVER['HTTP_HOST'] ?? '') ? $scheme . '://' . $_SERVER['HTTP_HOST'] : '';
+$pdfIcon = '<img src="' . bk_e($CFG->ROOT_DIR . 'Common/Images/pdf.gif') . '" alt=""> ';
+if (!empty($_GET['pdf']) && $data) {
+    require_once dirname(__DIR__) . '/lib/mandate-pdf.php';
+    bk_mandate_pdf($TOUR, $data, $m, array(
+        'regUrl'  => $abs . bk_public_url('competition.php?t=' . $TOUR),
+        'shopUrl' => $abs . bk_public_url('shop.php?t=' . $TOUR),
+    ));
+}
 if (!empty($_GET['print']) && $data) {
-    $scheme = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
-    $abs    = ($_SERVER['HTTP_HOST'] ?? '') ? $scheme . '://' . $_SERVER['HTTP_HOST'] : '';
     bk_mandate_document($data, $m, array(
         // Organiser: ianseo session open → logos through TourLogo.php.
         'logo'    => function ($type, $w) use ($CFG) {
@@ -67,7 +77,7 @@ if (!empty($_GET['print']) && $data) {
         },
         'regUrl'  => $abs . bk_public_url('competition.php?t=' . $TOUR),
         'shopUrl' => $abs . bk_public_url('shop.php?t=' . $TOUR),
-        'toolbar' => '<button type="button" class="mn-print" onclick="window.print()">' . bk_e(bk_t('PrintOrPdf')) . '</button>'
+        'toolbar' => '<a class="mn-print" href="' . bk_e($self) . '?pdf=1" target="_blank" rel="noopener">' . $pdfIcon . bk_e(bk_t('PrintOrPdf')) . '</a>'
                    . '<a class="mn-close" href="' . bk_e($self) . '">' . bk_e(bk_t('AmBackSettings')) . '</a>',
     ));
     exit;
@@ -193,7 +203,8 @@ foreach (bk_mandate_sections() as $k => $lab) {
         . '<textarea id="block_' . bk_e($k) . '" name="block_' . bk_e($k) . '" maxlength="4000">' . bk_e($m['blocks'][$k] ?? '') . '</textarea>';
 }
 $out .= '</div><p><button type="submit" class="bk-btn bk-btn-primary">' . bk_e(bk_t('AmSave')) . '</button> &nbsp; '
-    . '<a class="bk-btn" href="' . bk_e($self) . '?print=1" target="_blank" rel="noopener">' . bk_e(bk_t('AmPreview')) . '</a></p>'
+    . '<a class="bk-btn" href="' . bk_e($self) . '?print=1" target="_blank" rel="noopener">' . bk_e(bk_t('AmPreview')) . '</a> &nbsp; '
+    . '<a class="bk-btn" href="' . bk_e($self) . '?pdf=1" target="_blank" rel="noopener">' . $pdfIcon . bk_e(bk_t('PrintOrPdf')) . '</a></p>'
     . '</form></div>';
 echo $out;
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

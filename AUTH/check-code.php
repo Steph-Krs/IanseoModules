@@ -17,22 +17,23 @@ $code = preg_replace('/[^0-9a-z._-]+/sim', '_', $_REQUEST['code'] ?? '');
 if (!empty($_SESSION['AUTH_ROOT']) || aut_is_localhost() || empty($CFG->USERAUTH)) {
     $q = safe_r_sql("SELECT ToId FROM Tournament WHERE ToCode=" . StrSafe_DB($code));
     $exists = (bool)safe_fetch($q);
-    JsonOut(array('free' => !$exists, 'msg' => $exists
+    JsonOut(array('error' => 0, 'free' => !$exists, 'msg' => $exists
         ? aut_t('CodeAdminOverwrite')
         : ''));
 }
 
 if (empty($_SESSION['AUTH_User'])) {
-    JsonOut(array('free' => false, 'msg' => aut_t('CodeSessionExpired')));
+    JsonOut(array('error' => 1, 'free' => false, 'msg' => aut_t('CodeSessionExpired')));
 }
 
 // unchanged code (edited without renaming): nothing to check
 if ($code !== '' && strcasecmp($code, $_SESSION['TourCode'] ?? '') === 0) {
-    JsonOut(array('free' => true, 'msg' => ''));
+    JsonOut(array('error' => 0, 'free' => true, 'msg' => ''));
 }
 
 $state = aut_code_status($code, $_SESSION['AUTH_ROLE'] ?? '', $_SESSION['AUTH_SCOPE'] ?? '');
 JsonOut(array(
+    'error' => 0,
     'free' => $state == 'free',
     'msg'  => $state == 'free' ? '' : aut_code_reason($state, $code, false),
 ));

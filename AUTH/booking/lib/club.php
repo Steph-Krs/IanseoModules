@@ -4,7 +4,7 @@
  *
  * Standalone: the module NEVER `require`s AUTH and does not assume it is there.
  * Two sources of rights, added together:
- *   1. BK_ClubManagers — the module's own table, filled by the administrator. This is the
+ *   1. BookingClubManagers — the module's own table, filled by the administrator. This is the
  *      fallback that makes the feature usable without any accounts module.
  *   2. The ianseo session, IF an accounts module set one: read-only use of
  *      $_SESSION['AUTH_ROLE'] / ['AUTH_SCOPE'] (session convention shared by the modules).
@@ -27,7 +27,7 @@ function bk_manager_scopes($archer)
     $out = array();
 
     if ($archer) {
-        $rs = safe_r_sql("SELECT BmClub FROM BK_ClubManagers WHERE BmArcher = " . intval($archer->BaId));
+        $rs = safe_r_sql("SELECT BmClub FROM BookingClubManagers WHERE BmArcher = " . intval($archer->BaId));
         while ($r = safe_fetch($rs)) $out[] = $r->BmClub;
     }
 
@@ -59,11 +59,13 @@ function bk_scopes_sql($scopes, $col = 'LueCountry')
 /** Is a given approval number in the scope? (server check before writing) */
 function bk_scope_covers($scopes, $clubCode)
 {
+    // bytes: licence numbers and club codes are ASCII letters and digits
     $club = strtoupper(trim((string) $clubCode));
     foreach ($scopes as $s) {
         $s = strtoupper(trim((string) $s));
         if (strpbrk($s, '%_') !== false) {
             $re = '';
+            // bytes: licence numbers and club codes are ASCII letters and digits
             foreach (str_split($s) as $ch) {
                 if ($ch === '%')     $re .= '.*';
                 elseif ($ch === '_') $re .= '.';

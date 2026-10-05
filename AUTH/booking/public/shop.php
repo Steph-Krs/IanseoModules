@@ -23,7 +23,7 @@ $member = true;
 if ($tourId && intval($cfg->BcPublishLevel ?? 1) === 1) {
     $l = StrSafe_DB(bk_clean_licence($archer->BaLicence));
     $member = (bool) safe_fetch(safe_r_sql("SELECT 1 FROM Entries WHERE EnTournament = $tourId AND EnCode = $l
-        UNION SELECT 1 FROM BK_ShopOrders WHERE SoTournament = $tourId AND SoLicence = $l LIMIT 1"));
+        UNION SELECT 1 FROM BookingShopOrders WHERE SoTournament = $tourId AND SoLicence = $l LIMIT 1"));
 }
 if (!$tourId || !$tour || !bk_shop_has_items($tourId) || !bk_comp_payments_on($cfg) || !$member) {
     bk_head(bk_t('Shop'), 'card');

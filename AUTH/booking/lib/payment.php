@@ -7,12 +7,12 @@
  *   participant entered/imported in ianseo), priced by the tariff configured for the
  *   competition (base, category, departure, provenance, multi-registration rank), plus the
  *   shop orders. Later: what is consumed on site, in the same account.
- * - PAID: the sum of the journal BK_Ledger (payments, refunds, cancellations — signed).
+ * - PAID: the sum of the journal BookingLedger (payments, refunds, cancellations — signed).
  * - REMAINING = due - paid; negative = paid too much, a refund to make.
  * The organiser manages it on admin/dues.php ("Paiements"); the archer sees it in "Mes
  * inscriptions", on the receipt (any time, with every line and movement) and, for a
  * competition over with something left to pay, on the home page.
- * BK_Payments keeps the archer's declared payment choice (PyDecl*). Its former "paid" tick
+ * BookingPayments keeps the archer's declared payment choice (PyDecl*). Its former "paid" tick
  * (PyPaid) is taken over once into the journal (bk_ledger_migrate).
  * No invoice: the legal elements (SIRET, address, VAT, sequential number) are not there.
  */
@@ -101,7 +101,7 @@ function bk_payment_declare($tourId, $licence, $method, $when)
     $method = array_key_exists($method, bk_payment_methods()) ? $method : '';
     $when = in_array($when, array('before', 'onsite'), true) ? $when : '';
     $lic = StrSafe_DB($licence);
-    safe_w_sql("INSERT INTO BK_Payments (PyTournament, PyLicence, PyDeclMethod, PyDeclWhen)
+    safe_w_sql("INSERT INTO BookingPayments (PyTournament, PyLicence, PyDeclMethod, PyDeclWhen)
         VALUES ($tourId, $lic, " . StrSafe_DB($method) . ", " . StrSafe_DB($when) . ")
         ON DUPLICATE KEY UPDATE PyDeclMethod = " . StrSafe_DB($method) . ", PyDeclWhen = " . StrSafe_DB($when));
 }
@@ -125,7 +125,7 @@ function bk_payinfo_from_post($post)
 function bk_payment_get($tourId, $licence)
 {
     bk_schema();
-    return safe_fetch(safe_r_sql("SELECT * FROM BK_Payments
+    return safe_fetch(safe_r_sql("SELECT * FROM BookingPayments
         WHERE PyTournament = " . intval($tourId) . " AND PyLicence = " . StrSafe_DB($licence))) ?: null;
 }
 
@@ -136,11 +136,11 @@ function bk_payment_is_paid($tourId, $licence)
     return $a['remaining'] <= 0.005;
 }
 
-/** Declared payment choices of a competition: [licence => BK_Payments row]. */
+/** Declared payment choices of a competition: [licence => BookingPayments row]. */
 function bk_payment_map($tourId)
 {
     bk_schema();
-    $rs = safe_r_sql("SELECT * FROM BK_Payments WHERE PyTournament = " . intval($tourId));
+    $rs = safe_r_sql("SELECT * FROM BookingPayments WHERE PyTournament = " . intval($tourId));
     $out = array();
     while ($r = safe_fetch($rs)) $out[$r->PyLicence] = $r;
     return $out;
@@ -195,7 +195,7 @@ function bk_account_registrations($tourId, $account = null)
         FROM Entries
         LEFT JOIN Qualifications ON QuId = EnId
         LEFT JOIN Countries ON CoId = EnCountry
-        LEFT JOIN BK_Registrations ON BrEnId = EnId
+        LEFT JOIN BookingRegistrations ON BrEnId = EnId
         LEFT JOIN Divisions ON DivTournament = EnTournament AND DivId = EnDivision
         LEFT JOIN Classes ON ClTournament = EnTournament AND ClId = EnClass
         WHERE $where
@@ -221,7 +221,7 @@ function bk_account_registrations($tourId, $account = null)
 }
 
 /**
- * Takes over the former "paid" ticks of a competition (BK_Payments.PyPaid) into the
+ * Takes over the former "paid" ticks of a competition (BookingPayments.PyPaid) into the
  * journal, once: one payment of what was due at that moment, with its method, date and
  * author. Each tick is claimed by an UPDATE before its line is written, so that two pages
  * opened at the same time cannot both write it.
@@ -230,12 +230,12 @@ function bk_ledger_migrate($tourId)
 {
     bk_schema();
     $tourId = intval($tourId);
-    $rs = safe_r_sql("SELECT PyLicence, PyMethod, PyPaidAt, PyBy FROM BK_Payments
+    $rs = safe_r_sql("SELECT PyLicence, PyMethod, PyPaidAt, PyBy FROM BookingPayments
         WHERE PyTournament = $tourId AND PyPaid = 1 AND PyLedger = 0");
     $rows = array();
     while ($r = safe_fetch($rs)) $rows[] = $r;
     foreach ($rows as $r) {
-        safe_w_sql("UPDATE BK_Payments SET PyLedger = 1 WHERE PyTournament = $tourId
+        safe_w_sql("UPDATE BookingPayments SET PyLedger = 1 WHERE PyTournament = $tourId
             AND PyLicence = " . StrSafe_DB($r->PyLicence) . " AND PyLedger = 0");
         if (safe_w_affected_rows() < 1) continue;
         $due = bk_account_due($tourId, $r->PyLicence);
@@ -260,7 +260,7 @@ function bk_account_due($tourId, $account)
 function bk_ledger_moves($tourId, $account)
 {
     $out = array();
-    $rs = safe_r_sql("SELECT * FROM BK_Ledger WHERE BlgTournament = " . intval($tourId) . "
+    $rs = safe_r_sql("SELECT * FROM BookingLedger WHERE BlgTournament = " . intval($tourId) . "
         AND BlgAccount = " . StrSafe_DB($account) . " ORDER BY BlgWhen, BlgId");
     while ($r = safe_fetch($rs)) $out[] = $r;
     return $out;
@@ -309,14 +309,14 @@ function bk_accounts($tourId)
             'club_code' => $a['club_code'], 'club_name' => $a['club_name'], 'count' => count($a['rows']),
             'online' => $a['online'], 'reg' => $a['reg']));
     }
-    $rs = safe_r_sql("SELECT SoLicence AS k, SUM(SoQty * SiPrice) AS t FROM BK_ShopOrders
-        INNER JOIN BK_ShopItems ON SiId = SoItem
+    $rs = safe_r_sql("SELECT SoLicence AS k, SUM(SoQty * SiPrice) AS t FROM BookingShopOrders
+        INNER JOIN BookingShopItems ON SiId = SoItem
         WHERE SoTournament = $tourId AND SoQty > 0 GROUP BY SoLicence");
     while ($r = safe_fetch($rs)) {
         if (!isset($out[$r->k])) $out[$r->k] = array_merge($blank, array('account' => $r->k, 'licence' => $r->k));
         $out[$r->k]['shop'] = round((float) $r->t, 2);
     }
-    $rs = safe_r_sql("SELECT BlgAccount AS k, SUM(BlgAmount) AS p, COUNT(*) AS n FROM BK_Ledger
+    $rs = safe_r_sql("SELECT BlgAccount AS k, SUM(BlgAmount) AS p, COUNT(*) AS n FROM BookingLedger
         WHERE BlgTournament = $tourId GROUP BY BlgAccount");
     while ($r = safe_fetch($rs)) {
         if (!isset($out[$r->k])) {
@@ -328,7 +328,7 @@ function bk_accounts($tourId)
     $decl = bk_payment_map($tourId);
     foreach ($out as $k => &$a) {
         if ($a['name'] === '' && $a['licence'] !== '') {   // shop or journal only: name from the account or the federal file
-            $n = safe_fetch(safe_r_sql("SELECT BaFamilyName AS f, BaName AS g, BaClubCode AS c FROM BK_Archers
+            $n = safe_fetch(safe_r_sql("SELECT BaFamilyName AS f, BaName AS g, BaClubCode AS c FROM BookingArchers
                     WHERE BaLicence = " . StrSafe_DB($a['licence'])))
                 ?: safe_fetch(safe_r_sql("SELECT LueFamilyName AS f, LueName AS g, LueCountry AS c FROM LookUpEntries
                     WHERE LueCode = " . StrSafe_DB($a['licence']) . " ORDER BY LueDefault DESC LIMIT 1"));
@@ -385,11 +385,11 @@ function bk_ledger_add($tourId, $account, $kind, $amount, $method, $date, $label
     $signed = $kind === 'refund' ? -$amount : $amount;
     // Re-import anchor (lib/adopt.php): a competition handled in ianseo only has no row yet,
     // and its payments would be left behind when a newer version of it is imported.
-    safe_w_sql("INSERT IGNORE INTO BK_Competitions (BcTournament, BcCode) SELECT ToId, ToCode FROM Tournament WHERE ToId = $tourId");
+    safe_w_sql("INSERT IGNORE INTO BookingCompetitions (BcTournament, BcCode) SELECT ToId, ToCode FROM Tournament WHERE ToId = $tourId");
     $when = preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', (string) $date, $dm) && checkdate((int) $dm[2], (int) $dm[3], (int) $dm[1])
         ? StrSafe_DB($date . ' 12:00:00')
         : bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)");
-    safe_w_sql("INSERT INTO BK_Ledger SET BlgTournament = $tourId,
+    safe_w_sql("INSERT INTO BookingLedger SET BlgTournament = $tourId,
         BlgAccount = " . StrSafe_DB(mb_substr((string) $account, 0, 25)) . ",
         BlgKind = "    . StrSafe_DB($kind) . ",
         BlgAmount = "  . StrSafe_DB(number_format($signed, 2, '.', '')) . ",
@@ -410,12 +410,12 @@ function bk_ledger_cancel($tourId, $id, $by)
 {
     bk_schema();
     $tourId = intval($tourId);
-    $l = safe_fetch(safe_r_sql("SELECT * FROM BK_Ledger WHERE BlgId = " . intval($id) . "
+    $l = safe_fetch(safe_r_sql("SELECT * FROM BookingLedger WHERE BlgId = " . intval($id) . "
         AND BlgTournament = $tourId AND BlgKind <> 'cancel' AND BlgCancelled = 0"));
     if (!$l) return 0;
     $kinds = bk_ledger_kinds();
     $d = bk_date_iso($l->BlgWhen);
-    safe_w_sql("INSERT INTO BK_Ledger SET BlgTournament = $tourId,
+    safe_w_sql("INSERT INTO BookingLedger SET BlgTournament = $tourId,
         BlgAccount = " . StrSafe_DB($l->BlgAccount) . ", BlgKind = 'cancel',
         BlgAmount = " . StrSafe_DB(number_format(-(float) $l->BlgAmount, 2, '.', '')) . ",
         BlgMethod = " . StrSafe_DB($l->BlgMethod) . ",
@@ -427,7 +427,7 @@ function bk_ledger_cancel($tourId, $id, $by)
         BlgCreated = " . bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)") . ",
         BlgBy = " . StrSafe_DB(mb_substr((string) $by, 0, 64)));
     $new = intval(safe_w_last_id());
-    safe_w_sql("UPDATE BK_Ledger SET BlgCancelled = $new WHERE BlgId = " . intval($l->BlgId));
+    safe_w_sql("UPDATE BookingLedger SET BlgCancelled = $new WHERE BlgId = " . intval($l->BlgId));
     return $new;
 }
 
@@ -470,7 +470,7 @@ function bk_ledger_pay_club($tourId, $clubCode, $amounts, $method, $date, $note,
         if ($v > 0 && isset($accounts[$k]) && $accounts[$k]['club_code'] === (string) $clubCode) $todo[$k] = $v;
     }
     if (!$todo) return array('count' => 0, 'total' => 0.0);
-    $g = safe_fetch(safe_r_sql("SELECT COALESCE(MAX(BlgGroup), 0) + 1 AS g FROM BK_Ledger"));
+    $g = safe_fetch(safe_r_sql("SELECT COALESCE(MAX(BlgGroup), 0) + 1 AS g FROM BookingLedger"));
     $group = $g ? intval($g->g) : 1;
     $label = bk_t('LedgerClub', $clubCode) . (trim((string) $note) !== '' ? ' — ' . trim((string) $note) : '');
     $total = 0.0; $count = 0;
@@ -482,14 +482,14 @@ function bk_ledger_pay_club($tourId, $clubCode, $amounts, $method, $date, $note,
 }
 
 /**
- * Records a refund the organiser owes (BK_Refunds): a registration already paid was
+ * Records a refund the organiser owes (BookingRefunds): a registration already paid was
  * removed by the server. No name and no licence: club and amount only.
  */
 function bk_refund_add($tourId, $clubCode, $clubName, $amount, $method, $reason = 'ANONYMISE')
 {
     bk_schema();
     $tourId = intval($tourId);
-    safe_w_sql("INSERT INTO BK_Refunds SET BfTournament = $tourId,
+    safe_w_sql("INSERT INTO BookingRefunds SET BfTournament = $tourId,
         BfClubCode = " . StrSafe_DB(mb_substr((string) $clubCode, 0, 16)) . ",
         BfClubName = " . StrSafe_DB(mb_substr((string) $clubName, 0, 80)) . ",
         BfAmount = "   . StrSafe_DB(number_format((float) $amount, 2, '.', '')) . ",
@@ -503,7 +503,7 @@ function bk_refunds_of($tourId)
 {
     bk_schema();
     $out = array();
-    $rs = safe_r_sql("SELECT * FROM BK_Refunds WHERE BfTournament = " . intval($tourId) . " ORDER BY BfDone, BfId");
+    $rs = safe_r_sql("SELECT * FROM BookingRefunds WHERE BfTournament = " . intval($tourId) . " ORDER BY BfDone, BfId");
     while ($r = safe_fetch($rs)) $out[] = $r;
     return $out;
 }
@@ -517,11 +517,11 @@ function bk_refund_done($tourId, $id, $by)
 {
     bk_schema();
     $tourId = intval($tourId);
-    safe_w_sql("UPDATE BK_Refunds SET BfDone = 1, BfDoneBy = " . StrSafe_DB(mb_substr((string) $by, 0, 64)) . ",
+    safe_w_sql("UPDATE BookingRefunds SET BfDone = 1, BfDoneBy = " . StrSafe_DB(mb_substr((string) $by, 0, 64)) . ",
         BfDoneAt = " . bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)") . "
         WHERE BfId = " . intval($id) . " AND BfTournament = $tourId AND BfDone = 0");
     if (safe_w_affected_rows() < 1) return;
-    $f = safe_fetch(safe_r_sql("SELECT * FROM BK_Refunds WHERE BfId = " . intval($id)));
+    $f = safe_fetch(safe_r_sql("SELECT * FROM BookingRefunds WHERE BfId = " . intval($id)));
     if (!$f || $f->BfReason !== 'ANONYMISE') return;
     $anon = defined('AUT_ANON_CODE') ? AUT_ANON_CODE : 'ANON';
     $a = bk_account($tourId, $anon);
@@ -551,7 +551,7 @@ function bk_due_total($tourId, $licence)
  */
 function bk_ledger_tracked($tourId)
 {
-    return (bool) safe_fetch(safe_r_sql("SELECT BlgId FROM BK_Ledger WHERE BlgTournament = " . intval($tourId) . " LIMIT 1"));
+    return (bool) safe_fetch(safe_r_sql("SELECT BlgId FROM BookingLedger WHERE BlgTournament = " . intval($tourId) . " LIMIT 1"));
 }
 
 /**
@@ -568,11 +568,11 @@ function bk_archer_accounts($licence)
     $l = StrSafe_DB($lic);
     $rs = safe_r_sql("SELECT ToId, ToName, ToWhere, ToWhenFrom, ToWhenTo FROM Tournament
         WHERE ToId IN (
-              SELECT EnTournament FROM Entries INNER JOIN BK_Competitions ON BcTournament = EnTournament
+              SELECT EnTournament FROM Entries INNER JOIN BookingCompetitions ON BcTournament = EnTournament
                WHERE EnCode = $l AND EnAthlete = 1 AND (BcFee > 0 OR BcPricing IS NOT NULL)
                  AND (BcPublishLevel >= 2 OR BcPayments = 1)
-              UNION SELECT SoTournament FROM BK_ShopOrders WHERE SoLicence = $l AND SoQty > 0
-              UNION SELECT BlgTournament FROM BK_Ledger WHERE BlgAccount = $l)
+              UNION SELECT SoTournament FROM BookingShopOrders WHERE SoLicence = $l AND SoQty > 0
+              UNION SELECT BlgTournament FROM BookingLedger WHERE BlgAccount = $l)
         ORDER BY ToWhenFrom DESC, ToId DESC");
     $tours = array();
     while ($r = safe_fetch($rs)) $tours[] = $r;

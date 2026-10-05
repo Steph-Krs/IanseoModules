@@ -46,23 +46,22 @@ if (isset($_GET['ok'])) $ok = aut_t('AlSaved');
 
 $conf = aut_legal_conf();
 $op   = aut_legal_operator();
-// The stored values stay those of the first version (French words): they are data, read back
-// as they are by the legal notice.
-$statuses = array('' => '—', 'particulier' => aut_t('AlStatusPerson'), 'association' => aut_t('AlStatusAssociation'),
-    'société' => aut_t('AlStatusCompany'), 'structure publique' => aut_t('AlStatusPublic'));
+$statuses = array('' => '—') + aut_legal_statuses();
+// A free value from an older configuration stays selectable, so saving does not lose it.
+if (!isset($statuses[$op['status']])) $statuses[$op['status']] = $op['status'];
 
 // Follow-up of the acceptances of the terms (current version). Archers are only counted when
 // the booking table exists (online registration installed).
 aut_legal_ensure_schema();
 $curVer = aut_legal_version();
 $cnt = function ($sql) { $r = safe_fetch(safe_r_sql($sql)); return $r ? intval($r->n) : 0; };
-$orgOk  = $cnt("SELECT COUNT(*) n FROM AUT_Users WHERE AuCguVer = " . StrSafe_DB($curVer));
-$orgTot = $cnt("SELECT COUNT(*) n FROM AUT_Users");
-$hasArchers = $cnt("SELECT COUNT(*) n FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Archers'") > 0;
+$orgOk  = $cnt("SELECT COUNT(*) n FROM AuthUsers WHERE AuCguVer = " . StrSafe_DB($curVer));
+$orgTot = $cnt("SELECT COUNT(*) n FROM AuthUsers");
+$hasArchers = $cnt("SELECT COUNT(*) n FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BookingArchers'") > 0;
 $arcOk = $arcTot = 0;
 if ($hasArchers) {
-    $arcOk  = $cnt("SELECT COUNT(*) n FROM BK_Archers WHERE BaCguVer = " . StrSafe_DB($curVer));
-    $arcTot = $cnt("SELECT COUNT(*) n FROM BK_Archers");
+    $arcOk  = $cnt("SELECT COUNT(*) n FROM BookingArchers WHERE BaCguVer = " . StrSafe_DB($curVer));
+    $arcTot = $cnt("SELECT COUNT(*) n FROM BookingArchers");
 }
 
 $PAGE_TITLE = aut_t('MenuLegal');

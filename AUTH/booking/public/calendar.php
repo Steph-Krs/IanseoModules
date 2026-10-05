@@ -33,6 +33,7 @@ if ($disc !== '' && $disc !== 'para' && !isset($facets['disc'][$disc])) $disc = 
 // region as soon as a competition was open there.
 $rcookie = 'bk_cal_region';
 if (isset($_GET['region'])) {
+    // bytes: a region code is ASCII digits
     $raw = strtoupper(trim((string) $_GET['region']));
     // bytes: reduced to ASCII letters and digits first.
     $region = ($raw === 'ALL' || $raw === '') ? '' : substr(preg_replace('/[^0-9A-Za-z]/', '', $raw), 0, 2);
@@ -144,6 +145,7 @@ echo '</select></label></div>';
 // Month navigation.
 echo '<div class="bk-cal-nav">'
     . '<a class="bk-btn" href="' . bk_e(bk_cal_url(array('month' => $prevYm))) . '">← ' . bk_e($monthName(strtotime($prevYm . '-01'))) . '</a>'
+    // bytes: a Y-m date is ASCII
     . '<b class="bk-cal-title"><span class="bk-cal-year">' . bk_e(substr($ym, 0, 4)) . '</span>' . bk_e($monthName($firstTs)) . '</b>'
     . '<a class="bk-btn" href="' . bk_e(bk_cal_url(array('month' => $nextYm))) . '">' . bk_e($monthName(strtotime($nextYm . '-01'))) . ' →</a>'
     . '</div>';

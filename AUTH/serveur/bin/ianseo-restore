@@ -92,6 +92,35 @@ test_copy() {
     esac
 }
 
+# Copies taken before AUTH 1.2.0 name the module tables AUT_* and BK_*. Since 1.2.0 those names
+# are views over the renamed tables (Auth*, Booking*), and the DROP TABLE of such a copy cannot
+# remove a view: its CREATE TABLE would then fail. So the views go first and, for such a copy,
+# the renamed tables too, so that the database ends up exactly as the copy; cron/schema.php
+# migrates it again afterwards. The club logos stay unless the copy holds them (a copy without
+# logos only carries their empty structure).
+NEW_TABLES="AuthUsers AuthShare AuthShareClub AuthClaim AuthLog AuthSessions AuthTickets AuthUsage
+AuthUsageSeen AuthClubLogos BookingArchers BookingSessions BookingLog BookingCompetitions
+BookingRegistrations BookingTargetCaps BookingClubManagers BookingShopItems BookingShopVariants
+BookingShopOrders BookingPayments BookingReimportConflicts BookingSurveys BookingSurveyVoters
+BookingWaitlist BookingRefunds BookingLedger"
+
+prepare_database() {
+    local f="$1" t keep=AuthClubLogos
+    for t in $(mysql -N "$DB" -e "SELECT TABLE_NAME FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'VIEW'
+              AND (TABLE_NAME LIKE 'AUT\\_%' OR TABLE_NAME LIKE 'BK\\_%')"); do
+        mysql "$DB" -e "DROP VIEW \`$t\`"
+    done
+    # "|| true": grep stops reading at the first match, which would fail gunzip under pipefail.
+    { gunzip -c "$f" || true; } | grep -q '^CREATE TABLE `AUT_Users`' || return 0
+    echo "Copy taken before AUTH 1.2.0: restored under its table names, then migrated."
+    if { gunzip -c "$f" || true; } | grep -q '^INSERT INTO `AUT_ClubLogos`'; then keep=""; fi
+    for t in $NEW_TABLES; do
+        [ "$t" = "$keep" ] && continue
+        mysql "$DB" -e "DROP TABLE IF EXISTS \`$t\`"
+    done
+}
+
 on_exit() {
     local rc=$?
     [ -n "$WORK" ] && rm -f -- "$WORK"
@@ -159,7 +188,13 @@ restore() {
     # 5. Restore.
     STAGE=restoring
     if [ "$kind" = database ]; then
+        prepare_database "$WORK"
         gunzip -c "$WORK" | mysql "$DB"
+        # Tables brought to the names of the module in place, before the site reopens: the open
+        # sessions would not check them again. Absent when the files restored are older.
+        if [ -f "$AUTH/cron/schema.php" ]; then
+            su -s /bin/sh "$WEBUSER" -c "$PHP $AUTH/cron/schema.php"
+        fi
     else
         tar -xzf "$WORK" -C "$(dirname -- "$IANSEO")"
         [ -x "$RELOCK" ] && "$RELOCK"

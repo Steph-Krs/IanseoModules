@@ -291,6 +291,9 @@ applied to the site.
 - Dedicated `ianseo` user limited to the `ianseo` database
   (`GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,ALTER,INDEX,DROP ON ianseo.* …`),
   **no** `FILE`, `SUPER`, `GRANT`. Long generated password.
+  Add `CREATE VIEW, SHOW VIEW` for the update to 1.2.0: the tables renamed then keep their old
+  name as a view, for the files deployed until the next deployment (README_AUTH.md › Database).
+  Without these rights the views are left out: deploy again right after that update.
 - No phpMyAdmin reachable from the Internet (see vhost).
 - `Common/config.inc.php` (DB credentials): permissions `640 root:www-data`.
 
@@ -539,7 +542,7 @@ the admin can assign/correct it via the "Competitions & sharing" page.
 - **Admin**: Users page = account creation, password reset
   (sessions revoked), 2FA reset (lost phone), remote sign-out,
   log of the last 30 events.
-- **Monitor**: the AUT_Log log (LOGIN_FAIL peaks), fail2ban
+- **Monitor**: the AuthLog log (LOGIN_FAIL peaks), fail2ban
   (`fail2ban-client status ianseo-auth`), disk space, ianseo updates. The admin log
   (Multi-account › Users, an Organisers / Archers tab each with its own
   filterable + paginated log) gives a quick view.
@@ -579,7 +582,7 @@ the admin can assign/correct it via the "Competitions & sharing" page.
   analyse a competition afterwards (the other server could only go back two weeks).
   `sudo sed -i 's/^\s*rotate 14/\trotate 60/' /etc/logrotate.d/apache2`. Same duration for
   the load history if the `sysstat` package is installed (`HISTORY=60` in `/etc/sysstat/sysstat`).
-- **Log retention**: `AUT_Log` and `BK_Log` are purged automatically beyond
+- **Log retention**: `AuthLog` and `BookingLog` are purged automatically beyond
   **180 days** (at most once a day, via the bootstrap; also runnable from the cron).
   Adjustable: `config.local.json` → `"log_retention_days": <days>` (range 7 to 3650).
   No consequence on the anti-bruteforce (15 min window). Aligns the retention with the
@@ -590,7 +593,7 @@ the admin can assign/correct it via the "Competitions & sharing" page.
   Organisers / Archers. **No personal data, no IP**: signed-in users are counted
   by account identity, anonymous visitors of the home page via a **consent-exempt
   audience measurement cookie** (`aud`, first party, ≤ 13 months, CNIL doctrine). Counters
-  in `AUT_Usage` (kept 25 months) and `AUT_UsageSeen` (log retention), purged with
+  in `AuthUsage` (kept 25 months) and `AuthUsageSeen` (log retention), purged with
   the logs. Can be disabled by `config.local.json` → `"stats_enabled": false`; time zone of the
   buckets adjustable by `"stats_timezone"` (default `Europe/Paris`). The **cookie policy**
   (public page Legal notice & Terms → Cookies) describes this cookie and its exemption.
@@ -634,7 +637,7 @@ or in `config.local.json`:
 
 **Club logos left out of the dumps (`logos: false`, default).** On the test server, the logo cache
 weighed 59 % of the database: dump of **57.6 MB in 11.6 s** with them, **4.1 MB in 2.6 s** without.
-Their two tables (`Flags`, `AUT_ClubLogos`) stay in the file, but as **structure only,
+Their two tables (`Flags`, `AuthClubLogos`) stay in the file, but as **structure only,
 created only if missing**: restoring on this server leaves the logos in place; on a
 new server, the tables are created empty and the logo sync fills them (the night's one,
 or right away `sudo -u www-data php …/cron/sync-logos.php --full` — for competitions that are not
@@ -772,7 +775,9 @@ the current state** (you may want to go back to it: it is the copy at the top of
 core back to read-only (files) and reopens the site. If the restore itself fails, the site
 **stays closed** — a half-restored database must not be served — and the message says what to do.
 To go back after a core update that went wrong: the database **and** the
-files of the same night (same timestamp), the database first.
+files of the same night (same timestamp), the database first. A copy taken before AUTH 1.2.0
+(tables `AUT_*` and `BK_*`) is restored as it was, then brought to the current table names by
+`cron/schema.php` before the site reopens.
 
 **Test a restore** before opening, then from time to time: `--test` restores the copy
 into a throwaway database, counts tables, competitions and registrations, displays the most
@@ -909,12 +914,12 @@ consult the calendar of open competitions and register online.
   **even when AUTH is on**, with no whitelist to maintain. **Counterpart**:
   these pages have **no core ACL**; each read/write is explicitly guarded
   (`bk_current_archer()` + CSRF on every POST), bounded to the signed-in
-  licensee. Sessions with hashed tokens in the database (`BK_Sessions`, like AUTH).
+  licensee. Sessions with hashed tokens in the database (`BookingSessions`, like AUTH).
 - **Anti-stuffing**: the competitor sign-in relays to the FFTA → **8 failures /
   15 min per IP or licence** before any outgoing call (`bk_too_many`), so as not to
   become a brute-force relay against the federation.
-- **Data**: licensee accounts (`BK_Archers`), registrations (trace
-  `BK_Registrations` + core Entries), tracked payments (`BK_Payments`), shop.
+- **Data**: licensee accounts (`BookingArchers`), registrations (trace
+  `BookingRegistrations` + core Entries), tracked payments (`BookingPayments`), shop.
   Same compensations as § 7 (WAF, TLS, log, backups, purge).
 - **SSO debug trace** identical to § 11: empty file
   `booking/ffta-debug.on` → `booking/ffta-debug.log` (never a password), to be
@@ -1050,7 +1055,7 @@ without a logo. The cron below removes this step for everybody.
 
 - **No credentials required**: the FFTA logos endpoint is public.
   To be placed **after** the licence sync (it provides the list of clubs).
-- Two steps: download into the global cache `AUT_ClubLogos` (~1600 clubs,
+- Two steps: download into the global cache `AuthClubLogos` (~1600 clubs,
   ~7 min, one reused connection), then **local propagation** to all the
   competitions that are not finished (`Flags` table + `TV/Photos/` files). A network
   outage does not prevent the propagation of what is already in the cache.

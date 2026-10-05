@@ -77,13 +77,13 @@ $plan     = $voir ? bk_session_plan($TOUR, $voir) : array();
 
 // Free requests left by the archers ("Other request" of the wishes).
 $requests = array();
-$rs = safe_r_sql("SELECT e.EnFirstName, e.EnName, e.EnCode, r.BrRequest, q.QuSession
-    FROM BK_Registrations r
-    INNER JOIN Entries e ON e.EnId = r.BrEnId AND e.EnTournament = $TOUR
+$rs = safe_r_sql("SELECT EnFirstName, EnName, EnCode, BrRequest, QuSession
+    FROM BookingRegistrations
+    INNER JOIN Entries ON EnId = BrEnId AND EnTournament = $TOUR
     /* 1:1 with Entries → INNER JOIN, never LEFT + IS NULL. */
-    INNER JOIN Qualifications q ON q.QuId = e.EnId
-    WHERE r.BrTournament = $TOUR AND TRIM(COALESCE(r.BrRequest, '')) <> ''
-    ORDER BY q.QuSession, e.EnFirstName, e.EnName");
+    INNER JOIN Qualifications ON QuId = EnId
+    WHERE BrTournament = $TOUR AND TRIM(COALESCE(BrRequest, '')) <> ''
+    ORDER BY QuSession, EnFirstName, EnName");
 while ($r = safe_fetch($rs)) $requests[] = $r;
 
 $PAGE_TITLE = bk_t('MnuTargets');

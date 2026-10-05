@@ -291,6 +291,10 @@ appliquées au site.
 - Utilisateur dédié `ianseo` limité à la base `ianseo`
   (`GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,ALTER,INDEX,DROP ON ianseo.* …`),
   **pas** de `FILE`, `SUPER`, `GRANT`. Mot de passe long généré.
+  Ajouter `CREATE VIEW, SHOW VIEW` pour la mise à jour vers 1.2.0 : les tables alors renommées
+  gardent leur ancien nom sous forme de vue, pour les fichiers déployés jusqu'au prochain
+  déploiement (README_AUTH_FR.md › Base de données). Sans ces droits, les vues sont omises :
+  redéployer aussitôt après cette mise à jour.
 - Pas de phpMyAdmin accessible depuis Internet (voir vhost).
 - `Common/config.inc.php` (identifiants DB) : permissions `640 root:www-data`.
 
@@ -539,7 +543,7 @@ l'admin peut l'attribuer/corriger via la page « Compétitions & partage ».
 - **Admin** : page Utilisateurs = création de comptes, RàZ mot de passe
   (sessions révoquées), RàZ 2FA (perte de téléphone), déconnexion à distance,
   journal des 30 derniers événements.
-- **Surveiller** : le journal AUT_Log (pics de LOGIN_FAIL), fail2ban
+- **Surveiller** : le journal AuthLog (pics de LOGIN_FAIL), fail2ban
   (`fail2ban-client status ianseo-auth`), l'espace disque, les MaJ ianseo. Le journal admin
   (Multi-comptes › Utilisateurs, un onglet Organisateurs / Archers avec chacun son journal
   filtrable + paginé) donne une vue rapide.
@@ -579,7 +583,7 @@ l'admin peut l'attribuer/corriger via la page « Compétitions & partage ».
   analyser une compétition après coup (l'autre serveur n'a pu remonter qu'à deux semaines).
   `sudo sed -i 's/^\s*rotate 14/\trotate 60/' /etc/logrotate.d/apache2`. Même durée pour
   l'historique de charge si le paquet `sysstat` est installé (`HISTORY=60` dans `/etc/sysstat/sysstat`).
-- **Rétention des journaux** : `AUT_Log` et `BK_Log` sont purgés automatiquement au-delà de
+- **Rétention des journaux** : `AuthLog` et `BookingLog` sont purgés automatiquement au-delà de
   **180 jours** (au plus une fois par jour, via le bootstrap ; aussi jouable dans le cron).
   Durée modulable : `config.local.json` → `"log_retention_days": <jours>` (borne 7 à 3650).
   Sans conséquence sur l'anti-bruteforce (fenêtre 15 min). Aligne la conservation sur la
@@ -590,7 +594,7 @@ l'admin peut l'attribuer/corriger via la page « Compétitions & partage ».
   Organisateurs / Archers. **Aucune donnée personnelle, aucune IP** : les connectés sont comptés
   par identité de compte, les visiteurs anonymes de l'accueil via un **cookie de mesure
   d'audience exempté de consentement** (`aud`, 1re partie, ≤ 13 mois, doctrine CNIL). Compteurs
-  dans `AUT_Usage` (conservés 25 mois) et `AUT_UsageSeen` (rétention des journaux), purgés avec
+  dans `AuthUsage` (conservés 25 mois) et `AuthUsageSeen` (rétention des journaux), purgés avec
   les journaux. Désactivable par `config.local.json` → `"stats_enabled": false` ; fuseau des
   seaux réglable par `"stats_timezone"` (défaut `Europe/Paris`). La **politique cookies**
   (page publique Mentions légales & CGU → Cookies) décrit ce cookie et son exemption.
@@ -634,7 +638,7 @@ ou dans `config.local.json` :
 
 **Logos des clubs hors des dumps (`logos: false`, défaut).** Sur le serveur de test, le cache
 des logos pesait 59 % de la base : dump de **57,6 Mo en 11,6 s** avec, **4,1 Mo en 2,6 s** sans.
-Leurs deux tables (`Flags`, `AUT_ClubLogos`) restent dans le fichier, mais en **structure seule,
+Leurs deux tables (`Flags`, `AuthClubLogos`) restent dans le fichier, mais en **structure seule,
 créée seulement si elle manque** : restaurer sur ce serveur laisse les logos en place ; sur un
 serveur neuf, les tables sont créées vides et la synchro des logos les remplit (celle de la nuit,
 ou tout de suite `sudo -u www-data php …/cron/sync-logos.php --full` — pour les compétitions non
@@ -772,7 +776,9 @@ l'état actuel** (on peut vouloir y revenir : c'est la copie en tête de liste),
 cœur en lecture seule (fichiers) et rouvre le site. Si la restauration elle-même échoue, le site
 **reste fermé** — une base à moitié restaurée ne doit pas être servie — et le message dit quoi faire.
 Pour revenir en arrière après une mise à jour du cœur qui a mal tourné : la base **et** les
-fichiers de la même nuit (même horodatage), la base d'abord.
+fichiers de la même nuit (même horodatage), la base d'abord. Une copie prise avant AUTH 1.2.0
+(tables `AUT_*` et `BK_*`) est restaurée telle quelle, puis amenée aux noms de tables actuels
+par `cron/schema.php` avant la réouverture du site.
 
 **Tester une restauration** avant l'ouverture, puis de temps en temps : `--test` restaure la copie
 dans une base jetable, compte tables, compétitions et inscriptions, affiche les compétitions les
@@ -909,12 +915,12 @@ consultent le calendrier des compétitions ouvertes et s'inscrivent en ligne.
   **même quand AUTH est actif**, sans liste blanche à maintenir. **Contrepartie** :
   ces pages n'ont **aucune ACL du cœur** ; chaque lecture/écriture est gardée
   explicitement (`bk_current_archer()` + CSRF sur tout POST), bornée au licencié
-  connecté. Sessions à jetons hachés en base (`BK_Sessions`, comme AUTH).
+  connecté. Sessions à jetons hachés en base (`BookingSessions`, comme AUTH).
 - **Anti-bourrage** : la connexion compétiteur relaie vers la FFTA → **8 échecs /
   15 min par IP ou licence** avant tout appel sortant (`bk_too_many`), pour ne pas
   devenir un relais de brute-force contre la fédération.
-- **Données** : comptes licenciés (`BK_Archers`), inscriptions (traçage
-  `BK_Registrations` + Entries du cœur), paiements suivis (`BK_Payments`), boutique.
+- **Données** : comptes licenciés (`BookingArchers`), inscriptions (traçage
+  `BookingRegistrations` + Entries du cœur), paiements suivis (`BookingPayments`), boutique.
   Mêmes compensations que § 7 (WAF, TLS, journal, sauvegardes, purge).
 - **Trace de débogage SSO** identique au § 11 : fichier vide
   `booking/ffta-debug.on` → `booking/ffta-debug.log` (jamais de mot de passe), à
@@ -1051,7 +1057,7 @@ correspondance » et cocher **Drapeaux** pour SA compétition, sinon ses impress
 
 - **Aucun identifiant requis** : l'endpoint FFTA des logos est public.
   À placer **après** la synchro des licences (elle fournit la liste des clubs).
-- Deux étapes : téléchargement dans le cache global `AUT_ClubLogos` (~1600 clubs,
+- Deux étapes : téléchargement dans le cache global `AuthClubLogos` (~1600 clubs,
   ~7 min, une connexion réutilisée), puis **propagation locale** vers toutes les
   compétitions non terminées (table `Flags` + fichiers `TV/Photos/`). Une panne
   réseau n'empêche pas la propagation de ce qui est déjà en cache.

@@ -24,7 +24,7 @@ aut_ensure_schema();
 $msgOk = '';
 $msgErr = '';
 
-$q = safe_r_sql("SELECT COUNT(*) AS n FROM AUT_Users WHERE AuRole='ADMIN' AND AuActive=1");
+$q = safe_r_sql("SELECT COUNT(*) AS n FROM AuthUsers WHERE AuRole='ADMIN' AND AuActive=1");
 $r = safe_fetch($q);
 $nbAdmins = $r ? intval($r->n) : 0;
 

@@ -25,6 +25,7 @@ $SKIP_AUTH = 1;   // no web bootstrap in CLI
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+aut_table_names();   // module updated since the last page opened: see names-lib.php
 require_once('Common/Fun_FormatText.inc.php');
 require_once('Common/Fun_Various.inc.php');
 require_once('Common/Lib/Fun_DateTime.inc.php');

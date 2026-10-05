@@ -23,6 +23,7 @@ require_once __DIR__ . '/cohabitation.php';   // faces sharing a target (M7)
 /** ianseo format of QuTargetNo: departure + target on 3 digits + letter → 1004A. */
 function bk_target_no($session, $target, $letter)
 {
+    // bytes: target letters and numbers are ASCII
     return intval($session) . str_pad(intval($target), 3, '0', STR_PAD_LEFT) . strtoupper($letter);
 }
 
@@ -37,9 +38,9 @@ function bk_free_slots($tourId, $sessionOrder)
     $rs = safe_r_sql("SELECT f.FullTgtTarget AS t, f.FullTgtLetter AS l
         FROM ($sql) f
         LEFT JOIN (
-            SELECT q.QuTarget, q.QuLetter, q.QuSession
-              FROM Qualifications q
-              INNER JOIN Entries e ON e.EnId = q.QuId AND e.EnTournament = $tourId
+            SELECT QuTarget, QuLetter, QuSession
+              FROM Qualifications
+              INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
         ) o ON o.QuSession = f.FullTgtSession
            AND o.QuTarget  = f.FullTgtTarget
            AND o.QuLetter  = f.FullTgtLetter
@@ -54,16 +55,16 @@ function bk_free_slots($tourId, $sessionOrder)
 function bk_session_archers($tourId, $sessionOrder)
 {
     $tourId = intval($tourId);
-    $rs = safe_r_sql("SELECT e.EnId, e.EnCode, e.EnFirstName, e.EnName, e.EnDivision, e.EnClass,
-                e.EnCountry, e.EnTargetFace, c.CoCode, c.CoName,
-                q.QuTarget, q.QuLetter, r.BrRequest, r.BrEnId AS BrRow, r.BrValidated
-        FROM Entries e
-        INNER JOIN Qualifications q ON q.QuId = e.EnId
-        LEFT  JOIN Countries c ON c.CoId = e.EnCountry
-        LEFT  JOIN BK_Registrations r ON r.BrEnId = e.EnId
-        WHERE e.EnTournament = $tourId AND e.EnAthlete = 1
-          AND q.QuSession = " . intval($sessionOrder) . "
-        ORDER BY c.CoCode, e.EnFirstName, e.EnName");
+    $rs = safe_r_sql("SELECT EnId, EnCode, EnFirstName, EnName, EnDivision, EnClass,
+                EnCountry, EnTargetFace, CoCode, CoName,
+                QuTarget, QuLetter, BrRequest, BrEnId AS BrRow, BrValidated
+        FROM Entries
+        INNER JOIN Qualifications ON QuId = EnId
+        LEFT  JOIN Countries ON CoId = EnCountry
+        LEFT  JOIN BookingRegistrations ON BrEnId = EnId
+        WHERE EnTournament = $tourId AND EnAthlete = 1
+          AND QuSession = " . intval($sessionOrder) . "
+        ORDER BY CoCode, EnFirstName, EnName");
     $out = array();
     while ($r = safe_fetch($rs)) $out[] = $r;
     return $out;
@@ -73,17 +74,17 @@ function bk_session_archers($tourId, $sessionOrder)
 function bk_session_archers_full($tourId, $sessionOrder)
 {
     $tourId = intval($tourId);
-    $rs = safe_r_sql("SELECT e.EnId, e.EnCode, e.EnFirstName, e.EnName, e.EnDivision, e.EnClass,
-                e.EnCountry, e.EnTargetFace, c.CoCode, c.CoName,
-                q.QuTarget, q.QuLetter,
-                r.BrEnId, r.BrRequest, r.BrWantLetter, r.BrWantWith, r.BrValidated
-        FROM Entries e
-        INNER JOIN Qualifications q ON q.QuId = e.EnId
-        LEFT  JOIN Countries c ON c.CoId = e.EnCountry
-        LEFT  JOIN BK_Registrations r ON r.BrEnId = e.EnId
-        WHERE e.EnTournament = $tourId AND e.EnAthlete = 1
-          AND q.QuSession = " . intval($sessionOrder) . "
-        ORDER BY c.CoCode, e.EnFirstName, e.EnName");
+    $rs = safe_r_sql("SELECT EnId, EnCode, EnFirstName, EnName, EnDivision, EnClass,
+                EnCountry, EnTargetFace, CoCode, CoName,
+                QuTarget, QuLetter,
+                BrEnId, BrRequest, BrWantLetter, BrWantWith, BrValidated
+        FROM Entries
+        INNER JOIN Qualifications ON QuId = EnId
+        LEFT  JOIN Countries ON CoId = EnCountry
+        LEFT  JOIN BookingRegistrations ON BrEnId = EnId
+        WHERE EnTournament = $tourId AND EnAthlete = 1
+          AND QuSession = " . intval($sessionOrder) . "
+        ORDER BY CoCode, EnFirstName, EnName");
     $out = array();
     while ($r = safe_fetch($rs)) $out[] = $r;
     return $out;
@@ -96,7 +97,7 @@ function bk_session_archers_full($tourId, $sessionOrder)
  * placed them), and a late registration must not reshuffle everyone.
  *
  * Constraints, by priority:
- *  1. **Field capabilities** (BK_TargetCaps) — a target that does not accept the archer's
+ *  1. **Field capabilities** (BookingTargetCaps) — a target that does not accept the archer's
  *     distance or face is ruled out. HARD constraint: better leave an archer unplaced than on an
  *     impossible target.
  *  2. **One distance per target** — two archers of one target shoot together: a physical
@@ -272,6 +273,7 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
             // someone" wish — two broken requests instead of one.
             foreach ($possibles as $i) {
                 if (!empty($enGrappe[intval($file[$i]->EnId)])) continue;
+                // bytes: target letters and numbers are ASCII
                 if (strtoupper(trim((string) ($file[$i]->BrWantLetter ?? ''))) === strtoupper($slot['l'])) {
                     $idx = $i; break;
                 }
@@ -290,16 +292,17 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
         $no = bk_target_no($sessionOrder, $slot['t'], $slot['l']);
         // Redundant safeguard: the UPDATE aims at one EnId AND checks the competition again —
         // Qualifications alone would spill over the whole database.
-        safe_w_sql("UPDATE Qualifications q
-            INNER JOIN Entries e ON e.EnId = q.QuId AND e.EnTournament = $tourId
-            SET q.QuTarget = " . intval($slot['t']) . ",
-                q.QuLetter = " . StrSafe_DB($slot['l']) . ",
-                q.QuTargetNo = " . StrSafe_DB($no) . ",
-                q.QuTimestamp = q.QuTimestamp
-            WHERE q.QuId = " . intval($a->EnId));
+        safe_w_sql("UPDATE Qualifications
+            INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
+            SET QuTarget = " . intval($slot['t']) . ",
+                QuLetter = " . StrSafe_DB($slot['l']) . ",
+                QuTargetNo = " . StrSafe_DB($no) . ",
+                QuTimestamp = QuTimestamp
+            WHERE QuId = " . intval($a->EnId));
 
         $parCible[$t][$club] = ($parCible[$t][$club] ?? 0) + 1;
         $facesCible[$t][] = bk_face_class_by_id($tourId, $a->EnTargetFace);
+        // bytes: target letters and numbers are ASCII
         $pose[bk_clean_licence($a->EnCode)] = array('t' => $t, 'l' => strtoupper($slot['l']), 'a' => $a);
         $places++;
     }
@@ -309,10 +312,12 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
     foreach ($archers as $a) {
         if (intval($a->QuTarget) > 0) {
             $pose[bk_clean_licence($a->EnCode)] = array(
+                // bytes: target letters and numbers are ASCII
                 't' => intval($a->QuTarget), 'l' => strtoupper($a->QuLetter), 'a' => $a);
         }
     }
     foreach ($pose as $lic => $p) {
+        // bytes: target letters and numbers are ASCII
         $wl = strtoupper(trim((string) ($p['a']->BrWantLetter ?? '')));
         $ww = bk_clean_licence($p['a']->BrWantWith ?? '');
         if ($wl === '' && $ww === '') continue;
@@ -416,18 +421,18 @@ function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId
  * Called after each registration: a "with someone" wish cannot be met by placing people one by
  * one in order of arrival — the cards must be reshuffled.
  *
- * ⚠️ Frees ONLY the registrations made by this module (in BK_Registrations). A participant
+ * ⚠️ Frees ONLY the registrations made by this module (in BookingRegistrations). A participant
  * entered by the organiser, or placed by another tool, keeps their target: it becomes a fixed
  * obstacle. Without this guard, an online registration would move the organiser's manual work.
  */
 function bk_replan_session($tourId, $sessionOrder, $cfg)
 {
     $tourId = intval($tourId);
-    safe_w_sql("UPDATE Qualifications q
-        INNER JOIN Entries e ON e.EnId = q.QuId AND e.EnTournament = $tourId
-        INNER JOIN BK_Registrations r ON r.BrEnId = e.EnId
-        SET q.QuTarget = 0, q.QuLetter = '', q.QuTargetNo = '', q.QuTimestamp = q.QuTimestamp
-        WHERE q.QuSession = " . intval($sessionOrder));
+    safe_w_sql("UPDATE Qualifications
+        INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
+        INNER JOIN BookingRegistrations ON BrEnId = EnId
+        SET QuTarget = 0, QuLetter = '', QuTargetNo = '', QuTimestamp = QuTimestamp
+        WHERE QuSession = " . intval($sessionOrder));
     return bk_assign_session($tourId, $sessionOrder, $cfg);
 }
 
@@ -438,10 +443,10 @@ function bk_replan_session($tourId, $sessionOrder, $cfg)
 function bk_replan_all($tourId, $cfg)
 {
     $tourId = intval($tourId);
-    $rs = safe_r_sql("SELECT DISTINCT q.QuSession FROM Qualifications q
-        INNER JOIN Entries e ON e.EnId = q.QuId AND e.EnTournament = $tourId
-        INNER JOIN BK_Registrations r ON r.BrEnId = e.EnId
-        WHERE q.QuSession > 0");
+    $rs = safe_r_sql("SELECT DISTINCT QuSession FROM Qualifications
+        INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
+        INNER JOIN BookingRegistrations ON BrEnId = EnId
+        WHERE QuSession > 0");
     $tot = array('places' => 0, 'restants' => 0, 'compromis' => 0, 'incompatibles' => 0, 'voeux' => 0, 'voeuxOk' => 0);
     while ($r = safe_fetch($rs)) {
         $x = bk_replan_session($tourId, intval($r->QuSession), $cfg);
@@ -456,18 +461,18 @@ function bk_replan_all($tourId, $cfg)
 function bk_pending_registrations($tourId)
 {
     $tourId = intval($tourId);
-    $rs = safe_r_sql("SELECT r.BrEnId, r.BrCreated, e.EnFirstName, e.EnName, e.EnCode,
-                e.EnDivision, e.EnClass, d.DivDescription, cl.ClDescription,
-                c.CoName, c.CoCode, q.QuSession
-        FROM BK_Registrations r
-        INNER JOIN Entries e        ON e.EnId = r.BrEnId
-        /* 1:1 avec Entries → INNER JOIN, jamais LEFT + IS NULL. */
-        INNER JOIN Qualifications q ON q.QuId = e.EnId
-        LEFT  JOIN Divisions d      ON d.DivTournament = e.EnTournament AND d.DivId = e.EnDivision
-        LEFT  JOIN Classes cl       ON cl.ClTournament = e.EnTournament AND cl.ClId = e.EnClass
-        LEFT  JOIN Countries c      ON c.CoId = e.EnCountry
-        WHERE r.BrTournament = $tourId AND r.BrValidated = 0
-        ORDER BY r.BrCreated, r.BrId");
+    $rs = safe_r_sql("SELECT BrEnId, BrCreated, EnFirstName, EnName, EnCode,
+                EnDivision, EnClass, DivDescription, ClDescription,
+                CoName, CoCode, QuSession
+        FROM BookingRegistrations
+        INNER JOIN Entries        ON EnId = BrEnId
+        /* 1:1 with Entries: INNER JOIN, never LEFT + IS NULL. */
+        INNER JOIN Qualifications ON QuId = EnId
+        LEFT  JOIN Divisions      ON DivTournament = EnTournament AND DivId = EnDivision
+        LEFT  JOIN Classes       ON ClTournament = EnTournament AND ClId = EnClass
+        LEFT  JOIN Countries      ON CoId = EnCountry
+        WHERE BrTournament = $tourId AND BrValidated = 0
+        ORDER BY BrCreated, BrId");
     $out = array();
     while ($r = safe_fetch($rs)) $out[] = $r;
     return $out;
@@ -477,7 +482,7 @@ function bk_pending_registrations($tourId)
 function bk_pending_count($tourId)
 {
     $tourId = intval($tourId);
-    $r = safe_fetch(safe_r_sql("SELECT COUNT(*) n FROM BK_Registrations
+    $r = safe_fetch(safe_r_sql("SELECT COUNT(*) n FROM BookingRegistrations
         WHERE BrTournament = " . $tourId . " AND BrValidated = 0"));
     return $r ? intval($r->n) : 0;
 }
@@ -486,11 +491,11 @@ function bk_pending_count($tourId)
 function bk_validate_registration($tourId, $enId, $cfg)
 {
     $tourId = intval($tourId); $enId = intval($enId);
-    $r = safe_fetch(safe_r_sql("SELECT q.QuSession FROM BK_Registrations br
-        INNER JOIN Qualifications q ON q.QuId = br.BrEnId
-        WHERE br.BrEnId = $enId AND br.BrTournament = $tourId AND br.BrValidated = 0"));
+    $r = safe_fetch(safe_r_sql("SELECT QuSession FROM BookingRegistrations
+        INNER JOIN Qualifications ON QuId = BrEnId
+        WHERE BrEnId = $enId AND BrTournament = $tourId AND BrValidated = 0"));
     if (!$r) return false;
-    safe_w_sql("UPDATE BK_Registrations SET BrValidated = 1 WHERE BrEnId = $enId AND BrTournament = $tourId");
+    safe_w_sql("UPDATE BookingRegistrations SET BrValidated = 1 WHERE BrEnId = $enId AND BrTournament = $tourId");
     bk_replan_session($tourId, intval($r->QuSession), $cfg);
     return true;
 }
@@ -500,12 +505,12 @@ function bk_validate_all($tourId, $cfg)
 {
     $tourId = intval($tourId);
     $sessions = array(); $n = 0;
-    $rs = safe_r_sql("SELECT q.QuSession FROM BK_Registrations r
-        INNER JOIN Qualifications q ON q.QuId = r.BrEnId
-        WHERE r.BrTournament = $tourId AND r.BrValidated = 0");
+    $rs = safe_r_sql("SELECT QuSession FROM BookingRegistrations
+        INNER JOIN Qualifications ON QuId = BrEnId
+        WHERE BrTournament = $tourId AND BrValidated = 0");
     while ($r = safe_fetch($rs)) { $sessions[intval($r->QuSession)] = true; $n++; }
     if (!$n) return 0;
-    safe_w_sql("UPDATE BK_Registrations SET BrValidated = 1 WHERE BrTournament = $tourId AND BrValidated = 0");
+    safe_w_sql("UPDATE BookingRegistrations SET BrValidated = 1 WHERE BrTournament = $tourId AND BrValidated = 0");
     foreach (array_keys($sessions) as $so) bk_replan_session($tourId, $so, $cfg);
     return $n;
 }
@@ -514,10 +519,10 @@ function bk_validate_all($tourId, $cfg)
 function bk_clear_session($tourId, $sessionOrder)
 {
     $tourId = intval($tourId);
-    safe_w_sql("UPDATE Qualifications q
-        INNER JOIN Entries e ON e.EnId = q.QuId AND e.EnTournament = $tourId
-        SET q.QuTarget = 0, q.QuLetter = '', q.QuTargetNo = '', q.QuTimestamp = q.QuTimestamp
-        WHERE q.QuSession = " . intval($sessionOrder));
+    safe_w_sql("UPDATE Qualifications
+        INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
+        SET QuTarget = 0, QuLetter = '', QuTargetNo = '', QuTimestamp = QuTimestamp
+        WHERE QuSession = " . intval($sessionOrder));
     return intval(safe_w_affected_rows());
 }
 
@@ -596,6 +601,7 @@ function bk_session_plan($tourId, $sessionOrder)
     $plan = array();
     foreach (bk_session_archers($tourId, $sessionOrder) as $a) {
         if (intval($a->QuTarget) > 0) {
+            // bytes: target letters and numbers are ASCII
             $plan[intval($a->QuTarget)][strtoupper($a->QuLetter)] = $a;
         }
     }

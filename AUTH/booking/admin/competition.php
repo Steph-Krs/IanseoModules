@@ -89,8 +89,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             : intval($_POST['copy_src'] ?? 0);
         // Not an admin: the source is checked again (the list shown is not proof).
         if (!bk_copy_is_admin() && $srcId > 0) {
-            $chk = safe_fetch(safe_r_sql("SELECT t.ToId FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament
-                WHERE t.ToId = $srcId AND t.ToId <> $TOUR AND " . bk_copy_access_where('t')));
+            $chk = safe_fetch(safe_r_sql("SELECT ToId FROM BookingCompetitions INNER JOIN Tournament ON ToId = BcTournament
+                WHERE ToId = $srcId AND ToId <> $TOUR AND " . bk_copy_access_where()));
             if (!$chk) $srcId = 0;
         }
         if ($srcId <= 0) {
@@ -121,11 +121,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     } elseif (isset($_POST['save_fee'])) {
         // Level 2 "simple publication": base fee only (without the advanced modulation).
         $fee = number_format((float) str_replace(',', '.', (string) ($_POST['fee'] ?? 0)), 2, '.', '');
-        safe_w_sql("UPDATE BK_Competitions SET BcFee = " . StrSafe_DB($fee) . " WHERE BcTournament = $TOUR");
+        safe_w_sql("UPDATE BookingCompetitions SET BcFee = " . StrSafe_DB($fee) . " WHERE BcTournament = $TOUR");
         $msg = bk_t('AcFeeSaved');
     } elseif (isset($_POST['set_payments'])) {
         // Closed competition: use the payments and the shop (or stop showing them).
-        safe_w_sql("INSERT INTO BK_Competitions (BcTournament, BcPayments) VALUES ($TOUR, " . (empty($_POST['payments']) ? 0 : 1) . ")
+        safe_w_sql("INSERT INTO BookingCompetitions (BcTournament, BcPayments) VALUES ($TOUR, " . (empty($_POST['payments']) ? 0 : 1) . ")
             ON DUPLICATE KEY UPDATE BcPayments = VALUES(BcPayments)");
         header('Location: ' . $SELF);
         exit;
@@ -201,22 +201,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $save['waitlist'] = !empty($_POST['waitlist']);
             }
             bk_comp_save($TOUR, $save);
-            safe_w_sql("UPDATE BK_Competitions SET BcPublishLevel = 3 WHERE BcTournament = $TOUR");
+            safe_w_sql("UPDATE BookingCompetitions SET BcPublishLevel = 3 WHERE BcTournament = $TOUR");
             $msg = bk_t('AcSaved');
         }
     }
 }
 
-/* Autosave: same POST, same validation, but the state is returned instead of the page. On
-   purpose NOT JsonOut() — it sets "Access-Control-Allow-Origin: *", useless here (same-origin
-   call) on an administration page. */
+/* Autosave: same POST, same validation, but the state is returned instead of the page.
+   JsonOut() answers with "Access-Control-Allow-Origin: *", which exposes nothing here: a
+   browser never lets another site read a response sent with the session cookie under "*". */
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && !empty($_POST['ajax'])) {
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(array(
-        'ok'  => ($err === ''),
-        'msg' => ($err !== '' ? $err : ($msg !== '' ? $msg : bk_t('AcSavedShort'))),
-    ), JSON_UNESCAPED_UNICODE);
-    exit;
+    JsonOut(array(
+        'error' => ($err === '' ? 0 : 1),
+        'msg'   => ($err !== '' ? $err : ($msg !== '' ? $msg : bk_t('AcSavedShort'))),
+    ));
 }
 
 if (isset($_GET['copied'])) $msg = bk_t('AcCopied');
@@ -751,160 +749,8 @@ $jsT = array(
     'dept' => bk_t('PriceDept'), 'region' => bk_t('PriceRegion'), 'rank' => bk_t('PriceRank'),
 );
 echo '<script>var BK_T = ' . json_encode($jsT, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . ', BK_CATN = ' . count($pricing['categories']) . ';</script>';
-?>
-<?php if ($level >= 2 || $showTariffs): ?>
-<script>
-/* Autosave — the "Save" button disappears when scripts run, and each change is written as it
-   goes. Choice: the WHOLE form goes back to the same entry point (same validation, same
-   server-side normalisation) rather than one API per field; only the answer changes (JSON
-   instead of the page). Without scripts, the button stays. */
-(function () {
-  var forms = [].slice.call(document.querySelectorAll('form[data-autosave]'));
-  if (!forms.length || !window.fetch || !window.FormData) return;
+$assets = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/assets/';
+if ($level >= 2 || $showTariffs) echo '<script src="' . $assets . 'autosave.js?v=' . bk_e(bk_version()) . '"></script>';
+if ($showTariffs) echo '<script src="' . $assets . 'tariffs.js?v=' . bk_e(bk_version()) . '"></script>';
 
-  var pill = document.getElementById('bk-pill');
-  var timer = null, busy = false, again = null, dirty = false;
-
-  function state(cls, txt) { if (!pill) return; pill.className = cls; pill.textContent = txt; pill.hidden = false; }
-  function clock() { return new Date().toLocaleTimeString(BK_T.lang, { hour: '2-digit', minute: '2-digit' }); }
-
-  function send(form) {
-    if (busy) { again = form; return; }      // one write at a time, the last one replayed
-    busy = true;
-    state('wait', BK_T.saving);
-    var fd = new FormData(form);
-    fd.append('ajax', '1');
-    fetch(window.location.href, {
-      method: 'POST', body: fd, credentials: 'same-origin',
-      headers: { 'X-Requested-With': 'fetch' }
-    })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) {
-        if (j && j.ok) { dirty = false; state('ok', BK_T.savedAt.split('{$a}').join(clock())); }
-        else state('err', '⚠ ' + ((j && j.msg) || BK_T.refused));
-      })
-      .catch(function () { state('err', '⚠ ' + BK_T.offline); })
-      .then(function () {
-        busy = false;
-        if (again) { var f = again; again = null; send(f); }
-      });
-  }
-
-  function schedule(form, delay) {
-    dirty = true;
-    clearTimeout(timer);
-    timer = setTimeout(function () { send(form); }, delay);
-  }
-
-  forms.forEach(function (form) {
-    // The tariff preview is built on fields WITHOUT a name (sim-*): touching them changes
-    // nothing to save, no write needed.
-    function relevant(e) { return e.target && e.target.name && !e.target.disabled; }
-    // Typing: let the typing end. Box/list/date: at once.
-    form.addEventListener('input',  function (e) { if (relevant(e)) schedule(form, 900); });
-    form.addEventListener('change', function (e) { if (relevant(e)) schedule(form, 150); });
-    form.addEventListener('submit', function (e) { e.preventDefault(); schedule(form, 0); });
-    form.querySelectorAll('[data-manual-save]').forEach(function (b) { b.hidden = true; });
-    // After the form, not inside: the fee one is a flex row.
-    var note = document.createElement('p');
-    note.className = 'bk-auto-note';
-    note.textContent = BK_T.auto;
-    if (form.parentNode) form.parentNode.insertBefore(note, form.nextSibling);
-  });
-
-  // Deleting a tariff rule removes fields without firing an event. (The deletion itself
-  // happens in the other listener, synchronously: the delay below makes the send go AFTER.)
-  document.addEventListener('click', function (e) {
-    if (e.target.closest && e.target.closest('.bk-cat-del')) {
-      var f = document.getElementById('bk-cfg');
-      if (f) schedule(f, 200);
-    }
-  });
-
-  // Leaving the page with a change not written yet: warn.
-  window.addEventListener('beforeunload', function (e) {
-    if (dirty || busy) { e.preventDefault(); e.returnValue = ''; }
-  });
-})();
-</script>
-<?php endif; ?>
-<?php if ($showTariffs): ?>
-<script>
-var bkCatN = BK_CATN;
-function bkAddCat() {
-  var html = document.getElementById('bk-cat-tpl').innerHTML.replace(/__i__/g, 'n' + (bkCatN++));
-  var wrap = document.createElement('div'); wrap.innerHTML = html.trim();
-  document.getElementById('bk-cat-list').appendChild(wrap.firstElementChild);
-}
-document.addEventListener('click', function (e) {
-  var del = e.target.closest && e.target.closest('.bk-cat-del');
-  if (del) { e.preventDefault(); var row = del.closest('.bk-cat-row'); if (row) row.remove(); }
-});
-</script>
-<script>
-/* Live tariff preview: reads the form's settings and applies the same formula as the server
-   (lib/pricing.php), with its labels (BK_T). */
-(function () {
-  // #bk-cfg and not "#bkadm form": the FIRST form of the page is the "Copy from…" one — the
-  // preview used to read an always empty base fee there.
-  var form = document.getElementById('bk-cfg'); if (!form) return;
-  function num(v) { v = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isNaN(v) ? 0 : v; }
-  function val(id) { var e = document.getElementById(id); return e ? e.value : ''; }
-  function selVals(sel) { var a = []; if (!sel) return a; for (var i = 0; i < sel.options.length; i++) if (sel.options[i].selected) a.push(sel.options[i].value); return a; }
-  function eur(n, signed) {
-    var p = Math.abs(n).toFixed(2).split('.');
-    return (n < 0 ? '−' : (signed ? '+' : '')) + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, BK_T.th) + BK_T.dec + p[1] + ' ' + BK_T.cur;
-  }
-  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]; }); }
-  function tx(t, a) { return String(t).split('{$a}').join(a); }
-
-  function readConfig() {
-    var feeEl = form.elements['fee'];
-    var cfg = { base: num(feeEl ? feeEl.value : 0), cats: [], deps: {}, prov: {}, rank: {} };
-    Array.prototype.forEach.call(document.querySelectorAll('#bk-cat-list .bk-cat-row'), function (row) {
-      var label = (row.querySelector('input[name$="[label]"]') || {}).value || '';
-      var price = (row.querySelector('input[name$="[price]"]') || {}).value || '';
-      var divSel = row.querySelector('select[name*="[div]"]');
-      var clsSel = row.querySelector('select[name*="[cls]"]');
-      if (price === '' && !selVals(divSel).length && !selVals(clsSel).length) return;
-      cfg.cats.push({ label: label, div: selVals(divSel), cls: selVals(clsSel), price: num(price) });
-    });
-    Array.prototype.forEach.call(form.querySelectorAll('input[name^="dep["]'), function (inp) {
-      var m = inp.name.match(/dep\[(\d+)\]/); if (!m) return; var v = num(inp.value); if (v !== 0) cfg.deps[m[1]] = v;
-    });
-    cfg.prov = { dept: num((form.elements['prov_dept'] || {}).value), region: num((form.elements['prov_region'] || {}).value) };
-    [2, 3].forEach(function (t) { var el = form.elements['rank[' + t + ']']; var v = el ? num(el.value) : 0; if (v !== 0) cfg.rank[t] = v; });
-    return cfg;
-  }
-
-  function simulate() {
-    if (!document.getElementById('sim-total')) return;
-    var cfg = readConfig();
-    var div = val('sim-div'), cls = val('sim-cls'), ses = val('sim-ses'), prov = val('sim-prov'), rank = parseInt(val('sim-rank') || '1', 10);
-    var base = cfg.base, label = BK_T.base;
-    for (var i = 0; i < cfg.cats.length; i++) {
-      var c = cfg.cats[i];
-      var okD = !c.div.length || c.div.indexOf(div) >= 0, okC = !c.cls.length || c.cls.indexOf(cls) >= 0;
-      if (okD && okC) { base = c.price; label = c.label ? tx(BK_T.catNamed, c.label) : BK_T.cat; break; }
-    }
-    var lines = [[label, base, false]], total = base;
-    if (ses && ses !== '0' && cfg.deps[ses] !== undefined) { lines.push([tx(BK_T.dep, ses), cfg.deps[ses], true]); total += cfg.deps[ses]; }
-    var pd = prov === 'dept' ? cfg.prov.dept : (prov === 'region' ? cfg.prov.region : 0);
-    if (pd) { lines.push([prov === 'dept' ? BK_T.dept : BK_T.region, pd, true]); total += pd; }
-    var rd = 0, th = 0;
-    for (var k in cfg.rank) { var kk = parseInt(k, 10); if (rank >= kk && kk > th) { th = kk; rd = cfg.rank[k]; } }
-    if (rd) { lines.push([tx(BK_T.rank, rank), rd, true]); total += rd; }
-    total = Math.max(0, total);
-    var html = '';
-    for (var j = 0; j < lines.length; j++) html += '<tr><td>' + esc(lines[j][0]) + '</td><td>' + eur(lines[j][1], lines[j][2]) + '</td></tr>';
-    document.getElementById('sim-lines').innerHTML = html;
-    document.getElementById('sim-total').textContent = eur(total, false);
-  }
-  form.addEventListener('input', simulate);
-  form.addEventListener('change', simulate);
-  simulate();
-})();
-</script>
-<?php endif; ?>
-<?php
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

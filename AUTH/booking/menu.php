@@ -23,7 +23,7 @@ if (!empty($on) && isset($acl)) {
     // closed with the payments ticked. Survey: open and switched on. Read-only and guarded
     // ($force): the table or a column may not exist yet, then every entry is shown as before.
     $bkShowPay = $bkShowSurvey = true;
-    $bkRs = safe_r_sql("SELECT BcPublishLevel, BcPayments, BcSurvey FROM BK_Competitions
+    $bkRs = safe_r_sql("SELECT BcPublishLevel, BcPayments, BcSurvey FROM BookingCompetitions
         WHERE BcTournament = " . intval($_SESSION['TourId'] ?? 0), false, true);
     if ($bkRs) {
         $bkC = safe_fetch($bkRs);

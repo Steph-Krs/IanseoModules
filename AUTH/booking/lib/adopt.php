@@ -7,7 +7,7 @@
  * ToId. Every BK_ table is tied to the ToId → they are orphaned, and the online registrations
  * (Entries) disappear with the old tournament.
  *
- * Solution (same principle as PRONO): BK_Competitions is anchored on the (stable) ToCode. When
+ * Solution (same principle as PRONO): BookingCompetitions is anchored on the (stable) ToCode. When
  * the organiser opens the new version, bk_adopt_check() finds the orphan (same code, different
  * ToId) and bk_adopt():
  *   1. moves every table tied to the ToId from the old one to the new one;
@@ -44,7 +44,7 @@ function bk_adopt_orphan($newId, $code)
     $newId = intval($newId);
     $code  = trim((string) $code);
     if ($code === '') return 0;
-    $r = safe_fetch(safe_r_sql("SELECT BcTournament FROM BK_Competitions
+    $r = safe_fetch(safe_r_sql("SELECT BcTournament FROM BookingCompetitions
         WHERE BcCode = " . StrSafe_DB($code) . " AND BcTournament <> $newId
         ORDER BY BcTournament DESC LIMIT 1"));
     return $r ? intval($r->BcTournament) : 0;
@@ -55,10 +55,10 @@ function bk_has_booking_data($tourId)
 {
     $tourId = intval($tourId);
     $r = safe_fetch(safe_r_sql("SELECT
-        (SELECT COUNT(*) FROM BK_Competitions  WHERE BcTournament = $tourId)
-      + (SELECT COUNT(*) FROM BK_Registrations WHERE BrTournament = $tourId)
-      + (SELECT COUNT(*) FROM BK_Payments      WHERE PyTournament = $tourId)
-      + (SELECT COUNT(*) FROM BK_Ledger        WHERE BlgTournament = $tourId) AS n"));
+        (SELECT COUNT(*) FROM BookingCompetitions  WHERE BcTournament = $tourId)
+      + (SELECT COUNT(*) FROM BookingRegistrations WHERE BrTournament = $tourId)
+      + (SELECT COUNT(*) FROM BookingPayments      WHERE PyTournament = $tourId)
+      + (SELECT COUNT(*) FROM BookingLedger        WHERE BlgTournament = $tourId) AS n"));
     return $r && intval($r->n) > 0;
 }
 
@@ -101,7 +101,7 @@ function bk_adopt_report_pull()
 /** Records an inconsistency for the organiser to settle. */
 function bk_reimport_conflict($tourId, $code, $licence, $name, $kind, $enId, $booking, $import)
 {
-    safe_w_sql("INSERT INTO BK_ReimportConflicts SET
+    safe_w_sql("INSERT INTO BookingReimportConflicts SET
         RcTournament = " . intval($tourId) . ",
         RcCode = "     . StrSafe_DB((string) $code) . ",
         RcLicence = "  . StrSafe_DB((string) $licence) . ",
@@ -119,7 +119,7 @@ function bk_reimport_conflicts($tourId, $onlyOpen = true)
     $tourId = intval($tourId);
     $w = "RcTournament = $tourId" . ($onlyOpen ? " AND RcResolved = 0" : '');
     $out = array();
-    $q = safe_r_sql("SELECT * FROM BK_ReimportConflicts WHERE $w ORDER BY RcKind, RcName");
+    $q = safe_r_sql("SELECT * FROM BookingReimportConflicts WHERE $w ORDER BY RcKind, RcName");
     while ($r = safe_fetch($q)) $out[] = $r;
     return $out;
 }
@@ -130,11 +130,11 @@ function bk_reimport_imported($tourId)
     bk_schema();
     $tourId = intval($tourId);
     $out = array();
-    $q = safe_r_sql("SELECT r.*, e.EnFirstName, e.EnName, e.EnDivision, e.EnClass
-        FROM BK_Registrations r
-        INNER JOIN Entries e ON e.EnId = r.BrEnId
-        WHERE r.BrTournament = $tourId AND r.BrByRole = 'IMPORT'
-        ORDER BY e.EnFirstName, e.EnName");
+    $q = safe_r_sql("SELECT BookingRegistrations.*, EnFirstName, EnName, EnDivision, EnClass
+        FROM BookingRegistrations
+        INNER JOIN Entries ON EnId = BrEnId
+        WHERE BrTournament = $tourId AND BrByRole = 'IMPORT'
+        ORDER BY EnFirstName, EnName");
     while ($r = safe_fetch($q)) $out[] = $r;
     return $out;
 }
@@ -169,11 +169,11 @@ function bk_adopt_reinject($newId, $reg)
     $newEn = intval($res['enid']);
     // bk_register computed BrValidated again (validation mode) and set BrCreated=now: the
     // original values are restored, then the old orphan row is deleted.
-    safe_w_sql("UPDATE BK_Registrations SET
+    safe_w_sql("UPDATE BookingRegistrations SET
         BrValidated = " . intval($reg->BrValidated) . ",
         BrCreated = "   . StrSafe_DB((string) $reg->BrCreated) . "
         WHERE BrEnId = $newEn");
-    safe_w_sql("DELETE FROM BK_Registrations WHERE BrId = " . intval($reg->BrId));
+    safe_w_sql("DELETE FROM BookingRegistrations WHERE BrId = " . intval($reg->BrId));
     return array('ok' => true, 'enid' => $newEn);
 }
 
@@ -184,7 +184,7 @@ function bk_adopt_reinject($newId, $reg)
 /** Marks an inconsistency as settled. */
 function bk_reimport_resolve($rcId)
 {
-    safe_w_sql("UPDATE BK_ReimportConflicts SET RcResolved = 1 WHERE RcId = " . intval($rcId));
+    safe_w_sql("UPDATE BookingReimportConflicts SET RcResolved = 1 WHERE RcId = " . intval($rcId));
 }
 
 /**
@@ -239,7 +239,7 @@ function bk_reimport_apply_booking($tourId, $rc)
         }
         checkAgainstLUE($enId);
 
-        safe_w_sql("UPDATE BK_Registrations SET
+        safe_w_sql("UPDATE BookingRegistrations SET
             BrDivision = " . StrSafe_DB($division) . ",
             BrClass = "    . StrSafe_DB($class) . ",
             BrFace = $face WHERE BrEnId = $enId");
@@ -252,13 +252,13 @@ function bk_reimport_apply_booking($tourId, $rc)
 function bk_reimport_orphan_row($tourId, $licence)
 {
     $tourId = intval($tourId);
-    return safe_fetch(safe_r_sql("SELECT r.* FROM BK_Registrations r
-        LEFT JOIN Entries e ON e.EnId = r.BrEnId
-        WHERE r.BrTournament = $tourId
-          AND r.BrLicence = " . StrSafe_DB((string) $licence) . "
-          AND r.BrByRole <> 'IMPORT'
-          AND e.EnId IS NULL
-        ORDER BY r.BrId LIMIT 1")) ?: null;
+    return safe_fetch(safe_r_sql("SELECT BookingRegistrations.* FROM BookingRegistrations
+        LEFT JOIN Entries ON EnId = BrEnId
+        WHERE BrTournament = $tourId
+          AND BrLicence = " . StrSafe_DB((string) $licence) . "
+          AND BrByRole <> 'IMPORT'
+          AND EnId IS NULL
+        ORDER BY BrId LIMIT 1")) ?: null;
 }
 
 /** New try at injecting a 'reinject' conflict. */
@@ -273,13 +273,13 @@ function bk_reimport_retry($tourId, $rc)
 function bk_reimport_drop($tourId, $rc)
 {
     $reg = bk_reimport_orphan_row($tourId, $rc->RcLicence);
-    if ($reg) safe_w_sql("DELETE FROM BK_Registrations WHERE BrId = " . intval($reg->BrId));
+    if ($reg) safe_w_sql("DELETE FROM BookingRegistrations WHERE BrId = " . intval($reg->BrId));
     return array('ok' => true);
 }
 
 /**
  * REMOVES a registration from the competition (Entry deleted from the ianseo core +
- * BK_Registrations row). ADMINISTRATOR action (no archer authentication): only for the
+ * BookingRegistrations row). ADMINISTRATOR action (no archer authentication): only for the
  * re-import reconciliation. Follows bk_unregister exactly (deleteArcher + event promotion +
  * recomputation hooks), so rankings/teams are not left outdated.
  */
@@ -294,7 +294,7 @@ function bk_reimport_remove_entry($tourId, $enId)
 
         $old = safe_fetch(safe_r_sql("SELECT EnCode, EnDivision, " . implode(', ', bk_event_cols()) . "
             FROM Entries WHERE EnId = $enId AND EnTournament = $tourId"));
-        if (!$old) { safe_w_sql("DELETE FROM BK_Registrations WHERE BrEnId = $enId"); return array('ok' => true); }
+        if (!$old) { safe_w_sql("DELETE FROM BookingRegistrations WHERE BrEnId = $enId"); return array('ok' => true); }
 
         $p = Params4Recalc($enId);
         deleteArcher($enId);
@@ -312,7 +312,7 @@ function bk_reimport_remove_entry($tourId, $enId)
             MakeIndAbs();
         }
 
-        safe_w_sql("DELETE FROM BK_Registrations WHERE BrEnId = $enId");
+        safe_w_sql("DELETE FROM BookingRegistrations WHERE BrEnId = $enId");
         return array('ok' => true);
     });
 }
@@ -398,26 +398,26 @@ function bk_adopt($newId)
         'category' => 0, 'payments' => 0);
 
     // How many payments moved (for the report).
-    $p = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BK_Payments WHERE PyTournament = $old"));
+    $p = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BookingPayments WHERE PyTournament = $old"));
     $rep['payments'] = $p ? intval($p->n) : 0;
 
     // ---- Phase A: move the tables tied to the ToId (old → new) ----
     safe_w_sql("START TRANSACTION");
-    safe_w_sql("UPDATE BK_Competitions   SET BcTournament = $newId, BcCode = " . StrSafe_DB($code) . " WHERE BcTournament = $old");
-    safe_w_sql("UPDATE BK_TargetCaps     SET BtTournament = $newId WHERE BtTournament = $old");
-    safe_w_sql("UPDATE BK_ShopItems      SET SiTournament = $newId WHERE SiTournament = $old");
-    safe_w_sql("UPDATE BK_ShopOrders     SET SoTournament = $newId WHERE SoTournament = $old");
-    safe_w_sql("UPDATE BK_Payments       SET PyTournament = $newId WHERE PyTournament = $old");
-    safe_w_sql("UPDATE BK_Registrations  SET BrTournament = $newId WHERE BrTournament = $old");
-    safe_w_sql("UPDATE BK_Surveys        SET BqTournament = $newId WHERE BqTournament = $old");
-    safe_w_sql("UPDATE BK_SurveyVoters   SET BvTournament = $newId WHERE BvTournament = $old");
+    safe_w_sql("UPDATE BookingCompetitions   SET BcTournament = $newId, BcCode = " . StrSafe_DB($code) . " WHERE BcTournament = $old");
+    safe_w_sql("UPDATE BookingTargetCaps     SET BtTournament = $newId WHERE BtTournament = $old");
+    safe_w_sql("UPDATE BookingShopItems      SET SiTournament = $newId WHERE SiTournament = $old");
+    safe_w_sql("UPDATE BookingShopOrders     SET SoTournament = $newId WHERE SoTournament = $old");
+    safe_w_sql("UPDATE BookingPayments       SET PyTournament = $newId WHERE PyTournament = $old");
+    safe_w_sql("UPDATE BookingRegistrations  SET BrTournament = $newId WHERE BrTournament = $old");
+    safe_w_sql("UPDATE BookingSurveys        SET BqTournament = $newId WHERE BqTournament = $old");
+    safe_w_sql("UPDATE BookingSurveyVoters   SET BvTournament = $newId WHERE BvTournament = $old");
     // Waiting list: the archers keep their place in the queue across a re-import. A
     // promoted row points at an Entry of the old version (BwEnId): the history stays.
-    safe_w_sql("UPDATE BK_Waitlist       SET BwTournament = $newId WHERE BwTournament = $old");
-    safe_w_sql("UPDATE BK_Refunds        SET BfTournament = $newId WHERE BfTournament = $old");
+    safe_w_sql("UPDATE BookingWaitlist       SET BwTournament = $newId WHERE BwTournament = $old");
+    safe_w_sql("UPDATE BookingRefunds        SET BfTournament = $newId WHERE BfTournament = $old");
     // Payments journal: accounts are licences, they follow as they are. An account "#<EnId>"
     // (participant without a licence) keeps the old EnId and shows apart, with its payments.
-    safe_w_sql("UPDATE BK_Ledger         SET BlgTournament = $newId WHERE BlgTournament = $old");
+    safe_w_sql("UPDATE BookingLedger         SET BlgTournament = $newId WHERE BlgTournament = $old");
     safe_w_sql("COMMIT");
 
     // ---- Phase B: reconcile the registrations with the new import ----
@@ -425,21 +425,21 @@ function bk_adopt($newId)
     // Booking registrations (now on the new ToId, but BrEnId still points to the deleted
     // Entries). Captured in an array: the loop changes the table.
     $regs = array();
-    $q = safe_r_sql("SELECT * FROM BK_Registrations WHERE BrTournament = $newId ORDER BY BrId");
+    $q = safe_r_sql("SELECT * FROM BookingRegistrations WHERE BrTournament = $newId ORDER BY BrId");
     while ($r = safe_fetch($q)) $regs[] = $r;
 
     // Entries of the new import, indexed by licence (each one "to be claimed").
     $importByLic = array();
-    $q = safe_r_sql("SELECT e.EnId, e.EnCode, e.EnDivision, e.EnClass, e.EnTargetFace,
-                e.EnFirstName, e.EnName, q.QuSession, q.QuTarget
+    $q = safe_r_sql("SELECT EnId, EnCode, EnDivision, EnClass, EnTargetFace,
+                EnFirstName, EnName, QuSession, QuTarget
         /* ⚠ One of the few places of the module where Qualifications is LEFT joined, and it
            must stay so. Elsewhere the relation is 1:1 (INNER JOIN) because the core repairs
            it at the top of Partecipants/index.php — but here the competition HAS JUST been
            imported and that screen was never opened. An INNER JOIN would leave an archer
            without a placement row out of the per-licence index: the reconciliation would
            believe them absent in the import and inject a duplicate. */
-        FROM Entries e LEFT JOIN Qualifications q ON q.QuId = e.EnId
-        WHERE e.EnTournament = $newId");
+        FROM Entries LEFT JOIN Qualifications ON QuId = EnId
+        WHERE EnTournament = $newId");
     while ($e = safe_fetch($q)) {
         $lic = trim((string) $e->EnCode);
         $importByLic[$lic][] = array('e' => $e, 'claimed' => false);
@@ -478,7 +478,7 @@ function bk_adopt($newId)
             // Placement / departure: the NEW IMPORT decides (the snapshot is synchronised).
             $catDiff = ((string) $e->EnDivision !== (string) $reg->BrDivision)
                     || ((string) $e->EnClass    !== (string) $reg->BrClass);
-            safe_w_sql("UPDATE BK_Registrations SET
+            safe_w_sql("UPDATE BookingRegistrations SET
                 BrEnId = $enId,
                 BrDivision = " . StrSafe_DB((string) $e->EnDivision) . ",
                 BrClass = "    . StrSafe_DB((string) $e->EnClass) . ",
@@ -530,7 +530,7 @@ function bk_adopt($newId)
         foreach ($cands as $cand) {
             if ($cand['claimed']) continue;
             $e = $cand['e'];
-            safe_w_sql("INSERT INTO BK_Registrations SET
+            safe_w_sql("INSERT INTO BookingRegistrations SET
                 BrEnId = "     . intval($e->EnId) . ",
                 BrTournament = $newId,
                 BrArcher = 0,

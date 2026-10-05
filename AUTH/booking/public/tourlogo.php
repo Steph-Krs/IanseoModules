@@ -13,6 +13,7 @@ require_once dirname(__DIR__) . '/lib/mandate.php';
 require_once dirname(__DIR__) . '/lib/registration.php';   // bk_reg_existing (shareable picture)
 
 $tourId = intval($_GET['t'] ?? 0);
+// bytes: an ASCII request parameter (a letter code)
 $type   = strtoupper((string) ($_GET['type'] ?? ''));
 if (!$tourId || !in_array($type, array('L', 'R', 'B'), true)) { http_response_code(404); exit; }
 

@@ -4,7 +4,7 @@
  * markers, NO external tiles nor IP leak from the browser).
  *
  * The only outgoing call is the GEOCODING, done BY THE SERVER and ONCE per competition (result
- * cached in BK_Competitions: BcLat/BcLng/BcGeoSrc), through the Base Adresse Nationale
+ * cached in BookingCompetitions: BcLat/BcLng/BcGeoSrc), through the Base Adresse Nationale
  * (api-adresse.data.gouv.fr — French public service, free, no key). Can be turned off with
  * config.local.json → "geo": {"enabled": false}.
  *
@@ -72,9 +72,9 @@ function bk_comp_geocode($tourId)
     bk_schema();
     $tourId = intval($tourId);
 
-    $r = safe_fetch(safe_r_sql("SELECT t.ToVenue, o.BcLat, o.BcLng, o.BcGeoSrc
-        FROM Tournament t LEFT JOIN BK_Competitions o ON o.BcTournament = t.ToId
-        WHERE t.ToId = $tourId"));
+    $r = safe_fetch(safe_r_sql("SELECT ToVenue, BcLat, BcLng, BcGeoSrc
+        FROM Tournament LEFT JOIN BookingCompetitions ON BcTournament = ToId
+        WHERE ToId = $tourId"));
     if (!$r) return null;
     $venue = trim((string) $r->ToVenue);
     if ($venue === '') return null;
@@ -88,11 +88,11 @@ function bk_comp_geocode($tourId)
     if (!$g) {
         // Remembers the try (BcGeoSrc) without coordinates → no endless retries for the same
         // town; a new ToVenue starts a new geocoding.
-        safe_w_sql("INSERT INTO BK_Competitions SET BcTournament = $tourId, BcGeoSrc = " . StrSafe_DB($venue) . "
+        safe_w_sql("INSERT INTO BookingCompetitions SET BcTournament = $tourId, BcGeoSrc = " . StrSafe_DB($venue) . "
             ON DUPLICATE KEY UPDATE BcGeoSrc = " . StrSafe_DB($venue));
         return null;
     }
-    safe_w_sql("INSERT INTO BK_Competitions SET BcTournament = $tourId,
+    safe_w_sql("INSERT INTO BookingCompetitions SET BcTournament = $tourId,
         BcLat = " . StrSafe_DB(number_format($g['lat'], 6, '.', '')) . ",
         BcLng = " . StrSafe_DB(number_format($g['lng'], 6, '.', '')) . ",
         BcGeoSrc = " . StrSafe_DB($venue) . "
@@ -119,22 +119,22 @@ function bk_comp_geocode($tourId)
 function bk_map_groups()
 {
     $insets = array(
-        '971' => array('lat0' => 16.2,  'label' => 'Guadeloupe'),
-        '972' => array('lat0' => 14.6,  'label' => 'Martinique'),
-        '973' => array('lat0' => 4.0,   'label' => 'Guyane'),
-        '974' => array('lat0' => -21.1, 'label' => 'La Réunion'),
-        '976' => array('lat0' => -12.8, 'label' => 'Mayotte'),
-        '988' => array('lat0' => -21.2, 'label' => 'Nouvelle-Calédonie', 'bbox' => array(163.9, 168.3, -22.9, -19.4)),
-        '987' => array('lat0' => -17.6, 'label' => 'Polynésie fr.',       'bbox' => array(-150.0, -149.05, -17.98, -17.42)),
+        '971' => array('lat0' => 16.2),
+        '972' => array('lat0' => 14.6),
+        '973' => array('lat0' => 4.0),
+        '974' => array('lat0' => -21.1),
+        '976' => array('lat0' => -12.8),
+        '988' => array('lat0' => -21.2, 'bbox' => array(163.9, 168.3, -22.9, -19.4)),
+        '987' => array('lat0' => -17.6, 'bbox' => array(-150.0, -149.05, -17.98, -17.42)),
     );
-    $g = array('metro' => array('rect' => array(6, 6, 756, 988), 'lat0' => 46.6, 'label' => ''));
+    $g = array('metro' => array('rect' => array(6, 6, 756, 988), 'lat0' => 46.6));
     $colX = 770; $colW = 224; $top = 6; $bottom = 994; $gap = 6; $n = count($insets);
     $bh = ($bottom - $top - $gap * ($n - 1)) / $n;
     $i = 0;
     foreach ($insets as $code => $cfg) {
         $y = $top + $i++ * ($bh + $gap);
         $g[$code] = array('rect' => array($colX, round($y, 1), $colW, round($bh, 1)),
-                          'lat0' => $cfg['lat0'], 'label' => $cfg['label']);
+                          'lat0' => $cfg['lat0']);
         if (isset($cfg['bbox'])) $g[$code]['bbox'] = $cfg['bbox'];
     }
     return $g;
@@ -149,7 +149,7 @@ function bk_map_groups()
 function bk_com_features()
 {
     return array(
-        array('properties' => array('code' => '988', 'nom' => 'Nouvelle-Calédonie'),
+        array('properties' => array('code' => '988', 'nom' => ''),
             'geometry' => array('type' => 'MultiPolygon', 'coordinates' => array(
                 array(array(  // Grande Terre
                     array(164.05, -20.25), array(164.55, -20.28), array(165.00, -20.68), array(165.30, -20.92),
@@ -159,11 +159,11 @@ function bk_com_features()
                     array(164.82, -21.05), array(164.50, -20.75), array(164.28, -20.55), array(164.10, -20.38),
                     array(164.05, -20.25),
                 )),
-                array(array(array(166.45, -20.45), array(166.65, -20.48), array(166.68, -20.65), array(166.50, -20.68), array(166.45, -20.45))), // Ouvéa
+                array(array(array(166.45, -20.45), array(166.65, -20.48), array(166.68, -20.65), array(166.50, -20.68), array(166.45, -20.45))), // Ouvea
                 array(array(array(167.05, -20.75), array(167.45, -20.78), array(167.48, -21.05), array(167.10, -21.08), array(167.05, -20.75))), // Lifou
-                array(array(array(167.82, -21.40), array(168.12, -21.42), array(168.15, -21.62), array(167.85, -21.62), array(167.82, -21.40))), // Maré
+                array(array(array(167.82, -21.40), array(168.12, -21.42), array(168.15, -21.62), array(167.85, -21.62), array(167.82, -21.40))), // Mare
             ))),
-        array('properties' => array('code' => '987', 'nom' => 'Polynésie française'),
+        array('properties' => array('code' => '987', 'nom' => ''),
             'geometry' => array('type' => 'MultiPolygon', 'coordinates' => array(
                 array(array(  // Tahiti (Nui + Iti)
                     array(-149.62, -17.50), array(-149.48, -17.52), array(-149.36, -17.60), array(-149.34, -17.70),
@@ -266,7 +266,7 @@ function bk_map_geometry()
         if (!$bb) continue;
         $p = bk_map_fit($bb, $cfg['rect'], $cfg['lat0']);
         if (!$p) continue;
-        $p['label'] = $cfg['label']; $p['rectArr'] = $cfg['rect'];
+        $p['rectArr'] = $cfg['rect'];
         $proj[$g] = $p;
     }
 

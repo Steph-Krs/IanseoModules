@@ -3,7 +3,7 @@
  * lib/competition.php — opening of online registration, competition by competition.
  *
  * The FIELD setup is not here: it is already entered in ianseo (Session, DistanceInformation,
- * TargetFaces, TournamentDistances) and read as is. BK_Competitions only holds what belongs
+ * TargetFaces, TournamentDistances) and read as is. BookingCompetitions only holds what belongs
  * to online registration.
  *
  * ⚠️ Dates: NOW()/CURDATE() are NOT a clock shared by both faces — the MySQL connection is in
@@ -55,20 +55,21 @@ function bk_scope_error($kind, $code)
 }
 
 /**
- * SQL fragment of the columns computed by MySQL. `o` = alias of BK_Competitions.
+ * SQL fragment of the columns computed by MySQL. `o` = alias of BookingCompetitions.
  *  BcIsOpen  : registration is open right now
  *  BcAllOpen : the geographic restriction is lifted (none, or its opening date reached)
  */
-function bk_comp_calc_sql($a = 'o')
+function bk_comp_calc_sql($alias = '')
 {
+    $a = $alias !== '' ? "$alias." : '';
     // The organiser typed these times in the competition's local time: compare them with
     // the competition's local "now", identical whatever the page (lib/clock.php).
-    $now = bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $a.BcTournament)");
-    return "($a.BcOpen = 1
-              AND ($a.BcOpenFrom IS NULL OR $a.BcOpenFrom <= $now)
-              AND ($a.BcOpenTo   IS NULL OR $a.BcOpenTo   >= $now)) AS BcIsOpen,
-            ($a.BcRestrictKind = ''
-              OR ($a.BcRestrictTo IS NOT NULL AND $a.BcRestrictTo <= $now)) AS BcAllOpen";
+    $now = bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = {$a}BcTournament)");
+    return "({$a}BcOpen = 1
+              AND ({$a}BcOpenFrom IS NULL OR {$a}BcOpenFrom <= $now)
+              AND ({$a}BcOpenTo   IS NULL OR {$a}BcOpenTo   >= $now)) AS BcIsOpen,
+            ({$a}BcRestrictKind = ''
+              OR ({$a}BcRestrictTo IS NOT NULL AND {$a}BcRestrictTo <= $now)) AS BcAllOpen";
 }
 
 /** Default values of a competition never configured. */
@@ -127,8 +128,8 @@ function bk_comp_config($tourId)
 {
     bk_schema();
     $tourId = intval($tourId);
-    $q = safe_r_sql("SELECT o.*, " . bk_comp_calc_sql('o') . "
-        FROM BK_Competitions o WHERE o.BcTournament = $tourId");
+    $q = safe_r_sql("SELECT *, " . bk_comp_calc_sql() . "
+        FROM BookingCompetitions WHERE BcTournament = $tourId");
     $r = safe_fetch($q);
     return $r ?: bk_comp_defaults($tourId);
 }
@@ -143,8 +144,9 @@ function bk_comp_config($tourId)
  * AUTH, or server administrator → everything; otherwise the AUTH_COMP list (exact codes or
  * LIKE patterns). Safe fallback: no access.
  */
-function bk_copy_access_where($alias = 't')
+function bk_copy_access_where($alias = '')
 {
+    $a = $alias !== '' ? "$alias." : '';
     if (empty($_SESSION['AUTH_ENABLE'])) return '1=1';     // localhost / single organiser
     if (!empty($_SESSION['AUTH_ROOT']))  return '1=1';     // server administrator (free field)
     $comp = $_SESSION['AUTH_COMP'] ?? array();
@@ -154,8 +156,8 @@ function bk_copy_access_where($alias = 't')
         $c = (string) $c;
         if ($c === '') continue;
         $ors[] = (strpos($c, '%') !== false || strpos($c, '_') !== false)
-            ? "$alias.ToCode LIKE " . StrSafe_DB($c)
-            : "$alias.ToCode = " . StrSafe_DB($c);
+            ? "{$a}ToCode LIKE " . StrSafe_DB($c)
+            : "{$a}ToCode = " . StrSafe_DB($c);
     }
     return $ors ? '(' . implode(' OR ', $ors) . ')' : '1=0';
 }
@@ -171,10 +173,10 @@ function bk_copy_sources($currentTour)
 {
     bk_schema();
     $currentTour = intval($currentTour);
-    $rs = safe_r_sql("SELECT t.ToId, t.ToCode, t.ToName, t.ToWhenFrom
-        FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament
-        WHERE t.ToId <> $currentTour AND " . bk_copy_access_where('t') . "
-        ORDER BY t.ToWhenFrom DESC, t.ToName LIMIT 500");
+    $rs = safe_r_sql("SELECT ToId, ToCode, ToName, ToWhenFrom
+        FROM BookingCompetitions INNER JOIN Tournament ON ToId = BcTournament
+        WHERE ToId <> $currentTour AND " . bk_copy_access_where() . "
+        ORDER BY ToWhenFrom DESC, ToName LIMIT 500");
     $out = array();
     while ($r = safe_fetch($rs)) $out[] = $r;
     return $out;
@@ -189,15 +191,15 @@ function bk_copy_resolve($input, $currentTour)
     $input = trim((string) $input);
     if ($input === '') return 0;
     $currentTour = intval($currentTour);
-    $where = bk_copy_access_where('t');
+    $where = bk_copy_access_where();
     if (ctype_digit($input)) {
-        $r = safe_fetch(safe_r_sql("SELECT t.ToId FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament
-            WHERE t.ToId = " . intval($input) . " AND t.ToId <> $currentTour AND $where"));
+        $r = safe_fetch(safe_r_sql("SELECT ToId FROM BookingCompetitions INNER JOIN Tournament ON ToId = BcTournament
+            WHERE ToId = " . intval($input) . " AND ToId <> $currentTour AND $where"));
         if ($r) return intval($r->ToId);
     }
-    $r = safe_fetch(safe_r_sql("SELECT t.ToId FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament
-        WHERE t.ToCode = " . StrSafe_DB($input) . " AND t.ToId <> $currentTour AND $where
-        ORDER BY t.ToWhenFrom DESC LIMIT 1"));
+    $r = safe_fetch(safe_r_sql("SELECT ToId FROM BookingCompetitions INNER JOIN Tournament ON ToId = BcTournament
+        WHERE ToCode = " . StrSafe_DB($input) . " AND ToId <> $currentTour AND $where
+        ORDER BY ToWhenFrom DESC LIMIT 1"));
     return $r ? intval($r->ToId) : 0;
 }
 
@@ -214,13 +216,13 @@ function bk_comp_copy_from($destTour, $srcTour)
     $destTour = intval($destTour); $srcTour = intval($srcTour);
     if ($destTour <= 0 || $srcTour <= 0 || $destTour === $srcTour) return false;
 
-    $src = safe_fetch(safe_r_sql("SELECT o.BcTournament, t.ToWhenFrom AS SrcStart
-        FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament WHERE o.BcTournament = $srcTour"));
+    $src = safe_fetch(safe_r_sql("SELECT BcTournament, ToWhenFrom AS SrcStart
+        FROM BookingCompetitions INNER JOIN Tournament ON ToId = BcTournament WHERE BcTournament = $srcTour"));
     if (!$src) return false;                                   // the source has no booking setup
     $dst = safe_fetch(safe_r_sql("SELECT ToWhenFrom FROM Tournament WHERE ToId = $destTour"));
     if (!$dst) return false;
 
-    safe_w_sql("INSERT IGNORE INTO BK_Competitions (BcTournament) VALUES ($destTour)");
+    safe_w_sql("INSERT IGNORE INTO BookingCompetitions (BcTournament) VALUES ($destTour)");
 
     $ss = StrSafe_DB($src->SrcStart);
     $ds = StrSafe_DB($dst->ToWhenFrom);
@@ -229,7 +231,7 @@ function bk_comp_copy_from($destTour, $srcTour)
         return "IF(s.$col IS NULL, NULL, DATE_ADD($ds, INTERVAL TIMESTAMPDIFF(SECOND, $ss, s.$col) SECOND))";
     };
 
-    safe_w_sql("UPDATE BK_Competitions d INNER JOIN BK_Competitions s ON s.BcTournament = $srcTour SET
+    safe_w_sql("UPDATE BookingCompetitions d INNER JOIN BookingCompetitions s ON s.BcTournament = $srcTour SET
         d.BcOpen = s.BcOpen, d.BcPublishLevel = s.BcPublishLevel, d.BcAdvancedBackup = s.BcAdvancedBackup,
         d.BcOpenFrom = " . $remap('BcOpenFrom') . ", d.BcOpenTo = " . $remap('BcOpenTo') . ",
         d.BcRestrictKind = s.BcRestrictKind, d.BcRestrictCode = s.BcRestrictCode,
@@ -256,26 +258,26 @@ function bk_comp_copy_shop($destTour, $srcTour)
     $destTour = intval($destTour); $srcTour = intval($srcTour);
     // Source collected first (no nested loop over live result sets).
     $items = array();
-    $rs = safe_r_sql("SELECT * FROM BK_ShopItems WHERE SiTournament = $srcTour ORDER BY SiId");
+    $rs = safe_r_sql("SELECT * FROM BookingShopItems WHERE SiTournament = $srcTour ORDER BY SiId");
     while ($r = safe_fetch($rs)) $items[] = $r;
     $variants = array();
     foreach ($items as $it) {
         $variants[(string) $it->SiId] = array();
-        $rv = safe_r_sql("SELECT * FROM BK_ShopVariants WHERE SvItem = " . intval($it->SiId) . " ORDER BY SvId");
+        $rv = safe_r_sql("SELECT * FROM BookingShopVariants WHERE SvItem = " . intval($it->SiId) . " ORDER BY SvId");
         while ($v = safe_fetch($rv)) $variants[(string) $it->SiId][] = $v;
     }
     // Destination shop reset (copy = fresh shop).
-    safe_w_sql("DELETE FROM BK_ShopOrders WHERE SoTournament = $destTour");
-    safe_w_sql("DELETE v FROM BK_ShopVariants v INNER JOIN BK_ShopItems i ON i.SiId = v.SvItem WHERE i.SiTournament = $destTour");
-    safe_w_sql("DELETE FROM BK_ShopItems WHERE SiTournament = $destTour");
+    safe_w_sql("DELETE FROM BookingShopOrders WHERE SoTournament = $destTour");
+    safe_w_sql("DELETE BookingShopVariants FROM BookingShopVariants INNER JOIN BookingShopItems ON SiId = SvItem WHERE SiTournament = $destTour");
+    safe_w_sql("DELETE FROM BookingShopItems WHERE SiTournament = $destTour");
     foreach ($items as $it) {
-        safe_w_sql("INSERT INTO BK_ShopItems (SiTournament, SiSection, SiLabel, SiDescription, SiPrice, SiStock, SiMaxPerPerson, SiOptionName, SiOrder, SiActive)
+        safe_w_sql("INSERT INTO BookingShopItems (SiTournament, SiSection, SiLabel, SiDescription, SiPrice, SiStock, SiMaxPerPerson, SiOptionName, SiOrder, SiActive)
             VALUES ($destTour, " . StrSafe_DB($it->SiSection) . ", " . StrSafe_DB($it->SiLabel) . ", "
             . StrSafe_DB($it->SiDescription) . ", " . StrSafe_DB($it->SiPrice) . ", " . intval($it->SiStock) . ", "
             . intval($it->SiMaxPerPerson) . ", " . StrSafe_DB($it->SiOptionName) . ", " . intval($it->SiOrder) . ", " . intval($it->SiActive) . ")");
         $newId = intval(safe_w_last_id());
         foreach ($variants[(string) $it->SiId] as $v) {
-            safe_w_sql("INSERT INTO BK_ShopVariants (SvItem, SvLabel, SvStock, SvOrder)
+            safe_w_sql("INSERT INTO BookingShopVariants (SvItem, SvLabel, SvStock, SvOrder)
                 VALUES ($newId, " . StrSafe_DB($v->SvLabel) . ", " . intval($v->SvStock) . ", " . intval($v->SvOrder) . ")");
         }
     }
@@ -298,10 +300,10 @@ function bk_comp_copy_caps($destTour, $srcTour)
     while ($r = safe_fetch($rs)) { $n = trim((string) $r->TfName); if ($n !== '' && !isset($destByName[$n])) $destByName[$n] = (string) $r->TfId; }
 
     $caps = array();
-    $rs = safe_r_sql("SELECT * FROM BK_TargetCaps WHERE BtTournament = $srcTour");
+    $rs = safe_r_sql("SELECT * FROM BookingTargetCaps WHERE BtTournament = $srcTour");
     while ($r = safe_fetch($rs)) $caps[] = $r;
 
-    safe_w_sql("DELETE FROM BK_TargetCaps WHERE BtTournament = $destTour");
+    safe_w_sql("DELETE FROM BookingTargetCaps WHERE BtTournament = $destTour");
     foreach ($caps as $c) {
         $ids = array();
         foreach (array_filter(explode(',', (string) $c->BtFaces), 'strlen') as $fid) {
@@ -309,7 +311,7 @@ function bk_comp_copy_caps($destTour, $srcTour)
             if ($name !== '' && isset($destByName[$name])) $ids[] = $destByName[$name];
         }
         $faces = implode(',', array_values(array_unique($ids)));
-        safe_w_sql("INSERT INTO BK_TargetCaps (BtTournament, BtSession, BtTarget, BtDistances, BtDistDef, BtDistMin, BtDistMax, BtFaces)
+        safe_w_sql("INSERT INTO BookingTargetCaps (BtTournament, BtSession, BtTarget, BtDistances, BtDistDef, BtDistMin, BtDistMax, BtFaces)
             VALUES ($destTour, " . intval($c->BtSession) . ", " . intval($c->BtTarget) . ", "
             . StrSafe_DB($c->BtDistances) . ", " . intval($c->BtDistDef) . ", "
             . intval($c->BtDistMin) . ", " . intval($c->BtDistMax) . ", " . StrSafe_DB($faces) . ")");
@@ -406,7 +408,7 @@ function bk_comp_save($tourId, $in)
         $set .= ", BcPayInfo = " . ($json === '' ? 'NULL' : StrSafe_DB($json));
     }
 
-    safe_w_sql("INSERT INTO BK_Competitions SET BcTournament = $tourId, $set
+    safe_w_sql("INSERT INTO BookingCompetitions SET BcTournament = $tourId, $set
         ON DUPLICATE KEY UPDATE $set");
 }
 
@@ -435,7 +437,7 @@ function bk_comp_restore($tourId, $snap)
         $parts[] = "$c = " . ($v === null ? 'NULL' : StrSafe_DB((string) $v));
     }
     if ($parts) {
-        safe_w_sql("UPDATE BK_Competitions SET " . implode(', ', $parts)
+        safe_w_sql("UPDATE BookingCompetitions SET " . implode(', ', $parts)
             . " WHERE BcTournament = " . intval($tourId));
     }
 }
@@ -458,15 +460,15 @@ function bk_comp_set_effective($tourId, $cols)
 {
     $tourId = intval($tourId);
     if (!$cols) return;
-    safe_w_sql("INSERT INTO BK_Competitions (BcTournament) VALUES ($tourId) ON DUPLICATE KEY UPDATE BcTournament = BcTournament");
+    safe_w_sql("INSERT INTO BookingCompetitions (BcTournament) VALUES ($tourId) ON DUPLICATE KEY UPDATE BcTournament = BcTournament");
     $parts = array();
     foreach ($cols as $c => $v) $parts[] = "$c = " . ($v === null ? 'NULL' : StrSafe_DB((string) $v));
-    safe_w_sql("UPDATE BK_Competitions SET " . implode(', ', $parts) . " WHERE BcTournament = $tourId");
-    $r = safe_fetch(safe_r_sql("SELECT BcAdvancedBackup FROM BK_Competitions WHERE BcTournament = $tourId"));
+    safe_w_sql("UPDATE BookingCompetitions SET " . implode(', ', $parts) . " WHERE BcTournament = $tourId");
+    $r = safe_fetch(safe_r_sql("SELECT BcAdvancedBackup FROM BookingCompetitions WHERE BcTournament = $tourId"));
     $snap = $r ? json_decode((string) $r->BcAdvancedBackup, true) : null;
     if (!is_array($snap)) return;
     foreach ($cols as $c => $v) if (array_key_exists($c, $snap)) $snap[$c] = $v;
-    safe_w_sql("UPDATE BK_Competitions SET BcAdvancedBackup = "
+    safe_w_sql("UPDATE BookingCompetitions SET BcAdvancedBackup = "
         . StrSafe_DB(json_encode($snap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) . " WHERE BcTournament = $tourId");
 }
 
@@ -504,7 +506,7 @@ function bk_comp_apply_auto($tourId)
         . ", BcIanseoUrl = " . (($u = bk_ianseo_url($tourId)) === '' ? 'NULL' : StrSafe_DB($u))
         . ", BcWishLetter = 1, BcWishWith = 0, BcWishFree = 0"
         . ", BcPricing = NULL, BcExcludeStats = 0";
-    safe_w_sql("UPDATE BK_Competitions SET $set WHERE BcTournament = $tourId");
+    safe_w_sql("UPDATE BookingCompetitions SET $set WHERE BcTournament = $tourId");
 }
 
 /**
@@ -523,7 +525,7 @@ function bk_comp_set_level($tourId, $level)
     $level  = in_array(intval($level), array(1, 2, 3), true) ? intval($level) : 1;
 
     // Make sure the row exists (changing nothing when it already does).
-    safe_w_sql("INSERT INTO BK_Competitions (BcTournament) VALUES ($tourId)
+    safe_w_sql("INSERT INTO BookingCompetitions (BcTournament) VALUES ($tourId)
         ON DUPLICATE KEY UPDATE BcTournament = BcTournament");
 
     $cur = bk_comp_config($tourId);
@@ -532,19 +534,19 @@ function bk_comp_set_level($tourId, $level)
     if ($level == 2) {
         if (!$hasBackup) {
             $snap = json_encode(bk_comp_snapshot($cur), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            safe_w_sql("UPDATE BK_Competitions SET BcAdvancedBackup = " . StrSafe_DB($snap)
+            safe_w_sql("UPDATE BookingCompetitions SET BcAdvancedBackup = " . StrSafe_DB($snap)
                 . " WHERE BcTournament = $tourId");
         }
         bk_comp_apply_auto($tourId);
-        safe_w_sql("UPDATE BK_Competitions SET BcPublishLevel = 2 WHERE BcTournament = $tourId");
+        safe_w_sql("UPDATE BookingCompetitions SET BcPublishLevel = 2 WHERE BcTournament = $tourId");
     } elseif ($level == 3) {
         if ($hasBackup) {
             bk_comp_restore($tourId, json_decode($cur->BcAdvancedBackup, true));
-            safe_w_sql("UPDATE BK_Competitions SET BcAdvancedBackup = NULL WHERE BcTournament = $tourId");
+            safe_w_sql("UPDATE BookingCompetitions SET BcAdvancedBackup = NULL WHERE BcTournament = $tourId");
         }
-        safe_w_sql("UPDATE BK_Competitions SET BcPublishLevel = 3 WHERE BcTournament = $tourId");
+        safe_w_sql("UPDATE BookingCompetitions SET BcPublishLevel = 3 WHERE BcTournament = $tourId");
     } else {
-        safe_w_sql("UPDATE BK_Competitions SET BcOpen = 0, BcPublishLevel = 1 WHERE BcTournament = $tourId");
+        safe_w_sql("UPDATE BookingCompetitions SET BcOpen = 0, BcPublishLevel = 1 WHERE BcTournament = $tourId");
     }
 }
 
@@ -559,6 +561,7 @@ function bk_comp_archer_blocked($cfg, $clubCode)
     if (!empty($cfg->BcAllOpen)) return '';
 
     $kind = (string) $cfg->BcRestrictKind;
+    // bytes: licence numbers and club codes are ASCII letters and digits
     $code = strtoupper(trim((string) $cfg->BcRestrictCode));
     $club = strtoupper(trim((string) $clubCode));
     if ($code === '') return '';          // incomplete restriction = no restriction
@@ -567,6 +570,7 @@ function bk_comp_archer_blocked($cfg, $clubCode)
     if (strpbrk($code, '%_') !== false) {
         // Expert pattern (overseas, unusual areas): LIKE → regular expression.
         $re = '';
+        // bytes: licence numbers and club codes are ASCII letters and digits
         foreach (str_split($code) as $ch) {
             if ($ch === '%')      $re .= '.*';
             elseif ($ch === '_')  $re .= '.';
@@ -575,9 +579,11 @@ function bk_comp_archer_blocked($cfg, $clubCode)
         $ok = (bool) preg_match('/^' . $re . '$/', $club);
     } elseif ($kind === 'CD') {
         // Agreement LLDDCCC: the department is in positions 3-4.
+        // bytes: licence numbers and club codes are ASCII letters and digits
         $ok = (substr($club, 2, strlen($code)) === $code);
     } else {
         // Region (league): prefix of the agreement number.
+        // bytes: licence numbers and club codes are ASCII letters and digits
         $ok = (strncmp($club, $code, strlen($code)) === 0);
     }
     if ($ok) return '';
@@ -597,40 +603,40 @@ function bk_comp_archer_blocked($cfg, $clubCode)
 function bk_comp_calendar($filters = array())
 {
     bk_schema();
-    $w = array('o.BcOpen = 1');
+    $w = array('BcOpen = 1');
 
     if (!empty($filters['q'])) {
         $q = StrSafe_DB('%' . trim($filters['q']) . '%');
-        $w[] = "(t.ToName LIKE $q OR t.ToWhere LIKE $q OR t.ToComDescr LIKE $q)";
+        $w[] = "(ToName LIKE $q OR ToWhere LIKE $q OR ToComDescr LIKE $q)";
     }
     if (!empty($filters['from']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $filters['from'])) {
-        $w[] = "t.ToWhenTo >= " . StrSafe_DB($filters['from']);
+        $w[] = "ToWhenTo >= " . StrSafe_DB($filters['from']);
     }
     if (!empty($filters['to']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $filters['to'])) {
-        $w[] = "t.ToWhenFrom <= " . StrSafe_DB($filters['to']);
+        $w[] = "ToWhenFrom <= " . StrSafe_DB($filters['to']);
     }
     if (!empty($filters['type'])) {
-        $w[] = "t.ToTypeName = " . StrSafe_DB($filters['type']);
+        $w[] = "ToTypeName = " . StrSafe_DB($filters['type']);
     }
     if (!empty($filters['disc'])) {
         if ($filters['disc'] === 'para') {
-            $w[] = "t.ToTypeSubRule LIKE '%Para%'";
+            $w[] = "ToTypeSubRule LIKE '%Para%'";
         } else {
             $types = bk_disc_types($filters['disc']);
-            $w[] = $types ? "t.ToType IN (" . implode(',', array_map('intval', $types)) . ")" : "1=0";
+            $w[] = $types ? "ToType IN (" . implode(',', array_map('intval', $types)) . ")" : "1=0";
         }
     }
     if (!empty($filters['region']) && preg_match('/^[0-9A-Za-z]{2}$/', (string) $filters['region'])) {
-        $w[] = "LEFT(t.ToCommitee, 2) = " . StrSafe_DB($filters['region']);
+        $w[] = "LEFT(ToCommitee, 2) = " . StrSafe_DB($filters['region']);
     }
 
-    $rs = safe_r_sql("SELECT t.ToId, t.ToCode, t.ToName, t.ToWhere, t.ToComDescr, t.ToCommitee,
-                t.ToWhenFrom, t.ToWhenTo, t.ToTypeName, t.ToType, t.ToTypeSubRule, t.ToNumSession,
-                o.*, " . bk_comp_calc_sql('o') . "
-        FROM BK_Competitions o
-        INNER JOIN Tournament t ON t.ToId = o.BcTournament
+    $rs = safe_r_sql("SELECT ToId, ToCode, ToName, ToWhere, ToComDescr, ToCommitee,
+                ToWhenFrom, ToWhenTo, ToTypeName, ToType, ToTypeSubRule, ToNumSession,
+                BookingCompetitions.*, " . bk_comp_calc_sql() . "
+        FROM BookingCompetitions
+        INNER JOIN Tournament ON ToId = BcTournament
         WHERE " . implode(' AND ', $w) . "
-        ORDER BY t.ToWhenFrom ASC, t.ToName ASC");
+        ORDER BY ToWhenFrom ASC, ToName ASC");
 
     $out = array();
     while ($r = safe_fetch($rs)) $out[] = $r;
@@ -641,11 +647,11 @@ function bk_comp_calendar($filters = array())
 function bk_comp_types()
 {
     bk_schema();
-    $rs = safe_r_sql("SELECT DISTINCT t.ToTypeName
-        FROM BK_Competitions o
-        INNER JOIN Tournament t ON t.ToId = o.BcTournament
-        WHERE o.BcOpen = 1 AND t.ToTypeName <> ''
-        ORDER BY t.ToTypeName");
+    $rs = safe_r_sql("SELECT DISTINCT ToTypeName
+        FROM BookingCompetitions
+        INNER JOIN Tournament ON ToId = BcTournament
+        WHERE BcOpen = 1 AND ToTypeName <> ''
+        ORDER BY ToTypeName");
     $out = array();
     while ($r = safe_fetch($rs)) $out[] = $r->ToTypeName;
     return $out;
@@ -664,7 +670,7 @@ function bk_region_name($code)
 
 /**
  * Is the competition overseas (DROM-TOM)? (from the organiser's agreement number, ToCommitee).
- * Mainland leagues go from 01 to 13 (Corsica = 05); overseas ones are ≥ 30 (35 Réunion,
+ * Mainland leagues go from 01 to 13 (Corsica = 05); overseas ones are ≥ 30 (35 Reunion,
  * 36 French Guiana, 37 Guadeloupe, 38 New Caledonia, 39 Martinique). Only these competitions
  * escape the federal placement rules (few clubs).
  */
@@ -743,9 +749,9 @@ function bk_comp_discipline($type, $subrule = '', $typeName = '')
 function bk_comp_facets()
 {
     bk_schema();
-    $rs = safe_r_sql("SELECT t.ToType, t.ToTypeName, t.ToTypeSubRule, t.ToCommitee
-        FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament
-        WHERE o.BcOpen = 1");
+    $rs = safe_r_sql("SELECT ToType, ToTypeName, ToTypeSubRule, ToCommitee
+        FROM BookingCompetitions INNER JOIN Tournament ON ToId = BcTournament
+        WHERE BcOpen = 1");
     $disc = array(); $para = false; $regions = array();
     while ($r = safe_fetch($rs)) {
         $d = bk_comp_discipline($r->ToType, $r->ToTypeSubRule, $r->ToTypeName);
@@ -763,11 +769,11 @@ function bk_comp_one($tourId)
 {
     bk_schema();
     $tourId = intval($tourId);
-    $rs = safe_r_sql("SELECT t.ToId, t.ToCode, t.ToName, t.ToWhere, t.ToComDescr, t.ToCommitee,
-                t.ToWhenFrom, t.ToWhenTo, t.ToTypeName, t.ToType, t.ToTypeSubRule, t.ToNumSession,
-                o.*, " . bk_comp_calc_sql('o') . "
-        FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament
-        WHERE o.BcTournament = $tourId AND o.BcOpen = 1");
+    $rs = safe_r_sql("SELECT ToId, ToCode, ToName, ToWhere, ToComDescr, ToCommitee,
+                ToWhenFrom, ToWhenTo, ToTypeName, ToType, ToTypeSubRule, ToNumSession,
+                BookingCompetitions.*, " . bk_comp_calc_sql() . "
+        FROM BookingCompetitions INNER JOIN Tournament ON ToId = BcTournament
+        WHERE BcTournament = $tourId AND BcOpen = 1");
     return safe_fetch($rs) ?: null;
 }
 
@@ -890,19 +896,19 @@ if (!defined('BK_BIG_SESSION_PLACES')) define('BK_BIG_SESSION_PLACES', 5000);
 function bk_comp_sessions($tourId)
 {
     $tourId = intval($tourId);
-    $rs = safe_r_sql("SELECT s.SesOrder, s.SesName, s.SesTar4Session, s.SesAth4Target,
-                s.SesFirstTarget, s.SesDtStart,
-                (SELECT CONCAT(di.DiDay, ' ', di.DiStart) FROM DistanceInformation di
-                   WHERE di.DiTournament = $tourId AND di.DiSession = s.SesOrder
-                     AND di.DiType = 'Q' AND di.DiDistance = 1 LIMIT 1) AS SesStart,
-                (s.SesTar4Session * s.SesAth4Target) AS Places,
+    $rs = safe_r_sql("SELECT SesOrder, SesName, SesTar4Session, SesAth4Target,
+                SesFirstTarget, SesDtStart,
+                (SELECT CONCAT(DiDay, ' ', DiStart) FROM DistanceInformation
+                   WHERE DiTournament = $tourId AND DiSession = SesOrder
+                     AND DiType = 'Q' AND DiDistance = 1 LIMIT 1) AS SesStart,
+                (SesTar4Session * SesAth4Target) AS Places,
                 (SELECT COUNT(*)
-                   FROM Qualifications q
-                   INNER JOIN Entries e ON e.EnId = q.QuId AND e.EnTournament = $tourId
-                  WHERE q.QuSession = s.SesOrder) AS Pris
-        FROM Session s
-        WHERE s.SesTournament = $tourId AND s.SesType = 'Q'
-        ORDER BY s.SesOrder");
+                   FROM Qualifications
+                   INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
+                  WHERE QuSession = SesOrder) AS Pris
+        FROM Session
+        WHERE SesTournament = $tourId AND SesType = 'Q'
+        ORDER BY SesOrder");
     $out = array();
     while ($r = safe_fetch($rs)) $out[] = $r;
     return $out;

@@ -930,7 +930,7 @@ $lang['AmAutoTitle']      = 'Anzuzeigende automatische Abschnitte';
 $lang['AmBlocksTitle']    = 'Freie Textblöcke';
 $lang['AmBlocksHint']     = 'Lassen Sie einen Block leer, um ihn nicht anzuzeigen.';
 $lang['AmSave']           = 'Speichern';
-$lang['AmPreview']        = 'Vorschau / Drucken ↗';
+$lang['AmPreview']        = 'Vorschau ↗';
 
 /* Organiser: re-import reconciliation */
 $lang['RiBulkImport']        = 'Alles „auf Importseite“ entschieden: {$a} Element(e) bearbeitet';
@@ -1291,3 +1291,14 @@ $lang['AcJsAuto']            = 'Ihre Änderungen werden automatisch gespeichert.
 
 /* Two-factor authentication app label (lib/totp.php) */
 $lang['TotpIssuer'] = 'ianseo Lizenzinhaber';
+
+/* Map: overseas insets */
+$lang['MapInset971'] = 'Guadeloupe';
+$lang['MapInset972'] = 'Martinique';
+$lang['MapInset973'] = 'Französisch-Guayana';
+$lang['MapInset974'] = 'La Réunion';
+$lang['MapInset976'] = 'Mayotte';
+$lang['MapInset988'] = 'Neukaledonien';
+$lang['MapInset987'] = 'Franz.-Polynesien';
+$lang['MapName988']  = 'Neukaledonien';
+$lang['MapName987']  = 'Französisch-Polynesien';

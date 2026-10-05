@@ -24,6 +24,7 @@ function bk_news_url()
         if (is_file($f)) {
             $raw = (string) @file_get_contents($f);
             // UTF-8 BOM of a Windows editor: json_decode would fail silently.
+            // bytes: the UTF-8 BOM is three raw bytes
             if (substr($raw, 0, 3) === "\xEF\xBB\xBF") $raw = substr($raw, 3);
             $c = json_decode($raw, true);
             $cu = is_array($c) ? (string) ($c['news']['url'] ?? '') : '';

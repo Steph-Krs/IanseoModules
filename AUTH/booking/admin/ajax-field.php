@@ -18,7 +18,7 @@ require_once dirname(__DIR__) . '/lib/archer.php';
 
 bk_schema();
 
-if (!bk_csrf_check()) JsonOut(array('ok' => false, 'err' => bk_t('AdmBadToken')));
+if (!bk_csrf_check()) JsonOut(array('error' => 1, 'msg' => bk_t('AdmBadToken')));
 
 $TOUR = intval($_SESSION['TourId']);
 $act  = (string) ($_POST['action'] ?? '');
@@ -33,7 +33,7 @@ foreach (bk_comp_sessions($TOUR) as $s) {
     $first = intval($s->SesFirstTarget) ?: 1;
     $capacity[$o] = array($first, $first + intval($s->SesTar4Session) - 1);
 }
-if (!$valid) JsonOut(array('ok' => false, 'err' => bk_t('AdmUnknownDep')));
+if (!$valid) JsonOut(array('error' => 1, 'msg' => bk_t('AdmUnknownDep')));
 
 if ($act === 'set') {
     $targets = array_map('intval', (array) ($_POST['targets'] ?? array()));
@@ -57,33 +57,33 @@ if ($act === 'set') {
         bk_caps_set($TOUR, $ses, $t, $def, $dmin, $dmax, $f);
         $n++;
     }
-    JsonOut(array('ok' => true, 'n' => $n, 'caps' => (object) bk_caps_get($TOUR, $ses)));
+    JsonOut(array('error' => 0, 'msg' => '', 'n' => $n, 'caps' => (object) bk_caps_get($TOUR, $ses)));
 }
 
 if ($act === 'clear') {
     bk_caps_clear($TOUR, $ses);
-    JsonOut(array('ok' => true, 'caps' => (object) array()));
+    JsonOut(array('error' => 0, 'msg' => '', 'caps' => (object) array()));
 }
 
 if ($act === 'copy') {
     $to = intval($_POST['to'] ?? 0);
     if (!isset($capacity[$to]) || $to === $ses) {
-        JsonOut(array('ok' => false, 'err' => bk_t('AdmBadDestDep')));
+        JsonOut(array('error' => 1, 'msg' => bk_t('AdmBadDestDep')));
     }
     bk_caps_copy($TOUR, $ses, $to);
-    JsonOut(array('ok' => true, 'msg' => bk_t('AdmCapsCopiedTo', $to)));
+    JsonOut(array('error' => 0, 'msg' => bk_t('AdmCapsCopiedTo', $to)));
 }
 
 if ($act === 'copyfrom') {
     // Takes the settings of a SOURCE departure onto the CURRENT one ($ses).
     $from = intval($_POST['from'] ?? 0);
     if (!isset($capacity[$from]) || $from === $ses) {
-        JsonOut(array('ok' => false, 'err' => bk_t('AdmBadSrcDep')));
+        JsonOut(array('error' => 1, 'msg' => bk_t('AdmBadSrcDep')));
     }
     bk_caps_copy($TOUR, $from, $ses);
     // capabilities of the current departure sent back → the grid refreshes at once
-    JsonOut(array('ok' => true, 'msg' => bk_t('AdmCapsCopiedFrom', $from),
+    JsonOut(array('error' => 0, 'msg' => bk_t('AdmCapsCopiedFrom', $from),
         'caps' => (object) bk_caps_get($TOUR, $ses)));
 }
 
-JsonOut(array('ok' => false, 'err' => bk_t('AdmUnknownAction')));
+JsonOut(array('error' => 1, 'msg' => bk_t('AdmUnknownAction')));

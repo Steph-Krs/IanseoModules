@@ -75,6 +75,7 @@ function aut_backup_path_inside($path, $root)
         $p = str_replace('\\', '/', (string) $p);
         $real = @realpath($p);
         if ($real !== false) $p = str_replace('\\', '/', $real);
+        // bytes: a path or a file name, compared as the file system does
         return rtrim(strtolower($p), '/') . '/';
     };
     return strpos($norm($path), $norm($root)) === 0;
@@ -173,7 +174,7 @@ function aut_backup_list($dir)
 
 /**
  * Exact names, as stored, of the logo tables present in the database: Flags (the copies
- * the core prints from, per competition) and AUT_ClubLogos (this module's cache). The
+ * the core prints from, per competition) and AuthClubLogos (this module's cache). The
  * stored name matters: mysqldump matches --ignore-table literally, and a Windows server
  * may store them in lower case.
  */
@@ -182,7 +183,7 @@ function aut_backup_logo_tables()
     $out = array();
     $rs = safe_r_sql("SELECT TABLE_NAME AS t FROM information_schema.TABLES
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'
-          AND TABLE_NAME IN ('Flags', 'AUT_ClubLogos')", false, true);
+          AND TABLE_NAME IN ('Flags', 'AuthClubLogos')", false, true);
     while ($rs && ($r = safe_fetch($rs))) $out[] = $r->t;
     return $out;
 }
@@ -574,7 +575,7 @@ function aut_backup_alerts($all = null)
     if ($all === null) $all = function_exists('aut_local_config') ? aut_local_config() : array();
     if (trim((string) (($all['maintenance'] ?? array())['on'] ?? '')) === '') return array();
     $rs = safe_r_sql("SELECT AlEvent, AlUser, AlWhen, TIMESTAMPDIFF(HOUR, AlWhen, UTC_TIMESTAMP()) AS Age
-        FROM AUT_Log
+        FROM AuthLog
         WHERE AlWhen > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 3 DAY)
           AND AlEvent IN ('MAINT_OK', 'MAINT_PARTIAL', 'MAINT_FAIL', 'BACKUP_REMOTE_OK',
                           'BACKUP_REMOTE_FAIL', 'BACKUP_LIVE_OK', 'BACKUP_LIVE_FAIL')

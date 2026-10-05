@@ -4,10 +4,10 @@
  *
  * One account per participant, whatever the way they were registered (online or entered /
  * imported in ianseo): what is due according to the competition's tariff, plus the shop;
- * what was paid (journal BK_Ledger: when, how much, how); what is left. Payments, refunds
+ * what was paid (journal BookingLedger: when, how much, how); what is left. Payments, refunds
  * and cancellations are journal lines, never edited nor deleted. A whole club can be settled
  * in one go. Receipt of an account and list of the accounts as PDF (core PDF class).
- * Refunds owed after an anonymisation (BK_Refunds) are shown at the top.
+ * Refunds owed after an anonymisation (BookingRefunds) are shown at the top.
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');

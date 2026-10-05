@@ -7,7 +7,7 @@
  * rankings and teams outdated.
  *
  * A booking registration = one Entries row + one Qualifications row (1:1 by QuId=EnId, like the
- * core) + one BK_Registrations row that records the author (Entries has no notion of who made a
+ * core) + one BookingRegistrations row that records the author (Entries has no notion of who made a
  * registration).
  */
 
@@ -127,11 +127,13 @@ function bk_is_major($dob)
  */
 function bk_lookup_clubmate($licence, $selfClubCode)
 {
+    // bytes: licence numbers and club codes are ASCII letters and digits
     $selfClubCode = strtoupper(trim((string) $selfClubCode));
     if ($selfClubCode === '') return null;
 
     $lue = bk_lookup_licence($licence);
     if (!$lue) return null;
+    // bytes: licence numbers and club codes are ASCII letters and digits
     if (strtoupper(trim((string) $lue->LueCountry)) !== $selfClubCode) return null;
     return $lue;
 }
@@ -148,7 +150,7 @@ function bk_authored_clubmates($archerId, $selfLicence, $selfClubCode)
     if ($archerId <= 0 || trim((string) $selfClubCode) === '') return array();
 
     $selfLic = bk_clean_licence($selfLicence);
-    $rs = safe_r_sql("SELECT DISTINCT BrLicence FROM BK_Registrations
+    $rs = safe_r_sql("SELECT DISTINCT BrLicence FROM BookingRegistrations
         WHERE BrArcher = $archerId AND BrLicence <> " . StrSafe_DB($selfLic));
     $out = array();
     while ($r = safe_fetch($rs)) {
@@ -170,23 +172,23 @@ function bk_authored_registrations($archerId, $selfLicence)
     $archerId = intval($archerId);
     if ($archerId <= 0) return array();
 
-    $rs = safe_r_sql("SELECT r.BrId, r.BrEnId, r.BrTournament, r.BrLicence, r.BrCreated, r.BrValidated,
-                e.EnFirstName, e.EnName, e.EnCode, e.EnDivision, e.EnClass, e.EnIndClEvent,
-                q.QuSession, q.QuTarget, q.QuLetter,
-                d.DivDescription, c.ClDescription,
-                t.ToName, t.ToWhere, t.ToVenue, t.ToWhenFrom, t.ToWhenTo,
-                t.ToType, t.ToTypeName, t.ToTypeSubRule,
-                o.BcShowAssignment, o.BcAllowScoresheet, " . bk_comp_calc_sql('o') . "
-        FROM BK_Registrations r
-        INNER JOIN Entries e        ON e.EnId = r.BrEnId
-        INNER JOIN Qualifications q ON q.QuId = e.EnId
-        INNER JOIN Tournament t     ON t.ToId = r.BrTournament
-        LEFT  JOIN Divisions d      ON d.DivTournament = t.ToId AND d.DivId = e.EnDivision
-        LEFT  JOIN Classes c        ON c.ClTournament  = t.ToId AND c.ClId  = e.EnClass
-        LEFT  JOIN BK_Competitions o ON o.BcTournament = t.ToId
-        WHERE r.BrArcher = $archerId
-          AND r.BrLicence <> " . StrSafe_DB(bk_clean_licence($selfLicence)) . "
-        ORDER BY t.ToWhenFrom DESC, e.EnFirstName, e.EnName");
+    $rs = safe_r_sql("SELECT BrId, BrEnId, BrTournament, BrLicence, BrCreated, BrValidated,
+                EnFirstName, EnName, EnCode, EnDivision, EnClass, EnIndClEvent,
+                QuSession, QuTarget, QuLetter,
+                DivDescription, ClDescription,
+                ToName, ToWhere, ToVenue, ToWhenFrom, ToWhenTo,
+                ToType, ToTypeName, ToTypeSubRule,
+                BcShowAssignment, BcAllowScoresheet, " . bk_comp_calc_sql() . "
+        FROM BookingRegistrations
+        INNER JOIN Entries        ON EnId = BrEnId
+        INNER JOIN Qualifications ON QuId = EnId
+        INNER JOIN Tournament     ON ToId = BrTournament
+        LEFT  JOIN Divisions      ON DivTournament = ToId AND DivId = EnDivision
+        LEFT  JOIN Classes        ON ClTournament  = ToId AND ClId  = EnClass
+        LEFT  JOIN BookingCompetitions ON BcTournament = ToId
+        WHERE BrArcher = $archerId
+          AND BrLicence <> " . StrSafe_DB(bk_clean_licence($selfLicence)) . "
+        ORDER BY ToWhenFrom DESC, EnFirstName, EnName");
     $out = array();
     while ($r = safe_fetch($rs)) $out[] = $r;
     return $out;
@@ -199,12 +201,12 @@ function bk_authored_registrations($archerId, $selfLicence)
 /** Existing registrations of this licence on this competition. */
 function bk_reg_existing($tourId, $licence)
 {
-    $rs = safe_r_sql("SELECT e.EnId, e.EnDivision, e.EnClass, q.QuSession
-        FROM Entries e
-        INNER JOIN Qualifications q ON q.QuId = e.EnId
-        WHERE e.EnTournament = " . intval($tourId) . "
-          AND e.EnCode = " . StrSafe_DB($licence) . "
-          AND e.EnAthlete = 1");
+    $rs = safe_r_sql("SELECT EnId, EnDivision, EnClass, QuSession
+        FROM Entries
+        INNER JOIN Qualifications ON QuId = EnId
+        WHERE EnTournament = " . intval($tourId) . "
+          AND EnCode = " . StrSafe_DB($licence) . "
+          AND EnAthlete = 1");
     $out = array();
     while ($r = safe_fetch($rs)) $out[] = $r;
     return $out;
@@ -497,9 +499,8 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
         }
 
         // Matching Qualifications row (1:1, QuId = EnId), then the departure.
-        safe_w_sql("INSERT INTO Qualifications (QuId, QuSession) VALUES ($enId, 0)");
-        safe_w_sql("UPDATE Qualifications SET QuSession = " . intval($sessionOrder)
-            . ", QuTarget = 0, QuLetter = '', QuTimestamp = QuTimestamp WHERE QuId = $enId");
+        safe_w_sql("INSERT INTO Qualifications (QuId, QuSession, QuTarget, QuLetter) VALUES ($enId, "
+            . intval($sessionOrder) . ", 0, '')");
 
         // Registered on a departure before an existing shoot with the same weapon: this one
         // now takes part in the events, the other becomes the extra shoot.
@@ -522,6 +523,7 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
         // Wishes: only those the organiser offers are honoured. Checked again here (write side):
         // a forged POST must not turn on a disabled wish, whoever calls (archer or club
         // manager).
+        // bytes: target letters and numbers are ASCII
         $wLetter = strtoupper(substr(trim((string) ($opts['letter'] ?? '')), 0, 2));
         $wWith   = bk_clean_licence($opts['with'] ?? '');
         $wReq    = mb_substr(trim((string) $request), 0, 2000);
@@ -534,17 +536,17 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
 
         // Manual validation: in manual mode the registration arrives "pending" (BrValidated=0)
         // and is not placed until the organiser validates it.
-        $mv = safe_fetch(safe_r_sql("SELECT BcManualValidation FROM BK_Competitions WHERE BcTournament = $tourId"));
+        $mv = safe_fetch(safe_r_sql("SELECT BcManualValidation FROM BookingCompetitions WHERE BcTournament = $tourId"));
         $validated = ($mv && intval($mv->BcManualValidation) === 1) ? 0 : 1;
 
         // Booking tracking (author, special requests).
-        safe_w_sql("INSERT INTO BK_Registrations SET
+        safe_w_sql("INSERT INTO BookingRegistrations SET
             BrEnId = $enId,
             BrTournament = $tourId,
             BrArcher = " . intval($by['archer'] ?? 0) . ",
             BrLicence = " . StrSafe_DB($lue->LueCode) . ",
             BrByRole = "  . StrSafe_DB($by['role'] ?? 'SELF') . ",
-            BrBy = "      . StrSafe_DB(substr((string) ($by['who'] ?? ''), 0, 64)) . ",
+            BrBy = "      . StrSafe_DB(mb_substr((string) ($by['who'] ?? ''), 0, 64)) . ",
             BrRequest = " . StrSafe_DB($wReq) . ",
             BrWantLetter = " . StrSafe_DB($wLetter) . ",
             BrWantWith = "   . StrSafe_DB($wWith) . ",
@@ -560,7 +562,7 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
 
 /**
  * Cancels a registration. Accepts ONLY registrations made through booking (in
- * BK_Registrations): an archer must never be able to delete a participant entered by the
+ * BookingRegistrations): an archer must never be able to delete a participant entered by the
  * organiser. Allowed when the registration is the archer's ($licence) OR when they are its
  * AUTHOR (group registration made for a club mate, BrArcher = $archerId).
  */
@@ -569,10 +571,10 @@ function bk_unregister($enId, $archerId, $licence)
     $enId = intval($enId);
     $archerId = intval($archerId);
 
-    $rs = safe_r_sql("SELECT r.BrTournament, r.BrLicence, r.BrArcher, r.BrByRole, e.EnTournament
-        FROM BK_Registrations r
-        INNER JOIN Entries e ON e.EnId = r.BrEnId
-        WHERE r.BrEnId = $enId");
+    $rs = safe_r_sql("SELECT BrTournament, BrLicence, BrArcher, BrByRole, EnTournament
+        FROM BookingRegistrations
+        INNER JOIN Entries ON EnId = BrEnId
+        WHERE BrEnId = $enId");
     $r = safe_fetch($rs);
     if (!$r) return array('ok' => false, 'msg' => "Inscription introuvable.");
     // Registration taken from an import (entered outside the module by the organiser): visible in
@@ -623,7 +625,7 @@ function bk_unregister($enId, $archerId, $licence)
 
     if (!$res) return array('ok' => false, 'msg' => bk_t('RgLocked'));
 
-    safe_w_sql("DELETE FROM BK_Registrations WHERE BrEnId = $enId");
+    safe_w_sql("DELETE FROM BookingRegistrations WHERE BrEnId = $enId");
     return array('ok' => true);
 }
 
@@ -631,25 +633,25 @@ function bk_unregister($enId, $archerId, $licence)
 function bk_my_registrations($licence)
 {
     bk_schema();
-    $rs = safe_r_sql("SELECT r.BrId, r.BrEnId, r.BrTournament, r.BrRequest, r.BrCreated, r.BrByRole,
-                r.BrWantLetter, r.BrWantWith, r.BrValidated,
-                e.EnDivision, e.EnClass, e.EnIndClEvent, e.EnTargetFace,
-                q.QuSession, q.QuTarget, q.QuLetter,
-                d.DivDescription, c.ClDescription,
-                t.ToName, t.ToWhere, t.ToVenue, t.ToWhenFrom, t.ToWhenTo,
-                t.ToType, t.ToTypeName, t.ToTypeSubRule,
-                o.BcShowAssignment, o.BcAllowScoresheet, o.BcFee, o.BcMandate, o.BcShowMandate, o.BcIanseoUrl,
-                o.BcShowProgram, o.BcShowParticipants, o.BcShowResults, o.BcPublishLevel,
-                " . bk_comp_calc_sql('o') . "
-        FROM BK_Registrations r
-        INNER JOIN Entries e        ON e.EnId = r.BrEnId
-        INNER JOIN Qualifications q ON q.QuId = e.EnId
-        INNER JOIN Tournament t     ON t.ToId = r.BrTournament
-        LEFT  JOIN Divisions d      ON d.DivTournament = t.ToId AND d.DivId = e.EnDivision
-        LEFT  JOIN Classes c        ON c.ClTournament  = t.ToId AND c.ClId  = e.EnClass
-        LEFT  JOIN BK_Competitions o ON o.BcTournament = t.ToId
-        WHERE r.BrLicence = " . StrSafe_DB(bk_clean_licence($licence)) . "
-        ORDER BY t.ToWhenFrom DESC");
+    $rs = safe_r_sql("SELECT BrId, BrEnId, BrTournament, BrRequest, BrCreated, BrByRole,
+                BrWantLetter, BrWantWith, BrValidated,
+                EnDivision, EnClass, EnIndClEvent, EnTargetFace,
+                QuSession, QuTarget, QuLetter,
+                DivDescription, ClDescription,
+                ToName, ToWhere, ToVenue, ToWhenFrom, ToWhenTo,
+                ToType, ToTypeName, ToTypeSubRule,
+                BcShowAssignment, BcAllowScoresheet, BcFee, BcMandate, BcShowMandate, BcIanseoUrl,
+                BcShowProgram, BcShowParticipants, BcShowResults, BcPublishLevel,
+                " . bk_comp_calc_sql() . "
+        FROM BookingRegistrations
+        INNER JOIN Entries        ON EnId = BrEnId
+        INNER JOIN Qualifications ON QuId = EnId
+        INNER JOIN Tournament     ON ToId = BrTournament
+        LEFT  JOIN Divisions      ON DivTournament = ToId AND DivId = EnDivision
+        LEFT  JOIN Classes        ON ClTournament  = ToId AND ClId  = EnClass
+        LEFT  JOIN BookingCompetitions ON BcTournament = ToId
+        WHERE BrLicence = " . StrSafe_DB(bk_clean_licence($licence)) . "
+        ORDER BY ToWhenFrom DESC");
     $out = array();
     while ($r = safe_fetch($rs)) $out[] = $r;
     return $out;

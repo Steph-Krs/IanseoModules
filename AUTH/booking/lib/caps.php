@@ -8,7 +8,7 @@
  * The OFFERED distances and faces are not typed: they are read from the competition's settings
  * (TournamentDistances and TargetFaces), so always in line with what ianseo already knows.
  *
- * Default = no constraint: a target without a row in BK_TargetCaps accepts everything. A
+ * Default = no constraint: a target without a row in BookingTargetCaps accepts everything. A
  * competition never set up therefore behaves exactly as before this table existed.
  */
 
@@ -163,7 +163,7 @@ function bk_face_svg($tarDescr, $diameter)
 function bk_caps_get($tourId, $session)
 {
     bk_schema();
-    $rs = safe_r_sql("SELECT BtTarget, BtDistDef, BtDistMin, BtDistMax, BtFaces FROM BK_TargetCaps
+    $rs = safe_r_sql("SELECT BtTarget, BtDistDef, BtDistMin, BtDistMax, BtFaces FROM BookingTargetCaps
         WHERE BtTournament = " . intval($tourId) . " AND BtSession = " . intval($session));
     $out = array();
     while ($r = safe_fetch($rs)) {
@@ -204,12 +204,12 @@ function bk_caps_set($tourId, $session, $target, $def, $min, $max, $faces)
     $f = implode(',', array_slice($f, 0, 20));
 
     if (!$def && !$min && !$max && $f === '') {
-        safe_w_sql("DELETE FROM BK_TargetCaps
+        safe_w_sql("DELETE FROM BookingTargetCaps
             WHERE BtTournament = $tourId AND BtSession = $session AND BtTarget = $target");
         return;
     }
     $set = "BtDistDef = $def, BtDistMin = $min, BtDistMax = $max, BtFaces = " . StrSafe_DB($f);
-    safe_w_sql("INSERT INTO BK_TargetCaps SET BtTournament = $tourId, BtSession = $session,
+    safe_w_sql("INSERT INTO BookingTargetCaps SET BtTournament = $tourId, BtSession = $session,
         BtTarget = $target, $set ON DUPLICATE KEY UPDATE $set");
 }
 
@@ -217,7 +217,7 @@ function bk_caps_set($tourId, $session, $target, $def, $min, $max, $faces)
 function bk_caps_clear($tourId, $session)
 {
     bk_schema();
-    safe_w_sql("DELETE FROM BK_TargetCaps WHERE BtTournament = " . intval($tourId)
+    safe_w_sql("DELETE FROM BookingTargetCaps WHERE BtTournament = " . intval($tourId)
         . " AND BtSession = " . intval($session));
 }
 

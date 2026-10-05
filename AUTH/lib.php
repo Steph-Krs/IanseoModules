@@ -11,7 +11,7 @@
  *
  * Security (v1.1):
  *  - the session NEVER holds a reusable secret: AUTH_Pwd carries a random token per sign-in,
- *    stored hashed (SHA-256) in AUT_Sessions
+ *    stored hashed (SHA-256) in AuthSessions
  *  - expiry: 12 h of inactivity, 7 days absolute; individual or global revocation (password
  *    change/reset, deactivation, admin)
  *  - TOTP 2FA (RFC 6238), optional, MANDATORY for ADMIN accounts
@@ -23,6 +23,7 @@ if (defined('AUT_LIB_LOADED')) return;
 define('AUT_LIB_LOADED', true);
 
 require_once __DIR__ . '/lang-lib.php';
+require_once __DIR__ . '/names-lib.php';
 
 define('AUT_ROLE_CLUB',  'CLUB');
 define('AUT_ROLE_CD',    'CD');
@@ -75,6 +76,7 @@ function aut_local_config() {
  */
 function aut_json_strip_bom($s) {
     $s = (string) $s;
+    // bytes: the UTF-8 BOM is three raw bytes
     return (substr($s, 0, 3) === "\xEF\xBB\xBF") ? substr($s, 3) : $s;
 }
 
@@ -147,11 +149,12 @@ function aut_ensure_schema() {
     static $done = false;
     if ($done) return;
     $done = true;
-    if (!empty($_SESSION['_aut_schema_v8'])) return;
+    aut_table_names();   // before any CREATE: see names-lib.php
+    if (!empty($_SESSION['_aut_schema_v9'])) return;
 
-    $q = safe_r_sql("SHOW TABLES LIKE 'AUT_Users'");
+    $q = safe_r_sql("SHOW TABLES LIKE 'AuthUsers'");
     if (!safe_fetch($q)) {
-        safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_Users (
+        safe_w_sql("CREATE TABLE IF NOT EXISTS AuthUsers (
             AuId            INT AUTO_INCREMENT PRIMARY KEY,
             AuUsername      VARCHAR(64)  NOT NULL,
             AuPassword      VARCHAR(255) NOT NULL,
@@ -173,26 +176,26 @@ function aut_ensure_schema() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     } else {
         // migration v1 → v1.1
-        $q = safe_r_sql("SHOW COLUMNS FROM AUT_Users LIKE 'AuTotpSecret'");
+        $q = safe_r_sql("SHOW COLUMNS FROM AuthUsers LIKE 'AuTotpSecret'");
         if (!safe_fetch($q)) {
-            safe_w_sql("ALTER TABLE AUT_Users
+            safe_w_sql("ALTER TABLE AuthUsers
                 ADD COLUMN AuTotpSecret   VARCHAR(64) NOT NULL DEFAULT '',
                 ADD COLUMN AuTotpEnabled  TINYINT     NOT NULL DEFAULT 0,
                 ADD COLUMN AuTotpLastSlot BIGINT      NOT NULL DEFAULT 0");
         }
         // migration v0.1.6 → v0.1.7: several views (SSO structures + last view)
-        $q = safe_r_sql("SHOW COLUMNS FROM AUT_Users LIKE 'AuStructs'");
+        $q = safe_r_sql("SHOW COLUMNS FROM AuthUsers LIKE 'AuStructs'");
         if (!safe_fetch($q)) {
-            safe_w_sql("ALTER TABLE AUT_Users
+            safe_w_sql("ALTER TABLE AuthUsers
                 ADD COLUMN AuStructs   TEXT        NULL,
                 ADD COLUMN AuLastRole  VARCHAR(8)  NOT NULL DEFAULT '',
                 ADD COLUMN AuLastScope VARCHAR(16) NOT NULL DEFAULT ''");
         }
     }
 
-    // AUT_Share = register of the competitions: owner (role + scope: club, CD, CR or FED) +
+    // AuthShare = register of the competitions: owner (role + scope: club, CD, CR or FED) +
     // upward sharing flags. One row per competition.
-    safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_Share (
+    safe_w_sql("CREATE TABLE IF NOT EXISTS AuthShare (
         AsToCode     VARCHAR(50) NOT NULL PRIMARY KEY,
         AsOwnerRole  VARCHAR(8)  NOT NULL DEFAULT '',
         AsOwnerScope VARCHAR(16) NOT NULL DEFAULT '',
@@ -202,24 +205,24 @@ function aut_ensure_schema() {
         AsShareFED   TINYINT NOT NULL DEFAULT 0,
         AsUpdated    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $q = safe_r_sql("SHOW COLUMNS FROM AUT_Share LIKE 'AsOwnerScope'");
+    $q = safe_r_sql("SHOW COLUMNS FROM AuthShare LIKE 'AsOwnerScope'");
     if (!safe_fetch($q)) {
-        safe_w_sql("ALTER TABLE AUT_Share
+        safe_w_sql("ALTER TABLE AuthShare
             ADD COLUMN AsOwnerRole  VARCHAR(8)  NOT NULL DEFAULT '' AFTER AsToCode,
             ADD COLUMN AsOwnerScope VARCHAR(16) NOT NULL DEFAULT '' AFTER AsOwnerRole,
             ADD COLUMN AsOwnerUser  VARCHAR(64) NOT NULL DEFAULT '' AFTER AsOwnerScope");
     } else {
-        $q = safe_r_sql("SHOW COLUMNS FROM AUT_Share LIKE 'AsOwnerRole'");
+        $q = safe_r_sql("SHOW COLUMNS FROM AuthShare LIKE 'AsOwnerRole'");
         if (!safe_fetch($q)) {
-            safe_w_sql("ALTER TABLE AUT_Share
+            safe_w_sql("ALTER TABLE AuthShare
                 ADD COLUMN AsOwnerRole VARCHAR(8) NOT NULL DEFAULT '' AFTER AsToCode");
-            safe_w_sql("UPDATE AUT_Share SET AsOwnerRole='CLUB' WHERE AsOwnerScope!='' AND AsOwnerRole=''");
+            safe_w_sql("UPDATE AuthShare SET AsOwnerRole='CLUB' WHERE AsOwnerScope!='' AND AsOwnerRole=''");
         }
     }
 
     // downward sharing: clubs invited to access a competition
     // (several clubs possible; managed by the owner or an admin)
-    safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_ShareClub (
+    safe_w_sql("CREATE TABLE IF NOT EXISTS AuthShareClub (
         AscToCode VARCHAR(50) NOT NULL,
         AscScope  VARCHAR(16) NOT NULL,
         AscAdded  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -228,20 +231,20 @@ function aut_ensure_schema() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     // claims of codes being created (cleaned at adoption or after 24 h)
-    safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_Claim (
-        AcCode  VARCHAR(50) NOT NULL PRIMARY KEY,
-        AcRole  VARCHAR(8)  NOT NULL DEFAULT 'CLUB',
-        AcScope VARCHAR(16) NOT NULL DEFAULT '',
-        AcUser  VARCHAR(64) NOT NULL DEFAULT '',
-        AcWhen  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        KEY AcUserIdx (AcUser)
+    safe_w_sql("CREATE TABLE IF NOT EXISTS AuthClaim (
+        CmCode  VARCHAR(50) NOT NULL PRIMARY KEY,
+        CmRole  VARCHAR(8)  NOT NULL DEFAULT 'CLUB',
+        CmScope VARCHAR(16) NOT NULL DEFAULT '',
+        CmUser  VARCHAR(64) NOT NULL DEFAULT '',
+        CmWhen  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        KEY CmUserIdx (CmUser)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $q = safe_r_sql("SHOW COLUMNS FROM AUT_Claim LIKE 'AcRole'");
+    $q = safe_r_sql("SHOW COLUMNS FROM AuthClaim LIKE 'CmRole'");
     if (!safe_fetch($q)) {
-        safe_w_sql("ALTER TABLE AUT_Claim ADD COLUMN AcRole VARCHAR(8) NOT NULL DEFAULT 'CLUB' AFTER AcCode");
+        safe_w_sql("ALTER TABLE AuthClaim ADD COLUMN CmRole VARCHAR(8) NOT NULL DEFAULT 'CLUB' AFTER CmCode");
     }
 
-    safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_Log (
+    safe_w_sql("CREATE TABLE IF NOT EXISTS AuthLog (
         AlId    INT AUTO_INCREMENT PRIMARY KEY,
         AlWhen  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         AlUser  VARCHAR(64) NOT NULL DEFAULT '',
@@ -251,7 +254,7 @@ function aut_ensure_schema() {
         KEY AlUserIdx (AlUser)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_Sessions (
+    safe_w_sql("CREATE TABLE IF NOT EXISTS AuthSessions (
         AsnId        INT AUTO_INCREMENT PRIMARY KEY,
         AsnUser      INT NOT NULL,
         AsnTokenHash CHAR(64) NOT NULL,
@@ -267,18 +270,18 @@ function aut_ensure_schema() {
 
     // migration v1.1 → v1.2 (role/scope per session, for the choice of SSO structure as on the
     // officers' space)
-    $q = safe_r_sql("SHOW COLUMNS FROM AUT_Sessions LIKE 'AsnRole'");
+    $q = safe_r_sql("SHOW COLUMNS FROM AuthSessions LIKE 'AsnRole'");
     if (!safe_fetch($q)) {
-        safe_w_sql("ALTER TABLE AUT_Sessions
+        safe_w_sql("ALTER TABLE AuthSessions
             ADD COLUMN AsnRole  VARCHAR(8)  NOT NULL DEFAULT '' AFTER AsnTokenHash,
             ADD COLUMN AsnScope VARCHAR(16) NOT NULL DEFAULT '' AFTER AsnRole");
     }
 
     // v…: "from another account" observation (impersonation) — kept per session to survive
     // CreateTourSession (see aut_imp_*). JSON or NULL.
-    $q = safe_r_sql("SHOW COLUMNS FROM AUT_Sessions LIKE 'AsnImp'");
+    $q = safe_r_sql("SHOW COLUMNS FROM AuthSessions LIKE 'AsnImp'");
     if (!safe_fetch($q)) {
-        safe_w_sql("ALTER TABLE AUT_Sessions ADD COLUMN AsnImp TEXT NULL DEFAULT NULL AFTER AsnScope");
+        safe_w_sql("ALTER TABLE AuthSessions ADD COLUMN AsnImp TEXT NULL DEFAULT NULL AFTER AsnScope");
     }
 
     // v6: tickets (bugs / improvement requests) filed by the organisers, sorted by the server
@@ -286,7 +289,7 @@ function aut_ensure_schema() {
     // requests).
     // v7: TkResponse = admin's answer visible to the author; TkChannel = origin
     // ('org' organiser / 'archer' competitor) — the author sees ONLY their own.
-    safe_w_sql("CREATE TABLE IF NOT EXISTS AUT_Tickets (
+    safe_w_sql("CREATE TABLE IF NOT EXISTS AuthTickets (
         TkId       INT AUTO_INCREMENT PRIMARY KEY,
         TkCreated  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         TkUser     VARCHAR(64)  NOT NULL DEFAULT '',
@@ -307,9 +310,9 @@ function aut_ensure_schema() {
         KEY TkWhoIdx (TkChannel, TkUser)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     // migration v6 → v7 for an existing table
-    $q = safe_r_sql("SHOW COLUMNS FROM AUT_Tickets LIKE 'TkResponse'");
+    $q = safe_r_sql("SHOW COLUMNS FROM AuthTickets LIKE 'TkResponse'");
     if (!safe_fetch($q)) {
-        safe_w_sql("ALTER TABLE AUT_Tickets
+        safe_w_sql("ALTER TABLE AuthTickets
             ADD COLUMN TkChannel  VARCHAR(8) NOT NULL DEFAULT 'org' AFTER TkRole,
             ADD COLUMN TkResponse TEXT NULL AFTER TkStatus,
             ADD KEY TkWhoIdx (TkChannel, TkUser)");
@@ -317,12 +320,12 @@ function aut_ensure_schema() {
     // v8: competition concerned by the ticket ("Name (Code)" label), filled at creation when a
     // competition is selected (organiser: the open competition; archer: the page they come
     // from). Empty otherwise. Not editable afterwards.
-    $q = safe_r_sql("SHOW COLUMNS FROM AUT_Tickets LIKE 'TkTour'");
+    $q = safe_r_sql("SHOW COLUMNS FROM AuthTickets LIKE 'TkTour'");
     if (!safe_fetch($q)) {
-        safe_w_sql("ALTER TABLE AUT_Tickets ADD COLUMN TkTour VARCHAR(160) NOT NULL DEFAULT '' AFTER TkPage");
+        safe_w_sql("ALTER TABLE AuthTickets ADD COLUMN TkTour VARCHAR(160) NOT NULL DEFAULT '' AFTER TkPage");
     }
 
-    $_SESSION['_aut_schema_v8'] = true;
+    $_SESSION['_aut_schema_v9'] = true;
 }
 
 /* ------------------------------------------------------------------ */
@@ -331,7 +334,7 @@ function aut_ensure_schema() {
 
 function aut_get_user($username) {
     aut_ensure_schema();
-    $q = safe_r_sql("SELECT * FROM AUT_Users WHERE AuUsername=" . StrSafe_DB($username));
+    $q = safe_r_sql("SELECT * FROM AuthUsers WHERE AuUsername=" . StrSafe_DB($username));
     $r = safe_fetch($q);
     return $r ?: null;
 }
@@ -339,8 +342,8 @@ function aut_get_user($username) {
 function aut_log($event, $user = '', $ip = null) {
     aut_ensure_schema();
     if (is_null($ip)) $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-    safe_w_sql("INSERT INTO AUT_Log (AlEvent, AlUser, AlIP) VALUES ("
-        . StrSafe_DB($event) . "," . StrSafe_DB(substr($user, 0, 64)) . "," . StrSafe_DB(substr($ip, 0, 45)) . ")");
+    safe_w_sql("INSERT INTO AuthLog (AlEvent, AlUser, AlIP) VALUES ("
+        . StrSafe_DB($event) . "," . StrSafe_DB(mb_substr($user, 0, 64)) . "," . StrSafe_DB(mb_substr($ip, 0, 45)) . ")");
 
     // optional file for fail2ban ({"log_file": "/var/log/ianseo-auth.log"})
     $f = aut_local_config()['log_file'] ?? '';
@@ -353,7 +356,7 @@ function aut_log($event, $user = '', $ip = null) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Retention of the logs (AUT_Log + BK_Log)                            */
+/* Retention of the logs (AuthLog + BookingLog)                            */
 /*                                                                     */
 /* Without a purge, the logs grow forever (at federation scale:        */
 /* millions of rows a year) and the GDPR note "kept a few months"      */
@@ -369,13 +372,13 @@ function aut_log_retention_days() {
     return ($d >= 7 && $d <= 3650) ? $d : 180;   // bounds: 1 week to 10 years; otherwise the default
 }
 
-/** Deletes the events older than the retention (AUT_Log, and BK_Log when there). */
+/** Deletes the events older than the retention (AuthLog, and BookingLog when there). */
 function aut_log_purge() {
     $days = aut_log_retention_days();
-    safe_w_sql("DELETE FROM AUT_Log WHERE AlWhen < DATE_SUB(NOW(), INTERVAL $days DAY) LIMIT 20000");
+    safe_w_sql("DELETE FROM AuthLog WHERE AlWhen < DATE_SUB(NOW(), INTERVAL $days DAY) LIMIT 20000");
     $r = safe_fetch(safe_r_sql("SELECT 1 AS x FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Log'"));
-    if ($r) safe_w_sql("DELETE FROM BK_Log WHERE BlWhen < DATE_SUB(NOW(), INTERVAL $days DAY) LIMIT 20000");
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BookingLog'"));
+    if ($r) safe_w_sql("DELETE FROM BookingLog WHERE BlWhen < DATE_SUB(NOW(), INTERVAL $days DAY) LIMIT 20000");
     // Satisfaction survey: the licence is only needed while the survey is open.
     $sv = __DIR__ . '/booking/lib/survey.php';
     if (is_file($sv)) {
@@ -386,8 +389,8 @@ function aut_log_purge() {
     // Plain SQL on purpose: booking/lib/waitlist.php pulls core files in, and this purge
     // runs from the bootstrap of any page. A day's margin spares the time-zone question.
     $wl = safe_fetch(safe_r_sql("SELECT 1 AS x FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Waitlist'"));
-    if ($wl) safe_w_sql("DELETE w FROM BK_Waitlist w LEFT JOIN Tournament ON ToId = w.BwTournament
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BookingWaitlist'"));
+    if ($wl) safe_w_sql("DELETE BookingWaitlist FROM BookingWaitlist LEFT JOIN Tournament ON ToId = BwTournament
         WHERE ToId IS NULL OR ToWhenTo < DATE_SUB(UTC_DATE(), INTERVAL 1 DAY)");
     // Audience measurement: UsageSeen follows the log retention, aggregates 25 months.
     require_once __DIR__ . '/stats-usage.php';
@@ -396,6 +399,7 @@ function aut_log_purge() {
 
 /** Purges AT MOST once a day (file marker), not to do it again at every request. */
 function aut_log_purge_daily() {
+    // bytes: tokens and hashes are ASCII hex
     $marker = sys_get_temp_dir() . '/aut_logpurge_' . substr(hash('sha256', __DIR__), 0, 16);
     $today  = date('Y-m-d');
     if (is_file($marker) && trim((string) @file_get_contents($marker)) === $today) return;
@@ -423,7 +427,7 @@ function aut_ticket_editable($t, $user, $channel) {
     if (!$t) return false;
     $channel = ($channel === 'archer') ? 'archer' : 'org';
     return $t->TkStatus === 'new' && $t->TkChannel === $channel
-        && $t->TkUser === substr((string) $user, 0, 64);
+        && $t->TkUser === mb_substr((string) $user, 0, 64);
 }
 
 /**
@@ -431,6 +435,7 @@ function aut_ticket_editable($t, $user, $channel) {
  * "how / expected result" filled in.
  */
 function aut_ticket_score($title, $body, $expected, $page) {
+    // bytes: only when mbstring is missing, a rough count is good enough for a score
     $len = function ($s) { return function_exists('mb_strlen') ? mb_strlen(trim((string) $s)) : strlen(trim((string) $s)); };
     $s = 0;
     if ($len($title) >= 6) $s += 10;
@@ -448,16 +453,16 @@ function aut_ticket_add($kind, $title, $body, $expected, $page, $user, $role, $c
     $kind = array_key_exists($kind, aut_ticket_kinds()) ? $kind : 'bug';
     $channel = ($channel === 'archer') ? 'archer' : 'org';
     $score = aut_ticket_score($title, $body, $expected, $page);
-    safe_w_sql("INSERT INTO AUT_Tickets (TkUser, TkRole, TkChannel, TkKind, TkTitle, TkBody, TkExpected, TkPage, TkTour, TkScore)
-        VALUES (" . StrSafe_DB(substr((string) $user, 0, 64)) . ","
-        . StrSafe_DB(substr((string) $role, 0, 48)) . ","
+    safe_w_sql("INSERT INTO AuthTickets (TkUser, TkRole, TkChannel, TkKind, TkTitle, TkBody, TkExpected, TkPage, TkTour, TkScore)
+        VALUES (" . StrSafe_DB(mb_substr((string) $user, 0, 64)) . ","
+        . StrSafe_DB(mb_substr((string) $role, 0, 48)) . ","
         . StrSafe_DB($channel) . ","
         . StrSafe_DB($kind) . ","
-        . StrSafe_DB(substr(trim((string) $title), 0, 160)) . ","
-        . StrSafe_DB(substr((string) $body, 0, 5000)) . ","
-        . StrSafe_DB(substr((string) $expected, 0, 5000)) . ","
-        . StrSafe_DB(substr((string) $page, 0, 255)) . ","
-        . StrSafe_DB(substr((string) $tour, 0, 160)) . ","
+        . StrSafe_DB(mb_substr(trim((string) $title), 0, 160)) . ","
+        . StrSafe_DB(mb_substr((string) $body, 0, 5000)) . ","
+        . StrSafe_DB(mb_substr((string) $expected, 0, 5000)) . ","
+        . StrSafe_DB(mb_substr((string) $page, 0, 255)) . ","
+        . StrSafe_DB(mb_substr((string) $tour, 0, 160)) . ","
         . intval($score) . ")");
     aut_log('TICKET_NEW', $user);
 }
@@ -467,7 +472,7 @@ function aut_ticket_list($sort = 'date', $status = '') {
     aut_ensure_schema();
     $w = array_key_exists($status, aut_ticket_statuses()) ? "WHERE TkStatus = " . StrSafe_DB($status) : "";
     $order = ($sort === 'score') ? "TkScore DESC, TkCreated DESC" : "TkCreated DESC";
-    $q = safe_r_sql("SELECT * FROM AUT_Tickets $w ORDER BY $order");
+    $q = safe_r_sql("SELECT * FROM AuthTickets $w ORDER BY $order");
     $out = array();
     while ($r = safe_fetch($q)) $out[] = $r;
     return $out;
@@ -477,9 +482,9 @@ function aut_ticket_list($sort = 'date', $status = '') {
 function aut_ticket_my($user, $channel = 'org') {
     aut_ensure_schema();
     $channel = ($channel === 'archer') ? 'archer' : 'org';
-    $q = safe_r_sql("SELECT * FROM AUT_Tickets
+    $q = safe_r_sql("SELECT * FROM AuthTickets
         WHERE TkChannel = " . StrSafe_DB($channel) . "
-          AND TkUser = " . StrSafe_DB(substr((string) $user, 0, 64)) . "
+          AND TkUser = " . StrSafe_DB(mb_substr((string) $user, 0, 64)) . "
         ORDER BY TkCreated DESC");
     $out = array();
     while ($r = safe_fetch($q)) $out[] = $r;
@@ -489,14 +494,14 @@ function aut_ticket_my($user, $channel = 'org') {
 /** Admin's answer to the author (visible to them). */
 function aut_ticket_set_response($id, $text) {
     aut_ensure_schema();
-    safe_w_sql("UPDATE AUT_Tickets SET TkResponse = " . StrSafe_DB(substr((string) $text, 0, 5000))
+    safe_w_sql("UPDATE AuthTickets SET TkResponse = " . StrSafe_DB(mb_substr((string) $text, 0, 5000))
         . " WHERE TkId = " . intval($id));
 }
 
 /** A ticket by id, or null. */
 function aut_ticket_get($id) {
     aut_ensure_schema();
-    return safe_fetch(safe_r_sql("SELECT * FROM AUT_Tickets WHERE TkId = " . intval($id))) ?: null;
+    return safe_fetch(safe_r_sql("SELECT * FROM AuthTickets WHERE TkId = " . intval($id))) ?: null;
 }
 
 /**
@@ -511,12 +516,12 @@ function aut_ticket_update($id, $user, $channel, $kind, $title, $body, $expected
     if (!aut_ticket_editable($t, $user, $channel)) return false;
     $kind = array_key_exists($kind, aut_ticket_kinds()) ? $kind : 'bug';
     $score = aut_ticket_score($title, $body, $expected, $page);
-    safe_w_sql("UPDATE AUT_Tickets SET
+    safe_w_sql("UPDATE AuthTickets SET
         TkKind = " . StrSafe_DB($kind) . ",
-        TkTitle = " . StrSafe_DB(substr(trim((string) $title), 0, 160)) . ",
-        TkBody = " . StrSafe_DB(substr((string) $body, 0, 5000)) . ",
-        TkExpected = " . StrSafe_DB(substr((string) $expected, 0, 5000)) . ",
-        TkPage = " . StrSafe_DB(substr((string) $page, 0, 255)) . ",
+        TkTitle = " . StrSafe_DB(mb_substr(trim((string) $title), 0, 160)) . ",
+        TkBody = " . StrSafe_DB(mb_substr((string) $body, 0, 5000)) . ",
+        TkExpected = " . StrSafe_DB(mb_substr((string) $expected, 0, 5000)) . ",
+        TkPage = " . StrSafe_DB(mb_substr((string) $page, 0, 255)) . ",
         TkScore = " . intval($score) . "
         WHERE TkId = $id");
     return true;
@@ -526,20 +531,20 @@ function aut_ticket_update($id, $user, $channel, $kind, $title, $body, $expected
 function aut_ticket_set_status($id, $status) {
     aut_ensure_schema();
     if (!array_key_exists($status, aut_ticket_statuses())) return;
-    safe_w_sql("UPDATE AUT_Tickets SET TkStatus = " . StrSafe_DB($status) . " WHERE TkId = " . intval($id));
+    safe_w_sql("UPDATE AuthTickets SET TkStatus = " . StrSafe_DB($status) . " WHERE TkId = " . intval($id));
 }
 
 /** Deletes a ticket. */
 function aut_ticket_delete($id) {
     aut_ensure_schema();
-    safe_w_sql("DELETE FROM AUT_Tickets WHERE TkId = " . intval($id));
+    safe_w_sql("DELETE FROM AuthTickets WHERE TkId = " . intval($id));
 }
 
 /** Counts per status (+ 'all'). */
 function aut_ticket_counts() {
     aut_ensure_schema();
     $c = array('new' => 0, 'in_progress' => 0, 'done' => 0, 'rejected' => 0, 'all' => 0);
-    $q = safe_r_sql("SELECT TkStatus, COUNT(*) n FROM AUT_Tickets GROUP BY TkStatus");
+    $q = safe_r_sql("SELECT TkStatus, COUNT(*) n FROM AuthTickets GROUP BY TkStatus");
     while ($r = safe_fetch($q)) { if (isset($c[$r->TkStatus])) $c[$r->TkStatus] = intval($r->n); $c['all'] += intval($r->n); }
     return $c;
 }
@@ -549,7 +554,7 @@ function aut_too_many_failures($username) {
     aut_ensure_schema();
     $ip = StrSafe_DB($_SERVER['REMOTE_ADDR'] ?? '');
     $un = StrSafe_DB($username);
-    $q = safe_r_sql("SELECT COUNT(*) AS n FROM AUT_Log
+    $q = safe_r_sql("SELECT COUNT(*) AS n FROM AuthLog
         WHERE AlEvent IN ('LOGIN_FAIL','TOTP_FAIL') AND AlWhen > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
         AND (AlIP=$ip OR AlUser=$un)");
     $r = safe_fetch($q);
@@ -563,6 +568,7 @@ function aut_password_ok($pwd) {
 function aut_gen_password($len = 12) {
     $chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
     $out = '';
+    // bytes: the password alphabet is ASCII
     for ($i = 0; $i < $len; $i++) $out .= $chars[random_int(0, strlen($chars) - 1)];
     return $out;
 }
@@ -642,12 +648,15 @@ function aut_base32_decode($b32) {
     $b32 = strtoupper(preg_replace('/[^A-Za-z2-7]/', '', $b32));
     $bits = '';
     $out = '';
+    // bytes: base32 text and binary HMAC output
     foreach (str_split($b32) as $c) {
         $v = strpos($alphabet, $c);
         if ($v === false) continue;
+        // bytes: base32 text and binary HMAC output
         $bits .= str_pad(decbin($v), 5, '0', STR_PAD_LEFT);
     }
     foreach (str_split($bits, 8) as $byte) {
+        // bytes: base32 text and binary HMAC output
         if (strlen($byte) == 8) $out .= chr(bindec($byte));
     }
     return $out;
@@ -664,6 +673,7 @@ function aut_totp_code($secretB32, $slot) {
     $key = aut_base32_decode($secretB32);
     $bin = pack('N', 0) . pack('N', $slot);
     $hash = hash_hmac('sha1', $bin, $key, true);
+    // bytes: base32 text and binary HMAC output
     $offset = ord(substr($hash, -1)) & 0x0F;
     $code = (unpack('N', substr($hash, $offset, 4))[1] & 0x7FFFFFFF) % 1000000;
     return str_pad($code, 6, '0', STR_PAD_LEFT);
@@ -675,6 +685,7 @@ function aut_totp_code($secretB32, $slot) {
  */
 function aut_totp_verify($secretB32, $code, $minSlot, &$usedSlot) {
     $code = preg_replace('/\D/', '', (string)$code);
+    // bytes: a TOTP code is ASCII digits
     if (strlen($code) != 6 || $secretB32 === '') return false;
     $slot = (int)floor(time() / 30);
     foreach (array(0, -1, 1) as $d) {
@@ -697,6 +708,7 @@ function aut_totp_verify($secretB32, $code, $minSlot, &$usedSlot) {
  */
 function aut_totp_skew($secretB32, $code, $maxSlots = 120) {
     $code = preg_replace('/\D/', '', (string)$code);
+    // bytes: a TOTP code is ASCII digits
     if (strlen($code) != 6 || (string)$secretB32 === '') return null;
     $slot = (int)floor(time() / 30);
     for ($d = -$maxSlots; $d <= $maxSlots; $d++) {
@@ -760,12 +772,12 @@ function aut_qr_svg($text, $sizePx = 210) {
 function aut_session_open($u, $role = '', $scope = '') {
     $token = bin2hex(random_bytes(32));
     $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 160);
-    safe_w_sql("INSERT INTO AUT_Sessions (AsnUser, AsnTokenHash, AsnRole, AsnScope, AsnIP, AsnUA) VALUES (
+    safe_w_sql("INSERT INTO AuthSessions (AsnUser, AsnTokenHash, AsnRole, AsnScope, AsnIP, AsnUA) VALUES (
         {$u->AuId}, '" . hash('sha256', $token) . "',"
         . StrSafe_DB($role) . "," . StrSafe_DB($scope) . ","
-        . StrSafe_DB(substr($_SERVER['REMOTE_ADDR'] ?? '', 0, 45)) . "," . StrSafe_DB($ua) . ")");
+        . StrSafe_DB(mb_substr($_SERVER['REMOTE_ADDR'] ?? '', 0, 45)) . "," . StrSafe_DB($ua) . ")");
     // opportunistic cleaning of dead sessions
-    safe_w_sql("DELETE FROM AUT_Sessions WHERE AsnLastSeen < DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    safe_w_sql("DELETE FROM AuthSessions WHERE AsnLastSeen < DATE_SUB(NOW(), INTERVAL 30 DAY)");
     $_SESSION['AUTH_User'] = $u->AuUsername;
     $_SESSION['AUTH_Pwd']  = $token;
     aut_extranet_bind();    // the extranet cookie opened at sign-in takes its final path
@@ -780,22 +792,23 @@ function aut_session_open($u, $role = '', $scope = '') {
  */
 function aut_session_validate($u) {
     $token = (string)($_SESSION['AUTH_Pwd'] ?? '');
+    // bytes: tokens and hashes are ASCII hex
     if ($token === '' || strlen($token) != 64) return null;
     $hash = hash('sha256', $token);
     $q = safe_r_sql("SELECT *,
             (AsnCreated  < DATE_SUB(NOW(), INTERVAL " . AUT_SESSION_ABS_D . " DAY)
           OR AsnLastSeen < DATE_SUB(NOW(), INTERVAL " . AUT_SESSION_IDLE_H . " HOUR)) AS expired,
             (AsnLastSeen < DATE_SUB(NOW(), INTERVAL 1 MINUTE)) AS stale
-        FROM AUT_Sessions WHERE AsnTokenHash='$hash' AND AsnUser={$u->AuId}");
+        FROM AuthSessions WHERE AsnTokenHash='$hash' AND AsnUser={$u->AuId}");
     $s = safe_fetch($q);
     if (!$s) return null;
     if ($s->expired) {
-        safe_w_sql("DELETE FROM AUT_Sessions WHERE AsnId={$s->AsnId}");
+        safe_w_sql("DELETE FROM AuthSessions WHERE AsnId={$s->AsnId}");
         return null;
     }
     if ($s->stale) {
-        safe_w_sql("UPDATE AUT_Sessions SET AsnLastSeen=NOW(),
-            AsnIP=" . StrSafe_DB(substr($_SERVER['REMOTE_ADDR'] ?? '', 0, 45)) . " WHERE AsnId={$s->AsnId}");
+        safe_w_sql("UPDATE AuthSessions SET AsnLastSeen=NOW(),
+            AsnIP=" . StrSafe_DB(mb_substr($_SERVER['REMOTE_ADDR'] ?? '', 0, 45)) . " WHERE AsnId={$s->AsnId}");
     }
     return $s;
 }
@@ -803,7 +816,7 @@ function aut_session_validate($u) {
 /** Revokes the sessions of a user ($exceptTokenHash: keep the current one). */
 function aut_sessions_revoke($userId, $exceptTokenHash = null) {
     $userId = intval($userId);
-    $sql = "DELETE FROM AUT_Sessions WHERE AsnUser=$userId";
+    $sql = "DELETE FROM AuthSessions WHERE AsnUser=$userId";
     if ($exceptTokenHash && preg_match('/^[0-9a-f]{64}$/', $exceptTokenHash)) {
         $sql .= " AND AsnTokenHash != '$exceptTokenHash'";
     }
@@ -821,10 +834,10 @@ function aut_current_token_hash() {
 
 /**
  * AUTH_COMP list in the format the ianseo core expects (exact codes).
- * Competition naming is FREE: ownership comes from the AUT_Share register (role + scope of the
+ * Competition naming is FREE: ownership comes from the AuthShare register (role + scope of the
  * creator: club, CD, CR or FED).
  *  - each one sees the competitions they OWN;
- *  - CLUB: + those where their approval number is INVITED (AUT_ShareClub — downward sharing
+ *  - CLUB: + those where their approval number is INVITED (AuthShareClub — downward sharing
  *    from a CD/CR/FED or another club, e.g. help with data entry);
  *  - CD: + shared competitions of CLUBS of the department (AsShareCD);
  *  - CR: + shared competitions of CLUBS of the league (approval prefix) AND of CDs of the
@@ -856,13 +869,13 @@ function aut_compute_comp($role, $scope) {
 
     $codes = array();
     $q = safe_r_sql("SELECT ToCode FROM Tournament
-        INNER JOIN AUT_Share ON AsToCode COLLATE utf8mb4_unicode_ci = ToCode
+        INNER JOIN AuthShare ON AsToCode COLLATE utf8mb4_unicode_ci = ToCode
         WHERE $where");
     while ($r = safe_fetch($q)) $codes[$r->ToCode] = true;
 
     if ($role == AUT_ROLE_CLUB) {
         $q = safe_r_sql("SELECT ToCode FROM Tournament
-            INNER JOIN AUT_ShareClub ON AscToCode COLLATE utf8mb4_unicode_ci = ToCode
+            INNER JOIN AuthShareClub ON AscToCode COLLATE utf8mb4_unicode_ci = ToCode
             WHERE AscScope=" . StrSafe_DB($scope));
         while ($r = safe_fetch($q)) $codes[$r->ToCode] = true;
     }
@@ -882,13 +895,13 @@ function aut_code_status($code, $role, $scope) {
 
     $q = safe_r_sql("SELECT ToId FROM Tournament WHERE ToCode=" . StrSafe_DB($code));
     $exists = (bool)safe_fetch($q);
-    $q = safe_r_sql("SELECT AsOwnerRole, AsOwnerScope FROM AUT_Share WHERE AsToCode=" . StrSafe_DB($code));
+    $q = safe_r_sql("SELECT AsOwnerRole, AsOwnerScope FROM AuthShare WHERE AsToCode=" . StrSafe_DB($code));
     $own = safe_fetch($q);
 
     if (!$exists) {
         if ($own) {
-            safe_w_sql("DELETE FROM AUT_Share WHERE AsToCode=" . StrSafe_DB($code));
-            safe_w_sql("DELETE FROM AUT_ShareClub WHERE AscToCode=" . StrSafe_DB($code));
+            safe_w_sql("DELETE FROM AuthShare WHERE AsToCode=" . StrSafe_DB($code));
+            safe_w_sql("DELETE FROM AuthShareClub WHERE AscToCode=" . StrSafe_DB($code));
         }
         return 'free';
     }
@@ -923,9 +936,9 @@ function aut_code_reason($state, $code, $isImport = false) {
 function aut_can_use_code($code, $role, $scope, $user, $isImport, &$reason = '') {
     $state = aut_code_status($code, $role, $scope);
     if ($state == 'free') {
-        safe_w_sql("INSERT INTO AUT_Claim (AcCode, AcRole, AcScope, AcUser) VALUES ("
+        safe_w_sql("INSERT INTO AuthClaim (CmCode, CmRole, CmScope, CmUser) VALUES ("
             . StrSafe_DB(trim($code)) . "," . StrSafe_DB($role) . "," . StrSafe_DB($scope) . "," . StrSafe_DB($user) . ")
-            ON DUPLICATE KEY UPDATE AcRole=VALUES(AcRole), AcScope=VALUES(AcScope), AcUser=VALUES(AcUser), AcWhen=NOW()");
+            ON DUPLICATE KEY UPDATE CmRole=VALUES(CmRole), CmScope=VALUES(CmScope), CmUser=VALUES(CmUser), CmWhen=NOW()");
         return true;
     }
     if ($state == 'own' && $isImport) return true;
@@ -969,7 +982,7 @@ function aut_user_views($u) {
     $out = array();
     foreach (array(5, 4, 3, 2, 1) as $rank) {
         foreach ($views as $v) {
-            $k = $v['role'] . '|' . strtolower($v['scope']);
+            $k = $v['role'] . '|' . mb_strtolower($v['scope']);
             if (aut_view_rank($v['role']) == $rank && empty($seen[$k])) {
                 $seen[$k] = true;
                 $out[] = $v;
@@ -1012,6 +1025,7 @@ function aut_parse_owner($str, &$role, &$scope) {
     if ($str === '') return true;                                    // no owner
     if (preg_match('/^FED$/i', $str)) { $role = AUT_ROLE_FED; return true; }
     if (preg_match('/^(CD|CR)([0-9A-Za-z]{2})$/i', $str, $m)) {
+        // bytes: a role code (CD, CR, FED) is ASCII
         $role = strtoupper($m[1]);
         $scope = $m[2];
         return true;
@@ -1083,12 +1097,12 @@ function aut_adopt_current($u, $role, $scope) {
     if ($tid <= 0 || $role === '') return;
     $q = safe_r_sql("SELECT ToCode FROM Tournament WHERE ToId=$tid");
     if (!($t = safe_fetch($q))) return;
-    $q = safe_r_sql("SELECT AsOwnerRole FROM AUT_Share WHERE AsToCode=" . StrSafe_DB($t->ToCode));
+    $q = safe_r_sql("SELECT AsOwnerRole FROM AuthShare WHERE AsToCode=" . StrSafe_DB($t->ToCode));
     $own = safe_fetch($q);
     if ($own && $own->AsOwnerRole !== '') return;
     // NB: the assignments of an ON DUPLICATE run left to right → scope/user (depending on the
     // old AsOwnerRole) BEFORE AsOwnerRole
-    safe_w_sql("INSERT INTO AUT_Share (AsToCode, AsOwnerRole, AsOwnerScope, AsOwnerUser) VALUES ("
+    safe_w_sql("INSERT INTO AuthShare (AsToCode, AsOwnerRole, AsOwnerScope, AsOwnerUser) VALUES ("
         . StrSafe_DB($t->ToCode) . "," . StrSafe_DB($role) . "," . StrSafe_DB($scope) . "," . StrSafe_DB($u->AuUsername) . ")
         ON DUPLICATE KEY UPDATE
             AsOwnerScope=IF(AsOwnerRole='', VALUES(AsOwnerScope), AsOwnerScope),
@@ -1146,7 +1160,7 @@ function aut_guard_tournament_save($role) {
         }
     }
     if (!$ok) {
-        aut_log('SAVE_BLOCK', ($_SESSION['AUTH_User'] ?? '') . ' ' . substr($newCode, 0, 40));
+        aut_log('SAVE_BLOCK', ($_SESSION['AUTH_User'] ?? '') . ' ' . mb_substr($newCode, 0, 40));
         // the entry is kept: menu.php puts it back into the form
         $data = array();
         foreach ($_POST as $k => $v) {
@@ -1164,28 +1178,28 @@ function aut_guard_tournament_save($role) {
  * point).
  */
 function aut_adopt_claims($u) {
-    $q = safe_r_sql("SELECT * FROM AUT_Claim WHERE AcUser=" . StrSafe_DB($u->AuUsername));
+    $q = safe_r_sql("SELECT * FROM AuthClaim WHERE CmUser=" . StrSafe_DB($u->AuUsername));
     $claims = array();
     while ($r = safe_fetch($q)) $claims[] = $r;
     if (!count($claims)) {
         return;
     }
     foreach ($claims as $c) {
-        $q = safe_r_sql("SELECT ToId FROM Tournament WHERE ToCode=" . StrSafe_DB($c->AcCode));
+        $q = safe_r_sql("SELECT ToId FROM Tournament WHERE ToCode=" . StrSafe_DB($c->CmCode));
         if (safe_fetch($q)) {
             // owner set only while still empty (race with an admin);
             // assignments run left to right → AsOwnerRole last
-            safe_w_sql("INSERT INTO AUT_Share (AsToCode, AsOwnerRole, AsOwnerScope, AsOwnerUser) VALUES ("
-                . StrSafe_DB($c->AcCode) . "," . StrSafe_DB($c->AcRole) . "," . StrSafe_DB($c->AcScope) . "," . StrSafe_DB($c->AcUser) . ")
+            safe_w_sql("INSERT INTO AuthShare (AsToCode, AsOwnerRole, AsOwnerScope, AsOwnerUser) VALUES ("
+                . StrSafe_DB($c->CmCode) . "," . StrSafe_DB($c->CmRole) . "," . StrSafe_DB($c->CmScope) . "," . StrSafe_DB($c->CmUser) . ")
                 ON DUPLICATE KEY UPDATE
                     AsOwnerScope=IF(AsOwnerRole='', VALUES(AsOwnerScope), AsOwnerScope),
                     AsOwnerUser =IF(AsOwnerRole='', VALUES(AsOwnerUser),  AsOwnerUser),
                     AsOwnerRole =IF(AsOwnerRole='', VALUES(AsOwnerRole),  AsOwnerRole)");
-            safe_w_sql("DELETE FROM AUT_Claim WHERE AcCode=" . StrSafe_DB($c->AcCode));
-            aut_log('COMP_ADOPT', $u->AuUsername . ' ' . $c->AcCode);
+            safe_w_sql("DELETE FROM AuthClaim WHERE CmCode=" . StrSafe_DB($c->CmCode));
+            aut_log('COMP_ADOPT', $u->AuUsername . ' ' . $c->CmCode);
         }
     }
-    safe_w_sql("DELETE FROM AUT_Claim WHERE AcWhen < DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+    safe_w_sql("DELETE FROM AuthClaim WHERE CmWhen < DATE_SUB(NOW(), INTERVAL 24 HOUR)");
 }
 
 /** Non-empty $role/$scope = the session's view, otherwise those of the account. */
@@ -1218,7 +1232,7 @@ function aut_session_clear() {
 /* ------------------------------------------------------------------ */
 /* "From another account" view (impersonation) — ADMIN, READ ONLY.    */
 /* Opened ONLY by the admin page (admin/impersonate.php, guarded by    */
-/* AclRoot + AUTH_ROOT). CANONICAL IN THE DATABASE (AUT_Sessions.AsnImp) */
+/* AclRoot + AUTH_ROOT). CANONICAL IN THE DATABASE (AuthSessions.AsnImp) */
 /* because CreateTourSession empties the session at each opening of a  */
 /* competition (only AUTH_User/AUTH_Pwd survive): a mere session flag  */
 /* WOULD END the observation leaving the admin with read-WRITE access  */
@@ -1246,7 +1260,7 @@ function aut_imp_load($s) {
 function aut_imp_store(array $imp) {
     $h = aut_current_token_hash();
     if ($h !== '') {
-        safe_w_sql("UPDATE AUT_Sessions SET AsnImp=" . StrSafe_DB(json_encode($imp))
+        safe_w_sql("UPDATE AuthSessions SET AsnImp=" . StrSafe_DB(json_encode($imp))
             . " WHERE AsnTokenHash='" . $h . "'");
     }
     $_SESSION['AUTH_IMPERSONATE'] = $imp;
@@ -1255,7 +1269,7 @@ function aut_imp_store(array $imp) {
 /** Ferme l'observation : base + miroir + plafond ACL. */
 function aut_imp_forget() {
     $h = aut_current_token_hash();
-    if ($h !== '') safe_w_sql("UPDATE AUT_Sessions SET AsnImp=NULL WHERE AsnTokenHash='" . $h . "'");
+    if ($h !== '') safe_w_sql("UPDATE AuthSessions SET AsnImp=NULL WHERE AsnTokenHash='" . $h . "'");
     unset($_SESSION['AUTH_IMPERSONATE'], $_SESSION['AUTH_RO']);
 }
 
@@ -1308,6 +1322,7 @@ function aut_script_rel() {
     global $CFG;
     $s = $_SERVER['SCRIPT_NAME'] ?? '';
     $root = rtrim($CFG->ROOT_DIR ?? '/', '/');
+    // bytes: a path or a file name, compared as the file system does
     if ($root && strpos($s, $root) === 0) $s = substr($s, strlen($root));
     return $s ?: '/';
 }
@@ -1368,7 +1383,7 @@ function aut_finish_login($u, $event = 'LOGIN_OK') {
     $role  = $view ? $view['role']  : '';
     $scope = $view ? $view['scope'] : '';
     aut_session_open($u, $role, $scope);
-    safe_w_sql("UPDATE AUT_Users SET AuLastLogin=NOW(), AuLastRole=" . StrSafe_DB($role)
+    safe_w_sql("UPDATE AuthUsers SET AuLastLogin=NOW(), AuLastRole=" . StrSafe_DB($role)
         . ", AuLastScope=" . StrSafe_DB($scope) . " WHERE AuId={$u->AuId}");
     aut_log($event, $u->AuUsername);
     CD_redirect($u->AuMustChangePwd
@@ -1385,6 +1400,7 @@ function aut_finish_login($u, $event = 'LOGIN_OK') {
  * TOTP code is expected.
  */
 function aut_handle_org_login(&$err, &$stage) {
+    // bytes: identifiers have always been folded this way; mb_strtolower could make an existing account stop matching
     $username = strtolower(trim($_POST['username'] ?? ''));
     $password = $_POST['password'] ?? '';
     $otp      = trim($_POST['otp'] ?? '');
@@ -1483,7 +1499,7 @@ function aut_handle_org_totp(&$err, &$stage) {
     $usedSlot = 0;
     $code = $_POST['code'] ?? '';
     if ($u && $u->AuActive && aut_totp_verify($u->AuTotpSecret, $code, intval($u->AuTotpLastSlot), $usedSlot)) {
-        safe_w_sql("UPDATE AUT_Users SET AuTotpLastSlot=$usedSlot WHERE AuId={$u->AuId}");
+        safe_w_sql("UPDATE AuthUsers SET AuTotpLastSlot=$usedSlot WHERE AuId={$u->AuId}");
         aut_finish_login($u);
     }
     // Failure: a wrong code, or a wrong server clock? When the code matches a very distant
@@ -1506,6 +1522,7 @@ function aut_is_public_script() {
     $s = aut_script_rel();
     if ($s == '/') return true;
     foreach (aut_public_paths() as $p) {
+        // bytes: a path or a file name, compared as the file system does
         if (substr($p, -1) == '/') {
             if (stripos($s, $p) === 0) return true;
         } elseif (strcasecmp($s, $p) === 0) {
@@ -1553,6 +1570,7 @@ function aut_admin_only_paths() {
 function aut_is_admin_only_script() {
     $s = aut_script_rel();
     foreach (aut_admin_only_paths() as $p) {
+        // bytes: a path or a file name, compared as the file system does
         if (substr($p, -1) === '/') {
             if (stripos($s, $p) === 0) return true;
         } elseif (strcasecmp($s, $p) === 0) {
@@ -1585,6 +1603,7 @@ function aut_is_admin_only_script() {
  */
 function aut_logos_hook_entry_save() {
     if (stripos(aut_script_rel(), '/Partecipants/') !== 0) return;
+    // bytes: an ASCII request parameter (Command)
     $cmd = strtoupper((string) ($_REQUEST['Command'] ?? ''));
     if ($cmd !== 'SAVE' && $cmd !== 'SAVE_CONTINUE') return;
 
@@ -1612,6 +1631,9 @@ function aut_logos_hook_entry_save() {
 function aut_request_bootstrap() {
     global $CFG;
 
+    // First of all, even on the server console: every line below may read a table.
+    aut_table_names();
+
     // Manual entry of a participant → logo of their club (see the function).
     // Placed BEFORE the early "localhost" return: the server console enters participants
     // too, and its competitions deserve their logos.
@@ -1620,7 +1642,7 @@ function aut_request_bootstrap() {
     // Session care: when a competition is created, the core sets $_SESSION['TourId'] WITHOUT
     // TourCode (Tournament/index.php) → warnings in define_session_flags() on every page.
     // Completed from the database.
-    if (!empty($_SESSION['TourId']) && $_SESSION['TourId'] > 0 && !isset($_SESSION['TourCode'])) {
+    if (intval($_SESSION['TourId'] ?? 0) > 0 && !isset($_SESSION['TourCode'])) {
         $q = safe_r_sql("SELECT ToCode FROM Tournament WHERE ToId=" . intval($_SESSION['TourId']));
         if ($r = safe_fetch($q)) {
             $_SESSION['TourCode'] = $r->ToCode;
@@ -1754,6 +1776,7 @@ function aut_ffta_debug($msg) {
 /** "Safe" summary of an HTML page for the log: detected type + form fields. */
 function aut_ffta_debug_page($html) {
     $html = (string)$html;
+    // bytes: sizes in the debug log are byte counts
     $info = array('len=' . strlen($html));
     if (preg_match('#<title[^>]*>(.*?)</title>#is', $html, $m)) {
         $info[] = 'title="' . trim(preg_replace('/\s+/', ' ', strip_tags($m[1]))) . '"';
@@ -2057,6 +2080,7 @@ function aut_ffta_mfa_second_step($ch, $page, $otp) {
     }
     if ($field === '') {
         foreach ($names as $n) {
+            // bytes: an HTML field name is ASCII
             if (stripos($n, 'recovery') !== false || strtolower($n) === '_token') continue;
             if (preg_match('/(code|otp|2fa|pin|digit|chiffre)/i', $n)) { $field = $n; break; }
         }
@@ -2161,6 +2185,7 @@ function aut_ffta_map_structure($st) {
     // dept/league number = first 2 digits of the code (robust whether the badge is
     // "60000", "CR07" or "0700000" — the digits are kept, 2A/2B preserved)
     $digits = preg_replace('/[^0-9AB]/i', '', strtoupper($st['code']));
+    // bytes: the digits of a structure code are ASCII
     $twoDigits = substr($digits, 0, 2);
     if (preg_match('/F[ée]d[ée]ration/iu', $st['roles']) || $st['code'] === '0') {
         return array('role' => AUT_ROLE_FED, 'scope' => '', 'label' => $st['name']);
@@ -2173,6 +2198,7 @@ function aut_ffta_map_structure($st) {
         return array('role' => AUT_ROLE_CR, 'scope' => $twoDigits,
                      'label' => aut_t('StructLeague', array('name' => $st['name'], 'n' => $twoDigits)));
     }
+    // bytes: an approval number is ASCII digits
     if (strlen($st['code']) >= 5) {
         return array('role' => AUT_ROLE_CLUB, 'scope' => $st['code'],
                      'label' => $st['name'] . ' (' . $st['code'] . ')');
@@ -2259,6 +2285,7 @@ function aut_ffta_no_structure_reason($raw) {
  */
 function aut_sso_sync($username, $structures, &$error) {
     $error = '';
+    // bytes: identifiers have always been folded this way; mb_strtolower could make an existing account stop matching
     $username = strtolower(trim($username));
     $clean = array();
     foreach ($structures as $st) {
@@ -2284,13 +2311,13 @@ function aut_sso_sync($username, $structures, &$error) {
         if ($u->AuRole != AUT_ROLE_ADMIN && $best) {
             $set .= ", AuRole=" . StrSafe_DB($best['role']) . ", AuScope=" . StrSafe_DB($best['scope']);
         }
-        safe_w_sql("UPDATE AUT_Users SET $set WHERE AuId={$u->AuId}");
+        safe_w_sql("UPDATE AuthUsers SET $set WHERE AuId={$u->AuId}");
     } else {
         if (!$best) {
             $error = aut_t('SsoRolesRequired', aut_ffta_role_label()) . ' ' . aut_t('SsoRolesNoneShort');
             return null;
         }
-        safe_w_sql("INSERT INTO AUT_Users (AuUsername, AuPassword, AuRole, AuScope, AuMustChangePwd, AuName, AuStructs)
+        safe_w_sql("INSERT INTO AuthUsers (AuUsername, AuPassword, AuRole, AuScope, AuMustChangePwd, AuName, AuStructs)
             VALUES (" . StrSafe_DB($username) . ", '', " . StrSafe_DB($best['role']) . ","
             . StrSafe_DB($best['scope']) . ", 0, " . StrSafe_DB(aut_t('SsoAccountName')) . ", " . StrSafe_DB($json) . ")");
         aut_log('SSO_PROVISION', $username);
@@ -2597,6 +2624,7 @@ function aut_ensure_selfheal(&$error = '') {
     $block = aut_selfheal_block();
     $pos = strrpos($c, '?>');
     if ($pos !== false) {
+        // bytes: offsets come from strrpos(), which counts bytes
         $c = substr($c, 0, $pos) . $block . "\n" . substr($c, $pos);
     } else {
         $c = rtrim($c) . "\n\n" . $block . "\n";
@@ -2613,6 +2641,7 @@ function aut_userauth_flag_state() {
     if (!is_file($f)) return 'nofile';
     $c = file_get_contents($f);
     if (!preg_match('/\$CFG->USERAUTH\s*=\s*(true|false)/i', $c, $m)) return 'absent';
+    // bytes: "true" or "false" from the pattern above
     return strtolower($m[1]) == 'true' ? 'on' : 'off';
 }
 

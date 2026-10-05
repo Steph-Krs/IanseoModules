@@ -47,7 +47,7 @@ if (!$isAdmin && $u->AuTotpEnabled && $_SERVER['REQUEST_METHOD'] == 'POST' && is
         aut_log('TOTP_FAIL', $u->AuUsername);
         $err = aut_t('TfBadCodeStays');
     } else {
-        safe_w_sql("UPDATE AUT_Users SET AuTotpSecret='', AuTotpEnabled=0, AuTotpLastSlot=0 WHERE AuId={$u->AuId}");
+        safe_w_sql("UPDATE AuthUsers SET AuTotpSecret='', AuTotpEnabled=0, AuTotpLastSlot=0 WHERE AuId={$u->AuId}");
         aut_sessions_revoke($u->AuId, aut_current_token_hash());   // revokes the other sessions
         aut_log('TOTP_DISABLE', $u->AuUsername);
         $u->AuTotpEnabled = 0;
@@ -82,7 +82,7 @@ if ($allowed && !$off && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['c
         if (!$identityOk) {
             aut_log('TOTP_FAIL', $u->AuUsername);
         } else {
-            safe_w_sql("UPDATE AUT_Users SET AuTotpSecret=" . StrSafe_DB($secret)
+            safe_w_sql("UPDATE AuthUsers SET AuTotpSecret=" . StrSafe_DB($secret)
                 . ", AuTotpEnabled=1, AuTotpLastSlot=$usedSlot WHERE AuId={$u->AuId}");
             aut_sessions_revoke($u->AuId, aut_current_token_hash());   // revokes the other sessions
             aut_log('TOTP_ENABLE', $u->AuUsername);

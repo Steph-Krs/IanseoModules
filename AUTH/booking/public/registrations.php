@@ -108,7 +108,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     } elseif (($_POST['action'] ?? '') === 'cancel') {
         $enid = intval($_POST['enid'] ?? 0);
         // Keep the competition BEFORE the removal: the row is gone afterwards.
-        $rsT = safe_r_sql("SELECT BrTournament FROM BK_Registrations WHERE BrEnId = $enid");
+        $rsT = safe_r_sql("SELECT BrTournament FROM BookingRegistrations WHERE BrEnId = $enid");
         $rT  = safe_fetch($rsT);
         $res = bk_unregister($enid, $archer->BaId, $archer->BaLicence);
         if (!empty($res['ok'])) {

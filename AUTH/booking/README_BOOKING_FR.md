@@ -31,8 +31,8 @@ quelques clics. Pensé pour les serveurs ianseo accessibles en ligne.
   propre épreuve.
 - 📋 **Mes inscriptions** : consultation, annulation tant que les inscriptions sont ouvertes,
   cible attribuée si l'organisateur l'a autorisé.
-- 🖨️ **Feuille de marque individuelle** imprimable, au format réel de l'épreuve (volées,
-  flèches, distances et blason lus dans ianseo) — si l'organisateur active l'option.
+- 🖨️ **Feuille de marque individuelle** : la feuille officielle produite par ianseo (PDF), pour
+  l'archer seul, remplie de ses résultats — si l'organisateur active l'option.
 - 🧾 **Reçu** par archer, ou groupé pour tout un club.
 
 ### Pour l'organisateur
@@ -57,9 +57,9 @@ Tout se trouve dans le menu **Modules › Inscriptions en ligne**, compétition 
 
 ## Base de données
 
-Tables créées automatiquement, toutes préfixées `BK_` : `BK_Archers` (comptes licenciés),
-`BK_Sessions`, `BK_Log` (journal et limitation des tentatives), `BK_Competitions` (ouverture des
-inscriptions), `BK_Registrations` (traçabilité), `BK_ClubManagers`.
+Tables créées automatiquement, toutes préfixées `BK_` : `BookingArchers` (comptes licenciés),
+`BookingSessions`, `BookingLog` (journal et limitation des tentatives), `BookingCompetitions` (ouverture des
+inscriptions), `BookingRegistrations` (traçabilité), `BookingClubManagers`.
 
 Les inscriptions elles-mêmes sont écrites dans les tables **de ianseo** (participants et cibles),
 exactement comme une saisie manuelle : elles apparaissent normalement dans tous les écrans et

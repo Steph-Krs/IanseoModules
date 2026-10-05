@@ -12,21 +12,21 @@ require_once dirname(__DIR__) . '/lib/competition.php';
 $archer = bk_require_archer();
 $labels = bk_disc_labels();
 
-$rs = safe_r_sql("SELECT t.ToId, t.ToName, t.ToWhere, t.ToWhenFrom, t.ToWhenTo,
-            t.ToType, t.ToTypeName, t.ToTypeSubRule,
-            e.EnDivision, e.EnClass, d.DivDescription, cl.ClDescription,
-            q.QuScore, q.QuClRank
-    FROM Entries e
-    INNER JOIN Tournament t ON t.ToId = e.EnTournament
+$rs = safe_r_sql("SELECT ToId, ToName, ToWhere, ToWhenFrom, ToWhenTo,
+            ToType, ToTypeName, ToTypeSubRule,
+            EnDivision, EnClass, DivDescription, ClDescription,
+            QuScore, QuClRank
+    FROM Entries
+    INNER JOIN Tournament ON ToId = EnTournament
     /* Qualifications is 1:1 with Entries (the core repairs the relation at the top of
        Partecipants/index.php) → INNER JOIN, never LEFT + IS NULL. */
-    INNER JOIN Qualifications q ON q.QuId = e.EnId
-    LEFT  JOIN Divisions d  ON d.DivTournament = t.ToId AND d.DivId = e.EnDivision
-    LEFT  JOIN Classes cl   ON cl.ClTournament = t.ToId AND cl.ClId = e.EnClass
-    LEFT  JOIN BK_Competitions o ON o.BcTournament = t.ToId
-    WHERE e.EnCode = " . StrSafe_DB($archer->BaLicence) . " AND e.EnAthlete = 1
-      AND COALESCE(o.BcPublishLevel, 2) <> 1
-    ORDER BY t.ToWhenFrom DESC, t.ToId DESC");
+    INNER JOIN Qualifications ON QuId = EnId
+    LEFT  JOIN Divisions  ON DivTournament = ToId AND DivId = EnDivision
+    LEFT  JOIN Classes   ON ClTournament = ToId AND ClId = EnClass
+    LEFT  JOIN BookingCompetitions ON BcTournament = ToId
+    WHERE EnCode = " . StrSafe_DB($archer->BaLicence) . " AND EnAthlete = 1
+      AND COALESCE(BcPublishLevel, 2) <> 1
+    ORDER BY ToWhenFrom DESC, ToId DESC");
 
 $rows = array();
 $comps = array();          // distinct ToId

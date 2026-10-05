@@ -132,7 +132,7 @@ echo '<section class="bk-block" id="bk-news" style="display:none"><h2>' . bk_e(b
   fetch(<?= json_encode(bk_public_url('news.php')) ?>, { credentials: 'same-origin' })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) {
-      if (!d || !d.items || !d.items.length) return;
+      if (!d || d.error !== 0 || !d.items || !d.items.length) return;
       var ul = document.getElementById('bk-news-list');
       d.items.forEach(function (it) {
         if (!it.link || !/^https?:\/\//i.test(it.link)) return;

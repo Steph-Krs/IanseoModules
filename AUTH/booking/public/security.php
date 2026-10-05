@@ -31,9 +31,9 @@ if (!$readonly && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             bk_log('TOTP_FAIL', $archer->BaLicence);
             $err = bk_t('SecBadCodeStays');
         } else {
-            safe_w_sql("UPDATE BK_Archers SET BaTotpSecret='', BaTotpEnabled=0, BaTotpLastSlot=0 WHERE BaId=" . intval($archer->BaId));
-            safe_w_sql("DELETE FROM BK_Sessions WHERE BsArcher=" . intval($archer->BaId)
-                . " AND BsTokenHash <> '" . bk_current_token_hash() . "'");   // revokes the other sessions
+            safe_w_sql("UPDATE BookingArchers SET BaTotpSecret='', BaTotpEnabled=0, BaTotpLastSlot=0 WHERE BaId=" . intval($archer->BaId));
+            safe_w_sql("DELETE FROM BookingSessions WHERE BkArcher=" . intval($archer->BaId)
+                . " AND BkTokenHash <> '" . bk_current_token_hash() . "'");   // revokes the other sessions
             bk_log('TOTP_DISABLE', $archer->BaLicence);
             $archer->BaTotpEnabled = 0;
             $off = true;
@@ -51,10 +51,10 @@ if (!$readonly && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             bk_log('TOTP_FAIL', $archer->BaLicence);
             $err = bk_t('SecBadCodeClock');
         } else {
-            safe_w_sql("UPDATE BK_Archers SET BaTotpSecret=" . StrSafe_DB($secret)
+            safe_w_sql("UPDATE BookingArchers SET BaTotpSecret=" . StrSafe_DB($secret)
                 . ", BaTotpEnabled=1, BaTotpLastSlot=$usedSlot WHERE BaId=" . intval($archer->BaId));
-            safe_w_sql("DELETE FROM BK_Sessions WHERE BsArcher=" . intval($archer->BaId)
-                . " AND BsTokenHash <> '" . bk_current_token_hash() . "'");   // revokes the other sessions
+            safe_w_sql("DELETE FROM BookingSessions WHERE BkArcher=" . intval($archer->BaId)
+                . " AND BkTokenHash <> '" . bk_current_token_hash() . "'");   // revokes the other sessions
             bk_log('TOTP_ENABLE', $archer->BaLicence);
             unset($_SESSION['BK_2FA_NewSecret']);
             $archer->BaTotpEnabled = 1;

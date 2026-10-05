@@ -4,7 +4,7 @@
  *
  * BLOCKING screen: the bootstrap (aut_request_bootstrap) sends here every signed-in organiser
  * who has not accepted the current version of the terms. The acceptance is recorded
- * TIME-STAMPED (AUT_Users.AuCguAt) and VERSIONED (AuCguVer). This page is exempt from the guard
+ * TIME-STAMPED (AuthUsers.AuCguAt) and VERSIONED (AuCguVer). This page is exempt from the guard
  * (aut_is_legal_script) to avoid any loop.
  *
  * The wording is the competitor's one (booking/public/legal-accept.php), read from the

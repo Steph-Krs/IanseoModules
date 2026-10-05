@@ -20,6 +20,7 @@ $SKIP_AUTH = 1;
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+aut_table_names();   // module updated since the last page opened: see names-lib.php
 require_once(dirname(__DIR__) . '/backup-lib.php');
 // Never during the nightly window (core files and tables being updated) or a restore.
 if (aut_backup_night_running()) exit(0);
@@ -28,5 +29,5 @@ require_once(dirname(__DIR__) . '/booking/lib/waitlist.php');
 
 @set_time_limit(300);
 $n = bk_waitlist_sweep();
-if ($n > 0) echo '[' . aut_log_time() . '] Listes d\'attente : ' . $n . ' archer(s) inscrit(s).' . "\n";
+if ($n > 0) echo '[' . aut_log_time() . '] Waiting lists: ' . $n . ' archer(s) registered.' . "\n";
 exit(0);

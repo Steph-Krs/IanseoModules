@@ -27,15 +27,15 @@ define('BK_MAX_IDENT_FAIL', 10);   // identification failures / 15 min
 
 function bk_ip()
 {
-    return substr($_SERVER['REMOTE_ADDR'] ?? '', 0, 45);
+    return mb_substr($_SERVER['REMOTE_ADDR'] ?? '', 0, 45);
 }
 
 function bk_log($event, $user = '')
 {
     bk_schema();
-    safe_w_sql("INSERT INTO BK_Log (BlEvent, BlUser, BlIP) VALUES ("
-        . StrSafe_DB(substr($event, 0, 32)) . ","
-        . StrSafe_DB(substr($user, 0, 64)) . ","
+    safe_w_sql("INSERT INTO BookingLog (BlEvent, BlUser, BlIP) VALUES ("
+        . StrSafe_DB(mb_substr($event, 0, 32)) . ","
+        . StrSafe_DB(mb_substr($user, 0, 64)) . ","
         . StrSafe_DB(bk_ip()) . ")");
 }
 
@@ -48,7 +48,7 @@ function bk_too_many($events, $max, $user = '')
 {
     bk_schema();
     $in = implode(',', array_map('StrSafe_DB', (array) $events));
-    $q = safe_r_sql("SELECT COUNT(*) AS n FROM BK_Log
+    $q = safe_r_sql("SELECT COUNT(*) AS n FROM BookingLog
         WHERE BlEvent IN ($in)
           AND BlWhen > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
           AND (BlIP = " . StrSafe_DB(bk_ip()) . " OR BlUser = " . StrSafe_DB($user) . ")");
@@ -63,6 +63,7 @@ function bk_too_many($events, $max, $user = '')
 /** Normalises a licence number (spaces, case). */
 function bk_clean_licence($licence)
 {
+    // bytes: licence numbers and club codes are ASCII letters and digits
     return strtoupper(preg_replace('/\s+/', '', (string) $licence));
 }
 
@@ -109,14 +110,14 @@ function bk_lookup_licence($licence)
 function bk_get_archer_by_licence($licence)
 {
     bk_schema();
-    $q = safe_r_sql("SELECT * FROM BK_Archers WHERE BaLicence = " . StrSafe_DB(bk_clean_licence($licence)));
+    $q = safe_r_sql("SELECT * FROM BookingArchers WHERE BaLicence = " . StrSafe_DB(bk_clean_licence($licence)));
     return safe_fetch($q) ?: null;
 }
 
 function bk_get_archer($id)
 {
     bk_schema();
-    $q = safe_r_sql("SELECT * FROM BK_Archers WHERE BaId = " . intval($id));
+    $q = safe_r_sql("SELECT * FROM BookingArchers WHERE BaId = " . intval($id));
     return safe_fetch($q) ?: null;
 }
 
@@ -125,7 +126,7 @@ function bk_get_archer($id)
  * licensee space.
  *
  * BaPassword ALWAYS stays empty: this module handles no password; the account's security is
- * that of the licensee space. Same sentinel as AUT_Users.AuPassword in AUTH.
+ * that of the licensee space. Same sentinel as AuthUsers.AuPassword in AUTH.
  *
  * Name, given name and club are realigned on the federation file at every sign-in — an archer
  * changes club between two seasons.
@@ -143,11 +144,11 @@ function bk_provision_archer($lue)
 
     $a = bk_get_archer_by_licence($lic);
     if ($a) {
-        safe_w_sql("UPDATE BK_Archers SET $set WHERE BaId = " . intval($a->BaId));
+        safe_w_sql("UPDATE BookingArchers SET $set WHERE BaId = " . intval($a->BaId));
         return intval($a->BaId);
     }
 
-    safe_w_sql("INSERT INTO BK_Archers SET BaLicence = " . StrSafe_DB($lic)
+    safe_w_sql("INSERT INTO BookingArchers SET BaLicence = " . StrSafe_DB($lic)
         . ", BaPassword = '', $set");
     $a = bk_get_archer_by_licence($lic);
     return $a ? intval($a->BaId) : 0;
@@ -160,13 +161,13 @@ function bk_provision_archer($lue)
 function bk_session_open($archer)
 {
     $token = bin2hex(random_bytes(32));
-    safe_w_sql("INSERT INTO BK_Sessions (BsArcher, BsTokenHash, BsIP, BsUA) VALUES ("
+    safe_w_sql("INSERT INTO BookingSessions (BkArcher, BkTokenHash, BkIP, BkUA) VALUES ("
         . intval($archer->BaId) . ",'" . hash('sha256', $token) . "',"
         . StrSafe_DB(bk_ip()) . ","
-        . StrSafe_DB(substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 160)) . ")");
-    safe_w_sql("DELETE FROM BK_Sessions WHERE BsLastSeen < DATE_SUB(NOW(), INTERVAL 30 DAY)");
+        . StrSafe_DB(mb_substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 160)) . ")");
+    safe_w_sql("DELETE FROM BookingSessions WHERE BkLastSeen < DATE_SUB(NOW(), INTERVAL 30 DAY)");
 
-    safe_w_sql("UPDATE BK_Archers SET BaLastLogin = NOW() WHERE BaId = " . intval($archer->BaId));
+    safe_w_sql("UPDATE BookingArchers SET BaLastLogin = NOW() WHERE BaId = " . intval($archer->BaId));
 
     $_SESSION['BK_Token'] = $token;
 }
@@ -174,14 +175,15 @@ function bk_session_open($archer)
 function bk_current_token_hash()
 {
     $t = (string) ($_SESSION['BK_Token'] ?? '');
+    // bytes: tokens and hashes are ASCII hex
     return ($t !== '' && strlen($t) === 64) ? hash('sha256', $t) : '';
 }
 
 function bk_sessions_revoke($archerId, $exceptTokenHash = null)
 {
-    $sql = "DELETE FROM BK_Sessions WHERE BsArcher = " . intval($archerId);
+    $sql = "DELETE FROM BookingSessions WHERE BkArcher = " . intval($archerId);
     if ($exceptTokenHash && preg_match('/^[0-9a-f]{64}$/', $exceptTokenHash)) {
-        $sql .= " AND BsTokenHash != '$exceptTokenHash'";
+        $sql .= " AND BkTokenHash != '$exceptTokenHash'";
     }
     safe_w_sql($sql);
 }
@@ -204,7 +206,7 @@ function bk_impersonating()
 
 /**
  * The connected licensee, or null. Checks the token again at every call (the account may have
- * been disabled or the session revoked between two requests) and refreshes BsLastSeen at most
+ * been disabled or the session revoked between two requests) and refreshes BkLastSeen at most
  * once a minute.
  */
 function bk_current_archer()
@@ -213,12 +215,12 @@ function bk_current_archer()
     if ($cache !== false) return $cache;
     $cache = null;
 
-    // Admin observation: returns the target archer loaded by id, without BK_Sessions. Writes
+    // Admin observation: returns the target archer loaded by id, without BookingSessions. Writes
     // are blocked upstream (public/boot.php).
     $imp = bk_impersonating();
     if ($imp) {
         bk_schema();
-        $q = safe_r_sql("SELECT a.* FROM BK_Archers a WHERE a.BaId=" . intval($imp['archer']), false, true);
+        $q = safe_r_sql("SELECT BookingArchers.* FROM BookingArchers WHERE BaId=" . intval($imp['archer']), false, true);
         $r = $q ? safe_fetch($q) : null;
         if ($r) { $r->BK_IMP = 1; $cache = $r; }
         return $cache;
@@ -228,24 +230,24 @@ function bk_current_archer()
     if ($hash === '') return null;
 
     bk_schema();
-    $q = safe_r_sql("SELECT a.*, s.BsId, s.BsLastSeen,
-            (s.BsCreated  < DATE_SUB(NOW(), INTERVAL " . BK_SESSION_ABS_D . " DAY)
-          OR s.BsLastSeen < DATE_SUB(NOW(), INTERVAL " . BK_SESSION_IDLE_H . " HOUR)) AS expired,
-            (s.BsLastSeen < DATE_SUB(NOW(), INTERVAL 1 MINUTE)) AS stale
-        FROM BK_Sessions s
-        INNER JOIN BK_Archers a ON a.BaId = s.BsArcher
-        WHERE s.BsTokenHash = '$hash'");
+    $q = safe_r_sql("SELECT BookingArchers.*, BkId, BkLastSeen,
+            (BkCreated  < DATE_SUB(NOW(), INTERVAL " . BK_SESSION_ABS_D . " DAY)
+          OR BkLastSeen < DATE_SUB(NOW(), INTERVAL " . BK_SESSION_IDLE_H . " HOUR)) AS expired,
+            (BkLastSeen < DATE_SUB(NOW(), INTERVAL 1 MINUTE)) AS stale
+        FROM BookingSessions
+        INNER JOIN BookingArchers ON BaId = BkArcher
+        WHERE BkTokenHash = '$hash'");
     $r = safe_fetch($q);
     if (!$r) return null;
 
     if ($r->expired || !$r->BaActive) {
-        safe_w_sql("DELETE FROM BK_Sessions WHERE BsId = " . intval($r->BsId));
+        safe_w_sql("DELETE FROM BookingSessions WHERE BkId = " . intval($r->BkId));
         unset($_SESSION['BK_Token']);
         return null;
     }
     if ($r->stale) {
-        safe_w_sql("UPDATE BK_Sessions SET BsLastSeen = NOW(), BsIP = "
-            . StrSafe_DB(bk_ip()) . " WHERE BsId = " . intval($r->BsId));
+        safe_w_sql("UPDATE BookingSessions SET BkLastSeen = NOW(), BkIP = "
+            . StrSafe_DB(bk_ip()) . " WHERE BkId = " . intval($r->BkId));
     }
 
     $cache = $r;
@@ -256,7 +258,7 @@ function bk_logout()
 {
     $hash = bk_current_token_hash();
     if ($hash !== '') {
-        safe_w_sql("DELETE FROM BK_Sessions WHERE BsTokenHash = '$hash'");
+        safe_w_sql("DELETE FROM BookingSessions WHERE BkTokenHash = '$hash'");
     }
     unset($_SESSION['BK_Token']);
 }

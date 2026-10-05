@@ -89,7 +89,7 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor
         $code = (string) ($_POST['code'] ?? '');
         if ($a && $a->BaActive && $a->BaTotpEnabled
                 && bk_totp_verify($a->BaTotpSecret, $code, intval($a->BaTotpLastSlot), $usedSlot)) {
-            safe_w_sql("UPDATE BK_Archers SET BaTotpLastSlot=$usedSlot WHERE BaId={$a->BaId}");
+            safe_w_sql("UPDATE BookingArchers SET BaTotpLastSlot=$usedSlot WHERE BaId={$a->BaId}");
             unset($_SESSION['BK_2FA']);
             session_regenerate_id(true);
             bk_session_open($a);

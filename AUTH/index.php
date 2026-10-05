@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'save') 
             $cd  = !empty($_POST['cd'][$code])  ? 1 : 0;
             $cr  = !empty($_POST['cr'][$code])  ? 1 : 0;
             $fed = !empty($_POST['fed'][$code]) ? 1 : 0;
-            safe_w_sql("INSERT INTO AUT_Share (AsToCode, AsShareCD, AsShareCR, AsShareFED)
+            safe_w_sql("INSERT INTO AuthShare (AsToCode, AsShareCD, AsShareCR, AsShareFED)
                 VALUES (" . StrSafe_DB($code) . ", $cd, $cr, $fed)
                 ON DUPLICATE KEY UPDATE AsShareCD=$cd, AsShareCR=$cr, AsShareFED=$fed");
 
@@ -49,9 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'save') 
                 foreach (preg_split('/[\s,;]+/', trim($_POST['clubs'][$code])) as $c) {
                     if ($c !== '' && preg_match('/^[0-9A-Za-z]{5,12}$/', $c)) $list[strtolower($c)] = $c;
                 }
-                safe_w_sql("DELETE FROM AUT_ShareClub WHERE AscToCode=" . StrSafe_DB($code));
+                safe_w_sql("DELETE FROM AuthShareClub WHERE AscToCode=" . StrSafe_DB($code));
                 foreach ($list as $c) {
-                    safe_w_sql("INSERT IGNORE INTO AUT_ShareClub (AscToCode, AscScope) VALUES ("
+                    safe_w_sql("INSERT IGNORE INTO AuthShareClub (AscToCode, AscScope) VALUES ("
                         . StrSafe_DB($code) . "," . StrSafe_DB($c) . ")");
                 }
             }
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'save') 
             if ($isAdmin && isset($_POST['owner'][$code])) {
                 $oRole = ''; $oScope = '';
                 if (aut_parse_owner($_POST['owner'][$code], $oRole, $oScope)) {
-                    safe_w_sql("UPDATE AUT_Share SET AsOwnerRole=" . StrSafe_DB($oRole)
+                    safe_w_sql("UPDATE AuthShare SET AsOwnerRole=" . StrSafe_DB($oRole)
                         . ", AsOwnerScope=" . StrSafe_DB($oScope) . " WHERE AsToCode=" . StrSafe_DB($code));
                 } else {
                     $msgErr = htmlspecialchars(aut_t('ShBadOwner', $code));
@@ -87,9 +87,9 @@ $q = safe_r_sql("SELECT ToId, ToCode, ToName, ToWhere,
         DATE_FORMAT(ToWhenFrom,'%d/%m/%Y') AS DtFrom, DATE_FORMAT(ToWhenTo,'%d/%m/%Y') AS DtTo,
         AsOwnerRole, AsOwnerScope, AsShareCD, AsShareCR, AsShareFED, sc.Clubs
     FROM Tournament
-    LEFT JOIN AUT_Share ON AsToCode COLLATE utf8mb4_unicode_ci = ToCode
+    LEFT JOIN AuthShare ON AsToCode COLLATE utf8mb4_unicode_ci = ToCode
     LEFT JOIN (SELECT AscToCode, GROUP_CONCAT(AscScope ORDER BY AscScope SEPARATOR ', ') AS Clubs
-               FROM AUT_ShareClub GROUP BY AscToCode) sc
+               FROM AuthShareClub GROUP BY AscToCode) sc
            ON sc.AscToCode COLLATE utf8mb4_unicode_ci = ToCode
     WHERE $where
     ORDER BY ToWhenFrom DESC, ToCode ASC");

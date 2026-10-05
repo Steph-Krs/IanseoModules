@@ -73,6 +73,7 @@ function bk_ffta_season()
 function bk_ffta_cookie_path()
 {
     $token = (string) ($_SESSION['BK_Token'] ?? '');
+    // bytes: tokens and hashes are ASCII hex
     if ($token === '' || strlen($token) !== 64) return '';
     return sys_get_temp_dir() . '/ffta_esp_' . hash('sha256', 'espace|' . $token) . '.ck';
 }
@@ -98,6 +99,7 @@ function bk_ffta_espace_publish()
 function bk_ffta_espace_store($cookies, $exaltoId, $archerId)
 {
     $path = bk_ffta_cookie_path();
+    // bytes: sizes in the debug log are byte counts
     $len  = strlen((string) $cookies);
     if ($path !== '' && (string) $cookies !== '') {
         $w = @file_put_contents($path, (string) $cookies, LOCK_EX);
@@ -111,7 +113,7 @@ function bk_ffta_espace_store($cookies, $exaltoId, $archerId)
     $exalto = preg_replace('/\D/', '', (string) $exaltoId);
     bk_ffta_debug('espace_store: exaltoId=' . ($exalto !== '' ? $exalto : 'EMPTY') . ' archer=' . intval($archerId));
     if ($exalto !== '' && intval($archerId) > 0) {
-        safe_w_sql("UPDATE BK_Archers SET BaExaltoId = " . StrSafe_DB($exalto) . " WHERE BaId = " . intval($archerId));
+        safe_w_sql("UPDATE BookingArchers SET BaExaltoId = " . StrSafe_DB($exalto) . " WHERE BaId = " . intval($archerId));
     }
 }
 
@@ -185,8 +187,10 @@ function bk_ffta_fetch_pdf($url)
     $eff   = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
     curl_close($ch);
     $isPdf = ($body !== false && $code === 200)
+        // bytes: "%PDF" is the ASCII signature of a PDF file
         && ((stripos($ctype, 'pdf') !== false) || (substr((string) $body, 0, 4) === '%PDF'));
     bk_ffta_debug('fetch_pdf: cookies=' . $nck . ' http=' . $code . ' ctype=' . $ctype . ' url_finale=' . $eff
+        // bytes: sizes in the debug log are byte counts
         . ' taille=' . (is_string($body) ? strlen($body) : 'false') . ' => ' . ($isPdf ? 'PDF OK' : 'NOT a PDF (fallback)'));
     return $isPdf ? array('pdf' => $body) : array('expired' => true);
 }
@@ -280,6 +284,7 @@ function bk_ffta_debug_page($html)
     if (preg_match_all('#<input\b[^>]*name=["\']([^"\']+)["\']#i', $html, $mm)) {
         $names = array_slice(array_unique($mm[1]), 0, 12);
     }
+    // bytes: sizes in the debug log are byte counts
     return 'type=' . $kind . ' len=' . strlen($html)
         . ' action=' . $action . ' fields=' . implode(',', $names);
 }
@@ -640,6 +645,7 @@ function bk_ffta_mfa_step2($ch, $page, $otp, $base)
     }
     if ($field === '') {
         foreach ($names as $n) {
+            // bytes: an HTML field name is ASCII
             if (stripos($n, 'recovery') !== false || strtolower($n) === '_token') continue;
             if (preg_match('/(code|otp|2fa|pin|digit|chiffre)/i', $n)) { $field = $n; break; }
         }
@@ -723,6 +729,7 @@ function bk_ffta_extract_licences($html)
         '/\b(\d{6,7}[A-Za-z])\b/',
     ) as $p) {
         if (preg_match_all($p, $html, $m)) {
+            // bytes: licence numbers and club codes are ASCII letters and digits
             foreach ($m[1] as $v) $out[strtoupper($v)] = true;
             break;
         }

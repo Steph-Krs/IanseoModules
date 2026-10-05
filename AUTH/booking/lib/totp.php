@@ -7,7 +7,7 @@
  * lib/archer.php). The secret never leaves the server; the QR code is drawn by the TCPDF QR
  * encoder that ianseo already ships.
  *
- * Columns: BK_Archers.BaTotpSecret / BaTotpEnabled / BaTotpLastSlot.
+ * Columns: BookingArchers.BaTotpSecret / BaTotpEnabled / BaTotpLastSlot.
  */
 
 if (function_exists('bk_totp_verify')) return;
@@ -18,12 +18,15 @@ function bk_base32_decode($b32)
     $b32 = strtoupper(preg_replace('/[^A-Za-z2-7]/', '', (string) $b32));
     $bits = '';
     $out = '';
+    // bytes: base32 text and binary HMAC output
     foreach (str_split($b32) as $c) {
         $v = strpos($alphabet, $c);
         if ($v === false) continue;
+        // bytes: base32 text and binary HMAC output
         $bits .= str_pad(decbin($v), 5, '0', STR_PAD_LEFT);
     }
     foreach (str_split($bits, 8) as $byte) {
+        // bytes: base32 text and binary HMAC output
         if (strlen($byte) == 8) $out .= chr(bindec($byte));
     }
     return $out;
@@ -42,6 +45,7 @@ function bk_totp_code($secretB32, $slot)
     $key = bk_base32_decode($secretB32);
     $bin = pack('N', 0) . pack('N', $slot);
     $hash = hash_hmac('sha1', $bin, $key, true);
+    // bytes: base32 text and binary HMAC output
     $offset = ord(substr($hash, -1)) & 0x0F;
     $code = (unpack('N', substr($hash, $offset, 4))[1] & 0x7FFFFFFF) % 1000000;
     return str_pad($code, 6, '0', STR_PAD_LEFT);
@@ -51,6 +55,7 @@ function bk_totp_code($secretB32, $slot)
 function bk_totp_verify($secretB32, $code, $minSlot, &$usedSlot)
 {
     $code = preg_replace('/\D/', '', (string) $code);
+    // bytes: a TOTP code is ASCII digits
     if (strlen($code) != 6 || (string) $secretB32 === '') return false;
     $slot = (int) floor(time() / 30);
     foreach (array(0, -1, 1) as $d) {
@@ -67,6 +72,7 @@ function bk_totp_verify($secretB32, $code, $minSlot, &$usedSlot)
 function bk_totp_skew($secretB32, $code, $maxSlots = 120)
 {
     $code = preg_replace('/\D/', '', (string) $code);
+    // bytes: a TOTP code is ASCII digits
     if (strlen($code) != 6 || (string) $secretB32 === '') return null;
     $slot = (int) floor(time() / 30);
     for ($d = -$maxSlots; $d <= $maxSlots; $d++) {

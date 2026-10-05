@@ -27,8 +27,8 @@ in a few clicks. Designed for ianseo servers reachable online.
   the events, the next ones are extra shoots; a different bow opens its own event.
 - 📋 **My registrations**: viewing, cancelling while the registrations are open, target
   assigned when the organiser allowed it.
-- 🖨️ **Individual scorecard** to print, in the real format of the event (ends, arrows,
-  distances and target face read from ianseo) — when the organiser turns the option on.
+- 🖨️ **Individual scorecard**: the official sheet produced by ianseo (PDF), for that archer
+  only, filled with their results — when the organiser turns the option on.
 - 🧾 **Receipt** per archer, or grouped for a whole club.
 
 ### For the organiser
@@ -53,9 +53,9 @@ Everything is in the **Modules › Online registration** menu, with the competit
 
 ## Database
 
-Tables created automatically, all prefixed `BK_`: `BK_Archers` (licensee accounts),
-`BK_Sessions`, `BK_Log` (log and rate limiting), `BK_Competitions` (opening of the
-registrations), `BK_Registrations` (traceability), `BK_ClubManagers`.
+Tables created automatically, all prefixed `BK_`: `BookingArchers` (licensee accounts),
+`BookingSessions`, `BookingLog` (log and rate limiting), `BookingCompetitions` (opening of the
+registrations), `BookingRegistrations` (traceability), `BookingClubManagers`.
 
 The registrations themselves are written into the **ianseo** tables (participants and targets),
 exactly like a manual entry: they show normally in every screen and export of the software.

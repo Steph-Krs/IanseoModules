@@ -46,7 +46,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 . ($r['fail'] ? ', ' . bk_t('RiFailN', intval($r['fail'])) : '') . '.';
         } else {
             $rcId = intval($_POST['rc'] ?? 0);
-            $rc = $rcId ? safe_fetch(safe_r_sql("SELECT * FROM BK_ReimportConflicts
+            $rc = $rcId ? safe_fetch(safe_r_sql("SELECT * FROM BookingReimportConflicts
                 WHERE RcId = $rcId AND RcTournament = $TOUR")) : null;
             $side = ((string) ($_POST['side'] ?? '') === 'booking') ? 'booking' : 'import';
             if (!$rc) {

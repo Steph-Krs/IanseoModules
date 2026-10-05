@@ -18,9 +18,9 @@ if (!empty($_SESSION['AUTH_ENABLE']) && empty($_SESSION['AUTH_ROOT'])) {
 aut_ensure_schema();
 aut_legal_ensure_schema();   // AuCguVer/AuCguAt columns
 
-// Is the online registration (booking) installed? → "Archers" tab (BK_Archers accounts).
+// Is the online registration (booking) installed? → "Archers" tab (BookingArchers accounts).
 $hasArchers = (bool) safe_fetch(safe_r_sql("SELECT 1 FROM information_schema.TABLES
-    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Archers'"));
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BookingArchers'"));
 // Active tab (the archer forms carry tab=archers → the page stays there after an action).
 $activeTab = (($_REQUEST['tab'] ?? '') === 'archers' && $hasArchers) ? 'archers' : 'org';
 
@@ -29,7 +29,7 @@ $msgErr = '';
 $tmpPwd = '';   // temporary password shown only once
 
 function aut_admin_count() {
-    $q = safe_r_sql("SELECT COUNT(*) AS n FROM AUT_Users WHERE AuRole='ADMIN' AND AuActive=1");
+    $q = safe_r_sql("SELECT COUNT(*) AS n FROM AuthUsers WHERE AuRole='ADMIN' AND AuActive=1");
     $r = safe_fetch($q);
     return $r ? intval($r->n) : 0;
 }
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $msgErr = htmlspecialchars(aut_t('UsIdTaken'));
             } else {
                 $tmpPwd = aut_gen_password();
-                safe_w_sql("INSERT INTO AUT_Users (AuUsername, AuPassword, AuName, AuEmail, AuRole, AuScope, AuMustChangePwd)
+                safe_w_sql("INSERT INTO AuthUsers (AuUsername, AuPassword, AuName, AuEmail, AuRole, AuScope, AuMustChangePwd)
                     VALUES (" . StrSafe_DB($username) . "," . StrSafe_DB(password_hash($tmpPwd, PASSWORD_DEFAULT)) . ","
                     . StrSafe_DB($name) . "," . StrSafe_DB($email) . "," . StrSafe_DB($role) . "," . StrSafe_DB($scope) . ", 1)");
                 aut_log('USER_CREATE', $username);
@@ -111,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $role  = $_POST['role'] ?? AUT_ROLE_CLUB;
             $scope = in_array($role, array(AUT_ROLE_FED, AUT_ROLE_ADMIN)) ? '' : trim($_POST['scope'] ?? '');
             $active = !empty($_POST['active']) ? 1 : 0;
-            $q = safe_r_sql("SELECT * FROM AUT_Users WHERE AuId=$id");
+            $q = safe_r_sql("SELECT * FROM AuthUsers WHERE AuId=$id");
             $u = safe_fetch($q);
             if (!$u) {
                 $msgErr = htmlspecialchars(aut_t('UsNotFound'));
@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             } elseif ($u->AuRole == 'ADMIN' && $u->AuActive && ($role != 'ADMIN' || !$active) && aut_admin_count() <= 1) {
                 $msgErr = htmlspecialchars(aut_t('UsLastAdmin'));
             } else {
-                safe_w_sql("UPDATE AUT_Users SET
+                safe_w_sql("UPDATE AuthUsers SET
                     AuName="  . StrSafe_DB(trim($_POST['name'] ?? ''))  . ",
                     AuEmail=" . StrSafe_DB(trim($_POST['email'] ?? '')) . ",
                     AuRole="  . StrSafe_DB($role) . ",
@@ -136,10 +136,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         if ($action == 'resetpwd' && $id) {
-            $q = safe_r_sql("SELECT * FROM AUT_Users WHERE AuId=$id");
+            $q = safe_r_sql("SELECT * FROM AuthUsers WHERE AuId=$id");
             if ($u = safe_fetch($q)) {
                 $tmpPwd = aut_gen_password();
-                safe_w_sql("UPDATE AUT_Users SET AuPassword=" . StrSafe_DB(password_hash($tmpPwd, PASSWORD_DEFAULT))
+                safe_w_sql("UPDATE AuthUsers SET AuPassword=" . StrSafe_DB(password_hash($tmpPwd, PASSWORD_DEFAULT))
                     . ", AuMustChangePwd=1 WHERE AuId=$id");
                 aut_sessions_revoke($id);
                 aut_log('USER_PWDRESET', $u->AuUsername);
@@ -148,9 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         if ($action == 'reset2fa' && $id) {
-            $q = safe_r_sql("SELECT * FROM AUT_Users WHERE AuId=$id");
+            $q = safe_r_sql("SELECT * FROM AuthUsers WHERE AuId=$id");
             if ($u = safe_fetch($q)) {
-                safe_w_sql("UPDATE AUT_Users SET AuTotpSecret='', AuTotpEnabled=0, AuTotpLastSlot=0 WHERE AuId=$id");
+                safe_w_sql("UPDATE AuthUsers SET AuTotpSecret='', AuTotpEnabled=0, AuTotpLastSlot=0 WHERE AuId=$id");
                 aut_sessions_revoke($id);
                 aut_log('TOTP_RESET', $u->AuUsername);
                 $msgOk = aut_t('Us2faReset', htmlspecialchars($u->AuUsername));
@@ -158,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         if ($action == 'killsessions' && $id) {
-            $q = safe_r_sql("SELECT * FROM AUT_Users WHERE AuId=$id");
+            $q = safe_r_sql("SELECT * FROM AuthUsers WHERE AuId=$id");
             if ($u = safe_fetch($q)) {
                 aut_sessions_revoke($id);
                 aut_log('SESSIONS_REVOKE', $u->AuUsername);
@@ -167,51 +167,51 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         if ($action == 'delete' && $id) {
-            $q = safe_r_sql("SELECT * FROM AUT_Users WHERE AuId=$id");
+            $q = safe_r_sql("SELECT * FROM AuthUsers WHERE AuId=$id");
             $u = safe_fetch($q);
             if (!$u) {
                 $msgErr = htmlspecialchars(aut_t('UsNotFound'));
             } elseif ($u->AuRole == 'ADMIN' && $u->AuActive && aut_admin_count() <= 1) {
                 $msgErr = htmlspecialchars(aut_t('UsLastAdmin'));
             } else {
-                safe_w_sql("DELETE FROM AUT_Users WHERE AuId=$id");
+                safe_w_sql("DELETE FROM AuthUsers WHERE AuId=$id");
                 aut_sessions_revoke($id);
                 aut_log('USER_DELETE', $u->AuUsername);
                 $msgOk = aut_t('UsDeleted', htmlspecialchars($u->AuUsername));
             }
         }
 
-        // ---- Actions on the ARCHER accounts (BK_Archers) ----
+        // ---- Actions on the ARCHER accounts (BookingArchers) ----
         if ($hasArchers && strpos($action, 'archer_') === 0 && $id) {
-            $r = safe_fetch(safe_r_sql("SELECT BaId, BaLicence FROM BK_Archers WHERE BaId=$id"));
+            $r = safe_fetch(safe_r_sql("SELECT BaId, BaLicence FROM BookingArchers WHERE BaId=$id"));
             if (!$r) {
                 $msgErr = htmlspecialchars(aut_t('UsArcNotFound'));
             } else {
                 $lic = htmlspecialchars($r->BaLicence);
                 if ($action == 'archer_save') {
                     $active = !empty($_POST['active']) ? 1 : 0;
-                    safe_w_sql("UPDATE BK_Archers SET BaActive=$active WHERE BaId=$id");
-                    if (!$active) safe_w_sql("DELETE FROM BK_Sessions WHERE BsArcher=$id");   // deactivation → sign-out
+                    safe_w_sql("UPDATE BookingArchers SET BaActive=$active WHERE BaId=$id");
+                    if (!$active) safe_w_sql("DELETE FROM BookingSessions WHERE BkArcher=$id");   // deactivation → sign-out
                     aut_log('ARCHER_SAVE', $r->BaLicence);
                     $msgOk = aut_t($active ? 'UsArcSaved' : 'UsArcSavedOff', $lic);
                 } elseif ($action == 'archer_killsessions') {
-                    safe_w_sql("DELETE FROM BK_Sessions WHERE BsArcher=$id");
+                    safe_w_sql("DELETE FROM BookingSessions WHERE BkArcher=$id");
                     aut_log('ARCHER_SESSIONS', $r->BaLicence);
                     $msgOk = aut_t('UsArcSessionsKilled', $lic);
                 } elseif ($action == 'archer_resetcgu') {
-                    safe_w_sql("UPDATE BK_Archers SET BaCguVer='', BaCguAt=NULL WHERE BaId=$id");
+                    safe_w_sql("UPDATE BookingArchers SET BaCguVer='', BaCguAt=NULL WHERE BaId=$id");
                     aut_log('ARCHER_CGU_RESET', $r->BaLicence);
                     $msgOk = aut_t('UsArcCguReset', $lic);
                 } elseif ($action == 'archer_reset2fa') {
                     // Lost phone: removes the 2FA + signs out (the archer can sign in again without
                     // a code, then turn it on again if they wish).
-                    safe_w_sql("UPDATE BK_Archers SET BaTotpSecret='', BaTotpEnabled=0, BaTotpLastSlot=0 WHERE BaId=$id");
-                    safe_w_sql("DELETE FROM BK_Sessions WHERE BsArcher=$id");
+                    safe_w_sql("UPDATE BookingArchers SET BaTotpSecret='', BaTotpEnabled=0, BaTotpLastSlot=0 WHERE BaId=$id");
+                    safe_w_sql("DELETE FROM BookingSessions WHERE BkArcher=$id");
                     aut_log('ARCHER_TOTP_RESET', $r->BaLicence);
                     $msgOk = aut_t('UsArc2faReset', $lic);
                 } elseif ($action == 'archer_delete') {
-                    safe_w_sql("DELETE FROM BK_Sessions WHERE BsArcher=$id");
-                    safe_w_sql("DELETE FROM BK_Archers WHERE BaId=$id");
+                    safe_w_sql("DELETE FROM BookingSessions WHERE BkArcher=$id");
+                    safe_w_sql("DELETE FROM BookingArchers WHERE BaId=$id");
                     aut_log('ARCHER_DELETE', $r->BaLicence);
                     $msgOk = aut_t('UsArcDeleted', $lic);
                 }
@@ -221,11 +221,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 $users = array();
-$q = safe_r_sql("SELECT * FROM AUT_Users ORDER BY AuRole, AuScope, AuUsername");
+$q = safe_r_sql("SELECT * FROM AuthUsers ORDER BY AuRole, AuScope, AuUsername");
 while ($r = safe_fetch($q)) $users[] = $r;
 
 $sessCount = array();
-$q = safe_r_sql("SELECT AsnUser, COUNT(*) AS n FROM AUT_Sessions
+$q = safe_r_sql("SELECT AsnUser, COUNT(*) AS n FROM AuthSessions
     WHERE AsnLastSeen > DATE_SUB(NOW(), INTERVAL " . AUT_SESSION_IDLE_H . " HOUR) GROUP BY AsnUser");
 while ($r = safe_fetch($q)) $sessCount[$r->AsnUser] = intval($r->n);
 
@@ -233,14 +233,14 @@ while ($r = safe_fetch($q)) $sessCount[$r->AsnUser] = intval($r->n);
 $archers = array();
 $arcSess = array();
 if ($hasArchers) {
-    $q = safe_r_sql("SELECT * FROM BK_Archers ORDER BY BaFamilyName, BaName, BaLicence");
+    $q = safe_r_sql("SELECT * FROM BookingArchers ORDER BY BaFamilyName, BaName, BaLicence");
     while ($r = safe_fetch($q)) $archers[] = $r;
-    $q = safe_r_sql("SELECT BsArcher, COUNT(*) AS n FROM BK_Sessions
-        WHERE BsLastSeen > DATE_SUB(NOW(), INTERVAL 12 HOUR) GROUP BY BsArcher");
-    while ($r = safe_fetch($q)) $arcSess[intval($r->BsArcher)] = intval($r->n);
+    $q = safe_r_sql("SELECT BkArcher, COUNT(*) AS n FROM BookingSessions
+        WHERE BkLastSeen > DATE_SUB(NOW(), INTERVAL 12 HOUR) GROUP BY BkArcher");
+    while ($r = safe_fetch($q)) $arcSess[intval($r->BkArcher)] = intval($r->n);
 }
 
-// Logs per audience: org = AUT_Log, archer = BK_Log. Can be filtered (event + search) + paged.
+// Logs per audience: org = AuthLog, archer = BookingLog. Can be filtered (event + search) + paged.
 $LOG_LIM = 150;
 $logFetch = function ($table, $p, $ev, $user, $off, $lim) {
     $w = "1=1";
@@ -256,18 +256,18 @@ $logEvents = function ($table, $p) {
 };
 
 $oEv = trim((string) ($_GET['oev'] ?? '')); $oU = trim((string) ($_GET['ou'] ?? '')); $oOff = max(0, intval($_GET['ooff'] ?? 0));
-$orgLogs = $logFetch('AUT_Log', 'Al', $oEv, $oU, $oOff, $LOG_LIM);
+$orgLogs = $logFetch('AuthLog', 'Al', $oEv, $oU, $oOff, $LOG_LIM);
 $orgMore = count($orgLogs) > $LOG_LIM; if ($orgMore) array_pop($orgLogs);
-$orgEvents = $logEvents('AUT_Log', 'Al');
+$orgEvents = $logEvents('AuthLog', 'Al');
 
 $hasBkLog = $hasArchers && (bool) safe_fetch(safe_r_sql("SELECT 1 AS x FROM information_schema.TABLES
-    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Log'"));
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BookingLog'"));
 $arcLogs = array(); $arcMore = false; $arcEvents = array();
 $aEv = trim((string) ($_GET['aev'] ?? '')); $aU = trim((string) ($_GET['au'] ?? '')); $aOff = max(0, intval($_GET['aoff'] ?? 0));
 if ($hasBkLog) {
-    $arcLogs = $logFetch('BK_Log', 'Bl', $aEv, $aU, $aOff, $LOG_LIM);
+    $arcLogs = $logFetch('BookingLog', 'Bl', $aEv, $aU, $aOff, $LOG_LIM);
     $arcMore = count($arcLogs) > $LOG_LIM; if ($arcMore) array_pop($arcLogs);
-    $arcEvents = $logEvents('BK_Log', 'Bl');
+    $arcEvents = $logEvents('BookingLog', 'Bl');
 }
 
 $roles = aut_roles();

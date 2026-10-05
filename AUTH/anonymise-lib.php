@@ -9,7 +9,7 @@
  *    through the module's own removal path (core recalculation hooks), shop orders and
  *    declared payment choice too, official roles as well; the freed places go to the waiting
  *    list. If something had been paid (payments journal), a refund (club + amount, no name) is
- *    recorded for the organiser (BK_Refunds), shown on the "Paiements" page of that
+ *    recorded for the organiser (BookingRefunds), shown on the "Paiements" page of that
  *    competition; the journal lines stay, under the anonymous code, and marking the refund as
  *    done writes the matching refund line. A competition
  *    whose participants are locked by its organiser cannot be changed: it is anonymised
@@ -25,7 +25,7 @@
  *    by itself; for a missing date (EnDob = 0) it offers every age class. Photo deleted
  *    (Photos + TV/Photos/<code>-En-<id>.jpg), caption and e-mail of ExtraData removed;
  *  - officials (TournamentInvolved): licence replaced, local code, names emptied;
- *  - online account of the archer (BK_Archers, its sessions and club-manager rights):
+ *  - online account of the archer (BookingArchers, its sessions and club-manager rights):
  *    deleted — it is copied from the federal file at each login, emptying it would not
  *    last. Their waiting-list rows go too. Every other BK_ row carrying the licence gets
  *    the anonymous code (registrations, payments, shop, journal, re-import conflicts),
@@ -112,8 +112,8 @@ function aut_anon_search($q)
         FROM LookUpEntries WHERE " . $cond('LueCode', 'LueFamilyName', 'LueName') . " LIMIT 100");
     while ($r = safe_fetch($rs)) $add($r->LueCode, $r->Nm, $r->Y, $r->LueCoDescr);
 
-    if (aut_anon_table('BK_Archers')) {
-        $rs = safe_r_sql("SELECT BaLicence, CONCAT(BaFamilyName, ' ', BaName) AS Nm FROM BK_Archers
+    if (aut_anon_table('BookingArchers')) {
+        $rs = safe_r_sql("SELECT BaLicence, CONCAT(BaFamilyName, ' ', BaName) AS Nm FROM BookingArchers
             WHERE " . $cond('BaLicence', 'BaFamilyName', 'BaName') . " LIMIT 100");
         while ($r = safe_fetch($rs)) { $add($r->BaLicence, $r->Nm, 0, ''); $out[trim($r->BaLicence)]['account'] = true; }
     }
@@ -128,8 +128,8 @@ function aut_anon_search($q)
             $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM TournamentInvolved WHERE TiCode = " . StrSafe_DB($lic)));
             $p['officials'] = $r ? intval($r->n) : 0;
         }
-        if (!$p['account'] && aut_anon_table('BK_Archers')) {
-            $p['account'] = (bool) safe_fetch(safe_r_sql("SELECT BaId FROM BK_Archers WHERE BaLicence = " . StrSafe_DB($lic)));
+        if (!$p['account'] && aut_anon_table('BookingArchers')) {
+            $p['account'] = (bool) safe_fetch(safe_r_sql("SELECT BaId FROM BookingArchers WHERE BaLicence = " . StrSafe_DB($lic)));
         }
     }
     unset($p);
@@ -164,15 +164,15 @@ function aut_anon_person($lic)
         $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM ExtraData WHERE EdId IN ($in) AND (EdType IN ('C', 'E') OR EdEmail <> '')"));
         $p['extra'] = $r ? intval($r->n) : 0;
     }
-    if (aut_anon_table('BK_Archers')) {
-        $p['account'] = safe_fetch(safe_r_sql("SELECT BaId, BaFamilyName, BaName, BaEmail FROM BK_Archers WHERE BaLicence = $l")) ?: null;
+    if (aut_anon_table('BookingArchers')) {
+        $p['account'] = safe_fetch(safe_r_sql("SELECT BaId, BaFamilyName, BaName, BaEmail FROM BookingArchers WHERE BaLicence = $l")) ?: null;
     }
-    if (aut_anon_table('BK_Waitlist')) {
-        $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BK_Waitlist WHERE BwLicence = $l"));
+    if (aut_anon_table('BookingWaitlist')) {
+        $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BookingWaitlist WHERE BwLicence = $l"));
         $p['waits'] = $r ? intval($r->n) : 0;
     }
-    if (aut_anon_table('BK_ReimportConflicts')) {
-        $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BK_ReimportConflicts WHERE RcLicence = $l"));
+    if (aut_anon_table('BookingReimportConflicts')) {
+        $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BookingReimportConflicts WHERE RcLicence = $l"));
         $p['conflicts'] = $r ? intval($r->n) : 0;
     }
     $p['lue'] = safe_fetch(safe_r_sql("SELECT LueFamilyName, LueName, LueCtrlCode, LueCoDescr FROM LookUpEntries
@@ -198,9 +198,9 @@ function aut_anon_plan($lic)
         WHERE ToWhenTo >= " . bk_local_today_sql('ToTimeZone') . "
           AND ToId IN (SELECT EnTournament FROM Entries WHERE EnCode = $l
                  UNION SELECT TiTournament FROM TournamentInvolved WHERE TiCode = $l
-                 UNION SELECT PyTournament FROM BK_Payments WHERE PyLicence = $l
-                 UNION SELECT SoTournament FROM BK_ShopOrders WHERE SoLicence = $l
-                 UNION SELECT BlgTournament FROM BK_Ledger WHERE BlgAccount = $l)
+                 UNION SELECT PyTournament FROM BookingPayments WHERE PyLicence = $l
+                 UNION SELECT SoTournament FROM BookingShopOrders WHERE SoLicence = $l
+                 UNION SELECT BlgTournament FROM BookingLedger WHERE BlgAccount = $l)
           AND ToId NOT IN (SELECT EnTournament FROM Entries INNER JOIN Qualifications ON QuId = EnId
                  WHERE EnCode = $l AND (QuScore <> 0 OR QuHits <> 0))
         ORDER BY ToWhenFrom, ToId");
@@ -242,8 +242,8 @@ function aut_anon_remove_from($tourId, $lic, $plan)
         if (empty($r['ok'])) return false;   // locked: only the first one can fail, nothing removed yet
     }
     safe_w_sql("DELETE FROM TournamentInvolved WHERE TiTournament = $tourId AND TiCode = $l");
-    safe_w_sql("DELETE FROM BK_ShopOrders WHERE SoTournament = $tourId AND SoLicence = $l");
-    safe_w_sql("DELETE FROM BK_Payments WHERE PyTournament = $tourId AND PyLicence = $l");
+    safe_w_sql("DELETE FROM BookingShopOrders WHERE SoTournament = $tourId AND SoLicence = $l");
+    safe_w_sql("DELETE FROM BookingPayments WHERE PyTournament = $tourId AND PyLicence = $l");
     if ($plan['refund']) {
         $f = $plan['refund'];
         bk_refund_add($tourId, $f['club_code'], $f['club_name'], $f['amount'], $f['method']);
@@ -271,26 +271,29 @@ function aut_anon_bk_tables($lic)
 {
     $l = StrSafe_DB($lic);
     $a = StrSafe_DB(AUT_ANON_CODE);
-    if (aut_anon_table('BK_Registrations')) {
-        safe_w_sql("UPDATE BK_Registrations SET BrLicence = $a WHERE BrLicence = $l");
-        safe_w_sql("UPDATE BK_Registrations SET BrBy = $a WHERE BrBy = $l");   // registered others
-        safe_w_sql("UPDATE BK_Registrations SET BrWantWith = '' WHERE BrWantWith = $l");
+    if (aut_anon_table('BookingRegistrations')) {
+        safe_w_sql("UPDATE BookingRegistrations SET BrLicence = $a WHERE BrLicence = $l");
+        safe_w_sql("UPDATE BookingRegistrations SET BrBy = $a WHERE BrBy = $l");   // registered others
+        safe_w_sql("UPDATE BookingRegistrations SET BrWantWith = '' WHERE BrWantWith = $l");
     }
     // Payments journal: the money did come in (and, for a competition to come, is to be given
     // back): the lines stay, under the anonymous code. No unique key there.
-    if (aut_anon_table('BK_Ledger')) safe_w_sql("UPDATE BK_Ledger SET BlgAccount = $a WHERE BlgAccount = $l");
-    foreach (array('BK_Payments' => 'PyLicence', 'BK_ShopOrders' => 'SoLicence') as $t => $c) {
-        if (!aut_anon_table($t)) continue;
-        safe_w_sql("UPDATE IGNORE $t SET $c = $a WHERE $c = $l");
-        safe_w_sql("DELETE FROM $t WHERE $c = $l");
+    if (aut_anon_table('BookingLedger')) safe_w_sql("UPDATE BookingLedger SET BlgAccount = $a WHERE BlgAccount = $l");
+    if (aut_anon_table('BookingPayments')) {
+        safe_w_sql("UPDATE IGNORE BookingPayments SET PyLicence = $a WHERE PyLicence = $l");
+        safe_w_sql("DELETE FROM BookingPayments WHERE PyLicence = $l");
+    }
+    if (aut_anon_table('BookingShopOrders')) {
+        safe_w_sql("UPDATE IGNORE BookingShopOrders SET SoLicence = $a WHERE SoLicence = $l");
+        safe_w_sql("DELETE FROM BookingShopOrders WHERE SoLicence = $l");
     }
     // Survey: the answer keeps its anonymous form "#<id>" (bk_survey_anonymise); the roll of
     // who answered is only about a licence, it goes.
-    if (aut_anon_table('BK_Surveys')) safe_w_sql("UPDATE BK_Surveys SET BqLicence = CONCAT('#', BqId) WHERE BqLicence = $l");
-    if (aut_anon_table('BK_SurveyVoters')) safe_w_sql("DELETE FROM BK_SurveyVoters WHERE BvLicence = $l");
-    if (aut_anon_table('BK_Log')) safe_w_sql("UPDATE BK_Log SET BlUser = $a WHERE BlUser = $l");
-    if (aut_anon_table('BK_ReimportConflicts')) {
-        safe_w_sql("UPDATE BK_ReimportConflicts SET RcLicence = $a, RcName = '' WHERE RcLicence = $l");
+    if (aut_anon_table('BookingSurveys')) safe_w_sql("UPDATE BookingSurveys SET BqLicence = CONCAT('#', BqId) WHERE BqLicence = $l");
+    if (aut_anon_table('BookingSurveyVoters')) safe_w_sql("DELETE FROM BookingSurveyVoters WHERE BvLicence = $l");
+    if (aut_anon_table('BookingLog')) safe_w_sql("UPDATE BookingLog SET BlUser = $a WHERE BlUser = $l");
+    if (aut_anon_table('BookingReimportConflicts')) {
+        safe_w_sql("UPDATE BookingReimportConflicts SET RcLicence = $a, RcName = '' WHERE RcLicence = $l");
     }
 }
 
@@ -329,7 +332,7 @@ function aut_anon_apply($lic)
 
     // Waiting rows first: a place freed below must not go back to this very person.
     bk_schema();
-    safe_w_sql("DELETE FROM BK_Waitlist WHERE BwLicence = $l");
+    safe_w_sql("DELETE FROM BookingWaitlist WHERE BwLicence = $l");
     $res['waits'] = safe_w_affected_rows();
 
     // Competitions to come: the person is removed, not anonymised.
@@ -362,21 +365,21 @@ function aut_anon_apply($lic)
     $res['officials'] = $r ? intval($r->n) : 0;
     safe_w_sql("UPDATE TournamentInvolved SET TiCode = $a, TiCodeLocal = '', TiName = '', TiGivenName = '' WHERE TiCode = $l");
 
-    if (aut_anon_table('BK_Archers')) {
-        $rs = safe_r_sql("SELECT BaId FROM BK_Archers WHERE BaLicence = $l");
+    if (aut_anon_table('BookingArchers')) {
+        $rs = safe_r_sql("SELECT BaId FROM BookingArchers WHERE BaLicence = $l");
         $acc = array();
         while ($r = safe_fetch($rs)) $acc[] = intval($r->BaId);
         if ($acc) {
             $in = implode(',', $acc);
-            if (aut_anon_table('BK_Sessions')) safe_w_sql("DELETE FROM BK_Sessions WHERE BsArcher IN ($in)");
-            if (aut_anon_table('BK_ClubManagers')) safe_w_sql("DELETE FROM BK_ClubManagers WHERE BmArcher IN ($in)");
-            safe_w_sql("DELETE FROM BK_Archers WHERE BaId IN ($in)");
+            if (aut_anon_table('BookingSessions')) safe_w_sql("DELETE FROM BookingSessions WHERE BkArcher IN ($in)");
+            if (aut_anon_table('BookingClubManagers')) safe_w_sql("DELETE FROM BookingClubManagers WHERE BmArcher IN ($in)");
+            safe_w_sql("DELETE FROM BookingArchers WHERE BaId IN ($in)");
             $res['account'] = count($acc);
         }
     }
     // Waiting rows of others: this person as their author, or as the one they want to shoot with.
-    safe_w_sql("UPDATE BK_Waitlist SET BwBy = $a WHERE BwBy = $l");
-    safe_w_sql("UPDATE BK_Waitlist SET BwWantWith = '' WHERE BwWantWith = $l");
+    safe_w_sql("UPDATE BookingWaitlist SET BwBy = $a WHERE BwBy = $l");
+    safe_w_sql("UPDATE BookingWaitlist SET BwWantWith = '' WHERE BwWantWith = $l");
     aut_anon_bk_tables($lic);
     safe_w_sql("COMMIT");
 

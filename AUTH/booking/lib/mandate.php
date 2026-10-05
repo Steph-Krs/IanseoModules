@@ -1,8 +1,9 @@
 <?php
 /**
- * lib/mandate.php — the competition's mandate (printable document of the organiser).
+ * lib/mandate.php — the competition's mandate (document of the organiser).
  *
- * The mandate is printable HTML (like the score sheets, not a PDF): its content is FILLED IN
+ * On screen it is HTML (bk_mandate_document); on paper, the same content goes through the core's
+ * PDF classes (lib/mandate-pdf.php). Its content is FILLED IN
  * AUTOMATICALLY from the competition (name, dates, place, departures, categories, tariffs,
  * means of payment); the organiser only adds free text blocks, a template and a colour. No
  * free layout, no word processor — the frame stays simple and consistent.
@@ -108,6 +109,7 @@ function bk_mandate_get($cfg)
                 $d['share_template'] = $j['share_template'];
             }
             if (!empty($j['color']) && preg_match('/^#[0-9a-fA-F]{6}$/', (string) $j['color'])) {
+                // bytes: a #rrggbb colour is ASCII
                 $d['color'] = strtolower($j['color']);
             }
             foreach (array('L', 'R', 'B') as $k) {
@@ -136,6 +138,7 @@ function bk_mandate_from_post($post)
     $stpl = (string) ($post['share_template'] ?? 'bandeau');
     if (!array_key_exists($stpl, bk_share_templates())) $stpl = 'bandeau';
 
+    // bytes: a #rrggbb colour is ASCII
     $color = strtolower((string) ($post['color'] ?? '#0254a8'));
     if (!preg_match('/^#[0-9a-fA-F]{6}$/', $color)) $color = '#0254a8';
 
@@ -161,7 +164,7 @@ function bk_mandate_save($tourId, $data)
     $tourId = intval($tourId);
     $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $set  = "BcMandate = " . StrSafe_DB($json);
-    safe_w_sql("INSERT INTO BK_Competitions SET BcTournament = $tourId, $set
+    safe_w_sql("INSERT INTO BookingCompetitions SET BcTournament = $tourId, $set
         ON DUPLICATE KEY UPDATE $set");
 }
 
@@ -172,6 +175,7 @@ function bk_mandate_save($tourId, $data)
 function bk_mandate_palette($hex)
 {
     if (!preg_match('/^#[0-9a-fA-F]{6}$/', (string) $hex)) $hex = '#0254a8';
+    // bytes: a #rrggbb colour is ASCII
     $r = hexdec(substr($hex, 1, 2));
     $g = hexdec(substr($hex, 3, 2));
     $b = hexdec(substr($hex, 5, 2));
@@ -179,6 +183,7 @@ function bk_mandate_palette($hex)
     $light = sprintf('#%02x%02x%02x', $mix($r, 255, 0.90), $mix($g, 255, 0.90), $mix($b, 255, 0.90));
     $dark  = sprintf('#%02x%02x%02x', $mix($r, 0, 0.30), $mix($g, 0, 0.30), $mix($b, 0, 0.30));
     $lum   = 0.299 * $r + 0.587 * $g + 0.114 * $b;   // contrast of the text on the primary
+    // bytes: a #rrggbb colour is ASCII
     return array('primary' => strtolower($hex), 'light' => $light, 'dark' => $dark,
                  'on' => ($lum > 150 ? '#20263d' : '#ffffff'));
 }
@@ -219,6 +224,7 @@ function bk_mandate_data($tourId)
         'cfg'         => $cfg,
         'disc'        => $disc,
         'discLabel'   => $labels[$disc['key']] ?? $disc['key'],
+        // bytes: ToCommitee is an ASCII approval number
         'region'      => bk_region_name(substr((string) $t->ToCommitee, 0, 2)),
         'sessions'    => bk_comp_sessions($tourId),
         'divisions'   => $divisions,
@@ -255,7 +261,7 @@ function bk_mandate_visible($cfg)
 
 /**
  * Official ianseo documents that can be relayed (the organiser opts in). Each entry:
- * key => ['label', 'icon', 'flag' (BK_Competitions column), 'script' (core generator), 'params'
+ * key => ['label', 'icon', 'flag' (BookingCompetitions column), 'script' (core generator), 'params'
  * (controlled GET parameters)]. The scripts are PDF entry points of the core (Prn*.php) that
  * work on the current competition session.
  */
@@ -318,8 +324,8 @@ function bk_has_participants($tourId)
 function bk_has_results($tourId)
 {
     $r = safe_fetch(safe_r_sql("SELECT 1
-        FROM Qualifications q INNER JOIN Entries e ON e.EnId = q.QuId
-        WHERE e.EnTournament = " . intval($tourId) . " AND q.QuScore > 0 LIMIT 1"));
+        FROM Qualifications INNER JOIN Entries ON EnId = QuId
+        WHERE EnTournament = " . intval($tourId) . " AND QuScore > 0 LIMIT 1"));
     return (bool) $r;
 }
 
@@ -342,8 +348,8 @@ function bk_has_program($tourId)
 function bk_has_placements($tourId)
 {
     $r = safe_fetch(safe_r_sql("SELECT 1
-        FROM Qualifications q INNER JOIN Entries e ON e.EnId = q.QuId
-        WHERE e.EnTournament = " . intval($tourId) . " AND q.QuTarget > 0 LIMIT 1"));
+        FROM Qualifications INNER JOIN Entries ON EnId = QuId
+        WHERE EnTournament = " . intval($tourId) . " AND QuTarget > 0 LIMIT 1"));
     return (bool) $r;
 }
 
@@ -505,15 +511,15 @@ function bk_dossard_entries($tourId, $archer)
     $tourId = intval($tourId);
     $lic  = StrSafe_DB($archer->BaLicence);
     $baid = intval($archer->BaId);
-    $rs = safe_r_sql("SELECT r.BrEnId, r.BrLicence, e.EnFirstName, e.EnName,
-            q.QuSession, q.QuTarget, q.QuLetter, d.DivDescription, cl.ClDescription
-        FROM BK_Registrations r
-        INNER JOIN Entries e        ON e.EnId = r.BrEnId
-        INNER JOIN Qualifications q ON q.QuId = e.EnId
-        LEFT  JOIN Divisions d      ON d.DivTournament = $tourId AND d.DivId = e.EnDivision
-        LEFT  JOIN Classes cl       ON cl.ClTournament = $tourId AND cl.ClId = e.EnClass
-        WHERE r.BrTournament = $tourId AND (r.BrLicence = $lic OR r.BrArcher = $baid)
-        ORDER BY (r.BrLicence = $lic) DESC, e.EnFirstName, e.EnName, q.QuSession");
+    $rs = safe_r_sql("SELECT BrEnId, BrLicence, EnFirstName, EnName,
+            QuSession, QuTarget, QuLetter, DivDescription, ClDescription
+        FROM BookingRegistrations
+        INNER JOIN Entries        ON EnId = BrEnId
+        INNER JOIN Qualifications ON QuId = EnId
+        LEFT  JOIN Divisions      ON DivTournament = $tourId AND DivId = EnDivision
+        LEFT  JOIN Classes       ON ClTournament = $tourId AND ClId = EnClass
+        WHERE BrTournament = $tourId AND (BrLicence = $lic OR BrArcher = $baid)
+        ORDER BY (BrLicence = $lic) DESC, EnFirstName, EnName, QuSession");
     $out = array();
     while ($r = safe_fetch($rs)) $out[] = $r;
     return $out;
@@ -528,8 +534,8 @@ function bk_dossard_can($enId, $archer)
     $enId = intval($enId);
     $lic  = StrSafe_DB($archer->BaLicence);
     $baid = intval($archer->BaId);
-    return safe_fetch(safe_r_sql("SELECT r.BrTournament, r.BrLicence FROM BK_Registrations r
-        WHERE r.BrEnId = $enId AND (r.BrLicence = $lic OR r.BrArcher = $baid)")) ?: null;
+    return safe_fetch(safe_r_sql("SELECT BrTournament, BrLicence FROM BookingRegistrations
+        WHERE BrEnId = $enId AND (BrLicence = $lic OR BrArcher = $baid)")) ?: null;
 }
 
 /**
@@ -640,6 +646,7 @@ body{ margin:0; background:#e9edf2; color:#20263d;
 .mn-bar button, .mn-bar a{ font:inherit; font-size:13px; padding:8px 16px; border-radius:6px;
   border:0; cursor:pointer; text-decoration:none; }
 .mn-bar .mn-print{ background:var(--pri); color:var(--on); font-weight:600; }
+.mn-bar img{ vertical-align:middle; margin-right:4px; }
 .mn-bar .mn-close{ background:#4a4f63; color:#fff; }
 .mn-page{ max-width:800px; margin:18px auto; background:#fff; padding:0;
   box-shadow:0 2px 14px rgba(0,0,0,.14); }

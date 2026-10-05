@@ -6,7 +6,7 @@
  * (redirects to the list of competitions as the target sees it) or of a LICENSEE's space
  * (redirects to their booking space).
  *
- * The state is kept per session in the database (AUT_Sessions.AsnImp) to survive
+ * The state is kept per session in the database (AuthSessions.AsnImp) to survive
  * CreateTourSession — see aut_imp_* in lib.php. The organiser read-only mode is enforced by
  * the core (AUTH_RO → dist/BlockFunction.php); on the licensee side, by public/boot.php (every
  * POST refused). Logged (IMPERSONATE_START/END).
@@ -69,11 +69,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && aut_csrf_check()) {
             exit;
         }
     } elseif ($type === 'archer') {
+        // bytes: licence numbers and club codes are ASCII letters and digits
         $lic = strtoupper(trim((string) ($_POST['licence'] ?? '')));
         $a = null;
         if ($lic !== '') {
             $q = safe_r_sql("SELECT BaId, BaLicence, BaName, BaFamilyName
-                FROM BK_Archers WHERE BaLicence=" . StrSafe_DB($lic), false, true);
+                FROM BookingArchers WHERE BaLicence=" . StrSafe_DB($lic), false, true);
             $a = $q ? safe_fetch($q) : null;
         }
         if (!$a) $err = aut_t('ImpNoArcher');

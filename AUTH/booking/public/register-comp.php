@@ -182,14 +182,14 @@ if ($showPrice) {
 // Clubmates already registered, for the wish "on the same target as…".
 $clubmates = array();
 if ($lue->LueCountry) {
-    $rs = safe_r_sql("SELECT e.EnCode, e.EnFirstName, e.EnName, q.QuSession
-        FROM Entries e
-        INNER JOIN Qualifications q ON q.QuId = e.EnId
-        INNER JOIN Countries c ON c.CoId = e.EnCountry
-        WHERE e.EnTournament = " . intval($tourId) . " AND e.EnAthlete = 1
-          AND c.CoCode = " . StrSafe_DB($lue->LueCountry) . "
-          AND e.EnCode <> " . StrSafe_DB($subjectLicence) . "
-        ORDER BY e.EnFirstName, e.EnName");
+    $rs = safe_r_sql("SELECT EnCode, EnFirstName, EnName, QuSession
+        FROM Entries
+        INNER JOIN Qualifications ON QuId = EnId
+        INNER JOIN Countries ON CoId = EnCountry
+        WHERE EnTournament = " . intval($tourId) . " AND EnAthlete = 1
+          AND CoCode = " . StrSafe_DB($lue->LueCountry) . "
+          AND EnCode <> " . StrSafe_DB($subjectLicence) . "
+        ORDER BY EnFirstName, EnName");
     while ($r = safe_fetch($rs)) $clubmates[] = $r;
 }
 

@@ -200,7 +200,7 @@
             body: body.toString()
         }).then(function (r) { return r.json(); })
           .then(function (j) {
-              if (!j || !j.ok) { flash((j && j.err) || T('FjSaveFail'), true); return; }
+              if (!j || j.error !== 0) { flash((j && j.msg) || T('FjSaveFail'), true); return; }
               if (j.caps) caps = j.caps;
               done && done(j);
               render();

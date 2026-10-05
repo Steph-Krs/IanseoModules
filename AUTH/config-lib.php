@@ -61,6 +61,7 @@ function aut_cfg_flatten($a, $prefix = '')
 
 function aut_cfg_is_secret($path)
 {
+    // bytes: configuration keys are ASCII
     $leaf = strtolower((string) substr(strrchr('.' . $path, '.'), 1));
     return (bool) preg_match('/(pass(word)?|secret|token|otp|api_?key|private_?key)$/', $leaf);
 }
@@ -71,6 +72,7 @@ function aut_cfg_is_locked($path, $value = null)
     $path = (string) $path;
     if ($path === 'backup.dir' || $path === 'backup.remote') return false;   // validated separately
     if (preg_match('/^maintenance\.(on|off|lock|unlock)$/', $path)) return true;
+    // bytes: configuration keys are ASCII
     $leaf = strtolower((string) substr(strrchr('.' . $path, '.'), 1));
     if (preg_match('/(^|_)(file|dir|path|bin|cmd|command|exec|base|url|host)$/', $leaf)) return true;
     // Unknown keys holding a URL are treated the same way. (Not a leading "/": regular

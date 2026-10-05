@@ -24,14 +24,14 @@ $from = $dchk($_GET['from'] ?? null, $today);
 $to   = $dchk($_GET['to'] ?? null, date('Y-m-d', strtotime($today . ' +14 days')));
 
 // Published competitions matching the filters (period overlap).
-$w = array("o.BcOpen = 1", "t.ToWhenTo >= " . StrSafe_DB($from), "t.ToWhenFrom <= " . StrSafe_DB($to));
-if ($disc === 'para') $w[] = "t.ToTypeSubRule LIKE '%Para%'";
-elseif ($disc !== '') { $types = bk_disc_types($disc); $w[] = $types ? "t.ToType IN (" . implode(',', array_map('intval', $types)) . ")" : "1=0"; }
+$w = array("BcOpen = 1", "ToWhenTo >= " . StrSafe_DB($from), "ToWhenFrom <= " . StrSafe_DB($to));
+if ($disc === 'para') $w[] = "ToTypeSubRule LIKE '%Para%'";
+elseif ($disc !== '') { $types = bk_disc_types($disc); $w[] = $types ? "ToType IN (" . implode(',', array_map('intval', $types)) . ")" : "1=0"; }
 
-$rs = safe_r_sql("SELECT t.ToId, t.ToName, t.ToVenue, t.ToWhenFrom, t.ToWhenTo, t.ToType,
-            t.ToTypeName, t.ToTypeSubRule, o.BcLat, o.BcLng, o.BcGeoSrc
-        FROM BK_Competitions o INNER JOIN Tournament t ON t.ToId = o.BcTournament
-        WHERE " . implode(' AND ', $w) . " ORDER BY t.ToWhenFrom");
+$rs = safe_r_sql("SELECT ToId, ToName, ToVenue, ToWhenFrom, ToWhenTo, ToType,
+            ToTypeName, ToTypeSubRule, BcLat, BcLng, BcGeoSrc
+        FROM BookingCompetitions INNER JOIN Tournament ON ToId = BcTournament
+        WHERE " . implode(' AND ', $w) . " ORDER BY ToWhenFrom");
 $comps = array();
 while ($r = safe_fetch($rs)) $comps[] = $r;
 
@@ -161,10 +161,12 @@ if (!$geo['ok']) {
         if ($g === 'metro' || empty($p['rectArr'])) continue;
         list($ix, $iy, $iw, $ih) = $p['rectArr'];
         $scene .= '<rect class="bk-inset" x="' . $ix . '" y="' . $iy . '" width="' . $iw . '" height="' . $ih . '" rx="4"></rect>'
-            . '<text class="bk-inset-lb" x="' . ($ix + 4) . '" y="' . ($iy + 13) . '">' . bk_e($p['label']) . '</text>';
+            . '<text class="bk-inset-lb" x="' . ($ix + 4) . '" y="' . ($iy + 13) . '">' . bk_e(bk_t('MapInset' . $g)) . '</text>';
     }
     foreach ($geo['paths'] as $pa) {
-        $scene .= '<path class="bk-dept" data-code="' . bk_e($pa['code']) . '" d="' . $pa['d'] . '"><title>' . bk_e($pa['code'] . ' — ' . $pa['nom']) . '</title></path>';
+        // The two territories drawn by geo.php itself carry no name: it is translated here.
+        $name = in_array((string) $pa['code'], array('987', '988'), true) ? bk_t('MapName' . $pa['code']) : $pa['nom'];
+        $scene .= '<path class="bk-dept" data-code="' . bk_e($pa['code']) . '" d="' . $pa['d'] . '"><title>' . bk_e($pa['code'] . ' — ' . $name) . '</title></path>';
     }
     foreach ($geo['paths'] as $pa) {
         $scene .= '<text class="bk-deptlb" x="' . $pa['cx'] . '" y="' . $pa['cy'] . '">' . bk_e($pa['code']) . '</text>';

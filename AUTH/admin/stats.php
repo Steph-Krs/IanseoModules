@@ -24,7 +24,7 @@ aut_stats_ensure_schema();
 
 $root = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/';
 $hasArchers = (bool) safe_fetch(safe_r_sql("SELECT 1 FROM information_schema.TABLES
-    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BK_Archers'", false, true));
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BookingArchers'", false, true));
 
 $days = intval($_GET['days'] ?? 30);
 if (!in_array($days, array(7, 30, 90), true)) $days = 30;

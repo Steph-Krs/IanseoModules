@@ -23,7 +23,7 @@ $season = bk_ffta_season();
 if ($exalto === '') {
     $exalto = preg_replace('/\D/', '', bk_ffta_resolve_exalto());
     if ($exalto !== '') {
-        safe_w_sql("UPDATE BK_Archers SET BaExaltoId = " . StrSafe_DB($exalto)
+        safe_w_sql("UPDATE BookingArchers SET BaExaltoId = " . StrSafe_DB($exalto)
             . " WHERE BaId = " . intval($archer->BaId));
     }
 }

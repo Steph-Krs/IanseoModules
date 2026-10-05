@@ -8,7 +8,7 @@
  * printouts (bibs, badges, lists) find the logos without anyone doing anything.
  *
  * Two steps, separate on purpose (see logos-lib.php):
- *   1. DOWNLOAD (network): one logo per approval number in AUT_ClubLogos;
+ *   1. DOWNLOAD (network): one logo per approval number in AuthClubLogos;
  *   2. PROPAGATION (local): cache → Flags table + files TV/Photos/{ToCode}-Fl-*.jpg for each
  *      competition not over yet.
  * A network outage therefore never prevents the propagation of what is already cached.
@@ -28,7 +28,7 @@
  * LOGO CHANGE: the FFTA endpoint returns neither Last-Modified nor ETag (checked), so no
  * conditional request is possible — the logo has to be downloaded to compare. Hence
  * refresh_days = 0 by default (download everything again). A logo is only written again when
- * it REALLY changed: md5 fingerprint compared in the cache (ClgHash) then, at propagation,
+ * it REALLY changed: md5 fingerprint compared in the cache (LgHash) then, at propagation,
  * between the file in place and the cache. A changed logo therefore reaches by itself every
  * competition not over yet that uses it.
  */
@@ -42,6 +42,7 @@ $SKIP_AUTH = 1;   // no web bootstrap in CLI
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+aut_table_names();   // module updated since the last page opened: see names-lib.php
 require_once(dirname(__DIR__) . '/logos-lib.php');
 
 ini_set('memory_limit', '512M');
@@ -104,9 +105,9 @@ if (!$propagateOnly) {
     $todo = $codes;
     if (!$full && $days > 0) {
         $fresh = array();
-        $rs = safe_r_sql("SELECT ClgCode FROM AUT_ClubLogos
-            WHERE ClgFetched IS NOT NULL AND ClgFetched > DATE_SUB(NOW(), INTERVAL $days DAY)", false, true);
-        while ($rs && ($r = safe_fetch($rs))) $fresh[trim($r->ClgCode)] = true;
+        $rs = safe_r_sql("SELECT LgCode FROM AuthClubLogos
+            WHERE LgFetched IS NOT NULL AND LgFetched > DATE_SUB(NOW(), INTERVAL $days DAY)", false, true);
+        while ($rs && ($r = safe_fetch($rs))) $fresh[trim($r->LgCode)] = true;
         $todo = array_values(array_filter($codes, function ($c) use ($fresh) { return empty($fresh[$c]); }));
         lg_log(count($todo) . ' to refresh (the others are less than ' . $days . ' d old).');
     } else {

@@ -3,7 +3,7 @@
  * public/legal-accept.php — acceptance of the terms of use by a connected ARCHER.
  *
  * BLOCKING screen: bk_require_archer() sends here every connected archer who has not accepted
- * the current version of the terms. The acceptance is TIMESTAMPED (BK_Archers.BaCguAt) and
+ * the current version of the terms. The acceptance is TIMESTAMPED (BookingArchers.BaCguAt) and
  * VERSIONED (BaCguVer). bk_require_archer exempts this page itself (no loop).
  */
 require_once __DIR__ . '/boot.php';

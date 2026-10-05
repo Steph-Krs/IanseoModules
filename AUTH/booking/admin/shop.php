@@ -56,13 +56,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             }
             // deletes the variants removed from this item
             $existing = array();
-            $rs = safe_r_sql("SELECT SvId FROM BK_ShopVariants WHERE SvItem = " . intval($itemId));
+            $rs = safe_r_sql("SELECT SvId FROM BookingShopVariants WHERE SvItem = " . intval($itemId));
             while ($r = safe_fetch($rs)) $existing[] = intval($r->SvId);
             foreach (array_diff($existing, $keptVars) as $del) bk_shop_variant_delete($del);
         }
         // deletes the items removed from the competition
         $existing = array();
-        $rs = safe_r_sql("SELECT SiId FROM BK_ShopItems WHERE SiTournament = $TOUR");
+        $rs = safe_r_sql("SELECT SiId FROM BookingShopItems WHERE SiTournament = $TOUR");
         while ($r = safe_fetch($rs)) $existing[] = intval($r->SiId);
         foreach (array_diff($existing, $keptItems) as $del) bk_shop_item_delete($TOUR, $del);
 

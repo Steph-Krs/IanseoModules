@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $err = aut_t('CpSame');
     } else {
         $hash = password_hash($new1, PASSWORD_DEFAULT);
-        safe_w_sql("UPDATE AUT_Users SET AuPassword=" . StrSafe_DB($hash) . ", AuMustChangePwd=0 WHERE AuId={$u->AuId}");
+        safe_w_sql("UPDATE AuthUsers SET AuPassword=" . StrSafe_DB($hash) . ", AuMustChangePwd=0 WHERE AuId={$u->AuId}");
         // revokes every other session (the current token stays valid)
         aut_sessions_revoke($u->AuId, aut_current_token_hash());
         aut_log('PWD_CHANGE', $u->AuUsername);

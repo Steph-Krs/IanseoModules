@@ -1,7 +1,7 @@
 <?php
 /**
  * AUTH module — view switch (club / CD / CR / Federation / Admin).
- * Changes the effective role of the current SESSION (AUT_Sessions.AsnRole/Scope) among the
+ * Changes the effective role of the current SESSION (AuthSessions.AsnRole/Scope) among the
  * views the account is entitled to, remembers the last view for the next sign-in, then goes
  * back to the home page.
  */
@@ -22,10 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && aut_csrf_check()) {
         $v = $views[$i];
         $h = aut_current_token_hash();
         if ($h) {
-            safe_w_sql("UPDATE AUT_Sessions SET AsnRole=" . StrSafe_DB($v['role'])
+            safe_w_sql("UPDATE AuthSessions SET AsnRole=" . StrSafe_DB($v['role'])
                 . ", AsnScope=" . StrSafe_DB($v['scope']) . " WHERE AsnTokenHash='$h'");
         }
-        safe_w_sql("UPDATE AUT_Users SET AuLastRole=" . StrSafe_DB($v['role'])
+        safe_w_sql("UPDATE AuthUsers SET AuLastRole=" . StrSafe_DB($v['role'])
             . ", AuLastScope=" . StrSafe_DB($v['scope']) . " WHERE AuId={$u->AuId}");
         aut_log('VIEW_SWITCH', $u->AuUsername . ' ' . aut_owner_label($v['role'], $v['scope']));
 
