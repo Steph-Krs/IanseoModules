@@ -8,6 +8,9 @@
  * and cancellations are journal lines, never edited nor deleted. A whole club can be settled
  * in one go. Receipt of an account and list of the accounts as PDF (core PDF class).
  * Refunds owed after an anonymisation (BookingRefunds) are shown at the top.
+ * The food & shop stands write in the same journal: an archer's purchases are on their account;
+ * the sales without a name (counter, visitors) make one summary line, opened on its own
+ * accounts. A payment that did not go through (cheque refused) is recorded as rejected.
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -18,7 +21,6 @@ checkFullACL(AclParticipants, 'pEntries', AclReadWrite);
 require_once dirname(__DIR__) . '/lib/schema.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
 require_once dirname(__DIR__) . '/lib/pricing.php';
-require_once dirname(__DIR__) . '/lib/shop.php';
 require_once dirname(__DIR__) . '/lib/payment.php';
 require_once dirname(__DIR__) . '/lib/archer.php';   // bk_csrf_*
 require_once dirname(__DIR__) . '/lib/ui.php';       // bk_e, bk_date_fr
@@ -58,6 +60,14 @@ function due_name($a)
 
 $accounts = bk_accounts($TOUR);
 
+/** bk_accounts() row of an account that can be opened and written to (summary line excluded). */
+function due_row($acc)
+{
+    global $accounts;
+    if ($acc === BK_SHOP_SUMMARY) return null;
+    return $accounts[$acc] ?? bk_accounts_tech($accounts, $acc);
+}
+
 // Writes: each one is a journal line; then back to the page (post/redirect/get).
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $act = (string) ($_POST['act'] ?? '');
@@ -71,7 +81,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $done = 'refund_done';
     } elseif ($act === 'pay' || $act === 'refund') {
         $amount = bk_money_in($_POST['amount'] ?? '');
-        if (!isset($accounts[$acc])) {
+        if (!due_row($acc)) {
             $done = 'unknown';
         } elseif ($amount <= 0) {
             $done = 'amount';
@@ -83,6 +93,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         }
     } elseif ($act === 'cancel') {
         $done = bk_ledger_cancel($TOUR, intval($_POST['id'] ?? 0), $WHO) ? 'cancel' : 'cancel_no';
+    } elseif ($act === 'reject') {
+        $done = bk_ledger_reject($TOUR, intval($_POST['id'] ?? 0), $WHO) ? 'reject' : 'reject_no';
     } elseif ($act === 'club') {
         $amounts = array();
         foreach ((array) ($_POST['amt'] ?? array()) as $k => $v) $amounts[(string) $k] = bk_money_in($v);
@@ -99,9 +111,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 if (($_GET['pdf'] ?? '') !== '') {
     require_once dirname(__DIR__) . '/lib/ledger-pdf.php';
     $acc = (string) ($_GET['a'] ?? '');
-    if ($_GET['pdf'] === 'acc' && isset($accounts[$acc])) {
+    if ($_GET['pdf'] === 'acc' && due_row($acc)) {
         $a = bk_account($TOUR, $acc);
-        if ($a['name'] === '') $a['name'] = due_name($accounts[$acc]);
+        if ($a['name'] === '') $a['name'] = due_name(due_row($acc));
         bk_ledger_pdf_send(bk_ledger_pdf_build($TOUR, bk_t('ReceiptTitle'), function ($pdf) use ($a) {
             bk_ledger_pdf_account($pdf, $a);
         }), 'recu-' . $acc . '.pdf');
@@ -123,6 +135,8 @@ $messages = array(
     'refund' => array('ok', bk_t('DuRefundSaved')),
     'cancel' => array('ok', bk_t('DuCancelled')),
     'cancel_no' => array('err', bk_t('DuAlreadyCancelled')),
+    'reject' => array('ok', bk_t('DuRejected')),
+    'reject_no' => array('err', bk_t('DuRejectNo')),
     'club' => array('ok', bk_t('DuClubSaved', array('n' => intval($_GET['n'] ?? 0), 'total' => due_eur((float) ($_GET['tot'] ?? 0))))),
     'club_none' => array('err', bk_t('DuClubNone')),
 );
@@ -178,6 +192,28 @@ function due_form($act, $acc, $amount, $method, $sort, $label)
         . '<label>' . bk_e(bk_t('ColDate')) . ' <input type="date" name="date" value="' . bk_e($today) . '" max="' . bk_e($today) . '"></label>'
         . '<label class="due-note">' . bk_e(bk_t('DuNote')) . ' <input type="text" name="note" maxlength="120" placeholder="' . bk_e(bk_t('DuNotePh')) . '"></label>'
         . '<button type="submit" class="due-btn' . ($act === 'refund' ? ' due-btn-warn' : '') . '">' . bk_e($label) . '</button></form>';
+}
+
+/** Small form acting on one journal line (cancel, reject), with a confirmation. */
+function due_line_form($act, $acc, $id, $label, $confirm)
+{
+    return '<form method="post" style="display:inline-block;margin:1px 2px" onsubmit="return confirm('
+        . htmlspecialchars(json_encode($confirm, JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')">' . bk_csrf_field()
+        . '<input type="hidden" name="act" value="' . $act . '"><input type="hidden" name="acc" value="' . bk_e($acc) . '">'
+        . '<input type="hidden" name="id" value="' . intval($id) . '">'
+        . '<button type="submit" class="due-btn due-btn-light due-btn-sm">' . bk_e($label) . '</button></form>';
+}
+
+/**
+ * Who recorded a journal line: the organiser's name, or the volunteer of a stand (their
+ * current label: a volunteer without a licence becomes "Volunteer no. X" once erased).
+ */
+function due_by($m, $standNames)
+{
+    $by = (string) $m->BlgBy;
+    if (intval($m->BlgStaff) > 0 && function_exists('shp_staff_label')) $by = shp_staff_label(intval($m->BlgStaff));
+    if (intval($m->BlgStand) > 0 && isset($standNames[intval($m->BlgStand)])) $by .= ' · ' . $standNames[intval($m->BlgStand)];
+    return $by;
 }
 
 $PAGE_TITLE = bk_t('Payments');
@@ -283,9 +319,31 @@ if ($refunds) {
 
 // Detail of one account: what is due, line by line, and every movement.
 $open = (string) ($_GET['a'] ?? '');
-if ($open !== '' && isset($accounts[$open])) {
+$standNames = array();
+if (bk_shp()) foreach (shp_stands($TOUR, false) as $sid => $sd) $standNames[intval($sid)] = (string) $sd->SdName;
+if ($open === BK_SHOP_SUMMARY && isset($accounts[$open])) {
+    // Sales without a name: one line per visitor, and the counter.
+    $sum = $accounts[$open];
+    echo '<div class="due-panel" id="detail"><p style="float:right;margin:0"><a class="due-btn due-btn-light" href="'
+        . bk_e(due_url(array('sort' => $sort))) . '">' . bk_e(bk_t('Close')) . '</a></p>'
+        . '<h2 style="margin-top:0">' . bk_e($sum['name']) . '</h2><p class="due-sub">' . bk_e(bk_t('DuShopNoAccountHint')) . '</p>'
+        . '<div class="due-scroll"><table><tr><th>' . bk_e(bk_t('DuCustomer')) . '</th><th class="num">' . bk_e(bk_t('TotalDue')) . '</th>'
+        . '<th class="num">' . bk_e(bk_t('ColPaid')) . '</th><th class="num">' . bk_e(bk_t('ColLeft')) . '</th><th>'
+        . bk_e(bk_t('ColState')) . '</th><th></th></tr>';
+    foreach ($sum['accounts'] as $k => $t) {
+        $state = bk_account_state($t);
+        echo '<tr><td>' . bk_e(due_name($t)) . '</td><td class="num">' . due_eur($t['due']) . '</td>'
+            . '<td class="num">' . due_eur($t['paid']) . '</td><td class="num"><b>' . due_eur($t['remaining']) . '</b></td>'
+            . '<td><span class="due-state st-' . $state . '">' . bk_e(bk_account_state_label($state)) . '</span></td>'
+            . '<td><a class="due-btn due-btn-sm' . ($state === 'due' || $state === 'partial' ? '' : ' due-btn-light') . '" href="'
+            . bk_e(due_url(array('a' => $k, 'sort' => $sort))) . '#detail">'
+            . bk_e(bk_t($state === 'due' || $state === 'partial' ? 'DuCollect' : 'DuDetail')) . '</a></td></tr>';
+    }
+    echo '<tr class="tot"><td>' . bk_e(bk_t('SsTotal')) . '</td><td class="num">' . due_eur($sum['due']) . '</td>'
+        . '<td class="num">' . due_eur($sum['paid']) . '</td><td class="num">' . due_eur($sum['remaining']) . '</td><td colspan="2"></td></tr>'
+        . '</table></div></div>';
+} elseif ($open !== '' && ($row = due_row($open))) {
     $acc = bk_account($TOUR, $open);
-    $row = $accounts[$open];
     $kinds = bk_ledger_kinds();
     $state = bk_account_state($acc);
     echo '<div class="due-panel" id="detail"><p style="float:right;margin:0">'
@@ -307,12 +365,20 @@ if ($open !== '' && isset($accounts[$open])) {
             echo '<tr class="due-line"><td>&nbsp;&nbsp;&nbsp;' . bk_e($l['label']) . '</td><td class="num">' . due_eur($l['amount']) . '</td></tr>';
         }
     }
-    foreach ($acc['shop_lines'] as $s) {
-        echo '<tr><td>' . bk_e(($s['section'] !== '' ? $s['section'] : bk_t('Shop')) . ' — ' . $s['label'])
-            . ' <span class="due-mut">' . intval($s['qty']) . ' × ' . due_eur($s['unit']) . '</span></td>'
-            . '<td class="num">' . due_eur($s['amount']) . '</td></tr>';
+    $lastOrder = 0;
+    foreach ($acc['shp_lines'] as $s) {
+        if ($s['order'] !== $lastOrder) {
+            $lastOrder = $s['order'];
+            echo '<tr><td colspan="2"><b>' . bk_e(bk_t('DuShpLine', array('stand' => $s['stand'] !== '' ? $s['stand'] : bk_t('DuShpTitle'),
+                'number' => $s['number']))) . '</b> <span class="due-mut">' . bk_e(bk_date_fr($s['date']) . ' ' . due_hm($s['date'])
+                . ($s['tab'] ? ' · ' . bk_t('DuOnTab') : '')) . '</span></td></tr>';
+        }
+        echo '<tr class="due-line"><td>&nbsp;&nbsp;&nbsp;' . bk_e($s['label']) . ' <span class="due-mut">' . intval($s['qty']) . ' × '
+            . due_eur($s['unit']) . '</span></td><td class="num">' . due_eur($s['amount']) . '</td></tr>';
     }
-    if (!$acc['registrations'] && !$acc['shop_lines']) echo '<tr><td colspan="2" class="due-mut">' . bk_e(bk_t('DuNothingDue')) . '</td></tr>';
+    if (!$acc['registrations'] && !$acc['shp_lines']) {
+        echo '<tr><td colspan="2" class="due-mut">' . bk_e(bk_t('DuNothingDue')) . '</td></tr>';
+    }
     echo '<tr class="tot"><td>' . bk_e(bk_t('TotalDue')) . '</td><td class="num">' . due_eur($acc['due']) . '</td></tr></table></div>';
 
     echo '<h2>' . bk_e(bk_t('DuHistory')) . '</h2>';
@@ -329,15 +395,16 @@ if ($open !== '' && isset($accounts[$open])) {
                 . '<td>' . bk_e($methods[$m->BlgMethod] ?? '') . '</td>'
                 . '<td>' . bk_e($m->BlgLabel) . (intval($m->BlgGroup) ? ' <span class="due-mut">(' . bk_e(bk_t('DuGrouped')) . ')</span>' : '') . '</td>'
                 . '<td class="num">' . due_eur($m->BlgAmount) . '</td>'
-                . '<td class="keep due-mut">' . bk_e($m->BlgBy) . ' — ' . bk_e(bk_date_fr($m->BlgCreated) . ' ' . due_hm($m->BlgCreated)) . '</td>'
+                . '<td class="keep due-mut">' . bk_e(due_by($m, $standNames)) . ' — ' . bk_e(bk_date_fr($m->BlgCreated) . ' ' . due_hm($m->BlgCreated)) . '</td>'
                 . '<td class="keep">';
             if ($cancelled) {
-                echo '<span class="due-mut">' . bk_e(bk_t('CancelledWord')) . '</span>';
+                echo '<span class="due-mut">' . bk_e(bk_ledger_off_word($m)) . '</span>';
             } elseif ($m->BlgKind !== 'cancel') {
-                echo '<form method="post" onsubmit="return confirm(' . htmlspecialchars(json_encode(bk_t('DuCancelConfirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')">' . bk_csrf_field()
-                    . '<input type="hidden" name="act" value="cancel"><input type="hidden" name="acc" value="' . bk_e($open) . '">'
-                    . '<input type="hidden" name="id" value="' . intval($m->BlgId) . '">'
-                    . '<button type="submit" class="due-btn due-btn-light due-btn-sm">' . bk_e(bk_t('CancelBtn')) . '</button></form>';
+                echo due_line_form('cancel', $open, $m->BlgId, bk_t('CancelBtn'), bk_t('DuCancelConfirm'));
+                if ($m->BlgKind === 'payment' && $m->BlgStatus === 'done') {
+                    echo due_line_form('reject', $open, $m->BlgId, bk_t($m->BlgMethod === 'cheque' ? 'DuRejectCheque' : 'DuRejectOther'),
+                        bk_t('DuRejectConfirm'));
+                }
             }
             echo '</td></tr>';
         }
@@ -426,6 +493,13 @@ if (!$rows) {
         . '<a class="due-btn due-btn-light" style="margin-left:auto" href="' . bk_e(due_url(array('pdf' => 'list'))) . '" target="_blank">'
         . '<img src="' . $CFG->ROOT_DIR . 'Common/Images/pdf_small.gif" alt="" style="vertical-align:middle"> ' . bk_e(bk_t('DuList')) . '</a></div>';
 
+    // Payer trust index (AUTH core): a badge beside the name, in its alert and block modes only.
+    $trust = false;
+    if (is_file(dirname(__DIR__, 2) . '/trust-lib.php')) {
+        require_once dirname(__DIR__, 2) . '/trust-lib.php';
+        $trust = !in_array(aut_trust_mode(), array('off', 'observe'), true);
+        if ($trust) aut_trust_preload(array_values(array_filter(array_map(function ($a) { return aut_trust_subject($a['account']); }, $rows))));
+    }
     $th = function ($key, $label, $num = false) use ($sort) {
         return '<th' . ($num ? ' class="num"' : '') . '><a class="' . ($sort === $key ? 'on' : '') . '" href="'
             . bk_e(due_url(array('sort' => $key))) . '">' . bk_e($label) . '</a></th>';
@@ -439,10 +513,12 @@ if (!$rows) {
         $search = mb_strtolower(due_name($a) . ' ' . $a['licence'] . ' ' . $a['club_code'] . ' ' . $a['club_name']);
         echo '<tr data-f="' . $filter . '" data-q="' . bk_e($search) . '"' . ($a['account'] === $open ? ' style="background:#eef4fb"' : '') . '>'
             . '<td>' . bk_e(due_name($a)) . ($a['licence'] !== '' ? ' <span class="due-mut">' . bk_e($a['licence']) . '</span>' : '')
+            . ($trust ? aut_trust_badge($a['account'], $TOUR) : '')
             . ($a['decl'] !== '' ? '<br><span class="due-mut">' . bk_e(bk_t('DuPlannedShort', $a['decl'])) . '</span>' : '') . '</td>'
             . '<td>' . bk_e($a['club_name'] !== '' ? $a['club_name'] : $a['club_code']) . '</td>'
             . '<td class="num">' . ($a['count'] ? intval($a['count']) : '') . '</td>'
-            . '<td class="num">' . due_eur($a['due']) . ($a['shop'] > 0 ? '<br><span class="due-mut">' . bk_e(bk_t('DuOfShopX', due_eur($a['shop']))) . '</span>' : '') . '</td>'
+            . '<td class="num">' . due_eur($a['due']) . ($a['shop'] > 0 && $a['shop'] < $a['due'] - 0.004
+                ? '<br><span class="due-mut">' . bk_e(bk_t($a['shp'] > 0 ? 'DuOfSalesX' : 'DuOfShopX', due_eur($a['shop']))) . '</span>' : '') . '</td>'
             . '<td class="num">' . due_eur($a['paid']) . '</td>'
             . '<td class="num"><b>' . due_eur($a['remaining']) . '</b></td>'
             . '<td><span class="due-state st-' . $state . '">' . bk_e(bk_account_state_label($state)) . '</span></td>'

@@ -266,6 +266,11 @@ function bk_logout()
 /**
  * Archer page to open once signed in, relative to the public folder: the one asked for before
  * signing in (bk_require_archer, within the last 30 minutes), else the archer's home. Read once.
+ *
+ * Three pages of the points of sale may also be asked for: for a licensee who volunteers, the
+ * joining page reached from the organiser's QR code and the volunteers' sign-in page; for a
+ * customer, the shop of a competition. Only these exact pages and the exact form of their
+ * parameters are accepted — the address is rebuilt from them, never taken as is.
  */
 function bk_next_after_login()
 {
@@ -273,6 +278,9 @@ function bk_next_after_login()
     unset($_SESSION['BK_NEXT']);
     if (!is_array($n) || time() - intval($n['at'] ?? 0) > 1800) return 'index.php';
     $page = (string) ($n['page'] ?? '');
+    if (preg_match('#^shop/(staff/(join\.php(\?t=[0-9a-f]{64})?|login\.php\?k=[a-z0-9]{10})|public/index\.php\?k=[a-z0-9]{10}(&s=[0-9]+)?)$#', $page)) {
+        return '../../' . $page;
+    }
     return preg_match('/^[a-z0-9_-]+\.php(\?[^\r\n\\\\]*)?$/i', $page) ? $page : 'index.php';
 }
 

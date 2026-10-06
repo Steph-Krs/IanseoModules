@@ -56,6 +56,49 @@ des espaces en ligne (le module est prêt à basculer le jour venu).
 - 🗳️ Questionnaire de satisfaction après la compétition (moins de 2 minutes, rien d'obligatoire) ;
   l'organisateur en voit les résultats anonymes, en graphiques simples, comparés aux autres compétitions
 
+### Buvette & boutique — points de vente en ligne
+Gestion complète des points de vente (buvette, restauration, boutique) d'une compétition, avec
+commande par téléphone des archers et des visiteurs, et caisse mobile pour les bénévoles.
+
+- 🏪 **Configuration et catalogue** : création de points de vente (mode direct ou file d'attente,
+  paiement avant ou au retrait), produits avec variantes, stocks, limite par commande et par personne,
+  précommandes jusqu'à une date fixée
+- 🛒 **Commande** : sélection des produits, panier mémorisé par téléphone, suivi en direct du statut
+  (« reçue » → « préparation » → « prête »), estimation du temps d'attente, annulation avant retrait ;
+  commande ou précommande **pour un jour et une heure** (le repas de midi commandé le matin n'est pas
+  préparé trop tôt)
+- 🔔 **Notification sur le téléphone** quand la commande est prête, même page fermée (Android ;
+  iPhone une fois la page ajoutée à l'écran d'accueil, iOS 16.4 ou plus ; site en HTTPS)
+- 📺 **Écran public** comme en restauration rapide : commandes en attente (avec l'état du paiement),
+  en préparation (avec le temps estimé), prêtes ; chaque colonne affiche son nombre de commandes, et
+  chaque commande le prénom et l'initiale du nom, ou le pseudo, du client
+- 👥 **Clients** : archers connectés à leur espace licencié, ou visiteurs à pseudo (enregistrement
+  automatique à la première commande ; accès fermé le lendemain de la compétition, le pseudo reste
+  sur les commandes pour savoir lesquelles ont été honorées)
+- 🧾 **Caisse des bénévoles** : vente, encaissement, file des commandes classée par heure demandée,
+  **temps d'attente propre à chaque commande** (saisi à l'encaissement, ajusté par le préparateur
+  par boutons +2 / +5 / −2 / −5 min) ; adresse stable et affiche avec QR code pour revenir à la caisse
+- 💰 **Paiements** : espèces, chèque, terminal bancaire, autre moyen défini par l'organisateur ;
+  sur-compte pour les licenciés connectés (règlement à la fin de la compétition) ; aucune donnée
+  bancaire n'est stockée sur le serveur
+- 👔 **Bénévoles** : invitation par code QR avec validation et code de vérification à 4 chiffres
+  pour l'organisateur, rôles préréglés (vendeur, préparateur, polyvalent, responsable de stand),
+  plafonds de remboursement, droits donnés **par stand** pour une meilleure autonomie, révocation
+  immédiate possible ; comptes non licenciés ouverts de la veille à la fin (effacés automatiquement
+  le lendemain)
+- 📊 **Bilans** : synthèse par stand, par jour, par moyen de paiement, par bénévole ; clôture de
+  caisse PDF et exports CSV ; comptes ouverts (« sur compte ») lien avec la page Paiements
+- 📋 **Copie** : reproduire les paramètres et le catalogue d'une compétition précédente ; stocks
+  conservent la quantité initiale
+- 🔐 **Indice de confiance des payeurs** : impayés et retards calculés chaque nuit sur les
+  compétitions dont l'organisateur enregistre les paiements ; ne freine que le paiement différé
+  (inscription payée plus tard, précommande, sur compte), jamais un paiement immédiat ; modes :
+  désactivé, observation (administrateur seul, par défaut), alerte (organisateurs), blocage (crédit
+  refusé à un archer ou un club rouge, sauf acceptation par l'organisateur) ; l'archer voit son niveau
+- 🔁 **Reprise de la boutique des inscriptions en ligne** : articles, options, stocks et commandes
+  passent automatiquement dans la buvette & boutique à la mise à jour, sans changer ce que doit
+  chaque archer ; les anciens liens et QR codes mènent à la nouvelle boutique
+
 ### Côté administrateur du serveur
 - 🌙 Maintenance nocturne automatique : mise à jour d'ianseo et des modules, synchronisations
 - 💾 Sauvegarde nocturne de la base et des fichiers, plus une copie de la base toutes les
@@ -108,20 +151,20 @@ Voir le [README général](../README.md) pour le principe commun.
 
 | Statement | Table | Location | Notes |
 |---|---|---|---|
-| `DELETE FROM` | `TournamentInvolved` | `anonymise-lib.php:244` | — |
-| `UPDATE` | `Entries` | `anonymise-lib.php:352` | review scope by hand |
-| `DELETE FROM` | `Photos` | `anonymise-lib.php:357` | — |
-| `DELETE FROM` | `ExtraData` | `anonymise-lib.php:359` | — |
-| `UPDATE` | `ExtraData` | `anonymise-lib.php:361` | — |
-| `UPDATE` | `TournamentInvolved` | `anonymise-lib.php:366` | review scope by hand |
-| `UPDATE` | `Entries` | `booking/lib/adopt.php:223` | review scope by hand |
-| `UPDATE` | `IdCards` | `booking/lib/mandate.php:592` | review scope by hand |
+| `DELETE FROM` | `TournamentInvolved` | `anonymise-lib.php:249` | — |
+| `UPDATE` | `Entries` | `anonymise-lib.php:374` | review scope by hand |
+| `DELETE FROM` | `Photos` | `anonymise-lib.php:379` | — |
+| `DELETE FROM` | `ExtraData` | `anonymise-lib.php:381` | — |
+| `UPDATE` | `ExtraData` | `anonymise-lib.php:383` | — |
+| `UPDATE` | `TournamentInvolved` | `anonymise-lib.php:388` | review scope by hand |
+| `UPDATE` | `Entries` | `booking/lib/adopt.php:224` | review scope by hand |
+| `UPDATE` | `IdCards` | `booking/lib/mandate.php:625` | review scope by hand |
 | `INSERT INTO` | `Countries` | `booking/lib/registration.php:300` | — |
 | `UPDATE` | `Countries` | `booking/lib/registration.php:304` | review scope by hand |
 | `UPDATE` | `Entries` | `booking/lib/registration.php:361` | review scope by hand |
-| `INSERT INTO` | `Entries` | `booking/lib/registration.php:487` | — |
-| `UPDATE` | `Entries` | `booking/lib/registration.php:497` | review scope by hand |
-| `INSERT INTO` | `Qualifications` | `booking/lib/registration.php:502` | — |
+| `INSERT INTO` | `Entries` | `booking/lib/registration.php:497` | — |
+| `UPDATE` | `Entries` | `booking/lib/registration.php:507` | review scope by hand |
+| `INSERT INTO` | `Qualifications` | `booking/lib/registration.php:512` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:295` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:431` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:522` | — |
@@ -154,51 +197,55 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `BookingSessions` | `admin/index.php:209` | — |
 | `DELETE FROM` | `BookingSessions` | `admin/index.php:213` | — |
 | `DELETE FROM` | `BookingArchers` | `admin/index.php:214` | — |
-| `DELETE FROM` | `BookingShopOrders` | `anonymise-lib.php:245` | — |
-| `DELETE FROM` | `BookingPayments` | `anonymise-lib.php:246` | — |
-| `UPDATE` | `BookingRegistrations` | `anonymise-lib.php:275` | — |
-| `UPDATE` | `BookingRegistrations` | `anonymise-lib.php:276` | — |
-| `UPDATE` | `BookingRegistrations` | `anonymise-lib.php:277` | — |
-| `UPDATE` | `BookingLedger` | `anonymise-lib.php:281` | — |
-| `UPDATE IGNORE` | `BookingPayments` | `anonymise-lib.php:283` | — |
-| `DELETE FROM` | `BookingPayments` | `anonymise-lib.php:284` | — |
-| `UPDATE IGNORE` | `BookingShopOrders` | `anonymise-lib.php:287` | — |
-| `DELETE FROM` | `BookingShopOrders` | `anonymise-lib.php:288` | — |
-| `UPDATE` | `BookingSurveys` | `anonymise-lib.php:292` | — |
-| `DELETE FROM` | `BookingSurveyVoters` | `anonymise-lib.php:293` | — |
-| `UPDATE` | `BookingLog` | `anonymise-lib.php:294` | — |
-| `UPDATE` | `BookingReimportConflicts` | `anonymise-lib.php:296` | — |
-| `DELETE FROM` | `BookingWaitlist` | `anonymise-lib.php:335` | — |
-| `DELETE FROM` | `BookingSessions` | `anonymise-lib.php:374` | — |
-| `DELETE FROM` | `BookingClubManagers` | `anonymise-lib.php:375` | — |
-| `DELETE FROM` | `BookingArchers` | `anonymise-lib.php:376` | — |
-| `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:381` | — |
-| `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:382` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:124` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:128` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:204` | — |
+| `DELETE FROM` | `BookingShopOrders` | `anonymise-lib.php:250` | — |
+| `DELETE FROM` | `BookingPayments` | `anonymise-lib.php:251` | — |
+| `UPDATE` | `BookingRegistrations` | `anonymise-lib.php:287` | — |
+| `UPDATE` | `BookingRegistrations` | `anonymise-lib.php:288` | — |
+| `UPDATE` | `BookingRegistrations` | `anonymise-lib.php:289` | — |
+| `UPDATE` | `BookingLedger` | `anonymise-lib.php:293` | — |
+| `UPDATE IGNORE` | `BookingPayments` | `anonymise-lib.php:295` | — |
+| `DELETE FROM` | `BookingPayments` | `anonymise-lib.php:296` | — |
+| `UPDATE IGNORE` | `BookingShopOrders` | `anonymise-lib.php:299` | — |
+| `DELETE FROM` | `BookingShopOrders` | `anonymise-lib.php:300` | — |
+| `UPDATE` | `ShopOrders` | `anonymise-lib.php:303` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `anonymise-lib.php:306` | — |
+| `UPDATE` | `ShopStaff` | `anonymise-lib.php:308` | — |
+| `UPDATE` | `BookingSurveys` | `anonymise-lib.php:314` | — |
+| `DELETE FROM` | `BookingSurveyVoters` | `anonymise-lib.php:315` | — |
+| `UPDATE` | `BookingLog` | `anonymise-lib.php:316` | — |
+| `UPDATE` | `BookingReimportConflicts` | `anonymise-lib.php:318` | — |
+| `DELETE FROM` | `BookingWaitlist` | `anonymise-lib.php:357` | — |
+| `DELETE FROM` | `BookingSessions` | `anonymise-lib.php:396` | — |
+| `DELETE FROM` | `BookingClubManagers` | `anonymise-lib.php:397` | — |
+| `DELETE FROM` | `BookingArchers` | `anonymise-lib.php:398` | — |
+| `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:403` | — |
+| `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:404` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:126` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:130` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:206` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/admin/mandate.php:40` | — |
-| `INSERT INTO` | `BookingReimportConflicts` | `booking/lib/adopt.php:104` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:172` | — |
-| `DELETE FROM` | `BookingRegistrations` | `booking/lib/adopt.php:176` | — |
-| `UPDATE` | `BookingReimportConflicts` | `booking/lib/adopt.php:187` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:242` | — |
-| `DELETE FROM` | `BookingRegistrations` | `booking/lib/adopt.php:276` | — |
-| `DELETE FROM` | `BookingRegistrations` | `booking/lib/adopt.php:297` | — |
-| `DELETE FROM` | `BookingRegistrations` | `booking/lib/adopt.php:315` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/adopt.php:406` | — |
-| `UPDATE` | `BookingTargetCaps` | `booking/lib/adopt.php:407` | — |
-| `UPDATE` | `BookingShopItems` | `booking/lib/adopt.php:408` | — |
-| `UPDATE` | `BookingShopOrders` | `booking/lib/adopt.php:409` | — |
-| `UPDATE` | `BookingPayments` | `booking/lib/adopt.php:410` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:411` | — |
-| `UPDATE` | `BookingSurveys` | `booking/lib/adopt.php:412` | — |
-| `UPDATE` | `BookingSurveyVoters` | `booking/lib/adopt.php:413` | — |
-| `UPDATE` | `BookingWaitlist` | `booking/lib/adopt.php:416` | — |
-| `UPDATE` | `BookingRefunds` | `booking/lib/adopt.php:417` | — |
-| `UPDATE` | `BookingLedger` | `booking/lib/adopt.php:420` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:481` | — |
-| `INSERT INTO` | `BookingRegistrations` | `booking/lib/adopt.php:533` | — |
+| `INSERT INTO` | `BookingReimportConflicts` | `booking/lib/adopt.php:105` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:173` | — |
+| `DELETE FROM` | `BookingRegistrations` | `booking/lib/adopt.php:177` | — |
+| `UPDATE` | `BookingReimportConflicts` | `booking/lib/adopt.php:188` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:243` | — |
+| `DELETE FROM` | `BookingRegistrations` | `booking/lib/adopt.php:277` | — |
+| `DELETE FROM` | `BookingRegistrations` | `booking/lib/adopt.php:298` | — |
+| `DELETE FROM` | `BookingRegistrations` | `booking/lib/adopt.php:316` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/adopt.php:413` | — |
+| `UPDATE` | `BookingTargetCaps` | `booking/lib/adopt.php:414` | — |
+| `UPDATE` | `BookingShopItems` | `booking/lib/adopt.php:415` | — |
+| `UPDATE` | `BookingShopOrders` | `booking/lib/adopt.php:416` | — |
+| `UPDATE` | `BookingPayments` | `booking/lib/adopt.php:417` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:418` | — |
+| `UPDATE` | `BookingSurveys` | `booking/lib/adopt.php:419` | — |
+| `UPDATE` | `BookingSurveyVoters` | `booking/lib/adopt.php:420` | — |
+| `UPDATE` | `BookingWaitlist` | `booking/lib/adopt.php:423` | — |
+| `UPDATE` | `BookingRefunds` | `booking/lib/adopt.php:424` | — |
+| `UPDATE` | `BookingLedger` | `booking/lib/adopt.php:427` | — |
+| `DELETE FROM` | `ShopSettings` | `booking/lib/adopt.php:431` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:503` | — |
+| `INSERT INTO` | `BookingRegistrations` | `booking/lib/adopt.php:555` | — |
 | `INSERT INTO` | `BookingLog` | `booking/lib/archer.php:36` | — |
 | `UPDATE` | `BookingArchers` | `booking/lib/archer.php:147` | — |
 | `INSERT INTO` | `BookingArchers` | `booking/lib/archer.php:151` | — |
@@ -214,56 +261,41 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `BookingTargetCaps` | `booking/lib/caps.php:220` | — |
 | `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/competition.php:225` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:234` | — |
-| `DELETE FROM` | `BookingShopOrders` | `booking/lib/competition.php:270` | — |
-| `DELETE FROM` | `BookingShopItems` | `booking/lib/competition.php:272` | — |
-| `INSERT INTO` | `BookingShopItems` | `booking/lib/competition.php:274` | — |
-| `INSERT INTO` | `BookingShopVariants` | `booking/lib/competition.php:280` | — |
-| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/competition.php:306` | — |
-| `INSERT INTO` | `BookingTargetCaps` | `booking/lib/competition.php:314` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:411` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:440` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:463` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:466` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:471` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:509` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:528` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:537` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:541` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:545` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:547` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:549` | — |
+| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/competition.php:289` | — |
+| `INSERT INTO` | `BookingTargetCaps` | `booking/lib/competition.php:297` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:394` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:423` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:446` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:449` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:454` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:492` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:511` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:520` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:524` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:528` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:530` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:532` | — |
 | `UPDATE` | `BookingArchers` | `booking/lib/ffta.php:116` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:91` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:95` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/mandate.php:167` | — |
-| `INSERT INTO` | `BookingPayments` | `booking/lib/payment.php:104` | — |
-| `UPDATE` | `BookingPayments` | `booking/lib/payment.php:238` | — |
-| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/payment.php:388` | — |
-| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:392` | — |
-| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:418` | — |
-| `UPDATE` | `BookingLedger` | `booking/lib/payment.php:430` | — |
-| `INSERT INTO` | `BookingRefunds` | `booking/lib/payment.php:492` | — |
-| `UPDATE` | `BookingRefunds` | `booking/lib/payment.php:520` | — |
-| `INSERT INTO` | `BookingRegistrations` | `booking/lib/registration.php:543` | — |
-| `DELETE FROM` | `BookingRegistrations` | `booking/lib/registration.php:628` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/schema.php:195` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/schema.php:206` | — |
-| `ALTER TABLE` | `BookingCompetitions` | `booking/lib/schema.php:210` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/schema.php:262` | — |
-| `UPDATE` | `BookingTargetCaps` | `booking/lib/schema.php:298` | — |
-| `INSERT IGNORE INTO` | `BookingSurveyVoters` | `booking/lib/schema.php:443` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/schema.php:532` | — |
-| `DELETE FROM` | `BookingShopOrders` | `booking/lib/shop.php:162` | — |
-| `INSERT INTO` | `BookingShopOrders` | `booking/lib/shop.php:165` | — |
-| `UPDATE` | `BookingShopItems` | `booking/lib/shop.php:231` | — |
-| `INSERT INTO` | `BookingShopItems` | `booking/lib/shop.php:234` | — |
-| `DELETE FROM` | `BookingShopVariants` | `booking/lib/shop.php:243` | — |
-| `DELETE FROM` | `BookingShopOrders` | `booking/lib/shop.php:244` | — |
-| `DELETE FROM` | `BookingShopItems` | `booking/lib/shop.php:245` | — |
-| `UPDATE` | `BookingShopVariants` | `booking/lib/shop.php:257` | — |
-| `INSERT INTO` | `BookingShopVariants` | `booking/lib/shop.php:260` | — |
-| `DELETE FROM` | `BookingShopOrders` | `booking/lib/shop.php:268` | — |
-| `DELETE FROM` | `BookingShopVariants` | `booking/lib/shop.php:269` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/mandate.php:166` | — |
+| `INSERT INTO` | `BookingPayments` | `booking/lib/payment.php:135` | — |
+| `UPDATE` | `BookingPayments` | `booking/lib/payment.php:270` | — |
+| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/payment.php:542` | — |
+| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:546` | — |
+| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:601` | — |
+| `UPDATE` | `BookingLedger` | `booking/lib/payment.php:616` | — |
+| `INSERT INTO` | `BookingRefunds` | `booking/lib/payment.php:696` | — |
+| `UPDATE` | `BookingRefunds` | `booking/lib/payment.php:724` | — |
+| `INSERT INTO` | `BookingRegistrations` | `booking/lib/registration.php:553` | — |
+| `DELETE FROM` | `BookingRegistrations` | `booking/lib/registration.php:638` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/schema.php:211` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/schema.php:222` | — |
+| `ALTER TABLE` | `BookingCompetitions` | `booking/lib/schema.php:226` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/schema.php:278` | — |
+| `UPDATE` | `BookingTargetCaps` | `booking/lib/schema.php:314` | — |
+| `INSERT IGNORE INTO` | `BookingSurveyVoters` | `booking/lib/schema.php:459` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/schema.php:548` | — |
 | `DELETE FROM` | `BookingSurveys` | `booking/lib/survey.php:185` | — |
 | `DELETE FROM` | `BookingSurveyVoters` | `booking/lib/survey.php:186` | — |
 | `INSERT INTO` | `BookingSurveys` | `booking/lib/survey.php:193` | — |
@@ -287,9 +319,9 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `AuthShareClub` | `index.php:52` | — |
 | `INSERT IGNORE INTO` | `AuthShareClub` | `index.php:54` | — |
 | `UPDATE` | `AuthShare` | `index.php:63` | — |
-| `ALTER TABLE` | `AuthUsers` | `legal-lib.php:293` | — |
-| `UPDATE` | `AuthUsers` | `legal-lib.php:311` | — |
-| `UPDATE` | `BookingArchers` | `legal-lib.php:327` | — |
+| `ALTER TABLE` | `AuthUsers` | `legal-lib.php:298` | — |
+| `UPDATE` | `AuthUsers` | `legal-lib.php:316` | — |
+| `UPDATE` | `BookingArchers` | `legal-lib.php:332` | — |
 | `ALTER TABLE` | `AuthUsers` | `lib.php:181` | — |
 | `ALTER TABLE` | `AuthUsers` | `lib.php:189` | — |
 | `ALTER TABLE` | `AuthShare` | `lib.php:210` | — |
@@ -300,36 +332,151 @@ Voir le [README général](../README.md) pour le principe commun.
 | `ALTER TABLE` | `AuthSessions` | `lib.php:284` | — |
 | `ALTER TABLE` | `AuthTickets` | `lib.php:315` | — |
 | `ALTER TABLE` | `AuthTickets` | `lib.php:325` | — |
-| `INSERT INTO` | `AuthLog` | `lib.php:345` | — |
-| `DELETE FROM` | `AuthLog` | `lib.php:378` | — |
-| `DELETE FROM` | `BookingLog` | `lib.php:381` | — |
-| `INSERT INTO` | `AuthTickets` | `lib.php:456` | — |
-| `UPDATE` | `AuthTickets` | `lib.php:497` | — |
-| `UPDATE` | `AuthTickets` | `lib.php:519` | — |
-| `UPDATE` | `AuthTickets` | `lib.php:534` | — |
-| `DELETE FROM` | `AuthTickets` | `lib.php:540` | — |
-| `INSERT INTO` | `AuthSessions` | `lib.php:775` | — |
-| `DELETE FROM` | `AuthSessions` | `lib.php:780` | — |
-| `DELETE FROM` | `AuthSessions` | `lib.php:806` | — |
-| `UPDATE` | `AuthSessions` | `lib.php:810` | — |
-| `DELETE FROM` | `AuthSessions` | `lib.php:819` | — |
-| `DELETE FROM` | `AuthShare` | `lib.php:903` | — |
-| `DELETE FROM` | `AuthShareClub` | `lib.php:904` | — |
-| `INSERT INTO` | `AuthClaim` | `lib.php:939` | — |
-| `INSERT INTO` | `AuthShare` | `lib.php:1105` | — |
-| `INSERT INTO` | `AuthShare` | `lib.php:1192` | — |
-| `DELETE FROM` | `AuthClaim` | `lib.php:1198` | — |
-| `DELETE FROM` | `AuthClaim` | `lib.php:1202` | — |
-| `UPDATE` | `AuthSessions` | `lib.php:1263` | — |
-| `UPDATE` | `AuthSessions` | `lib.php:1272` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:1386` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:1502` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:2314` | — |
-| `INSERT INTO` | `AuthUsers` | `lib.php:2320` | — |
+| `INSERT INTO` | `AuthLog` | `lib.php:385` | — |
+| `DELETE FROM` | `AuthLog` | `lib.php:418` | — |
+| `DELETE FROM` | `BookingLog` | `lib.php:421` | — |
+| `INSERT INTO` | `AuthTickets` | `lib.php:496` | — |
+| `UPDATE` | `AuthTickets` | `lib.php:537` | — |
+| `UPDATE` | `AuthTickets` | `lib.php:559` | — |
+| `UPDATE` | `AuthTickets` | `lib.php:574` | — |
+| `DELETE FROM` | `AuthTickets` | `lib.php:580` | — |
+| `INSERT INTO` | `AuthSessions` | `lib.php:815` | — |
+| `DELETE FROM` | `AuthSessions` | `lib.php:820` | — |
+| `DELETE FROM` | `AuthSessions` | `lib.php:846` | — |
+| `UPDATE` | `AuthSessions` | `lib.php:850` | — |
+| `DELETE FROM` | `AuthSessions` | `lib.php:859` | — |
+| `DELETE FROM` | `AuthShare` | `lib.php:943` | — |
+| `DELETE FROM` | `AuthShareClub` | `lib.php:944` | — |
+| `INSERT INTO` | `AuthClaim` | `lib.php:979` | — |
+| `INSERT INTO` | `AuthShare` | `lib.php:1145` | — |
+| `INSERT INTO` | `AuthShare` | `lib.php:1232` | — |
+| `DELETE FROM` | `AuthClaim` | `lib.php:1238` | — |
+| `DELETE FROM` | `AuthClaim` | `lib.php:1242` | — |
+| `UPDATE` | `AuthSessions` | `lib.php:1303` | — |
+| `UPDATE` | `AuthSessions` | `lib.php:1312` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:1426` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:1542` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:2354` | — |
+| `INSERT INTO` | `AuthUsers` | `lib.php:2360` | — |
 | `UPDATE` | `BookingArchers` | `login.php:92` | — |
 | `INSERT INTO` | `AuthClubLogos` | `logos-lib.php:158` | — |
 | `UPDATE` | `AuthClubLogos` | `logos-lib.php:166` | — |
 | `UPDATE` | `AuthClubLogos` | `logos-lib.php:177` | — |
+| `UPDATE` | `ShopStands` | `shop/lib/catalog-admin.php:169` | — |
+| `INSERT INTO` | `ShopStands` | `shop/lib/catalog-admin.php:171` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/catalog-admin.php:187` | — |
+| `DELETE FROM` | `ShopStands` | `shop/lib/catalog-admin.php:188` | — |
+| `DELETE FROM` | `ShopVariants` | `shop/lib/catalog-admin.php:201` | — |
+| `DELETE FROM` | `ShopStockMoves` | `shop/lib/catalog-admin.php:202` | — |
+| `DELETE FROM` | `ShopProducts` | `shop/lib/catalog-admin.php:203` | — |
+| `UPDATE` | `ShopProducts` | `shop/lib/catalog-admin.php:369` | — |
+| `INSERT INTO` | `ShopProducts` | `shop/lib/catalog-admin.php:372` | — |
+| `DELETE FROM` | `ShopStockMoves` | `shop/lib/catalog-admin.php:388` | — |
+| `DELETE FROM` | `ShopVariants` | `shop/lib/catalog-admin.php:389` | — |
+| `UPDATE` | `ShopVariants` | `shop/lib/catalog-admin.php:396` | — |
+| `INSERT INTO` | `ShopVariants` | `shop/lib/catalog-admin.php:399` | — |
+| `DELETE FROM` | `ShopStockMoves` | `shop/lib/catalog-admin.php:411` | — |
+| `DELETE FROM` | `ShopVariants` | `shop/lib/catalog-admin.php:412` | — |
+| `INSERT IGNORE INTO` | `ShopSettings` | `shop/lib/common.php:97` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/common.php:133` | — |
+| `UPDATE IGNORE` | `ShopSettings` | `shop/lib/common.php:145` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/copy.php:119` | — |
+| `DELETE FROM` | `ShopStands` | `shop/lib/copy.php:120` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/copy.php:124` | — |
+| `INSERT INTO` | `ShopStands` | `shop/lib/copy.php:132` | — |
+| `INSERT INTO` | `ShopProducts` | `shop/lib/copy.php:144` | — |
+| `INSERT INTO` | `ShopVariants` | `shop/lib/copy.php:157` | — |
+| `UPDATE` | `ShopGuests` | `shop/lib/customer.php:46` | — |
+| `UPDATE` | `ShopGuests` | `shop/lib/customer.php:78` | — |
+| `INSERT INTO` | `ShopGuests` | `shop/lib/customer.php:84` | — |
+| `UPDATE` | `ShopGuests` | `shop/lib/customer.php:97` | — |
+| `UPDATE` | `ShopInvites` | `shop/lib/invite.php:46` | — |
+| `UPDATE` | `ShopInvites` | `shop/lib/invite.php:51` | — |
+| `INSERT INTO` | `ShopInvites` | `shop/lib/invite.php:57` | — |
+| `UPDATE` | `ShopInvites` | `shop/lib/invite.php:100` | — |
+| `UPDATE` | `ShopInvites` | `shop/lib/invite.php:111` | — |
+| `INSERT INTO` | `ShopStands` | `shop/lib/legacy.php:118` | — |
+| `INSERT INTO` | `ShopProducts` | `shop/lib/legacy.php:134` | — |
+| `INSERT INTO` | `ShopVariants` | `shop/lib/legacy.php:145` | — |
+| `UPDATE` | `ShopStands` | `shop/lib/legacy.php:155` | — |
+| `INSERT INTO` | `ShopOrders` | `shop/lib/legacy.php:165` | — |
+| `INSERT INTO` | `ShopOrderLines` | `shop/lib/legacy.php:175` | — |
+| `INSERT INTO` | `ShopStockMoves` | `shop/lib/legacy.php:180` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/legacy.php:186` | — |
+| `UPDATE` | `ShopStands` | `shop/lib/orders.php:305` | — |
+| `INSERT INTO` | `ShopOrders` | `shop/lib/orders.php:312` | — |
+| `INSERT INTO` | `ShopOrderLines` | `shop/lib/orders.php:337` | — |
+| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:342` | — |
+| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:404` | — |
+| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:431` | — |
+| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:454` | — |
+| `UPDATE` | `ShopOrderLines` | `shop/lib/orders.php:469` | — |
+| `UPDATE` | `ShopOrderLines` | `shop/lib/orders.php:499` | — |
+| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:509` | — |
+| `UPDATE` | `ShopOrders` | `shop/lib/pay.php:148` | — |
+| `UPDATE` | `ShopOrders` | `shop/lib/pay.php:245` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/purge.php:64` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/purge.php:65` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/purge.php:66` | — |
+| `DELETE FROM` | `ShopInvites` | `shop/lib/purge.php:72` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/purge.php:100` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/purge.php:103` | — |
+| `DELETE FROM` | `ShopInvites` | `shop/lib/purge.php:107` | — |
+| `DELETE FROM` | `ShopPush` | `shop/lib/purge.php:108` | — |
+| `UPDATE` | `ShopGuests` | `shop/lib/purge.php:125` | — |
+| `DELETE FROM` | `ShopStaff` | `shop/lib/purge.php:145` | — |
+| `DELETE FROM` | `ShopStaffLog` | `shop/lib/purge.php:147` | — |
+| `DELETE FROM` | `ShopInvites` | `shop/lib/purge.php:149` | — |
+| `DELETE FROM` | `ShopGuests` | `shop/lib/purge.php:151` | — |
+| `DELETE FROM` | `ShopPush` | `shop/lib/purge.php:153` | — |
+| `UPDATE` | `ShopOrders` | `shop/lib/purge.php:155` | — |
+| `INSERT IGNORE INTO` | `ShopPushKeys` | `shop/lib/push.php:89` | — |
+| `INSERT INTO` | `ShopPush` | `shop/lib/push.php:171` | — |
+| `DELETE FROM` | `ShopPush` | `shop/lib/push.php:182` | — |
+| `DELETE FROM` | `ShopPush` | `shop/lib/push.php:191` | — |
+| `UPDATE` | `ShopPush` | `shop/lib/push.php:247` | — |
+| `DELETE FROM` | `ShopPush` | `shop/lib/push.php:249` | — |
+| `UPDATE` | `ShopPush` | `shop/lib/push.php:251` | — |
+| `DELETE FROM` | `ShopPush` | `shop/lib/push.php:252` | — |
+| `INSERT INTO` | `ShopStaffSessions` | `shop/lib/staff-session.php:36` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff-session.php:42` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff-session.php:45` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff-session.php:55` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff-session.php:97` | — |
+| `UPDATE` | `ShopStaffSessions` | `shop/lib/staff-session.php:116` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff-session.php:118` | — |
+| `INSERT INTO` | `ShopStaffLog` | `shop/lib/staff.php:312` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:359` | — |
+| `INSERT INTO` | `ShopStaffStands` | `shop/lib/staff.php:361` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:379` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:404` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:407` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:426` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:441` | — |
+| `UPDATE` | `ShopInvites` | `shop/lib/staff.php:444` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:454` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:478` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:484` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:542` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:543` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:546` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:611` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:635` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff.php:639` | — |
+| `INSERT INTO` | `ShopStockMoves` | `shop/lib/stock.php:28` | — |
+| `UPDATE` | `ShopVariants` | `shop/lib/stock.php:56` | — |
+| `UPDATE` | `ShopProducts` | `shop/lib/stock.php:59` | — |
+| `UPDATE` | `ShopVariants` | `shop/lib/stock.php:75` | — |
+| `UPDATE` | `ShopProducts` | `shop/lib/stock.php:78` | — |
+| `UPDATE` | `ShopVariants` | `shop/lib/stock.php:134` | — |
+| `UPDATE` | `ShopProducts` | `shop/lib/stock.php:137` | — |
+| `UPDATE` | `ShopStockMoves` | `shop/lib/till.php:525` | — |
+| `UPDATE` | `ShopStands` | `shop/lib/till.php:538` | — |
+| `DELETE FROM` | `ShopGuests` | `shop/public/api/order.php:66` | — |
+| `UPDATE` | `ShopOrders` | `shop/public/api/seen.php:16` | — |
+| `UPDATE` | `ShopStaff` | `shop/staff/login.php:110` | — |
+| `UPDATE` | `ShopStaff` | `shop/staff/login.php:119` | — |
+| `UPDATE` | `ShopStaff` | `shop/staff/login.php:120` | — |
 | `ALTER TABLE` | `AuthUsage` | `stats-usage.php:128` | — |
 | `ALTER TABLE` | `AuthUsageSeen` | `stats-usage.php:132` | — |
 | `INSERT INTO` | `AuthUsage` | `stats-usage.php:241` | — |
@@ -338,5 +485,14 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `AuthUsage` | `stats-usage.php:272` | — |
 | `UPDATE` | `AuthSessions` | `switch-view.php:25` | — |
 | `UPDATE` | `AuthUsers` | `switch-view.php:28` | — |
+| `INSERT INTO` | `AuthTrust` | `trust-lib.php:299` | — |
+| `DELETE FROM` | `AuthTrust` | `trust-lib.php:314` | — |
+| `INSERT INTO` | `AuthTrust` | `trust-lib.php:362` | — |
+| `DELETE FROM` | `AuthTrust` | `trust-lib.php:378` | — |
+| `DELETE FROM` | `AuthTrustEvents` | `trust-lib.php:398` | — |
+| `INSERT INTO` | `AuthTrustEvents` | `trust-lib.php:429` | — |
+| `DELETE FROM` | `AuthTrustEvents` | `trust-lib.php:445` | — |
+| `DELETE FROM` | `AuthTrust` | `trust-lib.php:448` | — |
+| `DELETE FROM` | `AuthTrust` | `trust-lib.php:449` | — |
 
 <!-- END DATABASE WRITES -->

@@ -504,6 +504,9 @@ sudo install -m 0644 -o root -g root \
 # listes d'attente des inscriptions en ligne, toutes les 10 minutes (§ 11 bis)
 sudo install -m 0644 -o root -g root \
      /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-waitlist /etc/cron.d/
+# indice de confiance des payeurs, une fois par nuit à 05:15 (après la fenêtre de maintenance)
+sudo install -m 0644 -o root -g root \
+     /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-trust /etc/cron.d/
 ```
 
 **Le lendemain**, vérifier : `tail -n 40 /var/log/ianseo-maintenance.log`, puis

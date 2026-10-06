@@ -503,6 +503,9 @@ sudo install -m 0644 -o root -g root \
 # waiting lists of the online registration, every 10 minutes (§ 11 bis)
 sudo install -m 0644 -o root -g root \
      /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-waitlist /etc/cron.d/
+# payer trust index, once a night at 05:15 (after the maintenance window)
+sudo install -m 0644 -o root -g root \
+     /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-trust /etc/cron.d/
 ```
 
 **The next day**, check: `tail -n 40 /var/log/ianseo-maintenance.log`, then

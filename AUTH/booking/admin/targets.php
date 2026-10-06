@@ -14,6 +14,9 @@ require_once dirname(__DIR__) . '/lib/registration.php';
 require_once dirname(__DIR__) . '/lib/targets.php';
 require_once dirname(__DIR__) . '/lib/archer.php';
 require_once dirname(__DIR__) . '/lib/ui.php';
+// Payer trust index (AUTH core): badges and acceptances, shown in its alert and block modes only.
+$trust = is_file(dirname(__DIR__, 2) . '/trust-lib.php');
+if ($trust) require_once dirname(__DIR__, 2) . '/trust-lib.php';
 
 bk_schema();
 
@@ -39,6 +42,10 @@ function bk_assign_msg($prefix, $r)
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
         $err = bk_t('SessionExpired');
+    } elseif ($trust && in_array($_POST['action'] ?? '', array('trust_accept', 'trust_unaccept'), true)) {
+        $r = aut_trust_org_post($TOUR, (string) ($_SESSION['AUTH_User'] ?? 'local'));
+        $msg = $r['msg'];
+        $err = $r['err'];
     } elseif (IsBlocked(BIT_BLOCK_PARTICIPANT)) {
         $err = bk_t('TgLocked');
     } else {
@@ -135,12 +142,18 @@ $out = '<div id="bkadm"><h1>' . bk_e(bk_t('MnuTargets')) . '</h1>'
     . ($err ? '<div class="bk-msg bk-err">' . bk_e($err) . '</div>' : '');
 
 if ($pending) {
+    if ($trust && in_array(aut_trust_mode(), array('alert', 'block'), true)) {   // one query for the whole list
+        $subjects = array();
+        foreach ($pending as $p) $subjects[] = aut_trust_subject($p->EnCode);
+        aut_trust_preload($subjects);
+    }
     $out .= '<div class="bk-sec" style="border-color:#cb8137"><h2 style="color:#cb8137">' . bk_e(bk_t('TgPendingTitle'))
         . ' <span class="bk-pill bk-pill-warn">' . count($pending) . '</span></h2>'
         . '<p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('TgPendingHint')) . '</p><table class="bk-t">'
         . $th(array('ColArcher', 'Licence', 'SsCategory', 'Club', 'SsDeparture', ''));
     foreach ($pending as $p) {
-        $out .= '<tr><td>' . bk_e(trim($p->EnFirstName . ' ' . $p->EnName)) . '</td><td>' . bk_e($p->EnCode) . '</td>'
+        $out .= '<tr><td>' . bk_e(trim($p->EnFirstName . ' ' . $p->EnName)) . ($trust ? aut_trust_badge($p->EnCode, $TOUR) : '')
+            . '</td><td>' . bk_e($p->EnCode) . '</td>'
             . '<td>' . bk_e(trim(($p->DivDescription ?: $p->EnDivision) . ' ' . ($p->ClDescription ?: $p->EnClass))) . '</td>'
             . '<td>' . bk_e($p->CoName ?: $p->CoCode) . '</td>'
             . '<td>' . ($p->QuSession ? bk_e(bk_t('DepCap', intval($p->QuSession))) : '—') . '</td>'
@@ -149,6 +162,7 @@ if ($pending) {
     $out .= '</table>' . $form(array('action' => 'validate_all'), bk_t('TgValidateAll', count($pending)), 'bk-btn', bk_t('TgValidateAllConfirm'), 'margin:6px 0 0')
         . '</div>';
 }
+if ($trust) $out .= aut_trust_org_html($TOUR, bk_csrf_field());
 
 $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('TgDepartures')) . '</h2>';
 if (!$sessions) {

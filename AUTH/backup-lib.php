@@ -559,7 +559,8 @@ function aut_backup_step_label($code)
     if (strpos($code, 'module:') === 0) return aut_t('BuStepModule', mb_substr($code, 7));
     $keys = array('backup' => 'BuStepBackup', 'core' => 'BuStepCore', 'core-skipped' => 'BuStepCoreSkipped',
         'unlock' => 'BuStepUnlock', 'lock' => 'BuStepLock', 'deploy' => 'BuStepDeploy',
-        'licences' => 'BuStepLicences', 'logos' => 'BuStepLogos', 'online-backup' => 'BuStepOnline');
+        'licences' => 'BuStepLicences', 'logos' => 'BuStepLogos', 'online-backup' => 'BuStepOnline',
+        'shop-purge' => 'BuStepShopPurge');
     return isset($keys[$code]) ? aut_t($keys[$code]) : $code;
 }
 

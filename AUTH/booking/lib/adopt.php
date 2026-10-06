@@ -27,6 +27,7 @@ define('BK_ADOPT_LOADED', true);
 
 require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/registration.php';   // bk_register, bk_lookup_licence, bk_comp_finished
+require_once __DIR__ . '/payment.php';        // bk_shp (points of sale follow a re-import)
 
 /** ToCode (stable) of a LIVE competition. '' when the tournament does not exist (any more). */
 function bk_tour_code($tourId)
@@ -401,6 +402,12 @@ function bk_adopt($newId)
     $p = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BookingPayments WHERE PyTournament = $old"));
     $rep['payments'] = $p ? intval($p->n) : 0;
 
+    // Points of sale (AUTH/shop) follow too, unless the new version already has stands or orders
+    // of its own. Schema first: it may run DDL, which would end the transaction below.
+    $shopMove = bk_shp() && !safe_fetch(safe_r_sql("SELECT 1 AS x FROM ShopStands WHERE SdTournament = $newId
+        UNION SELECT 1 FROM ShopOrders WHERE ShTournament = $newId LIMIT 1"));
+    $shopOld = $shopMove && safe_fetch(safe_r_sql("SELECT SgTournament FROM ShopSettings WHERE SgTournament = $old"));
+
     // ---- Phase A: move the tables tied to the ToId (old → new) ----
     safe_w_sql("START TRANSACTION");
     safe_w_sql("UPDATE BookingCompetitions   SET BcTournament = $newId, BcCode = " . StrSafe_DB($code) . " WHERE BcTournament = $old");
@@ -418,7 +425,22 @@ function bk_adopt($newId)
     // Payments journal: accounts are licences, they follow as they are. An account "#<EnId>"
     // (participant without a licence) keeps the old EnId and shows apart, with its payments.
     safe_w_sql("UPDATE BookingLedger         SET BlgTournament = $newId WHERE BlgTournament = $old");
+    if ($shopMove) {
+        // The settings of the old version win (its public key is the one printed on the posters):
+        // an empty row made by a visit to the new version goes.
+        if ($shopOld) safe_w_sql("DELETE FROM ShopSettings WHERE SgTournament = $newId");
+        foreach (array('ShopSettings' => 'SgTournament', 'ShopStands' => 'SdTournament', 'ShopProducts' => 'SpTournament',
+                'ShopOrders' => 'ShTournament', 'ShopStockMoves' => 'SmTournament', 'ShopStaff' => 'SfTournament',
+                'ShopInvites' => 'SqTournament', 'ShopGuests' => 'SuTournament', 'ShopStaffLog' => 'SjTournament') as $tb => $col) {
+            safe_w_sql("UPDATE $tb SET $col = $newId WHERE $col = $old");
+        }
+    }
     safe_w_sql("COMMIT");
+    // A former shop that was waiting on the old version (no longer in Tournament) moves now.
+    if (bk_shp()) {
+        require_once dirname(__DIR__, 2) . '/shop/lib/legacy.php';
+        shp_legacy_migrate();
+    }
 
     // ---- Phase B: reconcile the registrations with the new import ----
 

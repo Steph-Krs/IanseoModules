@@ -30,7 +30,7 @@ $m = bk_mandate_get($cfg);
 $scheme = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
 $abs    = ($_SERVER['HTTP_HOST'] ?? '') ? $scheme . '://' . $_SERVER['HTTP_HOST'] : '';
 $regUrl  = $abs . bk_public_url('competition.php?t=' . $tourId);
-$shopUrl = $abs . bk_public_url('shop.php?t=' . $tourId);
+$shopUrl = bk_mandate_shop_url($tourId, $abs);
 
 if (!empty($_GET['pdf'])) {
     require_once dirname(__DIR__) . '/lib/mandate-pdf.php';

@@ -66,7 +66,7 @@ if (!empty($_GET['pdf']) && $data) {
     require_once dirname(__DIR__) . '/lib/mandate-pdf.php';
     bk_mandate_pdf($TOUR, $data, $m, array(
         'regUrl'  => $abs . bk_public_url('competition.php?t=' . $TOUR),
-        'shopUrl' => $abs . bk_public_url('shop.php?t=' . $TOUR),
+        'shopUrl' => bk_mandate_shop_url($TOUR, $abs),
     ));
 }
 if (!empty($_GET['print']) && $data) {
@@ -76,7 +76,7 @@ if (!empty($_GET['print']) && $data) {
             return $CFG->ROOT_DIR . 'Common/TourLogo.php?Type=' . $type . '&W=' . intval($w);
         },
         'regUrl'  => $abs . bk_public_url('competition.php?t=' . $TOUR),
-        'shopUrl' => $abs . bk_public_url('shop.php?t=' . $TOUR),
+        'shopUrl' => bk_mandate_shop_url($TOUR, $abs),
         'toolbar' => '<a class="mn-print" href="' . bk_e($self) . '?pdf=1" target="_blank" rel="noopener">' . $pdfIcon . bk_e(bk_t('PrintOrPdf')) . '</a>'
                    . '<a class="mn-close" href="' . bk_e($self) . '">' . bk_e(bk_t('AmBackSettings')) . '</a>',
     ));

@@ -1,0 +1,12 @@
+/* Points of sale — volunteers' joining and sign-in screens (staff/join.php, staff/login.php).
+   Scoped by #shp, on top of shp.css. */
+
+#shp .sj-tour { color: var(--shp-grey); margin-top: -4px; }
+#shp .sj-name { font-size: 1.2rem; font-weight: 700; margin: 4px 0 10px; }
+#shp .sj-wait { text-align: center; }
+#shp .sj-code { font-size: 4.2rem; font-weight: 800; letter-spacing: .12em; line-height: 1.1; margin: 12px 0;
+    color: var(--shp-blue-dark); font-variant-numeric: tabular-nums; }
+#shp .sj-wait .shp-msg { text-align: left; }
+@media (max-width: 360px) {
+    #shp .sj-code { font-size: 3.4rem; }
+}

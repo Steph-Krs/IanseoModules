@@ -21,6 +21,7 @@ require_once dirname(__DIR__) . '/lib/targets.php';  // bk_rules_check
 require_once dirname(__DIR__) . '/lib/archer.php';   // bk_csrf_*
 require_once dirname(__DIR__) . '/lib/adopt.php';    // bk_adopt_check (kept across a re-import)
 require_once dirname(__DIR__) . '/lib/ui.php';       // bk_e
+require_once dirname(__DIR__, 2) . '/shop/lib/lang.php';   // shp_t: name of the points of sale
 require_once dirname(__DIR__) . '/lib/waitlist.php'; // waiting list
 
 bk_schema();
@@ -31,6 +32,7 @@ $err  = '';
 bk_money_tour($TOUR);   // amounts of this page in the competition's currency
 $SELF = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php';
 $ADMIN = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/';
+$SHOP_ADMIN = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/shop/admin/index.php';
 
 // Publication on ianseo.net: Tournament.ToOnlineId is only set once the publication codes are
 // obtained AND validated for THIS competition (ianseo core, Common/Lib/CommonLib.php →
@@ -536,7 +538,7 @@ if ($level == 1) {
             . (!empty($cfg->BcPayments) ? ' checked' : '') . '> ' . bk_t('AcL1Box') . '</label>'
             . '<noscript><button type="submit" class="bk-btn">' . bk_e(bk_t('AcApply')) . '</button></noscript>', '', ' style="margin:12px 0 0"')
         . '<p class="bk-hint">' . bk_e(bk_t('AcL1Hint')) . '</p>'
-        . (!empty($cfg->BcPayments) ? '<p class="bk-shortcuts"><a class="bk-btn" href="' . $ADMIN . 'shop.php">' . bk_e(bk_t('Shop')) . ' →</a> '
+        . (!empty($cfg->BcPayments) ? '<p class="bk-shortcuts"><a class="bk-btn" href="' . $SHOP_ADMIN . '">' . bk_e(shp_t('MnuTitle')) . ' →</a> '
             . '<a class="bk-btn" href="' . $ADMIN . 'dues.php">' . bk_e(bk_t('Payments')) . ' →</a></p>' : '')
         . '</div>';
     if (!empty($cfg->BcPayments)) {
@@ -552,7 +554,7 @@ if ($level == 2) {
         . '<button type="submit" class="bk-btn" data-manual-save="1" style="align-self:flex-end">' . bk_e(bk_t('AcSaveFee')) . '</button></form>'
         . '<p class="bk-hint" style="margin:0 0 6px">' . bk_t('AcL2FeeHint') . '</p><p class="bk-shortcuts">'
         . '<a class="bk-btn" href="' . $ADMIN . 'field.php">' . bk_e(bk_t('MnuField')) . ' →</a> '
-        . '<a class="bk-btn" href="' . $ADMIN . 'shop.php">' . bk_e(bk_t('Shop')) . ' →</a> '
+        . '<a class="bk-btn" href="' . $SHOP_ADMIN . '">' . bk_e(shp_t('MnuTitle')) . ' →</a> '
         . '<a class="bk-btn" href="' . $ADMIN . 'dues.php">' . bk_e(bk_t('Payments')) . ' →</a> '
         . '<a class="bk-btn" href="' . $ADMIN . 'survey.php">' . bk_e(bk_t('MnuSurvey')) . ' →</a></p></div>';
 }

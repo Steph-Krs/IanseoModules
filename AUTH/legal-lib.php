@@ -259,6 +259,11 @@ function aut_legal_gen_confid($op)
     $h .= aut_legal_section('LgPRecipientsH', aut_t('LgPRecipients'));
     $h .= '<h2>' . _le(aut_t('LgPRetentionH')) . '</h2>'
         . aut_legal_list(array('LgPRetention1', 'LgPRetention2', 'LgPRetention3'));
+    if (is_file(__DIR__ . '/trust-lib.php')) {   // payer trust index: described while it is computed
+        require_once __DIR__ . '/trust-lib.php';
+        $h .= aut_trust_privacy_html();
+    }
+    if (is_dir(__DIR__ . '/shop')) $h .= aut_legal_section('LgPShopH', aut_t('LgPShop'));   // food & shop
     $h .= aut_legal_section('LgPRightsH', aut_t('LgPRights', $dpo !== ''
         ? '<a href="mailto:' . _le($dpo) . '">' . _le($dpo) . '</a>'
         : _le(aut_t('LgPRightsOperator'))));
@@ -271,7 +276,7 @@ function aut_legal_gen_cookies($op)
 {
     $h  = '<p>' . aut_t('LgKIntro') . '</p>';
     $h .= '<h2>' . _le(aut_t('LgKUsedH')) . '</h2>'
-        . aut_legal_list(array('LgKSession', 'LgKAudience'));
+        . aut_legal_list(is_dir(__DIR__ . '/shop') ? array('LgKSession', 'LgKAudience', 'LgKShop') : array('LgKSession', 'LgKAudience'));
     $h .= '<p>' . aut_t('LgKExempt') . '</p>';
     $h .= aut_legal_disclaimer_html($op);
     return $h;

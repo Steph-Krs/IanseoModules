@@ -7,10 +7,10 @@ require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
 require_once dirname(__DIR__) . '/lib/registration.php';
 require_once dirname(__DIR__) . '/lib/targets.php';
-require_once dirname(__DIR__) . '/lib/shop.php';
 require_once dirname(__DIR__) . '/lib/payment.php';
 require_once dirname(__DIR__) . '/lib/mandate.php';   // bk_mandate_visible
 require_once dirname(__DIR__) . '/lib/waitlist.php';
+require_once dirname(__DIR__, 2) . '/shop/lib/link.php';   // shop of a competition
 
 $archer = bk_require_archer();
 
@@ -284,8 +284,12 @@ if ($regs) {
         }
         echo ($free ? '' : '<p class="bk-due">' . rg_balance($due, $known, $t) . '</p>')
             . '<p><a class="bk-btn" href="' . bk_e(bk_public_url('receipt.php?comp=' . $t)) . '">' . bk_e(bk_t('AccountReceipt')) . '</a></p>';
-        if (bk_shop_has_items($t) && bk_comp_payments_on(bk_comp_config($t))) {
-            echo '<p><a class="bk-btn" href="' . bk_e(bk_public_url('shop.php?t=' . $t)) . '">' . bk_e(bk_t('Shop')) . '</a></p>';
+        // Pre-orders of the food & shop module, while its deadline is not passed.
+        if (!$pastG) {
+            $shpLinks = shp_public_links($t);
+            if ($shpLinks['preorder'] !== '') {
+                echo '<p><a class="bk-btn" href="' . bk_e($shpLinks['preorder']) . '">' . bk_e(shp_t('ShCusPreorderBtn')) . '</a></p>';
+            }
         }
         if (bk_docs_list($c, $t) || bk_dossard_available($c, $t)) {
             echo '<p><a class="bk-btn" href="' . bk_e(bk_public_url('documents.php?t=' . $t)) . '">' . bk_e(bk_t('DocsBtn')) . '</a></p>';
@@ -342,11 +346,17 @@ if ($others) {
             . '<p class="bk-due">' . rg_balance(array('total' => $x['due'], 'paid' => $x['paid'], 'remaining' => $x['remaining']),
                 !$x['past'] || $x['tracked'], $x['ToId']) . '</p>'
             . '<p><a class="bk-btn" href="' . bk_e(bk_public_url('receipt.php?comp=' . $x['ToId'])) . '">' . bk_e(bk_t('AccountReceipt')) . '</a>'
-            . (!$x['past'] && bk_shop_has_items($x['ToId']) && bk_comp_payments_on(bk_comp_config($x['ToId']))
-                ? ' <a class="bk-btn" href="' . bk_e(bk_public_url('shop.php?t=' . $x['ToId'])) . '">' . bk_e(bk_t('Shop')) . '</a>' : '')
+            . (!$x['past'] && ($xl = shp_public_links($x['ToId'])['shop']) !== ''
+                ? ' <a class="bk-btn" href="' . bk_e($xl) . '">' . bk_e(shp_t('ShCusBookingBtn')) . '</a>' : '')
             . '</p></div>';
     }
     echo '</section>';
+}
+// Payer trust index (AUTH core): the archer's own level and why, in its alert and block modes.
+if (is_file(dirname(__DIR__, 2) . '/trust-lib.php')) {
+    require_once dirname(__DIR__, 2) . '/trust-lib.php';
+    $trustMe = aut_trust_archer_html(bk_clean_licence($archer->BaLicence));
+    if ($trustMe !== '') echo '<section class="bk-block" style="margin-top:16px">' . $trustMe . '</section>';
 }
 echo '</div>';   // panel "mine"
 

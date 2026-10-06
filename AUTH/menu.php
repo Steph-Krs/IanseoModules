@@ -11,6 +11,8 @@ require_once(__DIR__ . '/lib.php');
 // Custom/*/menu.php → booking/menu.php no longer loads itself, so it is included here (it fills
 // $ret from $on/$acl, in this same context).
 if (is_file(__DIR__ . '/booking/menu.php')) include(__DIR__ . '/booking/menu.php');
+// Points of sale (refreshment bar, food, shop): same reason, same context.
+if (is_file(__DIR__ . '/shop/menu.php')) include(__DIR__ . '/shop/menu.php');
 
 $_aut_on     = !empty($CFG->USERAUTH);
 $_aut_logged = $_aut_on && !empty($_SESSION['AUTH_User']);
@@ -28,6 +30,7 @@ if ($_aut_logged || $_aut_admin) {
 if ($_aut_admin) {
     $ret['MODS']['AUTH'][] = aut_t('MenuUsers') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/';
     $ret['MODS']['AUTH'][] = aut_t('MenuAnonymise') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/anonymise.php';
+    $ret['MODS']['AUTH'][] = aut_t('MenuTrust') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/trust.php';
     $ret['MODS']['AUTH'][] = aut_t('MenuStats') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/stats.php';
     $ret['MODS']['AUTH'][] = aut_t('MenuTickets') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/tickets.php';
     $ret['MODS']['AUTH'][] = aut_t('MenuLegal') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/legal.php';

@@ -75,11 +75,12 @@ if ($club) {
     exit;
 }
 
-$a = bk_account($tourId, $archer->BaLicence);
-if (!$a['registrations'] && !$a['shop_lines'] && !$a['moves']) rc_fail(bk_t('NothingHere'));
+$a = bk_account($tourId, bk_clean_licence($archer->BaLicence));
+if (!$a['registrations'] && !$a['shp_lines'] && !$a['moves']) rc_fail(bk_t('NothingHere'));
 if ($a['name'] === '') $a['name'] = trim($archer->BaFamilyName . ' ' . $archer->BaName);
-// Over, and the organiser records no payment here: what was paid is unknown, nothing is claimed.
-$known = !bk_is_finished($tour->ToWhenTo) || bk_ledger_tracked($tourId);
+// Over, and the organiser records no payment here: what was paid is unknown, nothing is claimed
+// (unless the account holds nothing but food & shop sales, all recorded).
+$known = bk_account_known($tourId, $a, bk_is_finished($tour->ToWhenTo));
 
 if ($pdfWanted) {
     require_once dirname(__DIR__) . '/lib/ledger-pdf.php';
@@ -104,9 +105,15 @@ foreach ($a['registrations'] as $r) {
         . '<td class="n"><b>' . rc_eur($r['price']) . '</b></td></tr>';
     foreach ($r['lines'] as $l) echo '<tr class="sub"><td>' . bk_e($l['label']) . '</td><td class="n">' . rc_eur($l['amount']) . '</td></tr>';
 }
-foreach ($a['shop_lines'] as $s) {
-    echo '<tr><td>' . bk_e(($s['section'] !== '' ? $s['section'] : bk_t('Shop')) . ' — ' . $s['label'])
-        . ' <span class="bk-hint">' . intval($s['qty']) . ' × ' . rc_eur($s['unit']) . '</span></td>'
+$lastOrder = 0;
+foreach ($a['shp_lines'] as $s) {
+    if ($s['order'] !== $lastOrder) {
+        $lastOrder = $s['order'];
+        echo '<tr><td colspan="2"><b>' . bk_e(bk_t('DuShpLine', array('stand' => $s['stand'] !== '' ? $s['stand'] : bk_t('DuShpTitle'),
+            'number' => $s['number']))) . '</b> <span class="bk-hint">' . bk_e(bk_date_fr($s['date'])
+            . ($s['tab'] ? ' · ' . bk_t('DuOnTab') : '')) . '</span></td></tr>';
+    }
+    echo '<tr class="sub"><td>' . bk_e($s['label']) . ' <span class="bk-hint">' . intval($s['qty']) . ' × ' . rc_eur($s['unit']) . '</span></td>'
         . '<td class="n">' . rc_eur($s['amount']) . '</td></tr>';
 }
 echo '<tr class="tot"><td>' . bk_e(bk_t('TotalDue')) . '</td><td class="n">' . rc_eur($a['due']) . '</td></tr></table></div>';
@@ -122,7 +129,7 @@ if (!$a['moves']) {
         echo '<tr' . ($off ? ' class="off"' : '') . '><td>' . bk_e(bk_date_fr($m->BlgWhen)) . '</td><td>'
             . bk_e(($kinds[$m->BlgKind] ?? $m->BlgKind) . (isset($methods[$m->BlgMethod]) ? ' — ' . $methods[$m->BlgMethod] : ''))
             . ($m->BlgLabel !== '' ? '<br><span class="bk-hint">' . bk_e($m->BlgLabel) . '</span>' : '')
-            . ($off ? ' <span class="bk-hint">' . bk_e(bk_t('CancelledMark')) . '</span>' : '') . '</td><td class="n">' . rc_eur($m->BlgAmount) . '</td></tr>';
+            . ($off ? ' <span class="bk-hint">(' . bk_e(bk_ledger_off_word($m)) . ')</span>' : '') . '</td><td class="n">' . rc_eur($m->BlgAmount) . '</td></tr>';
     }
     echo '<tr class="tot"><td colspan="2">' . bk_e(bk_t('TotalPaid')) . '</td><td class="n">' . rc_eur($a['paid']) . '</td></tr></table></div>';
 }

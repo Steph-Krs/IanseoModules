@@ -20,7 +20,6 @@ require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/competition.php';
 require_once __DIR__ . '/pricing.php';
 require_once __DIR__ . '/payment.php';
-require_once __DIR__ . '/shop.php';
 require_once __DIR__ . '/ui.php';
 
 /** Available templates: key => readable label. */
@@ -189,6 +188,40 @@ function bk_mandate_palette($hex)
 }
 
 /**
+ * Products that can be pre-ordered at the points of sale of a competition (switched on), for
+ * the mandate: [['label', 'price', 'description', 'option', 'variants' => [['label']]]].
+ */
+function bk_mandate_shop($tourId)
+{
+    if (!bk_shp()) return array();
+    $tourId = intval($tourId);
+    $out = array();
+    $rs = safe_r_sql("SELECT SpId, SpName, SpPrice, SpDescription, SpOptionName FROM ShopProducts
+        INNER JOIN ShopStands ON SdId = SpStand
+        INNER JOIN ShopSettings ON SgTournament = SpTournament
+        WHERE SpTournament = $tourId AND SpActive = 1 AND SpPreorder = 1 AND SdActive = 1 AND SgEnabled = 1
+        ORDER BY SdOrder, SdId, SpOrder, SpId");
+    while ($r = safe_fetch($rs)) {
+        $out[intval($r->SpId)] = array('label' => (string) $r->SpName, 'price' => (float) $r->SpPrice,
+            'description' => (string) $r->SpDescription, 'option' => (string) $r->SpOptionName, 'variants' => array());
+    }
+    if ($out) {
+        $rs = safe_r_sql("SELECT SwProduct, SwLabel FROM ShopVariants WHERE SwProduct IN (" . implode(',', array_keys($out)) . ")
+            ORDER BY SwOrder, SwId");
+        while ($r = safe_fetch($rs)) $out[intval($r->SwProduct)]['variants'][] = array('label' => (string) $r->SwLabel);
+    }
+    return array_values($out);
+}
+
+/** Absolute address of the shop of a competition for the mandate ('' when it has none). $abs: scheme and host. */
+function bk_mandate_shop_url($tourId, $abs)
+{
+    require_once dirname(__DIR__, 2) . '/shop/lib/link.php';
+    $url = shp_public_links($tourId)['shop'];
+    return $url !== '' ? $abs . $url : '';
+}
+
+/**
  * Automatic data of the mandate, from the competition. null when the competition does not
  * exist. Does NOT assume the registration is open (the organiser may prepare the mandate
  * before opening it).
@@ -234,7 +267,7 @@ function bk_mandate_data($tourId)
         'feeAdvanced' => bk_pricing_is_advanced($pricing),
         'pricing'     => $pricing,
         'deadline'    => $cfg->BcOpenTo ?? null,
-        'shop'        => bk_shop_has_items($tourId) ? bk_shop_items($tourId, true) : array(),
+        'shop'        => bk_mandate_shop($tourId),
     );
 }
 

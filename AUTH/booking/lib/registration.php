@@ -417,6 +417,16 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
         return array('ok' => false, 'msg' => bk_t('RgNoPractice'));
     }
 
+    // Payer trust index: a registration is paid later, it is credit. A club officer registers
+    // on the club's account. Not for the callers that pass skip_capacity: the injection of a
+    // past registration (re-import) and the organiser registering by hand from the waiting
+    // list — neither is a request for credit by the archer.
+    if (empty($opts['skip_capacity']) && is_file(dirname(__DIR__, 2) . '/trust-lib.php')) {
+        require_once dirname(__DIR__, 2) . '/trust-lib.php';
+        $gate = aut_trust_gate($lue->LueCode, $tourId, 'registration', ($by['role'] ?? '') === 'MANAGER' ? (string) $lue->LueCountry : '');
+        if (empty($gate['allow'])) return array('ok' => false, 'msg' => $gate['msg']);
+    }
+
     return bk_with_tournament($tourId, function () use ($tourId, $lue, $division, $class, $sessionOrder, $request, $by, $opts) {
 
         $now  = date('Y-m-d H:i:s');

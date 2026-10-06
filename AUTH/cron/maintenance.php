@@ -5,7 +5,7 @@
  * Runs in a row, each step only started once the previous one has ended:
  *
  *   maintenance ON → BACKUP → unlocking → ianseo core update → update of the Custom modules
- *   → AUTH redeployment → licence sync → logo sync → locking
+ *   → AUTH redeployment → licence sync → logo sync → points of sale erasing → locking
  *   → maintenance OFF
  *
  * NON-NEGOTIABLE INVARIANT: the maintenance is ALWAYS turned off at the end, including when a
@@ -344,6 +344,16 @@ if ($doLogos) {
     mt_step('7b/8 Club logo synchronisation');
     if (!mt_php(__DIR__ . '/sync-logos.php')) { $failed[] = 'logos'; mt_log('  logos: FAILED'); }
     else mt_log('  logos: ok');
+}
+
+/* ---- 7c. Points of sale: erasing the day after a competition ---- */
+// Volunteers without a licence, nicknames of settled visitors, sessions and QR codes (see
+// shop/lib/purge.php). Also run by the pages of the points of sale, at most once an hour: this
+// step only makes it happen even when nobody opens them.
+if (is_file(dirname(__DIR__) . '/shop/cron/purge.php')) {
+    mt_step('7c/8 Points of sale: erasing after the competitions');
+    if (!mt_php(dirname(__DIR__) . '/shop/cron/purge.php')) { $failed[] = 'shop-purge'; mt_log('  points of sale: FAILED'); }
+    else mt_log('  points of sale: ok');
 }
 
 /* ---- 8. Re-locking + leaving maintenance ---- */

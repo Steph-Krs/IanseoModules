@@ -128,12 +128,17 @@ function bk_ledger_pdf_account($pdf, $a, $newPage = true, $known = true)
                 array($wa, bk_pdf_eur($l['amount']), 'R')), '', 4.5);
         }
     }
-    foreach ($a['shop_lines'] as $s) {
-        bk_pdf_row($pdf, array(array($wl, ($s['section'] !== '' ? $s['section'] : bk_t('Shop')) . ' — ' . $s['label']
-                . '  (' . $s['qty'] . ' × ' . bk_pdf_eur($s['unit']) . ')', 'L'),
-            array($wa, bk_pdf_eur($s['amount']), 'R')), '');
+    $lastOrder = 0;
+    foreach ($a['shp_lines'] as $s) {
+        if ($s['order'] !== $lastOrder) {
+            $lastOrder = $s['order'];
+            bk_pdf_row($pdf, array(array($w, bk_t('DuShpLine', array('stand' => $s['stand'] !== '' ? $s['stand'] : bk_t('DuShpTitle'),
+                'number' => $s['number'])) . '  (' . bk_date_dmy($s['date']) . ($s['tab'] ? ', ' . bk_t('DuOnTab') : '') . ')', 'L', 'B')), '');
+        }
+        bk_pdf_row($pdf, array(array($wl, '      ' . $s['label'] . '  (' . $s['qty'] . ' × ' . bk_pdf_eur($s['unit']) . ')', 'L'),
+            array($wa, bk_pdf_eur($s['amount']), 'R')), '', 4.5);
     }
-    if (!$a['registrations'] && !$a['shop_lines']) {
+    if (!$a['registrations'] && !$a['shp_lines']) {
         bk_pdf_row($pdf, array(array($w, bk_t('NoConsumption'), 'L', 'I')), '');
     }
     $pdf->Line(IanseoPdf::sideMargin, $pdf->GetY() + 0.5, IanseoPdf::sideMargin + $w, $pdf->GetY() + 0.5);
@@ -155,7 +160,7 @@ function bk_ledger_pdf_account($pdf, $a, $newPage = true, $known = true)
                 array($wd, bk_date_dmy($m->BlgWhen), 'L'),
                 array($wk, $kinds[$m->BlgKind] ?? $m->BlgKind, 'L'),
                 array($wm, $methods[$m->BlgMethod] ?? '', 'L'),
-                array($wlab, trim($m->BlgLabel . ($cancelled ? ' — ' . bk_t('CancelledWord') : ''), ' —'), 'L'),
+                array($wlab, trim($m->BlgLabel . ($cancelled ? ' — ' . bk_ledger_off_word($m) : ''), ' —'), 'L'),
                 array($wa, bk_pdf_eur($m->BlgAmount), 'R'),
             ));
             $pdf->SetTextColor(0, 0, 0);

@@ -29,7 +29,11 @@
  *    deleted — it is copied from the federal file at each login, emptying it would not
  *    last. Their waiting-list rows go too. Every other BK_ row carrying the licence gets
  *    the anonymous code (registrations, payments, shop, journal, re-import conflicts),
- *    or loses the licence (survey answer, voters' roll, wishes of others).
+ *    or loses the licence (survey answer, voters' roll, wishes of others);
+ *  - points of sale: orders keep their lines and money under the anonymous code (the ANON
+ *    account still adds up), the name copied on them is emptied; a licensee volunteer loses
+ *    licence and name, and their open sessions. In a competition to come, the orders not
+ *    handed over and not paid are cancelled (stock given back).
  *
  * The anonymous code is the SAME for everybody: no new identifier is made up. Checked: no
  * unique key on EnCode or TiCode in the core. The BK_ tables with a unique key on
@@ -194,13 +198,14 @@ function aut_anon_plan($lic)
     bk_schema();
     $l = StrSafe_DB(trim((string) $lic));
     $out = array();
+    $shop = aut_anon_table('ShopOrders') ? " UNION SELECT ShTournament FROM ShopOrders WHERE ShLicence = $l" : '';
     $rs = safe_r_sql("SELECT ToId, ToCode, ToName FROM Tournament
         WHERE ToWhenTo >= " . bk_local_today_sql('ToTimeZone') . "
           AND ToId IN (SELECT EnTournament FROM Entries WHERE EnCode = $l
                  UNION SELECT TiTournament FROM TournamentInvolved WHERE TiCode = $l
                  UNION SELECT PyTournament FROM BookingPayments WHERE PyLicence = $l
                  UNION SELECT SoTournament FROM BookingShopOrders WHERE SoLicence = $l
-                 UNION SELECT BlgTournament FROM BookingLedger WHERE BlgAccount = $l)
+                 UNION SELECT BlgTournament FROM BookingLedger WHERE BlgAccount = $l$shop)
           AND ToId NOT IN (SELECT EnTournament FROM Entries INNER JOIN Qualifications ON QuId = EnId
                  WHERE EnCode = $l AND (QuScore <> 0 OR QuHits <> 0))
         ORDER BY ToWhenFrom, ToId");
@@ -244,6 +249,13 @@ function aut_anon_remove_from($tourId, $lic, $plan)
     safe_w_sql("DELETE FROM TournamentInvolved WHERE TiTournament = $tourId AND TiCode = $l");
     safe_w_sql("DELETE FROM BookingShopOrders WHERE SoTournament = $tourId AND SoLicence = $l");
     safe_w_sql("DELETE FROM BookingPayments WHERE PyTournament = $tourId AND PyLicence = $l");
+    // Points of sale: a pre-order nobody will collect is cancelled; what was handed over or paid
+    // stays, anonymised with the rest (the refund below covers the money).
+    if (bk_shp()) {
+        $rs = safe_r_sql("SELECT ShId FROM ShopOrders WHERE ShTournament = $tourId AND ShLicence = $l
+            AND ShStatus NOT IN ('delivered', 'cancelled') AND ShPaid <= 0.004");
+        while ($o = safe_fetch($rs)) shp_order_cancel(intval($o->ShId));
+    }
     if ($plan['refund']) {
         $f = $plan['refund'];
         bk_refund_add($tourId, $f['club_code'], $f['club_name'], $f['amount'], $f['method']);
@@ -286,6 +298,16 @@ function aut_anon_bk_tables($lic)
     if (aut_anon_table('BookingShopOrders')) {
         safe_w_sql("UPDATE IGNORE BookingShopOrders SET SoLicence = $a WHERE SoLicence = $l");
         safe_w_sql("DELETE FROM BookingShopOrders WHERE SoLicence = $l");
+    }
+    // Points of sale: the orders follow the journal to the anonymous account (no unique key).
+    if (aut_anon_table('ShopOrders')) safe_w_sql("UPDATE ShopOrders SET ShLicence = $a, ShCustLabel = '' WHERE ShLicence = $l");
+    if (aut_anon_table('ShopStaff')) {
+        if (aut_anon_table('ShopStaffSessions')) {
+            safe_w_sql("DELETE FROM ShopStaffSessions WHERE SkStaff IN (SELECT SfId FROM ShopStaff WHERE SfLicence = $l)");
+        }
+        safe_w_sql("UPDATE ShopStaff SET SfLicence = $a, SfArcher = 0, SfFamilyName = '', SfGivenName = '',
+                SfStatus = IF(SfStatus IN ('pending', 'active', 'locked'), 'ended', SfStatus)
+            WHERE SfLicence = $l");
     }
     // Survey: the answer keeps its anonymous form "#<id>" (bk_survey_anonymise); the roll of
     // who answered is only about a licence, it goes.

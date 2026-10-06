@@ -1,0 +1,14 @@
+# /etc/cron.d/ianseo-trust — payer trust index of the online registration and the shop.
+#
+# root:root, chmod 0644. Same traps as ianseo-nightly: file name WITHOUT a dot, final LINE
+# FEED mandatory, USER field (7 fields).
+#
+# Once a night, after the maintenance window (03:15) and the system updates (04:30, restart
+# 04:45): reads the payments of the competitions ended within the last 24 months, records
+# the unpaid and late payments, forgets what is settled or older than 24 months. A few
+# seconds; one line in the log. Steps aside by itself during the nightly window and a restore.
+
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+15 5 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/trust.php >> /var/log/ianseo-maintenance.log 2>&1

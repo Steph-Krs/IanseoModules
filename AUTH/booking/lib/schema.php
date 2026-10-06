@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 27);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 28);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -39,6 +39,22 @@ function bk_colonne($table, $colonne, $definition)
     $r = $rs ? safe_fetch($rs) : null;
     if ($r && intval($r->n) === 0) {
         safe_w_sql("ALTER TABLE `$table` ADD COLUMN `$colonne` $definition");
+        return true;
+    }
+    return false;
+}
+
+/** Adds an index when missing ($definition: "KEY name (cols)" or "UNIQUE KEY …"); never fatal. */
+function bk_index($table, $name, $definition)
+{
+    $t = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = " . StrSafe_DB($table)));
+    if (!$t || intval($t->n) === 0) return false;
+    $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = " . StrSafe_DB($table) . "
+          AND INDEX_NAME = " . StrSafe_DB($name)));
+    if ($r && intval($r->n) === 0) {
+        safe_w_sql("ALTER TABLE `$table` ADD $definition");
         return true;
     }
     return false;
@@ -534,6 +550,26 @@ function bk_schema()
            OR BcTournament IN (SELECT BlgTournament FROM BookingLedger)
            OR BcTournament IN (SELECT PyTournament FROM BookingPayments WHERE PyPaid = 1))");
     }
+
+    // v28 — the points of sale (AUTH/shop) write into the same journal, so that an archer has one
+    // account per competition (registrations + refreshments + shop). BlgOrder/BlgStand/BlgStaff:
+    // the shop order, stand and volunteer of a line. BlgProvider/BlgRef/BlgStatus: ready for an
+    // online payment provider (a reference only, never card data; 'pending' until confirmed).
+    // BlgIdem: idempotency key of a request sent from a phone. BlgBenef: the structure that
+    // receives the money (owner of the competition).
+    bk_colonne('BookingLedger', 'BlgOrder',    "INT UNSIGNED NOT NULL DEFAULT 0 AFTER BlgCancelled");
+    bk_colonne('BookingLedger', 'BlgStand',    "INT UNSIGNED NOT NULL DEFAULT 0 AFTER BlgOrder");
+    bk_colonne('BookingLedger', 'BlgStaff',    "INT UNSIGNED NOT NULL DEFAULT 0 AFTER BlgStand");
+    bk_colonne('BookingLedger', 'BlgProvider', "VARCHAR(12) NOT NULL DEFAULT 'manual' AFTER BlgStaff");
+    bk_colonne('BookingLedger', 'BlgRef',      "VARCHAR(80) NOT NULL DEFAULT '' AFTER BlgProvider");
+    bk_colonne('BookingLedger', 'BlgStatus',   "VARCHAR(10) NOT NULL DEFAULT 'done' AFTER BlgRef");
+    bk_colonne('BookingLedger', 'BlgIdem',     "CHAR(36) NULL AFTER BlgStatus");
+    bk_colonne('BookingLedger', 'BlgBenef',    "VARCHAR(16) NOT NULL DEFAULT '' AFTER BlgIdem");
+    // Indexes checked on their own, not with the column: a failure between the two would
+    // otherwise leave the column without its index for good. Several NULL keys are allowed by a
+    // UNIQUE index: lines written without a key do not collide.
+    bk_index('BookingLedger', 'BlgIdemIdx', 'UNIQUE KEY BlgIdemIdx (BlgTournament, BlgIdem)');
+    bk_index('BookingLedger', 'BlgOrderIdx', 'KEY BlgOrderIdx (BlgOrder)');
 
     $_SESSION[$flag] = true;
 }

@@ -150,7 +150,7 @@ function aut_ensure_schema() {
     if ($done) return;
     $done = true;
     aut_table_names();   // before any CREATE: see names-lib.php
-    if (!empty($_SESSION['_aut_schema_v9'])) return;
+    if (!empty($_SESSION['_aut_schema_v10'])) return;
 
     $q = safe_r_sql("SHOW TABLES LIKE 'AuthUsers'");
     if (!safe_fetch($q)) {
@@ -325,7 +325,47 @@ function aut_ensure_schema() {
         safe_w_sql("ALTER TABLE AuthTickets ADD COLUMN TkTour VARCHAR(160) NOT NULL DEFAULT '' AFTER TkPage");
     }
 
-    $_SESSION['_aut_schema_v9'] = true;
+    // v10: payer trust index (trust-lib.php). AuthTrust = decisions taken by people: with
+    // TuTournament = 0, the administrator's whitelist / forced level of a subject; with a
+    // competition, the organiser's acceptance of that subject for it. Subject = "L:<licence>"
+    // or "C:<club approval number>". Technical dates in UTC.
+    safe_w_sql("CREATE TABLE IF NOT EXISTS AuthTrust (
+        TuId         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        TuSubject    VARCHAR(27)  NOT NULL,
+        TuTournament INT UNSIGNED NOT NULL DEFAULT 0,
+        TuWhite      TINYINT      NOT NULL DEFAULT 0,
+        TuForced     VARCHAR(8)   NOT NULL DEFAULT '',
+        TuReason     VARCHAR(255) NOT NULL DEFAULT '',
+        TuBy         VARCHAR(64)  NOT NULL DEFAULT '',
+        TuUntil      DATE NULL,
+        TuCreated    DATETIME NULL,
+        TuUpdated    DATETIME NULL,
+        UNIQUE KEY TuSubjectIdx (TuSubject, TuTournament),
+        KEY TuTournamentIdx (TuTournament)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    // Incidents computed each night from the payments journal: one row per subject,
+    // competition and kind ('unpaid', 'late', 'reject'). TnEnd = end of the competition,
+    // TnSince = when it started to count, TnResolved = when a debt was settled (late).
+    // TnChecked = last computation that confirmed it (the others are deleted).
+    safe_w_sql("CREATE TABLE IF NOT EXISTS AuthTrustEvents (
+        TnId         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        TnSubject    VARCHAR(27)  NOT NULL,
+        TnTournament INT UNSIGNED NOT NULL,
+        TnKind       VARCHAR(8)   NOT NULL,
+        TnAmount     DECIMAL(9,2) NOT NULL DEFAULT 0,
+        TnDays       SMALLINT     NOT NULL DEFAULT 0,
+        TnCount      SMALLINT     NOT NULL DEFAULT 1,
+        TnEnd        DATE NOT NULL,
+        TnSince      DATE NOT NULL,
+        TnResolved   DATE NULL,
+        TnCreated    DATETIME NULL,
+        TnChecked    DATETIME NULL,
+        UNIQUE KEY TnKeyIdx (TnSubject, TnTournament, TnKind),
+        KEY TnTournamentIdx (TnTournament),
+        KEY TnCheckedIdx (TnChecked)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $_SESSION['_aut_schema_v10'] = true;
 }
 
 /* ------------------------------------------------------------------ */

@@ -1,0 +1,78 @@
+/* Organiser pages of the live orders and of the reports (admin/orders.php, admin/reports.php),
+   on top of admin.css and scoped by #shpadm. Charter colours (CHARTE_GRAPHIQUE.md): blue
+   carries the structure, coral signals what waits too long, green what is fine. */
+
+#shpadm .sr-r, #shpadm .sa-table th.sr-r { text-align: right; white-space: nowrap; }
+
+/* ---- Cards of the stands ---- */
+#shpadm .sr-stands { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin: 0 0 14px; }
+#shpadm .sr-stand { text-align: left; font: inherit; color: inherit; cursor: pointer; background: #fff; border: 1px solid #d2d4d6;
+    border-left: 5px solid #04ac0b; border-radius: 8px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+#shpadm .sr-stand.sr-closed { border-left-color: #aaa; background: #f7f7f7; }
+#shpadm .sr-stand.sr-on { outline: 2px solid #0254a8; }
+#shpadm .sr-stand:hover { background: #f0f4ff; }
+#shpadm .sr-stand-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+#shpadm .sr-stand-name { font-weight: 600; color: #01367c; font-size: 15px; }
+#shpadm .sr-tag { padding: 1px 9px; border-radius: 5px; font-size: 12px; background: #ddd; border: 1px solid #aaa; color: #333; white-space: nowrap; }
+#shpadm .sr-tag-on { background: #d2f4cd; border-color: #75ae77; color: #04ac0b; }
+#shpadm .sr-counts { display: flex; gap: 6px; flex-wrap: wrap; }
+#shpadm .sr-count { flex: 1 1 0; min-width: 52px; text-align: center; padding: 4px 2px; border-radius: 6px; background: #f0f4ff; }
+#shpadm .sr-count b { display: block; font-size: 22px; line-height: 1.1; color: #01367c; }
+#shpadm .sr-count span { display: block; font-size: 11px; color: #4c4e50; }
+#shpadm .sr-count.sr-warn { background: #fdebd6; }
+#shpadm .sr-count.sr-warn b { color: #7a4a10; }
+#shpadm .sr-count.sr-zero { background: #f7f7f7; }
+#shpadm .sr-count.sr-zero b { color: #7d8183; }
+#shpadm .sr-wait { margin-top: 6px; font-size: 12px; color: #4c4e50; }
+#shpadm .sr-wait.sr-late b { color: #a80000; }
+#shpadm .sr-staff { margin-top: 6px; font-size: 12px; color: #7d8183; }
+
+/* ---- Filters and list of orders ---- */
+#shpadm .sr-filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; margin: 0 0 12px; }
+#shpadm .sr-orders .sr-row { cursor: pointer; }
+#shpadm .sr-orders .sr-row:hover td, #shpadm .sr-orders .sr-open td { background: #f0f4ff; }
+#shpadm .sr-orders .sr-row:focus { outline: 2px solid #a7d6ff; }
+#shpadm .sr-num { font-size: 16px; color: #01367c; }
+#shpadm .sr-pill, #shpadm .sr-pay { display: inline-block; padding: 1px 9px; border-radius: 5px; font-size: 12px; border: 1px solid #aaa; background: #eee; color: #333; white-space: nowrap; }
+#shpadm .sr-pill-placed, #shpadm .sr-pill-preparing { background: #f0f4ff; border-color: #a7d6ff; color: #01367c; }
+#shpadm .sr-pill-ready { background: #fdebd6; border-color: #cb8137; color: #7a4a10; }
+#shpadm .sr-pill-delivered, #shpadm .sr-pay-paid { background: #d2f4cd; border-color: #75ae77; color: #04ac0b; }
+#shpadm .sr-pill-cancelled, #shpadm .sr-pay-refunded { background: #eee; border-color: #bbb; color: #7d8183; }
+#shpadm .sr-pay-unpaid, #shpadm .sr-pay-partial { background: #ffd6db; border-color: #bb7575; color: #a80000; }
+#shpadm .sr-pay-tab { background: #f0f4ff; border-color: #a7d6ff; color: #01367c; }
+#shpadm .sr-st-cancelled td { color: #7d8183; }
+#shpadm .sr-detail td { background: #fbfcfe; padding: 10px 12px 12px; }
+#shpadm .sr-lines { margin: 0 0 8px; }
+#shpadm .sr-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+#shpadm .sr-refund { border: 1px solid #e8b4ae; border-radius: 8px; padding: 10px 12px; background: #fff; max-width: 560px; }
+#shpadm .sr-refund h3 { margin: 0 0 6px; font-size: 14px; color: #a80000; }
+
+/* ---- Reports ---- */
+#shpadm .sr-filter .sa-row { margin: 0; }
+#shpadm .sr-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin: 0 0 14px; }
+#shpadm .sr-tile { background: #fff; border: 1px solid #d2d4d6; border-top: 4px solid #0254a8; border-radius: 8px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+#shpadm .sr-tile span { display: block; font-size: 12px; color: #4c4e50; }
+#shpadm .sr-tile b { display: block; font-size: 20px; color: #01367c; margin-top: 2px; }
+#shpadm .sr-tile small { margin-top: 2px; }
+#shpadm .sr-docs { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; margin: 0 0 10px; }
+#shpadm h3 { font-size: 14px; color: #0254a8; margin: 14px 0 6px; }
+#shpadm .sr-table tfoot td { font-weight: 600; border-top: 2px solid #d2d4d6; border-bottom: 0; }
+#shpadm .sr-group td { background: #f0f4ff; color: #01367c; }
+#shpadm .sr-peak td { background: #fdebd6; }
+#shpadm .sr-hours td:last-child { width: 40%; }
+#shpadm .sr-bar { display: block; height: 12px; border-radius: 3px; background: #0254a8; }
+#shpadm .sr-peak .sr-bar { background: #cb8137; }
+#shpadm .sr-low { color: #a80000; font-size: 12px; }
+
+/* Narrow screens (phone held upright): the list of orders becomes cards. */
+@media (max-width: 760px) {
+    #shpadm.sr-live, #shpadm.sr-page { box-sizing: border-box; max-width: calc(100vw - 16px); }
+    #shpadm .sr-orders thead { display: none; }
+    #shpadm .sr-orders, #shpadm .sr-orders tbody, #shpadm .sr-orders tr, #shpadm .sr-orders td { display: block; width: 100%; box-sizing: border-box; }
+    #shpadm .sr-orders .sr-row { border: 1px solid #d2d4d6; border-radius: 8px; padding: 8px; margin: 10px 0 0; background: #fff; }
+    #shpadm .sr-orders .sr-row td { border: 0; padding: 3px 0; text-align: left !important; display: flex; justify-content: space-between; gap: 10px; }
+    #shpadm .sr-orders .sr-row td[data-label]::before { content: attr(data-label); font-size: 12px; color: #4c4e50; }
+    #shpadm .sr-orders .sr-detail td { border: 1px solid #d2d4d6; border-top: 0; border-radius: 0 0 8px 8px; display: block; }
+    #shpadm .sr-acts .sa-btn { flex: 1 1 100%; padding: 12px 14px; }
+    #shpadm .sr-stands { grid-template-columns: 1fr; }
+}

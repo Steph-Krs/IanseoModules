@@ -116,5 +116,13 @@ if (bk_is_finished($c->ToWhenTo)) {
 if (bk_docs_list($c, $tourId) || (bk_dossard_available($c, $tourId) && $mine > 0)) {
     echo ' <a class="bk-btn" href="' . bk_e(bk_public_url('documents.php?t=' . $tourId)) . '">' . bk_e(bk_t('CompDocsBtn')) . '</a>';
 }
+// Food & shop of the competition, when the organiser switched it on.
+if (!bk_is_finished($c->ToWhenTo) && is_file(dirname(__DIR__) . '/../shop/lib/link.php')) {
+    require_once dirname(__DIR__) . '/../shop/lib/link.php';
+    $shpLinks = shp_public_links($tourId);
+    if ($shpLinks['shop'] !== '') {
+        echo ' <a class="bk-btn" href="' . bk_e($shpLinks['shop']) . '">' . bk_e(shp_t('ShCusBookingBtn')) . '</a>';
+    }
+}
 echo '</div></div>';
 if (!$embed) bk_foot();

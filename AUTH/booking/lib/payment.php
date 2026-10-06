@@ -6,8 +6,12 @@
  * - DUE: every registration of that licence, whatever its origin (online registration or
  *   participant entered/imported in ianseo), priced by the tariff configured for the
  *   competition (base, category, departure, provenance, multi-registration rank), plus the
- *   shop orders. Later: what is consumed on site, in the same account.
- * - PAID: the sum of the journal BookingLedger (payments, refunds, cancellations — signed).
+ *   shop orders, plus what was bought at the food & shop stands (shop/, "on my account"
+ *   included) — one account per archer and per competition.
+ * - PAID: the sum of the journal BookingLedger (payments, refunds, cancellations, rejected
+ *   payments — signed), the payments taken at the stands included.
+ * Sales without a name go to technical accounts: 'G<id>' (a guest known by a nickname) and
+ * 'C' (counter, anonymous). The payments page shows them as one summary line.
  * - REMAINING = due - paid; negative = paid too much, a refund to make.
  * The organiser manages it on admin/dues.php ("Paiements"); the archer sees it in "Mes
  * inscriptions", on the receipt (any time, with every line and movement) and, for a
@@ -23,7 +27,34 @@ define('BK_PAYMENT_LOADED', true);
 require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/competition.php';
 require_once __DIR__ . '/pricing.php';
-require_once __DIR__ . '/shop.php';
+
+define('BK_SHOP_SUMMARY', '*SHOP');   // key of the summary line of the accounts without a name
+
+/**
+ * Are the food & shop stands installed here? Loads their payment library when they are, after
+ * their schema: the tables are created, and the former shop of the online registration moved
+ * over (shp_schema, once per session), BEFORE any account is read — its orders now count from
+ * there only. Never call it from a menu.php: it may write.
+ */
+function bk_shp()
+{
+    static $on = null;
+    if ($on !== null) return $on;
+    $file = dirname(__DIR__, 2) . '/shop/lib/pay.php';
+    $on = is_file($file);
+    if ($on) {
+        require_once dirname(__DIR__, 2) . '/shop/lib/schema.php';
+        shp_schema();
+        require_once $file;
+    }
+    return $on;
+}
+
+/** Technical account of the food & shop: 'C' (counter, no name) or 'G<id>' (guest). */
+function bk_account_is_tech($account)
+{
+    return (bool) preg_match('/^(C|G\d+)$/', (string) $account);
+}
 
 /** Means of payment offered. */
 function bk_payment_methods()
@@ -166,7 +197,8 @@ function bk_account_enid($account)
 /** Labels of the journal line kinds. */
 function bk_ledger_kinds()
 {
-    return array('payment' => bk_t('KindPayment'), 'refund' => bk_t('KindRefund'), 'cancel' => bk_t('KindCancel'));
+    return array('payment' => bk_t('KindPayment'), 'refund' => bk_t('KindRefund'), 'cancel' => bk_t('KindCancel'),
+        'reject' => bk_t('KindReject'));
 }
 
 /**
@@ -239,37 +271,68 @@ function bk_ledger_migrate($tourId)
             AND PyLicence = " . StrSafe_DB($r->PyLicence) . " AND PyLedger = 0");
         if (safe_w_affected_rows() < 1) continue;
         $due = bk_account_due($tourId, $r->PyLicence);
-        if ($due['due'] <= 0) continue;
-        bk_ledger_add($tourId, $r->PyLicence, 'payment', $due['due'], (string) $r->PyMethod,
+        // The tick covered the registrations and the former shop (now moved to the stands), not the stands.
+        $ticked = round($due['due'] - $due['shp'] + $due['shop_old'], 2);
+        if ($ticked <= 0) continue;
+        bk_ledger_add($tourId, $r->PyLicence, 'payment', $ticked, (string) $r->PyMethod,
             bk_date_iso($r->PyPaidAt), bk_t('LedgerTakenOver'),
             (string) $r->PyBy);
     }
 }
 
-/** What an account owes, without the journal: ['reg', 'shop', 'due', 'registrations' => […]]. */
+/**
+ * What an account owes, without the journal: ['reg', 'shop' and 'shp' (food & shop: everything
+ * that is not a registration), 'shop_old' (the part of 'shp' that came from the former shop of
+ * the online registration), 'due', 'registrations' => […]].
+ */
 function bk_account_due($tourId, $account)
 {
-    $regs = bk_account_registrations($tourId, $account);
+    $tech = bk_account_is_tech($account);
+    $regs = $tech ? array() : bk_account_registrations($tourId, $account);
     $a = $regs[$account] ?? null;
-    $shop = bk_account_enid($account) ? 0.0 : bk_shop_order_total($tourId, $account);
+    $shp = bk_shp() ? shp_account_due($tourId, $account) : 0.0;
+    $old = ($shp > 0 && !$tech) ? shp_account_legacy($tourId, $account) : 0.0;
     $reg = $a ? $a['reg'] : 0.0;
-    return array('reg' => $reg, 'shop' => $shop, 'due' => round($reg + $shop, 2), 'registrations' => $a);
+    return array('reg' => $reg, 'shop' => $shp, 'shop_old' => $old, 'shp' => $shp,
+        'due' => round($reg + $shp, 2), 'registrations' => $a);
 }
 
-/** Journal lines of an account, oldest first. */
-function bk_ledger_moves($tourId, $account)
+/** Display name of a technical account of the food & shop (nickname of a guest when still known). */
+function bk_account_tech_name($tourId, $account)
 {
-    $out = array();
-    $rs = safe_r_sql("SELECT * FROM BookingLedger WHERE BlgTournament = " . intval($tourId) . "
-        AND BlgAccount = " . StrSafe_DB($account) . " ORDER BY BlgWhen, BlgId");
-    while ($r = safe_fetch($rs)) $out[] = $r;
-    return $out;
+    if ($account === 'C') return bk_t('DuCounterSales');
+    $id = intval(substr((string) $account, 1));   // bytes: 'G' + digits
+    $label = bk_shp() ? shp_guest_label($tourId, $id) : '';
+    return $label !== '' ? $label : bk_t('DuGuestN', $id);
 }
 
 /**
- * One account: what is due (registrations with their tariff detail, shop lines), the
+ * Journal lines of an account, oldest first. Each line gets CounterKind: the kind of the line
+ * that cancelled it ('cancel', or 'reject' for a payment that did not go through), '' if none.
+ */
+function bk_ledger_moves($tourId, $account)
+{
+    $out = array();
+    $kinds = array();
+    $rs = safe_r_sql("SELECT * FROM BookingLedger WHERE BlgTournament = " . intval($tourId) . "
+        AND BlgAccount = " . StrSafe_DB($account) . " ORDER BY BlgWhen, BlgId");
+    while ($r = safe_fetch($rs)) { $out[] = $r; $kinds[intval($r->BlgId)] = (string) $r->BlgKind; }
+    foreach ($out as $r) $r->CounterKind = intval($r->BlgCancelled) > 0 ? ($kinds[intval($r->BlgCancelled)] ?? 'cancel') : '';
+    return $out;
+}
+
+/** Word marking a line that was cancelled or rejected ('' when neither). */
+function bk_ledger_off_word($m)
+{
+    if (intval($m->BlgCancelled) <= 0) return '';
+    return bk_t(($m->CounterKind ?? '') === 'reject' ? 'RejectedWord' : 'CancelledWord');
+}
+
+/**
+ * One account: what is due (registrations with their tariff detail, food & shop lines), the
  * journal, and the totals. ['name', 'club_code', 'club_name', 'registrations' => rows,
- * 'shop_lines', 'reg', 'shop', 'due', 'moves', 'paid', 'remaining'].
+ * 'shp_lines', 'reg', 'shop', 'shop_old', 'shp', 'due', 'moves', 'paid', 'remaining']. A payment
+ * still pending at an online provider is listed, not counted.
  */
 function bk_account($tourId, $account)
 {
@@ -279,22 +342,30 @@ function bk_account($tourId, $account)
     $d = bk_account_due($tourId, $account);
     $moves = bk_ledger_moves($tourId, $account);
     $paid = 0.0;
-    foreach ($moves as $m) $paid += (float) $m->BlgAmount;
+    foreach ($moves as $m) if ((string) $m->BlgStatus === 'done') $paid += (float) $m->BlgAmount;
     $a = $d['registrations'];
+    $tech = bk_account_is_tech($account);
     return array(
-        'account' => $account, 'name' => $a ? $a['name'] : '', 'club_code' => $a ? $a['club_code'] : '',
+        'account' => $account, 'name' => $a ? $a['name'] : ($tech ? bk_account_tech_name($tourId, $account) : ''),
+        'club_code' => $a ? $a['club_code'] : '',
         'club_name' => $a ? $a['club_name'] : '', 'registrations' => $a ? $a['rows'] : array(),
-        'shop_lines' => bk_account_enid($account) ? array() : bk_shop_order_lines($tourId, $account),
-        'reg' => $d['reg'], 'shop' => $d['shop'], 'due' => $d['due'], 'moves' => $moves,
+        'shp_lines' => bk_shp() ? shp_account_lines($tourId, $account) : array(),
+        'reg' => $d['reg'], 'shop' => $d['shop'], 'shop_old' => $d['shop_old'], 'shp' => $d['shp'],
+        'due' => $d['due'], 'moves' => $moves,
         'paid' => round($paid, 2), 'remaining' => round($d['due'] - $paid, 2),
     );
 }
 
 /**
- * Every account of a competition, for the payments page: participants (any origin), shop
- * buyers and accounts with journal lines. [account => ['account', 'licence', 'name',
- * 'club_code', 'club_name', 'count', 'online', 'reg', 'shop', 'due', 'paid', 'remaining',
- * 'moves', 'decl']]. A handful of queries whatever the size of the competition.
+ * Every account of a competition, for the payments page: participants (any origin), food &
+ * shop customers and accounts with journal lines. [account => ['account',
+ * 'licence', 'name', 'club_code', 'club_name', 'count', 'online', 'reg', 'shop', 'shp', 'due',
+ * 'paid', 'remaining', 'moves', 'decl']]. A handful of queries whatever the size of the
+ * competition.
+ *
+ * The food & shop sales without a name (counter 'C', guests 'G<id>') are not listed one by
+ * one: they make ONE summary line, key BK_SHOP_SUMMARY, 'synthetic' => true, its accounts
+ * under 'accounts' (same fields each).
  */
 function bk_accounts($tourId)
 {
@@ -303,37 +374,44 @@ function bk_accounts($tourId)
     bk_ledger_migrate($tourId);
     $out = array();
     $blank = array('licence' => '', 'name' => '', 'club_code' => '', 'club_name' => '', 'count' => 0,
-        'online' => false, 'reg' => 0.0, 'shop' => 0.0, 'paid' => 0.0, 'moves' => 0, 'decl' => '');
+        'online' => false, 'reg' => 0.0, 'shop' => 0.0, 'shp' => 0.0, 'paid' => 0.0, 'moves' => 0, 'decl' => '');
     foreach (bk_account_registrations($tourId) as $k => $a) {
         $out[$k] = array_merge($blank, array('account' => $k, 'licence' => $a['licence'], 'name' => $a['name'],
             'club_code' => $a['club_code'], 'club_name' => $a['club_name'], 'count' => count($a['rows']),
             'online' => $a['online'], 'reg' => $a['reg']));
     }
-    $rs = safe_r_sql("SELECT SoLicence AS k, SUM(SoQty * SiPrice) AS t FROM BookingShopOrders
-        INNER JOIN BookingShopItems ON SiId = SoItem
-        WHERE SoTournament = $tourId AND SoQty > 0 GROUP BY SoLicence");
-    while ($r = safe_fetch($rs)) {
-        if (!isset($out[$r->k])) $out[$r->k] = array_merge($blank, array('account' => $r->k, 'licence' => $r->k));
-        $out[$r->k]['shop'] = round((float) $r->t, 2);
-    }
-    $rs = safe_r_sql("SELECT BlgAccount AS k, SUM(BlgAmount) AS p, COUNT(*) AS n FROM BookingLedger
+    $rs = safe_r_sql("SELECT BlgAccount AS k, SUM(IF(BlgStatus = 'done', BlgAmount, 0)) AS p, COUNT(*) AS n FROM BookingLedger
         WHERE BlgTournament = $tourId GROUP BY BlgAccount");
     while ($r = safe_fetch($rs)) {
         if (!isset($out[$r->k])) {
-            $out[$r->k] = array_merge($blank, array('account' => $r->k, 'licence' => bk_account_enid($r->k) ? '' : $r->k));
+            $out[$r->k] = array_merge($blank, array('account' => $r->k,
+                'licence' => (bk_account_enid($r->k) || bk_account_is_tech($r->k)) ? '' : $r->k));
         }
         $out[$r->k]['paid'] = round((float) $r->p, 2);
         $out[$r->k]['moves'] = intval($r->n);
     }
+    $shpLabels = array();
+    foreach (bk_shp() ? shp_accounts_due($tourId) : array() as $k => $s) {
+        if (!isset($out[$k])) {
+            $out[$k] = array_merge($blank, array('account' => $k, 'licence' => bk_account_is_tech($k) ? '' : $k));
+        }
+        $out[$k]['shp'] = $s['due'];
+        $out[$k]['shop'] = round($out[$k]['shop'] + $s['due'], 2);
+        if ($s['label'] !== '') $shpLabels[$k] = $s['label'];
+    }
     $decl = bk_payment_map($tourId);
     foreach ($out as $k => &$a) {
-        if ($a['name'] === '' && $a['licence'] !== '') {   // shop or journal only: name from the account or the federal file
+        if ($a['name'] === '' && bk_account_is_tech($k)) {
+            $a['name'] = isset($shpLabels[$k]) ? $shpLabels[$k] : bk_account_tech_name($tourId, $k);
+        }
+        if ($a['name'] === '' && $a['licence'] !== '') {   // stands or journal only: name from the account or the federal file
             $n = safe_fetch(safe_r_sql("SELECT BaFamilyName AS f, BaName AS g, BaClubCode AS c FROM BookingArchers
                     WHERE BaLicence = " . StrSafe_DB($a['licence'])))
                 ?: safe_fetch(safe_r_sql("SELECT LueFamilyName AS f, LueName AS g, LueCountry AS c FROM LookUpEntries
                     WHERE LueCode = " . StrSafe_DB($a['licence']) . " ORDER BY LueDefault DESC LIMIT 1"));
             if ($n) { $a['name'] = trim($n->f . ' ' . $n->g); $a['club_code'] = (string) $n->c; }
         }
+        if ($a['name'] === '' && isset($shpLabels[$k])) $a['name'] = $shpLabels[$k];   // as typed at a stand
         $a['due'] = round($a['reg'] + $a['shop'], 2);
         $a['remaining'] = round($a['due'] - $a['paid'], 2);
         $py = $decl[$k] ?? null;
@@ -341,7 +419,30 @@ function bk_accounts($tourId)
         $a['decl_method'] = $py ? (string) ($py->PyDeclMethod ?? '') : '';
     }
     unset($a);
+
+    $tech = array();
+    foreach ($out as $k => $a) {
+        if (!bk_account_is_tech($k)) continue;
+        $tech[$k] = $a;
+        unset($out[$k]);
+    }
+    if ($tech) {
+        uasort($tech, function ($x, $y) { return $y['remaining'] <=> $x['remaining'] ?: strcasecmp($x['name'], $y['name']); });
+        $sum = array_merge($blank, array('account' => BK_SHOP_SUMMARY, 'synthetic' => true, 'name' => bk_t('DuShopNoAccount'),
+            'decl_method' => '', 'due' => 0.0, 'remaining' => 0.0, 'accounts' => $tech));
+        foreach ($tech as $a) {
+            foreach (array('shop', 'shp', 'due', 'paid', 'remaining') as $f) $sum[$f] = round($sum[$f] + $a[$f], 2);
+            $sum['moves'] += $a['moves'];
+        }
+        $out[BK_SHOP_SUMMARY] = $sum;
+    }
     return $out;
+}
+
+/** Row of technical account $account in a bk_accounts() result, or null when it has no sale nor movement. */
+function bk_accounts_tech($accounts, $account)
+{
+    return $accounts[BK_SHOP_SUMMARY]['accounts'][$account] ?? null;
 }
 
 /** State of an account: 'none' (nothing due nor paid), 'due', 'partial', 'settled', 'over' (to refund). */
@@ -371,64 +472,167 @@ function bk_money_in($v)
     return preg_match('/^\d{1,6}(\.\d{1,2})?$/', $v) ? round((float) $v, 2) : 0.0;
 }
 
+/** Was the last bk_ledger_add() answered with a line that already existed (same key)? */
+function bk_ledger_existing($set = null)
+{
+    static $existing = false;
+    if ($set !== null) $existing = (bool) $set;
+    return $existing;
+}
+
+/** Journal line id of an idempotency key on a competition, 0 if none (write connection: fresh). */
+function bk_ledger_by_idem($tourId, $idem)
+{
+    $r = safe_fetch(safe_w_sql("SELECT BlgId FROM BookingLedger WHERE BlgTournament = " . intval($tourId)
+        . " AND BlgIdem = " . StrSafe_DB((string) $idem)));
+    return $r ? intval($r->BlgId) : 0;
+}
+
+/**
+ * Structure that receives the money of a competition: the owner scope of the competition in
+ * the AUTH register (club, CD, CR, FED), '' when unknown. Kept on each line for the day the
+ * money is collected online and paid out to that structure.
+ */
+function bk_ledger_benef($tourId)
+{
+    static $cache = array();
+    $tourId = intval($tourId);
+    if (!array_key_exists($tourId, $cache)) {
+        $rs = safe_r_sql("SELECT AsOwnerScope FROM AuthShare
+            INNER JOIN Tournament ON ToCode = AsToCode COLLATE utf8mb4_unicode_ci WHERE ToId = $tourId", false, true);
+        $r = $rs ? safe_fetch($rs) : null;
+        $cache[$tourId] = $r ? mb_substr((string) $r->AsOwnerScope, 0, 16) : '';
+    }
+    return $cache[$tourId];
+}
+
 /**
  * Writes a journal line. $kind 'payment' or 'refund' (amount given positive, stored with its
  * sign); $date 'YYYY-MM-DD' typed by the organiser ('' = now, local time of the competition).
- * Returns the line id, 0 when refused (unknown kind, amount out of range).
+ * $extra (all optional):
+ *   order, stand, staff  food & shop order, stand and volunteer of the line
+ *   provider, ref        'manual' (default) or an online provider, and its id of the payment
+ *   status               'done' (default), 'pending' (online, not confirmed yet), 'failed'
+ *   idem                 idempotency key (UUID) sent by a phone: the same key on the same
+ *                        competition gives back the line written the first time, nothing new
+ *   benef                receiving structure (default: owner of the competition)
+ * Returns the line id, 0 when refused (unknown kind, amount out of range, malformed key).
+ * bk_ledger_existing() then tells whether the line already existed.
  */
-function bk_ledger_add($tourId, $account, $kind, $amount, $method, $date, $label, $by, $group = 0)
+function bk_ledger_add($tourId, $account, $kind, $amount, $method, $date, $label, $by, $group = 0, array $extra = array())
 {
     bk_schema();
+    bk_ledger_existing(false);
     $tourId = intval($tourId);
     $amount = round((float) $amount, 2);
     if (!in_array($kind, array('payment', 'refund'), true) || $amount <= 0 || $amount > 999999) return 0;
+    $idem = strtolower(trim((string) ($extra['idem'] ?? '')));   // bytes: a UUID is ASCII
+    if ($idem !== '' && !preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $idem)) return 0;
+    if ($idem !== '' && ($id = bk_ledger_by_idem($tourId, $idem))) {
+        bk_ledger_existing(true);
+        return $id;
+    }
     $signed = $kind === 'refund' ? -$amount : $amount;
+    $status = in_array($extra['status'] ?? '', array('pending', 'failed'), true) ? $extra['status'] : 'done';
+    $provider = preg_match('/^[a-z]{1,12}$/', (string) ($extra['provider'] ?? '')) ? (string) $extra['provider'] : 'manual';
+    $ref = mb_substr((string) preg_replace('/[^\x21-\x7E]/', '', (string) ($extra['ref'] ?? '')), 0, 80);
+    $benef = array_key_exists('benef', $extra) ? mb_substr(trim((string) $extra['benef']), 0, 16) : bk_ledger_benef($tourId);
     // Re-import anchor (lib/adopt.php): a competition handled in ianseo only has no row yet,
     // and its payments would be left behind when a newer version of it is imported.
     safe_w_sql("INSERT IGNORE INTO BookingCompetitions (BcTournament, BcCode) SELECT ToId, ToCode FROM Tournament WHERE ToId = $tourId");
     $when = preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', (string) $date, $dm) && checkdate((int) $dm[2], (int) $dm[3], (int) $dm[1])
         ? StrSafe_DB($date . ' 12:00:00')
         : bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)");
-    safe_w_sql("INSERT INTO BookingLedger SET BlgTournament = $tourId,
-        BlgAccount = " . StrSafe_DB(mb_substr((string) $account, 0, 25)) . ",
-        BlgKind = "    . StrSafe_DB($kind) . ",
-        BlgAmount = "  . StrSafe_DB(number_format($signed, 2, '.', '')) . ",
-        BlgMethod = "  . StrSafe_DB(array_key_exists($method, bk_payment_methods()) ? $method : '') . ",
-        BlgLabel = "   . StrSafe_DB(mb_substr(trim((string) $label), 0, 160)) . ",
-        BlgGroup = "   . intval($group) . ",
+    $ok = safe_w_sql("INSERT INTO BookingLedger SET BlgTournament = $tourId,
+        BlgAccount = "  . StrSafe_DB(mb_substr((string) $account, 0, 25)) . ",
+        BlgKind = "     . StrSafe_DB($kind) . ",
+        BlgAmount = "   . StrSafe_DB(number_format($signed, 2, '.', '')) . ",
+        BlgMethod = "   . StrSafe_DB(array_key_exists($method, bk_payment_methods()) ? $method : '') . ",
+        BlgLabel = "    . StrSafe_DB(mb_substr(trim((string) $label), 0, 160)) . ",
+        BlgGroup = "    . intval($group) . ",
+        BlgOrder = "    . intval($extra['order'] ?? 0) . ",
+        BlgStand = "    . intval($extra['stand'] ?? 0) . ",
+        BlgStaff = "    . intval($extra['staff'] ?? 0) . ",
+        BlgProvider = " . StrSafe_DB($provider) . ",
+        BlgRef = "      . StrSafe_DB($ref) . ",
+        BlgStatus = "   . StrSafe_DB($status) . ",
+        BlgIdem = "     . ($idem !== '' ? StrSafe_DB($idem) : 'NULL') . ",
+        BlgBenef = "    . StrSafe_DB($benef) . ",
         BlgWhen = $when,
-        BlgCreated = " . bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)") . ",
-        BlgBy = "      . StrSafe_DB(mb_substr((string) $by, 0, 64)));
+        BlgCreated = "  . bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)") . ",
+        BlgBy = "       . StrSafe_DB(mb_substr((string) $by, 0, 64)), false, $idem !== '' ? array(1062) : array());
+    if (!$ok) {
+        // The same key, written by a concurrent request that has just committed: its line.
+        bk_ledger_existing(true);
+        return bk_ledger_by_idem($tourId, $idem);
+    }
     return intval(safe_w_last_id());
 }
 
 /**
- * Cancels a journal line: a counter-line of the opposite amount, both kept. Only a line
- * not cancelled yet and not itself a cancellation. Returns the new line id, or 0.
+ * Counter-line of a journal line, both kept: 'cancel' (an entry made by mistake — any line
+ * but a cancellation) or 'reject' (a payment that did not go through: cheque refused, card
+ * dispute — counted as an incident by the payer trust index). The line is locked while its
+ * counter-line is written, so that two clicks cannot write two. Returns the new id, or 0.
  */
-function bk_ledger_cancel($tourId, $id, $by)
+function bk_ledger_counter($tourId, $id, $by, $kind, $note = '', $staffId = 0)
 {
     bk_schema();
     $tourId = intval($tourId);
-    $l = safe_fetch(safe_r_sql("SELECT * FROM BookingLedger WHERE BlgId = " . intval($id) . "
-        AND BlgTournament = $tourId AND BlgKind <> 'cancel' AND BlgCancelled = 0"));
-    if (!$l) return 0;
+    $cond = $kind === 'reject' ? "BlgKind = 'payment' AND BlgStatus = 'done'" : "BlgKind <> 'cancel'";
+    $now = bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)");
+    safe_w_BeginTransaction();
+    $l = safe_fetch(safe_w_sql("SELECT * FROM BookingLedger WHERE BlgId = " . intval($id) . "
+        AND BlgTournament = $tourId AND BlgCancelled = 0 AND $cond FOR UPDATE"));
+    if (!$l) {
+        safe_w_Rollback();
+        return 0;
+    }
     $kinds = bk_ledger_kinds();
     $d = bk_date_iso($l->BlgWhen);
+    $what = mb_strtolower($kinds[$l->BlgKind] ?? $l->BlgKind);
+    if ($kind === 'reject') {
+        $label = $d !== '' ? bk_t('LedgerRejectOf', bk_date_dmy($d)) : bk_t('LedgerReject');
+    } else {
+        $label = $d !== '' ? bk_t('LedgerCancelOf', array('kind' => $what, 'date' => bk_date_dmy($d))) : bk_t('LedgerCancel', $what);
+    }
+    $note = trim((string) $note);
+    if ($note !== '') $label .= ' — ' . $note;
     safe_w_sql("INSERT INTO BookingLedger SET BlgTournament = $tourId,
-        BlgAccount = " . StrSafe_DB($l->BlgAccount) . ", BlgKind = 'cancel',
-        BlgAmount = " . StrSafe_DB(number_format(-(float) $l->BlgAmount, 2, '.', '')) . ",
-        BlgMethod = " . StrSafe_DB($l->BlgMethod) . ",
-        BlgLabel = " . StrSafe_DB($d !== ''
-            ? bk_t('LedgerCancelOf', array('kind' => mb_strtolower($kinds[$l->BlgKind] ?? $l->BlgKind), 'date' => bk_date_dmy($d)))
-            : bk_t('LedgerCancel', mb_strtolower($kinds[$l->BlgKind] ?? $l->BlgKind))) . ",
-        BlgCancels = " . intval($l->BlgId) . ",
-        BlgWhen = " . bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)") . ",
-        BlgCreated = " . bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)") . ",
-        BlgBy = " . StrSafe_DB(mb_substr((string) $by, 0, 64)));
+        BlgAccount = "  . StrSafe_DB($l->BlgAccount) . ", BlgKind = " . StrSafe_DB($kind) . ",
+        BlgAmount = "   . StrSafe_DB(number_format(-(float) $l->BlgAmount, 2, '.', '')) . ",
+        BlgMethod = "   . StrSafe_DB($l->BlgMethod) . ",
+        BlgLabel = "    . StrSafe_DB(mb_substr($label, 0, 160)) . ",
+        BlgCancels = "  . intval($l->BlgId) . ",
+        BlgOrder = "    . intval($l->BlgOrder) . ",
+        BlgStand = "    . intval($l->BlgStand) . ",
+        BlgStaff = "    . intval($staffId) . ",
+        BlgProvider = " . StrSafe_DB($l->BlgProvider) . ",
+        BlgRef = "      . StrSafe_DB($l->BlgRef) . ",
+        BlgBenef = "    . StrSafe_DB($l->BlgBenef) . ",
+        BlgWhen = $now, BlgCreated = $now,
+        BlgBy = "       . StrSafe_DB(mb_substr((string) $by, 0, 64)));
     $new = intval(safe_w_last_id());
     safe_w_sql("UPDATE BookingLedger SET BlgCancelled = $new WHERE BlgId = " . intval($l->BlgId));
+    safe_w_Commit();
+    // A line of a food & shop order: the order's payment state follows the journal.
+    if (intval($l->BlgOrder) > 0 && bk_shp()) shp_order_pay_state(intval($l->BlgOrder));
     return $new;
+}
+
+/** Cancels a journal line (an entry made by mistake). Returns the new line id, or 0. */
+function bk_ledger_cancel($tourId, $id, $by, $staffId = 0)
+{
+    return bk_ledger_counter($tourId, $id, $by, 'cancel', '', $staffId);
+}
+
+/**
+ * A payment that did not go through (cheque refused by the bank, card dispute): its amount is
+ * owed again, and the payer trust index counts it as an incident. Returns the new id, or 0.
+ */
+function bk_ledger_reject($tourId, $id, $by, $note = '', $staffId = 0)
+{
+    return bk_ledger_counter($tourId, $id, $by, 'reject', $note, $staffId);
 }
 
 /** 'YYYY-MM-DD…' → 'YYYY-MM-DD', '' when not a date. */
@@ -545,34 +749,50 @@ function bk_due_total($tourId, $licence)
 }
 
 /**
- * Does the organiser record payments here (at least one journal line on the competition)?
- * Without it, nothing is known of what was paid: a competition that is over is then not
- * shown as owing anything — paid on site and never recorded is the common case.
+ * Does the organiser record payments here (at least one journal line of a person's account
+ * written outside the food & shop stands)? Without it, nothing is known of what was paid for
+ * the registrations: a competition that is over is then not shown as owing anything — paid on
+ * site and never recorded is the common case. The stands' lines do not tell: every sale there
+ * is recorded, whatever the organiser does with the registrations.
  */
 function bk_ledger_tracked($tourId)
 {
-    return (bool) safe_fetch(safe_r_sql("SELECT BlgId FROM BookingLedger WHERE BlgTournament = " . intval($tourId) . " LIMIT 1"));
+    return (bool) safe_fetch(safe_r_sql("SELECT BlgId FROM BookingLedger WHERE BlgTournament = " . intval($tourId) . "
+        AND BlgStand = 0 AND BlgOrder = 0 AND BlgAccount <> 'C' AND BlgAccount NOT REGEXP '^G[0-9]+$' LIMIT 1"));
+}
+
+/**
+ * Is the balance of an account (bk_account()) known? Yes while the competition is not over,
+ * when the organiser records the payments here, or when the account holds nothing but food &
+ * shop sales — those are all recorded, sale and payment.
+ */
+function bk_account_known($tourId, $a, $finished)
+{
+    if (!$finished) return true;
+    if ($a['reg'] <= 0.004 && ($a['shop_old'] ?? 0) <= 0.004 && ($a['shp'] ?? 0) > 0.004) return true;
+    return bk_ledger_tracked($tourId);
 }
 
 /**
  * Competitions where an archer has an account worth showing: something priced on a competition
  * that uses the payments (open on this server, or closed with the payments ticked), a shop
- * order or a journal line. Newest first: ['ToId', 'ToName', 'ToWhere', 'ToWhenFrom', 'ToWhenTo',
- * 'past', 'tracked', 'due', 'paid', 'remaining', 'payinfo'].
+ * order, a food & shop order or a journal line. Newest first: ['ToId', 'ToName', 'ToWhere',
+ * 'ToWhenFrom', 'ToWhenTo', 'past', 'tracked' (balance known, bk_account_known), 'due', 'paid',
+ * 'remaining', 'payinfo'].
  */
 function bk_archer_accounts($licence)
 {
     bk_schema();
     $lic = trim((string) $licence);
-    if ($lic === '' || bk_account_enid($lic)) return array();
+    if ($lic === '' || bk_account_enid($lic) || bk_account_is_tech($lic)) return array();
     $l = StrSafe_DB($lic);
+    $shp = bk_shp() ? " UNION SELECT ShTournament FROM ShopOrders WHERE ShLicence = $l AND ShCustKind = 'ARCHER' AND ShStatus <> 'cancelled'" : '';
     $rs = safe_r_sql("SELECT ToId, ToName, ToWhere, ToWhenFrom, ToWhenTo FROM Tournament
         WHERE ToId IN (
               SELECT EnTournament FROM Entries INNER JOIN BookingCompetitions ON BcTournament = EnTournament
                WHERE EnCode = $l AND EnAthlete = 1 AND (BcFee > 0 OR BcPricing IS NOT NULL)
                  AND (BcPublishLevel >= 2 OR BcPayments = 1)
-              UNION SELECT SoTournament FROM BookingShopOrders WHERE SoLicence = $l AND SoQty > 0
-              UNION SELECT BlgTournament FROM BookingLedger WHERE BlgAccount = $l)
+              UNION SELECT BlgTournament FROM BookingLedger WHERE BlgAccount = $l$shp)
         ORDER BY ToWhenFrom DESC, ToId DESC");
     $tours = array();
     while ($r = safe_fetch($rs)) $tours[] = $r;
@@ -582,7 +802,7 @@ function bk_archer_accounts($licence)
         if ($a['due'] <= 0 && !$a['moves']) continue;
         $out[] = array('ToId' => intval($t->ToId), 'ToName' => $t->ToName, 'ToWhere' => $t->ToWhere,
             'ToWhenFrom' => $t->ToWhenFrom, 'ToWhenTo' => $t->ToWhenTo, 'past' => bk_is_finished($t->ToWhenTo),
-            'tracked' => bk_ledger_tracked(intval($t->ToId)),
+            'tracked' => bk_account_known(intval($t->ToId), $a, true),
             'due' => $a['due'], 'paid' => $a['paid'], 'remaining' => $a['remaining'],
             'payinfo' => bk_payinfo_get(bk_comp_config(intval($t->ToId))));
     }

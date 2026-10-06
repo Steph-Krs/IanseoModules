@@ -19,9 +19,9 @@ $bkEntries = array();
 // Screens of the open competition: for the organiser who manages the participants, not only
 // the server administrator.
 if (!empty($on) && isset($acl)) {
-    // What this competition uses. Shop and payments: open on this server (levels 2-3), or
-    // closed with the payments ticked. Survey: open and switched on. Read-only and guarded
-    // ($force): the table or a column may not exist yet, then every entry is shown as before.
+    // What this competition uses. Payments: open on this server (levels 2-3), or closed with the
+    // payments ticked. Survey: open and switched on. Read-only and guarded ($force): the table or
+    // a column may not exist yet, then every entry is shown as before.
     $bkShowPay = $bkShowSurvey = true;
     $bkRs = safe_r_sql("SELECT BcPublishLevel, BcPayments, BcSurvey FROM BookingCompetitions
         WHERE BcTournament = " . intval($_SESSION['TourId'] ?? 0), false, true);
@@ -31,13 +31,14 @@ if (!empty($on) && isset($acl)) {
         $bkShowPay = $bkLevel >= 2 || ($bkC && intval($bkC->BcPayments) === 1);
         $bkShowSurvey = $bkLevel >= 2 && intval($bkC->BcSurvey) === 1;
     }
+    // Food & shop stands (AUTH/shop, their own menu): "on my account" there needs the payments
+    // page. Same guard: the table may not exist yet.
+    $bkRs = safe_r_sql("SELECT SgTab FROM ShopSettings WHERE SgTournament = " . intval($_SESSION['TourId'] ?? 0), false, true);
+    if ($bkRs && ($bkC = safe_fetch($bkRs)) && intval($bkC->SgTab) === 1) $bkShowPay = true;
     $bkUrl = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/';
     if (subFeatureAcl($acl, AclParticipants, 'pEntries') >= AclReadWrite) {
         $bkEntries[] = bk_t('MnuSettings') . '|' . $bkUrl . 'competition.php';
-        if ($bkShowPay) {
-            $bkEntries[] = bk_t('Shop') . '|' . $bkUrl . 'shop.php';
-            $bkEntries[] = bk_t('Payments') . '|' . $bkUrl . 'dues.php';
-        }
+        if ($bkShowPay) $bkEntries[] = bk_t('Payments') . '|' . $bkUrl . 'dues.php';
         $bkEntries[] = bk_t('MnuMandate') . '|' . $bkUrl . 'mandate.php';
     }
     if ($bkShowSurvey && subFeatureAcl($acl, AclParticipants, 'pEntries') >= AclReadOnly) {

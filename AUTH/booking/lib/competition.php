@@ -252,36 +252,19 @@ function bk_comp_copy_from($destTour, $srcTour)
     return true;
 }
 
-/** Copies the shop (items + variants); REPLACES the destination's (orders erased). */
+/**
+ * Copies the points of sale (settings, stands, catalogue — AUTH/shop, which replaced the shop of
+ * the online registration) when the source has some. The destination's are REPLACED, which the
+ * shop refuses once the destination has orders: then nothing is copied. Returns the number of
+ * products copied.
+ */
 function bk_comp_copy_shop($destTour, $srcTour)
 {
-    $destTour = intval($destTour); $srcTour = intval($srcTour);
-    // Source collected first (no nested loop over live result sets).
-    $items = array();
-    $rs = safe_r_sql("SELECT * FROM BookingShopItems WHERE SiTournament = $srcTour ORDER BY SiId");
-    while ($r = safe_fetch($rs)) $items[] = $r;
-    $variants = array();
-    foreach ($items as $it) {
-        $variants[(string) $it->SiId] = array();
-        $rv = safe_r_sql("SELECT * FROM BookingShopVariants WHERE SvItem = " . intval($it->SiId) . " ORDER BY SvId");
-        while ($v = safe_fetch($rv)) $variants[(string) $it->SiId][] = $v;
-    }
-    // Destination shop reset (copy = fresh shop).
-    safe_w_sql("DELETE FROM BookingShopOrders WHERE SoTournament = $destTour");
-    safe_w_sql("DELETE BookingShopVariants FROM BookingShopVariants INNER JOIN BookingShopItems ON SiId = SvItem WHERE SiTournament = $destTour");
-    safe_w_sql("DELETE FROM BookingShopItems WHERE SiTournament = $destTour");
-    foreach ($items as $it) {
-        safe_w_sql("INSERT INTO BookingShopItems (SiTournament, SiSection, SiLabel, SiDescription, SiPrice, SiStock, SiMaxPerPerson, SiOptionName, SiOrder, SiActive)
-            VALUES ($destTour, " . StrSafe_DB($it->SiSection) . ", " . StrSafe_DB($it->SiLabel) . ", "
-            . StrSafe_DB($it->SiDescription) . ", " . StrSafe_DB($it->SiPrice) . ", " . intval($it->SiStock) . ", "
-            . intval($it->SiMaxPerPerson) . ", " . StrSafe_DB($it->SiOptionName) . ", " . intval($it->SiOrder) . ", " . intval($it->SiActive) . ")");
-        $newId = intval(safe_w_last_id());
-        foreach ($variants[(string) $it->SiId] as $v) {
-            safe_w_sql("INSERT INTO BookingShopVariants (SvItem, SvLabel, SvStock, SvOrder)
-                VALUES ($newId, " . StrSafe_DB($v->SvLabel) . ", " . intval($v->SvStock) . ", " . intval($v->SvOrder) . ")");
-        }
-    }
-    return count($items);
+    require_once dirname(__DIR__, 2) . '/shop/lib/copy.php';
+    shp_schema();
+    if (!safe_fetch(safe_r_sql("SELECT SdId FROM ShopStands WHERE SdTournament = " . intval($srcTour) . " LIMIT 1"))) return 0;
+    $r = shp_copy_from($destTour, $srcTour);
+    return empty($r['error']) ? intval($r['products']) : 0;
 }
 
 /**

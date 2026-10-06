@@ -28,6 +28,7 @@ require_once(dirname(__DIR__) . '/legal-lib.php');
 require_once(dirname(__DIR__) . '/logos-lib.php');
 require_once(dirname(__DIR__) . '/stats-usage.php');
 require_once(dirname(__DIR__) . '/booking/lib/schema.php');
+if (is_file(dirname(__DIR__) . '/shop/lib/schema.php')) require_once(dirname(__DIR__) . '/shop/lib/schema.php');
 $_SESSION = array();   // no session flag: every step checks the database
 
 aut_table_names();
@@ -36,5 +37,6 @@ aut_legal_ensure_schema();
 aut_logos_schema();
 aut_stats_ensure_schema();
 bk_schema();
+if (function_exists('shp_schema')) shp_schema();
 echo '[' . aut_log_time() . "] Tables of the module up to date.\n";
 exit(0);

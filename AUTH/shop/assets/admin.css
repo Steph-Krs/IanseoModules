@@ -1,0 +1,105 @@
+/* Organiser pages of the points of sale — scoped by #shpadm. Desktop first, readable on a
+   tablet. Charter colours (CHARTE_GRAPHIQUE.md): blue carries the structure, coral and green
+   are signals. One primary button per block. */
+
+#shpadm { max-width: 1200px; color: #20263d; font-size: 14px; }
+#shpadm h1 { font-size: 22px; color: #01367c; margin: 0 0 8px; }
+#shpadm h2 { font-size: 15px; color: #0254a8; margin: 16px 0 8px; }
+#shpadm h2:first-child { margin-top: 0; }
+#shpadm .sa-title { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+#shpadm .sa-lead { color: #4c4e50; margin: 8px 0 14px; max-width: 900px; }
+#shpadm .sa-hint { color: #7d8183; font-size: 12px; margin: 4px 0 8px; }
+#shpadm .sa-muted { color: #7d8183; }
+#shpadm small { display: block; color: #7d8183; font-size: 12px; font-weight: normal; }
+
+#shpadm .sa-nav, #shpadm .sa-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+#shpadm .sa-nav a, #shpadm .sa-tabs a { padding: 6px 14px; border: 1px solid #d2d4d6; border-radius: 6px;
+    background: #f7f7f7; color: #20263d; text-decoration: none; }
+#shpadm .sa-nav a:hover, #shpadm .sa-tabs a:hover { background: #f0f4ff; border-color: #a7d6ff; }
+#shpadm .sa-nav a.on, #shpadm .sa-tabs a.on { background: #0254a8; border-color: #0254a8; color: #fff; }
+
+#shpadm .sa-card { background: #fff; border: 1px solid #d2d4d6; border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 14px 16px; margin: 0 0 14px; }
+
+#shpadm .sa-msg { padding: 9px 12px; border-radius: 6px; margin: 0 0 14px; border: 1px solid; }
+#shpadm .sa-msg ul { margin: 4px 0 0 18px; padding: 0; }
+#shpadm .sa-ok { background: #d2f4cd; border-color: #75ae77; color: #04ac0b; }
+#shpadm .sa-err { background: #ffd6db; border-color: #bb7575; color: #a80000; }
+#shpadm .sa-warn { background: #fdebd6; border-color: #cb8137; color: #7a4a10; }
+#shpadm .sa-info { background: #f0f4ff; border-color: #a7d6ff; color: #01367c; }
+
+#shpadm input[type=text], #shpadm input[type=number], #shpadm input[type=datetime-local], #shpadm select {
+    padding: 6px 8px; border: 1px solid #d2d4d6; border-radius: 6px; font-size: 14px; max-width: 100%; box-sizing: border-box; }
+#shpadm input:focus, #shpadm select:focus { outline: 2px solid #a7d6ff; border-color: #0254a8; }
+#shpadm .sa-num { width: 90px; }
+#shpadm .sa-letter { width: 44px; text-align: center; text-transform: uppercase; font-weight: bold; }
+
+#shpadm .sa-row { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; margin: 8px 0 0; }
+#shpadm .sa-f { display: flex; flex-direction: column; gap: 3px; }
+#shpadm .sa-f > span { font-size: 12px; color: #4c4e50; }
+#shpadm .sa-f.sa-grow, #shpadm .sa-f.sa-wide { flex: 1 1 260px; }
+#shpadm .sa-f.sa-wide { margin-top: 8px; }
+#shpadm .sa-f.sa-grow input, #shpadm .sa-f.sa-wide input { width: 100%; }
+#shpadm .sa-checks { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 8px; }
+#shpadm .sa-row .sa-checks { flex-direction: row; flex-wrap: wrap; gap: 6px 16px; margin: 0; }
+#shpadm .sa-chk { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+#shpadm .sa-chk input { margin-top: 3px; }
+
+#shpadm .sa-switch { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: 6px; border: 1px solid #d2d4d6; background: #f7f7f7; }
+#shpadm .sa-switch.sa-on { background: #d2f4cd; border-color: #75ae77; }
+#shpadm .sa-tag { padding: 2px 10px; border-radius: 5px; font-size: 12px; background: #ddd; border: 1px solid #aaa; color: #333; white-space: nowrap; }
+#shpadm .sa-on .sa-tag { background: #fff; border-color: #75ae77; color: #04ac0b; }
+
+#shpadm .sa-btn { padding: 7px 14px; border: 1px solid #d2d4d6; border-radius: 6px; background: #f7f7f7;
+    color: #20263d; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-block; }
+#shpadm .sa-btn:hover { background: #f0f4ff; border-color: #a7d6ff; }
+#shpadm .sa-primary { background: #0254a8; border-color: #0254a8; color: #fff; font-weight: 600; }
+#shpadm .sa-primary:hover { background: #01367c; border-color: #01367c; }
+#shpadm .sa-danger { color: #a80000; border-color: #e8b4ae; background: #fff; }
+#shpadm .sa-danger:hover { background: #ffd6db; }
+#shpadm .sa-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+#shpadm .sa-sticky { position: sticky; bottom: 0; z-index: 5; padding: 10px 0; background: linear-gradient(to top, #fff 70%, rgba(255,255,255,0)); }
+
+#shpadm .sa-scroll { overflow-x: auto; }
+#shpadm .sa-table { border-collapse: collapse; width: 100%; }
+#shpadm .sa-table th { text-align: left; font-size: 12px; color: #4c4e50; font-weight: 600; padding: 6px 8px; border-bottom: 2px solid #d2d4d6; white-space: nowrap; }
+#shpadm .sa-table td { padding: 6px 8px; border-bottom: 1px solid #eef1f7; vertical-align: middle; }
+#shpadm .sa-table td.sa-c { text-align: center; }
+#shpadm .sa-table td.sa-acts { white-space: nowrap; }
+#shpadm .sa-stands .sa-name { min-width: 180px; }
+
+#shpadm .sa-prod { border: 1px solid #d2d4d6; border-left: 4px solid #0254a8; border-radius: 8px; padding: 10px 14px 12px;
+    margin: 0 0 12px; background: #fbfcfe; }
+#shpadm [hidden] { display: none !important; }
+#shpadm .sa-vars { margin: 10px 0 0; padding: 10px 12px; background: #f0f4ff; border-radius: 6px; }
+#shpadm .sa-vhead { font-size: 12px; font-weight: 600; color: #01367c; margin-bottom: 6px; }
+#shpadm .sa-var { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; margin: 0 0 8px; }
+#shpadm .sa-var label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #4c4e50; }
+#shpadm .sa-foot { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    margin-top: 10px; padding-top: 8px; border-top: 1px solid #e3e8f4; }
+#shpadm .sa-stats { color: #01367c; }
+
+#shpadm .sa-address { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+#shpadm .sa-qr svg { display: block; border: 1px solid #d2d4d6; border-radius: 6px; }
+#shpadm .sa-address-text { flex: 1 1 320px; }
+#shpadm .sa-url { width: 100%; font-family: Consolas, monospace; }
+
+#shpadm .sa-copy > summary { cursor: pointer; list-style: none; padding: 6px 14px; border: 1px solid #a7d6ff; border-radius: 6px;
+    background: #f0f4ff; color: #0254a8; font-weight: 600; }
+#shpadm .sa-copy > summary::-webkit-details-marker { display: none; }
+#shpadm .sa-copy[open] > summary { background: #0254a8; color: #fff; border-color: #0254a8; }
+#shpadm .sa-copy-body { margin-top: 8px; padding: 10px 12px; border: 1px solid #d2d4d6; border-radius: 8px; background: #fff; max-width: 460px; }
+#shpadm .sa-copy-body select, #shpadm .sa-copy-body input[type=text] { width: 100%; }
+#shpadm .sa-copy-body .sa-btn { margin-top: 8px; }
+
+#shpadm .sa-pdf { display: inline-flex; gap: 6px; align-items: center; color: #0254a8; }
+
+/* Narrow screens (tablet held upright, phone): the points of sale table becomes cards. */
+@media (max-width: 760px) {
+    #shpadm .sa-stands thead { display: none; }
+    #shpadm .sa-stands, #shpadm .sa-stands tbody, #shpadm .sa-stands tr, #shpadm .sa-stands td { display: block; width: 100%; }
+    #shpadm .sa-stands tr { border: 1px solid #d2d4d6; border-radius: 8px; padding: 8px; margin: 0 0 10px; }
+    #shpadm .sa-stands td { border: 0; padding: 4px 0; text-align: left !important; }
+    #shpadm .sa-stands td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; color: #4c4e50; }
+}

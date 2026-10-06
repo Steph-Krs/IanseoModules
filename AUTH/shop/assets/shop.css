@@ -1,0 +1,165 @@
+/* Customer pages of the points of sale: shop, order sheet, tracking, call screen. Scoped by #shp,
+   on top of shp.css (touch targets of 48 px, 16 px text, charter colours). */
+
+/* Navigation Shop / My orders */
+#shp .cus-nav { position: sticky; top: 52px; z-index: 19; display: flex; background: #fff;
+    border-bottom: 1px solid var(--shp-border); }
+#shp .cus-nav-btn { flex: 1; min-height: 52px; border: 0; background: none; font: inherit; font-weight: 700;
+    color: var(--shp-grey); cursor: pointer; }
+#shp .cus-nav-btn.on { color: var(--shp-blue); box-shadow: inset 0 -3px 0 var(--shp-blue); }
+#shp .cus-count { display: inline-block; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 6px;
+    border-radius: 11px; background: var(--shp-coral); color: #fff; font-size: .8rem; line-height: 22px;
+    text-align: center; }
+
+/* Stands */
+#shp .cus-stands { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 10px; }
+#shp .cus-stand { flex: 0 0 auto; min-height: 48px; padding: 0 16px; border: 1px solid var(--shp-border);
+    border-radius: 24px; background: #fff; font: inherit; font-weight: 700; color: var(--shp-text); cursor: pointer; }
+#shp .cus-stand.on { background: var(--shp-blue); border-color: var(--shp-blue); color: #fff; }
+#shp .cus-stand.off:not(.on) { color: var(--shp-grey); }
+#shp .cus-stand .cus-count { background: var(--shp-coral); }
+
+/* Products */
+#shp .cus-cat { margin-top: 18px; }
+#shp .cus-prod { background: #fff; border: 1px solid var(--shp-border); border-radius: var(--shp-radius);
+    margin-bottom: 8px; box-shadow: var(--shp-shadow); }
+#shp .cus-prod-head { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px 0; }
+#shp .cus-opt { font-size: .85rem; color: var(--shp-grey); }
+#shp .cus-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px;
+    min-height: 64px; }
+#shp .cus-prod .cus-item + .cus-item { border-top: 1px solid var(--shp-neutral); }
+#shp .cus-item.off { opacity: .6; }
+#shp .cus-item-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; align-items: flex-start; }
+#shp .cus-item-name { font-size: 1.05rem; overflow-wrap: anywhere; }
+#shp .cus-desc { font-size: .92rem; color: var(--shp-grey); }
+#shp .cus-price { color: var(--shp-blue-dark); font-weight: 700; }
+#shp .cus-low { color: var(--shp-orange); font-size: .88rem; font-weight: 700; }
+#shp .cus-max { margin: 0; padding: 0 12px 8px; }
+
+/* Quantity: big buttons, labelled for screen readers, never lost under the thumb */
+#shp .cus-qty { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+#shp .cus-q { width: 48px; height: 48px; border: 1px solid var(--shp-border); border-radius: 24px; background: var(--shp-neutral);
+    font: inherit; font-size: 1.5rem; font-weight: 700; color: var(--shp-text); cursor: pointer; touch-action: manipulation; }
+#shp .cus-q-plus { background: var(--shp-blue); border-color: var(--shp-blue); color: #fff; }
+#shp .cus-q:disabled { opacity: .35; cursor: not-allowed; }
+#shp .cus-q-n { min-width: 30px; text-align: center; font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* Sticky basket bar */
+#shp .cus-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid var(--shp-border);
+    box-shadow: 0 -2px 8px rgba(0,0,0,.1); }
+#shp .cus-bar-txt { flex: 1; font-size: 1rem; }
+#shp .cus-bar-btn { min-width: 130px; }
+
+/* Order sheet */
+#shp .cus-sheet h1 { margin-bottom: 6px; }
+#shp .cus-lines { list-style: none; margin: 0; padding: 0; }
+#shp .cus-line { padding: 8px 0; border-bottom: 1px solid var(--shp-neutral); }
+#shp .cus-line-row, #shp .cus-total, #shp .cus-ofoot, #shp .cus-olines li { display: flex; justify-content: space-between; gap: 10px; }
+#shp .cus-line-name { overflow-wrap: anywhere; }
+#shp .cus-line-amt { font-weight: 700; white-space: nowrap; }
+#shp .cus-line.bad { background: var(--shp-red-bg); margin: 0 -8px; padding: 8px; border-radius: var(--shp-radius); }
+#shp .cus-line-err { display: flex; align-items: center; gap: 10px; margin-top: 6px; color: var(--shp-red); font-weight: 600; }
+#shp .cus-line-err span { flex: 1; }
+#shp .cus-fix { min-height: 44px; padding: 6px 12px; }
+#shp .cus-total { align-items: center; margin: 10px 0; }
+#shp .cus-login { margin-top: 10px; width: 100%; }
+#shp .cus-pays { display: flex; flex-direction: column; gap: 8px; }
+#shp .cus-pay { display: flex; align-items: flex-start; gap: 12px; margin: 0; padding: 12px; min-height: 64px; font-weight: 400;
+    border: 2px solid var(--shp-border); border-radius: var(--shp-radius); background: #fff; cursor: pointer; }
+#shp .cus-pay.on { border-color: var(--shp-blue); background: var(--shp-light); }
+#shp .cus-pay.off { opacity: .6; }
+#shp .cus-pay input { width: 24px; height: 24px; margin-top: 2px; flex: 0 0 auto; }
+#shp .cus-pay-txt { display: flex; flex-direction: column; gap: 2px; }
+#shp .cus-sheet-foot { position: sticky; bottom: -16px; display: flex; flex-direction: column; gap: 8px; margin-top: 14px;
+    padding: 10px 0 4px; background: #fff; }
+
+/* Tracking */
+#shp .cus-order { background: #fff; border: 1px solid var(--shp-border); border-radius: var(--shp-radius); box-shadow: var(--shp-shadow);
+    padding: 14px; margin-bottom: 12px; text-align: center; }
+#shp .cus-order.fresh { border-color: var(--shp-blue); box-shadow: 0 0 0 3px var(--shp-sky); }
+#shp .cus-order.cus-st-ready { border-color: var(--shp-green); box-shadow: 0 0 0 3px var(--shp-green-bg); }
+#shp .cus-ostand { margin: 2px 0 8px; color: var(--shp-grey); }
+#shp .cus-steps { display: flex; list-style: none; margin: 8px 0; padding: 0; gap: 4px; }
+#shp .cus-steps li { flex: 1; padding: 8px 2px; border-top: 5px solid var(--shp-border); font-size: .88rem; color: var(--shp-grey); }
+#shp .cus-steps li.done { border-top-color: var(--shp-sky); color: var(--shp-text); }
+#shp .cus-steps li.on { border-top-color: var(--shp-blue); color: var(--shp-blue-dark); font-weight: 800; }
+#shp .cus-st-ready .cus-steps li.on { border-top-color: var(--shp-green); color: #1d5e20; }
+#shp .cus-eta { margin: 4px 0; font-weight: 700; color: var(--shp-blue-dark); }
+#shp .cus-wanted { display: inline-block; margin: 4px 0; padding: 2px 10px; border-radius: 5px; background: #fdebd6;
+    border: 1px solid #cb8137; color: #7a4206; font-weight: 800; }
+#shp .cus-when-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 4px; }
+#shp .cus-when-f { display: flex; flex-direction: column; gap: 4px; flex: 1 1 140px; font-weight: 600; }
+#shp .cus-when-f select { min-height: 48px; font-size: 16px; }
+#shp .cus-instr { margin: 8px 0; font-size: 1.05rem; font-weight: 600; }
+#shp .cus-olines { list-style: none; margin: 10px 0 6px; padding: 8px 0 0; border-top: 1px solid var(--shp-neutral); text-align: left; }
+#shp .cus-ofoot { align-items: center; margin: 4px 0 0; }
+#shp .cus-cancel { margin-top: 12px; }
+#shp .cus-notif { margin-bottom: 12px; }
+#shp .cus-past { margin-top: 16px; }
+#shp .cus-past summary { min-height: 48px; display: flex; align-items: center; font-weight: 700; cursor: pointer; }
+#shp .cus-past .cus-order { opacity: .85; }
+
+/* "Your order is ready" (the alert itself is in shp.css): white on green, large */
+#shp .shp-alert h1 { color: #fff; font-size: 2rem; margin: 0; }
+#shp .shp-alert p { margin: 0; font-size: 1.4rem; font-weight: 600; }
+#shp .shp-alert .shp-btn { min-width: 140px; }
+
+/* Public screen of the orders: readable from 5 m. On a wide screen (TV) every column holds 15
+   orders: sizes follow the height, bounded by the width for a squarer screen; the plain vh line
+   before each min() is for TV browsers that do not know min(). */
+#shp .cus-board, #shp .shp-main.cus-board { background: #0b1230; color: #fff; min-height: 100vh; padding: 3vh 3vw; max-width: none; width: 100%; margin: 0; box-sizing: border-box; }
+#shp .cus-board [hidden] { display: none !important; }
+#shp .cus-board h1, #shp .cus-board h2 { color: #fff; }
+#shp .cus-board-title { font-size: clamp(1.4rem, 4vw, 3rem); line-height: 1.1; margin: 0 0 2vh; }
+#shp .cus-board h2 { display: flex; align-items: center; gap: .5em; font-size: 1.3rem; line-height: 1.15; margin: 0 0 1vh; color: var(--shp-sky); }
+#shp .cus-board-count { min-width: 1.3em; padding: 0 .45em; border-radius: 999px; background: var(--shp-sky); color: #0b1230;
+    text-align: center; font-variant-numeric: tabular-nums; }
+#shp .cus-board-cols { display: grid; grid-template-columns: 1fr; gap: 2vh 2vw; }
+#shp .cus-board-col { background: rgba(255,255,255,.06); border-radius: 12px; padding: 1.5vh 1.5vw; min-width: 0; }
+#shp .cus-board-list { display: flex; flex-direction: column; gap: .8vh; }
+#shp .cus-board-row { display: flex; flex-wrap: nowrap; align-items: center; gap: .4em .8em; }
+#shp .cus-board-tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .4em; }
+#shp .cus-board-sm { font-size: 1.6rem; font-weight: 700; line-height: 1.15; padding: .05em .3em; border: 2px solid var(--shp-sky);
+    border-radius: 8px; font-variant-numeric: tabular-nums; }
+/* Tags are indicative: small, so that the name has the room. */
+#shp .cus-board-pay, #shp .cus-board-at { font-size: 10px; font-weight: 700; padding: .1em .5em; border-radius: 4px; }
+#shp .cus-board-pay.is-paid, #shp .cus-board-pay.is-tab { background: #1d5e20; color: #d2f4cd; }
+#shp .cus-board-pay.is-topay { background: #fdebd6; color: #7a4206; }
+#shp .cus-board-pay.is-pickup { background: #f0f4ff; color: #01367c; }
+#shp .cus-board-at { background: #fff; color: #0b1230; }
+#shp .cus-board-eta { font-size: 1.2rem; font-weight: 700; color: var(--shp-sky); }
+/* The name gives way first; on a phone the tags may then take two lines, never the row. */
+#shp .cus-board-who { flex: 0 10 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 1.15rem; font-weight: 600; }
+#shp .cus-board-sm, #shp .cus-board-eta { flex-shrink: 0; }
+#shp .cus-board-tags, #shp .cus-board-eta { margin-left: auto; }
+#shp .cus-board-nums { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 1vh 1vw; }
+#shp .cus-board-num { display: flex; flex-direction: column; align-items: center; min-width: 0; font-size: 2.2rem;
+    font-weight: 900; line-height: 1; padding: .1em .2em; text-align: center; background: var(--shp-green);
+    border-radius: 12px; font-variant-numeric: tabular-nums; }
+#shp .cus-board-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: .45em; font-weight: 700; line-height: 1.25; }
+#shp .cus-board-num.fresh { animation: cus-pop 1.2s ease-out 3; }
+#shp .cus-board-none { font-size: 1.4rem; color: var(--shp-sky); }
+#shp .cus-board-more { margin: 1vh 0 0; font-size: .95rem; font-style: italic; color: var(--shp-sky); }
+#shp .cus-board-num, #shp .cus-board-sm, #shp .cus-board-pay, #shp .cus-board-at, #shp .cus-board-eta { white-space: nowrap; }
+@media (min-width: 900px) {
+    #shp .cus-board-title { font-size: 4.4vh; font-size: min(4.4vh, 3rem); }
+    #shp .cus-board-cols { grid-template-columns: 1.2fr 1fr 1.3fr; min-height: 80vh; }
+    #shp .cus-board h2 { font-size: 3.4vh; font-size: min(3.4vh, 1.9vw); }
+    #shp .cus-board-list { gap: .6vh; }
+    #shp .cus-board-tags { flex-wrap: nowrap; flex-shrink: 0; }
+    #shp .cus-board-sm { font-size: 3vh; font-size: min(3vh, 1.85vw); }
+    #shp .cus-board-pay, #shp .cus-board-at { font-size: 10px; font-size: max(.95vh, 10px); }
+    #shp .cus-board-eta { font-size: 2.5vh; font-size: min(2.5vh, 1.5vw); }
+    #shp .cus-board-who { font-size: 2.4vh; font-size: min(2.4vh, 1.35vw); }
+    #shp .cus-board-nums { grid-template-columns: 1fr 1fr; gap: .9vh 1vw; }
+    #shp .cus-board-num { font-size: 4.6vh; font-size: min(4.6vh, 2.6vw); }
+    #shp .cus-board-none, #shp .cus-board-more { font-size: 1.9vh; font-size: min(1.9vh, 1.1vw); }
+}
+@keyframes cus-pop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); background: #fff; color: var(--shp-green); } }
+
+@media (min-width: 700px) {
+    #shp .cus-sheet { left: 50%; right: auto; width: 520px; transform: translateX(-50%); }
+}
