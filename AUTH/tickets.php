@@ -105,7 +105,6 @@ $PAGE_TITLE = aut_t('BarReportTitle');
 include('Common/Templates/head.php');
 ?>
 <style>
-#aut-tk { max-width:760px; }
 #aut-tk h1 { font-size:22px; color:#01367c; margin:0 0 6px; }
 #aut-tk .aut-lead { color:#4c4e50; font-size:14px; margin:0 0 18px; }
 #aut-tk .aut-card { background:#fff; border:1px solid #d2d4d6; border-radius:8px;

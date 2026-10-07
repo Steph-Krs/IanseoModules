@@ -18,6 +18,17 @@ define('BK_CAPS_LOADED', true);
 require_once __DIR__ . '/schema.php';
 
 /**
+ * Metres of one distance of TournamentDistances. TdDist is 0 on competitions made by a set that
+ * only fills the label ("70m-1"): the label then gives the metres, as the core does in
+ * DragDropTarget.
+ */
+function bk_td_metres($label, $dist)
+{
+    $m = intval($dist);
+    return $m > 0 ? $m : intval(trim((string) $label));
+}
+
+/**
  * Distances used by the competition, with the categories concerned.
  * Returns [metres => ['m'=>int, 'labels'=>[...], 'classes'=>[...]]]
  */
@@ -30,7 +41,7 @@ function bk_caps_distances($tourId, $type)
     while ($r = safe_fetch($rs)) {
         for ($i = 1; $i <= 4; $i++) {
             $lab = trim((string) $r->{'Td' . $i});
-            $m   = intval($r->{'TdDist' . $i});
+            $m   = bk_td_metres($lab, $r->{'TdDist' . $i});
             if ($lab === '' || $lab === '-' || $m <= 0) continue;
             if (!isset($out[$m])) $out[$m] = array('m' => $m, 'labels' => array(), 'classes' => array());
             $out[$m]['labels'][$lab] = true;
@@ -236,7 +247,7 @@ function bk_caps_copy($tourId, $from, $to)
  */
 function bk_caps_needs($tourId, $type, $division, $class, $faceId)
 {
-    $rs = safe_r_sql("SELECT TdDist1, TdDist2, TdDist3, TdDist4
+    $rs = safe_r_sql("SELECT Td1, Td2, Td3, Td4, TdDist1, TdDist2, TdDist3, TdDist4
         FROM TournamentDistances
         WHERE TdTournament = " . intval($tourId) . "
           AND TdType = " . StrSafe_DB($type) . "
@@ -245,7 +256,7 @@ function bk_caps_needs($tourId, $type, $division, $class, $faceId)
     $d = array();
     if ($r = safe_fetch($rs)) {
         for ($i = 1; $i <= 4; $i++) {
-            $m = intval($r->{'TdDist' . $i});
+            $m = bk_td_metres($r->{'Td' . $i}, $r->{'TdDist' . $i});
             if ($m > 0) $d[$m] = true;
         }
     }

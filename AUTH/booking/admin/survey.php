@@ -117,7 +117,7 @@ $PAGE_TITLE = bk_t('MnuSurvey');
 include('Common/Templates/head.php');
 ?>
 <style>
-#bksv { max-width:980px; margin:0 auto; padding:6px 10px 30px; color:#1f2d3d; }
+#bksv { padding:6px 10px 30px; color:#1f2d3d; }
 #bksv h1 { font-size:22px; color:#01367c; margin:10px 0 12px; }
 #bksv h2 { font-size:16px; color:#0254a8; margin:22px 0 8px; }
 #bksv h3 { font-size:14px; color:#01367c; margin:16px 0 6px; }

@@ -61,7 +61,6 @@ $PAGE_TITLE = aut_t('MenuTitle') . ' — ' . aut_t('MenuTickets');
 include('Common/Templates/head.php');
 ?>
 <style>
-#aut-tk { max-width:920px; }
 #aut-tk h1 { font-size:22px; color:#01367c; margin:0 0 12px; }
 #aut-tk .aut-msg { padding:9px 12px; border-radius:6px; margin:0 0 14px; font-size:13px;
     background:#d2f4cd; border:1px solid #75ae77; color:#04ac0b; }

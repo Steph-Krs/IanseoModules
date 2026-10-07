@@ -252,9 +252,9 @@ See the [general README](../README.md) for the common principle.
 | `DELETE FROM` | `BookingSessions` | `booking/lib/archer.php:244` | — |
 | `UPDATE` | `BookingSessions` | `booking/lib/archer.php:249` | — |
 | `DELETE FROM` | `BookingSessions` | `booking/lib/archer.php:261` | — |
-| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/caps.php:207` | — |
-| `INSERT INTO` | `BookingTargetCaps` | `booking/lib/caps.php:212` | — |
-| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/caps.php:220` | — |
+| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/caps.php:218` | — |
+| `INSERT INTO` | `BookingTargetCaps` | `booking/lib/caps.php:223` | — |
+| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/caps.php:231` | — |
 | `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/competition.php:225` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:234` | — |
 | `DELETE FROM` | `BookingTargetCaps` | `booking/lib/competition.php:289` | — |

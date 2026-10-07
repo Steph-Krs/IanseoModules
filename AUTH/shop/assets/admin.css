@@ -2,7 +2,7 @@
    tablet. Charter colours (CHARTE_GRAPHIQUE.md): blue carries the structure, coral and green
    are signals. One primary button per block. */
 
-#shpadm { max-width: 1200px; color: #20263d; font-size: 14px; }
+#shpadm { color: #20263d; font-size: 14px; }
 #shpadm h1 { font-size: 22px; color: #01367c; margin: 0 0 8px; }
 #shpadm h2 { font-size: 15px; color: #0254a8; margin: 16px 0 8px; }
 #shpadm h2:first-child { margin-top: 0; }

@@ -69,9 +69,8 @@ include('Common/Templates/head.php');
 $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };
 ?>
 <style>
-#aut-lg { max-width:820px; }
 #aut-lg h1 { font-size:22px; color:#01367c; margin:0 0 4px; }
-#aut-lg .lead { color:#4c4e50; font-size:14px; margin:0 0 16px; max-width:680px; }
+#aut-lg .lead { color:#4c4e50; font-size:14px; margin:0 0 16px; }
 #aut-lg .sec { background:#fff; border:1px solid #d2d4d6; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.08);
     padding:16px 18px; margin:0 0 14px; }
 #aut-lg .sec h2 { font-size:15px; color:#0254a8; margin:0 0 10px; }

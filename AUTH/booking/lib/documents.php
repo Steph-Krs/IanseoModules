@@ -8,6 +8,7 @@ if (defined('BK_DOCS_LOADED')) return;
 define('BK_DOCS_LOADED', true);
 
 require_once __DIR__ . '/schema.php';
+require_once __DIR__ . '/caps.php';
 
 /**
  * Distance labels that apply to a category (Division+Class).
@@ -30,7 +31,7 @@ function bk_doc_distances($tourId, $type, $division, $class)
     for ($i = 1; $i <= 4; $i++) {
         $lab = trim((string) $r->{'Td' . $i});
         if ($lab === '' || $lab === '-') continue;
-        $out[] = array('label' => $lab, 'metres' => intval($r->{'TdDist' . $i}));
+        $out[] = array('label' => $lab, 'metres' => bk_td_metres($lab, $r->{'TdDist' . $i}));
     }
     return $out;
 }

@@ -220,7 +220,6 @@ $PAGE_TITLE = bk_t('Payments');
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 echo '<style>
-#bkdue { max-width:1100px; }
 #bkdue h1 { font-size:22px; color:#01367c; margin:0 0 4px; }
 #bkdue h2 { font-size:17px; color:#01367c; margin:18px 0 8px; }
 #bkdue .due-sub { color:#4c4e50; font-size:13px; margin:0 0 14px; }

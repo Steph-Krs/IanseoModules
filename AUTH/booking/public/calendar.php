@@ -245,22 +245,37 @@ echo '<div id="bk-preview" class="bk-modal" hidden><div class="bk-modal-backdrop
   }
   sheet.addEventListener('scroll', updateHint);
   window.addEventListener('resize', updateHint);
-  function open()  { last = document.activeElement; body.innerHTML = LOAD; modal.hidden = false;
-                     document.body.classList.add('bk-modal-open'); }
-  function close() { modal.hidden = true; document.body.classList.remove('bk-modal-open');
-                     body.innerHTML = ''; sheet.classList.remove('bk-can-scroll'); if (last && last.focus) last.focus(); }
+  function hide() { modal.hidden = true; document.body.classList.remove('bk-modal-open');
+                    body.innerHTML = ''; sheet.classList.remove('bk-can-scroll'); if (last && last.focus) last.focus(); }
+  function show(url) {
+    var sep = url.indexOf('?') >= 0 ? '&' : '?';
+    last = document.activeElement; body.innerHTML = LOAD; modal.hidden = false;
+    document.body.classList.add('bk-modal-open');
+    fetch(url + sep + 'embed=1', { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+      .then(function (r) { if (!r.ok) throw 0; return r.text(); })
+      .then(function (html) { body.innerHTML = html; sheet.scrollTop = 0; updateHint(); })
+      .catch(function () { window.location.replace(url); });               // fallback: full page
+  }
+  // The open preview is a history entry of the calendar itself (calendar.php#c<id>): the
+  // phone's back button closes it, and coming back from a page opened from it (documents…)
+  // reopens it. The entry keeps the calendar's address on purpose: with the competition's
+  // address, a browser that reloads that entry puts the competition page in the document the
+  // calendar entry shares, and the next back only changed the address bar.
+  var hist = !!(window.history && history.pushState);
+  function close() { if (hist && history.state && history.state.bkComp) history.back(); else hide(); }
+  window.addEventListener('popstate', function (e) {
+    if (e.state && e.state.bkComp) show(e.state.bkComp); else if (!modal.hidden) hide();
+  });
+  if (hist && history.state && history.state.bkComp && modal.hidden) show(history.state.bkComp);
   modal.addEventListener('click', function (e) { if (e.target.hasAttribute('data-close')) close(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) close(); });
   Array.prototype.forEach.call(document.querySelectorAll('.bk-cal-comp'), function (a) {
     a.addEventListener('click', function (e) {
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;   // new tab: let it go
       e.preventDefault();
-      var url = a.getAttribute('href'), sep = url.indexOf('?') >= 0 ? '&' : '?';
-      open();
-      fetch(url + sep + 'embed=1', { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
-        .then(function (r) { if (!r.ok) throw 0; return r.text(); })
-        .then(function (html) { body.innerHTML = html; sheet.scrollTop = 0; updateHint(); })
-        .catch(function () { window.location.href = url; });                 // fallback: full page
+      var url = a.getAttribute('href'), id = (url.match(/[?&]t=(\d+)/) || [])[1] || '';
+      if (hist) history.pushState({ bkComp: url }, '', location.pathname + location.search + '#c' + id);
+      show(url);
     });
   });
 })();

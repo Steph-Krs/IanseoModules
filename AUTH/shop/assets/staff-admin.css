@@ -5,7 +5,7 @@
 #shpstf { --ss-blue: #0254a8; --ss-blue-dark: #01367c; --ss-light: #f0f4ff; --ss-sky: #a7d6ff;
     --ss-green: #04ac0b; --ss-green-bg: #d2f4cd; --ss-orange-bg: #fdebd6; --ss-red: #a80000;
     --ss-red-bg: #ffd6db; --ss-coral: #ff5043; --ss-grey: #7d8183; --ss-border: #d2d4d6; --ss-text: #20263d;
-    max-width: 1200px; padding: 0 0 40px; color: var(--ss-text); font-size: 15px; box-sizing: border-box; }
+    padding: 0 0 40px; color: var(--ss-text); font-size: 15px; box-sizing: border-box; }
 #shpstf *, #shpstf *::before, #shpstf *::after { box-sizing: border-box; }
 /* The rules below give display: flex to some blocks; the hidden attribute must still win. */
 #shpstf [hidden] { display: none !important; }

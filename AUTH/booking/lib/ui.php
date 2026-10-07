@@ -93,6 +93,7 @@ function bk_head($title, $layout = 'page')
                 . "      </nav>\n";
         }
         echo "  </header>\n";
+        if ($archer) echo bk_live_banner($archer);
         if ($archer) {
             $cur = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
             $on = function ($f) use ($cur) { return $cur === $f ? ' on' : ''; };
@@ -111,6 +112,82 @@ function bk_head($title, $layout = 'page')
         }
     }
     echo '  <main class="bk-main">' . "\n";
+}
+
+/**
+ * Competitions the archer is registered in that take place today (local date of each one),
+ * still reachable on the archer side.
+ */
+function bk_live_competitions($archer)
+{
+    if (empty($archer->BaLicence) || !function_exists('bk_clean_licence')) return array();
+    require_once __DIR__ . '/clock.php';
+    $today = bk_local_today_sql('ToTimeZone');
+    $rs = safe_r_sql("SELECT DISTINCT ToId, ToName, ToWhenFrom
+        FROM BookingRegistrations
+        INNER JOIN Entries ON EnId = BrEnId
+        INNER JOIN Tournament ON ToId = BrTournament
+        INNER JOIN BookingCompetitions ON BcTournament = ToId
+        WHERE BrLicence = " . StrSafe_DB(bk_clean_licence($archer->BaLicence)) . "
+          AND BcOpen = 1 AND $today BETWEEN ToWhenFrom AND ToWhenTo
+        ORDER BY ToWhenFrom, ToName", false, true);
+    $out = array();
+    while ($rs && ($r = safe_fetch($rs))) $out[] = $r;
+    return $out;
+}
+
+/**
+ * Banners closed by the archer. Kept in the PHP session with the sign-in they were closed in:
+ * the next sign-in has another token, so the banners come back on their own.
+ */
+function bk_live_hidden()
+{
+    $h = $_SESSION['BK_LiveHidden'] ?? null;
+    $tok = function_exists('bk_current_token_hash') ? bk_current_token_hash() : '';
+    return (is_array($h) && $tok !== '' && ($h['tok'] ?? '') === $tok) ? array_map('intval', (array) ($h['ids'] ?? array())) : array();
+}
+
+function bk_live_hide($tourId)
+{
+    $tok = bk_current_token_hash();
+    if ($tok === '' || $tourId <= 0) return;
+    $ids = bk_live_hidden();
+    $ids[] = intval($tourId);
+    $_SESSION['BK_LiveHidden'] = array('tok' => $tok, 'ids' => array_values(array_unique($ids)));
+}
+
+/**
+ * Banner on every page of the archer space while one of their competitions takes place —
+ * except on the pages of that competition (any page opened with its id: the competition
+ * itself, its documents, a registration to it…), and once the archer closed it.
+ */
+function bk_live_banner($archer)
+{
+    $self = intval($_GET['t'] ?? $_POST['t'] ?? $_GET['comp'] ?? 0);
+    $hidden = bk_live_hidden();
+    $html = '';
+    foreach (bk_live_competitions($archer) as $c) {
+        $id = intval($c->ToId);
+        if ($id === $self || in_array($id, $hidden, true)) continue;
+        $html .= '  <div class="bk-live" data-t="' . $id . '"><a class="bk-live-a" href="'
+            . bk_e(bk_public_url('competition.php?t=' . $id)) . '">'
+            . '<span class="bk-live-dot" aria-hidden="true"></span><span>' . bk_e(bk_t('LiveNow')) . '</span> <b>'
+            . bk_e($c->ToName) . '</b><span class="bk-live-go">' . bk_e(bk_t('LiveOpen')) . ' →</span></a>'
+            . '<button type="button" class="bk-live-x" title="' . bk_e(bk_t('LiveHide')) . '" aria-label="'
+            . bk_e(bk_t('LiveHide')) . '">×</button></div>' . "\n";
+    }
+    if ($html === '' || !function_exists('bk_csrf_token')) return $html;
+    return $html . '  <script>
+  document.querySelectorAll(".bk-live-x").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var box = b.parentNode, f = new FormData();
+      f.append("t", box.getAttribute("data-t"));
+      f.append("bk_csrf", ' . json_encode(bk_csrf_token()) . ');
+      box.parentNode.removeChild(box);
+      if (window.fetch) fetch(' . json_encode(bk_public_url('live-hide.php')) . ', { method: "POST", body: f, credentials: "same-origin" });
+    });
+  });
+  </script>' . "\n";
 }
 
 function bk_foot()
