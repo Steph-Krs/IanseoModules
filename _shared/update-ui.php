@@ -33,7 +33,7 @@ require_once __DIR__ . '/update-lib.php';
 function upd_ui_styles() {
     return <<<'CSS'
 <style>
-.upd-section { max-width: 860px; margin-bottom: 32px; }
+.upd-section { margin-bottom: 32px; }
 .upd-section h2 { color: #0254a8; font-size: 16px; margin: 0 0 12px; padding-bottom: 6px; border-bottom: 2px solid #dde6f5; }
 .upd-section h3 { font-size: 14px; color: #333; margin: 0 0 8px; }
 .upd-btn { padding: 8px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; }

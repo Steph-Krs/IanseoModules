@@ -129,7 +129,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 <style>
 /* Scoped to this page's own class prefix. */
-.uns-section { max-width: 760px; margin-bottom: 28px; }
+.uns-section { margin-bottom: 28px; }
 .uns-msg { padding: 8px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
 .uns-msg-ok  { background: #e8faf0; border-left: 3px solid #1a8a4a; color: #1a5a33; }
 .uns-msg-err { background: #fde8e8; border-left: 3px solid #c0392b; color: #8a1a1a; }
