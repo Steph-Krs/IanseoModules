@@ -93,7 +93,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 <style>
 /* Scoped to this page's own class prefix: the module never restyles ianseo. */
-.gadm-table { border-collapse: collapse; width: 100%; max-width: 900px; }
+.gadm-table { border-collapse: collapse; width: 100%; }
 .gadm-table th { background: linear-gradient(80deg,#0254a8 10%,#082c7c 100%); color: #fff; padding: 8px 12px; text-align: left; }
 .gadm-table td { padding: 8px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
 .gadm-table tr:hover td { background: #f7f9ff; }

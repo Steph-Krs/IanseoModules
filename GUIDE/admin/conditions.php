@@ -88,7 +88,6 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 
 <style>
-.gc-wrap { max-width: 980px; }
 .gc-msg-ok  { background:#e8faf0; border-left:3px solid #1a8a4a; color:#1a5a33; padding:8px 14px; border-radius:6px; margin-bottom:12px; font-size:13px; }
 .gc-msg-err { background:#fde8e8; border-left:3px solid #c0392b; color:#8a1a1a; padding:8px 14px; border-radius:6px; margin-bottom:12px; font-size:13px; }
 .gc-table { border-collapse: collapse; width: 100%; font-size: 13px; margin-bottom: 22px; }

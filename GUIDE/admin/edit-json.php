@@ -153,7 +153,6 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 
 <style>
-.gj-wrap { max-width: 900px; }
 .gj-err { background: #fde; border-left: 3px solid #c00; padding: 8px 12px; margin-bottom: 12px; color: #900; border-radius: 4px; }
 #gj-ta { width: 100%; height: 480px; font-family: monospace; font-size: 12.5px; border: 1px solid #c8d4ec; border-radius: 8px; padding: 12px; box-sizing: border-box; }
 .gj-btn { padding: 9px 24px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; }
