@@ -41,6 +41,11 @@ Everything is in the **Modules › Online registration** menu, with the competit
 - ⚙️ **Open / configure the registrations**: opening period, restriction to the archers of a
   department or a region with a **later opening to everyone**, fee, and what the archers are
   allowed to see.
+- 🗓️ **Opening session by session**: open, closed, or open by itself once the earlier sessions
+  are full, with dates of its own when needed. Option **one registration per archer**, whatever
+  the session.
+- 📄 **Invitation** that meets the rules, filled from the competition: competition format (with
+  or without matches), events, target faces and the **full ianseo programme**; on screen and as PDF.
 - 🏹 **Field assignment constraints**: graphical editor of what each target allows, session by
   session. Each target is a **vertical box** on a shared distance axis: the minimum, maximum and
   default distance are set by dragging the handles. The allowed target faces are dragged from
@@ -58,7 +63,7 @@ Everything is in the **Modules › Online registration** menu, with the competit
 
 Tables created automatically, all prefixed `BK_`: `BookingArchers` (licensee accounts),
 `BookingSessions`, `BookingLog` (log and rate limiting), `BookingCompetitions` (opening of the
-registrations), `BookingRegistrations` (traceability), `BookingClubManagers`.
+registrations), `BookingRegistrations` (traceability), `BookingSessionRules` (opening of each session), `BookingClubManagers`.
 
 The registrations themselves are written into the **ianseo** tables (participants and targets),
 exactly like a manual entry: they show normally in every screen and export of the software.

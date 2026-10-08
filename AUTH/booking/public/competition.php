@@ -17,6 +17,7 @@ require_once dirname(__DIR__) . '/lib/registration.php';
 require_once dirname(__DIR__) . '/lib/pricing.php';
 require_once dirname(__DIR__) . '/lib/mandate.php';   // bk_mandate_visible
 require_once dirname(__DIR__) . '/lib/payment.php';
+require_once dirname(__DIR__) . '/lib/sessionrules.php';
 
 $archer = bk_require_archer();
 
@@ -37,12 +38,14 @@ bk_money_tour($tourId);   // amounts of this page in its currency
 
 // Club of the archer (read again from the licence file) for the eligibility.
 $club = $archer->BaClubCode;
-$q = safe_r_sql("SELECT LueCountry FROM LookUpEntries
+$adult = false;
+$q = safe_r_sql("SELECT LueCountry, LueCtrlCode FROM LookUpEntries
     WHERE LueCode = " . StrSafe_DB($archer->BaLicence) . " ORDER BY LueDefault DESC LIMIT 1");
-if ($r = safe_fetch($q)) $club = $r->LueCountry;
+if ($r = safe_fetch($q)) { $club = $r->LueCountry; $adult = bk_is_major($r->LueCtrlCode); }
 
 $blocked  = bk_comp_archer_blocked($c, $club);
 $sessions = bk_comp_sessions($tourId);
+$sesStates = bk_session_states($tourId, $c, $sessions);
 $dd       = bk_comp_discipline($c->ToType, $c->ToTypeSubRule, $c->ToTypeName);
 $labels   = bk_disc_labels();
 
@@ -90,10 +93,14 @@ if (!$sessions) {
         $left = max(0, $pl - $pr);
         $pc = $pl > 0 ? min(100, round($pr * 100 / $pl)) : 0;
         $dt = bk_comp_dt(bk_session_start($s));
-        echo '<li class="bk-dep' . ($left === 0 ? ' bk-dep-full' : '') . '"><div class="bk-dep-main">'
+        $st = $sesStates[intval($s->SesOrder)] ?? array('open' => true);
+        $shut = $st['open'] ? '' : bk_session_state_text($st);
+        echo '<li class="bk-dep' . ($left === 0 ? ' bk-dep-full' : '') . ($shut !== '' ? ' bk-dep-shut' : '') . '"><div class="bk-dep-main">'
             . '<b>' . bk_e(bk_t('DepCap', intval($s->SesOrder))) . ($s->SesName ? ' — ' . bk_e($s->SesName) : '') . '</b>'
             . ($dt ? '<span class="bk-dep-dt">' . bk_e($dt) . '</span>' : '') . '</div>';
-        if (!empty($c->BcShowGauges)) {
+        if ($shut !== '') {
+            echo '<span class="bk-dep-state">' . bk_e($shut) . '</span>';
+        } elseif (!empty($c->BcShowGauges)) {
             echo '<div class="bk-dep-gauge"><span class="bk-gauge' . ($left === 0 ? ' bk-gauge-full' : '') . '"><i style="width:' . $pc . '%"></i></span>'
                 . '<span class="bk-dep-num">' . bk_e(bk_t($left > 1 ? 'PlacesMany' : 'PlacesOne', $left)) . '</span></div>';
         }
@@ -118,8 +125,11 @@ if ($over) {
 } elseif ($blocked) {
     echo '<p class="bk-hint">' . bk_e(bk_t('CantRegisterYet')) . '</p>' . ($regs !== '' ? ' ' . $regs : '');
 } elseif ($mine > 0) {
+    // One registration per archer: nothing more for them, only clubmates (adults register them).
     echo '<p class="bk-tag bk-tag-on">' . bk_e(bk_t('AlreadyIn')) . ($mine > 1 ? ' (' . $mine . ')' : '') . '</p>'
-        . '<a class="bk-btn bk-btn-primary" href="' . $toReg . '">' . bk_e(bk_t('AddReg')) . '</a> ' . $regs;
+        . (empty($c->BcSingleReg) ? '<a class="bk-btn bk-btn-primary" href="' . $toReg . '">' . bk_e(bk_t('AddReg')) . '</a> '
+            : ($adult ? '<a class="bk-btn" href="' . $toReg . '">' . bk_e(bk_t('RegisterMate')) . '</a> ' : ''))
+        . $regs;
 } else {
     echo '<a class="bk-btn bk-btn-primary" href="' . $toReg . '">' . bk_e(bk_t('RegisterBtn')) . '</a>' . ($regs !== '' ? ' ' . $regs : '');
 }

@@ -403,6 +403,8 @@ body {
 #bk .bk-dep { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;
     padding:9px 12px; border:1px solid #e2e6ee; border-radius:7px; margin-bottom:6px; }
 #bk .bk-dep-full { opacity:.6; }
+#bk .bk-dep-shut { background:#f7f7f8; }
+#bk .bk-dep-state { font-size:12px; color:#a86b00; font-weight:600; }
 #bk .bk-dep-main { display:flex; flex-direction:column; gap:1px; }
 #bk .bk-dep-dt { font-size:12px; color:#7d8183; }
 #bk .bk-dep-gauge { display:flex; align-items:center; gap:8px; }

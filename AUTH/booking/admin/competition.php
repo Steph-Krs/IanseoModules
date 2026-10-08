@@ -23,6 +23,7 @@ require_once dirname(__DIR__) . '/lib/adopt.php';    // bk_adopt_check (kept acr
 require_once dirname(__DIR__) . '/lib/ui.php';       // bk_e
 require_once dirname(__DIR__, 2) . '/shop/lib/lang.php';   // shp_t: name of the points of sale
 require_once dirname(__DIR__) . '/lib/waitlist.php'; // waiting list
+require_once dirname(__DIR__) . '/lib/sessionrules.php'; // opening of each departure
 
 bk_schema();
 
@@ -202,7 +203,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             if (!empty($_POST['waitlist_present'])) {
                 $save['waitlist'] = !empty($_POST['waitlist']);
             }
+            if (!empty($_POST['single_reg_present'])) {
+                $save['single_reg'] = !empty($_POST['single_reg']);
+            }
             bk_comp_save($TOUR, $save);
+            // Opening of each departure (lib/sessionrules.php).
+            if (!empty($_POST['ses_present']) && is_array($_POST['ses'] ?? null)) {
+                bk_session_rules_save($TOUR, $_POST['ses']);
+            }
             safe_w_sql("UPDATE BookingCompetitions SET BcPublishLevel = 3 WHERE BcTournament = $TOUR");
             $msg = bk_t('AcSaved');
         }
@@ -287,6 +295,39 @@ function bk_fld($label, $input)
 }
 
 /** A checkbox line; $label is markup from the language file or escaped by the caller. */
+/**
+ * Level 3, "Registration period" block: opening of each departure — open, closed or opening
+ * once the earlier ones are full — with dates of its own replacing the general ones.
+ */
+function bk_adm_session_rules($tourId, $cfg, $sessions)
+{
+    if (!$sessions) return '';
+    $rules  = bk_session_rules($tourId);
+    $states = bk_session_states($tourId, $cfg, $sessions);
+    $labels = array(BK_SES_OPEN => bk_t('AcSesOpen'), BK_SES_CLOSED => bk_t('AcSesClosed'), BK_SES_AFTER_FULL => bk_t('AcSesAfterFull'));
+    $h = '<h3 class="bk-h3">' . bk_e(bk_t('AcSesTitle')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcSesHint')) . '</p>'
+        . '<input type="hidden" name="ses_present" value="1"><div class="bk-scroll"><table class="bk-t bk-sesrules"><tr><th>'
+        . bk_e(bk_t('SsDeparture')) . '</th><th>' . bk_e(bk_t('AcSesState')) . '</th><th>' . bk_e(bk_t('AcOpenFrom')) . '</th><th>'
+        . bk_e(bk_t('AcOpenTo')) . '</th><th>' . bk_e(bk_t('AcSesNow')) . '</th></tr>';
+    foreach ($sessions as $s) {
+        $o = intval($s->SesOrder);
+        $r = $rules[$o] ?? null;
+        $state = $r ? intval($r->BdState) : BK_SES_OPEN;
+        $opts = '';
+        foreach ($labels as $k => $lab) $opts .= '<option value="' . $k . '"' . ($state === $k ? ' selected' : '') . '>' . bk_e($lab) . '</option>';
+        $st = $states[$o] ?? array('open' => false, 'why' => '');
+        $start = bk_session_start($s);
+        $h .= '<tr><td>' . bk_e(bk_t('DepCap', $o)) . ($s->SesName ? ' — ' . bk_e($s->SesName) : '')
+            . ($start !== '' ? '<br><span class="bk-hint">' . bk_e(bk_date_fr($start)) . '</span>' : '') . '</td>'
+            . '<td><select name="ses[' . $o . '][state]">' . $opts . '</select></td>'
+            . '<td><input type="datetime-local" name="ses[' . $o . '][from]" value="' . bk_e(bk_dtval($r->BdOpenFrom ?? null)) . '"></td>'
+            . '<td><input type="datetime-local" name="ses[' . $o . '][to]" value="' . bk_e(bk_dtval($r->BdOpenTo ?? null)) . '"></td>'
+            . '<td>' . ($st['open'] ? '<span class="bk-ses-on">' . bk_e(bk_t('AcSesIsOpen')) . '</span>'
+                : '<span class="bk-ses-off">' . bk_e(bk_session_state_text($st) ?: bk_t('AcSesIsClosed')) . '</span>') . '</td></tr>';
+    }
+    return $h . '</table></div>';
+}
+
 function bk_chk($name, $on, $label, $style = '')
 {
     return '<label class="bk-chk"' . ($style !== '' ? ' style="' . $style . '"' : '') . '><input type="checkbox" name="' . $name
@@ -339,6 +380,11 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #bkadm table.bk-t { border-collapse:collapse; font-size:13px; }
 #bkadm table.bk-t th, #bkadm table.bk-t td { border:1px solid #d2d4d6; padding:5px 10px; text-align:left; }
 #bkadm table.bk-t th { background:#f0f4ff; color:#01367c; }
+#bkadm .bk-scroll { overflow-x:auto; }
+#bkadm table.bk-sesrules { margin:6px 0 4px; }
+#bkadm table.bk-sesrules select, #bkadm table.bk-sesrules input { font-size:13px; }
+#bkadm .bk-ses-on { color:#04ac0b; font-weight:700; }
+#bkadm .bk-ses-off { color:#a86b00; }
 #bkadm .bk-gauge { display:inline-block; width:130px; height:9px; background:#e9ecef;
     border-radius:5px; overflow:hidden; vertical-align:middle; margin-right:7px; }
 #bkadm .bk-gauge i { display:block; height:100%; background:#0254a8; }
@@ -570,7 +616,8 @@ if ($level == 3) {
         . bk_fld(bk_t('AcOpenFrom'), '<input type="datetime-local" name="from" value="' . bk_e(bk_dtval($cfg->BcOpenFrom)) . '">')
         . bk_fld(bk_t('AcOpenTo'), '<input type="datetime-local" name="to" value="' . bk_e(bk_dtval($cfg->BcOpenTo)) . '">')
         . '</div><p class="bk-hint">' . bk_e(bk_t('AcPeriodHint')) . ' <b style="color: crimson;">'
-        . bk_e(bk_t($cfg->BcIsOpen ? 'AcStateOpen' : 'AcStateOut')) . '</b>.</p></div>'
+        . bk_e(bk_t($cfg->BcIsOpen ? 'AcStateOpen' : 'AcStateOut')) . '</b>.</p>'
+        . bk_adm_session_rules($TOUR, $cfg, $sessions) . '</div>'
         // Geographic restriction.
         . '<div class="bk-sec"><h2>' . bk_e(bk_t('AcGeo')) . '</h2><div class="bk-row">'
         . bk_fld(bk_t('AcGeoFor'), '<select name="kind">' . $kinds . '</select>')
@@ -587,7 +634,10 @@ if ($level == 3) {
               . bk_fld(bk_t('AcMinClubs'), '<input type="number" name="min_clubs" min="1" max="50" value="' . intval($cfg->BcMinClubsPerSession) . '">') . '</div>'
             : '<p class="bk-hint" style="margin-top:0">' . bk_t('AcFedRules') . '</p>')
         . bk_chk('manual_validation', !empty($cfg->BcManualValidation), bk_t('AcManualBox'), 'margin-top:6px')
-        . '<p class="bk-hint">' . bk_t('AcManualHint') . '</p></div>';
+        . '<p class="bk-hint">' . bk_t('AcManualHint') . '</p>'
+        . '<input type="hidden" name="single_reg_present" value="1">'
+        . bk_chk('single_reg', !empty($cfg->BcSingleReg), bk_e(bk_t('AcSingleReg')), 'margin-top:6px')
+        . '<p class="bk-hint">' . bk_e(bk_t('AcSingleRegHint')) . '</p></div>';
 
     // What the archers see.
     $hasMandate = trim((string) ($cfg->BcMandate ?? '')) !== '';

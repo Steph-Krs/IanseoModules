@@ -65,11 +65,43 @@ function bk_comp_calc_sql($alias = '')
     // The organiser typed these times in the competition's local time: compare them with
     // the competition's local "now", identical whatever the page (lib/clock.php).
     $now = bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = {$a}BcTournament)");
-    return "({$a}BcOpen = 1
-              AND ({$a}BcOpenFrom IS NULL OR {$a}BcOpenFrom <= $now)
-              AND ({$a}BcOpenTo   IS NULL OR {$a}BcOpenTo   >= $now)) AS BcIsOpen,
+    $win = function ($from, $to) use ($now) {
+        return "($from IS NULL OR $from <= $now) AND ($to IS NULL OR $to >= $now)";
+    };
+    $general = $win("{$a}BcOpenFrom", "{$a}BcOpenTo");
+    // Open = at least one departure open. At level 3 a departure may be closed or carry its own
+    // dates (lib/sessionrules.php; "opens once the earlier ones are full" counts as open here,
+    // the exact state is computed per departure). A competition without any departure yet
+    // follows the general period.
+    $open = $general;
+    if (bk_session_rules_ready()) {
+        $noSes = "NOT EXISTS (SELECT 1 FROM Session WHERE SesTournament = {$a}BcTournament AND SesType = 'Q')";
+        $open = "EXISTS (SELECT 1 FROM Session
+                    LEFT JOIN BookingSessionRules ON {$a}BcPublishLevel = 3
+                         AND BdTournament = SesTournament AND BdSession = SesOrder
+                    WHERE SesTournament = {$a}BcTournament AND SesType = 'Q' AND COALESCE(BdState, 1) <> 0
+                      AND " . $win("COALESCE(BdOpenFrom, {$a}BcOpenFrom)", "COALESCE(BdOpenTo, {$a}BcOpenTo)") . ")
+                 OR ($noSes AND $general)";
+    }
+    return "({$a}BcOpen = 1 AND ($open)) AS BcIsOpen,
             ({$a}BcRestrictKind = ''
               OR ({$a}BcRestrictTo IS NOT NULL AND {$a}BcRestrictTo <= $now)) AS BcAllOpen";
+}
+
+/**
+ * Does BookingSessionRules exist yet? Asked once per request from the catalogue, which never
+ * fails: the open state is computed by every page, some of which may run before the schema of
+ * this version (cron, a session started before the update).
+ */
+function bk_session_rules_ready()
+{
+    static $ready = null;
+    if ($ready === null) {
+        $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BookingSessionRules'"));
+        $ready = $r && intval($r->n) > 0;
+    }
+    return $ready;
 }
 
 /** Default values of a competition never configured. */
@@ -85,7 +117,7 @@ function bk_comp_defaults($tourId)
         'BcFee' => '0.00', 'BcPricing' => null, 'BcShopUntil' => null, 'BcExcludeStats' => 0,
         'BcPayInfo' => null, 'BcManualValidation' => 0, 'BcMandate' => null, 'BcShowMandate' => null,
         'BcIanseoUrl' => null, 'BcShowProgram' => 0, 'BcShowParticipants' => 0, 'BcShowResults' => 0,
-        'BcShowDossard' => 0, 'BcSurvey' => 1, 'BcWaitlist' => 1,
+        'BcShowDossard' => 0, 'BcSurvey' => 1, 'BcWaitlist' => 1, 'BcSingleReg' => 0,
         'BcPublishLevel' => 1, 'BcAdvancedBackup' => null, 'BcPayments' => 0,
         'BcIsOpen' => 0, 'BcAllOpen' => 1,
     );
@@ -105,7 +137,7 @@ function bk_comp_advanced_cols()
         'BcMaxPerClubPerTarget', 'BcMinClubsPerSession', 'BcShowAssignment', 'BcShowGauges', 'BcAllowScoresheet',
         'BcWishLetter', 'BcWishWith', 'BcWishFree', 'BcPricing', 'BcManualValidation',
         'BcShowMandate', 'BcMandate', 'BcIanseoUrl', 'BcShowProgram', 'BcShowParticipants', 'BcShowResults',
-        'BcShowDossard', 'BcSurvey', 'BcWaitlist', 'BcPayInfo', 'BcShopUntil');
+        'BcShowDossard', 'BcSurvey', 'BcWaitlist', 'BcPayInfo', 'BcShopUntil', 'BcSingleReg');
 }
 
 /**
@@ -244,8 +276,16 @@ function bk_comp_copy_from($destTour, $srcTour)
         d.BcShowMandate = s.BcShowMandate, d.BcShowProgram = s.BcShowProgram,
         d.BcShowParticipants = s.BcShowParticipants, d.BcShowResults = s.BcShowResults,
         d.BcShowDossard = s.BcShowDossard, d.BcSurvey = s.BcSurvey, d.BcWaitlist = s.BcWaitlist,
-        d.BcPayments = s.BcPayments
+        d.BcSingleReg = s.BcSingleReg, d.BcPayments = s.BcPayments
         WHERE d.BcTournament = $destTour");
+
+    // Opening of each departure, its own dates moved by the same offset.
+    safe_w_sql("DELETE FROM BookingSessionRules WHERE BdTournament = $destTour");
+    safe_w_sql("INSERT INTO BookingSessionRules (BdTournament, BdSession, BdState, BdOpenFrom, BdOpenTo)
+        SELECT $destTour, BdSession, BdState,
+            IF(BdOpenFrom IS NULL, NULL, DATE_ADD($ds, INTERVAL TIMESTAMPDIFF(SECOND, $ss, BdOpenFrom) SECOND)),
+            IF(BdOpenTo IS NULL, NULL, DATE_ADD($ds, INTERVAL TIMESTAMPDIFF(SECOND, $ss, BdOpenTo) SECOND))
+        FROM BookingSessionRules WHERE BdTournament = $srcTour");
 
     bk_comp_copy_shop($destTour, $srcTour);
     bk_comp_copy_caps($destTour, $srcTour);
@@ -379,6 +419,10 @@ function bk_comp_save($tourId, $in)
     if (array_key_exists('waitlist', $in)) {
         $set .= ", BcWaitlist = " . (empty($in['waitlist']) ? 0 : 1);
     }
+    // One registration per archer: same rule.
+    if (array_key_exists('single_reg', $in)) {
+        $set .= ", BcSingleReg = " . (empty($in['single_reg']) ? 0 : 1);
+    }
 
     // Detailed tariff: JSON already normalised by the caller, or NULL (single fee).
     if (array_key_exists('pricing', $in)) {
@@ -484,6 +528,7 @@ function bk_comp_apply_auto($tourId)
         . ", BcShowMandate = 1, BcShowProgram = 1, BcShowParticipants = 1, BcShowResults = 1, BcShowDossard = 1"
         . ", BcSurvey = 1"   // survey always offered at level 2: only level 3 can switch it off
         . ", BcWaitlist = 1" // same for the waiting list
+        . ", BcSingleReg = 0" // and the limit to one registration (departure rules: level 3 only)
         // ianseo.net link offered when the competition is published there; nothing to show
         // otherwise. Rebuilt, as everywhere, from ToOnlineId.
         . ", BcIanseoUrl = " . (($u = bk_ianseo_url($tourId)) === '' ? 'NULL' : StrSafe_DB($u))

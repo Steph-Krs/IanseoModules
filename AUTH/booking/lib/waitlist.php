@@ -176,6 +176,10 @@ function bk_waitlist_process($tourId)
             }
             $taken = array();
             foreach (bk_reg_existing($tourId, $w->BwLicence) as $e) $taken[intval($e->QuSession)] = true;
+            if ($taken && !empty($cfg->BcSingleReg)) {
+                bk_waitlist_close($w->BwId, $tourId, bk_t('WlSingleOnly'));
+                continue;
+            }
             $cands = array();
             foreach (intval($w->BwSession) ? array(intval($w->BwSession)) : $orders as $o) {
                 if (!isset($taken[$o]) && in_array($o, $orders, true)) $cands[] = $o;

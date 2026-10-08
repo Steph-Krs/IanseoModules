@@ -83,6 +83,7 @@ $class   = (string) ($_POST['class'] ?? '');
 if ($class === '' || !isset($classes[$class])) $class = (string) array_key_first($classes);
 
 $sessions = bk_comp_sessions($tourId);
+$sesStates = bk_session_states($tourId, $cfg, $sessions);   // open, closed, waiting for the earlier ones…
 $sessionOrder = intval($_POST['session'] ?? 0);
 $request = trim((string) ($_POST['request'] ?? ''));
 
@@ -137,6 +138,8 @@ if ($division !== '' && $class !== '' && $curFace > 0 && function_exists('bk_pro
 $mine = bk_reg_existing($tourId, $subjectLicence);
 $mineSessions = array();
 foreach ($mine as $d) $mineSessions[intval($d->QuSession)] = true;
+// One registration per archer (option): this subject already has theirs.
+$singleDone = !empty($cfg->BcSingleReg) && $mine;
 
 // Waiting list (lib/waitlist.php): with the list on, a departure full for this profile
 // stays selectable and the same form puts the archer on its list instead of registering.
@@ -291,7 +294,7 @@ if ($groupMode) {
     echo '<p class="bk-hint">' . bk_e(bk_t('InfoFromFile')) . '</p>';
 }
 if ($canGroup) {
-    echo '<details class="bk-group-switch"' . (($clubErr && !$groupMode) ? ' open' : '') . '><summary>'
+    echo '<details class="bk-group-switch"' . ((($clubErr || $singleDone) && !$groupMode) ? ' open' : '') . '><summary>'
         . bk_e(bk_t($groupMode ? 'RegisterOtherMate' : 'RegisterMate')) . '</summary><div class="bk-group-body">';
     if ($mates) {
         echo '<label for="matesel">' . bk_e(bk_t('MateAlready')) . '</label>'
@@ -313,6 +316,15 @@ if ($canGroup) {
         . '<button type="submit" class="bk-btn bk-btn-primary">' . bk_e(bk_t('Continue')) . '</button></form></div></details>';
 }
 echo '</div>';
+
+if ($singleDone) {
+    // Only a clubmate can still be registered, through the box above.
+    echo '<div class="bk-block" style="margin-top:14px"><h2>' . bk_e($groupMode ? $mateName : bk_t('YourReg')) . '</h2>'
+        . '<p class="bk-blocked">' . bk_e(bk_t($groupMode ? 'SingleDoneMate' : 'SingleDoneSelf')) . '</p>'
+        . '<p><a class="bk-btn" href="' . bk_e(bk_public_url('registrations.php?t=' . $tourId)) . '">' . bk_e(bk_t('NavMyRegs')) . '</a></p></div>';
+    bk_foot();
+    exit;
+}
 
 if (intval($lue->LueStatus) === 9) {
     // Licence without practice: no registration for this subject.
@@ -380,10 +392,12 @@ foreach ($sessions as $s) {
     // Specific gauge: places for THIS profile. null = no constraint known.
     $pl = array_key_exists($o, $profileLeft) ? $profileLeft[$o] : null;
     $profFull = ($pl !== null && $pl < 1);
-    $avail = ($left > 0 && !$taken && !$profFull);
+    // Departure closed, not open yet or waiting for the earlier ones (lib/sessionrules.php).
+    $shut = isset($sesStates[$o]) && !$sesStates[$o]['open'];
+    $avail = ($left > 0 && !$taken && !$profFull && !$shut);
     // Full departure: selectable when the waiting list is on and this weapon is not already
     // waited for — the form then joins the list (data-wait, script below).
-    $wait = !$avail && !$taken && $waitOn && !isset($myWait[$division]);
+    $wait = !$avail && !$taken && !$shut && $waitOn && !isset($myWait[$division]);
     if ($avail) $free++;
     if ($wait) $waitable++;
     if ($wait && $sessionOrder === $o) $selWait = true;
@@ -398,6 +412,8 @@ foreach ($sessions as $s) {
     }
     if ($taken) {
         $state = bk_t('StAlready');
+    } elseif ($shut) {
+        $state = bk_session_state_text($sesStates[$o]);
     } elseif (!$avail) {
         $state = bk_t($left === 0 ? 'StFull' : 'StFullFace');
         if ($wait) $state .= ' · ' . bk_t('StWait');

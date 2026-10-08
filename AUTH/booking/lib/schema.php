@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 28);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 29);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -570,6 +570,22 @@ function bk_schema()
     // UNIQUE index: lines written without a key do not collide.
     bk_index('BookingLedger', 'BlgIdemIdx', 'UNIQUE KEY BlgIdemIdx (BlgTournament, BlgIdem)');
     bk_index('BookingLedger', 'BlgOrderIdx', 'KEY BlgOrderIdx (BlgOrder)');
+
+    // v29 — opening of each departure (ianseo Session) to the registration, at level 3
+    // (lib/sessionrules.php). BdState: 1 open, 0 closed, 2 opens once the earlier departures
+    // are full. BdOpenFrom / BdOpenTo replace, each on its own, the general period for this
+    // departure; NULL = the general one. No row = open over the general period.
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BookingSessionRules (
+        BdTournament INT UNSIGNED NOT NULL,
+        BdSession    TINYINT UNSIGNED NOT NULL,
+        BdState      TINYINT NOT NULL DEFAULT 1,
+        BdOpenFrom   DATETIME NULL,
+        BdOpenTo     DATETIME NULL,
+        BdUpdated    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (BdTournament, BdSession)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    // v29 — at most one registration per archer on the competition, whatever the departure.
+    bk_colonne('BookingCompetitions', 'BcSingleReg', "TINYINT NOT NULL DEFAULT 0 AFTER BcWaitlist");
 
     $_SESSION[$flag] = true;
 }

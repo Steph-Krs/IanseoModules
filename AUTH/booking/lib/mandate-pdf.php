@@ -252,6 +252,41 @@ function bk_mandate_pdf_draw($pdf, $data, $m, $ctx)
     $pdf->Ln(1);
     $block('intro');
 
+    // Form of the competition (rules B.1.1), as on the screen version (lib/mandate.php).
+    if (!empty($m['show']['categories']) && ($data['format'] !== '' || $data['events'] || $data['divisions'] || $data['classes'] || $data['faces'])) {
+        $h2(bk_t('MnFormat'));
+        if ($data['format'] !== '' || $data['events']) {
+            $html('<b>' . $esc($data['format']) . '</b>' . ($data['format'] !== '' ? ' — ' : '') . $esc(bk_t($data['duels'] ? 'MnWithDuels' : 'MnNoDuel')));
+        }
+        foreach (array(0 => 'MnEventsInd', 1 => 'MnEventsTeam') as $team => $key) {
+            $list = array();
+            foreach ($data['events'] as $ev) {
+                if ($ev['team'] === (bool) $team) $list[] = $ev['name'] . ($ev['duels'] ? ' · ' . bk_t('MnDuels') : '');
+            }
+            if ($list) { $pdf->Ln(1.5); $html('<b>' . $esc(bk_t($key)) . '</b>'); $pdf->Ln(1); $chips($list); }
+        }
+        if (!$data['events']) {
+            if ($data['divisions']) { $pdf->Ln(1.5); $html('<b>' . $esc(bk_t('MnBows')) . '</b>'); $pdf->Ln(1); $chips($data['divisions']); }
+            if ($data['classes']) { $pdf->Ln(1.5); $html('<b>' . $esc(bk_t('MnClasses')) . '</b>'); $pdf->Ln(1); $chips($data['classes']); }
+        }
+        if ($data['faces']) { $pdf->Ln(1.5); $html('<b>' . $esc(bk_t('MnFaces')) . '</b>'); $pdf->Ln(1); $chips($data['faces']); }
+    }
+
+    // Full programme: the core's table (already filtered), flowing over the pages.
+    if (!empty($m['show']['program']) && $data['program'] !== '') {
+        $h2(bk_t('MnProgram'));
+        $prog = preg_replace('~<tr([^>]*)><td>~', '<tr$1><td width="20%">', $data['program']);
+        $prog = str_replace('</td><td', '</td><td width="80%"', $prog);
+        $prog = str_replace('<table', '<table cellpadding="2.5"', $prog);
+        $pdf->SetFont($pdf->FontStd, '', $fs - 0.5);
+        $pdf->SetTextColor(32, 38, 61);
+        $pdf->SetX($left);
+        $pdf->writeHTML('<style>th{background-color:' . $hex($light) . ';color:' . $hex($dark) . ';font-weight:bold;}'
+            . ' td{border-bottom:0.2px solid #e3e6ea;} .SchTitle{font-weight:bold;color:' . $hex($dark) . ';} .SchSubTitle{font-weight:bold;}</style>'
+            . bk_mandate_pdf_text($prog), true, false, true, false, '');
+        $pdf->SetDefaultColor();
+    }
+
     if (!empty($m['show']['sessions']) && $data['sessions']) {
         $h2(bk_t('MnSessions'));
         foreach ($data['sessions'] as $s) {
@@ -261,12 +296,6 @@ function bk_mandate_pdf_draw($pdf, $data, $m, $ctx)
                 . ($ss !== '' ? ' — ' . $esc(bk_date_time($ss)) : '')
                 . ' — ' . $esc(bk_t($places > 1 ? 'PlacesMany' : 'PlacesOne', $places)));
         }
-    }
-
-    if (!empty($m['show']['categories']) && ($data['divisions'] || $data['classes'])) {
-        $h2(bk_t('MnCategories'));
-        if ($data['divisions']) { $html('<b>' . $esc(bk_t('MnBows')) . '</b>'); $pdf->Ln(1); $chips($data['divisions']); }
-        if ($data['classes']) { $pdf->Ln(1.5); $html('<b>' . $esc(bk_t('MnClasses')) . '</b>'); $pdf->Ln(1); $chips($data['classes']); }
     }
 
     if (!empty($m['show']['fees'])) {

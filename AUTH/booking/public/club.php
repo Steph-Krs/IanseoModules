@@ -114,10 +114,12 @@ if (!$tourId) {
     $divOpts = '';
     foreach ($divs as $k => $lab) $divOpts .= '<option value="' . bk_e($k) . '">' . bk_e($lab) . '</option>';
     $sesOpts = '';
+    $sesStates = bk_session_states($tourId, $cfg, $sessions);
     foreach ($sessions as $s) {
         $left = max(0, intval($s->Places) - intval($s->Pris));
-        $sesOpts .= '<option value="' . intval($s->SesOrder) . '"' . ($left === 0 ? ' disabled' : '') . '>'
-            . bk_e(bk_t('DepCap', intval($s->SesOrder)) . ' (' . $left . ')') . '</option>';
+        $st = $sesStates[intval($s->SesOrder)] ?? array('open' => true);
+        $sesOpts .= '<option value="' . intval($s->SesOrder) . '"' . ($left === 0 || !$st['open'] ? ' disabled' : '') . '>'
+            . bk_e(bk_t('DepCap', intval($s->SesOrder)) . ' (' . ($st['open'] ? $left : bk_session_state_text($st)) . ')') . '</option>';
     }
     $out .= '<div class="bk-list">';
     foreach ($members as $m) {

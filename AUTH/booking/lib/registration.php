@@ -16,6 +16,7 @@ define('BK_REG_LOADED', true);
 
 require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/competition.php';
+require_once __DIR__ . '/sessionrules.php';   // bk_session_states
 require_once __DIR__ . '/archer.php';   // bk_lookup_licence, bk_clean_licence
 
 // Core ianseo functions used to write a registration and start the recomputations. Loaded by
@@ -260,6 +261,17 @@ function bk_reg_blocked($tourId, $cfg, $licence, $clubCode, $division, $class, $
         if (!array_key_exists($class, $classes)) {
             return bk_t('RgBadAge');
         }
+    }
+
+    // One registration per archer (option of level 3): any entry of this licence counts, made
+    // here or typed by the organiser in ianseo.
+    if (!empty($cfg->BcSingleReg) && bk_reg_existing($tourId, $licence)) return bk_t('RgSingleOnly');
+
+    // Departure closed, not open yet or waiting for the earlier ones (lib/sessionrules.php) —
+    // the waiting list included.
+    $st = bk_session_states($tourId, $cfg);
+    if (isset($st[intval($sessionOrder)]) && !$st[intval($sessionOrder)]['open']) {
+        return bk_t('RgDepClosed') . ' ' . bk_session_state_text($st[intval($sessionOrder)]);
     }
 
     $left = bk_reg_session_left($tourId, $sessionOrder);

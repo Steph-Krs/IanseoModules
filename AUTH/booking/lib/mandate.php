@@ -70,7 +70,9 @@ function bk_mandate_auto_sections()
 {
     return array(
         'sessions'   => bk_t('MnSessions'),
-        'categories' => bk_t('MnCategories'),
+        'program'    => bk_t('MnProgram'),
+        // Key kept from when the section listed bows and classes: the organisers' choice stays.
+        'categories' => bk_t('MnFormat'),
         'fees'       => bk_t('MnFees'),
         'payment'    => bk_t('PayMeansTitle'),
         'shop'       => bk_t('Shop'),
@@ -250,6 +252,24 @@ function bk_mandate_data($tourId)
         WHERE ClTournament = $tourId AND ClAthlete = 1 ORDER BY ClAgeFrom, ClId");
     while ($r = safe_fetch($rs)) $classes[] = $r->ClDescription;
 
+    // Form of the competition (rules B.1.1): type and sub-rule in the core's own words, events
+    // with their duels, faces of the competition.
+    $events = array(); $duels = false;
+    $rs = safe_r_sql("SELECT EvEventName, EvTeamEvent, EvFinalFirstPhase FROM Events
+        WHERE EvTournament = $tourId AND EvCodeParent = '' ORDER BY EvTeamEvent, EvProgr");
+    while ($r = safe_fetch($rs)) {
+        $d = intval($r->EvFinalFirstPhase) > 0;
+        $duels = $duels || $d;
+        $events[] = array('name' => (string) $r->EvEventName, 'team' => intval($r->EvTeamEvent) > 0, 'duels' => $d);
+    }
+    $faces = array();
+    $rs = safe_r_sql("SELECT DISTINCT TfName FROM TargetFaces WHERE TfTournament = $tourId ORDER BY TfW1 DESC, TfName");
+    while ($r = safe_fetch($rs)) if (trim((string) $r->TfName) !== '') $faces[] = trim((string) $r->TfName);
+    $format = array_filter(array(
+        $t->ToTypeName ? get_text($t->ToTypeName, 'Tournament') : '',
+        $t->ToTypeSubRule ? get_text($t->ToTypeSubRule, 'Install') : '',
+    ));
+
     $pricing = bk_pricing_get($cfg);
 
     return array(
@@ -262,6 +282,11 @@ function bk_mandate_data($tourId)
         'sessions'    => bk_comp_sessions($tourId),
         'divisions'   => $divisions,
         'classes'     => $classes,
+        'format'      => implode(' — ', $format),
+        'duels'       => $duels,
+        'events'      => $events,
+        'faces'       => $faces,
+        'program'     => bk_mandate_program($tourId),
         'pay'         => bk_payinfo_get($cfg),
         'fee'         => (float) $cfg->BcFee,
         'feeAdvanced' => bk_pricing_is_advanced($pricing),
@@ -269,6 +294,44 @@ function bk_mandate_data($tourId)
         'deadline'    => $cfg->BcOpenTo ?? null,
         'shop'        => bk_mandate_shop($tourId),
     );
+}
+
+/**
+ * Full programme of the competition, as the core lays it out (Scheduler::getScheduleHTML(): the
+ * text lines such as the opening of the registration desk or the equipment inspection, the
+ * warm-up, the start of each departure with its comments, the finals). '' when nothing is
+ * scheduled yet.
+ *
+ * Kept from it: the table, its rows and cells, their classes and colspans. Its links lead to
+ * organiser screens, and its texts are typed by the organiser — tags and attributes are not
+ * trusted in a page read by the archers.
+ */
+function bk_mandate_program($tourId)
+{
+    global $CFG;
+    require_once $CFG->DOCUMENT_PATH . 'Common/Lib/Fun_Scheduler.php';
+    ob_start();
+    $sch = new Scheduler(intval($tourId));
+    $html = (string) @$sch->getScheduleHTML();
+    ob_end_clean();
+    if (strpos($html, '<td') === false) return '';
+
+    $html = strip_tags($html, '<table><tr><th><td><b><i><br><span>');
+    // Rows whose cells are all empty (the core leaves some after a text line): a blank gap.
+    $html = preg_replace('~<tr[^>]*>(?:\s*<t[dh][^>]*>\s*</t[dh]>)+\s*</tr>~i', '', $html);
+    return preg_replace_callback('~<(/?)(table|tr|th|td|b|i|br|span)\b([^>]*)>~i', function ($m) {
+        // bytes: tag and attribute names are ASCII (matched by the patterns above)
+        $tag = strtolower($m[2]);
+        if ($m[1] === '/') return '</' . $tag . '>';
+        $keep = '';
+        if (preg_match_all('~\b(class|colspan)\s*=\s*"([^"]*)"~i', $m[3], $a, PREG_SET_ORDER)) {
+            foreach ($a as $x) {
+                // bytes: an ASCII attribute name
+                $keep .= ' ' . strtolower($x[1]) . '="' . htmlspecialchars(html_entity_decode($x[2], ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8') . '"';
+            }
+        }
+        return '<' . $tag . $keep . '>';
+    }, $html);
 }
 
 /**
@@ -704,6 +767,14 @@ ul.mn-list li{ margin:3px 0; }
 .mn-chips{ display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 0; }
 .mn-chip{ background:var(--light); border:1px solid var(--pri); color:var(--dark);
   border-radius:5px; padding:2px 9px; font-size:13px; }
+.mn-format{ margin:4px 0 0; }
+.mn-prog table{ width:100%; border-collapse:collapse; }
+.mn-prog th{ text-align:left; background:var(--light); color:var(--dark); padding:4px 8px; font-size:13px; }
+.mn-prog th.SchGroup{ background:none; padding-top:6px; }
+.mn-prog td{ padding:3px 8px; vertical-align:top; border-bottom:1px solid #eef0f3; font-size:13px; }
+.mn-prog td:first-child{ white-space:nowrap; width:1%; color:#4c4e50; }
+.mn-prog .SchTitle{ font-weight:700; color:var(--dark); }
+.mn-prog .SchSubTitle{ font-weight:600; }
 .mn-text{ white-space:normal; }
 .mn-free{ margin-top:4px; }
 .mn-reg{ background:var(--light); border:1px solid var(--pri); border-radius:8px;
@@ -779,6 +850,34 @@ body.tpl-ligne .mn-title h1{ font-weight:600; letter-spacing:.01em; }
         . ((!empty($m['logos']['R']) && intval($t->HasR) > 0) ? '<img src="' . bk_e($logo('R', 400)) . '" alt="">' : '')
         . '</div>' . $block('intro');
 
+    // Form of the competition (rules B.1.1): type, sub-rule, duels, events, faces. Without any
+    // event set up yet, the bows and classes as before.
+    if (!empty($m['show']['categories'])) {
+        $form = '';
+        if ($data['format'] !== '' || $data['events']) {
+            $form .= '<p class="mn-format"><b>' . bk_e($data['format']) . '</b>' . ($data['format'] !== '' ? ' — ' : '')
+                . bk_e(bk_t($data['duels'] ? 'MnWithDuels' : 'MnNoDuel')) . '</p>';
+        }
+        foreach (array(false => 'MnEventsInd', true => 'MnEventsTeam') as $team => $key) {
+            $list = array();
+            foreach ($data['events'] as $ev) {
+                if ($ev['team'] === (bool) $team) $list[] = $ev['name'] . ($ev['duels'] ? ' · ' . bk_t('MnDuels') : '');
+            }
+            if ($list) $form .= '<p style="margin:8px 0 4px"><b>' . bk_e(bk_t($key)) . '</b></p>' . $chips($list);
+        }
+        if (!$data['events']) {
+            if ($data['divisions']) $form .= '<p style="margin:8px 0 4px"><b>' . bk_e(bk_t('MnBows')) . '</b></p>' . $chips($data['divisions']);
+            if ($data['classes']) $form .= '<p style="margin:8px 0 4px"><b>' . bk_e(bk_t('MnClasses')) . '</b></p>' . $chips($data['classes']);
+        }
+        if ($data['faces']) $form .= '<p style="margin:8px 0 4px"><b>' . bk_e(bk_t('MnFaces')) . '</b></p>' . $chips($data['faces']);
+        if ($form !== '') $out .= '<h2>' . bk_e(bk_t('MnFormat')) . '</h2>' . $form;
+    }
+
+    // Full programme, as the core lays it out (bk_mandate_program, already filtered).
+    if (!empty($m['show']['program']) && $data['program'] !== '') {
+        $out .= '<h2>' . bk_e(bk_t('MnProgram')) . '</h2><div class="mn-prog">' . $data['program'] . '</div>';
+    }
+
     if (!empty($m['show']['sessions']) && $data['sessions']) {
         $out .= '<h2>' . bk_e(bk_t('MnSessions')) . '</h2><ul class="mn-list">';
         foreach ($data['sessions'] as $s) {
@@ -789,12 +888,6 @@ body.tpl-ligne .mn-title h1{ font-weight:600; letter-spacing:.01em; }
                 . ' — ' . bk_e(bk_t($places > 1 ? 'PlacesMany' : 'PlacesOne', $places)) . '</li>';
         }
         $out .= '</ul>';
-    }
-
-    if (!empty($m['show']['categories']) && ($data['divisions'] || $data['classes'])) {
-        $out .= '<h2>' . bk_e(bk_t('MnCategories')) . '</h2>';
-        if ($data['divisions']) $out .= '<p style="margin:0 0 4px"><b>' . bk_e(bk_t('MnBows')) . '</b></p>' . $chips($data['divisions']);
-        if ($data['classes']) $out .= '<p style="margin:8px 0 4px"><b>' . bk_e(bk_t('MnClasses')) . '</b></p>' . $chips($data['classes']);
     }
 
     if (!empty($m['show']['fees'])) {
