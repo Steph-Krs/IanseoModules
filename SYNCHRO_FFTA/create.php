@@ -58,6 +58,13 @@ $sesFamilies   = sfa_session_families();
 $sesRythme     = sfa_rythme_bounds();
 $sesPelotons   = sfa_pelotons_config();
 $sesDurations  = sfa_session_durations();
+$sesOptions    = sfa_session_options();   // §5.E: per-session questions of each family
+
+// Discipline filter of the search: the file's list until the extranet page gives its own.
+$discOptions = '<option value="all">Toutes</option>';
+foreach (sfa_discipline_options() as $d) {
+    $discOptions .= '<option value="' . htmlspecialchars($d['value']) . '">' . htmlspecialchars($d['label']) . '</option>';
+}
 
 // Défauts techniques : repris de la dernière compétition, sinon valeurs FR sûres.
 $def = ['cur' => 'EUR', 'lang' => '', 'chars' => 0, 'paper' => 0];
@@ -134,9 +141,18 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     #sfa .ses-step button { width:22px; height:22px; padding:0; line-height:1; font-size:14px; font-weight:bold; }
     #sfa .ses-step button:disabled { opacity:.35; cursor:default; }
     #sfa .ses-num { width:46px; text-align:center; padding:4px 2px; }
-    #sfa .ses-day { width:128px; } #sfa .ses-time { width:84px; } #sfa .ses-dur { width:60px; text-align:center; }
+    #sfa .ses-day { width:128px; } #sfa .ses-dur { width:60px; text-align:center; }
+    #sfa .ses-stack { display:flex; flex-direction:column; gap:4px; }
+    /* Times stacked in one cell (desk, inspection, start), caption above the field: the table
+       must stay narrow enough to never scroll sideways */
+    #sfa .ses-h { display:flex; flex-direction:column; gap:1px; max-width:120px;
+                  font-weight:400; font-size:11px; line-height:1.15; }
+    #sfa .ses-h input { width:96px; }
+    #sfa .ses-opt { font-weight:400; display:flex; align-items:flex-start; gap:4px; line-height:1.2; max-width:160px; }
+    #sfa .ses-opt[hidden] { display:none; }
+    #sfa #sfa-wait { position:sticky; top:4px; z-index:5; margin-bottom:16px; }
     #sfa .ses-bis-label { font-weight:400; display:flex; align-items:flex-start; gap:4px; margin-top:3px; line-height:1.2; }
-    #sfa .ses-warm { display:block; margin-top:3px; font-size:11px; color:var(--gris); white-space:nowrap; }
+    #sfa .ses-warm { display:block; font-size:11px; color:var(--gris); white-space:nowrap; padding-left:18px; }
     #sfa .ses-warmends { width:40px; }
     #sfa .ses-del { color:var(--corail); border-color:var(--corail); background:#fff; width:26px; height:26px; padding:0; line-height:1; }
     #sfa .ses-del:disabled { opacity:.35; cursor:default; }
@@ -152,10 +168,10 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
        de défilement, tout reste visible. min() : la largeur mini s'efface d'elle-même si le
        conteneur est plus étroit, donc aucun débordement possible. */
     #sfa .col-base { flex:1 1 360px; min-width:min(340px, 100%); order:1; }
-    #sfa .col-assist { flex:1 1 700px; min-width:min(700px, 100%); order:2; }
+    #sfa .col-assist { flex:1 1 780px; min-width:min(780px, 100%); order:2; }
     /* Sous cette largeur, même empilée la table ne tient plus en colonnes : chaque départ devient
        une petite fiche (libellé + valeur par ligne), toujours sans défilement horizontal. */
-    @media (max-width: 760px) {
+    @media (max-width: 860px) {
         #sfa .col-base, #sfa .col-assist { flex-basis:auto; min-width:0; width:100%; }
         #sfa table.ses, #sfa table.ses tbody, #sfa table.ses tr, #sfa table.ses td { display:block; width:100%; }
         #sfa table.ses thead { display:none; }
@@ -207,6 +223,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     sur l'extranet. La compétition est créée dans ianseo, puis vous arrivez sur la saisie des participants.
   </div>
 
+  <div class="warn" id="sfa-wait" style="display:none"></div>
+
   <?php if (!empty($_GET['err'])): ?>
     <div class="warn" style="margin-bottom:16px"><b>Création non effectuée :</b> <?= htmlspecialchars($_GET['err']) ?></div>
   <?php endif; ?>
@@ -251,6 +269,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         <input type="date" id="from">
         <label for="to">au</label>
         <input type="date" id="to">
+        <label for="disc">Discipline</label>
+        <select id="disc"><?= $discOptions ?></select>
         <button type="button" id="btn-list">Rechercher</button>
         <span id="m2" class="muted"></span>
       </p>
@@ -292,9 +312,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             <th id="ses-th-pel">Cibles autorisées</th>
             <th id="ses-th-ath">Archers / cible</th>
             <th>Jour</th>
-            <th>Heure</th>
+            <th>Horaires</th>
             <th>Durée (min)</th>
-            <th>Entraînement inclus</th>
+            <th>Options</th>
             <th></th>
           </tr></thead>
           <tbody id="ses-body"></tbody>
@@ -381,14 +401,41 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     var RYTHME    = <?= json_encode($sesRythme, JSON_UNESCAPED_UNICODE) ?>;
     var PELOTONS  = <?= json_encode($sesPelotons, JSON_UNESCAPED_UNICODE) ?>;
     var DURATIONS = <?= json_encode($sesDurations, JSON_UNESCAPED_UNICODE) ?>;
+    var OPTIONS   = <?= json_encode($sesOptions, JSON_UNESCAPED_UNICODE) ?>;
     var WARM_ENDS_DEFAULT = 3;   // volées d'entraînement, valeur courante (modifiable par ligne)
     var $ = function (id) { return document.getElementById(id); };
 
-    function post(action, data) {
+    function send(action, data) {
         var body = new URLSearchParams(Object.assign({sfa_action: action}, data || {}));
         return fetch(AJAX, {method:'POST', credentials:'same-origin',
             headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString()})
             .then(function (r) { return r.json(); });
+    }
+
+    /**
+     * The FFTA site (or this server's pacing) may ask to wait: the delay is shown to the user and
+     * the same request leaves again on its own. noRetry: actions never repeated blindly (login).
+     */
+    function post(action, data, noRetry) {
+        return send(action, data).then(function (r) {
+            if (r && r.wait > 0 && !noRetry) {
+                return waitFor(r.wait, r.msg).then(function () { return post(action, data); });
+            }
+            return r;
+        });
+    }
+
+    function waitFor(sec, text) {
+        return new Promise(function (resolve) {
+            var box = $('sfa-wait'), left = Math.max(1, parseInt(sec, 10) || 1);
+            box.style.display = '';
+            (function tick() {
+                if (left <= 0) { box.style.display = 'none'; resolve(); return; }
+                box.innerHTML = '⏳ ' + esc(text || '') + ' Nouvel essai automatique dans <b>' + left + ' s</b>.';
+                left--;
+                setTimeout(tick, 1000);
+            })();
+        });
     }
     function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
     function msg(id,t,e){ var x=$(id); x.className=e?'err':'muted'; x.textContent=t||''; }
@@ -418,7 +465,20 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
      * reste masquée et le rôle extranet a été aligné automatiquement côté serveur (voir
      * ajax-create.php), sans UI ici.
      */
-    function connected(roles, shared) {
+    /** Discipline filter: the extranet's own list replaces the file's one, selection kept. */
+    function fillDisciplines(list) {
+        if (!list || !list.length) return;
+        var sel = $('disc'), cur = sel.value;
+        sel.innerHTML = '<option value="all">Toutes</option>';
+        list.forEach(function (d) {
+            var o = document.createElement('option');
+            o.value = d.value; o.textContent = d.label; o.selected = (d.value === cur);
+            sel.appendChild(o);
+        });
+    }
+
+    function connected(roles, shared, disciplines) {
+        fillDisciplines(disciplines);
         $('auth').style.display='none';
         $('list-card').style.display='';
         if (!AUTH_ON) {
@@ -446,15 +506,15 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     }
 
     post('status').then(function(r){
-        if (r.ok && r.logged) { doneChecking(false); connected(r.roles, r.shared); return; }
-        // Hors ligne : le dire clairement plutôt que de présenter un formulaire de connexion
-        // qui échouera et ferait croire à un problème d'identifiants.
-        if (r.ok && r.offline) { doneChecking(false); offlineNotice(r.msg); return; }
+        if (r.ok && r.logged) { doneChecking(false); connected(r.roles, r.shared, r.disciplines); return; }
+        // Hors ligne ou bloqué : le dire clairement plutôt que de présenter un formulaire de
+        // connexion qui échouera et ferait croire à un problème d'identifiants.
+        if (r.ok && (r.offline || r.blocked)) { doneChecking(false); offlineNotice(r.msg, r.blocked); return; }
         doneChecking(true);   // pas de session valide → formulaire
     }).catch(function () { doneChecking(true); });
 
-    /** Bandeau « pas de connexion » en tête de page, formulaire masqué. */
-    function offlineNotice(msg) {
+    /** Bandeau « pas de connexion » (ou « accès refusé ») en tête de page, formulaire masqué. */
+    function offlineNotice(msg, blocked) {
         $('checking').style.display = 'none';
         $('auth').style.display = 'none';
         $('list-card').style.display = 'none';
@@ -462,7 +522,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         var box = document.createElement('div');
         box.className = 'warn';
         box.style.cssText = 'border-left-color:#cc3333;background:#fdecea;margin-bottom:16px';
-        box.innerHTML = '<b>Pas de connexion à Internet.</b><br>'
+        box.innerHTML = '<b>' + (blocked ? 'L\'extranet refuse l\'accès au module.' : 'Pas de connexion à Internet.') + '</b><br>'
             + esc(msg || 'Cette étape nécessite une connexion pour lire le calendrier fédéral.')
             + '<br><button type="button" class="primary" style="margin-top:8px" '
             + 'onclick="location.reload()">Réessayer</button>';
@@ -481,10 +541,12 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         if(!u||!p){ msg('m1','Identifiant et mot de passe requis.',true); return; }
         msgLoad('m1','Connexion');
         // Ouvre extranet + Espace Dirigeant (r.ok = extranet, requis pour la création).
-        post('login',{sfa_user:u, sfa_pass:p, sfa_otp:o}).then(function(r){
+        // noRetry: credentials are never resent on their own after a delay.
+        post('login',{sfa_user:u, sfa_pass:p, sfa_otp:o}, true).then(function(r){
             $('p').value=''; $('o').value='';
+            if(r.wait){ msg('m1', r.msg+' Réessayez dans '+r.wait+' s.', true); return; }
             if(!r.ok){ msg('m1',r.msg,true); return; }
-            connected(r.roles, false);
+            connected(r.roles, false, r.disciplines);
         }).catch(function(e){ msg('m1','Erreur : '+e.message,true); });
     });
 
@@ -501,20 +563,31 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     });
 
     $('btn-list').addEventListener('click', search);
+    $('disc').addEventListener('change', search);
     $('hide-past').addEventListener('change', function(){ renderList(lastEvents); });
 
     var lastEvents = [];
 
+    // One search at a time: clicks during a search ask for ONE more search, not a burst.
+    var searching = false, searchAgain = false;
+
     function search() {
+        if (searching) { searchAgain = true; return; }
+        searching = true;
         $('list').innerHTML=loadCard('Recherche');
         $('list-diag').innerHTML='';
         $('review').style.display='none';
-        post('list',{sfa_from:$('from').value, sfa_to:$('to').value}).then(function(r){
+        post('list',{sfa_from:$('from').value, sfa_to:$('to').value, sfa_disc:$('disc').value}).then(function(r){
             if(!r.ok){ $('list').innerHTML='<p class="err">'+esc(r.msg)+'</p>'; return; }
+            fillDisciplines(r.disciplines);
             lastEvents = r.events||[];
             showListDiag(r.diag);
             renderList(lastEvents);
-        }).catch(function(e){ $('list').innerHTML='<p class="err">Erreur : '+esc(e.message)+'</p>'; });
+        }).catch(function(e){ $('list').innerHTML='<p class="err">Erreur : '+esc(e.message)+'</p>'; })
+        .then(function(){
+            searching = false;
+            if (searchAgain) { searchAgain = false; search(); }
+        });
     }
 
     /**
@@ -723,15 +796,45 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         if (mins != null) { tr.querySelector('.ses-dur').value = mins; }
     }
 
-    function sesUpdateDelButtons() {
+    /**
+     * Rows were added or removed: delete buttons, and the §5.E questions that depend on the
+     * position (e.g. « Parcours repiqueté » is not asked for the first session). A question not
+     * asked is disabled, so it is not sent; the server decides again from the order anyway.
+     */
+    function sesRowsChanged() {
         var rows = $('ses-body').querySelectorAll('tr');
-        rows.forEach(function (tr) { tr.querySelector('.ses-del').disabled = (rows.length <= 1); });
+        rows.forEach(function (tr, pos) {
+            tr.querySelector('.ses-del').disabled = (rows.length <= 1);
+            tr.querySelectorAll('.ses-fopt').forEach(function (cb) {
+                var label = cb.closest('label');
+                var asked = (pos + 1) >= parseInt(label.dataset.from, 10);
+                label.hidden = !asked;
+                cb.disabled = !asked;
+            });
+        });
+    }
+
+    /** §5.E checkboxes of a family for one row; checked = {key: true} to keep. */
+    function wireFamOptions(tr, fam, checked) {
+        var i = tr.dataset.idx;
+        tr.querySelector('.ses-famopts').innerHTML = (OPTIONS[fam] || []).map(function (o) {
+            return '<label class="ses-opt" data-from="' + esc(o.from) + '">'
+                 + '<input type="checkbox" class="ses-fopt" data-key="' + esc(o.key) + '" value="1"'
+                 + ' name="sfa_ses_opt[' + i + '][' + esc(o.key) + ']"' + (checked && checked[o.key] ? ' checked' : '') + '> '
+                 + esc(o.label) + '</label>';
+        }).join('');
+    }
+
+    function famOptionsChecked(tr) {
+        var out = {};
+        tr.querySelectorAll('.ses-fopt').forEach(function (cb) { if (cb.checked) out[cb.dataset.key] = true; });
+        return out;
     }
 
     function removeSessionRow(tr) {
         if ($('ses-body').querySelectorAll('tr').length <= 1) return;   // au moins 1 départ
         tr.remove();
-        sesUpdateDelButtons();
+        sesRowsChanged();
     }
 
     function sesRowValues(tr) {
@@ -739,10 +842,13 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             pel: parseInt(tr.querySelector('.ses-pel').value, 10),
             ath: parseInt(tr.querySelector('.ses-ath').value, 10),
             day: tr.querySelector('.ses-day').value,
+            desk: tr.querySelector('.ses-desk').value,
+            insp: tr.querySelector('.ses-insp').value,
             time: tr.querySelector('.ses-time').value,
             dur: tr.querySelector('.ses-dur').value,
             train: tr.querySelector('.ses-train').checked,
-            warm: tr.querySelector('.ses-warmends').value
+            warm: tr.querySelector('.ses-warmends').value,
+            opts: famOptionsChecked(tr)
         };
     }
 
@@ -770,6 +876,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         tr.dataset.idx = i;
 
         var day   = copyFrom ? copyFrom.day   : sesDefaultDay();
+        var desk  = copyFrom ? copyFrom.desk  : '';
+        var insp  = copyFrom ? copyFrom.insp  : '';
         var time  = copyFrom ? copyFrom.time  : '';
         var train = copyFrom ? copyFrom.train : (fam === 'TAE' || fam === '18m');
         var warm  = copyFrom ? copyFrom.warm  : WARM_ENDS_DEFAULT;
@@ -784,19 +892,28 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             '<td class="ses-pel-cell"></td>' +   // data-label posé par sesApplyLabels()
             '<td class="ses-ath-cell"></td>' +
             '<td data-label="Jour"><input type="date" class="ses-day" required name="sfa_ses_day[' + i + ']" value="' + esc(day || '') + '"></td>' +
-            '<td data-label="Heure"><input type="time" class="ses-time" required name="sfa_ses_time[' + i + ']" value="' + esc(time || '') + '"></td>' +
+            // Desk and inspection first: the programme reads top-down, as on the day.
+            '<td data-label="Horaires"><div class="ses-stack">' +
+                '<label class="ses-h">Ouverture du greffe <input type="time" class="ses-desk" required name="sfa_ses_greffe[' + i + ']" value="' + esc(desk || '') + '"></label>' +
+                '<label class="ses-h">Inspection du matériel <input type="time" class="ses-insp" required name="sfa_ses_inspect[' + i + ']" value="' + esc(insp || '') + '"></label>' +
+                '<label class="ses-h">Début des tirs <input type="time" class="ses-time" required name="sfa_ses_time[' + i + ']" value="' + esc(time || '') + '"></label>' +
+            '</div></td>' +
             '<td data-label="Durée (min)"><input type="number" class="ses-dur" required min="1" name="sfa_ses_duration[' + i + ']" value="' + esc(dur) + '"></td>' +
-            '<td data-label="Entraînement inclus" style="text-align:center">' +
-                '<input type="hidden" name="sfa_ses_training[' + i + ']" value="0">' +
-                '<input type="checkbox" name="sfa_ses_training[' + i + ']" value="1" class="ses-train"' + (train ? ' checked' : '') + '>' +
+            '<td data-label="Options"><div class="ses-stack">' +
+                '<label class="ses-opt">' +
+                    '<input type="hidden" name="sfa_ses_training[' + i + ']" value="0">' +
+                    '<input type="checkbox" name="sfa_ses_training[' + i + ']" value="1" class="ses-train"' + (train ? ' checked' : '') + '>' +
+                    ' Entraînement inclus</label>' +
                 '<span class="ses-warm">' +
                     '<input type="number" class="ses-warmends" min="1" max="20" ' +
                         'name="sfa_ses_warmends[' + i + ']" value="' + esc(warm) + '"> volées' +
                 '</span>' +
-            '</td>' +
+                '<span class="ses-famopts ses-stack"></span>' +
+            '</div></td>' +
             '<td><button type="button" class="ses-del" title="Supprimer ce départ">✕</button></td>';
 
         wirePelAthCell(tr, fam, copyFrom ? copyFrom.pel : null, copyFrom ? copyFrom.ath : null);
+        wireFamOptions(tr, fam, copyFrom ? copyFrom.opts : null);
 
         tr.querySelector('.ses-dur').addEventListener('input', function () { tr.dataset.durDirty = '1'; });
         tr.querySelector('.ses-del').addEventListener('click', function () { removeSessionRow(tr); });
@@ -805,7 +922,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
         $('ses-body').appendChild(tr);
         $('ses-hint').style.display = 'none';
-        sesUpdateDelButtons();
+        sesRowsChanged();
         sesApplyLabels(fam);
     }
 
@@ -832,8 +949,10 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             var pelVal = pelInput ? parseInt(pelInput.value, 10) : null;
             var athVal = athInput ? parseInt(athInput.value, 10) : null;
             wirePelAthCell(tr, fam, pelVal, athVal);
+            wireFamOptions(tr, fam, famOptionsChecked(tr));
             refreshDuration(tr);
         });
+        sesRowsChanged();
         sesApplyLabels(fam);
     }
 
@@ -892,14 +1011,24 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             .catch(function(){ /* pas d'ISK disponible : on ignore */ });
     };
 
+    // One event page at a time: only the LAST row clicked meanwhile is fetched next.
+    var evLoading = false, evNext = null;
+
     function loadEvent(id) {
         $('review').style.display='';
         $('review').scrollIntoView({behavior:'smooth', block:'start'});   // amène l'utilisateur au bloc création
         $('prop-note').innerHTML=loadCard('Chargement de l\'épreuve');
+        if (evLoading) { evNext = id; return; }
+        evLoading = true;
         // Tag « Valide + Para » de la ligne : ligne regroupée ou tag dans les caractéristiques.
         var ev = lastEvents.filter(function(e){ return String(e.id)===String(id); })[0] || {};
         var vp = ev.para || /valide\s*\+\s*para/i.test(ev.carac||'');
         post('event',{sfa_id:id, sfa_vp: vp?1:0}).then(function(r){
+            evLoading = false;
+            if (evNext !== null) {
+                var next = evNext; evNext = null;
+                if (String(next) !== String(id)) { loadEvent(next); return; }
+            }
             if(!r.ok){ $('prop-note').innerHTML='<p class="err">'+esc(r.msg)+'</p>'; return; }
             var pf=r.prefill, pr=r.proposal;
 
@@ -929,6 +1058,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
                     +' Choisissez-le manuellement ci-dessous.</p>';
             }
             sesRefreshFamily();
+        }).catch(function(e){
+            evLoading = false; evNext = null;
+            $('prop-note').innerHTML='<p class="err">Erreur : '+esc(e.message)+'</p>';
         });
     }
 
@@ -947,11 +1079,17 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             alert('Ajoutez au moins un départ avant de créer la compétition.');
             return;
         }
-        var incomplete = false, warmMissing = false;
+        var incomplete = false, warmMissing = false, late = false;
         rows.forEach(function(tr){
-            ['.ses-pel', '.ses-ath', '.ses-day', '.ses-time', '.ses-dur'].forEach(function(sel){
+            ['.ses-pel', '.ses-ath', '.ses-day', '.ses-desk', '.ses-insp', '.ses-time', '.ses-dur'].forEach(function(sel){
                 var el = tr.querySelector(sel);
                 if(!el || String(el.value).trim() === '') incomplete = true;
+            });
+            // HH:MM strings compare in time order.
+            var start = tr.querySelector('.ses-time').value;
+            ['.ses-desk', '.ses-insp'].forEach(function(sel){
+                var v = tr.querySelector(sel).value;
+                if(v && start && v > start) late = true;
             });
             if(tr.querySelector('.ses-train').checked
                && String(tr.querySelector('.ses-warmends').value).trim() === '') warmMissing = true;
@@ -959,7 +1097,12 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         if(incomplete){
             e.preventDefault();
             alert('Chaque départ doit indiquer le nombre de cibles, le nombre d\'archers par cible, '
-                + 'le jour, l\'heure et la durée.');
+                + 'le jour, les heures (ouverture du greffe, inspection du matériel, début des tirs) et la durée.');
+            return;
+        }
+        if(late){
+            e.preventDefault();
+            alert('L\'ouverture du greffe et l\'inspection du matériel ne peuvent pas être après le début des tirs.');
             return;
         }
         if(warmMissing){

@@ -1,26 +1,32 @@
 <?php
 /**
- * Client HTTP de l'Espace Dirigeant FFTA (dirigeant.ffta.fr).
+ * HTTP client of the FFTA Espace Dirigeant (dirigeant.ffta.fr).
  *
- * Espace DISTINCT de l'extranet. Sert à la synchro des licenciés (téléchargement de
- * parametres_ianseo.ffta). Login Laravel Fortify avec MFA à deux étapes.
+ * A space DISTINCT from the extranet. Used by the licence holders sync (download of
+ * parametres_ianseo.ffta). Laravel Fortify login with a two-step MFA.
  *
- * MFA : si le module AUTH est présent (serveur fédéral), on réutilise SON login éprouvé
- * (aut_ffta_curl_login + aut_ffta_mfa_second_step) — qui suit les évolutions de la page
- * FFTA et gère la double authentification. Sinon (module autonome), login intégré en
- * une étape (best-effort ; la MFA Fortify autonome n'est pas garantie).
+ * MFA: when the AUTH module is present (federal server), ITS proven login is reused
+ * (aut_ffta_curl_login + aut_ffta_mfa_second_step) — it follows the changes of the FFTA page and
+ * handles two-factor authentication. Otherwise (standalone module), built-in one-step login
+ * (best effort; standalone Fortify MFA is not guaranteed).
+ *
+ * Every request of this client goes through FftaHttp (pacing, pauses, anti-bot detection).
  */
+require_once(__DIR__ . '/FftaHttp.php');
+
 class DirigeantClient
 {
     const BASE_PROD = 'https://dirigeant.ffta.fr';
 
     private $cookieFile;
     private $base;
+    private $http;
 
     public function __construct(string $cookieFile, string $base = self::BASE_PROD)
     {
         $this->cookieFile = $cookieFile;
         $this->base       = rtrim($base, '/');
+        $this->http       = new FftaHttp($cookieFile);
     }
 
     public function base(): string
@@ -28,25 +34,7 @@ class DirigeantClient
         return $this->base;
     }
 
-    private function curl()
-    {
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_COOKIEJAR      => $this->cookieFile,
-            CURLOPT_COOKIEFILE     => $this->cookieFile,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_SSL_VERIFYHOST => 2,
-            CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; ianseo/synchro-ffta)',
-            CURLOPT_TIMEOUT        => 45,
-            CURLOPT_CONNECTTIMEOUT => 10,
-        ]);
-
-        return $ch;
-    }
-
-    /** Message MFA lisible à partir du code d'erreur d'AUTH. */
+    /** Readable MFA message from AUTH's error code. */
     private static function msg(string $err): string
     {
         if ($err === 'MFA_NEEDED') {
@@ -60,12 +48,11 @@ class DirigeantClient
     }
 
     /**
-     * Connexion. Retourne ['ok'=>bool, 'msg'=>?]. Le cookie authentifié atterrit dans
-     * $this->cookieFile.
+     * Login. Returns ['ok'=>bool, 'msg'=>?]. The authenticated cookie lands in $this->cookieFile.
      */
     public function login(string $user, string $pass, string $otp = ''): array
     {
-        // ── Voie AUTH (robuste, MFA Fortify) ────────────────────────────────
+        // ── AUTH path (robust, Fortify MFA) ─────────────────────────────────
         if (function_exists('aut_ffta_curl_login')) {
             $landing = '';
             $error   = '';
@@ -75,7 +62,7 @@ class DirigeantClient
                 return ['ok' => false, 'msg' => self::msg($error)];
             }
             if ($ckOut && file_exists($ckOut)) {
-                @copy($ckOut, $this->cookieFile);   // on récupère le cookie authentifié
+                @copy($ckOut, $this->cookieFile);   // the authenticated cookie is taken over
                 @chmod($this->cookieFile, 0600);
             }
             curl_close($ch);
@@ -83,24 +70,15 @@ class DirigeantClient
             return ['ok' => true];
         }
 
-        // ── Voie autonome (sans AUTH) : login en une étape (best-effort MFA) ─
+        // ── Standalone path (without AUTH): one-step login (best-effort MFA) ─
         return $this->loginBuiltin($user, $pass, $otp);
     }
 
     private function loginBuiltin(string $user, string $pass, string $otp): array
     {
-        $ch = $this->curl();
-
-        curl_setopt($ch, CURLOPT_URL, $this->base . '/auth/login');
-        curl_setopt($ch, CURLOPT_HTTPGET, true);
-        $page = curl_exec($ch);
-        if (!$page || curl_errno($ch)) {
-            $errno = curl_errno($ch);
-            $e     = curl_error($ch);
-            curl_close($ch);
-
-            return ['ok' => false, 'msg' => ExtranetClient::netMessage($errno, $e, $this->base),
-                    'offline' => ExtranetClient::isOffline($errno)];
+        $page = $this->http->request($this->base . '/auth/login');
+        if ($f = FftaHttp::failure($page, $this->base)) {
+            return $f;
         }
 
         $csrf = null;
@@ -108,73 +86,58 @@ class DirigeantClient
             '/<input[^>]+name=["\']_token["\'][^>]+value=["\']([^"\']+)["\']/',
             '/name=["\']csrf-token["\'][^>]*content=["\']([^"\']+)["\']/',
         ] as $p) {
-            if (preg_match($p, $page, $m)) { $csrf = $m[1]; break; }
+            if (preg_match($p, $page['body'], $m)) { $csrf = $m[1]; break; }
         }
         if (!$csrf) {
-            curl_close($ch);
-
             return ['ok' => false, 'msg' => 'Token CSRF introuvable (page de connexion modifiée ?).'];
         }
 
         $post = ['_token' => $csrf, 'username' => $user, 'password' => $pass];
         if ($otp !== '') { $post['otp'] = $otp; }
-        curl_setopt_array($ch, [
-            CURLOPT_URL        => $this->base . '/auth/login',
-            CURLOPT_POST       => true,
-            CURLOPT_POSTFIELDS => http_build_query($post),
-        ]);
-        curl_exec($ch);
-        $effUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-        curl_close($ch);
+        $r = $this->http->request($this->base . '/auth/login', $post);
+        if ($f = FftaHttp::failure($r, $this->base)) {
+            return $f;
+        }
 
-        if (strpos($effUrl, '/login') !== false) {
+        if (strpos($r['url'], '/login') !== false) {
+            if ($r['captcha']) {
+                return ['ok' => false, 'blocked' => true, 'msg' => FftaHttp::blockMessage('captcha', $this->base)];
+            }
+
             return ['ok' => false, 'msg' => 'Identifiants incorrects (ou MFA requise — nécessite le module AUTH).'];
         }
 
         return ['ok' => true];
     }
 
-    /** La session portée par le cookie est-elle encore ouverte ? */
+    /** Is the session carried by the cookie still open? */
     public function session(): bool
     {
-        $ch = $this->curl();
-        curl_setopt($ch, CURLOPT_URL, $this->base . '/');
-        curl_setopt($ch, CURLOPT_HTTPGET, true);
-        $body = curl_exec($ch);
-        $ok   = $body !== false && !curl_errno($ch)
-            && strpos($effUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL), '/login') === false;
-        curl_close($ch);
+        $r = $this->http->request($this->base . '/');
 
-        return $ok;
+        return FftaHttp::failure($r, $this->base) === null && strpos($r['url'], '/login') === false;
     }
 
     /**
-     * Télécharge le fichier des licenciés (parametres_ianseo.ffta) avec le cookie courant.
+     * Downloads the licence holders file (parametres_ianseo.ffta) with the current cookie.
      * @return array ['ok'=>bool, 'code'=>int, 'body'=>string, 'error'=>string, 'relogin'=>bool]
      */
     public function downloadLicences(): array
     {
-        $ch = $this->curl();
-        curl_setopt($ch, CURLOPT_URL, $this->base . '/ianseo/download/parametres_ianseo.ffta');
-        curl_setopt($ch, CURLOPT_HTTPGET, true);
-        $body   = curl_exec($ch);
-        $code   = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $effUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-        $errno  = curl_errno($ch);
-        $err    = $errno ? curl_error($ch) : '';
-        curl_close($ch);
+        $r = $this->http->request($this->base . '/ianseo/download/parametres_ianseo.ffta');
 
-        // redirigé vers le login = session expirée
-        if (strpos($effUrl, '/login') !== false) {
-            return ['ok' => false, 'code' => $code, 'body' => '', 'error' => 'Session expirée', 'relogin' => true];
+        if ($f = FftaHttp::failure($r, $this->base)) {
+            return ['ok' => false, 'code' => $r['code'], 'body' => '', 'error' => $f['msg'],
+                    'offline' => !empty($f['offline']), 'relogin' => false];
         }
-        if ($err || $body === false || $code !== 200) {
-            return ['ok' => false, 'code' => $code, 'body' => '',
-                    'error'   => $err ? ExtranetClient::netMessage($errno, $err, $this->base) : ('HTTP ' . $code),
-                    'offline' => ExtranetClient::isOffline($errno),
-                    'relogin' => false];
+        // redirected to the login page = expired session
+        if (strpos($r['url'], '/login') !== false) {
+            return ['ok' => false, 'code' => $r['code'], 'body' => '', 'error' => 'Session expirée', 'relogin' => true];
+        }
+        if ($r['code'] !== 200) {
+            return ['ok' => false, 'code' => $r['code'], 'body' => '', 'error' => 'HTTP ' . $r['code'], 'relogin' => false];
         }
 
-        return ['ok' => true, 'code' => $code, 'body' => (string) $body, 'error' => '', 'relogin' => false];
+        return ['ok' => true, 'code' => $r['code'], 'body' => $r['body'], 'error' => '', 'relogin' => false];
     }
 }

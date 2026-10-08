@@ -1,8 +1,8 @@
 <?php
 /**
- * Endpoint AJAX du module SYNCHRO_FFTA — flux « dépôt ».
- * Une action par étape de l'assistant. Aucun dépôt n'est effectué ici :
- * la chaîne s'arrête volontairement à l'affichage du cadre de dépôt.
+ * SYNCHRO_FFTA AJAX endpoint — « deposit » flow (TXT results to the extranet).
+ * One action per step of the assistant. Extranet sessions (own cookie, cookie published by AUTH,
+ * role aligned on the AUTH view) are those of session.php, shared with the creation flow.
  */
 // Avant tout chargement : toute sortie parasite (warning/notice, BOM) émise avant le JSON
 // fausserait le Content-Length calculé par JsonOut (strlen du JSON seul) → réponse
@@ -11,203 +11,17 @@ ob_start();
 
 define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
-require_once(__DIR__ . '/ExtranetClient.php');
+require_once(__DIR__ . '/session.php');   // shared FFTA sessions (cookies, login, AUTH role)
 
 CheckTourSession(true);
 checkFullACL(AclCompetition, 'cExport', AclReadOnly);
 
-// Serveur cible — production : le dépôt est validé et testé en conditions réelles.
-$ITXT_BASE = ExtranetClient::BASE_PROD;
-
 $action = $_POST['itxt_action'] ?? '';
 
-/** Sortie JSON propre : on jette d'abord tout ce qui aurait pu être émis. */
+/** Clean JSON output: whatever may have been emitted before is dropped first. */
 function itxt_json($data) {
     while (ob_get_level()) { ob_end_clean(); }
     JsonOut($data);
-}
-
-/** Cookie jar de la session extranet, créé à la connexion et détruit à la déconnexion. */
-function itxt_cookie_file(bool $create = false): ?string
-{
-    if ($create) {
-        itxt_cookie_destroy();
-        $f = tempnam(sys_get_temp_dir(), 'itxt_ck_');
-        chmod($f, 0600);
-        $_SESSION['ITXT_COOKIE'] = $f;
-
-        return $f;
-    }
-
-    $f = $_SESSION['ITXT_COOKIE'] ?? null;
-
-    return ($f && file_exists($f)) ? $f : null;
-}
-
-function itxt_cookie_destroy(): void
-{
-    $f = $_SESSION['ITXT_COOKIE'] ?? null;
-    if ($f && file_exists($f)) {
-        @unlink($f);
-    }
-    unset($_SESSION['ITXT_COOKIE']);
-}
-
-/**
- * Cookie extranet publié par le module AUTH (convention FFTA_EXTRANET_*, voir
- * CLAUDE.md racine), utilisable seulement s'il pointe sur le MÊME serveur que nous.
- * Il appartient à AUTH : on le lit, on ne le détruit jamais.
- */
-function itxt_shared_cookie(string $base): ?string
-{
-    $c = $_SESSION['FFTA_EXTRANET_COOKIE'] ?? '';
-    $b = $_SESSION['FFTA_EXTRANET_BASE']   ?? '';
-
-    return ($c !== '' && rtrim($b, '/') === rtrim($base, '/') && file_exists($c)) ? $c : null;
-}
-
-/** Cookie du module s'il existe, sinon celui d'AUTH. */
-function itxt_any_cookie(string $base): ?string
-{
-    return itxt_cookie_file() ?? itxt_shared_cookie($base);
-}
-
-function itxt_client(string $base): ExtranetClient
-{
-    $f = itxt_any_cookie($base);
-    if (!$f) {
-        itxt_json(['ok' => false, 'msg' => 'Aucune session extranet — connecte-toi d\'abord.', 'relogin' => true]);
-    }
-
-    return new ExtranetClient($f, $base);
-}
-
-// ── Rôle extranet aligné sur la vue AUTH (aucune UI de sélection quand AUTH est présent) ─
-// Même principe que session.php (flux création) — dupliqué ici car ce flux garde encore
-// ses propres helpers de cookie (itxt_*), non migrés sur session.php.
-
-/** AUTH (module de comptes) est-il actif pour cette session ? */
-function itxt_auth_present(): bool
-{
-    global $CFG;
-
-    return !empty($CFG->USERAUTH) && !empty($_SESSION['AUTH_ENABLE']);
-}
-
-/** Enlève les accents, met en majuscules, compacte les espaces (copie de sfa_normalize). */
-function itxt_normalize(string $s): string
-{
-    $s = strtr($s, [
-        'À'=>'A','Â'=>'A','Ä'=>'A','Á'=>'A','Ã'=>'A','Å'=>'A','Ç'=>'C',
-        'È'=>'E','É'=>'E','Ê'=>'E','Ë'=>'E','Î'=>'I','Ï'=>'I','Í'=>'I','Ì'=>'I',
-        'Ô'=>'O','Ö'=>'O','Ó'=>'O','Ò'=>'O','Õ'=>'O','Ù'=>'U','Û'=>'U','Ü'=>'U','Ú'=>'U',
-        'à'=>'A','â'=>'A','ä'=>'A','á'=>'A','ç'=>'C','è'=>'E','é'=>'E','ê'=>'E','ë'=>'E',
-        'î'=>'I','ï'=>'I','ô'=>'O','ö'=>'O','ù'=>'U','û'=>'U','ü'=>'U',
-    ]);
-    $s = mb_strtoupper($s, 'UTF-8');
-
-    return trim(preg_replace('/\s+/u', ' ', $s));
-}
-
-/**
- * Nom de la structure AUTH actuellement active, tel que connu depuis dirigeant.ffta.fr
- * (AUTH_VIEWS — même source de noms que l'extranet). Voir sfa_auth_view_name (session.php).
- */
-function itxt_auth_view_name(): string
-{
-    $role  = $_SESSION['AUTH_ROLE']  ?? '';
-    $scope = (string) ($_SESSION['AUTH_SCOPE'] ?? '');
-    foreach (($_SESSION['AUTH_VIEWS'] ?? []) as $v) {
-        if (($v['role'] ?? '') === $role && (string) ($v['scope'] ?? '') === $scope) {
-            return trim(preg_replace('/\s*\([^)]*\)\s*$/', '', (string) ($v['label'] ?? '')));
-        }
-    }
-
-    return '';
-}
-
-/**
- * Valeur de rôle extranet (chxMxDrx) correspondant à la vue AUTH courante (AUTH_ROLE), ou
- * null si AUTH absent ou aucune correspondance. CLUB : pas de code d'agrément dans le
- * libellé extranet — un compte peut gérer PLUSIEURS clubs (cas réel vérifié : « Club
- * Fédération » est une structure administrative bien réelle, pas un leurre à écarter
- * systématiquement) → on départage alors par le NOM de la structure AUTH active
- * (itxt_auth_view_name), le seul signal fiable pour cela. Voir sfa_auth_matching_role
- * (session.php) pour la version jumelle du flux création.
- */
-function itxt_auth_matching_role(array $roles): ?string
-{
-    $authRole = $_SESSION['AUTH_ROLE'] ?? '';
-    $pattern  = [
-        'FED'   => '/F[ée]d[ée]ration/iu',
-        'ADMIN' => '/F[ée]d[ée]ration/iu',
-        'CR'    => '/R[ée]gional|Ligue/iu',
-        'CD'    => '/D[ée]partement(al)?/iu',
-        'CLUB'  => '/Club/iu',
-    ][$authRole] ?? null;
-
-    if ($pattern === null) {
-        return null;
-    }
-
-    $candidates = [];
-    foreach ($roles as $r) {
-        if (stripos($r['label'], 'informations personnelles') !== false) {
-            continue;   // gestion de compte, pas un niveau organisationnel
-        }
-        if (preg_match($pattern, $r['label'])) {
-            $candidates[] = $r;
-        }
-    }
-
-    if (!$candidates) {
-        return null;
-    }
-    if (count($candidates) === 1) {
-        return $candidates[0]['value'];
-    }
-
-    $name = itxt_normalize(itxt_auth_view_name());
-    if ($name !== '') {
-        foreach ($candidates as $c) {
-            if (strpos(itxt_normalize($c['label']), $name) !== false) {
-                return $c['value'];
-            }
-        }
-    }
-
-    return $candidates[0]['value'];
-}
-
-/**
- * Si AUTH est présent, aligne le rôle extranet sur sa vue courante (bascule silencieuse,
- * sans UI) et retourne les rôles à jour. Sinon, ou sans correspondance, retourne les rôles
- * reçus tels quels — le sélecteur manuel de la page reste alors la seule voie.
- */
-function itxt_sync_role_with_auth(ExtranetClient $client, array $roles): array
-{
-    if (!itxt_auth_present()) {
-        return $roles;
-    }
-    $target = itxt_auth_matching_role($roles);
-    if ($target === null) {
-        return $roles;
-    }
-
-    $current = null;
-    foreach ($roles as $r) {
-        if (!empty($r['selected'])) {
-            $current = $r['value'];
-            break;
-        }
-    }
-    if ($current === $target) {
-        return $roles;
-    }
-
-    $sw = $client->switchRole($target);
-
-    return !empty($sw['ok']) ? $sw['roles'] : $roles;
 }
 
 /** Compétition ianseo courante : sert au pré-remplissage et au rapprochement. */
@@ -424,33 +238,36 @@ switch ($action) {
     // Session extranet déjà ouverte pour cette session ianseo ? Le mot de passe
     // n'est demandé qu'une fois : tant que le cookie vit, on reprend la main.
     case 'status':
-        $own    = itxt_cookie_file();
-        $shared = $own ? null : itxt_shared_cookie($ITXT_BASE);
-        $f      = $own ?? $shared;
+        $f = sfa_any_cookie('ext');
         if (!$f) {
             itxt_json(['ok' => true, 'logged' => false]);
         }
 
-        $client = new ExtranetClient($f, $ITXT_BASE);
+        $shared = sfa_is_shared('ext');
+        $client = new ExtranetClient($f, sfa_base('ext'));
         $res    = $client->session();
         if (!$res['ok']) {
-            // Hors ligne : la session n'est pas morte, on garde le cookie et on le dit.
-            if (!empty($res['offline'])) {
-                itxt_json(['ok' => true, 'logged' => false, 'offline' => true, 'msg' => $res['msg'] ?? '']);
+            if (!empty($res['wait'])) {
+                itxt_json($res);   // the page waits and asks again
             }
-            if ($own) {
-                itxt_cookie_destroy();   // le cookie d'AUTH ne nous appartient pas : on n'y touche pas
+            // Offline or blocked: the session is not dead, the cookie is kept and the reason said.
+            if (!empty($res['offline']) || !empty($res['blocked'])) {
+                itxt_json(['ok' => true, 'logged' => false, 'offline' => !empty($res['offline']),
+                           'blocked' => !empty($res['blocked']), 'msg' => $res['msg'] ?? '']);
+            }
+            if (!$shared) {
+                sfa_own_cookie_destroy('ext');   // AUTH's cookie is not ours: never touched
             }
             itxt_json(['ok' => true, 'logged' => false]);
         }
 
-        // AUTH présent : le rôle extranet suit sa vue, sans sélecteur manuel (index.php).
-        $roles = itxt_sync_role_with_auth($client, $res['roles']);
+        // AUTH present: the extranet role follows its view, no manual selector (index.php).
+        $roles = sfa_sync_role_with_auth($client, $res['roles']);
         itxt_json([
             'ok'     => true,
             'logged' => true,
             'roles'  => $roles,
-            'shared' => $shared !== null,   // session ouverte par la connexion ianseo (AUTH)
+            'shared' => $shared,   // session opened by the ianseo login (AUTH)
         ]);
         break;
 
@@ -459,25 +276,25 @@ switch ($action) {
         $pass = $_POST['itxt_pass'] ?? '';
         unset($_POST['itxt_user'], $_POST['itxt_pass']);
 
-        $client = new ExtranetClient(itxt_cookie_file(true), $ITXT_BASE);
-        $res    = $client->login($user, $pass);
+        // Extranet only: the deposit needs nothing from the Espace Dirigeant.
+        $res = sfa_login($user, $pass, '', ['ext'])['ext'];
 
         $user = str_repeat("\0", max(1, strlen($user)));
         $pass = str_repeat("\0", max(1, strlen($pass)));
         unset($user, $pass);
 
-        if (!$res['ok']) {
-            itxt_cookie_destroy();
+        if (empty($res['ok'])) {
             itxt_json($res);
         }
 
-        // AUTH présent : le rôle extranet suit sa vue, sans sélecteur manuel (index.php).
-        $roles = itxt_sync_role_with_auth($client, $res['roles']);
+        // AUTH present: the extranet role follows its view, no manual selector (index.php).
+        $client = new ExtranetClient(sfa_own_cookie('ext'), sfa_base('ext'));
+        $roles  = sfa_sync_role_with_auth($client, $res['roles'] ?? []);
 
         $t = itxt_tournament();
         itxt_json([
             'ok'    => true,
-            'base'  => $ITXT_BASE,
+            'base'  => sfa_base('ext'),
             'roles' => $roles,
             'tour'  => [
                 'nom'       => $t->ToName,
@@ -490,12 +307,12 @@ switch ($action) {
         break;
 
     case 'role':
-        $client = itxt_client($ITXT_BASE);
+        $client = sfa_client('ext');
         itxt_json($client->switchRole($_POST['itxt_role'] ?? ''));
         break;
 
     case 'list':
-        $client = itxt_client($ITXT_BASE);
+        $client = sfa_client('ext');
         $t      = itxt_tournament();
 
         $from = itxt_date_fr($_POST['itxt_from'] ?? '', $t->ToWhenFrom);
@@ -560,7 +377,7 @@ switch ($action) {
         break;
 
     case 'event':
-        $client = itxt_client($ITXT_BASE);
+        $client = sfa_client('ext');
         $res    = $client->event($_POST['itxt_id'] ?? '');
 
         // Le cadre de dépôt est chargé dans la foulée : c'est ce que l'utilisateur
@@ -583,7 +400,7 @@ switch ($action) {
         break;
 
     case 'deposit':
-        $client = itxt_client($ITXT_BASE);
+        $client = sfa_client('ext');
         $email  = trim($_POST['itxt_email'] ?? '');
         $vVid   = trim($_POST['itxt_valides_vid'] ?? '');    // épreuve extranet valides
         $pVid   = trim($_POST['itxt_para_vid'] ?? '');       // épreuve extranet para
@@ -630,7 +447,7 @@ switch ($action) {
         break;
 
     case 'logout':
-        itxt_cookie_destroy();
+        sfa_logout();   // our own cookies only; AUTH's are never touched
         itxt_json(['ok' => true]);
         break;
 

@@ -18,10 +18,9 @@ require_once(__DIR__ . '/DirigeantClient.php');
 require_once(__DIR__ . '/mapping.php');   // sfa_normalize(), utilisé par sfa_auth_matching_role()
 
 /**
- * Bases visées par espace. Toutes deux en PRODUCTION (fonctionnement validé) :
- * 'ext' = extranet — création de compétition (lecture du calendrier fédéral) ET dépôt des
- *         résultats TXT (ce dernier via sa propre base $ITXT_BASE dans ajax.php, qui
- *         n'utilise pas cette fonction — deux calculs séparés, à garder synchronisés).
+ * Target base per space, both in PRODUCTION (validated):
+ * 'ext' = extranet — competition creation (calendar) AND TXT results deposit, which share this
+ *         single value since the deposit flow moved onto this file;
  * 'dir' = Espace Dirigeant.
  */
 function sfa_base(string $space): string

@@ -472,3 +472,61 @@ function sfa_session_durations(): array
 
     return $out;
 }
+
+/**
+ * Additional per-session questions (§5.E), by discipline family: one checkbox each, asked from the
+ * given session order on, whose mention goes into the session comment.
+ * Returns [family => [['key'=>, 'label'=>, 'on'=>, 'off'=>, 'from'=>int], …]].
+ */
+function sfa_session_options(): array
+{
+    $out = [];
+    foreach (sfa_mapping_sections() as $title => $lines) {
+        if (strpos($title, 'QUESTIONS SUPPLEMENTAIRES') === false) {
+            continue;
+        }
+        foreach (sfa_md_rows($lines) as $r) {
+            $fam   = sfa_backtick($r[0] ?? '');
+            $key   = sfa_backtick($r[1] ?? '');
+            $label = trim($r[2] ?? '');
+            if ($fam === '' || $label === '' || !preg_match('/^[A-Za-z0-9_]+$/', $key)) {
+                continue;
+            }
+            $out[$fam][] = [
+                'key'   => $key,
+                'label' => $label,
+                'on'    => trim($r[3] ?? ''),
+                'off'   => trim($r[4] ?? ''),
+                'from'  => max(1, (int) ($r[5] ?? 1)),
+            ];
+        }
+        break;
+    }
+
+    return $out;
+}
+
+/**
+ * Extranet disciplines as its search form offers them (§1), in file order:
+ * [['value'=>code, 'label'=>…], …] — a list, not a map: numeric codes (« 1 », « 3 ») would be
+ * reordered by JavaScript. Fallback of the discipline filter until the extranet page has been read.
+ */
+function sfa_discipline_options(): array
+{
+    $out = [];
+    foreach (sfa_mapping_sections() as $title => $lines) {
+        if (strpos($title, 'DISCIPLINE') === false) {
+            continue;
+        }
+        foreach (sfa_md_rows($lines) as $r) {
+            $code  = sfa_backtick($r[0] ?? '');
+            $label = trim($r[1] ?? '');
+            if ($code !== '' && $label !== '') {
+                $out[] = ['value' => $code, 'label' => $label];
+            }
+        }
+        break;
+    }
+
+    return $out;
+}

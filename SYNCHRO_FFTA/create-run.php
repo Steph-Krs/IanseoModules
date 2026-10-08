@@ -11,6 +11,8 @@
  * setModuleParameter/Set_Tournament_Option (ISK), CreateTourSession (ouverture). Seul
  * l'INSERT de base est répliqué depuis Tournament/index.php (schéma stable) — à garder
  * synchronisé si ianseo ajoute une colonne obligatoire à la création.
+ * The free-text programme lines (registration desk, equipment inspection) are the other replicated
+ * INSERT, from Scheduler/AjaxInsert.php (see sfa_schedule_text()).
  */
 define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
@@ -32,6 +34,31 @@ function sfa_fail(string $msg): void
     global $backTo;
     CD_redirect($backTo . '?err=' . rawurlencode($msg));
     exit;
+}
+
+/** HH:MM of a time field, or '' when the value is not a time. */
+function sfa_hhmm(string $value): string
+{
+    return preg_match('/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/', trim($value), $m) ? $m[1] . ':' . $m[2] : '';
+}
+
+/**
+ * Free-text line of the native programme (Scheduler, SchSesType 'Z'), written the way
+ * Scheduler/AjaxInsert.php writes it. No core function creates such a line, and the session is
+ * reset by TourOn.php before create-finish.php, so it is written here.
+ */
+function sfa_schedule_text(int $tid, string $day, string $hhmm, string $subTitle, string $text): void
+{
+    $dayDb   = StrSafe_DB($day);
+    $startDb = StrSafe_DB($hhmm . ':00');
+    $r = safe_fetch(safe_r_sql("SELECT MAX(SchOrder) AS MaxOrder FROM Scheduler
+        WHERE SchTournament=$tid AND SchDay=$dayDb AND SchStart=$startDb"));
+    $order = ($r ? (int) $r->MaxOrder : 0) + 1;
+
+    safe_w_sql("INSERT INTO Scheduler SET SchUID=" . StrSafe_DB(md5(uniqid(mt_rand(), true)))
+        . ", SchTournament=$tid, SchDay=$dayDb, SchStart=$startDb, SchDuration=0"
+        . ", SchTitle='', SchSubTitle=" . StrSafe_DB($subTitle) . ", SchText=" . StrSafe_DB($text)
+        . ", SchShift=NULL, SchOrder=$order, SchTargets='', SchLink='', SchLocation=''");
 }
 
 // ── Champs de base ───────────────────────────────────────────────────────────
@@ -64,16 +91,28 @@ $sesAth   = $_POST['sfa_ses_rythme']   ?? [];
 $sesDur   = $_POST['sfa_ses_duration'] ?? [];
 $sesTrain = $_POST['sfa_ses_training'] ?? [];
 $sesWarm  = $_POST['sfa_ses_warmends'] ?? [];
+$sesDesk  = $_POST['sfa_ses_greffe']   ?? [];   // registration desk opening
+$sesInsp  = $_POST['sfa_ses_inspect']  ?? [];   // equipment inspection
+$sesOpt   = $_POST['sfa_ses_opt']      ?? [];   // [row => [key => 1]], questions of §5.E
 
 if (!is_array($sesDays) || !count($sesDays)) {
     sfa_fail('Au moins un départ est nécessaire pour créer la compétition.');
 }
 foreach ($sesDays as $i => $day) {
+    $start = sfa_hhmm((string) ($sesTimes[$i] ?? ''));
     if ((int) ($sesCible[$i] ?? 0) <= 0 || (int) ($sesAth[$i] ?? 0) <= 0
         || (int) ($sesDur[$i] ?? 0) <= 0
-        || trim((string) $day) === '' || trim((string) ($sesTimes[$i] ?? '')) === '') {
+        || !preg_match('/^\d{4}-\d{2}-\d{2}$/', trim((string) $day)) || $start === '') {
         sfa_fail('Chaque départ doit indiquer le nombre de cibles, le nombre d\'archers par cible, '
                . 'le jour, l\'heure et la durée.');
+    }
+    $desk = sfa_hhmm((string) ($sesDesk[$i] ?? ''));
+    $insp = sfa_hhmm((string) ($sesInsp[$i] ?? ''));
+    if ($desk === '' || $insp === '') {
+        sfa_fail('Chaque départ doit indiquer l\'heure d\'ouverture du greffe et celle de l\'inspection du matériel.');
+    }
+    if ($desk > $start || $insp > $start) {
+        sfa_fail('L\'ouverture du greffe et l\'inspection du matériel ne peuvent pas être après le début des tirs.');
     }
     // Le nombre de volées n'est exigé que si l'entraînement est compris dans l'horaire.
     if (!empty($sesTrain[$i]) && (int) ($sesWarm[$i] ?? 0) <= 0) {
@@ -166,7 +205,8 @@ calcMaxTeamPerson([], true, $tid);
 // SesName porte un vrai nom de départ (« HCL & FCO »), pas un commentaire.
 // On laisse donc SesName vide (l'organisateur le nommera s'il veut) et on écrit le planning via
 // les fonctions natives du planning (Scheduler/LibScheduler.php), jamais en SQL recopié.
-$family = sfa_session_families()[$toType] ?? '';
+$family  = sfa_session_families()[$toType] ?? '';
+$options = sfa_session_options()[$family] ?? [];   // §5.E questions of this discipline
 
 $order = 0;
 foreach ($sesDays as $i => $day) {
@@ -184,18 +224,53 @@ foreach ($sesDays as $i => $day) {
     InsertSchedTime([$order => [1 => $time]]);
     InsertSchedDuration([$order => [1 => (int) $sesDur[$i]]]);
 
+    $comment = [];
     if (!empty($sesTrain[$i])) {
         // « Entraînement (3 volées) suivi des qualifications en rythme AB-CD » — même forme que
         // ce que saisissent les organisateurs (relevé sur une compétition réelle). Le libellé du
         // rythme vient du §5.D du fichier de correspondance ; s'il est inconnu pour ce nombre
         // d'archers, on omet la mention plutôt que d'inventer un libellé.
-        $rythme  = sfa_rythme_label($family, $archers);
-        $volees  = (int) $sesWarm[$i];
-        $comment = 'Entraînement (' . $volees . ' volée' . ($volees > 1 ? 's' : '') . ')'
-                 . ' suivi des qualifications'
-                 . ($rythme !== '' ? ' en rythme ' . $rythme : '');
-        InsertSchedComment([$order => [1 => $comment]]);
+        $rythme    = sfa_rythme_label($family, $archers);
+        $volees    = (int) $sesWarm[$i];
+        $comment[] = 'Entraînement (' . $volees . ' volée' . ($volees > 1 ? 's' : '') . ')'
+                   . ' suivi des qualifications'
+                   . ($rythme !== '' ? ' en rythme ' . $rythme : '');
     }
+    // §5.E questions: which ones apply is decided here from the discipline and the session order,
+    // never from the form — only the ticked state comes from it.
+    foreach ($options as $opt) {
+        if ($order < $opt['from']) {
+            continue;
+        }
+        $mention = !empty($sesOpt[$i][$opt['key']]) ? $opt['on'] : $opt['off'];
+        if ($mention !== '') {
+            $comment[] = $mention;
+        }
+    }
+    if ($comment) {
+        InsertSchedComment([$order => [1 => implode(' — ', $comment)]]);
+    }
+}
+
+// ── Registration desk and equipment inspection: lines of the native programme ─
+// Format agreed with the modules that read them (mandates): one line when both times are equal,
+// the desk wording in SchSubTitle and the inspection wording in SchText; two lines otherwise,
+// each wording keeping its own column. A line shared by several sessions (same day, time and
+// wording) is written once.
+$deskLines = [];
+foreach ($sesDays as $i => $day) {
+    $day  = trim((string) $day);
+    $desk = sfa_hhmm((string) $sesDesk[$i]);
+    $insp = sfa_hhmm((string) $sesInsp[$i]);
+    $lines = ($desk === $insp)
+        ? [[$desk, 'Ouverture du greffe', 'Inspection du matériel']]
+        : [[$desk, 'Ouverture du greffe', ''], [$insp, '', 'Inspection du matériel']];
+    foreach ($lines as [$hhmm, $subTitle, $text]) {
+        $deskLines[$day . '|' . $hhmm . '|' . $subTitle . '|' . $text] = [$day, $hhmm, $subTitle, $text];
+    }
+}
+foreach ($deskLines as [$day, $hhmm, $subTitle, $text]) {
+    sfa_schedule_text($tid, $day, $hhmm, $subTitle, $text);
 }
 
 // ── Saisie par téléphone (ISK-NG) ────────────────────────────────────────────

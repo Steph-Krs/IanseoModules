@@ -15,6 +15,7 @@ define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
 require_once($CFG->DOCUMENT_PATH . 'Common/CheckPictures.php');
 require_once(__DIR__ . '/mapping.php');   // sfa_booking_present()
+require_once(__DIR__ . '/ExtranetClient.php');   // BASE_PROD + FftaHttp (club logo)
 
 CheckTourSession(true);
 
@@ -85,25 +86,15 @@ if ($bottomFile && filesize($bottomFile) > 0 && filesize($bottomFile) <= 262143)
 $toRightData = null;
 $q = safe_r_sql("SELECT ToCommitee FROM Tournament WHERE ToId=$tid");
 if (($r = safe_fetch($q)) && trim((string) $r->ToCommitee) !== '') {
-    $ch = curl_init();
-    curl_setopt_array($ch, [
-        CURLOPT_URL            => 'https://extranet.ffta.fr/ianseo/logo.php?png=' . urlencode(trim($r->ToCommitee)),
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HEADER         => true,
-        CURLOPT_TIMEOUT        => 20,
-        CURLOPT_SSL_VERIFYPEER => true,
-    ]);
-    $resp  = curl_exec($ch);
-    $code  = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $ctype = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-    $hsize = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-    curl_close($ch);
+    // Shared transport (pacing, pauses): a delayed or refused request simply falls back below.
+    $logo = (new FftaHttp())->request(ExtranetClient::BASE_PROD . '/ianseo/logo.php?png='
+        . urlencode(trim($r->ToCommitee)), null, ['timeout' => 20, 'headers' => true]);
+    $isImage = (bool) preg_match('/^Content-Type:\s*image\//mi', $logo['headers']);
 
-    if ($resp !== false && $code === 200 && stripos($ctype, 'image/') === 0) {
-        $body = substr($resp, $hsize);
-        if ($body !== '' && strlen($body) <= 262143) {
-            $toRightData = $body;
-        }
+    // bytes: the limit is the size of the mediumblob column
+    if (FftaHttp::failure($logo, ExtranetClient::BASE_PROD) === null && $logo['code'] === 200 && $isImage
+        && $logo['body'] !== '' && strlen($logo['body']) <= 262143) {
+        $toRightData = $logo['body'];
     }
 }
 if ($toRightData === null) {

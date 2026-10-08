@@ -83,9 +83,13 @@ switch ($action) {
         $client = new ExtranetClient($f, sfa_base('ext'));
         $res    = $client->session();
         if (!$res['ok']) {
-            // Hors ligne : la session n'est pas morte, on garde le cookie et on le signale.
-            if (!empty($res['offline'])) {
-                sfa_json(['ok' => true, 'logged' => false, 'offline' => true, 'msg' => $res['msg'] ?? '']);
+            if (!empty($res['wait'])) {
+                sfa_json($res);   // the page waits and asks again
+            }
+            // Offline or blocked: the session is not dead, the cookie is kept and the reason said.
+            if (!empty($res['offline']) || !empty($res['blocked'])) {
+                sfa_json(['ok' => true, 'logged' => false, 'offline' => !empty($res['offline']),
+                          'blocked' => !empty($res['blocked']), 'msg' => $res['msg'] ?? '']);
             }
             if (!$shared) {
                 sfa_own_cookie_destroy('ext');
@@ -94,7 +98,8 @@ switch ($action) {
         }
         // AUTH présent : le rôle extranet suit sa vue, sans sélecteur manuel (create.php).
         $roles = sfa_sync_role_with_auth($client, $res['roles']);
-        sfa_json(['ok' => true, 'logged' => true, 'roles' => $roles, 'shared' => $shared]);
+        sfa_json(['ok' => true, 'logged' => true, 'roles' => $roles, 'shared' => $shared,
+                  'disciplines' => $client->disciplines()]);
         break;
 
     case 'login':
@@ -110,6 +115,7 @@ switch ($action) {
             // AUTH présent : le rôle extranet suit sa vue, sans sélecteur manuel (create.php).
             $extClient    = new ExtranetClient(sfa_own_cookie('ext'), sfa_base('ext'));
             $out['roles'] = sfa_sync_role_with_auth($extClient, $out['roles'] ?? []);
+            $out['disciplines'] = $extClient->disciplines();
         }
         $out['dir'] = ['ok' => !empty($res['dir']['ok']), 'msg' => $res['dir']['msg'] ?? ''];
         sfa_json($out);
@@ -131,7 +137,11 @@ switch ($action) {
         $to     = $_POST['sfa_to']   ?? '';
         $from   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) ? date('d/m/Y', strtotime($from)) : $from;
         $to     = preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)   ? date('d/m/Y', strtotime($to))   : $to;
-        $res    = $client->listEvents($from, $to, 'all');
+        // Extranet discipline code (search[Discipline]): the extranet shows nothing at all when a
+        // search matches too many events, the filter keeps a search below that limit.
+        $disc   = $_POST['sfa_disc'] ?? 'all';
+        $disc   = preg_match('/^[A-Za-z0-9]{1,5}$/', $disc) ? $disc : 'all';
+        $res    = $client->listEvents($from, $to, $disc);
         if (!empty($res['ok'])) {
             $res['events'] = ExtranetClient::groupPara($res['events']);   // fusionne les lignes Valide+Para
         }

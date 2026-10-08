@@ -210,11 +210,18 @@ Points sur lesquels l'extranet ne dit rien et que le module devra soit laisser v
 
 ## 5. Paramètres de départ par discipline
 
-Configuration assistée de la table des départs (un départ = une ligne) à la création. Ces 3
-tableaux sont lus par `sfa_rythme_bounds()`, `sfa_pelotons_config()` et `sfa_session_durations()`
-(mapping.php) — la famille (colonne du §2) fait le lien avec la discipline choisie. Comme le
-tableau §3, ils sont **à compléter** : une famille ou une combinaison absente reste simplement
-sans contrainte/auto-remplissage côté formulaire plutôt que de deviner.
+Configuration assistée de la table des départs (un départ = une ligne) à la création. Ces
+tableaux sont lus par `sfa_rythme_bounds()`, `sfa_pelotons_config()`, `sfa_session_durations()`,
+`sfa_rythme_labels()` et `sfa_session_options()` (mapping.php) — la famille (colonne du §2) fait le
+lien avec la discipline choisie. Comme le tableau §3, ils sont **à compléter** : une famille ou une
+combinaison absente reste simplement sans contrainte/auto-remplissage côté formulaire plutôt que de
+deviner.
+
+Quelle que soit la discipline, chaque départ demande aussi l'heure d'**ouverture du greffe** et celle
+de l'**inspection du matériel** (obligatoires, pas après le début des tirs). Elles sont écrites dans le
+programme de la compétition (lignes de texte libre, `Scheduler`) : une seule ligne quand les deux
+heures sont identiques (sous-titre « Ouverture du greffe », texte « Inspection du matériel »), deux
+lignes sinon.
 
 ### A. Archers par cible/peloton (rythme de tir)
 
@@ -281,3 +288,21 @@ libellé inventé).
 | `*` | 5 | `AB-CD-E` |
 | `*` | 6 | `AB-CD-EF` |
 | `Beursault` | 5 | `A-B-C-D-E` |
+
+### E. Questions supplémentaires par départ
+
+Chaque ligne ajoute une case à cocher aux départs de la famille, **à partir du départ indiqué**
+(`1` = tous les départs, `2` = tous sauf le premier). La mention correspondante est ajoutée au
+commentaire du départ, visible dans le programme : celle de « Si cochée » quand la case est cochée,
+celle de « Si non cochée » sinon (cellule vide = aucune mention). Les mentions s'ajoutent à la suite
+du commentaire d'entraînement, séparées par « — ».
+
+La clé identifie la case dans le formulaire (lettres, chiffres, `_`) : deux lignes d'une même
+famille doivent avoir des clés différentes.
+
+| Famille | Clé | Case à cocher | Si cochée | Si non cochée | À partir du départ |
+|---|---|---|---|---|---|
+| `Campagne` | `repique` | Parcours repiqueté | Parcours repiqueté | Parcours identique | 2 |
+| `3D` | `repique` | Parcours repiqueté | Parcours repiqueté | Parcours identique | 2 |
+| `Nature` | `repique` | Parcours repiqueté | Parcours repiqueté | Parcours identique | 2 |
+| `TAE` | `inttime` | Temps de tir international | Temps de tir international | | 1 |

@@ -84,6 +84,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     #itxt .chk .ok  { color:#1a9e52; font-weight:bold; }
     #itxt .chk .bad { color:var(--corail); font-weight:bold; }
 
+    #itxt .warn  { background:#fff6d5; border:1px solid #e0a800; border-radius:4px; padding:.6em .9em; font-size:13px; }
+    #itxt #itxt-wait { position:sticky; top:4px; z-index:5; margin-bottom:16px; }
     #itxt .err   { color:var(--corail); font-weight:600; font-size:13px; }
     #itxt .muted { color:var(--gris-clair); font-size:12px; }
     #itxt details > summary { cursor:pointer; color:var(--bleu); font-size:13px; font-weight:600; }
@@ -124,6 +126,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     Le fichier TXT (produit par l'export FFTA de ianseo) est <b>réellement déposé</b> sur l'extranet
     après confirmation.
   </div>
+
+  <div class="warn" id="itxt-wait" style="display:none"></div>
 
   <!-- Affiché tant que la session extranet n'est pas vérifiée : évite de faire croire
        à l'utilisateur qu'il doit se reconnecter alors qu'un cookie valide existe. -->
@@ -201,13 +205,45 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     var AUTH_ON = <?= $AUTH_ON ? 'true' : 'false' ?>;   // AUTH présent : #itxt-bar masquée, rôle auto
     var $ = function (id) { return document.getElementById(id); };
 
-    function post(action, data) {
+    function send(action, data) {
         var body = new URLSearchParams(Object.assign({itxt_action: action}, data || {}));
         return fetch(AJAX, {
             method: 'POST', credentials: 'same-origin',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: body.toString()
         }).then(function (r) { return r.json(); });
+    }
+
+    /**
+     * The FFTA site (or this server's pacing) may ask to wait: the delay is shown to the user and
+     * the same request leaves again on its own. noRetry: actions never repeated blindly (login,
+     * deposit).
+     */
+    function post(action, data, noRetry) {
+        return send(action, data).then(function (r) {
+            if (r && r.wait > 0 && !noRetry) {
+                return waitFor(r.wait, r.msg).then(function () { return post(action, data); });
+            }
+            return r;
+        });
+    }
+
+    function waitFor(sec, text) {
+        return new Promise(function (resolve) {
+            var box = $('itxt-wait'), left = Math.max(1, parseInt(sec, 10) || 1);
+            box.style.display = '';
+            (function tick() {
+                if (left <= 0) { box.style.display = 'none'; resolve(); return; }
+                box.innerHTML = '⏳ ' + esc(text || '') + ' Nouvel essai automatique dans <b>' + left + ' s</b>.';
+                left--;
+                setTimeout(tick, 1000);
+            })();
+        });
+    }
+
+    /** Message of an answer that asks to wait, for the actions not retried on their own. */
+    function waitText(r) {
+        return r.msg + ' Réessayez dans ' + r.wait + ' s.';
     }
 
     function msg(id, text, isErr) {
@@ -285,18 +321,18 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         if (r.ok && r.logged) { doneChecking(false); connected(r.roles, r.shared); return; }
         // Hors ligne : le dire clairement plutôt que d'afficher un formulaire de connexion
         // qui échouera et ferait croire à un problème d'identifiants.
-        if (r.ok && r.offline) { doneChecking(false); offlineNotice(r.msg); return; }
+        if (r.ok && (r.offline || r.blocked)) { doneChecking(false); offlineNotice(r.msg, r.blocked); return; }
         doneChecking(true);   // pas de session valide → formulaire
     }).catch(function () { doneChecking(true); });
 
-    /** Bandeau « pas de connexion » en tête de page, formulaire masqué. */
-    function offlineNotice(msg) {
+    /** Bandeau « pas de connexion » (ou « accès refusé ») en tête de page, formulaire masqué. */
+    function offlineNotice(msg, blocked) {
         $('checking').style.display = 'none';
         $('auth').style.display = 'none';
         var box = document.createElement('div');
         box.className = 'warn';
         box.style.cssText = 'border-left-color:#cc3333;background:#fdecea;margin-bottom:16px';
-        box.innerHTML = '<b>Pas de connexion à Internet.</b><br>'
+        box.innerHTML = '<b>' + (blocked ? 'L\'extranet refuse l\'accès au module.' : 'Pas de connexion à Internet.') + '</b><br>'
             + esc(msg || 'Le dépôt des résultats nécessite une connexion à l\'extranet FFTA.')
             + '<br><button type="button" class="primary" style="margin-top:8px" '
             + 'onclick="location.reload()">Réessayer</button>';
@@ -308,8 +344,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         if (!u || !p) { msg('m1', 'Identifiant et mot de passe requis.', true); return; }
 
         msgLoad('m1', 'Connexion');
-        post('login', {itxt_user: u, itxt_pass: p}).then(function (r) {
+        post('login', {itxt_user: u, itxt_pass: p}, true).then(function (r) {
             $('p').value = '';
+            if (r.wait) { msg('m1', waitText(r), true); return; }
             if (!r.ok) { msg('m1', r.msg, true); return; }
             connected(r.roles, false);
         }).catch(function (e) { msg('m1', 'Erreur : ' + e.message, true); });
@@ -336,7 +373,12 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     });
 
     // ── Recherche de l'épreuve ──────────────────────────────────────────────
+    // One search at a time: filter changes during a search ask for ONE more search, not a burst.
+    var searching = false, searchAgain = false;
+
     function search() {
+        if (searching) { searchAgain = true; return; }
+        searching = true;
         $('event-box').innerHTML = '<div class="card"><h3>Épreuve sur l\'extranet</h3>'
             + '<div>' + loadCard('Recherche en cours') + '</div></div>';
         $('deposit').innerHTML = '';
@@ -361,7 +403,11 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
                 $('manual').setAttribute('open', 'open');
                 fail('Aucune épreuve ne ressemble à cette compétition — choisis-la dans la liste ci-dessous.');
             }
-        }).catch(function (e) { fail('Erreur : ' + e.message); });
+        }).catch(function (e) { fail('Erreur : ' + e.message); })
+        .then(function () {
+            searching = false;
+            if (searchAgain) { searchAgain = false; search(); }
+        });
     }
 
     function fail(text) {
@@ -421,7 +467,12 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     }
 
     // ── Épreuve retenue + cadre de dépôt ────────────────────────────────────
+    // One event page at a time: only the LAST row clicked meanwhile is fetched next.
+    var evLoading = false, evNext = null;
+
     function loadEvent(id) {
+        if (evLoading) { evNext = id; return; }
+        evLoading = true;
         var ev = lastEvents.filter(function (e) { return String(e.id) === String(id); })[0] || {id: id, carac: ''};
         // Épreuve para si sa discipline (en tête des caractéristiques) commence par « Para ».
         // Une compétition Valide+Para est regroupée : la ligne valides porte para_id.
@@ -430,6 +481,11 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         var paraVid    = isParaRow ? String(ev.id) : (ev.para_id ? String(ev.para_id) : '');
 
         post('event', {itxt_id: id}).then(function (r) {
+            evLoading = false;
+            if (evNext !== null) {
+                var next = evNext; evNext = null;
+                if (String(next) !== String(id)) { loadEvent(next); return; }
+            }
             if (!r.ok) { fail(r.msg); return; }
 
             var h = '<div class="card"><h3>Épreuve sur l\'extranet</h3><div><dl class="kv">';
@@ -449,6 +505,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             $('event-box').innerHTML = h + '</div></div>';
 
             renderDeposit(r, validesVid, paraVid);
+        }).catch(function (e) {
+            evLoading = false; evNext = null;
+            fail('Erreur : ' + e.message);
         });
     }
 
@@ -507,13 +566,14 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
             btn.disabled = true;
             $('dep-report').innerHTML = loadCard('Génération du TXT et dépôt en cours');
+            // noRetry: a deposit is never resent on its own after a delay.
             post('deposit', {
                 itxt_email: mail,
                 itxt_valides_vid: validesVid,
                 itxt_para_vid: paraVid
-            }).then(function (d) {
+            }, true).then(function (d) {
                 btn.disabled = false;
-                if (!d.ok) { $('dep-report').innerHTML = '<p class="err">' + esc(d.msg) + '</p>'; return; }
+                if (!d.ok) { $('dep-report').innerHTML = '<p class="err">' + esc(d.wait ? waitText(d) : d.msg) + '</p>'; return; }
                 showReports(d.reports || {});
             }).catch(function (e) {
                 btn.disabled = false;
@@ -544,7 +604,8 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
                    + 'tant qu\'elles ne sont pas corrigées, les archers concernés ne sont pas pris en compte '
                    + 'et risquent d\'être pénalisés.</p>';
             }
-            h += rep.ok ? (rep.report || '') : ('<p class="err">' + esc(rep.msg || 'Échec du dépôt.') + '</p>');
+            h += rep.ok ? (rep.report || '')
+                        : ('<p class="err">' + esc(rep.wait ? waitText(rep) : (rep.msg || 'Échec du dépôt.')) + '</p>');
             h += '</div></div>';
         });
 

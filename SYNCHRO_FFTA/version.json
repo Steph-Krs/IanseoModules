@@ -1,7 +1,7 @@
 {
-    "version": "0.9.19",
-    "date": "2026-09-27",
-    "notes": "Suppression du BOM UTF-8 en tete de quatre fichiers (ExtranetClient.php, ajax.php, ajax-create.php, licences-sync.php). Ces trois octets partent avant la balise ouvrante : devant une reponse JSON, JSON.parse echoue et l'appelant bascule sur son repli sans rien signaler, si bien que la fonction ne marche jamais alors que rien ne parait casse.",
+    "version": "0.10.0",
+    "date": "2026-10-08",
+    "notes": "Creation d'une competition : filtre par discipline dans la recherche des epreuves (l'extranet n'affiche rien quand une recherche ramene trop d'epreuves). Pour chaque depart, heures d'ouverture du greffe et d'inspection du materiel obligatoires, reportees dans le programme ; case 'parcours repique' a partir du 2e depart en Campagne, 3D et Nature ('Parcours identique' / 'Parcours repiquete' dans le commentaire du depart) ; case 'temps de tir international' en TAE. Echanges avec les sites FFTA : un seul client pour la creation, le depot et la synchro des licencies (le depot reprend les sessions communes), requetes espacees, reponses recentes reutilisees, pause affichee avec un compte a rebours quand le site demande de ralentir, message explicite quand il refuse l'acces (page anti-robot, captcha) au lieu de 'identifiants refuses' ou d'une liste vide.",
     "files": [
         "menu.php",
         "index.php",
@@ -10,6 +10,7 @@
         "create-finish.php",
         "ajax.php",
         "ajax-create.php",
+        "FftaHttp.php",
         "ExtranetClient.php",
         "DirigeantClient.php",
         "session.php",

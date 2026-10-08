@@ -1,23 +1,39 @@
 <?php
 /**
- * Client HTTP de l'extranet FFTA (gsportive / intégration TXT).
+ * HTTP client of the FFTA extranet (calendar and TXT results deposit).
  *
- * Le client ne conserve jamais les identifiants : ils ne servent qu'à l'appel
- * login() et seul le cookie de session extranet survit, dans un fichier
- * temporaire 0600 dont le chemin est gardé en session ianseo.
+ * The client never keeps credentials: they only serve the login() call, and only the extranet
+ * session cookie survives, in a 0600 temporary file whose path is kept in the ianseo session.
+ *
+ * Every request goes through FftaHttp (pacing, pauses, anti-bot detection). To send as few
+ * requests as possible, what the extranet pages tell us about the session (roles, search level,
+ * disciplines) and the latest answers are kept for a few minutes in the ianseo session.
  */
+require_once(__DIR__ . '/FftaHttp.php');
+
 class ExtranetClient
 {
     const BASE_PPROD = 'https://pprod-extranet.ffta.fr';
     const BASE_PROD  = 'https://extranet.ffta.fr';
 
+    // Page context (roles, level, disciplines): lets a search skip re-reading the page first.
+    const CTX_TTL = 600;
+
+    // Answers (event list, event page, deposit frame): repeated clicks cost no request.
+    const CACHE_TTL  = 120;
+    const CACHE_KEEP = 6;
+
+    const LIST_PAGE = '/gsportive/resultats-integrationtxt.html';
+
     private $base;
     private $cookieFile;
+    private $http;
 
     public function __construct(string $cookieFile, string $base = self::BASE_PPROD)
     {
         $this->cookieFile = $cookieFile;
         $this->base       = rtrim($base, '/');
+        $this->http       = new FftaHttp($cookieFile);
     }
 
     public function base(): string
@@ -26,81 +42,20 @@ class ExtranetClient
     }
 
     /**
-     * Codes cURL qui traduisent une absence de connexion / un serveur injoignable :
-     * 5 proxy introuvable, 6 DNS, 7 connexion refusée, 28 délai dépassé, 35 échec TLS.
-     * (valeurs numériques : les noms de constantes varient selon les versions de PHP)
-     */
-    public static function isOffline(int $errno): bool
-    {
-        return in_array($errno, [5, 6, 7, 28, 35], true);
-    }
-
-    /**
-     * Message clair à partir d'une erreur réseau : distingue explicitement l'absence de
-     * connexion Internet d'un problème d'identifiants ou d'un calendrier vide.
-     */
-    public static function netMessage(int $errno, string $err, string $base): string
-    {
-        if (self::isOffline($errno)) {
-            return 'Cette étape nécessite une connexion à Internet, et ' . $base . ' est injoignable. '
-                 . 'Vérifiez votre connexion réseau puis réessayez. '
-                 . 'Il ne s\'agit ni d\'un problème d\'identifiants, ni d\'un calendrier vide.';
-        }
-
-        return 'Erreur réseau : ' . $err;
-    }
-
-    /** Erreur réseau d'une requête, en message utilisateur + drapeau hors ligne. */
-    private function netFail(array $r): array
-    {
-        $errno = (int) ($r['errno'] ?? 0);
-
-        return [
-            'ok'      => false,
-            'msg'     => self::netMessage($errno, (string) ($r['error'] ?? ''), $this->base),
-            'offline' => self::isOffline($errno),
-        ];
-    }
-
-    /**
-     * @param array|null $post  champs POST (null = GET)
-     * @return array ['code'=>int,'url'=>string,'body'=>string,'error'=>string]
+     * @param array|null $post  POST fields (null = GET)
+     * @return array see FftaHttp::request()
      */
     private function request(string $path, ?array $post = null): array
     {
         $url = (strpos($path, 'http') === 0) ? $path : $this->base . $path;
 
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL            => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_COOKIEJAR      => $this->cookieFile,
-            CURLOPT_COOKIEFILE     => $this->cookieFile,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_SSL_VERIFYHOST => 2,
-            CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; ianseo/integration-txt)',
-            CURLOPT_TIMEOUT        => 45,
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_HTTPHEADER     => ['Accept-Language: fr-FR,fr;q=0.9'],
-        ]);
+        return $this->http->request($url, $post, ['httpHeaders' => ['Accept-Language: fr-FR,fr;q=0.9']]);
+    }
 
-        if ($post !== null) {
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post));
-        }
-
-        $body  = curl_exec($ch);
-        $res   = [
-            'code'  => (int) curl_getinfo($ch, CURLINFO_HTTP_CODE),
-            'url'   => (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL),
-            'body'  => $body === false ? '' : $body,
-            'error' => curl_errno($ch) ? curl_error($ch) : '',
-            'errno' => curl_errno($ch),
-        ];
-        curl_close($ch);
-
-        return $res;
+    /** Failure array when the request brought nothing usable (delay, network, block), else null. */
+    private function fail(array $r): ?array
+    {
+        return FftaHttp::failure($r, $this->base);
     }
 
     private function dom(string $html): DOMXPath
@@ -123,7 +78,7 @@ class ExtranetClient
         return trim(str_replace("\xC2\xA0", ' ', $s));
     }
 
-    /** Valeur présélectionnée d'un <select>, ou null s'il est absent. */
+    /** Preselected value of a <select>, or null when the select is absent. */
     private function selectedOption(string $html, string $name): ?string
     {
         $xp   = $this->dom($html);
@@ -140,20 +95,96 @@ class ExtranetClient
         return $opts->item(0)->getAttribute('value');
     }
 
-    /** La page rendue est-elle la page de login ? */
+    /** Is the rendered page the login page? */
     private static function isLoginPage(string $html): bool
     {
         return strpos($html, 'name="login[identifiant]"') !== false;
     }
 
-    // ── Étape 1 : connexion ──────────────────────────────────────────────────
+    /** Message for an unexpected login page: an embedded captcha explains it, if there is one. */
+    private function expiredMessage(array $r): array
+    {
+        if ($r['captcha']) {
+            return ['ok' => false, 'blocked' => true, 'msg' => FftaHttp::blockMessage('captcha', $this->base)];
+        }
+
+        return ['ok' => false, 'msg' => 'Session extranet expirée — reconnecte-toi.', 'relogin' => true];
+    }
+
+    // ── Session cache ────────────────────────────────────────────────────────
+
+    private function ctxKey(): string
+    {
+        return 'SFA_EXT_' . md5($this->base . '|' . $this->cookieFile);
+    }
+
+    /** Fresh page context, or [] when absent or too old. */
+    private function ctx(): array
+    {
+        $c = $_SESSION[$this->ctxKey()]['ctx'] ?? [];
+
+        return (time() - ($c['t'] ?? 0) < self::CTX_TTL) ? $c : [];
+    }
+
+    /**
+     * Keeps what an extranet page tells about the session. Every page carries the role selector;
+     * only the results integration page carries the level and the disciplines.
+     */
+    private function remember(string $html): void
+    {
+        $roles = $this->parseRoles($html);
+        if (!$roles) {
+            return;
+        }
+        $ctx = $this->ctx();
+        $ctx['t']     = time();
+        $ctx['roles'] = $roles;
+        // Never the previous value: after a role switch it belongs to another role.
+        $ctx['pers']  = self::persForRole($roles) ?? $this->selectedOption($html, 'search[Pers]');
+        $disc = $this->parseDisciplines($html);
+        if ($disc) {
+            $ctx['disciplines'] = $disc;
+        }
+        $_SESSION[$this->ctxKey()]['ctx'] = $ctx;
+    }
+
+    private function cacheGet(string $key)
+    {
+        $c = $_SESSION[$this->ctxKey()]['cache'][$key] ?? null;
+
+        return ($c && time() - $c['t'] < self::CACHE_TTL) ? $c['v'] : null;
+    }
+
+    private function cacheSet(string $key, $value): void
+    {
+        $cache = $_SESSION[$this->ctxKey()]['cache'] ?? [];
+        $cache[$key] = ['t' => time(), 'v' => $value];
+        uasort($cache, function ($a, $b) {
+            return $b['t'] <=> $a['t'];
+        });
+        $_SESSION[$this->ctxKey()]['cache'] = array_slice($cache, 0, self::CACHE_KEEP, true);
+    }
+
+    /** Forgets the cached answers (after a deposit or a role change, they are out of date). */
+    public function forgetAnswers(): void
+    {
+        unset($_SESSION[$this->ctxKey()]['cache']);
+    }
+
+    /** Extranet disciplines last read on the integration page: [['value','label'], …]. */
+    public function disciplines(): array
+    {
+        return $this->ctx()['disciplines'] ?? [];
+    }
+
+    // ── Step 1: login ────────────────────────────────────────────────────────
 
     public function login(string $user, string $pass): array
     {
-        // Récupération du cookie de session avant de poster (comportement navigateur)
+        // Session cookie fetched before posting (browser behaviour)
         $home = $this->request('/');
-        if ($home['error']) {
-            return $this->netFail($home);
+        if ($f = $this->fail($home)) {
+            return $f;
         }
 
         $r = $this->request('/', [
@@ -161,17 +192,24 @@ class ExtranetClient
             'login[idpassword]'  => $pass,
         ]);
 
-        if ($r['error']) {
-            return $this->netFail($r);
+        if ($f = $this->fail($r)) {
+            return $f;
         }
         if (self::isLoginPage($r['body'])) {
+            if ($r['captcha']) {
+                return ['ok' => false, 'blocked' => true, 'msg' => FftaHttp::blockMessage('captcha', $this->base)];
+            }
+
             return ['ok' => false, 'msg' => 'Identifiants refusés par l\'extranet.'];
         }
+
+        $this->forgetAnswers();
+        $this->remember($r['body']);
 
         return ['ok' => true, 'roles' => $this->parseRoles($r['body'])];
     }
 
-    /** Sélecteur de rôle (form modDrx) : liste des rôles disponibles. */
+    /** Role selector (form modDrx): available roles. */
     private function parseRoles(string $html): array
     {
         $xp    = $this->dom($html);
@@ -187,16 +225,30 @@ class ExtranetClient
         return $roles;
     }
 
+    /** Discipline filter of the integration page (search[Discipline]), « all » excluded. */
+    private function parseDisciplines(string $html): array
+    {
+        $xp  = $this->dom($html);
+        $out = [];
+        foreach ($xp->query('//select[@name="search[Discipline]"]/option') as $opt) {
+            $v = $opt->getAttribute('value');
+            if ($v !== '' && $v !== 'all') {
+                $out[] = ['value' => $v, 'label' => self::txt($opt)];
+            }
+        }
+
+        return $out;
+    }
+
     /**
-     * Niveau (search[Pers]) correspondant au libellé du rôle chxMxDrx actuellement actif,
-     * ou null si indéterminable (ex. « Mes informations personnelles »).
+     * Search level (search[Pers]) matching the label of the active chxMxDrx role, or null when it
+     * cannot be told (e.g. the personal information role).
      *
-     * Nécessaire car le présélectionné de search[Pers] sur la page liste est COLLANT à la
-     * dernière recherche du compte, PAS au rôle actif : basculer de rôle (chxMxDrx) ne le
-     * met pas à jour tout seul — vérifié : après bascule Département → Fédération, la page
-     * continuait d'afficher « Département » comme avant, et la recherche à ce niveau erroné
-     * ne renvoyait plus aucun résultat. On déduit donc le niveau du rôle actif lui-même,
-     * qu'on connaît de façon fiable, plutôt que de faire confiance à ce présélectionné.
+     * Needed because the preselected search[Pers] of the list page STICKS to the account's last
+     * search, NOT to the active role: switching role (chxMxDrx) does not update it — checked:
+     * after switching from the department role to the federation one, the page still showed the
+     * department level, and a search at that wrong level returned nothing. The level is therefore taken from the active role
+     * itself, which is reliably known, rather than from that preselection.
      */
     private static function persForRole(array $roles): ?string
     {
@@ -227,26 +279,28 @@ class ExtranetClient
     }
 
     /**
-     * La session extranet portée par le cookie est-elle encore ouverte ?
-     * Une seule requête : si l'extranet nous rend la page de login, elle est morte.
+     * Is the session carried by the cookie still open? One request: when the extranet answers with
+     * its login page, the session is dead.
      */
     public function session(): array
     {
-        $r = $this->request('/gsportive/resultats-integrationtxt.html');
+        $r = $this->request(self::LIST_PAGE);
 
-        // Hors ligne : ce n'est PAS une session expirée — il faut le dire distinctement,
-        // sinon l'utilisateur croit à un problème d'identifiants.
-        if ($r['error']) {
-            return $this->netFail($r) + ['roles' => []];
+        // Offline, delayed or blocked is NOT an expired session — it must be said distinctly,
+        // otherwise the user believes in a credentials problem.
+        if ($f = $this->fail($r)) {
+            return $f + ['roles' => []];
         }
         if (self::isLoginPage($r['body']) || $r['code'] !== 200) {
             return ['ok' => false, 'offline' => false];
         }
 
+        $this->remember($r['body']);
+
         return ['ok' => true, 'roles' => $this->parseRoles($r['body'])];
     }
 
-    // ── Étape 2 : bascule de rôle ────────────────────────────────────────────
+    // ── Step 2: role switch ──────────────────────────────────────────────────
 
     public function switchRole(string $value): array
     {
@@ -255,35 +309,49 @@ class ExtranetClient
             'modMxDrx' => 'Enregistrer',
         ]);
 
-        if ($r['error']) {
-            return $this->netFail($r);
+        if ($f = $this->fail($r)) {
+            return $f;
         }
         if (self::isLoginPage($r['body'])) {
-            return ['ok' => false, 'msg' => 'Session extranet expirée.'];
+            return $this->expiredMessage($r);
         }
+
+        $this->forgetAnswers();   // the events visible depend on the role
+        $this->remember($r['body']);
 
         return ['ok' => true, 'roles' => $this->parseRoles($r['body'])];
     }
 
-    // ── Étape 3 : liste des épreuves ─────────────────────────────────────────
+    // ── Step 3: event list ───────────────────────────────────────────────────
 
     /**
-     * @param string $dateFrom    jj/mm/aaaa
-     * @param string $dateTo      jj/mm/aaaa
-     * @param string $discipline  code extranet (T, S, C, 3, B…) ou 'all'
+     * @param string $dateFrom    dd/mm/yyyy
+     * @param string $dateTo      dd/mm/yyyy
+     * @param string $discipline  extranet code (T, S, C, 3, B…) or 'all'
      *
-     * Le niveau (search[Pers]) est déduit du rôle chxMxDrx actuellement actif (voir
-     * persForRole()) — PAS du présélectionné de la page, qui reste collé à la dernière
-     * recherche du compte et ne suit pas un changement de rôle.
+     * The level (search[Pers]) comes from the active chxMxDrx role (see persForRole()) — NOT from
+     * the page's preselection, which sticks to the account's last search.
      */
     public function listEvents(string $dateFrom, string $dateTo, string $discipline = 'all'): array
     {
-        $page = $this->request('/gsportive/resultats-integrationtxt.html');
-        if ($page['error']) {
-            return $this->netFail($page);
+        // Without a fresh context, the page is read once: it checks the session and gives the level.
+        $ctx = $this->ctx();
+        if (empty($ctx['pers'])) {
+            $page = $this->request(self::LIST_PAGE);
+            if ($f = $this->fail($page)) {
+                return $f;
+            }
+            if (self::isLoginPage($page['body'])) {
+                return $this->expiredMessage($page);
+            }
+            $this->remember($page['body']);
+            $ctx = $this->ctx();
         }
-        if (self::isLoginPage($page['body'])) {
-            return ['ok' => false, 'msg' => 'Session extranet expirée — reconnecte-toi.'];
+        $pers = $ctx['pers'] ?? null;
+
+        $cacheKey = 'list|' . $dateFrom . '|' . $dateTo . '|' . $discipline . '|' . $pers;
+        if (($cached = $this->cacheGet($cacheKey)) !== null) {
+            return $cached + ['disciplines' => $this->disciplines()];
         }
 
         $fields = [
@@ -297,31 +365,26 @@ class ExtranetClient
             'search[Date_fin]'        => $dateTo,
             'StartGen'                => 'Filtrer',
         ];
-
-        // Priorité au niveau déduit du rôle actif (fiable) ; repli sur le présélectionné de
-        // la page si jamais aucun rôle n'était marqué actif (compte à rôle unique, etc.).
-        $pers = self::persForRole($this->parseRoles($page['body']))
-            ?? $this->selectedOption($page['body'], 'search[Pers]');
         if ($pers !== null) {
             $fields['search[Pers]']    = $pers;
             $fields['search[oldPers]'] = '';
         }
 
-        $r = $this->request('/gsportive/resultats-integrationtxt.html', $fields);
+        $r = $this->request(self::LIST_PAGE, $fields);
 
-        if ($r['error']) {
-            return $this->netFail($r);
+        if ($f = $this->fail($r)) {
+            return $f;
         }
         if (self::isLoginPage($r['body'])) {
-            return ['ok' => false, 'msg' => 'Session extranet expirée — reconnecte-toi.'];
+            return $this->expiredMessage($r);
         }
+        $this->remember($r['body']);
 
-        $xp     = $this->dom($r['body']);
+        $xp = $this->dom($r['body']);
 
-        // Diagnostic : le nombre annoncé par l'extranet (« Résultats : N ») sert de témoin
-        // indépendant du parsing des lignes — si N > 0 mais qu'aucune ligne n'est reconnue,
-        // c'est que la structure du tableau diffère à ce niveau (colonnes en plus/en moins),
-        // pas un problème de niveau/rôle.
+        // Diagnostic: the count announced by the extranet (« Résultats : N ») is a witness
+        // independent of the row parsing — N > 0 with no row recognised means the table layout
+        // differs at this level, not a level/role problem.
         $rawTotal = null;
         foreach ($xp->query('//h5[contains(@class,"mxgt")]') as $h5) {
             if (preg_match('/R[ée]sultats\s*:\s*(\d+)/u', self::txt($h5), $m)) {
@@ -330,7 +393,7 @@ class ExtranetClient
             }
         }
 
-        $events    = [];
+        $events      = [];
         $skippedCols = 0;
         foreach ($xp->query('//tr[@data-href]') as $tr) {
             if (!preg_match('#epreuve-(\d+)\.html#', $tr->getAttribute('data-href'), $m)) {
@@ -342,7 +405,7 @@ class ExtranetClient
                 continue;
             }
 
-            $etat = self::txt($tds->item(0));
+            $etat  = self::txt($tds->item(0));
             $pills = [];
             foreach ($xp->query('.//span[contains(@class,"pill")]', $tds->item(0)) as $p) {
                 $cls = $p->getAttribute('class');
@@ -354,7 +417,7 @@ class ExtranetClient
                 'id'           => $m[1],
                 'etat'         => $etat,
                 'pills'        => $pills,
-                'depot'        => !empty($pills),   // ligne où un dépôt est possible
+                'depot'        => !empty($pills),   // row where a deposit is possible
                 'dates'        => self::txt($tds->item(1)),
                 'nom'          => self::txt($tds->item(2)),
                 'lieu'         => self::txt($tds->item(3)),
@@ -363,26 +426,28 @@ class ExtranetClient
             ];
         }
 
-        return [
+        $res = [
             'ok'     => true,
             'events' => $events,
             'diag'   => [
-                'pers'      => $pers,           // niveau (search[Pers]) effectivement utilisé
-                'raw_total' => $rawTotal,        // « Résultats : N » annoncé par l'extranet
-                'parsed'    => count($events),   // lignes que NOUS avons su reconnaître
-                'skipped'   => $skippedCols,      // lignes vues mais avec un nombre de colonnes inattendu
+                'pers'      => $pers,            // level (search[Pers]) actually used
+                'raw_total' => $rawTotal,        // « Résultats : N » announced by the extranet
+                'parsed'    => count($events),   // rows WE could read
+                'skipped'   => $skippedCols,     // rows seen with an unexpected number of columns
             ],
         ];
+        $this->cacheSet($cacheKey, $res);
+
+        return $res + ['disciplines' => $this->disciplines()];
     }
 
     /**
-     * Regroupe les deux lignes d'une même compétition « Valide + Para » : l'extranet
-     * expose une épreuve pour les résultats des valides et une autre pour les para.
-     * On garde la ligne valides comme principale et on rattache l'id de la ligne para
-     * (para_id), pour ne présenter qu'une compétition à créer / une entrée à déposer.
+     * Merges the two rows of one « Valide + Para » competition: the extranet exposes one event for
+     * the able-bodied results and another for the para ones. The able-bodied row is kept as the
+     * main one with the para row's id attached (para_id), so that one competition is offered.
      *
-     * La ligne para se reconnaît à sa discipline (« Para-… ») en tête des caractéristiques ;
-     * attention, la ligne valides contient aussi le mot « Para » via le tag « Valide + Para ».
+     * The para row is told by its discipline (« Para-… ») at the head of the characteristics;
+     * beware, the able-bodied row also contains « Para » through the « Valide + Para » tag.
      */
     public static function groupPara(array $events): array
     {
@@ -393,7 +458,7 @@ class ExtranetClient
         }
 
         $isPara = function (array $ev): bool {
-            return stripos(ltrim($ev['carac']), 'para') === 0;   // discipline en tête = Para-…
+            return stripos(ltrim($ev['carac']), 'para') === 0;   // discipline first = Para-…
         };
 
         $out = [];
@@ -424,7 +489,7 @@ class ExtranetClient
                 }
             } else {
                 foreach ($group as $ev) {
-                    $out[] = $ev;   // para seul (championnat dédié) ou cas atypique : inchangé
+                    $out[] = $ev;   // para alone (dedicated championship) or atypical case: unchanged
                 }
             }
         }
@@ -432,38 +497,43 @@ class ExtranetClient
         return $out;
     }
 
-    // ── Étape 4 : page d'une épreuve ─────────────────────────────────────────
+    // ── Step 4: event page ───────────────────────────────────────────────────
 
     public function event(string $id): array
     {
+        $cacheKey = 'event|' . $id;
+        if (($cached = $this->cacheGet($cacheKey)) !== null) {
+            return $cached;
+        }
+
         $r = $this->request('/gsportive/resultats-integrationtxt/epreuve-' . rawurlencode($id) . '.html');
 
-        if ($r['error']) {
-            return $this->netFail($r);
+        if ($f = $this->fail($r)) {
+            return $f;
         }
         if (self::isLoginPage($r['body'])) {
-            return ['ok' => false, 'msg' => 'Session extranet expirée — reconnecte-toi.'];
+            return $this->expiredMessage($r);
         }
 
         $xp = $this->dom($r['body']);
 
-        // Bouton « Intégrer un fichier TXT » : sa présence conditionne le dépôt
-        $btn      = $xp->query('//a[contains(@class,"ajxPopInsertTxt")]')->item(0);
+        // « Intégrer un fichier TXT » button: its presence allows the deposit
+        $btn       = $xp->query('//a[contains(@class,"ajxPopInsertTxt")]')->item(0);
         $canInsert = $btn !== null;
         $vId       = $btn ? $btn->getAttribute('rel') : '';
 
-        // Liens PDF / fichiers déjà déposés
+        // PDF / files already deposited
         $links = [];
         foreach ($xp->query('//a[contains(@href,".pdf") or contains(@href,".txt")]') as $a) {
             $links[] = ['href' => $a->getAttribute('href'), 'label' => self::txt($a)];
         }
 
-        return [
+        $res = [
             'ok'           => true,
             'id'           => $id,
             'details'      => $this->parseBlock($xp, 'Détails de l\'épreuve'),
-            // Bloc « Données actuelles » : liste libellé/valeur quand un dépôt existe,
-            // simple phrase sinon — on renvoie les deux, l'affichage choisit.
+            // « Données actuelles » block: label/value list when a deposit exists, a plain
+            // sentence otherwise — both are returned, the page chooses.
             'donnees'      => $this->parseBlock($xp, 'Données actuelles'),
             'donnees_text' => $this->blockText($xp, 'Données actuelles'),
             'pdf'          => $this->parseBlock($xp, 'PDF Résultats'),
@@ -472,9 +542,12 @@ class ExtranetClient
             'can_insert'   => $canInsert,
             'vid'          => $vId ?: $id,
         ];
+        $this->cacheSet($cacheKey, $res);
+
+        return $res;
     }
 
-    /** Bloc « libellé : valeur » d'une carte mxg. */
+    /** « label : value » block of an mxg card. */
     private function parseBlock(DOMXPath $xp, string $title): array
     {
         $c = $this->blockNode($xp, $title);
@@ -519,14 +592,19 @@ class ExtranetClient
         return null;
     }
 
-    // ── Étape 5 : cadre de dépôt (formulaire renvoyé par l'extranet) ─────────
+    // ── Step 5: deposit frame (form returned by the extranet) ───────────────
 
     public function insertForm(string $vId): array
     {
+        $cacheKey = 'insert|' . $vId;
+        if (($cached = $this->cacheGet($cacheKey)) !== null) {
+            return $cached;
+        }
+
         $r = $this->request('/actions/outils/AjaxInsertTxt.php', ['act' => 'file', 'vId' => $vId]);
 
-        if ($r['error']) {
-            return $this->netFail($r);
+        if ($f = $this->fail($r)) {
+            return $f;
         }
         if (self::isLoginPage($r['body']) || trim($r['body']) === '') {
             return ['ok' => false, 'msg' => 'Cadre de dépôt non renvoyé (session expirée ?).'];
@@ -538,7 +616,7 @@ class ExtranetClient
         $eprv  = $xp->query('//input[@name="EprvId"]')->item(0);
         $desc  = $xp->query('//form[@id="insertTxt"]/div')->item(0);
 
-        return [
+        $res = [
             'ok'       => true,
             'found'    => $form !== null,
             'email'    => $email ? $email->getAttribute('value') : '',
@@ -546,63 +624,49 @@ class ExtranetClient
             'descr'    => $desc ? self::txt($desc) : '',
             'endpoint' => $this->base . '/actions/outils/EprvGetFile.php',
         ];
+        $this->cacheSet($cacheKey, $res);
+
+        return $res;
     }
 
-    // ── Étape 6 : dépôt réel du fichier TXT ──────────────────────────────────
+    // ── Step 6: actual deposit of the TXT file ───────────────────────────────
 
     /**
-     * Dépose le fichier résultats sur l'extranet (formulaire insertTxt → EprvGetFile.php).
-     * @return array ['ok'=>bool, 'report'=>html, 'msg'=>?, 'relogin'=>?]
+     * Deposits the results file on the extranet (insertTxt form → EprvGetFile.php).
+     * @return array ['ok'=>bool, 'report'=>html, 'msg'=>?, 'relogin'=>?, 'wait'=>?]
      */
     public function deposit(string $vId, string $email, string $txtContent, string $filename = 'resultats.txt'): array
     {
         $tmp = tempnam(sys_get_temp_dir(), 'sfa_dep_');
         file_put_contents($tmp, $txtContent);
 
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL            => $this->base . '/actions/outils/EprvGetFile.php',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_COOKIEJAR      => $this->cookieFile,
-            CURLOPT_COOKIEFILE     => $this->cookieFile,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_SSL_VERIFYHOST => 2,
-            CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; ianseo/synchro-ffta)',
-            CURLOPT_TIMEOUT        => 90,
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => [
-                'EprvId'  => $vId,
-                'email'   => $email,
-                'submit'  => 'Ok',
-                'txtfile' => new CURLFile($tmp, 'text/plain', $filename),
-            ],
-        ]);
-        $body   = curl_exec($ch);
-        $errno  = curl_errno($ch);
-        $err    = $errno ? curl_error($ch) : '';
-        $effUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-        curl_close($ch);
+        $r = $this->http->request($this->base . '/actions/outils/EprvGetFile.php', [
+            'EprvId'  => $vId,
+            'email'   => $email,
+            'submit'  => 'Ok',
+            'txtfile' => new CURLFile($tmp, 'text/plain', $filename),
+        ], ['multipart' => true, 'timeout' => 90]);
         @unlink($tmp);
 
-        if ($err || $body === false) {
-            return ['ok' => false, 'msg' => self::netMessage($errno, $err, $this->base),
-                    'offline' => self::isOffline($errno)];
+        // Whatever happened, the event state shown before is no longer reliable.
+        $this->forgetAnswers();
+
+        if ($f = $this->fail($r)) {
+            return $f;
         }
-        if (self::isLoginPage((string) $body) || strpos($effUrl, '/login') !== false) {
-            return ['ok' => false, 'msg' => 'Session extranet expirée — reconnecte-toi.', 'relogin' => true];
+        if (self::isLoginPage($r['body']) || strpos($r['url'], '/login') !== false) {
+            return $this->expiredMessage($r);
         }
 
-        $clean = $this->cleanReport((string) $body);
+        $clean = $this->cleanReport($r['body']);
 
         return ['ok' => true, 'report' => $clean['html'], 'ko' => $clean['ko']];
     }
 
     /**
-     * Nettoie le rapport HTML de l'extranet : retire les scripts, DÉPLIE le détail des KO
-     * (bloc #affKO, normalement masqué et ouvert par un bouton JS inopérant hors extranet),
-     * retire ce bouton (#btnaffKO), absolutise les liens. Détecte la présence de KO.
+     * Cleans the extranet's HTML report: removes scripts, UNFOLDS the KO details (#affKO block,
+     * normally hidden and opened by a JS button that does not work outside the extranet), removes
+     * that button (#btnaffKO), makes links absolute. Detects whether there are KO lines.
      * @return array ['html'=>string, 'ko'=>bool]
      */
     private function cleanReport(string $html): array
@@ -613,13 +677,13 @@ class ExtranetClient
         foreach (iterator_to_array($xp->query('//script')) as $s) {
             $s->parentNode->removeChild($s);
         }
-        // Bouton « Détail » (toggle JS) inutile ici → on le retire.
+        // « Détail » button (JS toggle) is useless here.
         foreach (iterator_to_array($xp->query('//*[@id="btnaffKO"]')) as $b) {
             $b->parentNode->removeChild($b);
         }
 
         $ko = false;
-        // Détail des KO : normalement caché (display:none), on l'affiche.
+        // KO details: normally hidden (display:none), shown here.
         foreach ($xp->query('//*[@id="affKO"]') as $d) {
             $d->setAttribute('style', preg_replace('/display\s*:\s*none;?/i', '', $d->getAttribute('style')));
             if (trim($d->textContent) !== '') {
@@ -627,7 +691,7 @@ class ExtranetClient
             }
         }
 
-        // Nombre de KO > 0 dans le texte, en secours.
+        // Number of KO > 0 in the text, as a fallback.
         $text = $doc->textContent ?? '';
         if (preg_match('/(\d+)\s*(?:ligne[s]?\s*)?KO\b/i', $text, $m) && (int) $m[1] > 0) {
             $ko = true;
@@ -636,8 +700,8 @@ class ExtranetClient
             $ko = true;
         }
 
-        // Reconstruit le fragment (contenu du body).
-        $out  = '';
+        // Rebuilds the fragment (body content).
+        $out   = '';
         $bodyN = $doc->getElementsByTagName('body')->item(0);
         if ($bodyN) {
             foreach ($bodyN->childNodes as $c) {
