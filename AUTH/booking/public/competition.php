@@ -6,12 +6,17 @@
  * Name, dates, discipline, organiser, venue, fee, and the DEPARTURES with their date/time and
  * the places left. Registration button (the registration flow checks everything again on the
  * server: this screen informs).
+ *
+ * For an archer registered (or who registered clubmates): their account on this competition —
+ * balance, means of payment, receipt, survey — and the buttons to their registrations here
+ * (registrations.php?t=), the documents (score sheets included) and the food & shop.
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
 require_once dirname(__DIR__) . '/lib/registration.php';
 require_once dirname(__DIR__) . '/lib/pricing.php';
 require_once dirname(__DIR__) . '/lib/mandate.php';   // bk_mandate_visible
+require_once dirname(__DIR__) . '/lib/payment.php';
 
 $archer = bk_require_archer();
 
@@ -41,8 +46,12 @@ $sessions = bk_comp_sessions($tourId);
 $dd       = bk_comp_discipline($c->ToType, $c->ToTypeSubRule, $c->ToTypeName);
 $labels   = bk_disc_labels();
 
-$mine = 0;
-foreach (bk_my_registrations($archer->BaLicence) as $r) if (intval($r->BrTournament) === $tourId) $mine++;
+$mine = 0; $mineRows = array();
+foreach (bk_my_registrations($archer->BaLicence) as $r) {
+    if (intval($r->BrTournament) === $tourId) { $mine++; $mineRows[] = $r; }
+}
+$mates = 0;
+foreach (bk_authored_registrations($archer->BaId, $archer->BaLicence) as $r) if (intval($r->BrTournament) === $tourId) $mates++;
 
 /** Date and time of a departure, '' when missing. */
 function bk_comp_dt($v)
@@ -101,28 +110,55 @@ if (bk_pricing_is_advanced($cp)) {
 } elseif ((float) $c->BcFee > 0) {
     echo '<p class="bk-fee">' . bk_e(bk_t('Fee', bk_eur($c->BcFee))) . '</p>';
 }
-$regs  = '<a class="bk-btn" href="' . bk_e(bk_public_url('registrations.php')) . '">' . bk_e(bk_t('NavMyRegs')) . '</a>';
+$regs  = ($mine + $mates) > 0 ? '<a class="bk-btn" href="' . bk_e(bk_public_url('registrations.php?t=' . $tourId)) . '">' . bk_e(bk_t('NavMyRegs')) . '</a>' : '';
 $toReg = bk_e(bk_public_url('register-comp.php?t=' . $tourId));
-if (bk_is_finished($c->ToWhenTo)) {
-    echo '<p class="bk-tag">' . bk_e(bk_t('CompOver')) . '</p>' . ($mine > 0 ? $regs : '');
+$over  = bk_is_finished($c->ToWhenTo);
+if ($over) {
+    echo '<p class="bk-tag">' . bk_e(bk_t('CompOver')) . '</p>' . $regs;
 } elseif ($blocked) {
-    echo '<p class="bk-hint">' . bk_e(bk_t('CantRegisterYet')) . '</p>';
+    echo '<p class="bk-hint">' . bk_e(bk_t('CantRegisterYet')) . '</p>' . ($regs !== '' ? ' ' . $regs : '');
 } elseif ($mine > 0) {
     echo '<p class="bk-tag bk-tag-on">' . bk_e(bk_t('AlreadyIn')) . ($mine > 1 ? ' (' . $mine . ')' : '') . '</p>'
         . '<a class="bk-btn bk-btn-primary" href="' . $toReg . '">' . bk_e(bk_t('AddReg')) . '</a> ' . $regs;
 } else {
-    echo '<a class="bk-btn bk-btn-primary" href="' . $toReg . '">' . bk_e(bk_t('RegisterBtn')) . '</a>';
+    echo '<a class="bk-btn bk-btn-primary" href="' . $toReg . '">' . bk_e(bk_t('RegisterBtn')) . '</a>' . ($regs !== '' ? ' ' . $regs : '');
 }
-if (bk_docs_list($c, $tourId) || (bk_dossard_available($c, $tourId) && $mine > 0)) {
-    echo ' <a class="bk-btn" href="' . bk_e(bk_public_url('documents.php?t=' . $tourId)) . '">' . bk_e(bk_t('CompDocsBtn')) . '</a>';
+$scoresheets = $mineRows && !empty($c->BcAllowScoresheet);
+if (bk_docs_list($c, $tourId) || (bk_dossard_available($c, $tourId) && ($mine + $mates) > 0) || $scoresheets) {
+    echo ' <a class="bk-btn" href="' . bk_e(bk_public_url('documents.php?t=' . $tourId)) . '">' . bk_e(bk_t('DocsBtn')) . '</a>';
 }
 // Food & shop of the competition, when the organiser switched it on.
-if (!bk_is_finished($c->ToWhenTo) && is_file(dirname(__DIR__) . '/../shop/lib/link.php')) {
+if (!$over && is_file(dirname(__DIR__) . '/../shop/lib/link.php')) {
     require_once dirname(__DIR__) . '/../shop/lib/link.php';
     $shpLinks = shp_public_links($tourId);
     if ($shpLinks['shop'] !== '') {
         echo ' <a class="bk-btn" href="' . bk_e($shpLinks['shop']) . '">' . bk_e(shp_t('ShCusBookingBtn')) . '</a>';
     }
 }
-echo '</div></div>';
+echo '</div>';
+
+// The archer's account on this competition: what they owe, how to pay it, the receipt, the
+// survey once it is over.
+$lic = bk_clean_licence($archer->BaLicence);
+$due = bk_due_total($tourId, $lic);
+$free = $due['total'] <= 0 && abs($due['paid']) < 0.005;
+require_once dirname(__DIR__) . '/lib/survey.php';
+$sv = bk_survey_open_for($archer->BaLicence)[$tourId] ?? null;
+if ($mine > 0 || !$free || $sv) {
+    $known = !$over || bk_ledger_tracked($tourId);
+    $paid  = $due['remaining'] <= 0.005;
+    echo '<section class="bk-comp-acc"><h2>' . bk_e(bk_t('AccountTitle')) . '</h2>';
+    if (!$free) echo '<p class="bk-due">' . bk_balance_line($due, $known, $tourId) . '</p>';
+    if (!$free && !$paid && $known) {
+        echo bk_payinfo_box(bk_payinfo_get(bk_comp_config($tourId)), bk_payment_get($tourId, $archer->BaLicence));
+    }
+    echo '<p class="bk-comp-acc-act"><a class="bk-btn" href="' . bk_e(bk_public_url('receipt.php?comp=' . $tourId)) . '">'
+        . bk_e(bk_t('AccountReceipt')) . '</a>';
+    if ($sv) {
+        echo ' <a class="bk-btn bk-btn-primary" href="' . bk_e(bk_public_url('survey.php?t=' . $tourId)) . '">'
+            . bk_e(bk_t(intval($sv->Answered) ? 'SurveyEditIcon' : 'SurveyGiveIcon')) . '</a>';
+    }
+    echo '</p></section>';
+}
+echo '</div>';
 if (!$embed) bk_foot();

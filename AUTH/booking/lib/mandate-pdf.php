@@ -283,7 +283,7 @@ function bk_mandate_pdf_draw($pdf, $data, $m, $ctx)
         $h2(bk_t('PayMeansTitle'));
         foreach ($data['pay'] as $pi) {
             $bullet($esc($pi['label']) . ' <span style="color:#7d8183">(' . $esc($pi['whenLabel']) . ')</span>'
-                . ($pi['info'] !== '' ? ' — ' . $esc($pi['info']) : ''));
+                . ($pi['info'] !== '' ? ' — ' . bk_linkify($pi['info'], $esc) : ''));
         }
     }
 

@@ -110,6 +110,58 @@ function bk_payinfo_choices($payinfo)
     return $out;
 }
 
+/**
+ * Archer side: due, paid and remaining of an account (bk_due_total), on one line, in the
+ * currency of competition $tourId. $known false: competition over and its organiser records no
+ * payment here (bk_ledger_tracked) — the amount only.
+ */
+function bk_balance_line($d, $known, $tourId)
+{
+    $f = function ($v) use ($tourId) { return bk_e(bk_eur($v, false, $tourId)); };
+    if (!$known) return bk_t('BalanceUnknown', $f($d['total']));
+    if ($d['remaining'] < -0.005) $st = '<span class="bk-tag">' . bk_t('BalanceOver', $f(-$d['remaining'])) . '</span>';
+    elseif ($d['remaining'] <= 0.005) $st = '<span class="bk-tag bk-tag-on">' . bk_e(bk_t('StateSettled')) . '</span>';
+    else $st = '<span class="bk-due-wait">' . bk_t('BalanceLeft', $f($d['remaining'])) . '</span>';
+    return bk_t('BalanceLine', array('due' => $f($d['total']), 'paid' => $f($d['paid']), 'state' => $st));
+}
+
+/**
+ * Archer side: means of payment of a competition, as a list, their web addresses clickable;
+ * the one chosen ($chosen) marked with $badge.
+ */
+function bk_paylist_html($pay, $chosen = null, $badge = '')
+{
+    $h = '<ul>';
+    foreach ($pay as $pi) {
+        $isChosen = $chosen ? $chosen($pi) : false;
+        $h .= '<li' . ($isChosen ? ' class="bk-pay-chosen"' : '') . '>' . bk_e($pi['label'])
+            . ' <span class="bk-hint">(' . bk_e($pi['whenLabel']) . ')</span>' . ($pi['info'] !== '' ? ' — ' . bk_linkify($pi['info']) : '');
+        if ($isChosen) $h .= ' <span class="bk-pay-badge">' . bk_e($badge) . '</span>';
+        $h .= '</li>';
+    }
+    return $h . '</ul>';
+}
+
+/**
+ * Archer side: the "means of payment" box of one competition for the archer whose declaration is
+ * $declRow (bk_payment_get), their choice marked. '' when there is nothing to pay.
+ */
+function bk_payinfo_box($pay, $declRow)
+{
+    if (!$pay) return '';
+    $declM = $declRow ? (string) $declRow->PyDeclMethod : '';
+    $declW = $declRow ? (string) $declRow->PyDeclWhen : '';
+    $isChosen = function ($pi) use ($declM, $declW) {
+        return $declM !== '' && $pi['m'] === $declM && ($pi['when'] === 'both' || $pi['when'] === $declW);
+    };
+    $badge = bk_t('YourChoiceBadge') . ($declW ? ' — ' . bk_t($declW === 'before' ? 'WhenBeforeShort' : 'WhenOnsiteShort') : '');
+    $h = '<div class="bk-payinfo"><b>' . bk_e(bk_t('PayMeansTitle')) . '</b>' . bk_paylist_html($pay, $isChosen, $badge);
+    if ($declM !== '' && !array_filter($pay, $isChosen)) {
+        $h .= '<p class="bk-hint">' . bk_t('YourChoice', bk_e(bk_payment_decl_label($declM, $declW))) . '</p>';
+    }
+    return $h . '</div>';
+}
+
 /** Short label of a declared payment (means + when). '' when none. */
 function bk_payment_decl_label($method, $when)
 {

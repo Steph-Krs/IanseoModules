@@ -2,6 +2,11 @@
 /**
  * public/registrations.php — "My registrations": consultation and cancellation, waiting lists,
  * balance of each competition, registrations made for clubmates.
+ *
+ * ?t=<competition>: the same for ONE competition (button "My registrations" of its page) —
+ * each registration (departure, category, target, cancellation), the waiting list, the
+ * registrations made for clubmates and the sharing of the participation. Its balance, means of
+ * payment, receipt, shop and documents stay on the competition's page.
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
@@ -13,35 +18,6 @@ require_once dirname(__DIR__) . '/lib/waitlist.php';
 require_once dirname(__DIR__, 2) . '/shop/lib/link.php';   // shop of a competition
 
 $archer = bk_require_archer();
-
-/**
- * Due, paid and remaining of an account (bk_due_total), on one line, in the currency of
- * competition $tourId. $known false: competition over and its organiser records no payment
- * here (bk_ledger_tracked) — the amount only.
- */
-function rg_balance($d, $known, $tourId)
-{
-    $f = function ($v) use ($tourId) { return bk_e(bk_eur($v, false, $tourId)); };
-    if (!$known) return bk_t('BalanceUnknown', $f($d['total']));
-    if ($d['remaining'] < -0.005) $st = '<span class="bk-tag">' . bk_t('BalanceOver', $f(-$d['remaining'])) . '</span>';
-    elseif ($d['remaining'] <= 0.005) $st = '<span class="bk-tag bk-tag-on">' . bk_e(bk_t('StateSettled')) . '</span>';
-    else $st = '<span class="bk-due-wait">' . bk_t('BalanceLeft', $f($d['remaining'])) . '</span>';
-    return bk_t('BalanceLine', array('due' => $f($d['total']), 'paid' => $f($d['paid']), 'state' => $st));
-}
-
-/** Means of payment of a competition, as a list; the one chosen ($chosen) marked with $badge. */
-function rg_paylist($pay, $chosen = null, $badge = '')
-{
-    $h = '<ul>';
-    foreach ($pay as $pi) {
-        $isChosen = $chosen ? $chosen($pi) : false;
-        $h .= '<li' . ($isChosen ? ' class="bk-pay-chosen"' : '') . '>' . bk_e($pi['label'])
-            . ' <span class="bk-hint">(' . bk_e($pi['whenLabel']) . ')</span>' . ($pi['info'] !== '' ? ' — ' . bk_e($pi['info']) : '');
-        if ($isChosen) $h .= ' <span class="bk-pay-badge">' . bk_e($badge) . '</span>';
-        $h .= '</li>';
-    }
-    return $h . '</ul>';
-}
 
 /** The tags of one registration: category, departure, events, validation, target, author. */
 function rg_tags($r, $withPerson = false)
@@ -72,12 +48,117 @@ function rg_tags($r, $withPerson = false)
 }
 
 /** Cancellation form of a registration. */
+/**
+ * Address the forms of this page post to: explicit, since posting back to "?ok=1…" would show
+ * the registration confirmation again.
+ */
+function rg_action()
+{
+    global $onlyTour;
+    return bk_e(bk_public_url('registrations.php' . ($onlyTour ? '?t=' . $onlyTour : '')));
+}
+
 function rg_cancel_form($enId, $confirmKey, $labelKey)
 {
-    return '<form method="post" onsubmit="return confirm(' . bk_e(json_encode(bk_t($confirmKey), JSON_UNESCAPED_UNICODE)) . ')">'
+    return '<form method="post" action="' . rg_action() . '" onsubmit="return confirm(' . bk_e(json_encode(bk_t($confirmKey), JSON_UNESCAPED_UNICODE)) . ')">'
         . bk_csrf_field() . '<input type="hidden" name="action" value="cancel"><input type="hidden" name="enid" value="' . intval($enId) . '">'
         . '<button type="submit" class="bk-btn bk-btn-danger">' . bk_e(bk_t($labelKey)) . '</button></form>';
 }
+
+/** Waiting lists of the archer (and of the clubmates they put on one). */
+function rg_waits($waits, $archer)
+{
+    echo '<section class="bk-block bk-wait" style="margin-bottom:16px"><h2>' . bk_e(bk_t('WaitLists')) . '</h2>';
+    foreach ($waits as $w) {
+        $self = bk_clean_licence($w->BwLicence) === bk_clean_licence($archer->BaLicence);
+        $who  = $self ? '' : ' — ' . bk_t('ForWhom', trim($w->LueFamilyName . ' ' . $w->LueName) . ' (' . $w->BwLicence . ')');
+        $what = ($w->DivDescription ?: $w->BwDivision) . ', ' . ($w->ClDescription ?: $w->BwClass) . ', '
+              . (intval($w->BwSession) ? bk_t('DepLower', intval($w->BwSession)) : bk_t('AnyDep'));
+        echo '<div class="bk-reg"><p><b>' . bk_e($w->ToName) . '</b> <span class="bk-hint">'
+            . bk_e(bk_date_range($w->ToWhenFrom, $w->ToWhenTo) . $who) . '</span></p><p class="bk-tags">'
+            . '<span class="bk-tag">' . bk_e($what) . '</span>';
+        if (intval($w->BwStatus) === 0) {
+            echo '<span class="bk-tag bk-tag-wait">' . bk_e(bk_t('Position', bk_waitlist_position($w))) . '</span></p>'
+                . '<form method="post" action="' . rg_action() . '" onsubmit="return confirm(' . bk_e(json_encode(bk_t('WaitLeaveConfirm'), JSON_UNESCAPED_UNICODE)) . ')">'
+                . bk_csrf_field() . '<input type="hidden" name="action" value="leave_wait"><input type="hidden" name="w" value="' . intval($w->BwId) . '">'
+                . '<button type="submit" class="bk-btn bk-btn-danger">' . bk_e(bk_t('WaitLeaveBtn')) . '</button></form>';
+        } elseif (intval($w->BwStatus) === 1) {
+            echo '<span class="bk-tag bk-tag-on">' . bk_e(bk_t('WaitGotTag')) . '</span></p><p class="bk-org">'
+                . bk_e(bk_t($self ? 'WaitGotTextSelf' : 'WaitGotTextMate', array('date' => bk_date_fr($w->BwDone), 'dep' => intval($w->BwSession))))
+                . '</p>';
+        } else {
+            echo '<span class="bk-tag">' . bk_e(bk_t('WaitRemovedTag')) . '</span></p><p class="bk-org">' . bk_e($w->BwNote) . '</p>';
+        }
+        echo '</div>';
+    }
+    echo '</section>';
+}
+
+/**
+ * The registrations of ONE competition: those of the archer (departure, category, target,
+ * request, cancellation), their waiting rows, the registrations they made for clubmates, and
+ * the sharing of the participation.
+ */
+function rg_one_competition($tourId, $archer, $regs, $authored, $waits)
+{
+    $mine = array_values(array_filter($regs, function ($r) use ($tourId) { return intval($r->BrTournament) === $tourId; }));
+    $mates = array_values(array_filter($authored, function ($r) use ($tourId) { return intval($r->BrTournament) === $tourId; }));
+    $waits = array_values(array_filter($waits, function ($w) use ($tourId) { return intval($w->BwTournament) === $tourId; }));
+    $c = $mine ? $mine[0] : ($mates ? $mates[0] : null);
+    if (!$c) $c = safe_fetch(safe_r_sql("SELECT ToName, ToWhere, ToWhenFrom, ToWhenTo, ToType, ToTypeSubRule, ToTypeName
+        FROM Tournament WHERE ToId = $tourId"));
+
+    if ($c) {
+        $dd = bk_comp_discipline($c->ToType, $c->ToTypeSubRule, $c->ToTypeName);
+        echo '<p class="bk-back"><a href="' . bk_e(bk_public_url('competition.php?t=' . $tourId)) . '">← ' . bk_e($c->ToName) . '</a></p>'
+            . '<div class="bk-detail"><div class="bk-detail-head"><span class="bk-detail-ic">' . bk_disc_icon($dd['key'], 34) . '</span><div>'
+            . '<h1>' . bk_e(bk_t('NavMyRegs')) . '</h1><p class="bk-detail-sub"><span>' . bk_e($c->ToName) . '</span>'
+            . '<span>' . bk_e(bk_date_range($c->ToWhenFrom, $c->ToWhenTo)) . '</span>'
+            . ($c->ToWhere ? '<span>' . bk_e($c->ToWhere) . '</span>' : '') . '</p></div></div>';
+    }
+    if (!$c) echo '<div class="bk-detail">';
+    if ($waits) rg_waits($waits, $archer);
+
+    if ($mine) {
+        echo '<div class="bk-reg-list">';
+        foreach ($mine as $r) {
+            echo '<div class="bk-reg">' . rg_tags($r)
+                . (trim((string) $r->BrRequest) !== '' ? '<p class="bk-org">' . bk_e(bk_t('RequestX', $r->BrRequest)) . '</p>' : '')
+                . ((!empty($r->BcIsOpen) && $r->BrByRole !== 'IMPORT')
+                    ? '<div class="bk-reg-act">' . rg_cancel_form($r->BrEnId, 'CancelDepConfirm', 'CancelDepBtn') . '</div>' : '')
+                . '</div>';
+        }
+        echo '</div>';
+        if (empty($mine[0]->BcIsOpen)) echo '<p class="bk-hint">' . bk_e(bk_t('RegsClosed')) . '</p>';
+        if (empty($_GET['ok'])) {   // after a registration, the big share button is already above
+            echo '<p><a class="bk-btn bk-btn-primary" href="' . bk_e(bk_public_url('share.php?t=' . $tourId)) . '">' . bk_e(bk_t('ShareBtn')) . '</a></p>';
+        }
+    } elseif (!$mates && !$waits) {
+        echo '<p class="bk-empty">' . bk_e(bk_t('NoRegsComp')) . '</p>';
+    }
+
+    if ($mates) {
+        echo '<section class="bk-comp-acc"><h2>' . bk_e(bk_t('NavClub')) . '</h2>'
+            . '<p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('ClubTabHint')) . '</p><div class="bk-reg-list">';
+        foreach ($mates as $r) {
+            $dueA = bk_due_total($tourId, $r->BrLicence);
+            $pyA  = bk_payment_get($tourId, $r->BrLicence);
+            $declA = $pyA ? bk_payment_decl_label($pyA->PyDeclMethod ?? '', $pyA->PyDeclWhen ?? '') : '';
+            echo '<div class="bk-reg">' . rg_tags($r, true);
+            if ($dueA['total'] > 0 || abs($dueA['paid']) >= 0.005) {
+                echo '<p class="bk-org">' . bk_balance_line($dueA, !bk_is_finished($r->ToWhenTo) || bk_ledger_tracked($tourId), $tourId)
+                    . ($declA ? '&nbsp;·&nbsp; ' . bk_t('ChoiceX', bk_e($declA)) : '') . '</p>';
+            }
+            if (!empty($r->BcIsOpen)) echo '<div class="bk-reg-act">' . rg_cancel_form($r->BrEnId, 'CancelRegConfirm', 'CancelBtn') . '</div>';
+            echo '</div>';
+        }
+        echo '</div></section>';
+    }
+    echo '</div><p class="bk-alt" style="margin-top:18px"><a href="' . bk_e(bk_public_url('registrations.php')) . '">'
+        . bk_e(bk_t('AllMyRegs')) . '</a></p>';
+}
+
+$onlyTour = intval($_GET['t'] ?? 0);   // one competition only (see the head of this file)
 
 $err = '';
 $ok  = !empty($_GET['ok']) ? bk_t('RegSaved') : (!empty($_GET['wait']) ? bk_t('WaitSaved') : '');
@@ -85,7 +166,7 @@ $ok  = !empty($_GET['ok']) ? bk_t('RegSaved') : (!empty($_GET['wait']) ? bk_t('W
 // Registration confirmed: amount + means of payment of the competition just registered for,
 // shown prominently (when the archer expects them).
 $okDue = null; $okPay = array(); $okSubject = null;
-$okTour = intval($_GET['t'] ?? 0);
+$okTour = $onlyTour;
 if (!empty($_GET['ok']) && $okTour > 0) {
     // Group registration: ?s=<licence> names the clubmate registered. Someone else's details
     // are shown only after checking AGAIN that it is a clubmate of the signed-in archer
@@ -149,7 +230,7 @@ if ($ok && $okDue && $okDue['remaining'] > 0.005) {
         . ($okSubject ? bk_t('ConfirmSavedFor', bk_e(trim($okSubject->LueFamilyName . ' ' . $okSubject->LueName))) : bk_t('ConfirmSaved'))
         . ' ' . bk_t('ConfirmLeft', bk_e(bk_eur($okDue['remaining'], false, $okTour)))
         . ' <span class="bk-hint">' . bk_e(bk_t('ConfirmLeftHint')) . '</span></p>';
-    if ($okPay) echo '<p class="bk-confirm-h">' . bk_e(bk_t('PayMeans')) . '</p>' . rg_paylist($okPay);
+    if ($okPay) echo '<p class="bk-confirm-h">' . bk_e(bk_t('PayMeans')) . '</p>' . bk_paylist_html($okPay);
     echo '</div>';
 } elseif ($ok) {
     echo bk_msg('ok', $ok);
@@ -160,32 +241,15 @@ if (!empty($_GET['ok']) && $okTour > 0) {
 }
 echo $err ? bk_msg('err', $err) : '';
 
+if ($onlyTour > 0) {
+    rg_one_competition($onlyTour, $archer, $regs, $authored, $waits);
+    bk_foot();
+    exit;
+}
+
 // Waiting lists.
 if ($waits) {
-    echo '<section class="bk-block bk-wait" style="margin-bottom:16px"><h2>' . bk_e(bk_t('WaitLists')) . '</h2>';
-    foreach ($waits as $w) {
-        $self = bk_clean_licence($w->BwLicence) === bk_clean_licence($archer->BaLicence);
-        $who  = $self ? '' : ' — ' . bk_t('ForWhom', trim($w->LueFamilyName . ' ' . $w->LueName) . ' (' . $w->BwLicence . ')');
-        $what = ($w->DivDescription ?: $w->BwDivision) . ', ' . ($w->ClDescription ?: $w->BwClass) . ', '
-              . (intval($w->BwSession) ? bk_t('DepLower', intval($w->BwSession)) : bk_t('AnyDep'));
-        echo '<div class="bk-reg"><p><b>' . bk_e($w->ToName) . '</b> <span class="bk-hint">'
-            . bk_e(bk_date_range($w->ToWhenFrom, $w->ToWhenTo) . $who) . '</span></p><p class="bk-tags">'
-            . '<span class="bk-tag">' . bk_e($what) . '</span>';
-        if (intval($w->BwStatus) === 0) {
-            echo '<span class="bk-tag bk-tag-wait">' . bk_e(bk_t('Position', bk_waitlist_position($w))) . '</span></p>'
-                . '<form method="post" onsubmit="return confirm(' . bk_e(json_encode(bk_t('WaitLeaveConfirm'), JSON_UNESCAPED_UNICODE)) . ')">'
-                . bk_csrf_field() . '<input type="hidden" name="action" value="leave_wait"><input type="hidden" name="w" value="' . intval($w->BwId) . '">'
-                . '<button type="submit" class="bk-btn bk-btn-danger">' . bk_e(bk_t('WaitLeaveBtn')) . '</button></form>';
-        } elseif (intval($w->BwStatus) === 1) {
-            echo '<span class="bk-tag bk-tag-on">' . bk_e(bk_t('WaitGotTag')) . '</span></p><p class="bk-org">'
-                . bk_e(bk_t($self ? 'WaitGotTextSelf' : 'WaitGotTextMate', array('date' => bk_date_fr($w->BwDone), 'dep' => intval($w->BwSession))))
-                . '</p>';
-        } else {
-            echo '<span class="bk-tag">' . bk_e(bk_t('WaitRemovedTag')) . '</span></p><p class="bk-org">' . bk_e($w->BwNote) . '</p>';
-        }
-        echo '</div>';
-    }
-    echo '</section>';
+    rg_waits($waits, $archer);
     bk_waitlist_mark_seen($archer->BaId, $archer->BaLicence);
 }
 
@@ -246,8 +310,6 @@ if ($regs) {
         $pay  = (!$free && !$paid && $known) ? bk_payinfo_get(bk_comp_config($t)) : array();
         $ddG  = bk_comp_discipline($c->ToType, $c->ToTypeSubRule, $c->ToTypeName);
         $declRow = (!$free && !$paid) ? bk_payment_get($t, $archer->BaLicence) : null;
-        $declM = $declRow ? (string) $declRow->PyDeclMethod : '';
-        $declW = $declRow ? (string) $declRow->PyDeclWhen : '';
 
         echo '<article class="bk-item" data-past="' . $pastG . '" data-disc="' . bk_e($ddG['key']) . '"><div class="bk-item-main">'
             . '<h2 class="bk-item-h"><span class="bk-item-ic">' . bk_disc_icon($ddG['key'], 24) . '</span>' . bk_e($c->ToName) . '</h2>'
@@ -266,32 +328,19 @@ if ($regs) {
         }
         echo '</div>';
 
-        if ($pay) {
-            $isChosen = function ($pi) use ($declM, $declW) {
-                return $declM !== '' && $pi['m'] === $declM && ($pi['when'] === 'both' || $pi['when'] === $declW);
-            };
-            $badge = bk_t('YourChoiceBadge') . ($declW ? ' — ' . bk_t($declW === 'before' ? 'WhenBeforeShort' : 'WhenOnsiteShort') : '');
-            echo '<div class="bk-payinfo"><b>' . bk_e(bk_t('PayMeansTitle')) . '</b>' . rg_paylist($pay, $isChosen, $badge);
-            if ($declM !== '' && !array_filter($pay, $isChosen)) {
-                echo '<p class="bk-hint">' . bk_t('YourChoice', bk_e(bk_payment_decl_label($declM, $declW))) . '</p>';
-            }
-            echo '</div>';
-        }
+        echo bk_payinfo_box($pay, $declRow);
         echo '</div><div class="bk-item-act">';
         if (isset($svOpen[$t])) {
             echo '<p><a class="bk-btn bk-btn-primary" href="' . bk_e(bk_public_url('survey.php?t=' . $t)) . '">'
                 . bk_e(bk_t(intval($svOpen[$t]->Answered) ? 'SurveyEditIcon' : 'SurveyGiveIcon')) . '</a></p>';
         }
-        echo ($free ? '' : '<p class="bk-due">' . rg_balance($due, $known, $t) . '</p>')
+        echo ($free ? '' : '<p class="bk-due">' . bk_balance_line($due, $known, $t) . '</p>')
             . '<p><a class="bk-btn" href="' . bk_e(bk_public_url('receipt.php?comp=' . $t)) . '">' . bk_e(bk_t('AccountReceipt')) . '</a></p>';
-        // Pre-orders of the food & shop module, while its deadline is not passed.
-        if (!$pastG) {
-            $shpLinks = shp_public_links($t);
-            if ($shpLinks['preorder'] !== '') {
-                echo '<p><a class="bk-btn" href="' . bk_e($shpLinks['preorder']) . '">' . bk_e(shp_t('ShCusPreorderBtn')) . '</a></p>';
-            }
+        // Food & shop of the competition, as on its page.
+        if (!$pastG && ($shpUrl = shp_public_links($t)['shop']) !== '') {
+            echo '<p><a class="bk-btn" href="' . bk_e($shpUrl) . '">' . bk_e(shp_t('ShCusBookingBtn')) . '</a></p>';
         }
-        if (bk_docs_list($c, $t) || bk_dossard_available($c, $t)) {
+        if (bk_docs_list($c, $t) || bk_dossard_available($c, $t) || !empty($c->BcAllowScoresheet)) {
             echo '<p><a class="bk-btn" href="' . bk_e(bk_public_url('documents.php?t=' . $t)) . '">' . bk_e(bk_t('DocsBtn')) . '</a></p>';
         }
         echo '<p><a class="bk-btn" href="' . bk_e(bk_public_url('share.php?t=' . $t)) . '">' . bk_e(bk_t('ShareBtn')) . '</a></p>'
@@ -343,7 +392,7 @@ if ($others) {
     foreach ($others as $x) {
         echo '<div class="bk-reg"><p><b>' . bk_e($x['ToName']) . '</b> <span class="bk-hint">'
             . bk_e(bk_date_range($x['ToWhenFrom'], $x['ToWhenTo']) . ($x['ToWhere'] ? ' — ' . $x['ToWhere'] : '')) . '</span></p>'
-            . '<p class="bk-due">' . rg_balance(array('total' => $x['due'], 'paid' => $x['paid'], 'remaining' => $x['remaining']),
+            . '<p class="bk-due">' . bk_balance_line(array('total' => $x['due'], 'paid' => $x['paid'], 'remaining' => $x['remaining']),
                 !$x['past'] || $x['tracked'], $x['ToId']) . '</p>'
             . '<p><a class="bk-btn" href="' . bk_e(bk_public_url('receipt.php?comp=' . $x['ToId'])) . '">' . bk_e(bk_t('AccountReceipt')) . '</a>'
             . (!$x['past'] && ($xl = shp_public_links($x['ToId'])['shop']) !== ''
@@ -387,7 +436,7 @@ if ($authored) {
             if ($dueA['total'] > 0 && !$paidA) $anyUnpaid = true;
             echo '<div class="bk-reg">' . rg_tags($r, true);
             if ($dueA['total'] > 0 || abs($dueA['paid']) >= 0.005) {
-                echo '<p class="bk-org">' . rg_balance($dueA, !bk_is_finished($c->ToWhenTo) || bk_ledger_tracked($t), $t)
+                echo '<p class="bk-org">' . bk_balance_line($dueA, !bk_is_finished($c->ToWhenTo) || bk_ledger_tracked($t), $t)
                     . ($declA ? '&nbsp;·&nbsp; ' . bk_t('ChoiceX', bk_e($declA)) : '') . '</p>';
             }
             if (!empty($r->BcAllowScoresheet) || !empty($c->BcIsOpen)) {
@@ -400,7 +449,7 @@ if ($authored) {
             echo '</div>';
         }
         echo '</div>';
-        if ($payC && $anyUnpaid) echo '<div class="bk-payinfo"><b>' . bk_e(bk_t('PayMeansTitle')) . '</b>' . rg_paylist($payC) . '</div>';
+        if ($payC && $anyUnpaid) echo '<div class="bk-payinfo"><b>' . bk_e(bk_t('PayMeansTitle')) . '</b>' . bk_paylist_html($payC) . '</div>';
         echo '</div></article>';
     }
     echo '</div></section></div>';

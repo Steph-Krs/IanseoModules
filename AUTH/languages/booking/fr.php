@@ -164,7 +164,6 @@ $lang['CantRegisterYet'] = 'Vous ne pouvez pas encore vous inscrire à cette com
 $lang['AlreadyIn']       = 'Déjà inscrit';
 $lang['AddReg']          = 'Ajouter une inscription';
 $lang['RegisterBtn']     = 'Inscriptions';
-$lang['CompDocsBtn']     = '📄 Documents de la compétition';
 
 /* Registration form, tariff lines (public/register-comp.php, lib/pricing.php) */
 $lang['PriceBase']         = 'Tarif de base';
@@ -348,6 +347,8 @@ $lang['YourChoice']       = 'Votre choix : <b>{$a}</b>';
 $lang['SurveyEditIcon']   = '🗳 Modifier mon avis';
 $lang['SurveyGiveIcon']   = '🗳 Donner mon avis';
 $lang['AccountReceipt']   = 'Mon compte et reçu';
+$lang['AccountTitle']     = 'Mon compte';
+$lang['NoRegsComp']       = 'Vous n\'avez aucune inscription à cette compétition.';
 $lang['Shop']             = 'Boutique';
 $lang['DocsBtn']          = '📄 Documents';
 $lang['ShareBtn']         = '📣 Partager ma participation';
@@ -425,6 +426,7 @@ $lang['DocsTitle']          = 'Documents de la compétition';
 $lang['NoDocs']             = 'Aucun document n\'est disponible pour cette compétition.';
 $lang['ExternalSite']       = '↗ site externe';
 $lang['BibsTitle']          = '🎫 Dossards';
+$lang['ScoresheetsTitle']   = '📝 Feuilles de marque';
 $lang['BibsHintOne']        = 'Imprimez votre dossard.';
 $lang['BibsHintMany']       = 'Imprimez votre dossard (et ceux des licenciés que vous avez inscrits).';
 $lang['DepX']               = 'départ {$a}';

@@ -26,9 +26,12 @@ in a few clicks. Designed for ianseo servers reachable online.
 - ➕ **Several sessions possible**: with the same bow, only the first registration counts for
   the events, the next ones are extra shoots; a different bow opens its own event.
 - 📋 **My registrations**: viewing, cancelling while the registrations are open, target
-  assigned when the organiser allowed it.
+  assigned when the organiser allowed it — for all competitions, or for one from its page.
+- 💶 **Account on each competition**, on its page: due, paid, means of payment (an online
+  payment address given by the organiser is a link), receipt.
 - 🖨️ **Individual scorecard**: the official sheet produced by ianseo (PDF), for that archer
-  only, filled with their results — when the organiser turns the option on.
+  only, filled with their results — when the organiser turns the option on; in the documents
+  of the competition.
 - 🧾 **Receipt** per archer, or grouped for a whole club.
 
 ### For the organiser

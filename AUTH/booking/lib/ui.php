@@ -18,6 +18,29 @@ function bk_e($s)
     return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 }
 
+/**
+ * Escaped text whose web addresses (http, https, www.) become links opening in a new tab: the
+ * details the organiser types next to a means of payment (an online payment page, a pot…).
+ * $esc: escaping of the text around and inside the links (bk_e by default; the PDF has its own).
+ */
+function bk_linkify($s, $esc = null)
+{
+    $s = (string) $s;
+    $esc = $esc ?: 'bk_e';
+    if (!preg_match_all('~\b(?:https?://|www\.)[^\s<>"]+~iu', $s, $m, PREG_OFFSET_CAPTURE)) return $esc($s);
+    $out = ''; $pos = 0;
+    foreach ($m[0] as $hit) {
+        list($url, $at) = $hit;
+        $url = rtrim($url, '.,;:!?)');   // trailing punctuation belongs to the sentence
+        $href = stripos($url, 'www.') === 0 ? 'https://' . $url : $url;
+        // bytes: preg offsets are byte offsets, so the cuts fall between characters
+        $out .= $esc(substr($s, $pos, $at - $pos))
+            . '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener nofollow">' . $esc($url) . '</a>';
+        $pos = $at + strlen($url);   // bytes, as above
+    }
+    return $out . $esc(substr($s, $pos));   // bytes, as above
+}
+
 function bk_public_url($page = '')
 {
     global $CFG;

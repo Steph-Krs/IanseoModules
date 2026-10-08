@@ -279,14 +279,14 @@ Voir le [README général](../README.md) pour le principe commun.
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:91` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:95` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/mandate.php:166` | — |
-| `INSERT INTO` | `BookingPayments` | `booking/lib/payment.php:135` | — |
-| `UPDATE` | `BookingPayments` | `booking/lib/payment.php:270` | — |
-| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/payment.php:542` | — |
-| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:546` | — |
-| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:601` | — |
-| `UPDATE` | `BookingLedger` | `booking/lib/payment.php:616` | — |
-| `INSERT INTO` | `BookingRefunds` | `booking/lib/payment.php:696` | — |
-| `UPDATE` | `BookingRefunds` | `booking/lib/payment.php:724` | — |
+| `INSERT INTO` | `BookingPayments` | `booking/lib/payment.php:187` | — |
+| `UPDATE` | `BookingPayments` | `booking/lib/payment.php:322` | — |
+| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/payment.php:594` | — |
+| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:598` | — |
+| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:653` | — |
+| `UPDATE` | `BookingLedger` | `booking/lib/payment.php:668` | — |
+| `INSERT INTO` | `BookingRefunds` | `booking/lib/payment.php:748` | — |
+| `UPDATE` | `BookingRefunds` | `booking/lib/payment.php:776` | — |
 | `INSERT INTO` | `BookingRegistrations` | `booking/lib/registration.php:553` | — |
 | `DELETE FROM` | `BookingRegistrations` | `booking/lib/registration.php:638` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/schema.php:211` | — |

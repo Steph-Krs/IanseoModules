@@ -165,7 +165,6 @@ $lang['CantRegisterYet'] = 'Non può ancora iscriversi a questa competizione.';
 $lang['AlreadyIn']       = 'Già iscritto';
 $lang['AddReg']          = 'Aggiungi un\'iscrizione';
 $lang['RegisterBtn']     = 'Iscrizioni';
-$lang['CompDocsBtn']     = '📄 Documenti della competizione';
 
 /* Registration form, tariff lines (public/register-comp.php, lib/pricing.php) */
 $lang['PriceBase']         = 'Tariffa base';
@@ -349,6 +348,8 @@ $lang['YourChoice']       = 'La sua scelta: <b>{$a}</b>';
 $lang['SurveyEditIcon']   = '🗳 Modifica il mio parere';
 $lang['SurveyGiveIcon']   = '🗳 Dai il mio parere';
 $lang['AccountReceipt']   = 'Il mio conto e ricevuta';
+$lang['AccountTitle']     = 'Il mio conto';
+$lang['NoRegsComp']       = 'Non hai alcuna iscrizione a questa gara.';
 $lang['Shop']             = 'Negozio';
 $lang['DocsBtn']          = '📄 Documenti';
 $lang['ShareBtn']         = '📣 Condividi la mia partecipazione';
@@ -426,6 +427,7 @@ $lang['DocsTitle']          = 'Documenti della competizione';
 $lang['NoDocs']             = 'Nessun documento è disponibile per questa competizione.';
 $lang['ExternalSite']       = '↗ sito esterno';
 $lang['BibsTitle']          = '🎫 Pettorali';
+$lang['ScoresheetsTitle']   = '📝 Cartellini di punteggio';
 $lang['BibsHintOne']        = 'Stampi il suo pettorale.';
 $lang['BibsHintMany']       = 'Stampi il suo pettorale (e quelli dei tesserati che ha iscritto).';
 $lang['DepX']               = 'turno {$a}';

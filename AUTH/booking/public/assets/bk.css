@@ -408,6 +408,9 @@ body {
 #bk .bk-dep-gauge { display:flex; align-items:center; gap:8px; }
 #bk .bk-dep-num { font-size:12px; color:#4c4e50; min-width:64px; text-align:right; }
 #bk .bk-detail-act { margin-top:18px; display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+#bk .bk-comp-acc { margin-top: 18px; border-top: 1px solid #e3e6ea; }
+#bk .bk-comp-acc-act { margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 10px; }
+#bk .bk-payinfo a { color: #0254a8; word-break: break-all; }
 #bk .bk-fee { margin:0 8px 0 0; font-weight:700; color:#01367c; }
 
 @media (max-width:640px){
@@ -491,8 +494,8 @@ body.bk-modal-open { overflow:hidden; }
   #bk .bk-reg-act .bk-btn, #bk .bk-reg-act button { width:100%; }
   #bk .bk-reg-act form { width:100%; }
   #bk .bk-detail { padding:16px; }
-  #bk .bk-detail-act { flex-direction:column; align-items:stretch; }
-  #bk .bk-detail-act .bk-btn { width:100%; text-align:center; }
+  #bk .bk-detail-act, #bk .bk-comp-acc-act { flex-direction:column; align-items:stretch; }
+  #bk .bk-detail-act .bk-btn, #bk .bk-comp-acc-act .bk-btn { width:100%; text-align:center; }
 }
 
 /* ==== Tariff details (register-comp.php) ==== */

@@ -226,7 +226,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1
         if (!empty($res['ok'])) {
             bk_log('WAIT_JOIN', $subjectLicence);
             bk_waitlist_process($tourId);   // a place may have freed meanwhile: then registered at once
-            bk_redirect('registrations.php?wait=1');
+            bk_redirect('registrations.php?wait=1&t=' . $tourId);
         }
         $err = $res['msg'];
     } else {
@@ -491,7 +491,12 @@ if ($payChoices) {
         . '<label for="pay_choice">' . bk_e(bk_t('PayChoiceLbl')) . '</label><select id="pay_choice" name="pay_choice">'
         . '<option value="">' . bk_e(bk_t('PayLater')) . '</option>';
     foreach ($payChoices as $pc) echo '<option value="' . bk_e($pc['value']) . '"' . $sel($payDecl === $pc['value']) . '>' . bk_e($pc['label']) . '</option>';
-    echo '</select></fieldset>';
+    echo '</select>';
+    // A list cannot hold links: the means whose details carry a web address (online payment
+    // page, pot…) are repeated below it, clickable.
+    $payLinks = array_filter(bk_payinfo_get($cfg), function ($pi) { return bk_linkify($pi['info']) !== bk_e($pi['info']); });
+    if ($payLinks) echo '<div class="bk-payinfo">' . bk_paylist_html($payLinks) . '</div>';
+    echo '</fieldset>';
 }
 
 $lblReg  = bk_t($groupMode ? 'ConfirmMate' : 'ConfirmSelf');

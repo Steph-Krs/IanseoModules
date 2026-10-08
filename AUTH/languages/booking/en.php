@@ -166,7 +166,6 @@ $lang['CantRegisterYet'] = 'You cannot register for this competition yet.';
 $lang['AlreadyIn']       = 'Already registered';
 $lang['AddReg']          = 'Add a registration';
 $lang['RegisterBtn']     = 'Register';
-$lang['CompDocsBtn']     = '📄 Competition documents';
 
 /* Registration form, tariff lines (public/register-comp.php, lib/pricing.php) */
 $lang['PriceBase']         = 'Base fee';
@@ -350,6 +349,8 @@ $lang['YourChoice']       = 'Your choice: <b>{$a}</b>';
 $lang['SurveyEditIcon']   = '🗳 Change my opinion';
 $lang['SurveyGiveIcon']   = '🗳 Give my opinion';
 $lang['AccountReceipt']   = 'My account and receipt';
+$lang['AccountTitle']     = 'My account';
+$lang['NoRegsComp']       = 'You have no registration for this competition.';
 $lang['Shop']             = 'Shop';
 $lang['DocsBtn']          = '📄 Documents';
 $lang['ShareBtn']         = '📣 Share my participation';
@@ -427,6 +428,7 @@ $lang['DocsTitle']          = 'Documents of the competition';
 $lang['NoDocs']             = 'No document is available for this competition.';
 $lang['ExternalSite']       = '↗ external site';
 $lang['BibsTitle']          = '🎫 Bibs';
+$lang['ScoresheetsTitle']   = '📝 Score sheets';
 $lang['BibsHintOne']        = 'Print your bib.';
 $lang['BibsHintMany']       = 'Print your bib (and those of the licensees you registered).';
 $lang['DepX']               = 'session {$a}';

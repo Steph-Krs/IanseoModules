@@ -3,7 +3,8 @@
  * public/documents.php — documents of a competition, for the connected archer.
  *
  * Gathers the documents the organiser made available (mandate, ianseo.net link, official
- * programme / participants / results). For connected archers only (bk_require_archer); each
+ * programme / participants / results), the bibs and the official score sheets of the archer
+ * (their own and those of the licensees they registered). For connected archers only (bk_require_archer); each
  * document also has its own guard (e.g. bk_mandate_visible for the mandate).
  */
 require_once __DIR__ . '/boot.php';
@@ -20,6 +21,8 @@ $docs   = $cfg ? bk_docs_list($cfg, $tourId) : array();
 // Bibs THIS archer may print (their own and those of the licensees they registered), when the
 // option is on and the competition has a bib template.
 $bibs   = ($cfg && bk_dossard_available($cfg, $tourId)) ? bk_dossard_entries($tourId, $archer) : array();
+// Official score sheets, same registrations as the bibs, when the organiser allows them.
+$sheets = ($cfg && !empty($cfg->BcAllowScoresheet)) ? bk_dossard_entries($tourId, $archer) : array();
 
 bk_head(bk_t('Documents'));
 echo '<h1>' . bk_e(bk_t('DocsTitle')) . '</h1>';
@@ -29,7 +32,7 @@ if ($tour) {
         . ($tour->ToWhere ? '<span>' . bk_e($tour->ToWhere) . '</span>' : '') . '</p></div>';
 }
 
-if (!$docs && !$bibs) {
+if (!$docs && !$bibs && !$sheets) {
     echo '<p class="bk-empty">' . bk_e(bk_t('NoDocs')) . ' <a href="' . bk_e(bk_public_url('calendar.php')) . '">'
         . bk_e(bk_t('BackCalendarPlain')) . '</a>.</p>';
     bk_foot();
@@ -66,5 +69,19 @@ if ($bibs) {
             . '" target="_blank" rel="noopener">' . bk_e(bk_t('PrintAllBibs', count($bibs))) . '</a></p>';
     }
     echo '</div>';
+}
+
+if ($sheets) {
+    echo '<div class="bk-block" style="margin-top:16px"><h2>' . bk_e(bk_t('ScoresheetsTitle')) . '</h2><div class="bk-doclist">';
+    foreach ($sheets as $b) {
+        $name = trim($b->EnFirstName . ' ' . $b->EnName);   // EnFirstName = FAMILY name, EnName = given name (FFTA import)
+        $mate = ((string) $b->BrLicence !== (string) $archer->BaLicence);
+        $cat = trim(($b->DivDescription ?: '') . ' ' . ($b->ClDescription ?: ''));
+        echo '<a class="bk-doc" href="' . bk_e(bk_public_url('scoresheet-official.php?enid=' . intval($b->BrEnId))) . '" target="_blank" rel="noopener">'
+            . '<span class="bk-doc-ic">📝</span><span class="bk-doc-lab">' . bk_e($name ?: $b->BrLicence)
+            . ' <span class="bk-doc-ext">' . bk_e(($cat !== '' ? $cat . ' — ' : '') . bk_t('DepX', intval($b->QuSession))
+                . ($mate ? ' · ' . bk_t('RegisteredByYou') : '')) . '</span></span></a>';
+    }
+    echo '</div></div>';
 }
 bk_foot();

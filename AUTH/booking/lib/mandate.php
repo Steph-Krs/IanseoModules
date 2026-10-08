@@ -810,7 +810,7 @@ body.tpl-ligne .mn-title h1{ font-weight:600; letter-spacing:.01em; }
     if (!empty($m['show']['payment']) && $data['pay']) {
         $out .= '<h2>' . bk_e(bk_t('PayMeansTitle')) . '</h2><ul class="mn-list">';
         foreach ($data['pay'] as $pi) {
-            $out .= '<li>' . bk_e($pi['label']) . $grey($pi['whenLabel']) . ($pi['info'] !== '' ? ' — ' . bk_e($pi['info']) : '') . '</li>';
+            $out .= '<li>' . bk_e($pi['label']) . $grey($pi['whenLabel']) . ($pi['info'] !== '' ? ' — ' . bk_linkify($pi['info']) : '') . '</li>';
         }
         $out .= '</ul>';
     }

@@ -59,11 +59,11 @@ if ($owed) {
     echo '<div class="bk-owed"><h2>' . bk_e(bk_t('LeftToPay')) . '</h2><ul>';
     foreach ($owed as $x) {
         $ways = array();
-        foreach ($x['payinfo'] as $pi) $ways[] = $pi['label'] . ($pi['info'] !== '' ? ' (' . $pi['info'] . ')' : '');
+        foreach ($x['payinfo'] as $pi) $ways[] = bk_e($pi['label']) . ($pi['info'] !== '' ? ' (' . bk_linkify($pi['info']) . ')' : '');
         echo '<li>' . bk_t('HomeOwedLine', array('amount' => bk_e(bk_eur($x['remaining'], false, $x['ToId'])), 'name' => bk_e($x['ToName']),
                 'dates' => bk_e(bk_date_range($x['ToWhenFrom'], $x['ToWhenTo']))))
             . ' — <a href="' . bk_e(bk_public_url('receipt.php?comp=' . $x['ToId'])) . '">' . bk_e(bk_t('Detail')) . '</a>'
-            . ($ways ? '<br><span class="bk-hint">' . bk_e(bk_t('WaysAccepted', implode(', ', $ways))) . '</span>' : '') . '</li>';
+            . ($ways ? '<br><span class="bk-hint">' . bk_t('WaysAccepted', implode(', ', $ways)) . '</span>' : '') . '</li>';
     }
     echo '</ul></div>';
 }

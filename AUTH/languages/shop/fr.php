@@ -624,7 +624,6 @@ $lang['ShCusBoardReady']     = 'Prêtes';
 $lang['ShCusBoardPrep']      = 'En préparation';
 $lang['ShCusBoardNone']      = '—';
 $lang['ShCusBookingBtn']     = 'Buvette & boutique';
-$lang['ShCusPreorderBtn']    = 'Précommander';
 $lang['ShCusWhen']           = 'Pour quand ?';
 $lang['ShCusWhenAsap']       = 'Dès que possible';
 $lang['ShCusWhenNoTime']     = 'Le jour même, sans heure précise';

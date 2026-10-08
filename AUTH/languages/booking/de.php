@@ -165,7 +165,6 @@ $lang['CantRegisterYet'] = 'Sie können sich noch nicht zu diesem Turnier anmeld
 $lang['AlreadyIn']       = 'Bereits angemeldet';
 $lang['AddReg']          = 'Anmeldung hinzufügen';
 $lang['RegisterBtn']     = 'Anmeldungen';
-$lang['CompDocsBtn']     = '📄 Turnierunterlagen';
 
 /* Registration form, tariff lines (public/register-comp.php, lib/pricing.php) */
 $lang['PriceBase']         = 'Grundgebühr';
@@ -349,6 +348,8 @@ $lang['YourChoice']       = 'Ihre Wahl: <b>{$a}</b>';
 $lang['SurveyEditIcon']   = '🗳 Meine Meinung ändern';
 $lang['SurveyGiveIcon']   = '🗳 Meine Meinung abgeben';
 $lang['AccountReceipt']   = 'Mein Konto und Quittung';
+$lang['AccountTitle']     = 'Mein Konto';
+$lang['NoRegsComp']       = 'Sie haben keine Anmeldung zu diesem Wettkampf.';
 $lang['Shop']             = 'Shop';
 $lang['DocsBtn']          = '📄 Unterlagen';
 $lang['ShareBtn']         = '📣 Meine Teilnahme teilen';
@@ -426,6 +427,7 @@ $lang['DocsTitle']          = 'Turnierunterlagen';
 $lang['NoDocs']             = 'Für dieses Turnier sind keine Unterlagen verfügbar.';
 $lang['ExternalSite']       = '↗ externe Website';
 $lang['BibsTitle']          = '🎫 Startnummern';
+$lang['ScoresheetsTitle']   = '📝 Schießzettel';
 $lang['BibsHintOne']        = 'Drucken Sie Ihre Startnummer.';
 $lang['BibsHintMany']       = 'Drucken Sie Ihre Startnummer (und die der Lizenzinhaber, die Sie angemeldet haben).';
 $lang['DepX']               = 'Durchgang {$a}';

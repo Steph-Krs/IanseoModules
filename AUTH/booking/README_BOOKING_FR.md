@@ -30,9 +30,13 @@ quelques clics. Pensé pour les serveurs ianseo accessibles en ligne.
   pour les épreuves, les suivantes sont des tirs supplémentaires ; une arme différente ouvre sa
   propre épreuve.
 - 📋 **Mes inscriptions** : consultation, annulation tant que les inscriptions sont ouvertes,
-  cible attribuée si l'organisateur l'a autorisé.
+  cible attribuée si l'organisateur l'a autorisé — pour toutes les compétitions, ou pour une
+  seule depuis sa page.
+- 💶 **Compte sur chaque compétition**, sur sa page : dû, payé, moyens de paiement (une adresse
+  de paiement en ligne donnée par l'organisateur est un lien), reçu.
 - 🖨️ **Feuille de marque individuelle** : la feuille officielle produite par ianseo (PDF), pour
-  l'archer seul, remplie de ses résultats — si l'organisateur active l'option.
+  l'archer seul, remplie de ses résultats — si l'organisateur active l'option ; dans les
+  documents de la compétition.
 - 🧾 **Reçu** par archer, ou groupé pour tout un club.
 
 ### Pour l'organisateur

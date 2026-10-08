@@ -165,7 +165,6 @@ $lang['CantRegisterYet'] = 'Todavía no puede inscribirse en esta competición.'
 $lang['AlreadyIn']       = 'Ya inscrito';
 $lang['AddReg']          = 'Añadir una inscripción';
 $lang['RegisterBtn']     = 'Inscripciones';
-$lang['CompDocsBtn']     = '📄 Documentos de la competición';
 
 /* Registration form, tariff lines (public/register-comp.php, lib/pricing.php) */
 $lang['PriceBase']         = 'Tarifa base';
@@ -349,6 +348,8 @@ $lang['YourChoice']       = 'Su elección: <b>{$a}</b>';
 $lang['SurveyEditIcon']   = '🗳 Modificar mi opinión';
 $lang['SurveyGiveIcon']   = '🗳 Dar mi opinión';
 $lang['AccountReceipt']   = 'Mi cuenta y recibo';
+$lang['AccountTitle']     = 'Mi cuenta';
+$lang['NoRegsComp']       = 'No tiene ninguna inscripción en esta competición.';
 $lang['Shop']             = 'Tienda';
 $lang['DocsBtn']          = '📄 Documentos';
 $lang['ShareBtn']         = '📣 Compartir mi participación';
@@ -426,6 +427,7 @@ $lang['DocsTitle']          = 'Documentos de la competición';
 $lang['NoDocs']             = 'No hay ningún documento disponible para esta competición.';
 $lang['ExternalSite']       = '↗ sitio externo';
 $lang['BibsTitle']          = '🎫 Dorsales';
+$lang['ScoresheetsTitle']   = '📝 Hojas de puntuación';
 $lang['BibsHintOne']        = 'Imprima su dorsal.';
 $lang['BibsHintMany']       = 'Imprima su dorsal (y los de los licenciados que ha inscrito).';
 $lang['DepX']               = 'turno {$a}';

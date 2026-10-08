@@ -147,7 +147,7 @@ if (!$known) {
         echo '<div class="bk-payinfo"><b>' . bk_e(bk_t('PayMeansTitle')) . '</b><ul>';
         foreach ($pay as $pi) {
             echo '<li>' . bk_e($pi['label']) . ' <span class="bk-hint">(' . bk_e($pi['whenLabel']) . ')</span>'
-                . ($pi['info'] !== '' ? ' — ' . bk_e($pi['info']) : '') . '</li>';
+                . ($pi['info'] !== '' ? ' — ' . bk_linkify($pi['info']) : '') . '</li>';
         }
         echo '</ul></div>';
     }

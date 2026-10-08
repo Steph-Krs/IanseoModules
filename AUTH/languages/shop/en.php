@@ -626,7 +626,6 @@ $lang['ShCusBoardReady']     = 'Ready';
 $lang['ShCusBoardPrep']      = 'Being prepared';
 $lang['ShCusBoardNone']      = '—';
 $lang['ShCusBookingBtn']     = 'Food & shop';
-$lang['ShCusPreorderBtn']    = 'Pre-order';
 $lang['ShCusWhen']           = 'For when?';
 $lang['ShCusWhenAsap']       = 'As soon as possible';
 $lang['ShCusWhenNoTime']     = 'On the day, at no set time';

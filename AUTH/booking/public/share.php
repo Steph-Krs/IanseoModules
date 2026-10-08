@@ -81,7 +81,7 @@ echo '<div class="bk-share"><h1 class="bk-share-h">' . bk_e(bk_t('ShTitle')) . '
     . '<div class="bk-share-canvas-wrap"><canvas id="bk-share-c" width="1080" height="1080" aria-label="' . bk_e(bk_t('ShCanvas')) . '"></canvas></div>'
     . '<div class="bk-share-act"><button type="button" id="bk-share-btn" class="bk-btn bk-btn-primary" style="display:none">' . bk_e(bk_t('ShShareBtn')) . '</button> '
     . '<button type="button" id="bk-dl-btn" class="bk-btn">' . bk_e(bk_t('ShDownload')) . '</button> '
-    . '<a class="bk-btn" href="' . bk_e(bk_public_url('registrations.php')) . '">' . bk_e(bk_t('BackMyRegs')) . '</a></div>'
+    . '<a class="bk-btn" href="' . bk_e(bk_public_url('registrations.php?t=' . $t)) . '">' . bk_e(bk_t('BackMyRegs')) . '</a></div>'
     . '<p class="bk-hint" id="bk-share-hint"></p></div>';
 ?>
 
