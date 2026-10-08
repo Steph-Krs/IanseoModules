@@ -23,8 +23,11 @@ require_once($CFG->DOCUMENT_PATH . 'Common/Lib/Fun_Modules.php');            // 
 require_once($CFG->DOCUMENT_PATH . 'Tournament/Fun_ManSessions.inc.php');    // insertSession
 require_once($CFG->DOCUMENT_PATH . 'Scheduler/LibScheduler.php');           // InsertSched* (planning natif)
 require_once(__DIR__ . '/mapping.php');
+require_once(__DIR__ . '/lib/schema.php');
+require_once(__DIR__ . '/lib/events.php');
 
 CheckTourSession(false);
+sfa_schema();
 
 $backTo = $CFG->ROOT_DIR . 'Modules/Custom/SYNCHRO_FFTA/create.php';
 
@@ -92,12 +95,16 @@ $sesDur   = $_POST['sfa_ses_duration'] ?? [];
 $sesTrain = $_POST['sfa_ses_training'] ?? [];
 $sesWarm  = $_POST['sfa_ses_warmends'] ?? [];
 $sesDesk  = $_POST['sfa_ses_greffe']   ?? [];   // registration desk opening
-$sesInsp  = $_POST['sfa_ses_inspect']  ?? [];   // equipment inspection
+$sesInsp  = $_POST['sfa_ses_inspect']  ?? [];   // equipment inspection, when it has its own time
+$sesInspT = $_POST['sfa_ses_insptrain'] ?? [];  // 1 = inspection during the practice, no own time
+$sesWarmT = $_POST['sfa_ses_warmtime'] ?? [];   // practice time, when it is not within the session
 $sesOpt   = $_POST['sfa_ses_opt']      ?? [];   // [row => [key => 1]], questions of §5.E
 
 if (!is_array($sesDays) || !count($sesDays)) {
     sfa_fail('Au moins un départ est nécessaire pour créer la compétition.');
 }
+// HH:MM of each row, checked once and reused below: '' for a time that is not asked.
+$times = [];
 foreach ($sesDays as $i => $day) {
     $start = sfa_hhmm((string) ($sesTimes[$i] ?? ''));
     if ((int) ($sesCible[$i] ?? 0) <= 0 || (int) ($sesAth[$i] ?? 0) <= 0
@@ -106,32 +113,52 @@ foreach ($sesDays as $i => $day) {
         sfa_fail('Chaque départ doit indiquer le nombre de cibles, le nombre d\'archers par cible, '
                . 'le jour, l\'heure et la durée.');
     }
-    $desk = sfa_hhmm((string) ($sesDesk[$i] ?? ''));
-    $insp = sfa_hhmm((string) ($sesInsp[$i] ?? ''));
-    if ($desk === '' || $insp === '') {
-        sfa_fail('Chaque départ doit indiquer l\'heure d\'ouverture du greffe et celle de l\'inspection du matériel.');
+    $train     = !empty($sesTrain[$i]);
+    $inspTrain = !empty($sesInspT[$i]);
+    $t = [
+        'start' => $start,
+        'desk'  => sfa_hhmm((string) ($sesDesk[$i] ?? '')),
+        'insp'  => $inspTrain ? '' : sfa_hhmm((string) ($sesInsp[$i] ?? '')),
+        'warm'  => $train ? '' : sfa_hhmm((string) ($sesWarmT[$i] ?? '')),
+    ];
+    if ($t['desk'] === '') {
+        sfa_fail('Chaque départ doit indiquer l\'heure d\'ouverture du greffe.');
     }
-    if ($desk > $start || $insp > $start) {
-        sfa_fail('L\'ouverture du greffe et l\'inspection du matériel ne peuvent pas être après le début des tirs.');
+    if (!$inspTrain && $t['insp'] === '') {
+        sfa_fail('Indiquez l\'heure de l\'inspection du matériel pour chaque départ où elle n\'a pas lieu '
+               . 'pendant l\'entraînement.');
+    }
+    // The practice is required in every discipline: within the session, or at its own time.
+    if (!$train && $t['warm'] === '') {
+        sfa_fail('Indiquez l\'heure de l\'entraînement pour chaque départ où il n\'est pas compris dans l\'horaire.');
+    }
+    foreach (['desk', 'insp', 'warm'] as $k) {
+        if ($t[$k] !== '' && $t[$k] > $start) {
+            sfa_fail('L\'ouverture du greffe, l\'inspection du matériel et l\'entraînement ne peuvent pas être '
+                   . 'après le début des tirs.');
+        }
     }
     // Le nombre de volées n'est exigé que si l'entraînement est compris dans l'horaire.
-    if (!empty($sesTrain[$i]) && (int) ($sesWarm[$i] ?? 0) <= 0) {
+    if ($train && (int) ($sesWarm[$i] ?? 0) <= 0) {
         sfa_fail('Indiquez le nombre de volées d\'entraînement pour chaque départ où '
                . 'l\'entraînement est compris dans l\'horaire.');
     }
+    $times[$i] = $t;
+}
+
+// A code already carried by a competition of this server, whoever created it: the INSERT would
+// stop on the unique key with a raw database error (case seen after a creation was retried).
+$q = safe_r_sql('SELECT ToName FROM Tournament WHERE ToCode=' . StrSafe_DB($code));
+if ($r = safe_fetch($q)) {
+    sfa_fail('Cette épreuve a déjà été créée sur ce serveur : la compétition « ' . $r->ToName
+           . ' » porte déjà le code ' . $code . '. Ouvrez-la depuis la liste des compétitions.');
 }
 
 // Droit de créer (et, sous AUTH, enregistrement de la revendication du code — comme la
 // page native le fait via possibleFeature).
 $authOn = !empty($CFG->USERAUTH) && !empty($_SESSION['AUTH_ENABLE']);
 if ($authOn && empty($_SESSION['AUTH_ROOT']) && !possibleFeature(AclRoot, AclReadWrite, $code)) {
-    sfa_fail('Vous n\'avez pas le droit de créer cette compétition, ou le code est déjà utilisé.');
-} elseif (!$authOn) {
-    // hors AUTH : refuser quand même un code déjà porté par une compétition existante
-    $q = safe_r_sql('SELECT ToId FROM Tournament WHERE ToCode=' . StrSafe_DB($code));
-    if (safe_num_rows($q)) {
-        sfa_fail('Ce code de compétition existe déjà.');
-    }
+    sfa_fail('Vous n\'avez pas le droit de créer cette compétition.');
 }
 
 // Sous-règle : index (formulaire) → code (stockage) via les règles FR réelles.
@@ -184,6 +211,13 @@ if (!$tid) {
     sfa_fail('Échec de la création (INSERT).');
 }
 
+// Calendar event behind this competition: its extranet coordinates stay only when the organiser
+// kept the venue offered (lib/events.php). The event must be the one the code was built from.
+$eprv = preg_replace('/\D/', '', (string) ($_POST['sfa_eprv_id'] ?? ''));
+if ($eprv !== '' && ($ev = sfa_event_get((int) $eprv)) && $ev->FeCode === $code) {
+    sfa_event_venue_decision((int) $eprv, (string) ($_POST['d_ToWhere'] ?? ''));
+}
+
 // ── Setup natif du type (distances / blasons / classes) ──────────────────────
 // On renseigne la session pour d'éventuels besoins internes ; l'ouverture propre
 // se fera par TourOn.php à la fin (flux natif).
@@ -224,6 +258,17 @@ foreach ($sesDays as $i => $day) {
     InsertSchedTime([$order => [1 => $time]]);
     InsertSchedDuration([$order => [1 => (int) $sesDur[$i]]]);
 
+    // Practice at its own time: the native warm-up of the distance (DiWarmStart / DiWarmDuration),
+    // which the programme shows as such, running until the session starts. Set after the start,
+    // which would otherwise move it.
+    $warm = $times[$i]['warm'];
+    if ($warm !== '') {
+        [$sh, $sm] = explode(':', $times[$i]['start']);
+        [$wh, $wm] = explode(':', $warm);
+        InsertSchedTime([$order => [1 => $warm]], 'Warm');
+        InsertSchedDuration([$order => [1 => ($sh * 60 + $sm) - ($wh * 60 + $wm)]], 'Warm');
+    }
+
     $comment = [];
     if (!empty($sesTrain[$i])) {
         // « Entraînement (3 volées) suivi des qualifications en rythme AB-CD » — même forme que
@@ -235,6 +280,13 @@ foreach ($sesDays as $i => $day) {
         $comment[] = 'Entraînement (' . $volees . ' volée' . ($volees > 1 ? 's' : '') . ')'
                    . ' suivi des qualifications'
                    . ($rythme !== '' ? ' en rythme ' . $rythme : '');
+    } elseif ($warm !== '') {
+        // The programme shows the comment of a session with a warm-up AS the warm-up line: it must
+        // say what that line is.
+        $comment[] = 'Entraînement';
+    }
+    if (!empty($sesInspT[$i])) {
+        $comment[] = 'Inspection du matériel pendant l\'entraînement';
     }
     // §5.E questions: which ones apply is decided here from the discipline and the session order,
     // never from the form — only the ticked state comes from it.
@@ -255,16 +307,21 @@ foreach ($sesDays as $i => $day) {
 // ── Registration desk and equipment inspection: lines of the native programme ─
 // Format agreed with the modules that read them (mandates): one line when both times are equal,
 // the desk wording in SchSubTitle and the inspection wording in SchText; two lines otherwise,
-// each wording keeping its own column. A line shared by several sessions (same day, time and
-// wording) is written once.
+// each wording keeping its own column. An inspection during the practice has no line of its own
+// (it is in the session comment). A line shared by several sessions (same day, time and wording)
+// is written once.
 $deskLines = [];
 foreach ($sesDays as $i => $day) {
     $day  = trim((string) $day);
-    $desk = sfa_hhmm((string) $sesDesk[$i]);
-    $insp = sfa_hhmm((string) $sesInsp[$i]);
-    $lines = ($desk === $insp)
-        ? [[$desk, 'Ouverture du greffe', 'Inspection du matériel']]
-        : [[$desk, 'Ouverture du greffe', ''], [$insp, '', 'Inspection du matériel']];
+    $desk = $times[$i]['desk'];
+    $insp = $times[$i]['insp'];
+    if ($insp === '') {
+        $lines = [[$desk, 'Ouverture du greffe', '']];
+    } elseif ($desk === $insp) {
+        $lines = [[$desk, 'Ouverture du greffe', 'Inspection du matériel']];
+    } else {
+        $lines = [[$desk, 'Ouverture du greffe', ''], [$insp, '', 'Inspection du matériel']];
+    }
     foreach ($lines as [$hhmm, $subTitle, $text]) {
         $deskLines[$day . '|' . $hhmm . '|' . $subTitle . '|' . $text] = [$day, $hhmm, $subTitle, $text];
     }

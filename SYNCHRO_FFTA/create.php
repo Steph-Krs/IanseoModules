@@ -13,6 +13,7 @@ define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
 require_once(__DIR__ . '/ExtranetClient.php');
 require_once(__DIR__ . '/mapping.php');
+require_once(__DIR__ . '/lib/schema.php');
 
 CheckTourSession(false);
 
@@ -24,6 +25,8 @@ if ($sfaAuthOn && empty($_SESSION['AUTH_ROOT']) && !possibleFeature(AclRoot, Acl
     CD_redirect($CFG->ROOT_DIR . 'noAccess.php');
     exit;
 }
+
+sfa_schema();
 
 $AJAX = $CFG->ROOT_DIR . 'Modules/Custom/SYNCHRO_FFTA/ajax-create.php';
 $RUN  = $CFG->ROOT_DIR . 'Modules/Custom/SYNCHRO_FFTA/create-run.php';
@@ -60,10 +63,11 @@ $sesPelotons   = sfa_pelotons_config();
 $sesDurations  = sfa_session_durations();
 $sesOptions    = sfa_session_options();   // §5.E: per-session questions of each family
 
-// Discipline filter of the search: the file's list until the extranet page gives its own.
+// Discipline filter of the calendar: the file's disciplines (« all formulas » of each, the
+// calendar's « X|all » values) until the extranet page gives its own detailed list.
 $discOptions = '<option value="all">Toutes</option>';
 foreach (sfa_discipline_options() as $d) {
-    $discOptions .= '<option value="' . htmlspecialchars($d['value']) . '">' . htmlspecialchars($d['label']) . '</option>';
+    $discOptions .= '<option value="' . htmlspecialchars($d['value'] . '|all') . '">' . htmlspecialchars($d['label']) . '</option>';
 }
 
 // Défauts techniques : repris de la dernière compétition, sinon valeurs FR sûres.
@@ -357,8 +361,10 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         <input type="text" name="d_ToVenue" id="f-where" class="full">
 
         <label for="f-precis">Lieu précis</label>
-        <span><input type="text" name="d_ToWhere" id="f-precis" class="full" required
-              placeholder="Nom du gymnase, du stade, de la fôret…"></span>
+        <span><input type="text" name="d_ToWhere" id="f-precis" class="full" required maxlength="255"
+              placeholder="Nom du gymnase, du stade, de la fôret…">
+              <input type="hidden" name="sfa_eprv_id" id="f-eprv">
+              <span id="f-venue-info" class="muted" style="display:block;margin-top:3px"></span></span>
 
         <label>Dates</label>
         <span id="f-dates-text" class="muted"></span>
@@ -643,7 +649,10 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             +'<th>Organisateur</th><th>Caractéristiques</th></tr></thead><tbody>';
         shown.forEach(function(ev){
             var pills=''; Object.keys(ev.pills).forEach(function(k){ pills+='<span class="pill '+ev.pills[k]+'">'+esc(k)+'</span> '; });
+            // Calendar state: validated in green, postponed or cancelled in red.
+            if(!pills && ev.etat){ pills='<span class="pill '+(/^valid/i.test(ev.etat)?'ok':'ko')+'">'+esc(ev.etat)+'</span>'; }
             var para = ev.para ? ' <span class="pill" title="Valide + Para : para regroupé">＋ Para</span>' : '';
+            if(ev.duels){ para += ' <span class="pill">Duels</span>'; }
             h+='<tr data-id="'+esc(ev.id)+'"><td>'+(pills||esc(ev.etat))+'</td><td>'+esc(ev.dates)+'</td>'
              +'<td>'+esc(ev.nom)+para+'</td><td>'+esc(ev.lieu)+'</td><td>'+esc(ev.organisateur)+'</td>'
              +'<td>'+esc(ev.carac)+'</td></tr>';
@@ -844,27 +853,35 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             day: tr.querySelector('.ses-day').value,
             desk: tr.querySelector('.ses-desk').value,
             insp: tr.querySelector('.ses-insp').value,
+            warmTime: tr.querySelector('.ses-warmtime').value,
             time: tr.querySelector('.ses-time').value,
             dur: tr.querySelector('.ses-dur').value,
+            inspTrain: tr.querySelector('.ses-insptrain').checked,
             train: tr.querySelector('.ses-train').checked,
             warm: tr.querySelector('.ses-warmends').value,
             opts: famOptionsChecked(tr)
         };
     }
 
-    /**
-     * Le nombre de volées d'entraînement n'a de sens que si l'entraînement est compris dans
-     * l'horaire du départ : le champ n'apparaît que dans ce cas. `required` est posé/retiré avec
-     * l'affichage — un champ requis mais masqué empêcherait la soumission du formulaire
-     * (le navigateur refuse de signaler un champ invalide qu'il ne peut pas atteindre).
-     */
-    function syncTrainCell(tr) {
-        var on  = tr.querySelector('.ses-train').checked;
-        var box = tr.querySelector('.ses-warm');
-        var inp = tr.querySelector('.ses-warmends');
+    /** Shows a field with its `required`, or hides it without: see syncTimeCells(). */
+    function showRequired(box, input, on) {
         box.style.display = on ? '' : 'none';
-        if (on) { inp.setAttribute('required', 'required'); }
-        else    { inp.removeAttribute('required'); }
+        if (on) { input.setAttribute('required', 'required'); }
+        else    { input.removeAttribute('required'); }
+    }
+
+    /**
+     * Each box ticked moves a time out of the « Horaires » column into the session comment:
+     * inspection during the practice → no inspection time; practice within the session → no
+     * practice time, but its number of ends. `required` follows the display — a required field
+     * that is hidden would block the submission (the browser cannot point at it).
+     */
+    function syncTimeCells(tr) {
+        var train = tr.querySelector('.ses-train').checked;
+        var inspTrain = tr.querySelector('.ses-insptrain').checked;
+        showRequired(tr.querySelector('.ses-warm'), tr.querySelector('.ses-warmends'), train);
+        showRequired(tr.querySelector('.ses-h-warm'), tr.querySelector('.ses-warmtime'), !train);
+        showRequired(tr.querySelector('.ses-h-insp'), tr.querySelector('.ses-insp'), !inspTrain);
     }
 
     /** Ajoute une ligne de départ. copyFrom (facultatif) = valeurs de la ligne précédente à reprendre telles quelles. */
@@ -878,7 +895,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         var day   = copyFrom ? copyFrom.day   : sesDefaultDay();
         var desk  = copyFrom ? copyFrom.desk  : '';
         var insp  = copyFrom ? copyFrom.insp  : '';
+        var warmTime  = copyFrom ? copyFrom.warmTime  : '';
         var time  = copyFrom ? copyFrom.time  : '';
+        var inspTrain = copyFrom ? copyFrom.inspTrain : true;
         var train = copyFrom ? copyFrom.train : (fam === 'TAE' || fam === '18m');
         var warm  = copyFrom ? copyFrom.warm  : WARM_ENDS_DEFAULT;
         var b = RYTHME[fam];
@@ -892,14 +911,20 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             '<td class="ses-pel-cell"></td>' +   // data-label posé par sesApplyLabels()
             '<td class="ses-ath-cell"></td>' +
             '<td data-label="Jour"><input type="date" class="ses-day" required name="sfa_ses_day[' + i + ']" value="' + esc(day || '') + '"></td>' +
-            // Desk and inspection first: the programme reads top-down, as on the day.
+            // In the order of the day: desk, inspection, practice, start. Inspection and practice
+            // only show when their box (Options column) says they have a time of their own.
             '<td data-label="Horaires"><div class="ses-stack">' +
                 '<label class="ses-h">Ouverture du greffe <input type="time" class="ses-desk" required name="sfa_ses_greffe[' + i + ']" value="' + esc(desk || '') + '"></label>' +
-                '<label class="ses-h">Inspection du matériel <input type="time" class="ses-insp" required name="sfa_ses_inspect[' + i + ']" value="' + esc(insp || '') + '"></label>' +
+                '<label class="ses-h ses-h-insp">Inspection du matériel <input type="time" class="ses-insp" name="sfa_ses_inspect[' + i + ']" value="' + esc(insp || '') + '"></label>' +
+                '<label class="ses-h ses-h-warm">Entraînement <input type="time" class="ses-warmtime" name="sfa_ses_warmtime[' + i + ']" value="' + esc(warmTime || '') + '"></label>' +
                 '<label class="ses-h">Début des tirs <input type="time" class="ses-time" required name="sfa_ses_time[' + i + ']" value="' + esc(time || '') + '"></label>' +
             '</div></td>' +
             '<td data-label="Durée (min)"><input type="number" class="ses-dur" required min="1" name="sfa_ses_duration[' + i + ']" value="' + esc(dur) + '"></td>' +
             '<td data-label="Options"><div class="ses-stack">' +
+                '<label class="ses-opt">' +
+                    '<input type="hidden" name="sfa_ses_insptrain[' + i + ']" value="0">' +
+                    '<input type="checkbox" name="sfa_ses_insptrain[' + i + ']" value="1" class="ses-insptrain"' + (inspTrain ? ' checked' : '') + '>' +
+                    ' Inspection du matériel pendant l\'entraînement</label>' +
                 '<label class="ses-opt">' +
                     '<input type="hidden" name="sfa_ses_training[' + i + ']" value="0">' +
                     '<input type="checkbox" name="sfa_ses_training[' + i + ']" value="1" class="ses-train"' + (train ? ' checked' : '') + '>' +
@@ -917,8 +942,9 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
         tr.querySelector('.ses-dur').addEventListener('input', function () { tr.dataset.durDirty = '1'; });
         tr.querySelector('.ses-del').addEventListener('click', function () { removeSessionRow(tr); });
-        tr.querySelector('.ses-train').addEventListener('change', function () { syncTrainCell(tr); });
-        syncTrainCell(tr);
+        tr.querySelector('.ses-train').addEventListener('change', function () { syncTimeCells(tr); });
+        tr.querySelector('.ses-insptrain').addEventListener('change', function () { syncTimeCells(tr); });
+        syncTimeCells(tr);
 
         $('ses-body').appendChild(tr);
         $('ses-hint').style.display = 'none';
@@ -1013,6 +1039,35 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
     // One event page at a time: only the LAST row clicked meanwhile is fetched next.
     var evLoading = false, evNext = null;
+    // Competition of this server already carrying the code of the event shown ({id, name}), or null.
+    var existing = null;
+
+    // Venue offered by the extranet for the event shown, its coordinates, and why it is missing.
+    var offeredVenue = '', venueGeo = null, venueMsg = '';
+
+    /** Line under « Lieu précis »: where the venue comes from, and what changing it does. */
+    function showVenueInfo() {
+        var box = $('f-venue-info'), cur = ($('f-precis').value || '').trim();
+        if (!offeredVenue) {
+            box.textContent = 'Lieu non renseigné sur l\'extranet : saisissez-le.' + (venueMsg ? ' (' + venueMsg + ')' : '');
+            return;
+        }
+        if (cur !== offeredVenue.trim()) {
+            box.innerHTML = '<span class="err">Lieu modifié : les coordonnées GPS de l\'extranet ne seront pas conservées.</span>';
+            return;
+        }
+        var h = 'Lieu proposé par l\'extranet.';
+        if (venueGeo) {
+            var lat = venueGeo.lat, lon = venueGeo.lon;
+            h += ' Coordonnées GPS : ' + esc(lat) + ', ' + esc(lon) + ' — <a target="_blank" rel="noopener" href="'
+               + 'https://www.openstreetmap.org/?mlat=' + encodeURIComponent(lat) + '&mlon=' + encodeURIComponent(lon)
+               + '#map=17/' + encodeURIComponent(lat) + '/' + encodeURIComponent(lon) + '">voir sur la carte</a>.'
+               + ' Si vous modifiez le lieu, ces coordonnées ne seront pas conservées.';
+        }
+        box.innerHTML = h;
+    }
+    $('f-precis').addEventListener('input', showVenueInfo);
+    var TOUR_ON = '<?= addslashes($CFG->ROOT_DIR) ?>Common/TourOn.php?ToId=';
 
     function loadEvent(id) {
         $('review').style.display='';
@@ -1020,6 +1075,7 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         $('prop-note').innerHTML=loadCard('Chargement de l\'épreuve');
         if (evLoading) { evNext = id; return; }
         evLoading = true;
+        existing = null;
         // Tag « Valide + Para » de la ligne : ligne regroupée ou tag dans les caractéristiques.
         var ev = lastEvents.filter(function(e){ return String(e.id)===String(id); })[0] || {};
         var vp = ev.para || /valide\s*\+\s*para/i.test(ev.carac||'');
@@ -1035,7 +1091,14 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             $('f-code').value=pf.code; $('code-warn').textContent=pf.codeWarn||'';
             $('f-name').value=pf.name; $('f-short').value=(pf.name||'').slice(0,60);
             $('f-commitee').value=pf.commitee; $('f-comdescr').value=pf.comdescr;
-            $('f-where').value=pf.where; $('f-precis').value='';   // saisie libre, propre à chaque épreuve
+            $('f-where').value=pf.where;
+            $('f-eprv').value=pf.eprv||'';
+            // Venue offered by the extranet, editable; its coordinates are kept only if it stays as is.
+            offeredVenue = (r.venue && r.venue.text) || '';
+            venueGeo = (r.venue && r.venue.lat !== null && r.venue.lon !== null) ? r.venue : null;
+            venueMsg = (r.venue && r.venue.msg) || '';
+            $('f-precis').value = offeredVenue;
+            showVenueInfo();
             $('f-tz').value=pf.timezone||'';   // pays = FRA en champ caché, plus de champ visible
 
             // Départs propres à chaque épreuve : on repart d'une table vide.
@@ -1057,6 +1120,15 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
                 $('prop-note').innerHTML='<p class="warn">'+esc(pr.why||'Type ianseo non déterminé.')
                     +' Choisissez-le manuellement ci-dessous.</p>';
             }
+            if(r.event && r.event.duels){
+                $('prop-note').innerHTML += '<p class="muted">Épreuve déclarée <b>avec duels</b> sur l\'extranet.</p>';
+            }
+            // Already created on this server: the code is unique, a second creation cannot work.
+            existing = r.exists || null;
+            if(existing){
+                $('prop-note').innerHTML='<p class="warn"><b>Cette épreuve a déjà été créée sur ce serveur</b> : '
+                    +'« '+esc(existing.name)+' ». <a href="'+TOUR_ON+existing.id+'">Ouvrir la compétition</a></p>';
+            }
             sesRefreshFamily();
         }).catch(function(e){
             evLoading = false; evNext = null;
@@ -1065,6 +1137,11 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     }
 
     $('review').addEventListener('submit', function(e){
+        if(existing){
+            e.preventDefault();
+            alert('Cette épreuve a déjà été créée sur ce serveur (« '+existing.name+' ») : ouvrez-la plutôt que de la recréer.');
+            return;
+        }
         if(!$('f-type').value){ e.preventDefault(); alert('Choisissez la discipline avant de créer.'); return; }
         if(($('f-code').value||'').length>8){
             e.preventDefault();
@@ -1081,13 +1158,17 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         }
         var incomplete = false, warmMissing = false, late = false;
         rows.forEach(function(tr){
-            ['.ses-pel', '.ses-ath', '.ses-day', '.ses-desk', '.ses-insp', '.ses-time', '.ses-dur'].forEach(function(sel){
+            // Inspection and practice times only count when they are shown (see syncTimeCells).
+            var times = ['.ses-desk'];
+            if(!tr.querySelector('.ses-insptrain').checked) times.push('.ses-insp');
+            if(!tr.querySelector('.ses-train').checked) times.push('.ses-warmtime');
+            ['.ses-pel', '.ses-ath', '.ses-day', '.ses-time', '.ses-dur'].concat(times).forEach(function(sel){
                 var el = tr.querySelector(sel);
                 if(!el || String(el.value).trim() === '') incomplete = true;
             });
             // HH:MM strings compare in time order.
             var start = tr.querySelector('.ses-time').value;
-            ['.ses-desk', '.ses-insp'].forEach(function(sel){
+            times.forEach(function(sel){
                 var v = tr.querySelector(sel).value;
                 if(v && start && v > start) late = true;
             });
@@ -1097,12 +1178,13 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
         if(incomplete){
             e.preventDefault();
             alert('Chaque départ doit indiquer le nombre de cibles, le nombre d\'archers par cible, '
-                + 'le jour, les heures (ouverture du greffe, inspection du matériel, début des tirs) et la durée.');
+                + 'le jour, les horaires et la durée.');
             return;
         }
         if(late){
             e.preventDefault();
-            alert('L\'ouverture du greffe et l\'inspection du matériel ne peuvent pas être après le début des tirs.');
+            alert('L\'ouverture du greffe, l\'inspection du matériel et l\'entraînement ne peuvent pas être '
+                + 'après le début des tirs.');
             return;
         }
         if(warmMissing){

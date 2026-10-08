@@ -24,6 +24,8 @@ class ExtranetClient
     const CACHE_KEEP = 6;
 
     const LIST_PAGE = '/gsportive/resultats-integrationtxt.html';
+    const CAL_PAGE  = '/calendrier/epreuve-lstepv.html';
+    const CAL_BOX   = '/actions/outils/ajaxEprv.php';
 
     private $base;
     private $cookieFile;
@@ -145,6 +147,11 @@ class ExtranetClient
         if ($disc) {
             $ctx['disciplines'] = $disc;
         }
+        $cal = $this->parseCalendarForm($html);
+        if ($cal) {
+            $ctx['calForm']        = $cal['form'];
+            $ctx['calDisciplines'] = $cal['disciplines'];
+        }
         $_SESSION[$this->ctxKey()]['ctx'] = $ctx;
     }
 
@@ -175,6 +182,12 @@ class ExtranetClient
     public function disciplines(): array
     {
         return $this->ctx()['disciplines'] ?? [];
+    }
+
+    /** Calendar disciplines (discipline and formula, e.g. S|2X18M) last read: [['value','label'], …]. */
+    public function calendarDisciplines(): array
+    {
+        return $this->ctx()['calDisciplines'] ?? [];
     }
 
     // ── Step 1: login ────────────────────────────────────────────────────────
@@ -280,11 +293,12 @@ class ExtranetClient
 
     /**
      * Is the session carried by the cookie still open? One request: when the extranet answers with
-     * its login page, the session is dead.
+     * its login page, the session is dead. $page: the page the caller will use next (its context
+     * is kept, so that page is not read twice) — the integration page or the calendar.
      */
-    public function session(): array
+    public function session(string $page = self::LIST_PAGE): array
     {
-        $r = $this->request(self::LIST_PAGE);
+        $r = $this->request($page);
 
         // Offline, delayed or blocked is NOT an expired session — it must be said distinctly,
         // otherwise the user believes in a credentials problem.
@@ -495,6 +509,355 @@ class ExtranetClient
         }
 
         return $out;
+    }
+
+    // ── Calendar (competition creation) ──────────────────────────────────────
+    //
+    // The integration page widens any search to the current day, so a search for next weekend
+    // brings every event from today on and the extranet then shows nothing when they are too many.
+    // The calendar honours both dates, and gives more per event (formula, duels, season, venue).
+
+    /**
+     * Search form of the calendar as the page renders it (form#LstEpr): every field with its
+     * current value, and the discipline list. Null when the page is not the calendar.
+     * Posting the whole form, not only the fields we know, keeps the structure filters the page
+     * selects by itself for the account (their names depend on the level).
+     */
+    private function parseCalendarForm(string $html): ?array
+    {
+        if (strpos($html, 'id="LstEpr"') === false) {
+            return null;
+        }
+        $xp   = $this->dom($html);
+        $form = $xp->query('//form[@id="LstEpr"]')->item(0);
+        if (!$form) {
+            return null;
+        }
+
+        $fields = [];
+        foreach ($xp->query('.//input[@name]', $form) as $in) {
+            // bytes: an input type is an ASCII keyword
+            $type = strtolower($in->getAttribute('type'));
+            if (in_array($type, ['submit', 'button', 'image', 'reset'], true)) {
+                continue;
+            }
+            if (in_array($type, ['checkbox', 'radio'], true) && !$in->hasAttribute('checked')) {
+                continue;
+            }
+            $fields[$in->getAttribute('name')] = $in->getAttribute('value');
+        }
+        $disciplines = [];
+        foreach ($xp->query('.//select[@name]', $form) as $sel) {
+            $name  = $sel->getAttribute('name');
+            $value = null;
+            foreach ($xp->query('.//option', $sel) as $o) {
+                if ($value === null || $o->hasAttribute('selected')) {
+                    $value = $o->getAttribute('value');
+                }
+                if ($name === 'filtres[DisciplineCode]' && $o->getAttribute('value') !== 'all') {
+                    $disciplines[] = ['value' => $o->getAttribute('value'), 'label' => self::txt($o)];
+                }
+            }
+            $fields[$name] = (string) $value;
+        }
+
+        return ['form' => $fields, 'disciplines' => $disciplines];
+    }
+
+    /**
+     * Calendar events between two dates (dd/mm/yyyy), optionally one discipline: an extranet value
+     * of filtres[DisciplineCode] such as « S|all » or « S|2X18M ».
+     */
+    public function calendar(string $dateFrom, string $dateTo, string $discipline = 'all'): array
+    {
+        $ctx = $this->ctx();
+        if (empty($ctx['calForm'])) {
+            // First read: the page gives its form as it stands and checks the session.
+            $page = $this->request(self::CAL_PAGE);
+            if ($f = $this->fail($page)) {
+                return $f;
+            }
+            if (self::isLoginPage($page['body'])) {
+                return $this->expiredMessage($page);
+            }
+            $this->remember($page['body']);
+            $ctx = $this->ctx();
+            if (empty($ctx['calForm'])) {
+                return ['ok' => false, 'msg' => 'Le formulaire de recherche du calendrier est introuvable sur l\'extranet.'];
+            }
+        }
+        // Level from the active role, as for the integration page (the page's own choice sticks to
+        // the account's last search).
+        $pers = self::persForRole($ctx['roles'] ?? []) ?? ($ctx['calForm']['filtres[Pers]'] ?? null);
+
+        $cacheKey = 'cal|' . $dateFrom . '|' . $dateTo . '|' . $discipline . '|' . $pers;
+        if (($cached = $this->cacheGet($cacheKey)) !== null) {
+            return $cached + ['disciplines' => $this->calendarDisciplines()];
+        }
+
+        $fields = $ctx['calForm'];
+        $fields['filtres[DisciplineCode]'] = $discipline;
+        $fields['filtres[DateDebut]']      = $dateFrom;
+        $fields['filtres[DateFin]']        = $dateTo;
+        if ($pers !== null) {
+            $fields['filtres[Pers]'] = $pers;
+        }
+        $fields['filtres[__doSearch]'] = '';
+
+        $r = $this->request(self::CAL_PAGE, $fields);
+        if ($f = $this->fail($r)) {
+            return $f;
+        }
+        if (self::isLoginPage($r['body'])) {
+            return $this->expiredMessage($r);
+        }
+        $this->remember($r['body']);
+
+        $xp = $this->dom($r['body']);
+        $rawTotal = null;
+        foreach ($xp->query('//h5[contains(@class,"mxgt")]') as $h5) {
+            if (preg_match('/R[ée]sultats\s*:\s*(\d+)/u', self::txt($h5), $m)) {
+                $rawTotal = (int) $m[1];
+                break;
+            }
+        }
+
+        $events = [];
+        $noId   = 0;
+        foreach ($xp->query('//tr[.//a[contains(@href,"ajaxEprv.php")] and not(.//tr)]') as $tr) {
+            $ev = $this->parseCalendarRow($xp, $tr);
+            if ($ev === null) {
+                continue;
+            }
+            if ($ev['id'] === '') {
+                $noId++;
+                continue;
+            }
+            $events[] = $ev;
+        }
+
+        $res = [
+            'ok'     => true,
+            'events' => $events,
+            'diag'   => [
+                'pers'      => $pers,
+                'raw_total' => $rawTotal,
+                'parsed'    => count($events),
+                'no_id'     => $noId,   // rows whose event number could not be read
+            ],
+        ];
+        // The event number hides in the « Détail » link: if the extranet changes how it encodes
+        // it, say so instead of offering events that could never be created.
+        if ($noId > 0 && !$events) {
+            return ['ok' => false, 'msg' => 'Le numéro des épreuves n\'a pas pu être lu dans le calendrier de '
+                . 'l\'extranet (' . $noId . ' épreuve(s)) : la page a changé, le module doit être adapté.'];
+        }
+        $this->cacheSet($cacheKey, $res);
+
+        return $res + ['disciplines' => $this->calendarDisciplines()];
+    }
+
+    /** Event number in an ajaxEprv.php link: act = base64(serialize(['action'=>…,'EprvId'=>…])). */
+    private static function eprvIdFromLink(string $href): string
+    {
+        if (!preg_match('/[?&]act=([^&#]+)/', $href, $m)) {
+            return '';
+        }
+        // Read with a pattern, never unserialize(): the string comes from a remote page.
+        $raw = (string) base64_decode(rawurldecode($m[1]), true);
+
+        return preg_match('/"EprvId";(?:s:\d+:"(\d+)"|i:(\d+);)/', $raw, $id) ? ($id[1] ?: ($id[2] ?? '')) : '';
+    }
+
+    /** One row of the calendar results, or null when it is not an event row. */
+    private function parseCalendarRow(DOMXPath $xp, DOMNode $tr): ?array
+    {
+        $tds = $xp->query('./td', $tr);
+        if ($tds->length < 6) {
+            return null;
+        }
+
+        $id = '';
+        foreach ($xp->query('.//a[contains(@href,"ajaxEprv.php")]', $tr) as $a) {
+            $id = self::eprvIdFromLink($a->getAttribute('href'));
+            if ($id !== '') {
+                break;
+            }
+        }
+
+        // Dates: « 18/10/2026<br>18/10/2026 »
+        preg_match_all('#(\d{2})/(\d{2})/(\d{4})#', $tds->item(0)->textContent, $dm, PREG_SET_ORDER);
+        $iso = array_map(function ($d) {
+            return $d[3] . '-' . $d[2] . '-' . $d[1];
+        }, $dm);
+        sort($iso);
+
+        $state = self::txt($tds->item(1));
+        $org   = self::txt($tds->item(2));                       // « 1166191 - PERPIGNAN »
+        $orgCode = self::txt($xp->query('.//strong', $tds->item(2))->item(0));
+
+        // Characteristics, before the referees block (<hr>), one piece per <br>: discipline in
+        // <strong> then formula and the duels mark, season, event type, the para tag.
+        $cell  = $tds->item(5);
+        $html  = $cell->ownerDocument->saveHTML($cell);
+        $html  = preg_split('/<hr\b/i', $html)[0];
+        $parts = [];
+        foreach (preg_split('/<br\s*\/?>/i', $html) as $p) {
+            $p = trim(str_replace("\xC2\xA0", ' ', html_entity_decode(strip_tags($p), ENT_QUOTES, 'UTF-8')));
+            if ($p !== '') {
+                $parts[] = preg_replace('/\s+/u', ' ', $p);
+            }
+        }
+        $discipline = self::txt($xp->query('.//strong', $cell)->item(0));
+        $head   = $parts[0] ?? '';
+        $pieces = array_map('trim', explode(' - ', $head));
+        $duels  = false;
+        if ($pieces && strcasecmp(end($pieces), 'Duels') === 0) {
+            $duels = true;
+            array_pop($pieces);
+        }
+        if ($pieces && $pieces[0] === $discipline) {
+            array_shift($pieces);
+        }
+        $format = implode(' - ', $pieces);
+
+        $season = 0;
+        $type = '';
+        $validePara = false;
+        foreach (array_slice($parts, 1) as $p) {
+            if (preg_match('/^Saison\s+(\d{4})$/u', $p, $sm)) {
+                $season = (int) $sm[1];
+            } elseif (stripos($p, 'valide + para') === 0) {
+                $validePara = true;
+            } elseif ($type === '') {
+                $type = $p;
+            }
+        }
+        $distinction = [];
+        foreach ($xp->query('.//img[@title]', $cell) as $img) {
+            $distinction[] = $img->getAttribute('title');
+        }
+
+        return [
+            'id'           => $id,
+            'etat'         => $state,
+            'pills'        => [],
+            'dates'        => implode(' ', array_map(function ($d) {
+                return date('d/m/Y', strtotime($d));
+            }, $iso)),
+            'dateFrom'     => $iso[0] ?? '',
+            'dateTo'       => $iso ? end($iso) : '',
+            'nom'          => self::txt($tds->item(3)),
+            'lieu'         => self::txt($tds->item(4)),
+            'organisateur' => $org,
+            'orgCode'      => $orgCode,
+            'orgName'      => trim(preg_replace('/^' . preg_quote($orgCode, '/') . '\s*-\s*/u', '', $org)),
+            // Same shape as the integration page: discipline first, so groupPara() still tells
+            // the para row of a « Valide + Para » competition.
+            'carac'        => implode(' · ', array_filter([$head, $type, $validePara ? 'Valide + Para' : ''])),
+            'discipline'   => $discipline,
+            'format'       => $format,
+            'duels'        => $duels,
+            'season'       => $season,
+            'type'         => $type,
+            'validePara'   => $validePara,
+            'distinction'  => implode(', ', $distinction),
+        ];
+    }
+
+    /**
+     * « Détail » box of a calendar event: venue (name, address, coordinates), duels, distinction.
+     * The organiser's phone and e-mail are in the box too: they are not read.
+     */
+    public function eventDetail(string $id): array
+    {
+        if (!ctype_digit($id)) {
+            return ['ok' => false, 'msg' => 'Numéro d\'épreuve invalide.'];
+        }
+        // The link the calendar itself builds for its « Détail » button.
+        $act = base64_encode(serialize(['action' => 'detail', 'EprvId' => $id]));
+        $r   = $this->request(self::CAL_BOX . '?act=' . rawurlencode($act));
+        if ($f = $this->fail($r)) {
+            return $f;
+        }
+        if (self::isLoginPage($r['body'])) {
+            return $this->expiredMessage($r);
+        }
+
+        $xp   = $this->dom($r['body']);
+        $rows = [];
+        foreach ($xp->query('//tr[count(td)=2]') as $tr) {
+            $tds   = $xp->query('./td', $tr);
+            $label = rtrim(self::txt($tds->item(0)), ' :');
+            if ($label !== '') {
+                $rows[$label] = $tds->item(1);
+            }
+        }
+        if (!isset($rows['Lieu']) && !isset($rows['Adresse'])) {
+            return ['ok' => false, 'msg' => 'Le détail de l\'épreuve n\'a pas pu être lu sur l\'extranet.'];
+        }
+
+        // Address: one piece per <br> — place name, street line(s), « 83300 DRAGUIGNAN - FRANCE »,
+        // « Latitude : 43.51562 », « Longitude : 6.42848 ».
+        $venue = ['name' => '', 'street' => '', 'zip' => '', 'city' => '', 'country' => '', 'lat' => null, 'lon' => null];
+        if (isset($rows['Adresse'])) {
+            $lines = $this->cellLines($rows['Adresse']);
+            $before = [];
+            foreach ($lines as $l) {
+                if (preg_match('/^Latitude\s*:\s*(-?\d+(?:[.,]\d+)?)/iu', $l, $m)) {
+                    $venue['lat'] = (float) str_replace(',', '.', $m[1]);
+                } elseif (preg_match('/^Longitude\s*:\s*(-?\d+(?:[.,]\d+)?)/iu', $l, $m)) {
+                    $venue['lon'] = (float) str_replace(',', '.', $m[1]);
+                } elseif ($venue['zip'] === '' && preg_match('/^(\d{4,5})\s+(.+?)(?:\s+-\s+(.+))?$/u', $l, $m)) {
+                    $venue['zip']     = $m[1];
+                    $venue['city']    = trim($m[2]);
+                    $venue['country'] = trim($m[3] ?? '');
+                } elseif ($venue['zip'] === '') {
+                    $before[] = $l;
+                }
+            }
+            // A first line that starts with a number is a street, not a place name.
+            if ($before && !preg_match('/^\d/', $before[0])) {
+                $venue['name'] = array_shift($before);
+            }
+            $venue['street'] = implode(', ', $before);
+        }
+
+        $duels = null;
+        $distinction = '';
+        if (isset($rows['Compléments'])) {
+            foreach ($this->cellLines($rows['Compléments']) as $l) {
+                if (preg_match('/^Duel\s*:\s*(\w+)/iu', $l, $m)) {
+                    $duels = (mb_strtolower($m[1]) === 'oui');
+                } elseif (preg_match('/^Distinction\s*:\s*(.+)$/iu', $l, $m)) {
+                    $distinction = trim($m[1]);
+                }
+            }
+        }
+
+        return [
+            'ok'          => true,
+            'id'          => $id,
+            'lieu'        => isset($rows['Lieu']) ? self::txt($rows['Lieu']) : '',
+            'venue'       => $venue,
+            'duels'       => $duels,
+            'distinction' => $distinction,
+        ];
+    }
+
+    /** Text lines of a cell, one per <br>. */
+    private function cellLines(DOMNode $cell): array
+    {
+        $html  = $cell->ownerDocument->saveHTML($cell);
+        $lines = [];
+        foreach (preg_split('/<br\s*\/?>/i', $html) as $p) {
+            $p = trim(str_replace("\xC2\xA0", ' ', html_entity_decode(strip_tags($p), ENT_QUOTES, 'UTF-8')));
+            if ($p !== '') {
+                $lines[] = preg_replace('/\s+/u', ' ', $p);
+            }
+        }
+
+        return $lines;
     }
 
     // ── Step 4: event page ───────────────────────────────────────────────────

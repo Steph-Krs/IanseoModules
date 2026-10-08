@@ -1,13 +1,13 @@
 <?php
 /**
- * SYNCHRO_FFTA — endpoints AJAX du flux « création depuis l'extranet ».
- * Fonctionne SANS compétition ouverte. Ne crée rien lui-même : la création
- * réelle est faite par le formulaire natif de ianseo (Tournament/index.php),
- * ce endpoint ne fait que lister, lire et proposer.
+ * SYNCHRO_FFTA — AJAX endpoints of the « creation from the extranet » flow.
+ * Works WITHOUT an open competition. Creates no competition itself (create-run.php does): it
+ * searches the FFTA calendar, reads an event and proposes the ianseo settings. The events read
+ * are kept in the FftaEvents table (lib/events.php) for every module of the server.
  */
-// Avant tout chargement : toute sortie parasite (warning/notice, BOM) émise avant le JSON
-// fausserait le Content-Length calculé par JsonOut (strlen du JSON seul) → réponse
-// tronquée côté navigateur. On capture donc dès la première ligne, et on jette avant d'émettre.
+// Before anything is loaded: any stray output (warning/notice, BOM) sent before the JSON would
+// break the Content-Length computed by JsonOut (length of the JSON alone) → truncated answer in
+// the browser. Output is therefore captured from the first line and dropped before answering.
 ob_start();
 
 define('HTDOCS', dirname(__DIR__, 3));
@@ -15,6 +15,8 @@ require_once(HTDOCS . '/config.php');
 require_once(__DIR__ . '/ExtranetClient.php');
 require_once(__DIR__ . '/mapping.php');
 require_once(__DIR__ . '/session.php');
+require_once(__DIR__ . '/lib/schema.php');
+require_once(__DIR__ . '/lib/events.php');
 
 CheckTourSession(false);
 
@@ -27,6 +29,8 @@ if ($sfaAuthOn && empty($_SESSION['AUTH_ROOT']) && !possibleFeature(AclRoot, Acl
     sfa_json(['ok' => false, 'msg' => 'Droit de création requis.']);
 }
 
+sfa_schema();
+
 // La base extranet vient de sfa_base('ext') (session.php) — production pour la création.
 $action = $_POST['sfa_action'] ?? '';
 
@@ -36,40 +40,22 @@ function sfa_json($data) {
     JsonOut($data);
 }
 
-/** Toutes les dates jj/mm/aaaa d'un texte, triées. */
-function sfa_dates(string $s): array
-{
-    preg_match_all('#(\d{2})/(\d{2})/(\d{4})#', $s, $m, PREG_SET_ORDER);
-    $out = [];
-    foreach ($m as $d) {
-        $out[] = ['y' => (int) $d[3], 'm' => (int) $d[2], 'd' => (int) $d[1]];
-    }
-    usort($out, function ($a, $b) {
-        return [$a['y'], $a['m'], $a['d']] <=> [$b['y'], $b['m'], $b['d']];
-    });
-
-    return $out;
-}
-
-/** Saison sportive (2 chiffres) : mois ≥ septembre → année+1, sinon année. */
-function sfa_season(array $date): string
-{
-    $y = $date['y'] + ($date['m'] >= 9 ? 1 : 0);
-
-    return substr((string) $y, -2);
-}
-
-/** Décalage horaire ianseo (±hh:mm) de Paris à cette date. */
-function sfa_timezone(array $date): string
+/** ianseo time offset (±hh:mm) of Paris on that ISO date. */
+function sfa_timezone(string $isoDate): string
 {
     try {
-        $dt = new DateTime(sprintf('%04d-%02d-%02d', $date['y'], $date['m'], $date['d']),
-            new DateTimeZone('Europe/Paris'));
-
-        return $dt->format('P');
+        return (new DateTime($isoDate, new DateTimeZone('Europe/Paris')))->format('P');
     } catch (Exception $e) {
         return '+01:00';
     }
+}
+
+/** [y, m, d] of an ISO date, today when empty. */
+function sfa_ymd(?string $isoDate): array
+{
+    $t = $isoDate ? strtotime($isoDate) : time();
+
+    return ['y' => (int) date('Y', $t), 'm' => (int) date('n', $t), 'd' => (int) date('j', $t)];
 }
 
 switch ($action) {
@@ -81,7 +67,9 @@ switch ($action) {
         }
         $shared = sfa_is_shared('ext');
         $client = new ExtranetClient($f, sfa_base('ext'));
-        $res    = $client->session();
+        // The calendar page itself: it checks the session AND gives the search form, which the
+        // first search then does not have to read again.
+        $res    = $client->session(ExtranetClient::CAL_PAGE);
         if (!$res['ok']) {
             if (!empty($res['wait'])) {
                 sfa_json($res);   // the page waits and asks again
@@ -99,7 +87,7 @@ switch ($action) {
         // AUTH présent : le rôle extranet suit sa vue, sans sélecteur manuel (create.php).
         $roles = sfa_sync_role_with_auth($client, $res['roles']);
         sfa_json(['ok' => true, 'logged' => true, 'roles' => $roles, 'shared' => $shared,
-                  'disciplines' => $client->disciplines()]);
+                  'disciplines' => $client->calendarDisciplines()]);
         break;
 
     case 'login':
@@ -115,7 +103,7 @@ switch ($action) {
             // AUTH présent : le rôle extranet suit sa vue, sans sélecteur manuel (create.php).
             $extClient    = new ExtranetClient(sfa_own_cookie('ext'), sfa_base('ext'));
             $out['roles'] = sfa_sync_role_with_auth($extClient, $out['roles'] ?? []);
-            $out['disciplines'] = $extClient->disciplines();
+            $out['disciplines'] = $extClient->calendarDisciplines();
         }
         $out['dir'] = ['ok' => !empty($res['dir']['ok']), 'msg' => $res['dir']['msg'] ?? ''];
         sfa_json($out);
@@ -137,66 +125,96 @@ switch ($action) {
         $to     = $_POST['sfa_to']   ?? '';
         $from   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) ? date('d/m/Y', strtotime($from)) : $from;
         $to     = preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)   ? date('d/m/Y', strtotime($to))   : $to;
-        // Extranet discipline code (search[Discipline]): the extranet shows nothing at all when a
-        // search matches too many events, the filter keeps a search below that limit.
-        $disc   = $_POST['sfa_disc'] ?? 'all';
-        $disc   = preg_match('/^[A-Za-z0-9]{1,5}$/', $disc) ? $disc : 'all';
-        $res    = $client->listEvents($from, $to, $disc);
+        // A value of the calendar's own discipline list (« S|all », « C|12 CONNUES + 12 INCONNUES »):
+        // free text, only sent back to the extranet form.
+        $disc   = (string) ($_POST['sfa_disc'] ?? 'all');
+        if ($disc === '' || mb_strlen($disc) > 120 || preg_match('/[\x00-\x1F]/', $disc)) {
+            $disc = 'all';
+        }
+        $res = $client->calendar($from, $to, $disc);
         if (!empty($res['ok'])) {
+            sfa_events_save_list($res['events']);
             $res['events'] = ExtranetClient::groupPara($res['events']);   // fusionne les lignes Valide+Para
         }
         sfa_json($res);
         break;
 
     case 'event':
-        $client = sfa_client('ext');
-        $res    = $client->event($_POST['sfa_id'] ?? '');
-        if (!$res['ok']) {
-            sfa_json($res);
+        // The event as the last search kept it: nothing the page sends is trusted for it.
+        $id  = preg_replace('/\D/', '', (string) ($_POST['sfa_id'] ?? ''));
+        $row = $id !== '' ? sfa_event_get((int) $id) : null;
+        if (!$row) {
+            sfa_json(['ok' => false, 'msg' => 'Cette épreuve n\'est plus dans la liste : relancez la recherche.']);
         }
 
-        $d       = $res['details'];
-        $dates   = sfa_dates($d['Date'] ?? '');
-        $fromD   = $dates[0] ?? ['y' => (int) date('Y'), 'm' => (int) date('n'), 'd' => (int) date('j')];
-        $toD     = end($dates) ?: $fromD;
-        $orga    = $d['Structure Organisatrice'] ?? '';
-        $agrement = trim(explode('-', $orga)[0] ?? '');
-        $comdescr = trim(substr($orga, strlen($agrement) + 1), " -\t");
-        $epreuve  = preg_replace('/\D/', '', (string) ($res['id'] ?? ''));
+        // Venue: the « Détail » box of the calendar, unless it was read a short while ago.
+        $venueMsg = '';
+        if (!sfa_event_detail_fresh($row)) {
+            $detail = sfa_client('ext')->eventDetail($id);
+            if (!empty($detail['wait'])) {
+                sfa_json($detail);   // the page waits and asks again
+            }
+            if (!empty($detail['ok'])) {
+                sfa_events_save_detail((int) $id, $detail);
+                $row = sfa_event_get((int) $id);
+            } else {
+                $venueMsg = $detail['msg'] ?? '';
+            }
+        }
 
-        $code     = 'F' . sfa_season($fromD) . $epreuve;
+        $code     = sfa_event_code($id, (string) $row->FeDateFrom);
+        // bytes: the code and the event number are ASCII
         $codeWarn = strlen($code) > 8
-            ? 'Code trop long (' . strlen($code) . ' car., max 8) — n° d\'épreuve à ' . strlen($epreuve) . ' chiffres.'
+            ? 'Code trop long (' . strlen($code) . ' car., max 8) — n° d\'épreuve à ' . strlen($id) . ' chiffres.'
             : '';
 
-        // Tag « Valide + Para » : détecté sur la ligne de liste (transmis par le client),
-        // ou dans les infos de la page épreuve par sécurité.
-        $validePara = !empty($_POST['sfa_vp'])
-            || stripos(implode(' ', $d), 'valide + para') !== false;
+        // Same text as the calendar shows (« Tir 3D - 1 X 24 CIBLES - Duels »): the §3 rows of the
+        // mapping file are matched on it, duels included.
+        $head = $row->FeDiscipline
+            . ($row->FeFormat !== '' ? ' - ' . $row->FeFormat : '')
+            . ($row->FeDuels ? ' - Duels' : '');
+        $validePara = !empty($row->FeValidePara) || !empty($_POST['sfa_vp']);
+        $prop = sfa_propose($head, $head, $row->FeChampionship, $row->FeName, $validePara);
 
-        $prop = sfa_propose(
-            $d['Discipline'] ?? '',
-            $res['details']['Caractéristiques'] ?? ($d['Discipline'] ?? ''),
-            $d['Type d\'épreuve'] ?? '',
-            $d['Nom de l\'épreuve'] ?? '',
-            $validePara
-        );
+        // Already created on this server: said at once, before the form is filled in for nothing.
+        $exists = null;
+        $q = safe_r_sql('SELECT ToId, ToName FROM Tournament WHERE ToCode=' . StrSafe_DB($code));
+        if ($r = safe_fetch($q)) {
+            $exists = ['id' => (int) $r->ToId, 'name' => $r->ToName];
+        }
+
+        $fromD = sfa_ymd($row->FeDateFrom);
+        $toD   = sfa_ymd($row->FeDateTo ?: $row->FeDateFrom);
+        $city  = preg_match(SFA_VENUE_UNKNOWN, trim($row->FeCity)) ? '' : $row->FeCity;
 
         sfa_json([
             'ok'       => true,
-            'details'  => $d,
+            'exists'   => $exists,
             'proposal' => $prop,
+            'event'    => [
+                'discipline'  => $head,
+                'type'        => $row->FeChampionship,
+                'duels'       => (bool) $row->FeDuels,
+                'distinction' => $row->FeDistinction,
+            ],
+            'venue'    => [
+                'text' => sfa_event_venue_text($row),
+                'lat'  => $row->FeLatitude !== null ? (float) $row->FeLatitude : null,
+                'lon'  => $row->FeLongitude !== null ? (float) $row->FeLongitude : null,
+                'msg'  => $venueMsg,
+            ],
             'prefill'  => [
+                'eprv'     => $id,
                 'code'     => $code,
                 'codeWarn' => $codeWarn,
-                'name'     => $d['Nom de l\'épreuve'] ?? '',
-                'commitee' => $agrement,
-                'comdescr' => $comdescr,
-                'where'    => $d['Lieu'] ?? '',
+                'name'     => $row->FeName,
+                'commitee' => $row->FeOrgCode,
+                'comdescr' => $row->FeOrgName,
+                'where'    => $city,
                 'country'  => 'FRA',
                 'fromY'    => $fromD['y'], 'fromM' => $fromD['m'], 'fromD' => $fromD['d'],
                 'toY'      => $toD['y'],   'toM'   => $toD['m'],   'toD'   => $toD['d'],
-                'timezone' => sfa_timezone($fromD),
+                'timezone' => sfa_timezone($row->FeDateFrom ?: date('Y-m-d')),
             ],
         ]);
         break;

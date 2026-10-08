@@ -11,10 +11,13 @@ module dialogue réellement avec les services de la FFTA.)
 
 - 📤 Dépôt des résultats d'une compétition sur l'extranet (fichier TXT), depuis le menu
   **Compétition › Exports**
-- 🆕 Création d'une compétition ianseo **depuis une épreuve de l'extranet** (dates, catégories et
-  paramètres pré-remplis), avec un filtre par discipline pour la recherche des épreuves
-- 🕗 Pour chaque départ : heures d'**ouverture du greffe** et d'**inspection du matériel**
-  (obligatoires, reportées dans le programme de la compétition), **parcours repiqueté ou identique**
+- 🆕 Création d'une compétition ianseo **depuis une épreuve du calendrier de l'extranet** (dates,
+  catégories et paramètres pré-remplis), recherche par période et par discipline (formule comprise),
+  épreuves avec duels signalées, **lieu précis pré-rempli** avec son adresse et ses coordonnées GPS
+  (modifiable)
+- 🕗 Pour chaque départ : heure d'**ouverture du greffe**, **inspection du matériel** pendant
+  l'entraînement ou à son heure, **entraînement** compris dans le départ ou à son heure (reportés dans
+  le programme de la compétition), **parcours repiqueté ou identique**
   (Campagne, 3D, Nature, à partir du 2ᵉ départ) et **temps de tir international** (TAE), reportés
   dans le commentaire du départ
 - 🔐 Réutilise une session extranet déjà ouverte quand elle existe (sinon, formulaire de connexion
@@ -54,10 +57,39 @@ hors ligne…).
 
 ## Base de données
 
-**Aucune table créée.** Le module s'appuie sur des conventions de session pour dialoguer avec
-l'extranet. À la création d'une compétition, il écrit dans les tables de ianseo, comme le ferait la
+À la création d'une compétition, le module écrit dans les tables de ianseo, comme le ferait la
 saisie manuelle : compétition, départs, et lignes du programme (`Scheduler`) pour l'ouverture du
 greffe et l'inspection du matériel.
+
+### Table `FftaEvents` — le calendrier fédéral, pour tous les modules
+
+Créée automatiquement à la première ouverture de la page de création. Une ligne par épreuve du
+calendrier de l'extranet, mise à jour à chaque recherche ; le lieu s'y ajoute quand l'épreuve est
+choisie. Les autres modules peuvent la lire (jamais l'écrire) :
+
+| Colonne | Contenu |
+|---|---|
+| `FeId` | numéro de l'épreuve sur l'extranet (clé) |
+| `FeCode` | code de la compétition ianseo correspondante (`Tournament.ToCode`) : `F` + saison + numéro |
+| `FeSeason`, `FeName`, `FeDateFrom`, `FeDateTo` | saison, nom, dates |
+| `FeOrgCode`, `FeOrgName` | organisateur (agrément, nom) |
+| `FeState` | `A` validée, `R` reportée, `X` annulée |
+| `FeDiscipline`, `FeFormat`, `FeChampionship` | discipline, formule, type d'épreuve tels que l'extranet les écrit |
+| `FeValidePara`, `FeDuels`, `FeDistinction` | Valide + Para, déclarée avec duels, distinction |
+| `FeCity` | ville affichée par le calendrier |
+| `FeVenueName`, `FeVenueStreet`, `FeVenueZip`, `FeVenueCity`, `FeVenueCountry` | lieu précis (vide tant que l'extranet ne le connaît pas) |
+| `FeLatitude`, `FeLongitude` | coordonnées GPS du lieu |
+| `FeVenueOwn` | `1` : l'organisateur a remplacé le lieu proposé à la création |
+| `FeSeenAt`, `FeDetailAt` | dernière lecture dans une recherche, dernière lecture du détail |
+
+**Coordonnées GPS** : elles ne restent que si l'organisateur a gardé, à la création, le lieu proposé
+par l'extranet. S'il l'a modifié, elles sont effacées et ne sont plus jamais réécrites depuis
+l'extranet (`FeVenueOwn = 1`). Quand le lieu n'est pas encore défini sur l'extranet (« INCONNU »,
+« A DEFINIR »), l'adresse affichée par l'extranet est celle de l'organisateur : elle n'est pas
+reprise. Les coordonnées de contact de l'organisateur ne sont jamais enregistrées.
+
+Jointure avec une compétition ianseo : `JOIN FftaEvents ON ToCode = FeCode COLLATE utf8mb4_unicode_ci`
+(la collation se pose du côté de la colonne du module).
 
 ## Accès
 
@@ -82,8 +114,8 @@ désinstallation depuis ianseo : menu **Modules › Synchro FFTA › Mise à jou
 | `UPDATE` | `Tournament` | `create-finish.php:79` | review scope by hand |
 | `UPDATE` | `Tournament` | `create-finish.php:107` | review scope by hand |
 | `UPDATE` | `IdCards` | `create-finish.php:151` | review scope by hand |
-| `INSERT INTO` | `Scheduler` | `create-run.php:58` | — |
-| `INSERT INTO` | `Tournament` | `create-run.php:157` | — |
+| `INSERT INTO` | `Scheduler` | `create-run.php:61` | — |
+| `INSERT INTO` | `Tournament` | `create-run.php:184` | — |
 | `DELETE FROM` | `LookUpEntries` | `licences-sync.php:147` | review scope by hand |
 | `INSERT INTO` | `LookUpEntries` | `licences-sync.php:165` | — |
 | `UPDATE` | `LookUpPaths` | `licences-sync.php:170` | review scope by hand |
@@ -96,6 +128,11 @@ désinstallation depuis ianseo : menu **Modules › Synchro FFTA › Mise à jou
 
 ### Tables owned by this module
 
-None. This module creates no table of its own.
+| Statement | Table | Location | Notes |
+|---|---|---|---|
+| `INSERT INTO` | `FftaEvents` | `lib/events.php:76` | — |
+| `UPDATE` | `FftaEvents` | `lib/events.php:108` | — |
+| `UPDATE` | `FftaEvents` | `lib/events.php:158` | — |
+| `UPDATE` | `FftaEvents` | `lib/events.php:160` | — |
 
 <!-- END DATABASE WRITES -->
