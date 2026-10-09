@@ -21,6 +21,7 @@ require_once __DIR__ . '/competition.php';
 require_once __DIR__ . '/pricing.php';
 require_once __DIR__ . '/payment.php';
 require_once __DIR__ . '/ui.php';
+require_once __DIR__ . '/ffta-event.php';   // itinerary links
 
 /** Available templates: key => readable label. */
 function bk_mandate_templates()
@@ -287,6 +288,7 @@ function bk_mandate_data($tourId)
         'events'      => $events,
         'faces'       => $faces,
         'program'     => bk_mandate_program($tourId),
+        'itinerary'   => bk_itinerary_links($tourId),
         'pay'         => bk_payinfo_get($cfg),
         'fee'         => (float) $cfg->BcFee,
         'feeAdvanced' => bk_pricing_is_advanced($pricing),
@@ -755,6 +757,7 @@ body{ margin:0; background:#e9edf2; color:#20263d;
 .mn-title h1{ margin:0; font-size:26px; color:var(--dark); line-height:1.15; }
 .mn-title .mn-sub{ margin:6px 0 0; color:#4c4e50; font-size:14px; }
 .mn-title .mn-org{ margin:2px 0 0; color:#7d8183; font-size:13px; }
+.mn-itin a{ color:inherit; font-weight:600; }
 
 /* Sections */
 h2{ font-size:16px; margin:22px 0 8px; color:var(--dark);
@@ -846,6 +849,14 @@ body.tpl-ligne .mn-title h1{ font-weight:600; letter-spacing:.01em; }
     if ($t->ToComDescr) $org[] = bk_t('OrganisedBy', $t->ToComDescr);
     if ($data['region']) $org[] = $data['region'];
     if ($org) $out .= '<p class="mn-org">' . bk_e(implode(' — ', $org)) . '</p>';
+    if (!empty($data['itinerary'])) {
+        $links = array();
+        foreach ($data['itinerary'] as $label => $url) {
+            $tab = strpos($url, 'https://') === 0 ? ' target="_blank" rel="noopener"' : '';   // intent:// stays in the page
+            $links[] = '<a href="' . bk_e($url) . '"' . $tab . '>' . bk_e($label) . '</a>';
+        }
+        $out .= '<p class="mn-org mn-itin">' . bk_e(bk_t('Itinerary')) . ' ' . implode(' · ', $links) . '</p>';
+    }
     $out .= '</div>'
         . ((!empty($m['logos']['R']) && intval($t->HasR) > 0) ? '<img src="' . bk_e($logo('R', 400)) . '" alt="">' : '')
         . '</div>' . $block('intro');

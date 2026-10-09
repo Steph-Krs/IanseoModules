@@ -24,6 +24,7 @@ require_once dirname(__DIR__) . '/lib/ui.php';       // bk_e
 require_once dirname(__DIR__, 2) . '/shop/lib/lang.php';   // shp_t: name of the points of sale
 require_once dirname(__DIR__) . '/lib/waitlist.php'; // waiting list
 require_once dirname(__DIR__) . '/lib/sessionrules.php'; // opening of each departure
+require_once dirname(__DIR__) . '/lib/ffta-event.php';    // what the FFTA extranet announces
 
 bk_schema();
 
@@ -470,6 +471,9 @@ if ($openConf) {
         . '<b>' . bk_e(bk_t('AcConfTitle', count($openConf))) . '</b> ' . bk_e(bk_t('AcConfText'))
         . ' <a href="' . bk_e($ADMIN . 'reimport.php') . '">' . bk_e(bk_t('AcConfLink')) . '</a></div>';
 }
+
+// Matches announced on the FFTA extranet (SYNCHRO_FFTA) against the events set up here.
+$out .= bk_ffta_warning_html($TOUR);
 
 // Oversized departures (BK_BIG_SESSION_PLACES): slow for the whole server, whatever the level.
 $bigSes = array();

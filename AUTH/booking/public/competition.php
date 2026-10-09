@@ -18,6 +18,7 @@ require_once dirname(__DIR__) . '/lib/pricing.php';
 require_once dirname(__DIR__) . '/lib/mandate.php';   // bk_mandate_visible
 require_once dirname(__DIR__) . '/lib/payment.php';
 require_once dirname(__DIR__) . '/lib/sessionrules.php';
+require_once dirname(__DIR__) . '/lib/ffta-event.php';   // itinerary links
 
 $archer = bk_require_archer();
 
@@ -77,6 +78,7 @@ echo '<div class="bk-detail"><div class="bk-detail-head">'
     . '<span>' . bk_e(bk_date_range($c->ToWhenFrom, $c->ToWhenTo)) . '</span>'
     . ($c->ToWhere ? '<span>' . bk_e($c->ToWhere) . '</span>' : '') . '</p>'
     . ($c->ToComDescr ? '<p class="bk-org">' . bk_e(bk_t('OrganisedBy', $c->ToComDescr)) . '</p>' : '')
+    . bk_itinerary_html($tourId)
     . '</div></div>';
 
 if ($blocked) {

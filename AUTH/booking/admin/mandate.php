@@ -134,7 +134,8 @@ $select = function ($name, $list, $current) {
 $out = '<div id="bkadm"><h1>' . bk_e(bk_t('MnuMandate')) . '</h1>'
     . '<p style="font-size:13px"><a href="' . $settingsUrl . '">← ' . bk_e(bk_t('Brand')) . '</a></p>'
     . ($msg ? '<div class="bk-msg bk-ok">' . bk_e($msg) . '</div>' : '')
-    . ($err ? '<div class="bk-msg bk-err">' . bk_e($err) . '</div>' : '');
+    . ($err ? '<div class="bk-msg bk-err">' . bk_e($err) . '</div>' : '')
+    . bk_ffta_warning_html($TOUR);
 
 // Visibility to the archers.
 $out .= '<div class="bk-sec bk-vis ' . ($mandateVisible ? 'on' : 'off') . '"><h2 style="margin-bottom:6px">' . bk_e(bk_t('AmVisTitle')) . '</h2>';

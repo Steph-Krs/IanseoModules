@@ -16,6 +16,8 @@ in a few clicks. Designed for ianseo servers reachable online.
   sign-in.
 - 📅 **Calendar** of the competitions open for registration: filters (name, place, dates,
   type) and places left per session.
+- 🗺️ **Map** of the competitions and **directions** to the venue (Google Maps, Waze, Apple Maps);
+  with the SYNCHRO_FFTA module, the exact venue read on the FFTA extranet.
 - 📝 **Registration in a few clicks**: name, club and date of birth taken from the licence
   file; bows, categories, target faces and sessions offered from the configuration of the
   competition.

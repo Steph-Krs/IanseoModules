@@ -154,7 +154,7 @@ See the [general README](../README.md) for the common principle.
 | `UPDATE` | `ExtraData` | `anonymise-lib.php:383` | — |
 | `UPDATE` | `TournamentInvolved` | `anonymise-lib.php:388` | review scope by hand |
 | `UPDATE` | `Entries` | `booking/lib/adopt.php:224` | review scope by hand |
-| `UPDATE` | `IdCards` | `booking/lib/mandate.php:688` | review scope by hand |
+| `UPDATE` | `IdCards` | `booking/lib/mandate.php:690` | review scope by hand |
 | `INSERT INTO` | `Countries` | `booking/lib/registration.php:312` | — |
 | `UPDATE` | `Countries` | `booking/lib/registration.php:316` | review scope by hand |
 | `UPDATE` | `Entries` | `booking/lib/registration.php:373` | review scope by hand |
@@ -216,9 +216,9 @@ See the [general README](../README.md) for the common principle.
 | `DELETE FROM` | `BookingArchers` | `anonymise-lib.php:398` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:403` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:404` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:127` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:131` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:214` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:128` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:132` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:215` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/admin/mandate.php:40` | — |
 | `INSERT INTO` | `BookingReimportConflicts` | `booking/lib/adopt.php:105` | — |
 | `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:173` | — |
@@ -276,7 +276,7 @@ See the [general README](../README.md) for the common principle.
 | `UPDATE` | `BookingArchers` | `booking/lib/ffta.php:116` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:91` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:95` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/mandate.php:168` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/mandate.php:169` | — |
 | `INSERT INTO` | `BookingPayments` | `booking/lib/payment.php:187` | — |
 | `UPDATE` | `BookingPayments` | `booking/lib/payment.php:322` | — |
 | `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/payment.php:594` | — |

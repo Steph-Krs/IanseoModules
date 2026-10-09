@@ -248,6 +248,16 @@ function bk_mandate_pdf_draw($pdf, $data, $m, $ctx)
             $tpl === 'bandeau' ? $left + 5 : $left);
     }
     if ($tpl === 'bandeau') $pdf->SetY($pdf->GetY() + 4);
+    // Itinerary links (navigation applications), clickable in the PDF.
+    if (!empty($data['itinerary'])) {
+        $links = array();
+        foreach (bk_itinerary_links($tourId, true) as $label => $url) {   // web addresses: read on any device
+            $links[] = '<a href="' . $esc($url) . '" style="color:' . $hex($dark) . ';text-decoration:none"><b>' . $esc($label) . '</b></a>';
+        }
+        $pdf->SetFont($pdf->FontStd, '', 9.5);
+        $pdf->writeHTMLCell($W, 0, $left, $pdf->GetY() + 1, '<span style="color:#7d8183">' . $esc(bk_t('Itinerary')) . '</span> '
+            . implode(' · ', $links), 0, 1, false, true, $align, true);
+    }
     $pdf->SetDefaultColor();
     $pdf->Ln(1);
     $block('intro');

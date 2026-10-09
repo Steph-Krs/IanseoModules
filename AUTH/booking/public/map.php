@@ -9,6 +9,7 @@ require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
 require_once dirname(__DIR__) . '/lib/registration.php';
 require_once dirname(__DIR__) . '/lib/geo.php';
+require_once dirname(__DIR__) . '/lib/ffta-event.php';   // venue read on the FFTA extranet
 
 $archer = bk_require_archer();
 
@@ -28,9 +29,9 @@ $w = array("BcOpen = 1", "ToWhenTo >= " . StrSafe_DB($from), "ToWhenFrom <= " . 
 if ($disc === 'para') $w[] = "ToTypeSubRule LIKE '%Para%'";
 elseif ($disc !== '') { $types = bk_disc_types($disc); $w[] = $types ? "ToType IN (" . implode(',', array_map('intval', $types)) . ")" : "1=0"; }
 
-$rs = safe_r_sql("SELECT ToId, ToName, ToVenue, ToWhenFrom, ToWhenTo, ToType,
-            ToTypeName, ToTypeSubRule, BcLat, BcLng, BcGeoSrc
-        FROM BookingCompetitions INNER JOIN Tournament ON ToId = BcTournament
+$rs = safe_r_sql("SELECT ToId, ToName, ToVenue, ToWhere, ToWhenFrom, ToWhenTo, ToType,
+            ToTypeName, ToTypeSubRule, BcLat, BcLng, BcGeoSrc, " . bk_ffta_cols_sql() . "
+        FROM BookingCompetitions INNER JOIN Tournament ON ToId = BcTournament" . bk_ffta_join_sql() . "
         WHERE " . implode(' AND ', $w) . " ORDER BY ToWhenFrom");
 $comps = array();
 while ($r = safe_fetch($rs)) $comps[] = $r;
@@ -38,6 +39,8 @@ while ($r = safe_fetch($rs)) $comps[] = $r;
 // Geocoding on demand, capped per page load (one network call per new town).
 $cap = 15; $pending = 0;
 foreach ($comps as $c) {
+    // The venue itself, read on the FFTA extranet, while it is still the competition's.
+    if ($p = bk_ffta_point($c)) { $c->BcLat = $p['lat']; $c->BcLng = $p['lng']; continue; }
     $venue = trim((string) $c->ToVenue);
     if ($venue === '') continue;
     if ($c->BcLat !== null && $c->BcLng !== null && (string) $c->BcGeoSrc === $venue) continue;
