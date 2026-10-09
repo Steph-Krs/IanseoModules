@@ -572,7 +572,10 @@ function bk_comp_set_level($tourId, $level)
             bk_comp_restore($tourId, json_decode($cur->BcAdvancedBackup, true));
             safe_w_sql("UPDATE BookingCompetitions SET BcAdvancedBackup = NULL WHERE BcTournament = $tourId");
         }
-        safe_w_sql("UPDATE BookingCompetitions SET BcPublishLevel = 3 WHERE BcTournament = $tourId");
+        // Level 3 is published, like level 2: BcOpen used to be left at the 0 of level 1 until the
+        // form was saved once, so a competition without dates stayed closed although the page
+        // says "without a date, registration is open from now on".
+        safe_w_sql("UPDATE BookingCompetitions SET BcPublishLevel = 3, BcOpen = 1 WHERE BcTournament = $tourId");
     } else {
         safe_w_sql("UPDATE BookingCompetitions SET BcOpen = 0, BcPublishLevel = 1 WHERE BcTournament = $tourId");
     }

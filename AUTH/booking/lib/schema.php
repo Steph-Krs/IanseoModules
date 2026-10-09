@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 29);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 30);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -584,6 +584,22 @@ function bk_schema()
         BdUpdated    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (BdTournament, BdSession)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    // v30 — a first build of v29 created the columns as Bsr… ("Bs" is a core prefix): renamed
+    // in place, rows kept. CREATE TABLE IF NOT EXISTS above leaves such a table untouched.
+    $old = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BookingSessionRules' AND COLUMN_NAME = 'BsrTournament'"));
+    if ($old && intval($old->n) > 0) {
+        safe_w_sql("ALTER TABLE BookingSessionRules
+            CHANGE BsrTournament BdTournament INT UNSIGNED NOT NULL,
+            CHANGE BsrSession    BdSession    TINYINT UNSIGNED NOT NULL,
+            CHANGE BsrState      BdState      TINYINT NOT NULL DEFAULT 1,
+            CHANGE BsrOpenFrom   BdOpenFrom   DATETIME NULL,
+            CHANGE BsrOpenTo     BdOpenTo     DATETIME NULL,
+            CHANGE BsrUpdated    BdUpdated    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+    }
+    // v30 — level 3 left BcOpen at 0 until its form was first saved (bk_comp_set_level). Level 3
+    // always publishes, so this state only comes from that bug: repaired, idempotent.
+    safe_w_sql("UPDATE BookingCompetitions SET BcOpen = 1 WHERE BcPublishLevel = 3 AND BcOpen = 0");
     // v29 — at most one registration per archer on the competition, whatever the departure.
     bk_colonne('BookingCompetitions', 'BcSingleReg', "TINYINT NOT NULL DEFAULT 0 AFTER BcWaitlist");
 

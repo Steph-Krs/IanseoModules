@@ -275,8 +275,8 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:565` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:569` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:573` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:575` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:577` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:578` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:580` | — |
 | `UPDATE` | `BookingArchers` | `booking/lib/ffta.php:116` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:91` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:95` | — |
@@ -298,6 +298,8 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `BookingTargetCaps` | `booking/lib/schema.php:314` | — |
 | `INSERT IGNORE INTO` | `BookingSurveyVoters` | `booking/lib/schema.php:459` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/schema.php:548` | — |
+| `ALTER TABLE` | `BookingSessionRules` | `booking/lib/schema.php:592` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/schema.php:602` | — |
 | `DELETE FROM` | `BookingSessionRules` | `booking/lib/sessionrules.php:132` | — |
 | `INSERT INTO` | `BookingSessionRules` | `booking/lib/sessionrules.php:135` | — |
 | `DELETE FROM` | `BookingSurveys` | `booking/lib/survey.php:185` | — |
