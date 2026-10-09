@@ -131,6 +131,10 @@ the site.
 - Account management and administration: **server administrator**.
 - Each organiser: only their own competitions (and those shared with them).
 - Each licensee: their own registration space (sign-in with their federation account).
+- With the SYNCHRO_FFTA module, the administrator can keep the creation of competitions to the
+  FFTA extranet (menu **Creation from the FFTA extranet**): « New » is then hidden and leads to
+  SYNCHRO_FFTA for everyone but them, and an import only accepts a competition already on the
+  server.
 
 ## Installation, update, uninstallation
 
@@ -349,17 +353,17 @@ See the [general README](../README.md) for the common principle.
 | `DELETE FROM` | `AuthSessions` | `lib.php:859` | — |
 | `DELETE FROM` | `AuthShare` | `lib.php:943` | — |
 | `DELETE FROM` | `AuthShareClub` | `lib.php:944` | — |
-| `INSERT INTO` | `AuthClaim` | `lib.php:979` | — |
-| `INSERT INTO` | `AuthShare` | `lib.php:1145` | — |
-| `INSERT INTO` | `AuthShare` | `lib.php:1232` | — |
-| `DELETE FROM` | `AuthClaim` | `lib.php:1238` | — |
-| `DELETE FROM` | `AuthClaim` | `lib.php:1242` | — |
-| `UPDATE` | `AuthSessions` | `lib.php:1303` | — |
-| `UPDATE` | `AuthSessions` | `lib.php:1312` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:1426` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:1542` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:2354` | — |
-| `INSERT INTO` | `AuthUsers` | `lib.php:2360` | — |
+| `INSERT INTO` | `AuthClaim` | `lib.php:989` | — |
+| `INSERT INTO` | `AuthShare` | `lib.php:1155` | — |
+| `INSERT INTO` | `AuthShare` | `lib.php:1295` | — |
+| `DELETE FROM` | `AuthClaim` | `lib.php:1301` | — |
+| `DELETE FROM` | `AuthClaim` | `lib.php:1305` | — |
+| `UPDATE` | `AuthSessions` | `lib.php:1366` | — |
+| `UPDATE` | `AuthSessions` | `lib.php:1375` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:1489` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:1605` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:2418` | — |
+| `INSERT INTO` | `AuthUsers` | `lib.php:2424` | — |
 | `UPDATE` | `BookingArchers` | `login.php:92` | — |
 | `INSERT INTO` | `AuthClubLogos` | `logos-lib.php:158` | — |
 | `UPDATE` | `AuthClubLogos` | `logos-lib.php:166` | — |

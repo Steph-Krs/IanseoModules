@@ -39,6 +39,18 @@ if ($_aut_admin) {
     $ret['MODS']['AUTH'][] = aut_t('MenuUpdate') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/update.php';
 }
 
+/* ---- Competitions created only through SYNCHRO_FFTA (option, lib.php): the core's "New" is
+       hidden for everyone but the administrator (the guard of lib.php refuses it anyway).
+       SYNCHRO_FFTA's own entry, placed before "New" when there is one, then ends the menu. ---- */
+if (!empty($ret['COMP']) && is_array($ret['COMP']) && aut_sfa_create_only() && !$_aut_admin) {
+    $ret['COMP'] = array_values(array_filter($ret['COMP'], function ($item) {
+        return !is_string($item) || strpos($item, 'Tournament/index.php?New=') === false;
+    }));
+}
+if ($_aut_admin && aut_sfa_present()) {
+    $ret['MODS']['AUTH'][] = aut_t('MenuSfaOnly') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/sfa.php';
+}
+
 /* ---- User bar (once per page) ---- */
 if (!empty($GLOBALS['_aut_bar_done'])) return;
 $GLOBALS['_aut_bar_done'] = true;

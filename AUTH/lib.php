@@ -974,6 +974,16 @@ function aut_code_reason($state, $code, $isImport = false) {
  * competition is created. $reason receives the message on refusal.
  */
 function aut_can_use_code($code, $role, $scope, $user, $isImport, &$reason = '') {
+    // Competitions created only through SYNCHRO_FFTA: an import may bring back a competition
+    // already on the server (offline round trip), never a new one. Reached for non-administrators
+    // only (possibleFeature answers before for them).
+    if ($isImport && aut_sfa_create_only() && !aut_sfa_is_admin()) {
+        $have = safe_fetch(safe_r_sql("SELECT ToId FROM Tournament WHERE ToCode = " . StrSafe_DB(trim($code))));
+        if (!$have) {
+            $reason = aut_t('SfaImportNew');
+            return false;
+        }
+    }
     $state = aut_code_status($code, $role, $scope);
     if ($state == 'free') {
         safe_w_sql("INSERT INTO AuthClaim (CmCode, CmRole, CmScope, CmUser) VALUES ("
@@ -1149,6 +1159,59 @@ function aut_adopt_current($u, $role, $scope) {
             AsOwnerUser =IF(AsOwnerRole='', VALUES(AsOwnerUser),  AsOwnerUser),
             AsOwnerRole =IF(AsOwnerRole='', VALUES(AsOwnerRole),  AsOwnerRole)");
     aut_log('COMP_ADOPT', $u->AuUsername . ' ' . $t->ToCode);
+}
+
+/* ------------------------------------------------------------------ */
+/* Competitions created only through SYNCHRO_FFTA (option)              */
+/*                                                                      */
+/* SYNCHRO_FFTA creates a competition from the FFTA extranet calendar   */
+/* and knows nothing of this option: AUTH alone hides and refuses the   */
+/* core's "New", for everyone but the administrator. Setting kept in    */
+/* the core's Parameters table (SfaCreateOnly = '1' / '0').             */
+/* ------------------------------------------------------------------ */
+
+/** Is SYNCHRO_FFTA installed? Files only, never a require: a module never loads another. */
+function aut_sfa_present() {
+    $dir = dirname(__DIR__) . '/SYNCHRO_FFTA';
+    return is_file($dir . '/module.json') && is_file($dir . '/create.php');
+}
+
+/**
+ * Is the option on? Read with an empty default: GetParameter() WRITES a non-empty default, and
+ * this is read from menu.php, which writes nothing. Off by itself once SYNCHRO_FFTA is gone, so
+ * that nobody is ever left without a way to create a competition.
+ */
+function aut_sfa_create_only() {
+    return aut_sfa_present() && GetParameter('SfaCreateOnly', false, '') === '1';
+}
+
+/**
+ * May this user keep the core's "New" and change the option? The rule of the update pages
+ * (upd_admin_guard): AclRoot, plus the server administrator view when an account is signed in.
+ */
+function aut_sfa_is_admin() {
+    if (!empty($_SESSION['AUTH_User'])) return !empty($_SESSION['AUTH_ROOT']);
+    return hasFullACL(AclRoot, '', AclReadWrite);
+}
+
+/** Address of SYNCHRO_FFTA's creation page. */
+function aut_sfa_create_url() {
+    global $CFG;
+    return $CFG->ROOT_DIR . 'Modules/Custom/SYNCHRO_FFTA/create.php';
+}
+
+/**
+ * The core's "New" (Tournament/index.php?New=, display AND save) leads to SYNCHRO_FFTA's creation
+ * page, before the page's code runs. SYNCHRO_FFTA's own creation (create-run.php) does not go
+ * through Tournament/index.php and is not affected.
+ */
+function aut_sfa_guard() {
+    if (strcasecmp(aut_script_rel(), '/Tournament/index.php') !== 0 || !isset($_REQUEST['New'])) return;
+    if (!aut_sfa_create_only() || aut_sfa_is_admin()) return;
+    aut_log('SFA_ONLY', ($_SESSION['AUTH_User'] ?? '') . ' ' . (($_REQUEST['Command'] ?? '') === 'SAVE' ? 'save' : 'new'));
+    aut_flash_set(aut_t('SfaRedirect'));
+    CD_redirect(aut_sfa_create_url());
+    die();
 }
 
 /**
@@ -1718,6 +1781,7 @@ function aut_request_bootstrap() {
             }
             aut_session_apply($u, $role, $scope);
             aut_imp_apply_org($u);               // "from another account" view (admin, read only)
+            aut_sfa_guard();                     // option: competitions created only through SYNCHRO_FFTA
             aut_guard_tournament_save($role);    // anti-overwrite barrier (the core's one can be bypassed)
             // server pages (update / repair): administrator only
             if (empty($_SESSION['AUTH_ROOT']) && aut_is_admin_only_script()) {
