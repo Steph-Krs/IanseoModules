@@ -47,7 +47,8 @@ Everything is in the **Modules › Online registration** menu, with the competit
   are full, with dates of its own when needed. Option **one registration per archer**, whatever
   the session.
 - 📄 **Invitation** that meets the rules, filled from the competition: competition format (with
-  or without matches), events, target faces and the **full ianseo programme**; on screen and as PDF.
+  or without matches), events, target faces, the **full ianseo programme** and the **competition
+  officials**; on screen and as PDF.
 - 🏹 **Field assignment constraints**: graphical editor of what each target allows, session by
   session. Each target is a **vertical box** on a shared distance axis: the minimum, maximum and
   default distance are set by dragging the handles. The allowed target faces are dragged from

@@ -72,6 +72,7 @@ function bk_mandate_auto_sections()
     return array(
         'sessions'   => bk_t('MnSessions'),
         'program'    => bk_t('MnProgram'),
+        'staff'      => bk_t('MnStaff'),
         // Key kept from when the section listed bows and classes: the organisers' choice stays.
         'categories' => bk_t('MnFormat'),
         'fees'       => bk_t('MnFees'),
@@ -289,6 +290,7 @@ function bk_mandate_data($tourId)
         'faces'       => $faces,
         'program'     => bk_mandate_program($tourId),
         'itinerary'   => bk_itinerary_links($tourId),
+        'staff'       => bk_mandate_staff($tourId),
         'pay'         => bk_payinfo_get($cfg),
         'fee'         => (float) $cfg->BcFee,
         'feeAdvanced' => bk_pricing_is_advanced($pricing),
@@ -296,6 +298,30 @@ function bk_mandate_data($tourId)
         'deadline'    => $cfg->BcOpenTo ?? null,
         'shop'        => bk_mandate_shop($tourId),
     );
+}
+
+/**
+ * Field staff of the competition (Competition › Staff on field): [['role', 'names' => [...]]], in
+ * the order and with the role names of the core's own printout (Tournament/PrnStaffField.php):
+ * judges, director of shooting, jury, then the organisation.
+ */
+function bk_mandate_staff($tourId)
+{
+    $rs = safe_r_sql("SELECT ItDescription, TiName, TiGivenName
+        FROM TournamentInvolved
+        INNER JOIN InvolvedType ON ItId = TiType
+        WHERE TiTournament = " . intval($tourId) . "
+        ORDER BY ItJudge = 0, ItJudge, ItDoS = 0, ItDoS, ItJury = 0, ItJury, ItOC = 0, ItOC, TiName, TiGivenName");
+    $out = array();
+    while ($r = safe_fetch($rs)) {
+        $role = get_text($r->ItDescription, 'Tournament');
+        $name = trim(mb_strtoupper((string) $r->TiName, 'UTF-8') . ' ' . $r->TiGivenName);
+        if ($name === '') continue;
+        $n = count($out);
+        if ($n && $out[$n - 1]['role'] === $role) $out[$n - 1]['names'][] = $name;
+        else $out[] = array('role' => $role, 'names' => array($name));
+    }
+    return $out;
 }
 
 /**
@@ -887,6 +913,15 @@ body.tpl-ligne .mn-title h1{ font-weight:600; letter-spacing:.01em; }
     // Full programme, as the core lays it out (bk_mandate_program, already filtered).
     if (!empty($m['show']['program']) && $data['program'] !== '') {
         $out .= '<h2>' . bk_e(bk_t('MnProgram')) . '</h2><div class="mn-prog">' . $data['program'] . '</div>';
+    }
+
+    // Field staff: officials and people in charge, one line per role.
+    if (!empty($m['show']['staff']) && $data['staff']) {
+        $out .= '<h2>' . bk_e(bk_t('MnStaff')) . '</h2><table class="mn-meta">';
+        foreach ($data['staff'] as $st) {
+            $out .= '<tr><th>' . bk_e($st['role']) . '</th><td>' . bk_e(implode(', ', $st['names'])) . '</td></tr>';
+        }
+        $out .= '</table>';
     }
 
     if (!empty($m['show']['sessions']) && $data['sessions']) {

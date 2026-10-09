@@ -466,6 +466,7 @@ $lang['MnSecContact']  = 'Contact';
 $lang['MnSecMisc']     = 'Informations complémentaires';
 $lang['MnSessions']    = 'Départs et horaires';
 $lang['MnProgram']         = 'Programme';
+$lang['MnStaff']           = 'Équipe de terrain';
 $lang['MnFormat']          = 'Forme du concours';
 $lang['MnWithDuels']       = 'avec duels';
 $lang['MnNoDuel']          = 'sans duel';

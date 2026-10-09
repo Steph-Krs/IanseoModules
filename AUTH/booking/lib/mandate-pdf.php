@@ -297,6 +297,14 @@ function bk_mandate_pdf_draw($pdf, $data, $m, $ctx)
         $pdf->SetDefaultColor();
     }
 
+    // Field staff, as on the screen version.
+    if (!empty($m['show']['staff']) && $data['staff']) {
+        $h2(bk_t('MnStaff'));
+        foreach ($data['staff'] as $st) {
+            $bullet('<b>' . $esc($st['role']) . '</b> — ' . $esc(implode(', ', $st['names'])));
+        }
+    }
+
     if (!empty($m['show']['sessions']) && $data['sessions']) {
         $h2(bk_t('MnSessions'));
         foreach ($data['sessions'] as $s) {

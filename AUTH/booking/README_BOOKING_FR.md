@@ -52,7 +52,8 @@ Tout se trouve dans le menu **Modules › Inscriptions en ligne**, compétition 
   précédents sont complets, avec au besoin des dates propres à chaque départ. Option **une seule
   inscription par archer**, tous départs confondus.
 - 📄 **Invitation** conforme au règlement, remplie depuis la compétition : forme du concours
-  (avec ou sans duels), épreuves, blasons et **programme complet** de ianseo ; à l'écran et en PDF.
+  (avec ou sans duels), épreuves, blasons, **programme complet** et **équipe de terrain** de ianseo ;
+  à l'écran et en PDF.
 - 🏹 **Contraintes d'affectation du terrain** : éditeur graphique des possibilités de chaque cible, départ par
   départ. Chaque cible est une **boîte verticale** sur un axe de distances partagé : on y règle
   la distance mini, maxi et par défaut en glissant les poignées. Les blasons autorisés se
