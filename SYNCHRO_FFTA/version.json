@@ -1,7 +1,7 @@
 {
-    "version": "0.10.2",
-    "date": "2026-10-09",
-    "notes": "Creation d'une competition Beursault : le type Beursault est de nouveau propose et selectionne (seule la sous-regle l'etait). La liste des types lue dans les regles francaises de ianseo perdait le Beursault depuis qu'un type y est mis en commentaire au milieu de la liste. Si un type propose n'existe pas sur le serveur, la page le dit au lieu de laisser le champ vide. Table FftaEvents : FeDuels peut desormais rester vide (NULL) quand l'extranet n'a rien dit des duels, au lieu de valoir 0 et de se lire comme 'sans duel' ; 0 n'est ecrit que sur un 'Duel : Non' du detail de l'epreuve. Migration automatique a l'ouverture de la page de creation.",
+    "version": "0.10.3",
+    "date": "2026-10-10",
+    "notes": "Menu Competition : quand l entree Nouveau de ianseo est masquee (par exemple par l option du module AUTH qui reserve la creation a l extranet), Creer une competition depuis l extranet FFTA prend sa place en tete du sous-menu au lieu de finir la liste. Precedemment (0.10.2) : Creation d'une competition Beursault : le type Beursault est de nouveau propose et selectionne (seule la sous-regle l'etait). La liste des types lue dans les regles francaises de ianseo perdait le Beursault depuis qu'un type y est mis en commentaire au milieu de la liste. Si un type propose n'existe pas sur le serveur, la page le dit au lieu de laisser le champ vide. Table FftaEvents : FeDuels peut desormais rester vide (NULL) quand l'extranet n'a rien dit des duels, au lieu de valoir 0 et de se lire comme 'sans duel' ; 0 n'est ecrit que sur un 'Duel : Non' du detail de l'epreuve. Migration automatique a l'ouverture de la page de creation.",
     "tables": [
         "FftaEvents"
     ],

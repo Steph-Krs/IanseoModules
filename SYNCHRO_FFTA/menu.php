@@ -33,8 +33,25 @@ if (empty($on)) {
                 $sfaNew[$k] = $v;
             }
         }
+        // No « Nouveau » (hidden, e.g. by AUTH when creation goes through this module only): the
+        // entry takes its place, first of the sub-menu, just after the menu title.
         if (!$sfaDone) {
-            $sfaNew[] = $sfaEntry;
+            $sfaNew = [];
+            foreach (($ret['COMP'] ?? []) as $k => $v) {
+                $isTitle = is_int($k) && is_string($v) && strpos($v, '|') === false && $v !== MENU_DIVIDER;
+                if (!$sfaDone && !$isTitle) {
+                    $sfaNew[] = $sfaEntry;
+                    $sfaDone = true;
+                }
+                if (is_int($k)) {
+                    $sfaNew[] = $v;
+                } else {
+                    $sfaNew[$k] = $v;
+                }
+            }
+            if (!$sfaDone) {
+                $sfaNew[] = $sfaEntry;
+            }
         }
         $ret['COMP'] = $sfaNew;
     }
