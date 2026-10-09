@@ -10,7 +10,7 @@
  * MySQL 8 may answer error 1267 on a server where the two collations differ.
  */
 
-if (!defined('SFA_SCHEMA_VERSION')) define('SFA_SCHEMA_VERSION', 1);
+if (!defined('SFA_SCHEMA_VERSION')) define('SFA_SCHEMA_VERSION', 2);
 
 /** Collation suffix for a column of this module joined to an ianseo one. */
 function sfa_coll(): string
@@ -60,6 +60,8 @@ function sfa_schema(): void
     // venue columns come from the event's « Détail » box. FeLatitude / FeLongitude stay only while
     // the organiser keeps the venue the extranet gives: FeVenueOwn = 1 once the organiser changed
     // it at creation, and the extranet coordinates are then never written again.
+    // FeDuels: 1 with duels, 0 without (said by the « Détail » box), NULL when the extranet has
+    // not said (the list only marks the events WITH duels) — never read as « without ».
     safe_w_sql("CREATE TABLE IF NOT EXISTS FftaEvents (
         FeId           INT UNSIGNED NOT NULL,
         FeCode         VARCHAR(8) NOT NULL DEFAULT '',
@@ -74,7 +76,7 @@ function sfa_schema(): void
         FeFormat       VARCHAR(150) NOT NULL DEFAULT '',
         FeChampionship VARCHAR(150) NOT NULL DEFAULT '',
         FeValidePara   TINYINT NOT NULL DEFAULT 0,
-        FeDuels        TINYINT NOT NULL DEFAULT 0,
+        FeDuels        TINYINT NULL DEFAULT NULL,
         FeDistinction  VARCHAR(50) NOT NULL DEFAULT '',
         FeCity         VARCHAR(150) NOT NULL DEFAULT '',
         FeVenueName    VARCHAR(255) NOT NULL DEFAULT '',
@@ -91,6 +93,17 @@ function sfa_schema(): void
         KEY FeCode (FeCode),
         KEY FeDateFrom (FeDateFrom)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // v2 — FeDuels may stay unknown (NULL). Done once: only while the column still refuses NULL,
+    // since the body of this function runs again at every new session. The 0 of an event whose
+    // « Détail » box was never read only came from the old default: it becomes unknown.
+    $rs = safe_r_sql("SELECT IS_NULLABLE FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'FftaEvents' AND COLUMN_NAME = 'FeDuels'");
+    $r = $rs ? safe_fetch($rs) : null;
+    if ($r && $r->IS_NULLABLE === 'NO') {
+        safe_w_sql("ALTER TABLE FftaEvents MODIFY COLUMN FeDuels TINYINT NULL DEFAULT NULL");
+        safe_w_sql("UPDATE FftaEvents SET FeDuels = NULL WHERE FeDuels = 0 AND FeDetailAt IS NULL");
+    }
 
     $_SESSION[$flag] = true;
 }

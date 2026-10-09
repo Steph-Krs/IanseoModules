@@ -1110,8 +1110,12 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
             var ds=pad(pf.fromD)+'/'+pad(pf.fromM)+'/'+pf.fromY, de=pad(pf.toD)+'/'+pad(pf.toM)+'/'+pf.toY;
             $('f-dates-text').textContent = (ds===de) ? ('le '+ds) : ('du '+ds+' au '+de);
 
+            $('f-type').value = pr.creatable ? pr.toType : '';
+            // A type the list does not offer leaves the select empty without a word: say it.
+            if(pr.creatable && $('f-type').value !== String(pr.toType)){
+                pr = {creatable:false, why:'Le type proposé (' + pr.toType + ') ne figure pas dans la liste des types de ce serveur.'};
+            }
             if(pr.creatable){
-                $('f-type').value=pr.toType;
                 fillSubOptions(pr.toType, pr.subIdx);
                 $('prop-note').innerHTML='<p class="muted">Type proposé automatiquement d\'après l\'épreuve — '
                     +'vérifiez et corrigez si besoin.</p>';

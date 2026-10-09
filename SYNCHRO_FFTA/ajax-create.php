@@ -194,7 +194,7 @@ switch ($action) {
             'event'    => [
                 'discipline'  => $head,
                 'type'        => $row->FeChampionship,
-                'duels'       => (bool) $row->FeDuels,
+                'duels'       => $row->FeDuels === null ? null : (bool) $row->FeDuels,   // null: not said
                 'distinction' => $row->FeDistinction,
             ],
             'venue'    => [

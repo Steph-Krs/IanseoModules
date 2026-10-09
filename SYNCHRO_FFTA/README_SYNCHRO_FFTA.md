@@ -75,7 +75,8 @@ choisie. Les autres modules peuvent la lire (jamais l'écrire) :
 | `FeOrgCode`, `FeOrgName` | organisateur (agrément, nom) |
 | `FeState` | `A` validée, `R` reportée, `X` annulée |
 | `FeDiscipline`, `FeFormat`, `FeChampionship` | discipline, formule, type d'épreuve tels que l'extranet les écrit |
-| `FeValidePara`, `FeDuels`, `FeDistinction` | Valide + Para, déclarée avec duels, distinction |
+| `FeValidePara`, `FeDistinction` | Valide + Para, distinction |
+| `FeDuels` | `1` avec duels, `0` sans (dit par le détail de l'épreuve), **vide (NULL) quand l'extranet n'a rien dit** — à ne jamais lire comme « sans duel » |
 | `FeCity` | ville affichée par le calendrier |
 | `FeVenueName`, `FeVenueStreet`, `FeVenueZip`, `FeVenueCity`, `FeVenueCountry` | lieu précis (vide tant que l'extranet ne le connaît pas) |
 | `FeLatitude`, `FeLongitude` | coordonnées GPS du lieu |
@@ -130,9 +131,11 @@ désinstallation depuis ianseo : menu **Modules › Synchro FFTA › Mise à jou
 
 | Statement | Table | Location | Notes |
 |---|---|---|---|
-| `INSERT INTO` | `FftaEvents` | `lib/events.php:76` | — |
-| `UPDATE` | `FftaEvents` | `lib/events.php:108` | — |
-| `UPDATE` | `FftaEvents` | `lib/events.php:158` | — |
-| `UPDATE` | `FftaEvents` | `lib/events.php:160` | — |
+| `INSERT INTO` | `FftaEvents` | `lib/events.php:80` | — |
+| `UPDATE` | `FftaEvents` | `lib/events.php:113` | — |
+| `UPDATE` | `FftaEvents` | `lib/events.php:163` | — |
+| `UPDATE` | `FftaEvents` | `lib/events.php:165` | — |
+| `ALTER TABLE` | `FftaEvents` | `lib/schema.php:104` | — |
+| `UPDATE` | `FftaEvents` | `lib/schema.php:105` | — |
 
 <!-- END DATABASE WRITES -->

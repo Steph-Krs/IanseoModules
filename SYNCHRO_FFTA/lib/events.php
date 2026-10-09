@@ -69,11 +69,16 @@ function sfa_events_save_list(array $events): void
             . ", FeFormat=" . StrSafe_DB(mb_substr($ev['format'], 0, 150))
             . ", FeChampionship=" . StrSafe_DB(mb_substr($ev['type'], 0, 150))
             . ", FeValidePara=" . ($ev['validePara'] ? 1 : 0)
-            . ", FeDuels=" . ($ev['duels'] ? 1 : 0)
             . ", FeDistinction=" . StrSafe_DB(mb_substr($ev['distinction'], 0, 50))
             . ", FeCity=" . StrSafe_DB(mb_substr($ev['lieu'], 0, 150))
             . ", FeSeenAt=$now";
-        safe_w_sql("INSERT INTO FftaEvents SET FeId=$id, $cols ON DUPLICATE KEY UPDATE $cols");
+        // Duels: the list only marks the events WITH duels. No mark proves nothing: a new row is
+        // left unknown (NULL), a known value is kept — except a « with » the list no longer shows,
+        // which becomes unknown until the « Détail » box says.
+        $duels = $ev['duels'] ? 1 : 'NULL';
+        $duelsUpdate = $ev['duels'] ? 1 : 'IF(FeDuels = 1, NULL, FeDuels)';
+        safe_w_sql("INSERT INTO FftaEvents SET FeId=$id, $cols, FeDuels=$duels"
+            . " ON DUPLICATE KEY UPDATE $cols, FeDuels=$duelsUpdate");
     }
 }
 

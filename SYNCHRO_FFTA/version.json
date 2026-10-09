@@ -1,7 +1,7 @@
 {
-    "version": "0.10.1",
+    "version": "0.10.2",
     "date": "2026-10-09",
-    "notes": "Creation : le lieu precis de l'epreuve (adresse et coordonnees GPS) est maintenant lu sur l'extranet. Le detail d'une epreuve se charge avec le lien exact du calendrier (parametre Type=NOTURL), comme le fait la page de l'extranet ; sans lui, l'extranet repondait par une erreur serveur et aucun lieu n'etait propose. Une erreur de l'extranet est desormais affichee telle quelle.",
+    "notes": "Creation d'une competition Beursault : le type Beursault est de nouveau propose et selectionne (seule la sous-regle l'etait). La liste des types lue dans les regles francaises de ianseo perdait le Beursault depuis qu'un type y est mis en commentaire au milieu de la liste. Si un type propose n'existe pas sur le serveur, la page le dit au lieu de laisser le champ vide. Table FftaEvents : FeDuels peut desormais rester vide (NULL) quand l'extranet n'a rien dit des duels, au lieu de valoir 0 et de se lire comme 'sans duel' ; 0 n'est ecrit que sur un 'Duel : Non' du detail de l'epreuve. Migration automatique a l'ouverture de la page de creation.",
     "tables": [
         "FftaEvents"
     ],

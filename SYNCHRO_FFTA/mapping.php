@@ -59,6 +59,9 @@ function sfa_fr_sets(): array
 
     $file  = $GLOBALS['CFG']->DOCUMENT_PATH . 'Modules/Sets/FR/sets.php';
     $src   = is_readable($file) ? file_get_contents($file) : '';
+    // Comments out: block ones too, which may sit inside a list — « 50/*, 51*/ » made 50
+    // unreadable and dropped Beursault from the types offered.
+    $src   = preg_replace('~/\*.*?\*/~s', '', $src);
     $src   = preg_replace('~^\s*//.*$~m', '', $src);   // ignore les lignes commentées
     $types = [];
     $rules = [];
