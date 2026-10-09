@@ -44,14 +44,16 @@ class ExtranetClient
     }
 
     /**
-     * @param array|null $post  POST fields (null = GET)
+     * @param array|null $post     POST fields (null = GET)
+     * @param string[]   $headers  extra request headers
      * @return array see FftaHttp::request()
      */
-    private function request(string $path, ?array $post = null): array
+    private function request(string $path, ?array $post = null, array $headers = []): array
     {
         $url = (strpos($path, 'http') === 0) ? $path : $this->base . $path;
 
-        return $this->http->request($url, $post, ['httpHeaders' => ['Accept-Language: fr-FR,fr;q=0.9']]);
+        return $this->http->request($url, $post,
+            ['httpHeaders' => array_merge(['Accept-Language: fr-FR,fr;q=0.9'], $headers)]);
     }
 
     /** Failure array when the request brought nothing usable (delay, network, block), else null. */
@@ -633,6 +635,8 @@ class ExtranetClient
                 $noId++;
                 continue;
             }
+            $this->rememberDetailLink($ev['id'], $ev['detailHref']);
+            unset($ev['detailHref']);
             $events[] = $ev;
         }
 
@@ -657,6 +661,21 @@ class ExtranetClient
         return $res + ['disciplines' => $this->calendarDisciplines()];
     }
 
+    /**
+     * Keeps the « Détail » link of an event for eventDetail(). Only a link of this extranet is
+     * kept (relative, or under its base): it is replayed with the session cookie.
+     */
+    private function rememberDetailLink(string $id, string $href): void
+    {
+        if ($href === '' || !preg_match('#^(/|' . preg_quote($this->base, '#') . '/)#', $href)) {
+            return;
+        }
+        $links = $_SESSION[$this->ctxKey()]['links'] ?? [];
+        unset($links[$id]);
+        $links[$id] = $href;
+        $_SESSION[$this->ctxKey()]['links'] = array_slice($links, -1000, null, true);
+    }
+
     /** Event number in an ajaxEprv.php link: act = base64(serialize(['action'=>…,'EprvId'=>…])). */
     private static function eprvIdFromLink(string $href): string
     {
@@ -677,11 +696,17 @@ class ExtranetClient
             return null;
         }
 
+        // Event number, and the « Détail » link exactly as the calendar writes it (it carries
+        // parameters besides act, e.g. Type=NOTURL, without which the box answers an error 500).
         $id = '';
+        $detailHref = '';
         foreach ($xp->query('.//a[contains(@href,"ajaxEprv.php")]', $tr) as $a) {
-            $id = self::eprvIdFromLink($a->getAttribute('href'));
-            if ($id !== '') {
-                break;
+            $href = $a->getAttribute('href');
+            if ($id === '') {
+                $id = self::eprvIdFromLink($href);
+            }
+            if ($detailHref === '' && ($a->getAttribute('rel') === 'dialog' || $a->getAttribute('title') === 'Détail')) {
+                $detailHref = $href;
             }
         }
 
@@ -740,6 +765,7 @@ class ExtranetClient
 
         return [
             'id'           => $id,
+            'detailHref'   => $detailHref,
             'etat'         => $state,
             'pills'        => [],
             'dates'        => implode(' ', array_map(function ($d) {
@@ -774,14 +800,29 @@ class ExtranetClient
         if (!ctype_digit($id)) {
             return ['ok' => false, 'msg' => 'Numéro d\'épreuve invalide.'];
         }
-        // The link the calendar itself builds for its « Détail » button.
-        $act = base64_encode(serialize(['action' => 'detail', 'EprvId' => $id]));
-        $r   = $this->request(self::CAL_BOX . '?act=' . rawurlencode($act));
+        // The link of the event's row, as the calendar wrote it in a search of this session;
+        // otherwise the same link rebuilt, in the form the live calendar uses.
+        $href = $_SESSION[$this->ctxKey()]['links'][$id] ?? '';
+        if ($href === '') {
+            $act  = base64_encode(serialize(['action' => 'detail', 'EprvId' => $id]));
+            $href = self::CAL_BOX . '?act=' . rawurlencode($act) . '&Type=NOTURL';
+        }
+        // Loaded the way the calendar page loads it (jQuery .load()): an XMLHttpRequest sent
+        // from the calendar.
+        $r = $this->request($href, null, [
+            'X-Requested-With: XMLHttpRequest',
+            'Accept: text/html, */*; q=0.01',
+            'Referer: ' . $this->base . self::CAL_PAGE,
+        ]);
         if ($f = $this->fail($r)) {
             return $f;
         }
         if (self::isLoginPage($r['body'])) {
             return $this->expiredMessage($r);
+        }
+        if ($r['code'] >= 500) {
+            return ['ok' => false, 'msg' => 'L\'extranet a répondu par une erreur serveur (' . $r['code']
+                . ') au lieu du détail de l\'épreuve.'];
         }
 
         $xp   = $this->dom($r['body']);

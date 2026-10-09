@@ -1,8 +1,10 @@
 {
-    "version": "0.10.0",
+    "version": "0.10.1",
     "date": "2026-10-09",
-    "notes": "Creation d'une competition depuis le calendrier de l'extranet, qui respecte la periode demandee (la page d'integration elargit toute recherche au jour meme et n'affiche plus rien quand les epreuves sont trop nombreuses) : filtre par discipline et formule, epreuves avec duels signalees, lieu precis pre-rempli avec son adresse et ses coordonnees GPS (gardees seulement si le lieu propose n'est pas modifie). Nouvelle table FftaEvents : le calendrier lu sur l'extranet, reutilisable par les autres modules (aucune coordonnee de contact enregistree). Pour chaque depart : heure d'ouverture du greffe obligatoire ; inspection du materiel pendant l'entrainement (par defaut) ou a son heure ; entrainement compris dans le depart ou a son heure (entrainement natif ianseo) ; le tout reporte dans le programme ; case 'parcours repique' a partir du 2e depart en Campagne, 3D et Nature ('Parcours identique' / 'Parcours repiquete' dans le commentaire du depart) ; case 'temps de tir international' en TAE. Une epreuve deja creee sur le serveur est signalee des sa selection et n'est plus recreee (fin de l'erreur 'Duplicate entry'). Echanges avec les sites FFTA : un seul client pour la creation, le depot et la synchro des licencies (le depot reprend les sessions communes), requetes espacees, reponses recentes reutilisees, pause affichee avec un compte a rebours quand le site demande de ralentir, message explicite quand il refuse l'acces (page anti-robot, captcha) au lieu de 'identifiants refuses' ou d'une liste vide.",
-    "tables": ["FftaEvents"],
+    "notes": "Creation : le lieu precis de l'epreuve (adresse et coordonnees GPS) est maintenant lu sur l'extranet. Le detail d'une epreuve se charge avec le lien exact du calendrier (parametre Type=NOTURL), comme le fait la page de l'extranet ; sans lui, l'extranet repondait par une erreur serveur et aucun lieu n'etait propose. Une erreur de l'extranet est desormais affichee telle quelle.",
+    "tables": [
+        "FftaEvents"
+    ],
     "files": [
         "menu.php",
         "index.php",
