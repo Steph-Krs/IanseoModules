@@ -1,9 +1,37 @@
 <?php
-// Dépôt des résultats TXT : depuis une compétition ouverte (menu Compétition › Exports)
+// TXT results deposit, from an open competition: an entry of the Competition menu itself, right
+// under the « Exports » sub-menu (same right), menu keys kept.
+// The sub-menu is found by its key, or by its export links: a module included before this one may
+// have renumbered the menu (AUTH does, when it hides the core's « New »), and the key is then gone.
 if (!empty($on) && subFeatureAcl($acl, AclCompetition, 'cExport') >= AclReadOnly) {
-    $ret['COMP']['EXPT'][] = MENU_DIVIDER;
-    $ret['COMP']['EXPT'][] = 'Dépôt résultats extranet FFTA|'
-        . $CFG->ROOT_DIR . 'Modules/Custom/SYNCHRO_FFTA/index.php';
+    $sfaEntry = 'Dépôt résultats extranet FFTA|' . $CFG->ROOT_DIR . 'Modules/Custom/SYNCHRO_FFTA/index.php';
+    $sfaNew   = [];
+    $sfaDone  = false;
+    foreach (($ret['COMP'] ?? []) as $k => $v) {
+        if (is_int($k)) {
+            $sfaNew[] = $v;
+        } else {
+            $sfaNew[$k] = $v;
+        }
+        $sfaExports = ($k === 'EXPT');
+        if (!$sfaExports && is_array($v)) {
+            foreach ($v as $sfaItem) {
+                if (is_string($sfaItem) && strpos($sfaItem, 'Tournament/TournamentExport.php') !== false) {
+                    $sfaExports = true;
+                    break;
+                }
+            }
+        }
+        if (!$sfaDone && $sfaExports) {
+            $sfaNew[] = $sfaEntry;
+            $sfaDone  = true;
+        }
+    }
+    if (!$sfaDone) {
+        $sfaNew[] = $sfaEntry;
+    }
+    $ret['COMP'] = $sfaNew;
+    unset($sfaEntry, $sfaNew, $sfaDone, $sfaExports, $sfaItem);
 }
 
 // Création depuis l'extranet : hors compétition, visible partout où « Nouveau » l'est

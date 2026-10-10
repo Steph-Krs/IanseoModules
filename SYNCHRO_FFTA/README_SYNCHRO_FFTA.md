@@ -10,7 +10,7 @@ module dialogue réellement avec les services de la FFTA.)
 ## Fonctionnalités
 
 - 📤 Dépôt des résultats d'une compétition sur l'extranet (fichier TXT), depuis le menu
-  **Compétition › Exports**
+  **Compétition**, juste sous **Exports**
 - 🆕 Création d'une compétition ianseo **depuis une épreuve du calendrier de l'extranet** (dates,
   catégories et paramètres pré-remplis), recherche par période et par discipline (formule comprise),
   épreuves avec duels signalées, **lieu précis pré-rempli** avec son adresse et ses coordonnées GPS
