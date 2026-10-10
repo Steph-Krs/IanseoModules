@@ -40,16 +40,28 @@ if ($exalto === '') {
 
 $url = bk_ffta_attestation_url($exalto, $season);
 
-// 1) Relay through the kept cookie.
-$res = bk_ffta_fetch_pdf($url);
-if (!empty($res['pdf'])) {
+/** Sends a certificate and ends the script. */
+$serve = function ($pdf, $s) use ($archer) {
     header('Content-Type: application/pdf');
     header('Content-Disposition: inline; filename="attestation-licence-'
-        . preg_replace('/[^A-Za-z0-9]/', '', (string) $archer->BaLicence) . '-' . $season . '.pdf"');
-    header('Content-Length: ' . strlen($res['pdf']));   // bytes on purpose: an HTTP length
+        . preg_replace('/[^A-Za-z0-9]/', '', (string) $archer->BaLicence) . '-' . $s . '.pdf"');
+    header('Content-Length: ' . strlen($pdf));   // bytes on purpose: an HTTP length
     header('X-Content-Type-Options: nosniff');
-    echo $res['pdf'];
+    echo $pdf;
     exit;
+};
+
+// 1) Relay through the kept cookie.
+$res = bk_ffta_fetch_pdf($url);
+if (!empty($res['pdf'])) $serve($res['pdf'], $season);
+
+// No certificate for the new season at its start (licence not renewed yet): the federation
+// answers an empty page. From 1 September to 15 October, the season before is shown instead.
+if (!empty($res['missing']) && bk_ffta_previous_season_window()) {
+    $prevUrl = bk_ffta_attestation_url($exalto, $season - 1);
+    $prev = bk_ffta_fetch_pdf($prevUrl);
+    if (!empty($prev['pdf'])) $serve($prev['pdf'], $season - 1);
+    $url = $prevUrl;
 }
 
 // 2) Fallback: no cookie, or expired → the archer goes to their licensee space (and signs in there).

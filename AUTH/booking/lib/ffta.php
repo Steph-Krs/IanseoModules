@@ -192,7 +192,23 @@ function bk_ffta_fetch_pdf($url)
     bk_ffta_debug('fetch_pdf: cookies=' . $nck . ' http=' . $code . ' ctype=' . $ctype . ' url_finale=' . $eff
         // bytes: sizes in the debug log are byte counts
         . ' taille=' . (is_string($body) ? strlen($body) : 'false') . ' => ' . ($isPdf ? 'PDF OK' : 'NOT a PDF (fallback)'));
-    return $isPdf ? array('pdf' => $body) : array('expired' => true);
+    if ($isPdf) return array('pdf' => $body);
+    // Signed in (not sent back to the login form) but no PDF: no certificate for this season
+    // — the federation then answers an empty page, e.g. a licence not renewed yet.
+    if ($code === 200 && stripos($eff, 'login') === false && stripos($eff, '/auth') === false) {
+        return array('missing' => true);
+    }
+    return array('expired' => true);
+}
+
+/**
+ * Start of the season (1 September – 15 October, server zone): a licensee who has not renewed
+ * yet still has the certificate of the season before, which is the one to show.
+ */
+function bk_ffta_previous_season_window()
+{
+    $md = (new DateTime('now', bk_server_tz()))->format('m-d');
+    return $md >= '09-01' && $md <= '10-15';
 }
 
 /**
