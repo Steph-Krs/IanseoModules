@@ -40,6 +40,7 @@ function lic_log($msg) {
 function lic_fail($msg) {
     lic_log('ERROR: ' . $msg);
     aut_log('LICSYNC_FAIL', 'cron', 'cli');
+    aut_job_log('licences', 'fail', 'JbLicFail', $msg);
     exit(1);
 }
 
@@ -51,6 +52,7 @@ function lic_fail($msg) {
 function lic_skip($msg) {
     lic_log('POSTPONED: ' . $msg);
     aut_log('LICSYNC_SKIP', 'cron', 'cli');
+    aut_job_log('licences', 'skip', 'JbLicSkip', $msg);
     exit(0);
 }
 
@@ -130,12 +132,15 @@ $_SESSION = array();   // the registration swaps the competition session (bk_wit
 require_once(dirname(__DIR__) . '/booking/lib/licences.php');
 $q = safe_r_sql("SELECT ToId, ToCode, ToWhenTo >= CURDATE() AS NotOver FROM Tournament
     WHERE ToWhenTo >= DATE_SUB(CURDATE(), INTERVAL 2 DAY)");
+$nComp = 0; $nHeld = 0;
 while ($t = safe_fetch($q)) {
+    $nComp++;
     lic_entries_check($t->ToId);
     lic_log("Statuses updated: {$t->ToCode}");
     // Licences missing from the file (competitions not started, FFTA numbers only).
     if ($fileOk && intval($t->NotOver)) {
         $res = bk_licence_daily($t->ToId);
+        $nHeld += $res['suspended'];
         if ($res['suspended'] || $res['status'] || $res['back']) {
             lic_log("Licences of {$t->ToCode}: {$res['suspended']} registration(s) suspended, "
                 . "{$res['status']} status set, {$res['back']} licence(s) back.");
@@ -144,6 +149,8 @@ while ($t = safe_fetch($q)) {
 }
 
 aut_log('LICSYNC_OK', 'cron', 'cli');
+aut_job_log('licences', $fileOk ? 'ok' : 'warn', $fileOk ? 'JbLicOk' : 'JbLicShrink',
+    array('n' => $after, 'b' => $before, 'c' => $nComp, 'h' => $nHeld));
 
 // Log retention (canonical daily job). The bootstrap also does it at most once a day.
 if (function_exists('aut_log_purge')) { aut_log_purge(); lic_log('Logs purged (retention).'); }

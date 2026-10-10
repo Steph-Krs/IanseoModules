@@ -125,7 +125,27 @@ function mt_exec($cmd, $label) {
     exec($cmd . ' 2>&1', $out, $rc);
     foreach ($out as $l) mt_log('    | ' . $l);
     mt_log('  ' . $label . ': ' . ($rc === 0 ? 'ok' : "FAILED (code $rc)"));
+    mt_last_line($out, $rc);
     return $rc === 0;
+}
+
+/** Keeps the last line written by a command: the detail of a failure, for the journal. */
+function mt_last_line($out, $rc) {
+    $last = '';
+    foreach ($out as $l) if (trim($l) !== '' && stripos(ltrim($l), 'libpng warning:') !== 0) $last = trim($l);
+    $GLOBALS['MT_LAST'] = $last !== '' ? $last : ($rc !== 0 ? "code $rc" : '');
+}
+
+/**
+ * Journal line of a step (admin/config.php reads them): ok, or failed with the last line the
+ * step wrote. Nothing when $since is given and the step wrote its own lines since (a script
+ * that reports in detail), nor on a dry run.
+ */
+function mt_job($code, $ok, $since = null) {
+    global $dryRun;
+    if ($dryRun || !function_exists('aut_job_log')) return;
+    if ($since !== null && aut_job_written($code, $since)) return;
+    aut_job_log($code, $ok ? 'ok' : 'fail', $ok ? 'JbStepOk' : 'JbStepFail', $ok ? null : (string) ($GLOBALS['MT_LAST'] ?? ''));
 }
 
 function mt_maintenance_off() {
@@ -190,6 +210,7 @@ function mt_php($script, $args = '', &$rc = 0) {
         mt_log('  | ' . $l);
     }
     if ($noise) mt_log("  | ($noise libpng warning(s) skipped — ICC profiles of the logos, harmless)");
+    mt_last_line($out, $rc);
     return $rc === 0;
 }
 
@@ -211,6 +232,7 @@ if (!mt_exec($cfg['on'] ?? '', 'maintenance ON')) {
     $GLOBALS['MT_ON'] = false;
     mt_log('STOP: maintenance mode could not be turned on — no update started.');
     aut_log('MAINT_FAIL', 'cron: maintenance ON', 'cli');
+    if (!$dryRun) aut_job_log('maintenance', 'fail', 'JbMaintOnFail', (string) ($GLOBALS['MT_LAST'] ?? ''));
     if (!$dryRun) aut_backup_ping(true);
     exit(1);
 }
@@ -229,10 +251,12 @@ if ($doBackup) {
     $backupOk = ($bkRc === 0);
     if ($backupOk) mt_log('  local backup: ok');
     else           { $failed[] = 'backup'; mt_log('  backup: FAILED' . ($bkRc !== 1 ? " (code $bkRc)" : '')); }
+    mt_job('backup', $backupOk);
 }
 if ($doCore && !$dryRun && !$backupOk && $bkCfg['required_for_core']) {
     $doCore = false;
     $failed[] = 'core-skipped';
+    aut_job_log('core', 'skip', 'JbCoreSkipped');
     mt_log('');
     mt_log('!! Core update NOT started this night: no valid backup to go back to.'
         . ($bkCfg['enabled'] ? '' : ' (backup turned off)')
@@ -246,6 +270,7 @@ if ($doCore) {
         // Core files still read-only: the update would fail for sure ("… must be writable by
         // the server"). Nothing having been unlocked, the final re-locking is skipped too.
         $failed[] = 'unlock';
+        mt_job('unlock', false);
         $doCore = false;
         mt_log('!! Core update NOT started: the files could not be unlocked.'
             . ' maintenance.unlock must stay empty: unlocking is done by root in /etc/cron.d/ianseo-nightly.');
@@ -272,11 +297,14 @@ if ($doCore) {
             && (($nothingToDo !== '' && $coreMsg === $nothingToDo) || stripos($coreMsg, 'is up to date') !== false);
         if ($upToDate) {
             mt_log('  core update: already up to date');
+            aut_job_log('core', 'ok', 'JbCoreUpToDate');
         } elseif (!$d || !empty($d->error) || empty($d->finished)) {
             $failed[] = 'core';
             mt_log('  core update: FAILED or unfinished' . ($d && !empty($d->msg) ? ' — ' . strip_tags((string) $d->msg) : ''));
+            aut_job_log('core', 'fail', 'JbStepFail', $d && !empty($d->msg) ? strip_tags((string) $d->msg) : (string) ($GLOBALS['MT_LAST'] ?? ''));
         } else {
             mt_log('  core update: ok');
+            aut_job_log('core', 'ok', 'JbCoreUpdated');
         }
     }
 }
@@ -299,6 +327,7 @@ if ($doModules) {
             if (!empty($rem['_error'])) {
                 mt_log("  $name: cannot read the remote version (" . $rem['_error'] . ')');
                 $failed[] = "module:$name";
+                if (!$dryRun) aut_job_log("module:$name", 'fail', 'JbModuleRemote', (string) $rem['_error']);
                 continue;
             }
             $lv = $loc['version'] ?? '0';
@@ -310,6 +339,8 @@ if ($doModules) {
             upd_sync_shared($mcfg);   // the shared library follows each update
             mt_log("    {$r['ok']} file(s) updated" . ($r['fail'] ? ', FAILURES: ' . implode(', ', $r['fail']) : ''));
             if ($r['fail']) $failed[] = "module:$name";
+            aut_job_log("module:$name", $r['fail'] ? 'fail' : 'ok', $r['fail'] ? 'JbModuleFiles' : 'JbModuleUpdated',
+                array('from' => $lv, 'to' => $rv, 'n' => intval($r['ok']), 'fail' => implode(', ', $r['fail'])));
         }
     }
 }
@@ -327,6 +358,8 @@ if (($doCore || $doModules) && !$dryRun) {
             $ok = aut_deploy($errs);
             mt_log('  redeployment: ' . ($ok ? 'ok' : 'FAILED — ' . implode(' ; ', $errs)));
             if (!$ok) $failed[] = 'deploy';
+            $GLOBALS['MT_LAST'] = implode(' ; ', $errs);
+            mt_job('deploy', $ok);
         } else {
             mt_log('  deployed files already matching.');
         }
@@ -336,14 +369,19 @@ if (($doCore || $doModules) && !$dryRun) {
 /* ---- 7. Syncs (licences then logos) ---- */
 if ($doLicences) {
     mt_step('7a/8 Licence synchronisation');
-    if (!mt_php(__DIR__ . '/sync-licences.php')) { $failed[] = 'licences'; mt_log('  licences: FAILED'); }
+    $since = $dryRun ? 0 : aut_job_last_id();
+    $ok = mt_php(__DIR__ . '/sync-licences.php');
+    if (!$ok) { $failed[] = 'licences'; mt_log('  licences: FAILED'); }
     else mt_log('  licences: ok');
+    mt_job('licences', $ok, $since);
 }
 if ($doLogos) {
     // AFTER the licences on purpose: the list of clubs is derived from them.
     mt_step('7b/8 Club logo synchronisation');
-    if (!mt_php(__DIR__ . '/sync-logos.php')) { $failed[] = 'logos'; mt_log('  logos: FAILED'); }
+    $ok = mt_php(__DIR__ . '/sync-logos.php');
+    if (!$ok) { $failed[] = 'logos'; mt_log('  logos: FAILED'); }
     else mt_log('  logos: ok');
+    mt_job('logos', $ok);
 }
 
 /* ---- 7c. Points of sale: erasing the day after a competition ---- */
@@ -352,22 +390,40 @@ if ($doLogos) {
 // step only makes it happen even when nobody opens them.
 if (is_file(dirname(__DIR__) . '/shop/cron/purge.php')) {
     mt_step('7c/8 Points of sale: erasing after the competitions');
-    if (!mt_php(dirname(__DIR__) . '/shop/cron/purge.php')) { $failed[] = 'shop-purge'; mt_log('  points of sale: FAILED'); }
+    $ok = mt_php(dirname(__DIR__) . '/shop/cron/purge.php');
+    if (!$ok) { $failed[] = 'shop-purge'; mt_log('  points of sale: FAILED'); }
     else mt_log('  points of sale: ok');
+    mt_job('shop-purge', $ok);
 }
 
 /* ---- 7d. Accounts of archers without an FFTA licence: erasing ---- */
 // One month after their last sign-in and their last competition (booking/lib/other.php).
 if (is_file(dirname(__DIR__) . '/booking/cron/purge-other.php')) {
     mt_step('7d/8 Archers without an FFTA licence: erasing of the accounts');
-    if (!mt_php(dirname(__DIR__) . '/booking/cron/purge-other.php')) { $failed[] = 'other-purge'; mt_log('  accounts: FAILED'); }
+    $ok = mt_php(dirname(__DIR__) . '/booking/cron/purge-other.php');
+    if (!$ok) { $failed[] = 'other-purge'; mt_log('  accounts: FAILED'); }
     else mt_log('  accounts: ok');
+    mt_job('other-purge', $ok);
+}
+
+/* ---- 7e. Licensee files of foreign federations ---- */
+// Italy, Canada, Slovenia, Baltic countries (booking/lib/fedlic.php): the accounts of their
+// archers are taken from these files, refreshed here.
+if (is_file(dirname(__DIR__) . '/booking/cron/sync-fed.php')) {
+    mt_step('7e/8 Licensee files of foreign federations');
+    $since = $dryRun ? 0 : aut_job_last_id();
+    $ok = mt_php(dirname(__DIR__) . '/booking/cron/sync-fed.php');
+    if (!$ok) { $failed[] = 'fed-sync'; mt_log('  files: FAILED'); }
+    else mt_log('  files: ok');
+    mt_job('fed-sync', $ok, $since);
 }
 
 /* ---- 8. Re-locking + leaving maintenance ---- */
 if ($doCore) {
     mt_step('8/8 Re-locking of the files');
-    if (!mt_exec($cfg['lock'] ?? '', 'lock')) $failed[] = 'lock';
+    $ok = mt_exec($cfg['lock'] ?? '', 'lock');
+    if (!$ok) $failed[] = 'lock';
+    mt_job('lock', $ok);
 }
 
 mt_step('Leaving maintenance');
@@ -383,6 +439,7 @@ if ($doBackup && ($backupOk || $dryRun) && $bkCfg['remote'] !== '') {
         mt_php(__DIR__ . '/backup.php', '--upload', $upRc);
         if ($upRc === 0) mt_log('  online copy: ok');
         else { $failed[] = 'online-backup'; mt_log('  online copy: FAILED' . ($upRc !== 2 ? " (code $upRc)" : '')); }
+        mt_job('online-backup', $upRc === 0);
     }
 }
 
@@ -394,6 +451,7 @@ if ($failed) {
     mt_log('Done in ' . $duration . ' s — FAILURES: ' . implode(', ', $failed));
     if (!$dryRun) {
         aut_log('MAINT_PARTIAL', mb_strcut('cron: ' . implode(', ', $failed), 0, 64, 'UTF-8'), 'cli');
+        aut_job_log('maintenance', 'fail', 'JbMaintPartial', array('d' => $duration, 'steps' => $failed));
         aut_backup_ping(true);
     }
     exit(1);
@@ -401,5 +459,6 @@ if ($failed) {
 mt_log('Done in ' . $duration . ' s — all ok.');
 if (!$dryRun) {
     aut_log('MAINT_OK', 'cron', 'cli');
+    aut_job_log('maintenance', 'ok', 'JbMaintOk', array('d' => $duration));
     aut_backup_ping(false);
 }

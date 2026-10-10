@@ -294,6 +294,13 @@ button[disabled] { opacity:.9; cursor:progress; }
 .foot { margin-top:14px; font-size:11px; text-align:center; color:#667; }
 .foot a { color:#1a4f8b; }
 .pane { display:none; } .pane.active { display:block; }
+.other-q { margin:18px 0 8px; font-size:12px; color:#556; text-align:center; }
+.logo-btn { display:flex; align-items:center; justify-content:center; gap:6px; padding:4px 10px;
+    width:fit-content; max-width:100%; box-sizing:border-box; margin:0 auto;
+    border:1px solid #c9d4df; border-radius:4px; background:#fff; color:#1a4f8b; font-size:10px;
+    text-decoration:none; }
+.logo-btn:hover { background:#f4f7fa; border-color:#1a4f8b; }
+.logo-btn img { height:16px; width:auto; }
 
 /* Argument column (landing) */
 .pitch-col { flex:1 1 320px; max-width:440px; }
@@ -374,8 +381,10 @@ if ($stage === 'totp') {
         }
         // Archers of another federation: their own account (booking/public/other.php).
         if (is_file(__DIR__ . '/booking/public/other.php')) {
-            echo '<div class="sub" style="margin-top:16px">' . $e(aut_t('LoginOtherText')) . ' <a href="'
-                . $e($root . 'Modules/Custom/AUTH/booking/public/other.php') . '">' . $e(aut_t('LoginOtherLink')) . "</a></div>\n";
+            echo '<div class="other-q">' . $e(aut_t('LoginOtherText')) . '</div><a class="logo-btn" href="'
+                . $e($root . 'Modules/Custom/AUTH/booking/public/other.php') . '"><img src="'
+                . $e($root . 'Modules/Custom/AUTH/booking/public/assets/logo-wa.png') . '" alt="">'
+                . $e(aut_t('LoginOtherLink')) . "</a>\n";
         }
         echo "</div>\n";
     }

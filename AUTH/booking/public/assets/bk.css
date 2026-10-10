@@ -75,6 +75,10 @@ body {
 #bk .bk-msg { margin: 0 0 16px; padding: 10px 12px; border-radius: 6px; font-size: 13px; }
 #bk .bk-msg-err { background: #ffd6db; border: 1px solid #bb7575; color: #a80000; }
 #bk .bk-msg-ok  { background: #d2f4cd; border: 1px solid #75ae77; color: #04ac0b; }
+#bk a.bk-btn.bk-logo-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: fit-content; max-width: 100%;
+    box-sizing: border-box; margin-left: auto; margin-right: auto; background: #fff; padding: 4px 10px; font-size: 10px; }
+#bk a.bk-btn.bk-logo-btn img { height: 16px; width: auto; }
+#bk .bk-msg-warn { background: #fff4d6; border: 1px solid #d9a441; color: #8a5a00; }
 
 /* ---- Maintenance coming (warning banner) ---- */
 #bk .bk-maint { position: sticky; top: 0; z-index: 70; background: #8a4b00; color: #fff;

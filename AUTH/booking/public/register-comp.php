@@ -63,8 +63,9 @@ if ($reqSubject !== '' && $reqSubject !== bk_clean_licence($archer->BaLicence)) 
     if (!$canGroup) {
         $clubErr = bk_t('OnlyAdultGroup');
     } else {
-        $mate = bk_lookup_clubmate($reqSubject, $selfLue->LueCountry);
-        if ($mate) { $groupMode = true; $lue = $mate; }
+        $mate = bk_lookup_clubmate($reqSubject, $selfLue->LueCountry, (string) $selfLue->LueIocCode);
+        if ($mate && bk_clean_licence($mate->LueCode) === bk_clean_licence($archer->BaLicence)) $mate = $lue;   // their own number
+        elseif ($mate) { $groupMode = true; $lue = $mate; }
         else $clubErr = bk_t('MateUnknown');
     }
 }
@@ -329,7 +330,8 @@ if ($singleDone) {
 if (intval($lue->LueStatus) === 9) {
     // Licence without practice: no registration for this subject.
     echo '<div class="bk-block" style="margin-top:14px"><h2>' . bk_e($groupMode ? $mateName : bk_t('YourReg')) . '</h2>'
-        . '<p class="bk-blocked">' . bk_t($groupMode ? 'NoPracticeMate' : 'NoPracticeSelf') . '</p></div>';
+        . '<p class="bk-blocked">' . bk_t(($groupMode ? 'NoPracticeMate' : 'NoPracticeSelf')
+            . (($lue->LueIocCode ?? 'FRA') !== 'FRA' ? 'Other' : '')) . '</p></div>';
     bk_foot();
     exit;
 }

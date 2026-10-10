@@ -557,10 +557,12 @@ function aut_backup_ping($fail = false)
 function aut_backup_step_label($code)
 {
     if (strpos($code, 'module:') === 0) return aut_t('BuStepModule', mb_substr($code, 7));
+    if (strpos($code, 'fed:') === 0) return aut_t('BuStepFedSrc', mb_substr($code, 4));
     $keys = array('backup' => 'BuStepBackup', 'core' => 'BuStepCore', 'core-skipped' => 'BuStepCoreSkipped',
         'unlock' => 'BuStepUnlock', 'lock' => 'BuStepLock', 'deploy' => 'BuStepDeploy',
         'licences' => 'BuStepLicences', 'logos' => 'BuStepLogos', 'online-backup' => 'BuStepOnline',
-        'shop-purge' => 'BuStepShopPurge');
+        'shop-purge' => 'BuStepShopPurge', 'other-purge' => 'BuStepOtherPurge', 'fed-sync' => 'BuStepFedSync',
+        'maintenance' => 'BuStepMaint', 'modules' => 'BuStepModules');
     return isset($keys[$code]) ? aut_t($keys[$code]) : $code;
 }
 

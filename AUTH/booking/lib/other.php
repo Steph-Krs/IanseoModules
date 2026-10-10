@@ -6,14 +6,21 @@
  * 'OTHER'), signed in with an identifier (BaLicence) and a password they choose (BaPassword).
  * No way to contact them is kept.
  *
- * Signing up in two steps (public/other-signup.php):
- *  1. names, sex, country — searched in World Archery (bk_wa_search: the WA API only knows the
- *     archers who shot an international competition; typos forgiven here);
- *  2. the archer picks themselves in the list: names and sex come from WA (not editable
- *     afterwards), the identifier IS the WA id, the birth year is one of the two the WA age
- *     allows; asked then: year, club, password.
- *     Not in the list: their NATIONAL licence becomes the identifier; asked: licence, year,
- *     club, password.
+ * The identifier is "COUNTRY-licence" (ITA-00000), or "WA-id" for an archer taken from World
+ * Archery: licence numbers overlap between countries and with WA ids (Italian and Slovenian
+ * numbers are counters). The archer may sign in with the number alone: the password tells the
+ * few accounts sharing it apart (bk_other_check).
+ *
+ * Signing up in two steps (public/other-signup.php), the country first:
+ *  - country whose federation publishes its licensee file (lib/fedlic.php): the licence, checked
+ *    against the format of that country and looked up in the file — missing: no account. Names,
+ *    sex, birth date and club come from the file (BaSource 'fed'), refreshed each night, never
+ *    edited here; only the password is asked;
+ *  - other countries: names and sex, searched in World Archery (bk_wa_search: the WA API only
+ *    knows the archers who shot an international competition; typos forgiven here). Picked in
+ *    the list: names and sex from WA (BaSource 'wa', not editable afterwards), the birth year one
+ *    of the two the WA age allows; then year, club, password. Not in the list: national licence,
+ *    year, club, password (BaSource 'own').
  * The WA photos are loaded by the archer's browser straight from World Archery: nothing goes
  * through this server.
  *
@@ -34,6 +41,7 @@ define('BK_OTHER_LOADED', true);
 require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/archer.php';
 require_once __DIR__ . '/clock.php';   // bk_server_tz
+require_once __DIR__ . '/fedlic.php';
 
 define('BK_OTHER_KEEP_DAYS', 30);
 define('BK_WA_API', 'https://api.worldarchery.org/v3/ATHLETES/');
@@ -154,10 +162,9 @@ function bk_other_birth_years($age)
 }
 
 /**
- * Is this archer already known? '' when not, otherwise the reason: 'licence' (this national
- * licence has an account, or is an FFTA licence number), 'wa' (this World Archery athlete has an
- * account), 'person' (same names, birth year, sex and country). $exceptId: the account being
- * edited.
+ * Is this archer already known? '' when not, otherwise the reason: 'licence' (this identifier has
+ * an account), 'wa' (this World Archery athlete has an account), 'person' (same names, birth
+ * year, sex and country). $exceptId: the account being edited.
  */
 function bk_other_duplicate($d, $exceptId = 0)
 {
@@ -165,7 +172,6 @@ function bk_other_duplicate($d, $exceptId = 0)
     $ex = intval($exceptId);
     if ($lic !== '') {
         if (safe_fetch(safe_r_sql("SELECT BaId FROM BookingArchers WHERE BaLicence = " . StrSafe_DB($lic) . " AND BaId <> $ex"))) return 'licence';
-        if (safe_fetch(safe_r_sql("SELECT LueCode FROM LookUpEntries WHERE LueCode = " . StrSafe_DB($lic) . " AND LueIocCode = 'FRA' LIMIT 1"))) return 'licence';
     }
     $wa = intval($d['wa'] ?? 0);
     if ($wa > 0 && safe_fetch(safe_r_sql("SELECT BaId FROM BookingArchers WHERE BaWaId = $wa AND BaId <> $ex"))) return 'wa';
@@ -192,40 +198,66 @@ function bk_other_club_code($noc, $club)
     return 'X' . $noc . strtoupper(substr(sprintf('%08x', crc32(bk_other_norm($club))), 0, 6));   // bytes: ASCII hex
 }
 
+/** Identifier of an account: "COUNTRY-licence", or "WA-id" ($country 'WA'). */
+function bk_other_login_id($country, $licence)
+{
+    return bk_clean_licence($country . '-' . $licence);
+}
+
 /**
  * Writes the LookUpEntries row of an account (its identity for the online registration), the
- * former one removed first (licence or country may have changed).
+ * former one removed first (licence or country may have changed). An account taken from a
+ * federation file carries the status of the file: archived (9), it cannot register.
  */
 function bk_other_lue_sync($a, $old = null)
 {
-    $countries = bk_other_countries();
     foreach (array_filter(array($old, $a)) as $x) {
         safe_w_sql("DELETE FROM LookUpEntries WHERE LueCode = " . StrSafe_DB($x->BaLicence)
             . " AND LueIocCode = " . StrSafe_DB($x->BaCountry) . " AND LueIocCode <> 'FRA'");
     }
     if ($a->BaCountry === '' || $a->BaCountry === 'FRA') return;
-    $cname = (string) ($countries[$a->BaCountry] ?? $a->BaCountry);
+    $f = $a->BaSource === 'fed' ? bk_fed_find($a->BaCountry, bk_fed_clean($a->BaCountry, $a->BaLicence)) : null;
+    if ($f) {
+        bk_fed_lue_write($f);
+        return;
+    }
+    bk_other_lue_insert(array('code' => $a->BaLicence, 'country' => $a->BaCountry, 'family' => $a->BaFamilyName,
+        'given' => $a->BaName, 'sex' => intval($a->BaSex), 'birth' => sprintf('%04d-01-01', intval($a->BaBirthYear)),
+        'club' => $a->BaClubCode, 'club_name' => $a->BaClubName, 'club_short' => $a->BaClubName, 'status' => 0, 'valid' => ''));
+}
+
+/**
+ * Inserts the LookUpEntries row of an archer without an FFTA licence, their country as club 2.
+ * $v: code, country, family, given, sex, birth (Y-m-d), club, club_name, club_short, status,
+ * valid (end of validity, Y-m-d, or '').
+ */
+function bk_other_lue_insert($v)
+{
+    $cname = (string) (bk_other_countries()[$v['country']] ?? $v['country']);
     safe_w_sql("INSERT INTO LookUpEntries SET
-        LueCode = " . StrSafe_DB($a->BaLicence) . ", LueIocCode = " . StrSafe_DB($a->BaCountry) . ",
-        LueFamilyName = " . StrSafe_DB(mb_substr($a->BaFamilyName, 0, 60)) . ",
-        LueName = " . StrSafe_DB(mb_substr($a->BaName, 0, 30)) . ",
-        LueSex = " . intval($a->BaSex) . ", LueClassified = 1,
-        LueCtrlCode = " . StrSafe_DB(sprintf('%04d-01-01', intval($a->BaBirthYear))) . ",
-        LueCountry = " . StrSafe_DB($a->BaClubCode) . ",
-        LueCoDescr = " . StrSafe_DB(mb_substr($a->BaClubName, 0, 80)) . ",
-        LueCoShort = " . StrSafe_DB(mb_substr($a->BaClubName, 0, 30)) . ",
-        LueCountry2 = " . StrSafe_DB($a->BaCountry) . ",
+        LueCode = " . StrSafe_DB($v['code']) . ", LueIocCode = " . StrSafe_DB($v['country']) . ",
+        LueFamilyName = " . StrSafe_DB(mb_substr($v['family'], 0, 60)) . ",
+        LueName = " . StrSafe_DB(mb_substr($v['given'], 0, 30)) . ",
+        LueSex = " . intval($v['sex']) . ", LueClassified = 1,
+        LueCtrlCode = " . ($v['birth'] !== '' ? StrSafe_DB($v['birth']) : 'NULL') . ",
+        LueCountry = " . StrSafe_DB(mb_substr($v['club'], 0, 10)) . ",
+        LueCoDescr = " . StrSafe_DB(mb_substr($v['club_name'], 0, 80)) . ",
+        LueCoShort = " . StrSafe_DB(mb_substr($v['club_short'], 0, 30)) . ",
+        LueCountry2 = " . StrSafe_DB($v['country']) . ",
         LueCoDescr2 = " . StrSafe_DB(mb_substr($cname, 0, 80)) . ",
         LueCoShort2 = " . StrSafe_DB(mb_substr($cname, 0, 30)) . ",
         LueCountry3 = '', LueCoDescr3 = '', LueCoShort3 = '',
         LueDivision = '', LueClass = '', LueSubClass = '',
-        LueStatus = 0, LueDefault = 1, LueNameOrder = 0");
+        LueStatus = " . intval($v['status']) . ",
+        LueStatusValidUntil = " . ($v['valid'] !== '' ? StrSafe_DB($v['valid']) : "'0000-00-00'") . ",
+        LueDefault = 1, LueNameOrder = 0");
 }
 
 /**
- * Creates an account. $d: licence, password (or hash: already hashed, as kept between the steps
- * of the sign-up), family, given, sex, year, country, club, wa (0 or the WA id), source ('wa' or
- * 'own'). Returns the account id, or 0.
+ * Creates an account. $d: licence (the identifier, bk_other_login_id), password (or hash: already
+ * hashed, as kept between the steps of the sign-up), family, given, sex, year, country, club,
+ * club_code (a file's club; otherwise made from the club typed), wa (0 or the WA id), source
+ * ('fed', 'wa' or 'own'). Returns the account id, or 0.
  */
 function bk_other_create($d)
 {
@@ -237,11 +269,11 @@ function bk_other_create($d)
         BaPassword = " . StrSafe_DB(!empty($d['hash']) ? $d['hash'] : password_hash((string) $d['password'], PASSWORD_DEFAULT)) . ",
         BaFamilyName = " . StrSafe_DB(mb_substr(trim($d['family']), 0, 60)) . ",
         BaName = " . StrSafe_DB(mb_substr(trim($d['given']), 0, 30)) . ",
-        BaClubCode = " . StrSafe_DB(bk_other_club_code($d['country'], $club)) . ",
+        BaClubCode = " . StrSafe_DB(!empty($d['club_code']) ? mb_substr($d['club_code'], 0, 10) : bk_other_club_code($d['country'], $club)) . ",
         BaCountry = " . StrSafe_DB($d['country']) . ",
         BaClubName = " . StrSafe_DB(mb_substr($club, 0, 80)) . ",
         BaSex = " . intval($d['sex']) . ", BaBirthYear = " . intval($d['year']) . ",
-        BaWaId = " . intval($d['wa'] ?? 0) . ", BaSource = " . StrSafe_DB($d['source'] === 'wa' ? 'wa' : 'own'));
+        BaWaId = " . intval($d['wa'] ?? 0) . ", BaSource = " . StrSafe_DB(in_array($d['source'], array('fed', 'wa'), true) ? $d['source'] : 'own'));
     $id = intval(safe_w_last_id());
     if ($id) {
         bk_other_lue_sync(bk_get_archer($id));
@@ -251,11 +283,13 @@ function bk_other_create($d)
 }
 
 /**
- * Updates an account from its profile page: the club always; names, sex, birth year and country
- * only when they were typed (not taken from World Archery). $in already checked by the caller.
+ * Updates an account from its profile page: the club, except for an account taken from a
+ * federation file (refreshed each night from it); names, sex, birth year and country only when
+ * they were typed. $in already checked by the caller.
  */
 function bk_other_update($a, $in)
 {
+    if ($a->BaSource === 'fed') return;
     $club = trim((string) $in['club']);
     $set = array(
         'BaClubName = ' . StrSafe_DB(mb_substr($club, 0, 80)),
@@ -275,14 +309,23 @@ function bk_other_update($a, $in)
     bk_log('OTHER_UPDATE', $a->BaLicence);
 }
 
-/** Sign-in check: the account, or null. Never says which of the two was wrong. */
+/**
+ * Sign-in check: the account, or null. Never says which of the two was wrong. The identifier
+ * typed in full (ITA-00000) or the number alone (00000): then the password tells apart the few
+ * accounts sharing that number in different countries.
+ */
 function bk_other_check($licence, $password)
 {
     bk_schema();
-    $a = safe_fetch(safe_r_sql("SELECT * FROM BookingArchers WHERE BaKind = 'OTHER'
-        AND BaLicence = " . StrSafe_DB(bk_clean_licence($licence))));
-    if (!$a || $a->BaPassword === '' || !password_verify((string) $password, $a->BaPassword)) return null;
-    return $a;
+    $t = bk_clean_licence($licence);
+    if (!preg_match('/^[A-Z0-9][A-Z0-9.\-\/]{0,24}$/', $t)) return null;
+    $rs = safe_r_sql("SELECT * FROM BookingArchers WHERE BaKind = 'OTHER'
+        AND (BaLicence = " . StrSafe_DB($t) . " OR SUBSTRING(BaLicence, LOCATE('-', BaLicence) + 1) = " . StrSafe_DB($t) . ")
+        ORDER BY BaLicence = " . StrSafe_DB($t) . " DESC, BaId LIMIT 10");
+    while ($a = safe_fetch($rs)) {
+        if ($a->BaPassword !== '' && password_verify((string) $password, $a->BaPassword)) return $a;
+    }
+    return null;
 }
 
 /** First step of the sign-up, and the profile: names and country. '' when fine, else the message. */
@@ -309,7 +352,8 @@ function bk_other_check_account($d, $licence, $password)
     list($from, $to) = bk_other_year_range();
     if (intval($d['year']) < $from || intval($d['year']) > $to) return bk_t('OtNeedYear');
     if (trim((string) $d['club']) === '') return bk_t('OtNeedClub');
-    if ($licence && !preg_match('/^[A-Z0-9][A-Z0-9.\-\/]{2,24}$/', bk_clean_licence($d['licence']))) return bk_t('OtNeedLicence');
+    // The identifier adds "COUNTRY-" in front: 21 characters left of the 25.
+    if ($licence && !preg_match('/^[A-Z0-9][A-Z0-9.\-\/]{2,20}$/', bk_clean_licence($d['licence']))) return bk_t('OtNeedLicence');
     if ($password) {
         if (mb_strlen((string) $d['password']) < 8) return bk_t('OtPwdShort');
         if ((string) $d['password'] !== (string) $d['password2']) return bk_t('OtPwdDiffer');

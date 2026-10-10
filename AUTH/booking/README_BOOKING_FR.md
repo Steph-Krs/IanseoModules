@@ -17,11 +17,16 @@ quelques clics. Pensé pour les serveurs ianseo accessibles en ligne.
   sont transmis à la fédération, qui seule les vérifie. **Aucun mot de passe n'est conservé par
   ce site.** Double authentification prise en charge. Le compte est créé automatiquement à la
   première connexion.
-- 🌍 **Archers d'une autre fédération** (sans licence FFTA) : compte propre, en deux étapes. L'identité
-  est d'abord cherchée chez World Archery (compétitions internationales, fautes de frappe tolérées ;
-  identifiant WA, lien vers la fiche WA et photo chargée directement chez WA). Trouvé : l'identifiant
-  WA devient l'identifiant de connexion ; sinon, la licence nationale. Puis année de naissance, club
-  et mot de passe. Doublons refusés ; club modifiable. Suppression automatique un mois après la
+- 🌍 **Archers d'une autre fédération** (sans licence FFTA) : compte propre, en deux étapes, le pays
+  d'abord. Si la fédération publie le fichier de ses licenciés (Italie, Canada, Slovénie, pays baltes
+  — téléchargés chaque nuit), l'archer donne sa licence, contrôlée au format du pays : identité et
+  club viennent du fichier et ne sont pas modifiables, seul le mot de passe est demandé ; une licence
+  absente du fichier n'ouvre pas de compte, une licence archivée ouvre un compte sans inscription
+  possible. Sinon l'identité est cherchée chez World Archery (compétitions internationales, fautes de
+  frappe tolérées ; identifiant WA, lien vers la fiche WA et photo chargée directement chez WA), puis
+  année de naissance, club et mot de passe. Identifiant de connexion : pays et licence (ITA-00000) ou
+  identifiant World Archery (WA-00000) — le numéro seul suffit. Doublons refusés ; club modifiable
+  s'il a été saisi. Suppression automatique un mois après la
   dernière connexion et la dernière compétition. Mot de passe oublié : redonné par l'administrateur,
   aucun contact n'étant conservé.
 - 🗑️ **Supprimer mon compte** (tout archer) : efface définitivement ce qui est à venir — inscriptions
@@ -84,7 +89,8 @@ Tout se trouve dans le menu **Modules › Inscriptions en ligne**, compétition 
 
 Tables créées automatiquement, toutes préfixées `BK_` : `BookingArchers` (comptes licenciés),
 `BookingSessions`, `BookingLog` (journal et limitation des tentatives), `BookingCompetitions` (ouverture des
-inscriptions), `BookingRegistrations` (traçabilité), `BookingSessionRules` (ouverture de chaque départ), `BookingClubManagers`.
+inscriptions), `BookingRegistrations` (traçabilité), `BookingSessionRules` (ouverture de chaque départ), `BookingClubManagers`, `BookingFedLicences`
+(fichiers des licenciés des fédérations étrangères qui en publient un, mis à jour chaque nuit).
 
 Les inscriptions elles-mêmes sont écrites dans les tables **de ianseo** (participants et cibles),
 exactement comme une saisie manuelle : elles apparaissent normalement dans tous les écrans et

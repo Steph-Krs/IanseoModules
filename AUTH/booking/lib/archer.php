@@ -93,14 +93,33 @@ function bk_lookup_licence($licence)
     $licence = bk_clean_licence($licence);
     if ($licence === '') return null;
 
-    $q = safe_r_sql("SELECT LueCode, LueFamilyName, LueName, LueCtrlCode, LueSex,
+    $r = bk_lookup_licence_row($licence);
+    // An archer without an FFTA licence ("COUNTRY-licence") has a row of their own, written for
+    // their account or from their federation's file (clubmate registered by another archer): a
+    // synchronisation of that country in the core erases it. Written again here, then read.
+    if (!$r && strpos($licence, '-') !== false) {
+        $a = bk_get_archer_by_licence($licence);
+        if ($a && ($a->BaKind ?? '') === 'OTHER') {
+            require_once __DIR__ . '/other.php';
+            bk_other_lue_sync($a);
+            return bk_lookup_licence_row($licence);
+        }
+        require_once __DIR__ . '/fedlic.php';
+        if (bk_fed_lue_ensure($licence)) return bk_lookup_licence_row($licence);
+    }
+    return $r;
+}
+
+/** The row only, without the repair of bk_lookup_licence(). */
+function bk_lookup_licence_row($licence)
+{
+    return safe_fetch(safe_r_sql("SELECT LueCode, LueFamilyName, LueName, LueCtrlCode, LueSex,
                 LueCountry, LueCoDescr, LueCountry2, LueCoDescr2, LueDivision, LueClass, LueSubClass,
                 LueStatus, LueStatusValidUntil, LueIocCode
         FROM LookUpEntries
-        WHERE LueCode = " . StrSafe_DB($licence) . "
+        WHERE LueCode = " . StrSafe_DB(bk_clean_licence($licence)) . "
         ORDER BY LueDefault DESC
-        LIMIT 1");
-    return safe_fetch($q) ?: null;
+        LIMIT 1")) ?: null;
 }
 
 /* ------------------------------------------------------------------ */

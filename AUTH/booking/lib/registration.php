@@ -126,11 +126,15 @@ function bk_is_major($dob)
  * in all these cases "nothing must happen" (business rule: a third party outside one's own club
  * is never registered).
  */
-function bk_lookup_clubmate($licence, $selfClubCode)
+function bk_lookup_clubmate($licence, $selfClubCode, $selfIoc = '')
 {
     // bytes: licence numbers and club codes are ASCII letters and digits
     $selfClubCode = strtoupper(trim((string) $selfClubCode));
     if ($selfClubCode === '') return null;
+    // An archer without an FFTA licence types the number of a clubmate: their identifier is
+    // "COUNTRY-number" (lib/other.php), found in the federation file when they have no account.
+    $licence = bk_clean_licence($licence);
+    if ($selfIoc !== '' && $selfIoc !== 'FRA' && strpos($licence, '-') === false) $licence = $selfIoc . '-' . $licence;
 
     $lue = bk_lookup_licence($licence);
     if (!$lue) return null;

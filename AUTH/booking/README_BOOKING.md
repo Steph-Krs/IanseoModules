@@ -14,11 +14,16 @@ in a few clicks. Designed for ianseo servers reachable online.
   passed on to the federation, which alone checks them. **No password is kept by this site.**
   Two-factor authentication supported. The account is created automatically at the first
   sign-in.
-- 🌍 **Archers of another federation** (no FFTA licence): their own account, in two steps. Their
-  identity is first looked up at World Archery (international competitions, typos forgiven; WA
-  identifier, link to the WA profile and photo loaded straight from WA). Found there: the WA
-  identifier is their sign-in identifier; otherwise their national licence. Then birth year, club
-  and password. Duplicates refused; club editable. Erased automatically one month after their last
+- 🌍 **Archers of another federation** (no FFTA licence): their own account, in two steps, the
+  country first. Where the federation publishes its licensee file (Italy, Canada, Slovenia, Baltic
+  countries — downloaded each night), the archer gives their licence, checked against the format of
+  the country: identity and club come from the file and cannot be edited, only the password is
+  asked; a licence missing from the file gets no account, an archived one gets an account but
+  cannot register. Elsewhere the identity is looked up at World Archery (international
+  competitions, typos forgiven; WA identifier, link to the WA profile and photo loaded straight from
+  WA), then birth year, club and password. Sign-in identifier: country and licence (ITA-00000) or
+  WA identifier (WA-00000) — the number alone is enough. Duplicates refused; club editable when it
+  was typed. Erased automatically one month after their last
   sign-in and last competition. Forgotten password: given again by the administrator, as no
   contact is kept.
 - 🗑️ **Delete my account** (every archer): erases for good what is to come — registrations for the
@@ -79,7 +84,8 @@ Everything is in the **Modules › Online registration** menu, with the competit
 
 Tables created automatically, all prefixed `BK_`: `BookingArchers` (licensee accounts),
 `BookingSessions`, `BookingLog` (log and rate limiting), `BookingCompetitions` (opening of the
-registrations), `BookingRegistrations` (traceability), `BookingSessionRules` (opening of each session), `BookingClubManagers`.
+registrations), `BookingRegistrations` (traceability), `BookingSessionRules` (opening of each session), `BookingClubManagers`, `BookingFedLicences`
+(licensee files of the foreign federations that publish one, refreshed each night).
 
 The registrations themselves are written into the **ianseo** tables (participants and targets),
 exactly like a manual entry: they show normally in every screen and export of the software.

@@ -180,7 +180,7 @@ if (!empty($_GET['ok']) && $okTour > 0) {
     $okSubjectLic = bk_clean_licence($_GET['s'] ?? '');
     if ($okSubjectLic !== '' && $okSubjectLic !== bk_clean_licence($archer->BaLicence)) {
         $selfLue = bk_lookup_licence($archer->BaLicence);
-        if ($selfLue) $okSubject = bk_lookup_clubmate($okSubjectLic, $selfLue->LueCountry);
+        if ($selfLue) $okSubject = bk_lookup_clubmate($okSubjectLic, $selfLue->LueCountry, (string) $selfLue->LueIocCode);
     }
     $okLic = $okSubject ? $okSubjectLic : $archer->BaLicence;
     $okDue = bk_due_total($okTour, $okLic);

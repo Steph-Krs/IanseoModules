@@ -23,6 +23,9 @@ function acf_h($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); 
 function acf_int($v, $min, $max, $def) { $v = trim((string) $v); return ($v === '' || !is_numeric($v)) ? $def : max($min, min($max, intval($v))); }
 
 $msgOk = ''; $msgErr = ''; $testOut = null; $rawPosted = null;
+// Licensee files of foreign federations (booking/lib/fedlic.php), when the module has them.
+$acfFed = is_file(dirname(__DIR__) . '/booking/lib/fedlic.php');
+if ($acfFed) require_once(dirname(__DIR__) . '/booking/lib/other.php');   // country names, then fedlic.php
 $readErr = '';
 $cfg = aut_cfg_read($readErr);
 
@@ -66,6 +69,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cfg !== null) {
         $d = json_decode($rawPosted, true);
         if (!is_array($d)) $msgErr = aut_t('CfBadJson', json_last_error_msg());
         else $new = $d;
+    } elseif ($acfFed && $action === 'fed_sync') {
+        // The nightly step, at once (about a minute: downloads of several megabytes).
+        @set_time_limit(600);
+        $r = bk_fed_sync_all();
+        $okN = count(array_filter($r['states'], function ($x) { return $x === 'ok'; }));
+        if ($okN === count($r['states'])) $msgOk = aut_t('CfFedSynced', array('ok' => $okN, 'all' => count($r['states']), 'acc' => $r['accounts']));
+        else $msgErr = aut_t('CfFedSynced', array('ok' => $okN, 'all' => count($r['states']), 'acc' => $r['accounts']));
+    } elseif ($acfFed && $action === 'fed_force') {
+        // A file under 90 % of the day before, taken anyway: the federation may have cleaned it.
+        $src = (string) ($_POST['src'] ?? '');
+        if (isset(bk_fed_sources()[$src])) {
+            @set_time_limit(600);
+            $st = bk_fed_sync_source($src, true);
+            if ($st === 'ok') {
+                bk_fed_refresh_accounts();
+                aut_log('FED_FORCE', ($_SESSION['AUTH_User'] ?? 'local') . ' ' . $src);
+                $msgOk = aut_t('CfFedForced', $src);
+            } else {
+                $msgErr = aut_t('CfFedForceKo', $src);
+            }
+        }
     } elseif ($action === 'test_remote') {
         $remote = aut_backup_config($cfg)['remote'];
         $out = array();
@@ -105,6 +129,8 @@ echo '<style>
 #acf td.lbl{width:34%;font-weight:bold}
 #acf .hint{font-size:11px;color:#555}
 #acf textarea{width:100%;min-height:360px;font-family:monospace;font-size:12px}
+#acf table.acf-jobs{width:100%;border-collapse:collapse;font-size:12px}
+#acf table.acf-jobs th,#acf table.acf-jobs td{border-bottom:1px solid #e3e6e9;padding:3px 6px;text-align:left;vertical-align:top}
 #acf input[type=text]{width:95%}
 </style>';
 
@@ -131,6 +157,58 @@ foreach (aut_health_checks() as $h) {
     if ($h['fix'] !== '') echo '<code class="cmd">' . acf_h($h['fix']) . '</code>';
     echo '</td></tr>';
 }
+
+/* ---------------- Licensee files of foreign federations ---------------- */
+if ($acfFed) {
+    echo '<tr><th class="Title" colspan="2">' . acf_h(aut_t('CfFedTitle')) . '</th></tr>';
+    echo '<tr><td colspan="2" class="hint">' . acf_h(aut_t('CfFedIntro')) . '</td></tr>';
+    $acfNames = function_exists('bk_other_countries') ? bk_other_countries() : array();
+    foreach (bk_fed_state() as $src => $st) {
+        $ctry = array();
+        foreach (bk_fed_sources()[$src] as $c) $ctry[] = $acfNames[$c] ?? $c;
+        echo '<tr><td class="lbl">' . acf_h($src) . '<div class="hint">' . acf_h(implode(', ', $ctry)) . '</div></td><td>';
+        $loaded = $st && $st->BfsLoaded ? aut_t('CfFedLoaded', array('n' => number_format(intval($st->BfsCount), 0, ',', ' '),
+            'when' => aut_job_when($st->BfsLoaded))) : '';
+        if (!$st) {
+            echo '<span class="warn">ℹ ' . acf_h(aut_t('CfFedNever')) . '</span>';
+        } elseif ($st->BfsState === 'ok') {
+            echo '<span class="ok">✔ ' . acf_h($loaded) . '</span>';
+        } elseif ($st->BfsState === 'short') {
+            echo '<span class="ko">⚠ ' . acf_h(aut_t('CfFedShort', array('n' => number_format(intval($st->BfsPending), 0, ',', ' '),
+                    'b' => number_format(intval($st->BfsCount), 0, ',', ' ')))) . '</span>'
+                . '<form method="post" action="" style="margin:6px 0 0">' . aut_csrf_field()
+                . '<input type="hidden" name="action" value="fed_force"><input type="hidden" name="src" value="' . acf_h($src) . '">'
+                . '<button type="submit" data-confirm="' . acf_h(aut_t('CfFedForceConfirm', $src)) . '" onclick="return confirm(this.dataset.confirm);">'
+                . acf_h(aut_t('CfFedForce', number_format(intval($st->BfsPending), 0, ',', ' '))) . '</button></form>';
+            if ($loaded !== '') echo '<div class="hint">' . acf_h($loaded) . '</div>';
+        } elseif ($st->BfsState === 'nourl') {
+            echo '<span class="warn">– ' . acf_h(aut_t('CfFedNoUrl')) . '</span>';
+        } else {
+            echo '<span class="ko">✘ ' . acf_h(aut_t('CfFedFail', $st->BfsMessage)) . '</span>';
+            if ($loaded !== '') echo '<div class="hint">' . acf_h($loaded) . '</div>';
+        }
+        if ($st && $st->BfsChecked) echo '<div class="hint">' . acf_h(aut_t('CfFedChecked', aut_job_when($st->BfsChecked))) . '</div>';
+        echo '</td></tr>';
+    }
+    echo '<tr><td colspan="2" class="Center"><form method="post" action="">' . aut_csrf_field()
+        . '<input type="hidden" name="action" value="fed_sync"><button type="submit" onclick="this.disabled=true;this.form.submit();">'
+        . acf_h(aut_t('CfFedSyncNow')) . '</button></form><div class="hint">' . acf_h(aut_t('CfFedSyncHint')) . '</div></td></tr>';
+}
+
+/* ---------------- Journal of the scheduled jobs ---------------- */
+echo '<tr><th class="Title" colspan="2">' . acf_h(aut_t('CfJobs')) . '</th></tr>';
+echo '<tr><td colspan="2" class="hint">' . acf_h(aut_t('CfJobsIntro')) . '</td></tr>';
+aut_ensure_schema();
+$acfRs = safe_r_sql("SELECT * FROM AuthJobs WHERE AjWhen > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 14 DAY) ORDER BY AjId DESC LIMIT 80");
+$acfJobs = '';
+$acfJobIcon = array('ok' => '<span class="ok">✔</span>', 'warn' => '<span class="ko">⚠</span>', 'fail' => '<span class="ko">✘</span>', 'skip' => '<span class="warn">–</span>');
+while ($j = safe_fetch($acfRs)) {
+    $acfJobs .= '<tr><td style="white-space:nowrap">' . acf_h(aut_job_when($j->AjWhen)) . '</td><td>' . acf_h(aut_backup_step_label($j->AjJob))
+        . '</td><td class="Center">' . ($acfJobIcon[$j->AjStatus] ?? acf_h($j->AjStatus)) . '</td><td>' . acf_h(aut_job_text($j)) . '</td></tr>';
+}
+echo '<tr><td colspan="2">' . ($acfJobs === '' ? '<i>' . acf_h(aut_t('CfJobsEmpty')) . '</i>'
+    : '<table class="acf-jobs"><tr><th>' . acf_h(aut_t('CfJobWhen')) . '</th><th>' . acf_h(aut_t('CfJobTask')) . '</th><th></th><th>'
+        . acf_h(aut_t('CfJobResult')) . '</th></tr>' . $acfJobs . '</table>') . '</td></tr>';
 
 /* ---------------- Backup ---------------- */
 $fix = '';

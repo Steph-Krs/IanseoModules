@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 32);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 34);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -611,10 +611,11 @@ function bk_schema()
     bk_colonne('BookingRegistrations', 'BrHoldSession', "SMALLINT NOT NULL DEFAULT 0 AFTER BrLicHold");
     bk_colonne('BookingWaitlist', 'BwReturn', "TINYINT NOT NULL DEFAULT 0 AFTER BwEnId");
 
-    // v32 — archers without an FFTA licence (lib/foreign.php): own account, signed in with their
-    // national licence (BaLicence) and a password (BaPassword). BaKind 'FFTA' (federal sign-in,
-    // identity from the federation file) or 'OTHER'. BaSource 'wa' when the identity comes from
-    // World Archery (BaWaId; names, sex and country then not editable), 'own' when typed.
+    // v32 — archers without an FFTA licence (lib/other.php): own account, signed in with an
+    // identifier "COUNTRY-licence" or "WA-id" (BaLicence) and a password (BaPassword). BaKind
+    // 'FFTA' (federal sign-in, identity from the federation file) or 'OTHER'. BaSource 'fed' when
+    // the identity comes from a foreign federation file (v33), 'wa' from World Archery (BaWaId;
+    // names, sex and country then not editable), 'own' when typed.
     bk_colonne('BookingArchers', 'BaKind',      "VARCHAR(8) NOT NULL DEFAULT 'FFTA' AFTER BaLicence");
     bk_colonne('BookingArchers', 'BaCountry',   "VARCHAR(3) NOT NULL DEFAULT '' AFTER BaClubCode");
     bk_colonne('BookingArchers', 'BaClubName',  "VARCHAR(80) NOT NULL DEFAULT '' AFTER BaCountry");
@@ -623,6 +624,39 @@ function bk_schema()
     bk_colonne('BookingArchers', 'BaWaId',      "INT UNSIGNED NOT NULL DEFAULT 0 AFTER BaBirthYear");
     bk_colonne('BookingArchers', 'BaSource',    "VARCHAR(4) NOT NULL DEFAULT '' AFTER BaWaId");
     bk_index('BookingArchers', 'BaWaIdx', 'KEY BaWaIdx (BaWaId)');
+
+    // v33 — licensee files published by some foreign federations (lib/fedlic.php), loaded each
+    // night (cron/sync-fed.php). Whole files, archives (status 9) included: such an archer gets an
+    // account but cannot register. BflSource = the file (BALT holds three countries).
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BookingFedLicences (
+        BflCountry    VARCHAR(3)  NOT NULL,
+        BflCode       VARCHAR(25) NOT NULL,
+        BflSource     VARCHAR(5)  NOT NULL,
+        BflFamilyName VARCHAR(60) NOT NULL DEFAULT '',
+        BflName       VARCHAR(30) NOT NULL DEFAULT '',
+        BflSex        TINYINT     NOT NULL DEFAULT 0,
+        BflBirth      DATE        NULL,
+        BflClub       VARCHAR(10) NOT NULL DEFAULT '',
+        BflClubName   VARCHAR(80) NOT NULL DEFAULT '',
+        BflClubShort  VARCHAR(30) NOT NULL DEFAULT '',
+        BflStatus     TINYINT     NOT NULL DEFAULT 0,
+        BflValidUntil DATE        NULL,
+        PRIMARY KEY (BflCountry, BflCode),
+        KEY BflSourceIdx (BflSource)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    // v34 — state of each file, for the administrator (admin/config.php): last check and last
+    // load (UTC), licences loaded, 'ok' / 'short' (refused: under 90 % of the day before,
+    // BfsPending licences — the administrator may force it) / 'fail' / 'nourl'.
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BookingFedSources (
+        BfsSource   VARCHAR(5)   NOT NULL PRIMARY KEY,
+        BfsChecked  DATETIME     NULL,
+        BfsLoaded   DATETIME     NULL,
+        BfsCount    INT UNSIGNED NOT NULL DEFAULT 0,
+        BfsPending  INT UNSIGNED NOT NULL DEFAULT 0,
+        BfsState    VARCHAR(8)   NOT NULL DEFAULT '',
+        BfsFileDate VARCHAR(19)  NOT NULL DEFAULT '',
+        BfsMessage  VARCHAR(255) NOT NULL DEFAULT ''
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     $_SESSION[$flag] = true;
 }

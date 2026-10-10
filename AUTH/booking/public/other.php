@@ -1,8 +1,9 @@
 <?php
 /**
- * public/other.php — sign-in of an archer WITHOUT an FFTA licence (lib/other.php): national
- * licence and password, then the code of their authenticator app when they turned it on
- * (security.php). FFTA licensees sign in with the federation (Modules/Custom/AUTH/login.php).
+ * public/other.php — sign-in of an archer WITHOUT an FFTA licence (lib/other.php): identifier
+ * ("COUNTRY-licence", "WA-id", or the number alone) and password, then the code of their
+ * authenticator app when they turned it on (security.php). FFTA licensees sign in with the
+ * federation (Modules/Custom/AUTH/login.php).
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/other.php';
@@ -90,8 +91,8 @@ if ($stage === 'totp') {
 $out .= '<button type="submit" class="bk-btn bk-btn-primary">' . bk_e(bk_t('OtSignIn')) . '</button></form>'
     . '<p class="bk-alt">' . bk_e(bk_t('OtNoAccount')) . ' <a href="' . bk_e(bk_public_url('other-signup.php')) . '">'
     . bk_e(bk_t('OtCreate')) . '</a></p>'
-    . '<p class="bk-alt"><a href="' . bk_e($GLOBALS['CFG']->ROOT_DIR . 'Modules/Custom/AUTH/login.php?p=comp') . '">'
-    . bk_e(bk_t('OtFftaLink')) . '</a></p>'
+    . '<p><a class="bk-btn bk-logo-btn" href="' . bk_e($GLOBALS['CFG']->ROOT_DIR . 'Modules/Custom/AUTH/login.php?p=comp') . '">'
+    . '<img src="' . bk_e(bk_public_url('assets/logo-ffta.png')) . '" alt="">' . bk_e(bk_t('OtFftaLink')) . '</a></p>'
     . '<p class="bk-hint">' . bk_e(bk_t('OtForgot')) . '</p></div>';
 echo $out;
 bk_foot();

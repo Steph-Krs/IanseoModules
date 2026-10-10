@@ -150,7 +150,7 @@ function aut_ensure_schema() {
     if ($done) return;
     $done = true;
     aut_table_names();   // before any CREATE: see names-lib.php
-    if (!empty($_SESSION['_aut_schema_v10'])) return;
+    if (!empty($_SESSION['_aut_schema_v11'])) return;
 
     $q = safe_r_sql("SHOW TABLES LIKE 'AuthUsers'");
     if (!safe_fetch($q)) {
@@ -365,7 +365,78 @@ function aut_ensure_schema() {
         KEY TnCheckedIdx (TnChecked)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    $_SESSION['_aut_schema_v10'] = true;
+    // v11: journal of the scheduled jobs (nightly maintenance, licence files…), read on the
+    // server settings page (admin/config.php) so that the server can be followed without a
+    // shell. AjMessage = JSON {"k": language key, "a": its parameters}: translated when shown.
+    // AjWhen in UTC (the command-line scripts run their MySQL session in UTC).
+    safe_w_sql("CREATE TABLE IF NOT EXISTS AuthJobs (
+        AjId      INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        AjWhen    DATETIME     NOT NULL,
+        AjJob     VARCHAR(32)  NOT NULL,
+        AjStatus  VARCHAR(8)   NOT NULL,
+        AjMessage VARCHAR(1000) NOT NULL DEFAULT '',
+        KEY AjWhenIdx (AjWhen),
+        KEY AjJobIdx (AjJob)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $_SESSION['_aut_schema_v11'] = true;
+}
+
+/* ------------------------------------------------------------------ */
+/* Journal of the scheduled jobs (AuthJobs)                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Records the outcome of a job: $status 'ok', 'warn', 'fail' or 'skip'; $key a language key of
+ * AUTH (translated when read), $a its parameters (technical details such as an HTTP error stay
+ * as they are). $job: a step code of aut_backup_step_label(), or 'fed:SOURCE'.
+ */
+function aut_job_log($job, $status, $key, $a = null)
+{
+    aut_ensure_schema();
+    $msg = json_encode(array('k' => $key, 'a' => $a), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if ($msg === false) $msg = json_encode(array('k' => $key, 'a' => null));
+    safe_w_sql("INSERT INTO AuthJobs SET AjWhen = UTC_TIMESTAMP(), AjJob = " . StrSafe_DB(mb_substr($job, 0, 32))
+        . ", AjStatus = " . StrSafe_DB($status) . ", AjMessage = " . StrSafe_DB(mb_substr($msg, 0, 1000)));
+}
+
+/** Last id of the journal: lets a caller know whether a job wrote its own lines since. */
+function aut_job_last_id()
+{
+    aut_ensure_schema();
+    $r = safe_fetch(safe_r_sql("SELECT MAX(AjId) AS m FROM AuthJobs"));
+    return $r ? intval($r->m) : 0;
+}
+
+/** Did job $job write a line after id $since? */
+function aut_job_written($job, $since)
+{
+    return (bool) safe_fetch(safe_r_sql("SELECT AjId FROM AuthJobs WHERE AjId > " . intval($since)
+        . " AND AjJob = " . StrSafe_DB($job) . " LIMIT 1"));
+}
+
+/** Text of a line of the journal, in the reader's language. */
+function aut_job_text($row)
+{
+    $m = json_decode((string) $row->AjMessage, true);
+    if (!is_array($m) || empty($m['k'])) return (string) $row->AjMessage;
+    $a = $m['a'] ?? null;
+    // Step codes (maintenance with failures): their names in the reader's language.
+    if (is_array($a) && is_array($a['steps'] ?? null)) {
+        $a['steps'] = implode(', ', array_map(function ($c) {
+            return function_exists('aut_backup_step_label') ? aut_backup_step_label((string) $c) : (string) $c;
+        }, $a['steps']));
+    }
+    return aut_t($m['k'], $a);
+}
+
+/** Local time (timezone of the server's settings) of a UTC date of the journal. */
+function aut_job_when($utc, $fmt = 'd/m/Y H:i')
+{
+    $name = (string) (aut_local_config()['timezone'] ?? 'Europe/Paris');
+    try { $tz = new DateTimeZone($name); } catch (\Throwable $e) { $tz = new DateTimeZone('UTC'); }
+    try { $d = new DateTime((string) $utc, new DateTimeZone('UTC')); } catch (\Throwable $e) { return (string) $utc; }
+    return $d->setTimezone($tz)->format($fmt);
 }
 
 /* ------------------------------------------------------------------ */
@@ -416,6 +487,7 @@ function aut_log_retention_days() {
 function aut_log_purge() {
     $days = aut_log_retention_days();
     safe_w_sql("DELETE FROM AuthLog WHERE AlWhen < DATE_SUB(NOW(), INTERVAL $days DAY) LIMIT 20000");
+    safe_w_sql("DELETE FROM AuthJobs WHERE AjWhen < DATE_SUB(UTC_TIMESTAMP(), INTERVAL $days DAY) LIMIT 20000");
     $r = safe_fetch(safe_r_sql("SELECT 1 AS x FROM information_schema.TABLES
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BookingLog'"));
     if ($r) safe_w_sql("DELETE FROM BookingLog WHERE BlWhen < DATE_SUB(NOW(), INTERVAL $days DAY) LIMIT 20000");
@@ -1663,6 +1735,9 @@ function aut_admin_only_paths() {
         '/Modules/Help/LoadDebug.php',
         '/RepairXAMPP.php',                    // aria_chk + mysqld restart
         '/info.php',                           // phpinfo(): versions, paths, and the visitor's own cookies
+        // Athletes sync: replaces all the LookUpEntries rows of a country with any file, an
+        // empty one included — the licence checks and accounts of the whole server rest on them.
+        '/Partecipants/LookupTableLoad.php',
     );
     foreach ((aut_local_config()['admin_only_paths'] ?? array()) as $p) {
         if (is_string($p) && $p !== '') $paths[] = $p;
