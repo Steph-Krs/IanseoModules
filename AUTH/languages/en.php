@@ -888,6 +888,8 @@ $lang['LgPOther']          = 'An archer of another federation creates their acco
 $lang['LgPSelfDelete']     = 'You may also delete your account yourself from your space ("Delete my account"): your registrations for the competitions not started and your waiting-list requests are then erased for good; the competitions started, the past results and the sums due or paid stay unchanged.';
 $lang['LicMainAnomaly']    = 'Some archers have no active licence today';
 $lang['LicMainCount']      = 'Archers concerned: {$a}';
+$lang['ForMainAnomaly']    = 'Registered online without an FFTA licence';
+$lang['ForMainCount']      = '{$a} archer(s): identity not checked, to verify';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Invalid content.';

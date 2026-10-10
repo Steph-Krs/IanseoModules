@@ -1,7 +1,8 @@
 <?php
 /**
- * AUTH module — licences in the federation file (read only, no dependency on the online
- * registration): who, among the archers of a competition, is not in today's FFTA file.
+ * AUTH module — licences of the archers of a competition (read only): who is not in today's FFTA
+ * file, and who registered online without an FFTA licence (the online registration's tables are
+ * read guarded: this file works without them).
  *
  * The file of the federation carries no validity date: being in the file of the day IS the
  * licence. cron/sync-licences.php reloads it every night and records whether the new file can be
@@ -41,6 +42,28 @@ function aut_lic_file_ok()
         AND LupLastUpdate >= DATE_SUB(NOW(), INTERVAL 3 DAY)", false, true);
     $ok = $rs && safe_fetch($rs);
     return $ok;
+}
+
+/**
+ * Archers WITHOUT an FFTA licence registered online for a competition (booking/lib/other.php):
+ * their identity is not checked by the federation as an FFTA licensee's is (sign-in through the
+ * licensee space), so a false account may hide behind a foreign name — the organiser is told.
+ * [EnId => row (EnId, EnCode, EnIocCode, EnFirstName, EnName, BrByRole, BrBy, BaSource — null for
+ * a clubmate without an account, taken from a federation file)]. Registrations by the organiser
+ * (taken over at a re-import) are left out. Guarded: [] while the module tables are missing.
+ */
+function aut_lic_foreign($tourId)
+{
+    $t = intval($tourId);
+    $rs = safe_r_sql("SELECT EnId, EnCode, EnIocCode, EnFirstName, EnName, BrByRole, BrBy, BaSource
+        FROM BookingRegistrations
+        INNER JOIN Entries ON EnId = BrEnId AND EnTournament = $t
+        LEFT JOIN BookingArchers ON BaLicence = BrLicence
+        WHERE BrTournament = $t AND BrByRole <> 'IMPORT' AND EnAthlete = 1 AND NOT (" . aut_lic_ffta_sql() . ")
+        ORDER BY EnFirstName, EnName", false, true);
+    $out = array();
+    while ($rs && ($r = safe_fetch($rs))) $out[intval($r->EnId)] = $r;
+    return $out;
 }
 
 /**

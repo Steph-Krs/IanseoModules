@@ -886,6 +886,8 @@ $lang['LgPOther']          = 'Ein Schütze eines anderen Verbands legt sein Kont
 $lang['LgPSelfDelete']     = 'Sie können Ihr Konto auch selbst in Ihrem Bereich löschen („Mein Konto löschen“): Ihre Anmeldungen zu noch nicht begonnenen Wettkämpfen und Ihre Wartelisten-Anfragen werden dann endgültig gelöscht; begonnene Wettkämpfe, bisherige Ergebnisse und geschuldete oder bezahlte Beträge bleiben unverändert.';
 $lang['LicMainAnomaly']    = 'Einige Schützen haben heute keine gültige Lizenz';
 $lang['LicMainCount']      = 'Betroffene Schützen: {$a}';
+$lang['ForMainAnomaly']    = 'Online angemeldet ohne FFTA-Lizenz';
+$lang['ForMainCount']      = '{$a} Schütze(n): Identität nicht geprüft, zu überprüfen';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Ungültiger Inhalt.';

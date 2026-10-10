@@ -284,51 +284,68 @@ document.addEventListener('DOMContentLoaded', function () {
 JS;
 }
 
-/* ---- Home page of a competition (ianseo core, not editable): archers without an active licence
-       today join the core's list of anomalies (licence-lib.php, read only — menu.php writes
-       nothing). Competitions not over only. ---- */
+/* ---- Home page of a competition (ianseo core, not editable): join the core's list of anomalies
+       (licence-lib.php, read only — menu.php writes nothing), competitions not over only:
+       - archers without an active licence today;
+       - archers without an FFTA licence registered online: nobody checked their identity. ---- */
 if (strcasecmp(aut_script_rel(), '/Main.php') === 0 && intval($_SESSION['TourId'] ?? 0) > 0 && empty($_REQUEST['New'])) {
     require_once(__DIR__ . '/licence-lib.php');
     $_aut_t = intval($_SESSION['TourId']);
     $_aut_rs = safe_r_sql("SELECT ToId FROM Tournament WHERE ToId = $_aut_t AND ToWhenTo >= CURDATE()", false, true);
-    $_aut_n = ($_aut_rs && safe_fetch($_aut_rs)) ? count(aut_lic_absent($_aut_t)) : 0;
-    if ($_aut_n > 0) {
+    $_aut_rows = array();
+    if ($_aut_rs && safe_fetch($_aut_rs)) {
+        $_aut_link = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php';
+        $_aut_n = count(aut_lic_absent($_aut_t));
+        if ($_aut_n > 0) $_aut_rows[] = array('msg' => aut_t('LicMainAnomaly'), 'count' => aut_t('LicMainCount', $_aut_n), 'link' => $_aut_link);
+        $_aut_n = count(aut_lic_foreign($_aut_t));
+        if ($_aut_n > 0) $_aut_rows[] = array('msg' => aut_t('ForMainAnomaly'), 'count' => aut_t('ForMainCount', $_aut_n), 'link' => $_aut_link);
+    }
+    if ($_aut_rows) {
         echo '<script>var AUT_LIC_ANOM = ' . json_encode(array(
-            'msg'   => aut_t('LicMainAnomaly'),
-            'count' => aut_t('LicMainCount', $_aut_n),
-            'link'  => $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php',
+            'rows'  => $_aut_rows,
             'title' => get_text('Anomalies', 'Errors'),
             'after' => get_text('TourIsOris', 'Tournament'),
         ), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) . ";</script>\n";
         echo <<<'JS'
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    var d = AUT_LIC_ANOM, table = document.querySelector('table.Tabella');
+    // The competition's table: the one holding the line "ORIS" (the banner above is a Tabella too).
+    var d = AUT_LIC_ANOM, table = null;
+    document.querySelectorAll('table.Tabella').forEach(function (t) {
+        if (!table) t.querySelectorAll('th').forEach(function (th) { if (th.textContent.trim() === d.after) table = t; });
+    });
     if (!table) return;
-    var row = document.createElement('tr');
-    row.className = 'Dsq text-white';
-    var c1 = document.createElement('td'); c1.className = 'Bold'; c1.textContent = d.msg;
-    var c2 = document.createElement('td'); c2.className = 'TargetKo';
-    var a = document.createElement('a'); a.href = d.link; a.style.color = 'inherit';
-    a.innerHTML = '<i class="fa fa-link mr-2"></i>'; a.appendChild(document.createTextNode(d.count));
-    c2.appendChild(a); row.appendChild(c1); row.appendChild(c2);
+    var rows = d.rows.map(function (x) {
+        var row = document.createElement('tr');
+        row.className = 'Dsq text-white';
+        var c1 = document.createElement('td'); c1.className = 'Bold'; c1.textContent = x.msg;
+        var c2 = document.createElement('td'); c2.className = 'TargetKo';
+        var a = document.createElement('a'); a.href = x.link; a.style.color = 'inherit';
+        a.innerHTML = '<i class="fa fa-link mr-2"></i>'; a.appendChild(document.createTextNode(x.count));
+        c2.appendChild(a); row.appendChild(c1); row.appendChild(c2);
+        return row;
+    });
     var dsq = table.querySelectorAll('tr.Dsq');
-    if (dsq.length) { var last = dsq[dsq.length - 1]; last.parentNode.insertBefore(row, last.nextSibling); return; }
+    if (dsq.length) {
+        var ref = dsq[dsq.length - 1].nextSibling, parent = dsq[dsq.length - 1].parentNode;
+        rows.forEach(function (r) { parent.insertBefore(r, ref); });
+        return;
+    }
     // No anomaly block yet: the core's one is built after the line "ORIS".
     var anchor = null;
     table.querySelectorAll('tr').forEach(function (tr) { var th = tr.querySelector('th'); if (th && th.textContent.trim() === d.after) anchor = tr; });
     if (!anchor) return;
     var mk = function (html, cls) { var tr = document.createElement('tr'); tr.className = cls; tr.innerHTML = html; return tr; };
     var head = mk('<td class="Center Bold" colspan="2"></td>', 'Dsq text-white'); head.firstChild.textContent = d.title;
-    var nodes = [mk('<td colspan="2"></td>', 'Divider'), head, row, mk('<td colspan="2"></td>', 'Divider')];
-    var ref = anchor.nextSibling;
-    nodes.forEach(function (n) { anchor.parentNode.insertBefore(n, ref); });
+    var nodes = [mk('<td colspan="2"></td>', 'Divider'), head].concat(rows, [mk('<td colspan="2"></td>', 'Divider')]);
+    var at = anchor.nextSibling;
+    nodes.forEach(function (n) { anchor.parentNode.insertBefore(n, at); });
 });
 </script>
 
 JS;
     }
-    unset($_aut_t, $_aut_rs, $_aut_n);
+    unset($_aut_t, $_aut_rs, $_aut_n, $_aut_rows, $_aut_link);
 }
 
 // admin warning (ADMIN account signed in OR localhost browsing): deployed files missing or

@@ -886,6 +886,8 @@ $lang['LgPOther']          = 'Un archer d\'une autre fédération crée lui-mêm
 $lang['LgPSelfDelete']     = 'Vous pouvez aussi supprimer votre compte vous-même depuis votre espace (« Supprimer mon compte ») : vos inscriptions aux compétitions qui n\'ont pas commencé et vos demandes en liste d\'attente sont alors effacées définitivement ; les compétitions commencées, les résultats passés et les sommes dues ou réglées restent inchangés.';
 $lang['LicMainAnomaly']    = 'Certains archers n\'ont pas de licence active à ce jour';
 $lang['LicMainCount']      = 'Archers concernés : {$a}';
+$lang['ForMainAnomaly']    = 'Inscrits en ligne sans licence FFTA';
+$lang['ForMainCount']      = '{$a} archer(s) : identité non contrôlée, à vérifier';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Contenu invalide.';

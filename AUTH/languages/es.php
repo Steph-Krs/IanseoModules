@@ -886,6 +886,8 @@ $lang['LgPOther']          = 'Un arquero de otra federación crea él mismo su c
 $lang['LgPSelfDelete']     = 'También puede eliminar su cuenta usted mismo desde su espacio («Eliminar mi cuenta»): sus inscripciones en las competiciones que no han empezado y sus solicitudes en lista de espera se borran entonces definitivamente; las competiciones empezadas, los resultados pasados y los importes debidos o pagados no cambian.';
 $lang['LicMainAnomaly']    = 'Algunos arqueros no tienen licencia activa a día de hoy';
 $lang['LicMainCount']      = 'Arqueros afectados: {$a}';
+$lang['ForMainAnomaly']    = 'Inscritos en línea sin licencia FFTA';
+$lang['ForMainCount']      = '{$a} arquero(s): identidad no comprobada, a verificar';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Contenido no válido.';

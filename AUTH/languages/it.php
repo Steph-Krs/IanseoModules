@@ -886,6 +886,8 @@ $lang['LgPOther']          = 'Un arciere di un\'altra federazione crea da sé il
 $lang['LgPSelfDelete']     = 'Può anche eliminare il suo account da sé dal suo spazio («Eliminare il mio account»): le sue iscrizioni alle gare non ancora iniziate e le sue richieste in lista d\'attesa vengono allora cancellate definitivamente; le gare iniziate, i risultati passati e le somme dovute o pagate restano invariati.';
 $lang['LicMainAnomaly']    = 'Alcuni arcieri non hanno una licenza attiva a oggi';
 $lang['LicMainCount']      = 'Arcieri interessati: {$a}';
+$lang['ForMainAnomaly']    = 'Iscritti online senza licenza FFTA';
+$lang['ForMainCount']      = '{$a} arciere/i: identità non verificata, da controllare';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Contenuto non valido.';

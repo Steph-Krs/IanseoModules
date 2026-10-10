@@ -488,6 +488,24 @@ if ($licIssues) {
     $out .= '</ul></div>';
 }
 
+// Archers without an FFTA licence registered online: their identity was checked by nobody
+// (licence-lib.php). Registration goes on as for anyone; the organiser checks at the desk.
+$foreign = aut_lic_foreign($TOUR);
+if ($foreign) {
+    require_once dirname(__DIR__) . '/lib/other.php';   // country names
+    $ctry = bk_other_countries();
+    $src = array('fed' => bk_t('ForSrcFed'), 'wa' => bk_t('ForSrcWa'), 'own' => bk_t('ForSrcOwn'));
+    $out .= '<div class="bk-msg" style="background:#fff8e1;border:1px solid #e0a800;color:#5b4300;text-align:left">'
+        . '⚠ <b>' . bk_e(bk_t('ForTitle', count($foreign))) . '</b><br>' . bk_e(bk_t('ForHint')) . '<ul style="margin:6px 0 0">';
+    foreach ($foreign as $f) {
+        $how = $src[(string) ($f->BaSource ?? 'fed')] ?? $src['own'];
+        $out .= '<li>' . bk_e(trim($f->EnFirstName . ' ' . $f->EnName)) . ' (' . bk_e($f->EnCode)
+            . ($f->EnIocCode !== '' ? ', ' . bk_e($ctry[$f->EnIocCode] ?? $f->EnIocCode) : '') . ') — ' . bk_e($how)
+            . ($f->BrByRole !== 'SELF' && $f->BrBy !== '' ? ' — ' . bk_e(bk_t('ForBy', $f->BrBy)) : '') . '</li>';
+    }
+    $out .= '</ul></div>';
+}
+
 // Oversized departures (BK_BIG_SESSION_PLACES): slow for the whole server, whatever the level.
 $bigSes = array();
 foreach ($sessions as $s) {

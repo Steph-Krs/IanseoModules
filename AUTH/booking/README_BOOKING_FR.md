@@ -26,7 +26,9 @@ quelques clics. Pensé pour les serveurs ianseo accessibles en ligne.
   frappe tolérées ; identifiant WA, lien vers la fiche WA et photo chargée directement chez WA), puis
   année de naissance, club et mot de passe. Identifiant de connexion : pays et licence (ITA-00000) ou
   identifiant World Archery (WA-00000) — le numéro seul suffit. Doublons refusés ; club modifiable
-  s'il a été saisi. Suppression automatique un mois après la
+  s'il a été saisi. Personne ne contrôle leur identité comme la fédération le fait pour un licencié
+  FFTA : l'organisateur est prévenu de chacun d'eux inscrit en ligne (page d'accueil de la
+  compétition, page des inscriptions en ligne). Suppression automatique un mois après la
   dernière connexion et la dernière compétition. Mot de passe oublié : redonné par l'administrateur,
   aucun contact n'étant conservé.
 - 🗑️ **Supprimer mon compte** (tout archer) : efface définitivement ce qui est à venir — inscriptions

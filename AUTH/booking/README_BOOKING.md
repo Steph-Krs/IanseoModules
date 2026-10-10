@@ -23,7 +23,9 @@ in a few clicks. Designed for ianseo servers reachable online.
   competitions, typos forgiven; WA identifier, link to the WA profile and photo loaded straight from
   WA), then birth year, club and password. Sign-in identifier: country and licence (ITA-00000) or
   WA identifier (WA-00000) — the number alone is enough. Duplicates refused; club editable when it
-  was typed. Erased automatically one month after their last
+  was typed. Nobody checks their identity as the federation does for an FFTA licensee: the
+  organiser is warned of each one registered online (home page of the competition, online
+  registration page). Erased automatically one month after their last
   sign-in and last competition. Forgotten password: given again by the administrator, as no
   contact is kept.
 - 🗑️ **Delete my account** (every archer): erases for good what is to come — registrations for the
