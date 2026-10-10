@@ -828,6 +828,8 @@ $lang['CpSubmit']    = 'Ändern';
 /* ACL hooks (dist/BlockFunction.php) */
 $lang['ImportRefusedCode'] = 'Import abgelehnt — der Code „{$a}“ entspricht einem bestehenden Turnier, das Ihnen nicht gehört. Benennen Sie den Code Ihres Turniers vor dem Export um oder wenden Sie sich an den Administrator.';
 $lang['ImportRefused']     = 'Import abgelehnt — {$a}';
+$lang['LicMainAnomaly']    = 'Einige Schützen haben heute keine gültige Lizenz';
+$lang['LicMainCount']      = 'Betroffene Schützen: {$a}';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Ungültiger Inhalt.';

@@ -828,6 +828,8 @@ $lang['CpSubmit']    = 'Modifier';
 /* ACL hooks (dist/BlockFunction.php) */
 $lang['ImportRefusedCode'] = 'Import refusé — le code « {$a} » correspond à une compétition existante qui ne vous appartient pas. Renommez le code de votre compétition avant de l\'exporter, ou contactez l\'administrateur.';
 $lang['ImportRefused']     = 'Import refusé — {$a}';
+$lang['LicMainAnomaly']    = 'Certains archers n\'ont pas de licence active à ce jour';
+$lang['LicMainCount']      = 'Archers concernés : {$a}';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Contenu invalide.';

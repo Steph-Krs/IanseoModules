@@ -173,7 +173,7 @@ function bk_authored_registrations($archerId, $selfLicence)
     $archerId = intval($archerId);
     if ($archerId <= 0) return array();
 
-    $rs = safe_r_sql("SELECT BrId, BrEnId, BrTournament, BrLicence, BrCreated, BrValidated,
+    $rs = safe_r_sql("SELECT BrId, BrEnId, BrTournament, BrLicence, BrCreated, BrValidated, BrLicHold, BrHoldSession,
                 EnFirstName, EnName, EnCode, EnDivision, EnClass, EnIndClEvent,
                 QuSession, QuTarget, QuLetter,
                 DivDescription, ClDescription,
@@ -656,7 +656,7 @@ function bk_my_registrations($licence)
 {
     bk_schema();
     $rs = safe_r_sql("SELECT BrId, BrEnId, BrTournament, BrRequest, BrCreated, BrByRole,
-                BrWantLetter, BrWantWith, BrValidated,
+                BrWantLetter, BrWantWith, BrValidated, BrLicHold, BrHoldSession,
                 EnDivision, EnClass, EnIndClEvent, EnTargetFace,
                 QuSession, QuTarget, QuLetter,
                 DivDescription, ClDescription,

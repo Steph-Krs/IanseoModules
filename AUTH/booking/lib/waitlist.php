@@ -152,7 +152,10 @@ function bk_waitlist_process($tourId)
     $rs = safe_r_sql("SELECT BwId FROM BookingWaitlist WHERE BwTournament = $tourId AND BwStatus = 0 LIMIT 1", false, true);
     if (!$rs || !safe_fetch($rs)) return 0;
     $cfg = bk_comp_config($tourId);
-    if (!bk_waitlist_on($cfg) || empty($cfg->BcIsOpen) || bk_comp_finished($tourId)) return 0;
+    if (empty($cfg->BcIsOpen) || bk_comp_finished($tourId)) return 0;
+    // List switched off by the organiser: only the registrations coming back after their licence
+    // (BwReturn, lib/licences.php) are still served — they are registrations, not requests.
+    $onlyReturns = !bk_waitlist_on($cfg);
 
     $lockName = "CONCAT('bkwl:', DATABASE(), ':', $tourId)";
     $lk = safe_fetch(safe_r_sql("SELECT GET_LOCK($lockName, 0) AS l"));
@@ -163,11 +166,18 @@ function bk_waitlist_process($tourId)
         $orders = array();
         foreach (bk_comp_sessions($tourId) as $s) $orders[] = intval($s->SesOrder);
         $rows = array();
-        $q = safe_r_sql("SELECT * FROM BookingWaitlist WHERE BwTournament = $tourId AND BwStatus = 0 ORDER BY BwId");
+        // Order of the list: date of the request — a registration coming back after its licence
+        // carries the date of the original registration, so it comes before later requests.
+        $q = safe_r_sql("SELECT * FROM BookingWaitlist WHERE BwTournament = $tourId AND BwStatus = 0"
+            . ($onlyReturns ? " AND BwReturn = 1" : '') . " ORDER BY BwCreated, BwId");
         while ($r = safe_fetch($q)) $rows[] = $r;
         $rem = array();   // places left per departure and profile, for this run
 
         foreach ($rows as $w) {
+            if (intval($w->BwReturn)) {
+                if (bk_waitlist_serve_return($tourId, $cfg, $w, $rem)) { $rem = array(); $done++; }
+                continue;
+            }
             $lue = bk_lookup_licence($w->BwLicence);
             if (!$lue) continue;   // not in today's federal file: next time
             if (!array_key_exists($w->BwClass, bk_reg_classes($tourId, $lue->LueCtrlCode, $lue->LueSex, $w->BwDivision))) {
@@ -222,6 +232,40 @@ function bk_waitlist_process($tourId)
     return $done;
 }
 
+/**
+ * A suspended registration whose licence is back (BwReturn, lib/licences.php): back into its
+ * departure when it has room for its profile. True when served. $rem: the capacity cache of
+ * bk_waitlist_process.
+ */
+function bk_waitlist_serve_return($tourId, $cfg, $w, &$rem)
+{
+    require_once __DIR__ . '/licences.php';
+    $enId = intval($w->BwEnId);
+    $o = intval($w->BwSession);
+    $reg = safe_fetch(safe_r_sql("SELECT BrLicHold, BrValidated FROM BookingRegistrations
+        INNER JOIN Entries ON EnId = BrEnId AND EnTournament = " . intval($tourId) . " WHERE BrEnId = $enId"));
+    if (!$reg || $reg->BrLicHold === null) {
+        // Registration cancelled, or already back by another way: nothing left to serve.
+        safe_w_sql("UPDATE BookingWaitlist SET BwStatus = 2, BwSeen = 1 WHERE BwId = " . intval($w->BwId));
+        return false;
+    }
+    if ($o <= 0 || bk_reg_session_left($tourId, $o) < 1) return false;
+    $k = $o . '|' . $w->BwDivision . '|' . $w->BwClass . '|' . intval($w->BwFace);
+    if (!array_key_exists($k, $rem)) {
+        $left = bk_with_tournament($tourId, function () use ($tourId, $o, $w) {
+            return bk_profile_remaining($tourId, $o, $w->BwDivision, $w->BwClass, intval($w->BwFace));
+        });
+        $rem[$k] = ($left === null) ? null : intval($left);
+    }
+    if ($rem[$k] !== null && $rem[$k] < 1) return false;
+    bk_licence_restore($tourId, $enId, $o);
+    safe_w_sql("UPDATE BookingWaitlist SET BwStatus = 1, BwSeen = 0, BwDone = " . bk_waitlist_now_sql($tourId)
+        . " WHERE BwId = " . intval($w->BwId));
+    bk_log('LIC_RESTORE', $w->BwLicence);
+    if (intval($reg->BrValidated)) bk_replan_session($tourId, $o, $cfg);
+    return true;
+}
+
 /** Every competition with somebody waiting (cron/waitlist.php). Returns archers registered. */
 function bk_waitlist_sweep()
 {
@@ -257,7 +301,8 @@ function bk_waitlist_position($w)
 {
     $s = intval($w->BwSession);
     $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BookingWaitlist
-        WHERE BwTournament = " . intval($w->BwTournament) . " AND BwStatus = 0 AND BwId < " . intval($w->BwId) . "
+        WHERE BwTournament = " . intval($w->BwTournament) . " AND BwStatus = 0
+          AND (BwCreated < " . StrSafe_DB($w->BwCreated) . " OR (BwCreated = " . StrSafe_DB($w->BwCreated) . " AND BwId < " . intval($w->BwId) . "))
           AND BwDivision = " . StrSafe_DB($w->BwDivision) . " AND BwClass = " . StrSafe_DB($w->BwClass) . "
           AND BwFace = " . intval($w->BwFace) . ($s ? " AND (BwSession = 0 OR BwSession = $s)" : '')));
     return ($r ? intval($r->n) : 0) + 1;
@@ -286,7 +331,7 @@ function bk_waitlist_for_archer($archerId, $licence)
         WHERE " . bk_waitlist_who_sql($archerId, $licence) . "
           AND (BwStatus = 0 OR BwSeen = 0)
           AND ToWhenTo >= " . bk_local_today_sql('ToTimeZone') . "
-        ORDER BY ToWhenFrom, BwId", false, true);
+        ORDER BY ToWhenFrom, BwCreated, BwId", false, true);
     while ($rs && ($r = safe_fetch($rs))) $out[] = $r;
     return $out;
 }
@@ -311,7 +356,7 @@ function bk_waitlist_of_tournament($tourId)
 {
     $tourId = intval($tourId);
     $out = array('waiting' => array(), 'done' => array());
-    $rs = safe_r_sql(bk_waitlist_select_sql() . " WHERE BwTournament = $tourId AND BwStatus = 0 ORDER BY BwId", false, true);
+    $rs = safe_r_sql(bk_waitlist_select_sql() . " WHERE BwTournament = $tourId AND BwStatus = 0 ORDER BY BwCreated, BwId", false, true);
     while ($rs && ($r = safe_fetch($rs))) $out['waiting'][] = $r;
     $rs = safe_r_sql(bk_waitlist_select_sql() . " WHERE BwTournament = $tourId AND BwStatus IN (1, 2)
         ORDER BY BwDone DESC, BwId DESC LIMIT 20", false, true);
@@ -335,6 +380,20 @@ function bk_waitlist_register_now($tourId, $id, $session)
     $w = safe_fetch(safe_r_sql("SELECT * FROM BookingWaitlist WHERE BwId = " . intval($id) . "
         AND BwTournament = $tourId AND BwStatus = 0"));
     if (!$w) return array('ok' => false, 'msg' => bk_t('WlNotOnList'));
+    // A suspended registration coming back after its licence: it IS a registration, put back
+    // into the departure chosen (even full: the organiser's decision).
+    if (intval($w->BwReturn)) {
+        require_once __DIR__ . '/licences.php';
+        $session = intval($session);
+        if (bk_reg_session_left($tourId, $session) < 0) return array('ok' => false, 'msg' => bk_t('WlNoDep'));
+        $reg = safe_fetch(safe_r_sql("SELECT BrValidated FROM BookingRegistrations WHERE BrEnId = " . intval($w->BwEnId)));
+        if (!$reg) return array('ok' => false, 'msg' => bk_t('WlNotOnList'));
+        bk_licence_restore($tourId, $w->BwEnId, $session);
+        safe_w_sql("UPDATE BookingWaitlist SET BwStatus = 1, BwSeen = 0, BwSession = $session, BwDone = "
+            . bk_waitlist_now_sql($tourId) . " WHERE BwId = " . intval($w->BwId));
+        if (intval($reg->BrValidated)) bk_replan_session($tourId, $session, bk_comp_config($tourId));
+        return array('ok' => true, 'msg' => '');
+    }
     $lue = bk_lookup_licence($w->BwLicence);
     if (!$lue) return array('ok' => false, 'msg' => bk_t('WlUnknownLic'));
     $session = intval($session);

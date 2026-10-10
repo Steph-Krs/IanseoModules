@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 30);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 31);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -602,6 +602,14 @@ function bk_schema()
     safe_w_sql("UPDATE BookingCompetitions SET BcOpen = 1 WHERE BcPublishLevel = 3 AND BcOpen = 0");
     // v29 — at most one registration per archer on the competition, whatever the departure.
     bk_colonne('BookingCompetitions', 'BcSingleReg', "TINYINT NOT NULL DEFAULT 0 AFTER BcWaitlist");
+
+    // v31 — daily licence check (lib/licences.php). A registration whose licence is no longer in
+    // the federation file is suspended: out of its departure (BrHoldSession keeps it), no target,
+    // status 5, kept for when the licence is taken. BwReturn: a waiting row that brings such a
+    // registration back (BwEnId) instead of creating one.
+    bk_colonne('BookingRegistrations', 'BrLicHold',     "DATETIME NULL AFTER BrCreated");
+    bk_colonne('BookingRegistrations', 'BrHoldSession', "SMALLINT NOT NULL DEFAULT 0 AFTER BrLicHold");
+    bk_colonne('BookingWaitlist', 'BwReturn', "TINYINT NOT NULL DEFAULT 0 AFTER BwEnId");
 
     $_SESSION[$flag] = true;
 }

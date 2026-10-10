@@ -25,6 +25,7 @@ require_once dirname(__DIR__, 2) . '/shop/lib/lang.php';   // shp_t: name of the
 require_once dirname(__DIR__) . '/lib/waitlist.php'; // waiting list
 require_once dirname(__DIR__) . '/lib/sessionrules.php'; // opening of each departure
 require_once dirname(__DIR__) . '/lib/ffta-event.php';    // what the FFTA extranet announces
+require_once dirname(__DIR__) . '/lib/licences.php';      // licences missing from the federation file
 
 bk_schema();
 
@@ -474,6 +475,18 @@ if ($openConf) {
 
 // Matches announced on the FFTA extranet (SYNCHRO_FFTA) against the events set up here.
 $out .= bk_ffta_warning_html($TOUR);
+
+// Licences missing from today's federation file (lib/licences.php, checked every night).
+$licIssues = bk_licence_report($TOUR);
+if ($licIssues) {
+    $states = array('absent' => bk_t('LicStAbsent'), 'held' => bk_t('LicStHeld'), 'back' => bk_t('LicStBack'));
+    $out .= '<div class="bk-msg" style="background:#fff8e1;border:1px solid #e0a800;color:#5b4300;text-align:left">'
+        . '⚠ <b>' . bk_e(bk_t('LicIssuesTitle', count($licIssues))) . '</b><br>' . bk_e(bk_t('LicIssuesHint')) . '<ul style="margin:6px 0 0">';
+    foreach ($licIssues as $li) {
+        $out .= '<li>' . bk_e($li['name']) . ' (' . bk_e($li['code']) . ') — ' . bk_e($states[$li['state']]) . '</li>';
+    }
+    $out .= '</ul></div>';
+}
 
 // Oversized departures (BK_BIG_SESSION_PLACES): slow for the whole server, whatever the level.
 $bigSes = array();

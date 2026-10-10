@@ -162,6 +162,11 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `ExtraData` | `anonymise-lib.php:383` | — |
 | `UPDATE` | `TournamentInvolved` | `anonymise-lib.php:388` | review scope by hand |
 | `UPDATE` | `Entries` | `booking/lib/adopt.php:224` | review scope by hand |
+| `UPDATE` | `Qualifications` | `booking/lib/licences.php:71` | — |
+| `UPDATE` | `Entries` | `booking/lib/licences.php:74` | review scope by hand |
+| `UPDATE` | `Entries` | `booking/lib/licences.php:80` | review scope by hand |
+| `UPDATE` | `Qualifications` | `booking/lib/licences.php:113` | — |
+| `UPDATE` | `Entries` | `booking/lib/licences.php:116` | review scope by hand |
 | `UPDATE` | `IdCards` | `booking/lib/mandate.php:716` | review scope by hand |
 | `INSERT INTO` | `Countries` | `booking/lib/registration.php:312` | — |
 | `UPDATE` | `Countries` | `booking/lib/registration.php:316` | review scope by hand |
@@ -172,15 +177,15 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:295` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:431` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:522` | — |
-| `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:132` | review scope by hand |
-| `INSERT INTO` | `LookUpEntries` | `cron/sync-licences.php:149` | — |
-| `UPDATE` | `LookUpPaths` | `cron/sync-licences.php:153` | review scope by hand |
-| `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:181` | review scope by hand |
-| `INSERT IGNORE INTO` | `LookUpEntries` | `cron/sync-licences.php:193` | — |
-| `INSERT INTO` | `LookUpPaths` | `cron/sync-licences.php:229` | — |
-| `UPDATE` | `Entries` | `cron/sync-licences.php:239` | — |
-| `UPDATE` | `Entries` | `cron/sync-licences.php:251` | — |
-| `UPDATE` | `Entries` | `cron/sync-licences.php:261` | — |
+| `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:159` | review scope by hand |
+| `INSERT INTO` | `LookUpEntries` | `cron/sync-licences.php:176` | — |
+| `UPDATE` | `LookUpPaths` | `cron/sync-licences.php:180` | review scope by hand |
+| `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:208` | review scope by hand |
+| `INSERT IGNORE INTO` | `LookUpEntries` | `cron/sync-licences.php:220` | — |
+| `INSERT INTO` | `LookUpPaths` | `cron/sync-licences.php:256` | — |
+| `UPDATE` | `Entries` | `cron/sync-licences.php:266` | — |
+| `UPDATE` | `Entries` | `cron/sync-licences.php:278` | — |
+| `UPDATE` | `Entries` | `cron/sync-licences.php:288` | — |
 | `INSERT INTO` | `Flags` | `logos-lib.php:267` | — |
 | `INSERT INTO` | `Flags` | `logos-lib.php:313` | — |
 
@@ -224,9 +229,9 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `BookingArchers` | `anonymise-lib.php:398` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:403` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:404` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:128` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:132` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:215` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:129` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:133` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:216` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/admin/mandate.php:40` | — |
 | `INSERT INTO` | `BookingReimportConflicts` | `booking/lib/adopt.php:105` | — |
 | `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:173` | — |
@@ -284,6 +289,9 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `BookingArchers` | `booking/lib/ffta.php:116` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:91` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:95` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/licences.php:75` | — |
+| `INSERT INTO` | `BookingWaitlist` | `booking/lib/licences.php:89` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/licences.php:120` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/mandate.php:170` | — |
 | `INSERT INTO` | `BookingPayments` | `booking/lib/payment.php:187` | — |
 | `UPDATE` | `BookingPayments` | `booking/lib/payment.php:322` | — |
@@ -315,11 +323,14 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:513` | — |
 | `INSERT INTO` | `BookingWaitlist` | `booking/lib/waitlist.php:104` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:126` | — |
-| `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:209` | — |
-| `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:297` | — |
-| `DELETE FROM` | `BookingWaitlist` | `booking/lib/waitlist.php:304` | — |
-| `DELETE FROM` | `BookingWaitlist` | `booking/lib/waitlist.php:325` | — |
-| `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:358` | — |
+| `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:219` | — |
+| `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:249` | — |
+| `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:262` | — |
+| `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:342` | — |
+| `DELETE FROM` | `BookingWaitlist` | `booking/lib/waitlist.php:349` | — |
+| `DELETE FROM` | `BookingWaitlist` | `booking/lib/waitlist.php:370` | — |
+| `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:392` | — |
+| `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:417` | — |
 | `UPDATE` | `BookingArchers` | `booking/public/licence.php:26` | — |
 | `UPDATE` | `BookingArchers` | `booking/public/security.php:34` | — |
 | `DELETE FROM` | `BookingSessions` | `booking/public/security.php:35` | — |

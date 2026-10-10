@@ -51,6 +51,9 @@ Tout se trouve dans le menu **Modules › Inscriptions en ligne**, compétition 
 - 🗓️ **Ouverture départ par départ** : ouvert, fermé, ou ouvert tout seul quand les départs
   précédents sont complets, avec au besoin des dates propres à chaque départ. Option **une seule
   inscription par archer**, tous départs confondus.
+- 🪪 **Contrôle des licences chaque nuit** : avant la compétition, une inscription dont la licence
+  n'est plus dans le fichier fédéral est suspendue (sans cible) puis reprend sa place dès que la
+  licence est prise ; ensuite, l'organisateur est simplement prévenu.
 - 📄 **Invitation** conforme au règlement, remplie depuis la compétition : forme du concours
   (avec ou sans duels), épreuves, blasons, **programme complet** et **équipe de terrain** de ianseo ;
   à l'écran et en PDF.

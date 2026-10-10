@@ -100,6 +100,11 @@ lic_log('File received (' . number_format(strlen($data)) . ' bytes).');
 if ($u = @gzuncompress($data)) $data = $u;
 
 /* ---- Import (JSON or tab-separated 2.0 formats, as the FR set) ---- */
+$licCount = function () {
+    $r = safe_fetch(safe_r_sql("SELECT COUNT(DISTINCT LueCode) AS n FROM LookUpEntries WHERE LueIocCode = 'FRA'"));
+    return $r ? intval($r->n) : 0;
+};
+$before = $licCount();
 $archers = json_decode($data);
 if ($archers !== null) {
     $n = lic_import_json($archers);
@@ -109,11 +114,33 @@ if ($archers !== null) {
 unset($data, $archers);
 lic_log(number_format($n) . ' licensees imported into LookUpEntries.');
 
+// The file is the licence: an archer missing from it has none today. A file cut short would
+// suspend registrations by the hundred, so it is believed only when it holds at least 90 % of
+// the licensees of the day before (booking/lib/licences.php, licence-lib.php read this verdict).
+$after = $licCount();
+$fileOk = $after > 0 && ($before === 0 || $after >= 0.9 * $before);
+SetParameter('AutLicFileOk', $fileOk ? '1' : '0');
+if (!$fileOk) {
+    lic_log("WARNING: $after licensees against $before the day before: missing licences are not acted upon.");
+    aut_log('LICSYNC_SHRINK', 'cron', 'cli');
+}
+
 /* ---- Update of the statuses for the competitions not over yet ---- */
-$q = safe_r_sql("SELECT ToId, ToCode FROM Tournament WHERE ToWhenTo >= DATE_SUB(CURDATE(), INTERVAL 2 DAY)");
+$_SESSION = array();   // the registration swaps the competition session (bk_with_tournament)
+require_once(dirname(__DIR__) . '/booking/lib/licences.php');
+$q = safe_r_sql("SELECT ToId, ToCode, ToWhenTo >= CURDATE() AS NotOver FROM Tournament
+    WHERE ToWhenTo >= DATE_SUB(CURDATE(), INTERVAL 2 DAY)");
 while ($t = safe_fetch($q)) {
     lic_entries_check($t->ToId);
     lic_log("Statuses updated: {$t->ToCode}");
+    // Licences missing from the file (competitions not started, FFTA numbers only).
+    if ($fileOk && intval($t->NotOver)) {
+        $res = bk_licence_daily($t->ToId);
+        if ($res['suspended'] || $res['status'] || $res['back']) {
+            lic_log("Licences of {$t->ToCode}: {$res['suspended']} registration(s) suspended, "
+                . "{$res['status']} status set, {$res['back']} licence(s) back.");
+        }
+    }
 }
 
 aut_log('LICSYNC_OK', 'cron', 'cli');

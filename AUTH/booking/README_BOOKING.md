@@ -46,6 +46,9 @@ Everything is in the **Modules › Online registration** menu, with the competit
 - 🗓️ **Opening session by session**: open, closed, or open by itself once the earlier sessions
   are full, with dates of its own when needed. Option **one registration per archer**, whatever
   the session.
+- 🪪 **Licences checked every night**: before the competition, a registration whose licence is no
+  longer in the federation file is suspended (no target), then gets its place back as soon as the
+  licence is taken; afterwards, the organiser is simply told.
 - 📄 **Invitation** that meets the rules, filled from the competition: competition format (with
   or without matches), events, target faces, the **full ianseo programme** and the **competition
   officials**; on screen and as PDF.

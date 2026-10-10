@@ -284,6 +284,53 @@ document.addEventListener('DOMContentLoaded', function () {
 JS;
 }
 
+/* ---- Home page of a competition (ianseo core, not editable): archers without an active licence
+       today join the core's list of anomalies (licence-lib.php, read only — menu.php writes
+       nothing). Competitions not over only. ---- */
+if (strcasecmp(aut_script_rel(), '/Main.php') === 0 && intval($_SESSION['TourId'] ?? 0) > 0 && empty($_REQUEST['New'])) {
+    require_once(__DIR__ . '/licence-lib.php');
+    $_aut_t = intval($_SESSION['TourId']);
+    $_aut_rs = safe_r_sql("SELECT ToId FROM Tournament WHERE ToId = $_aut_t AND ToWhenTo >= CURDATE()", false, true);
+    $_aut_n = ($_aut_rs && safe_fetch($_aut_rs)) ? count(aut_lic_absent($_aut_t)) : 0;
+    if ($_aut_n > 0) {
+        echo '<script>var AUT_LIC_ANOM = ' . json_encode(array(
+            'msg'   => aut_t('LicMainAnomaly'),
+            'count' => aut_t('LicMainCount', $_aut_n),
+            'link'  => $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php',
+            'title' => get_text('Anomalies', 'Errors'),
+            'after' => get_text('TourIsOris', 'Tournament'),
+        ), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) . ";</script>\n";
+        echo <<<'JS'
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var d = AUT_LIC_ANOM, table = document.querySelector('table.Tabella');
+    if (!table) return;
+    var row = document.createElement('tr');
+    row.className = 'Dsq text-white';
+    var c1 = document.createElement('td'); c1.className = 'Bold'; c1.textContent = d.msg;
+    var c2 = document.createElement('td'); c2.className = 'TargetKo';
+    var a = document.createElement('a'); a.href = d.link; a.style.color = 'inherit';
+    a.innerHTML = '<i class="fa fa-link mr-2"></i>'; a.appendChild(document.createTextNode(d.count));
+    c2.appendChild(a); row.appendChild(c1); row.appendChild(c2);
+    var dsq = table.querySelectorAll('tr.Dsq');
+    if (dsq.length) { var last = dsq[dsq.length - 1]; last.parentNode.insertBefore(row, last.nextSibling); return; }
+    // No anomaly block yet: the core's one is built after the line "ORIS".
+    var anchor = null;
+    table.querySelectorAll('tr').forEach(function (tr) { var th = tr.querySelector('th'); if (th && th.textContent.trim() === d.after) anchor = tr; });
+    if (!anchor) return;
+    var mk = function (html, cls) { var tr = document.createElement('tr'); tr.className = cls; tr.innerHTML = html; return tr; };
+    var head = mk('<td class="Center Bold" colspan="2"></td>', 'Dsq text-white'); head.firstChild.textContent = d.title;
+    var nodes = [mk('<td colspan="2"></td>', 'Divider'), head, row, mk('<td colspan="2"></td>', 'Divider')];
+    var ref = anchor.nextSibling;
+    nodes.forEach(function (n) { anchor.parentNode.insertBefore(n, ref); });
+});
+</script>
+
+JS;
+    }
+    unset($_aut_t, $_aut_rs, $_aut_n);
+}
+
 // admin warning (ADMIN account signed in OR localhost browsing): deployed files missing or
 // different from dist/ (e.g. after an update of the module/ianseo)
 if ($_aut_on && $_aut_admin) {

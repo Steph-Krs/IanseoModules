@@ -27,9 +27,15 @@ function rg_tags($r, $withPerson = false)
         $h .= '<span class="bk-tag bk-tag-on">' . bk_e(trim($r->EnFirstName . ' ' . $r->EnName)) . '</span>'
             . '<span class="bk-tag">' . bk_e($r->EnCode) . '</span>';
     }
+    // Registration suspended by the daily licence check (lib/licences.php): out of its departure
+    // until the licence is in the federation file again.
+    $held = !empty($r->BrLicHold);
     $h .= '<span class="bk-tag">' . bk_e($r->DivDescription ?: $r->EnDivision) . '</span>'
         . '<span class="bk-tag">' . bk_e($r->ClDescription ?: $r->EnClass) . '</span>'
-        . '<span class="bk-tag">' . bk_e(bk_t('DepCap', intval($r->QuSession))) . '</span>';
+        . '<span class="bk-tag">' . bk_e(bk_t('DepCap', intval($held ? $r->BrHoldSession : $r->QuSession))) . '</span>';
+    if ($held) {
+        return $h . '<span class="bk-tag bk-tag-wait" title="' . bk_e(bk_t('LicHeldTip')) . '">' . bk_e(bk_t('LicHeldTag')) . '</span></p>';
+    }
     if (isset($r->EnIndClEvent) && intval($r->EnIndClEvent) === 0) {
         $h .= '<span class="bk-tag" title="' . bk_e(bk_t('OutOfEventsTip')) . '">' . bk_e(bk_t('OutOfEvents')) . '</span>';
     }
