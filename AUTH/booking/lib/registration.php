@@ -443,6 +443,9 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
 
         $now  = date('Y-m-d H:i:s');
         $coId = bk_reg_club_id($tourId, $lue->LueCountry, $lue->LueCoDescr);
+        // Archer of another federation (lib/other.php): their country as club 2.
+        $co2 = (($lue->LueIocCode ?? '') !== 'FRA' && !empty($lue->LueCountry2))
+            ? bk_reg_club_id($tourId, $lue->LueCountry2, $lue->LueCoDescr2) : 0;
 
         // EnAthlete: derived from the division and the class, like PopEdit.php.
         $rs = safe_r_sql("SELECT (DivAthlete AND ClAthlete) AS Athlete
@@ -496,6 +499,7 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
             EnSubClass = " . StrSafe_DB($lue->LueSubClass ?: '') . ",
             EnAgeClass = " . StrSafe_DB($class) . ",
             EnCountry = $coId,
+            EnCountry2 = " . intval($co2) . ",
             EnDob = "     . StrSafe_DB($lue->LueCtrlCode ?: '0000-00-00') . ",
             EnCode = "    . StrSafe_DB($lue->LueCode) . ",
             EnName = "      . StrSafe_DB(AdjustCaseTitle($lue->LueName)) . ",
@@ -588,8 +592,11 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
  * organiser. Allowed when the registration is the archer's ($licence) OR when they are its
  * AUTHOR (group registration made for a club mate, BrArcher = $archerId).
  */
-function bk_unregister($enId, $archerId, $licence)
+function bk_unregister($enId, $archerId, $licence, $force = false)
 {
+    // $force: the archer deletes their account (lib/other.php, bk_other_self_delete) — their
+    // registration goes even once the registration is closed; a competition whose participants
+    // the organiser locked still keeps it.
     $enId = intval($enId);
     $archerId = intval($archerId);
 
@@ -613,7 +620,7 @@ function bk_unregister($enId, $archerId, $licence)
 
     $tourId = intval($r->BrTournament);
     $cfg    = bk_comp_config($tourId);
-    if (empty($cfg->BcIsOpen)) {
+    if (empty($cfg->BcIsOpen) && !$force) {
         return array('ok' => false, 'msg' => bk_t('RgClosed'));
     }
 

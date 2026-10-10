@@ -356,6 +356,14 @@ if (is_file(dirname(__DIR__) . '/shop/cron/purge.php')) {
     else mt_log('  points of sale: ok');
 }
 
+/* ---- 7d. Accounts of archers without an FFTA licence: erasing ---- */
+// One month after their last sign-in and their last competition (booking/lib/other.php).
+if (is_file(dirname(__DIR__) . '/booking/cron/purge-other.php')) {
+    mt_step('7d/8 Archers without an FFTA licence: erasing of the accounts');
+    if (!mt_php(dirname(__DIR__) . '/booking/cron/purge-other.php')) { $failed[] = 'other-purge'; mt_log('  accounts: FAILED'); }
+    else mt_log('  accounts: ok');
+}
+
 /* ---- 8. Re-locking + leaving maintenance ---- */
 if ($doCore) {
     mt_step('8/8 Re-locking of the files');

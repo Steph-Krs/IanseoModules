@@ -70,16 +70,24 @@ if ($owed) {
 
 echo '<div class="bk-grid">';
 
-// Licence.
+// Licence. An archer picked from World Archery signs in with their WA identifier.
+$fromWa = ($archer->BaKind ?? 'FFTA') === 'OTHER' && ($archer->BaSource ?? '') === 'wa' && intval($archer->BaWaId ?? 0) > 0;
+if ($fromWa) require_once dirname(__DIR__) . '/lib/other.php';
 echo '<section class="bk-block"><h2>' . bk_e(bk_t('MyLicence')) . '</h2><dl class="bk-dl">'
-    . '<dt>' . bk_e(bk_t('Licence')) . '</dt><dd>' . bk_e($archer->BaLicence) . '</dd>'
+    . '<dt>' . bk_e(bk_t($fromWa ? 'OtWaIdLabel' : 'Licence')) . '</dt><dd>' . bk_e($archer->BaLicence)
+    . ($fromWa ? ' <a class="bk-hint" href="' . bk_e(bk_wa_profile_url($archer->BaWaId, $archer->BaName, $archer->BaFamilyName))
+        . '" target="_blank" rel="noopener noreferrer">' . bk_e(bk_t('OtWaPage')) . ' ↗</a>' : '') . '</dd>'
     . '<dt>' . bk_e(bk_t('FamilyName')) . '</dt><dd>' . bk_e($archer->BaFamilyName) . '</dd>'
     . '<dt>' . bk_e(bk_t('GivenName')) . '</dt><dd>' . bk_e($archer->BaName) . '</dd>'
     . '<dt>' . bk_e(bk_t('Club')) . '</dt><dd>' . bk_e($clubName ?: '—') . ($club ? ' <span class="bk-code">' . bk_e($club) . '</span>' : '') . '</dd>'
     . '</dl><p class="bk-actions">'
-    . '<a class="bk-btn" href="' . bk_e(bk_public_url('licence.php')) . '" target="_blank" rel="noopener">' . bk_e(bk_t('LicenceCertBtn')) . '</a> '
+    // The FFTA certificate exists for FFTA licensees only; the others keep their profile up to date.
+    . ((($archer->BaKind ?? 'FFTA') === 'OTHER')
+        ? '<a class="bk-btn" href="' . bk_e(bk_public_url('profile.php')) . '">' . bk_e(bk_t('OtProfileTitle')) . '</a> '
+        : '<a class="bk-btn" href="' . bk_e(bk_public_url('licence.php')) . '" target="_blank" rel="noopener">' . bk_e(bk_t('LicenceCertBtn')) . '</a> ')
     . '<a class="bk-btn" href="' . bk_e(bk_public_url('security.php')) . '">'
-    . bk_e(bk_t(!empty($archer->BaTotpEnabled) ? 'SecurityBtn2fa' : 'SecurityBtn')) . '</a></p></section>';
+    . bk_e(bk_t(!empty($archer->BaTotpEnabled) ? 'SecurityBtn2fa' : 'SecurityBtn')) . '</a> '
+    . '<a class="bk-btn bk-btn-danger" href="' . bk_e(bk_public_url('delete-account.php')) . '">' . bk_e(bk_t('DelTitle')) . '</a></p></section>';
 
 // Latest registrations.
 require_once dirname(__DIR__) . '/lib/registration.php';

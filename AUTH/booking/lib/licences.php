@@ -60,11 +60,10 @@ function bk_licence_daily($tourId)
         $enId = intval($r->EnId);
         $held = $r->BrLicHold !== null;
         if (!intval($r->InLicFile)) {
-            // Decisions of the organiser stand: withdrawn (6), not accredited (7), and admitted
-            // after checking (1) for an archer they entered — an online registration is written
-            // with status 1 by bk_register itself, which is no decision.
-            $keep = $r->BrId !== null ? array(6, 7) : array(1, 6, 7);
-            if (in_array(intval($r->EnStatus), $keep, true) || $held) continue;
+            // Decisions of the organiser stand: withdrawn (6), not accredited (7). Status 1
+            // ("admitted after checking") is no exemption: bk_register writes it on every online
+            // registration, and an archer entered by the organiser needs a licence too.
+            if (in_array(intval($r->EnStatus), array(6, 7), true) || $held) continue;
             if ($online && !$open) continue;   // registration closed: the organiser is told only
             if ($open && $r->BrId !== null) {
                 $ses = intval($r->QuSession);

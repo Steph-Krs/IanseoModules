@@ -183,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // ---- Actions on the ARCHER accounts (BookingArchers) ----
         if ($hasArchers && strpos($action, 'archer_') === 0 && $id) {
-            $r = safe_fetch(safe_r_sql("SELECT BaId, BaLicence FROM BookingArchers WHERE BaId=$id"));
+            $r = safe_fetch(safe_r_sql("SELECT BaId, BaLicence, BaKind, BaCountry FROM BookingArchers WHERE BaId=$id"));
             if (!$r) {
                 $msgErr = htmlspecialchars(aut_t('UsArcNotFound'));
             } else {
@@ -209,8 +209,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     safe_w_sql("DELETE FROM BookingSessions WHERE BkArcher=$id");
                     aut_log('ARCHER_TOTP_RESET', $r->BaLicence);
                     $msgOk = aut_t('UsArc2faReset', $lic);
+                } elseif ($action == 'archer_newpwd' && ($r->BaKind ?? '') === 'OTHER') {
+                    // Archer without an FFTA licence who forgot their password: no contact is
+                    // kept, so the administrator gives them a new one (shown once, here).
+                    $pwd = substr(strtr(base64_encode(random_bytes(9)), '+/', 'xy'), 0, 12);   // bytes: ASCII
+                    safe_w_sql("UPDATE BookingArchers SET BaPassword=" . StrSafe_DB(password_hash($pwd, PASSWORD_DEFAULT)) . " WHERE BaId=$id");
+                    safe_w_sql("DELETE FROM BookingSessions WHERE BkArcher=$id");
+                    aut_log('ARCHER_NEWPWD', $r->BaLicence);
+                    $msgOk = aut_t('UsArcNewPwd', array('lic' => $lic, 'pwd' => $pwd));
                 } elseif ($action == 'archer_delete') {
                     safe_w_sql("DELETE FROM BookingSessions WHERE BkArcher=$id");
+                    if (($r->BaKind ?? '') === 'OTHER') {
+                        // Its identity for the online registration (booking/lib/other.php).
+                        safe_w_sql("DELETE FROM LookUpEntries WHERE LueCode=" . StrSafe_DB($r->BaLicence)
+                            . " AND LueIocCode=" . StrSafe_DB($r->BaCountry) . " AND LueIocCode<>'FRA'");
+                    }
                     safe_w_sql("DELETE FROM BookingArchers WHERE BaId=$id");
                     aut_log('ARCHER_DELETE', $r->BaLicence);
                     $msgOk = aut_t('UsArcDeleted', $lic);
@@ -417,6 +430,7 @@ if ($hasArchers) {
             . $btn($f, 'archer_delete', aut_t('UsDelete'), aut_t('UsConfirmArcDelete', $a->BaLicence)) . ' '
             . $view('archer', 'licence', $a->BaLicence, aut_t('UsViewArcTip'))
             . (!empty($a->BaTotpEnabled) ? ' ' . $btn($f, 'archer_reset2fa', '🔒 ' . aut_t('UsReset2fa'), aut_t('UsConfirmArc2fa', $a->BaLicence), aut_t('UsReset2faTip')) : '')
+            . (($a->BaKind ?? '') === 'OTHER' ? ' ' . $btn($f, 'archer_newpwd', aut_t('UsNewPwd'), aut_t('UsConfirmNewPwd', $a->BaLicence)) : '')
             . "</td></tr>\n";
     }
     if (!count($archers)) echo '<tr><td colspan="9" class="Center">' . $e(aut_t('UsArcNone')) . "</td></tr>\n";

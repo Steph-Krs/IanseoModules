@@ -14,6 +14,16 @@ in a few clicks. Designed for ianseo servers reachable online.
   passed on to the federation, which alone checks them. **No password is kept by this site.**
   Two-factor authentication supported. The account is created automatically at the first
   sign-in.
+- 🌍 **Archers of another federation** (no FFTA licence): their own account, in two steps. Their
+  identity is first looked up at World Archery (international competitions, typos forgiven; WA
+  identifier, link to the WA profile and photo loaded straight from WA). Found there: the WA
+  identifier is their sign-in identifier; otherwise their national licence. Then birth year, club
+  and password. Duplicates refused; club editable. Erased automatically one month after their last
+  sign-in and last competition. Forgotten password: given again by the administrator, as no
+  contact is kept.
+- 🗑️ **Delete my account** (every archer): erases for good what is to come — registrations for the
+  competitions not started, waiting-list requests, the account; nothing that is done or under way
+  changes (competitions started, results, sums due).
 - 📅 **Calendar** of the competitions open for registration: filters (name, place, dates,
   type) and places left per session.
 - 🗺️ **Map** of the competitions and **directions** to the venue (Google Maps, Waze, Apple Maps);

@@ -17,6 +17,16 @@ quelques clics. Pensé pour les serveurs ianseo accessibles en ligne.
   sont transmis à la fédération, qui seule les vérifie. **Aucun mot de passe n'est conservé par
   ce site.** Double authentification prise en charge. Le compte est créé automatiquement à la
   première connexion.
+- 🌍 **Archers d'une autre fédération** (sans licence FFTA) : compte propre, en deux étapes. L'identité
+  est d'abord cherchée chez World Archery (compétitions internationales, fautes de frappe tolérées ;
+  identifiant WA, lien vers la fiche WA et photo chargée directement chez WA). Trouvé : l'identifiant
+  WA devient l'identifiant de connexion ; sinon, la licence nationale. Puis année de naissance, club
+  et mot de passe. Doublons refusés ; club modifiable. Suppression automatique un mois après la
+  dernière connexion et la dernière compétition. Mot de passe oublié : redonné par l'administrateur,
+  aucun contact n'étant conservé.
+- 🗑️ **Supprimer mon compte** (tout archer) : efface définitivement ce qui est à venir — inscriptions
+  aux compétitions pas commencées, demandes en liste d'attente, le compte ; rien de ce qui est passé
+  ou en cours ne change (compétitions commencées, résultats, sommes dues).
 - 📅 **Calendrier** des compétitions ouvertes aux inscriptions : filtres (nom, lieu, dates,
   type) et places restantes par départ.
 - 🗺️ **Carte** des compétitions et **itinéraire** vers le lieu (Google Maps, Waze, Plans) ; avec le

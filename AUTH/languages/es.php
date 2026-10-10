@@ -828,6 +828,14 @@ $lang['CpSubmit']    = 'Modificar';
 /* ACL hooks (dist/BlockFunction.php) */
 $lang['ImportRefusedCode'] = 'Importación rechazada — el código «{$a}» corresponde a una competición existente que no le pertenece. Cambie el código de su competición antes de exportarla, o contacte con el administrador.';
 $lang['ImportRefused']     = 'Importación rechazada — {$a}';
+$lang['LoginOtherText']    = '¿Sin licencia FFTA (arquero de otra federación)?';
+$lang['LoginOtherLink']    = 'Inicie sesión con su licencia nacional';
+$lang['UsNewPwd']          = 'Nueva contraseña';
+$lang['UsConfirmNewPwd']   = '¿Dar una nueva contraseña a {$a}? La antigua dejará de funcionar y se cerrarán sus sesiones.';
+$lang['UsArcNewPwd']       = 'Nueva contraseña de {$a[lic]}: {$a[pwd]} — comuníquesela al arquero, no se volverá a mostrar.';
+$lang['LgPOtherH']         = 'Arqueros sin licencia FFTA';
+$lang['LgPOther']          = 'Un arquero de otra federación crea él mismo su cuenta. Su apellido, nombre, sexo y país se buscan primero en la base pública de World Archery, que solo conoce a los arqueros que participaron en una competición internacional. Si se reconoce, se toman su apellido, nombre y sexo, y su identificador World Archery pasa a ser su identificador de acceso; si no, indica el número de licencia de su federación, que sirve de identificador. Después indica su año de nacimiento, su club y una contraseña (conservada cifrada). Las fotos de la lista de World Archery las carga el navegador del arquero directamente desde el sitio de World Archery: no pasan por este servidor y nunca se conservan. No se pide ningún medio de contacto. La cuenta se elimina automáticamente un mes después de la última conexión y la última competición del arquero, y nunca mientras esté inscrito en una competición próxima; sus resultados deportivos permanecen en las competiciones disputadas.';
+$lang['LgPSelfDelete']     = 'También puede eliminar su cuenta usted mismo desde su espacio («Eliminar mi cuenta»): sus inscripciones en las competiciones que no han empezado y sus solicitudes en lista de espera se borran entonces definitivamente; las competiciones empezadas, los resultados pasados y los importes debidos o pagados no cambian.';
 $lang['LicMainAnomaly']    = 'Algunos arqueros no tienen licencia activa a día de hoy';
 $lang['LicMainCount']      = 'Arqueros afectados: {$a}';
 

@@ -830,6 +830,14 @@ $lang['CpSubmit']    = 'Change';
 /* ACL hooks (dist/BlockFunction.php) */
 $lang['ImportRefusedCode'] = 'Import refused — the code "{$a}" matches an existing competition that does not belong to you. Rename the code of your competition before exporting it, or contact the administrator.';
 $lang['ImportRefused']     = 'Import refused — {$a}';
+$lang['LoginOtherText']    = 'No FFTA licence (archer of another federation)?';
+$lang['LoginOtherLink']    = 'Sign in with your national licence';
+$lang['UsNewPwd']          = 'New password';
+$lang['UsConfirmNewPwd']   = 'Give {$a} a new password? The old one will stop working and their sessions will be closed.';
+$lang['UsArcNewPwd']       = 'New password of {$a[lic]}: {$a[pwd]} — give it to the archer, it will not be shown again.';
+$lang['LgPOtherH']         = 'Archers without an FFTA licence';
+$lang['LgPOther']          = 'An archer of another federation creates their account themselves. Their names, sex and country are first searched in the public database of World Archery, which only knows the archers who took part in an international competition. If they pick themselves there, their names and sex are taken over, and their World Archery identifier becomes their sign-in identifier; otherwise they give the licence number of their federation, used as the identifier. They then give their year of birth, their club and a password (stored hashed). The photos of the World Archery list are loaded by the archer\'s browser straight from the World Archery site: they do not go through this server and are never kept. No way of contacting them is asked. The account is erased automatically one month after the archer\'s last sign-in and last competition, and never while they are registered for a competition to come; their sports results stay in the competitions shot.';
+$lang['LgPSelfDelete']     = 'You may also delete your account yourself from your space ("Delete my account"): your registrations for the competitions not started and your waiting-list requests are then erased for good; the competitions started, the past results and the sums due or paid stay unchanged.';
 $lang['LicMainAnomaly']    = 'Some archers have no active licence today';
 $lang['LicMainCount']      = 'Archers concerned: {$a}';
 

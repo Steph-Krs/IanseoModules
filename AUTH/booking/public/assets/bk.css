@@ -33,6 +33,19 @@ body {
     border: 1px solid #d2d4d6; border-radius: 6px; background: #fff; color: #20263d;
 }
 #bk input:focus { outline: none; border-color: #0254a8; box-shadow: 0 0 0 3px #a7d6ff; }
+/* Sign-up and profile of an archer without an FFTA licence (other-signup.php, profile.php). */
+#bk .bk-other input[type=number], #bk .bk-other select {
+    width: 100%; padding: 9px 11px; font-size: 15px;
+    border: 1px solid #d2d4d6; border-radius: 6px; background: #fff; color: #20263d;
+}
+#bk .bk-other input:disabled, #bk .bk-other select:disabled { background: #f3f4f6; color: #4c4e50; }
+#bk .bk-wa-list { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 0; }
+#bk label.bk-wa { display: flex; align-items: center; gap: 12px; margin: 0; padding: 8px 10px; font-weight: 400;
+    border: 1px solid #d2d4d6; border-radius: 8px; cursor: pointer; }
+#bk label.bk-wa:has(input:checked) { border-color: #0254a8; background: #f0f4ff; }
+#bk .bk-wa img, #bk .bk-wa-nophoto { width: 44px; height: 54px; object-fit: cover; border-radius: 4px; flex: 0 0 auto;
+    background: #e9edf2; }
+#bk .bk-wa-none { color: #4c4e50; }
 #bk .bk-hint { margin: 5px 0 0; font-size: 12px; color: #7d8183; }
 #bk .bk-otp[hidden] { display: none; }
 #bk .bk-otp {

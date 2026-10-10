@@ -59,6 +59,7 @@ function bk_nav_icon($name)
         'out'  => '<path d="M15 4.5h4.5v15H15"/><path d="M10 8l-4 4 4 4"/><path d="M6 12h9"/>',
         'flag' => '<path d="M5 21V4M5 4h11l-2 3.5L16 11H5"/>',
         'stat' => '<path d="M4 20V4M4 20h16"/><path d="M8 20v-5M13 20v-9M18 20v-3"/>',
+        'user' => '<circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/>',
         'map'  => '<path d="M12 21s-6-5.3-6-10a6 6 0 1112 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>',
     );
     $inner = $p[$name] ?? '';
@@ -110,6 +111,8 @@ function bk_head($title, $layout = 'page')
                 . $link('registrations.php', 'list', bk_t('NavMyRegs'), bk_t('NavMyRegs'))
                 . $link('stats.php', 'stat', bk_t('NavStatsTitle'), bk_t('NavStats'))
                 . (bk_is_manager() ? $link('club.php', 'club', bk_t('NavClub'), bk_t('NavClub')) : '')
+                // Archer without an FFTA licence: their identity and club are theirs to keep up.
+                . (($archer->BaKind ?? 'FFTA') === 'OTHER' ? $link('profile.php', 'user', bk_t('OtProfileTitle'), bk_t('OtProfileNav')) : '')
                 . $link('tickets.php', 'flag', bk_t('NavReportTitle'), bk_t('NavReport'))
                 . '        <span class="bk-who">' . bk_e($archer->BaName . ' ' . $archer->BaFamilyName) . "</span>\n"
                 . $link('logout.php', 'out', bk_t('NavLogout'), bk_t('NavLogout'), 'bk-out')

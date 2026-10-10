@@ -828,6 +828,14 @@ $lang['CpSubmit']    = 'Modifier';
 /* ACL hooks (dist/BlockFunction.php) */
 $lang['ImportRefusedCode'] = 'Import refusé — le code « {$a} » correspond à une compétition existante qui ne vous appartient pas. Renommez le code de votre compétition avant de l\'exporter, ou contactez l\'administrateur.';
 $lang['ImportRefused']     = 'Import refusé — {$a}';
+$lang['LoginOtherText']    = 'Pas de licence FFTA (archer d\'une autre fédération) ?';
+$lang['LoginOtherLink']    = 'Connexion avec votre licence nationale';
+$lang['UsNewPwd']          = 'Nouveau mot de passe';
+$lang['UsConfirmNewPwd']   = 'Donner un nouveau mot de passe à {$a} ? L\'ancien ne fonctionnera plus et ses sessions seront fermées.';
+$lang['UsArcNewPwd']       = 'Nouveau mot de passe de {$a[lic]} : {$a[pwd]} — communiquez-le à l\'archer, il ne sera plus affiché.';
+$lang['LgPOtherH']         = 'Archers sans licence FFTA';
+$lang['LgPOther']          = 'Un archer d\'une autre fédération crée lui-même son compte. Ses nom, prénom, sexe et pays sont d\'abord recherchés dans la base publique de World Archery, qui ne connaît que les archers ayant participé à une compétition internationale. S\'il s\'y reconnaît, ses nom, prénom et sexe sont repris, et son identifiant World Archery devient son identifiant de connexion ; sinon, il indique le numéro de licence de sa fédération, qui sert d\'identifiant. Il donne ensuite son année de naissance, son club et un mot de passe (conservé sous forme chiffrée). Les photos de la liste World Archery sont chargées par le navigateur de l\'archer directement depuis le site de World Archery : elles ne passent pas par ce serveur et ne sont jamais conservées. Aucun moyen de contact n\'est demandé. Le compte est supprimé automatiquement un mois après la dernière connexion et la dernière compétition de l\'archer, et jamais tant qu\'il est inscrit à une compétition à venir ; ses résultats sportifs restent dans les compétitions disputées.';
+$lang['LgPSelfDelete']     = 'Vous pouvez aussi supprimer votre compte vous-même depuis votre espace (« Supprimer mon compte ») : vos inscriptions aux compétitions qui n\'ont pas commencé et vos demandes en liste d\'attente sont alors effacées définitivement ; les compétitions commencées, les résultats passés et les sommes dues ou réglées restent inchangés.';
 $lang['LicMainAnomaly']    = 'Certains archers n\'ont pas de licence active à ce jour';
 $lang['LicMainCount']      = 'Archers concernés : {$a}';
 

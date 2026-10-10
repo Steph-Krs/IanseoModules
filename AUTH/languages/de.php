@@ -828,6 +828,14 @@ $lang['CpSubmit']    = 'Ändern';
 /* ACL hooks (dist/BlockFunction.php) */
 $lang['ImportRefusedCode'] = 'Import abgelehnt — der Code „{$a}“ entspricht einem bestehenden Turnier, das Ihnen nicht gehört. Benennen Sie den Code Ihres Turniers vor dem Export um oder wenden Sie sich an den Administrator.';
 $lang['ImportRefused']     = 'Import abgelehnt — {$a}';
+$lang['LoginOtherText']    = 'Keine FFTA-Lizenz (Schütze eines anderen Verbands)?';
+$lang['LoginOtherLink']    = 'Anmeldung mit Ihrer nationalen Lizenz';
+$lang['UsNewPwd']          = 'Neues Passwort';
+$lang['UsConfirmNewPwd']   = '{$a} ein neues Passwort geben? Das alte gilt nicht mehr und die Sitzungen werden beendet.';
+$lang['UsArcNewPwd']       = 'Neues Passwort von {$a[lic]}: {$a[pwd]} — teilen Sie es dem Schützen mit, es wird nicht erneut angezeigt.';
+$lang['LgPOtherH']         = 'Schützen ohne FFTA-Lizenz';
+$lang['LgPOther']          = 'Ein Schütze eines anderen Verbands legt sein Konto selbst an. Name, Vorname, Geschlecht und Land werden zuerst in der öffentlichen Datenbank von World Archery gesucht, die nur Schützen kennt, die an einem internationalen Wettkampf teilgenommen haben. Findet er sich dort, werden Name, Vorname und Geschlecht übernommen, und seine World-Archery-Kennung wird seine Anmeldekennung; sonst gibt er die Lizenznummer seines Verbands an, die als Kennung dient. Danach gibt er sein Geburtsjahr, seinen Verein und ein Passwort an (verschlüsselt gespeichert). Die Fotos der World-Archery-Liste lädt der Browser des Schützen direkt von der Website von World Archery: Sie laufen nicht über diesen Server und werden nie gespeichert. Es wird keine Kontaktmöglichkeit verlangt. Das Konto wird einen Monat nach der letzten Anmeldung und dem letzten Wettkampf des Schützen automatisch gelöscht, nie solange er für einen kommenden Wettkampf angemeldet ist; seine sportlichen Ergebnisse bleiben in den geschossenen Wettkämpfen.';
+$lang['LgPSelfDelete']     = 'Sie können Ihr Konto auch selbst in Ihrem Bereich löschen („Mein Konto löschen“): Ihre Anmeldungen zu noch nicht begonnenen Wettkämpfen und Ihre Wartelisten-Anfragen werden dann endgültig gelöscht; begonnene Wettkämpfe, bisherige Ergebnisse und geschuldete oder bezahlte Beträge bleiben unverändert.';
 $lang['LicMainAnomaly']    = 'Einige Schützen haben heute keine gültige Lizenz';
 $lang['LicMainCount']      = 'Betroffene Schützen: {$a}';
 

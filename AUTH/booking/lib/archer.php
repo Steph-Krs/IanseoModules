@@ -94,7 +94,7 @@ function bk_lookup_licence($licence)
     if ($licence === '') return null;
 
     $q = safe_r_sql("SELECT LueCode, LueFamilyName, LueName, LueCtrlCode, LueSex,
-                LueCountry, LueCoDescr, LueDivision, LueClass, LueSubClass,
+                LueCountry, LueCoDescr, LueCountry2, LueCoDescr2, LueDivision, LueClass, LueSubClass,
                 LueStatus, LueStatusValidUntil, LueIocCode
         FROM LookUpEntries
         WHERE LueCode = " . StrSafe_DB($licence) . "

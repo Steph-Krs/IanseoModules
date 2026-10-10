@@ -372,6 +372,11 @@ if ($stage === 'totp') {
                 . $signForm('comp', 'identifiant', aut_t('LoginCompUser'), 'monespace.ffta.fr',
                             $active === 'comp' ? ($_POST['identifiant'] ?? '') : '', $needOtpC);
         }
+        // Archers of another federation: their own account (booking/public/other.php).
+        if (is_file(__DIR__ . '/booking/public/other.php')) {
+            echo '<div class="sub" style="margin-top:16px">' . $e(aut_t('LoginOtherText')) . ' <a href="'
+                . $e($root . 'Modules/Custom/AUTH/booking/public/other.php') . '">' . $e(aut_t('LoginOtherLink')) . "</a></div>\n";
+        }
         echo "</div>\n";
     }
 }

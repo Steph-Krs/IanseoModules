@@ -264,9 +264,12 @@ function aut_legal_gen_confid($op)
         $h .= aut_trust_privacy_html();
     }
     if (is_dir(__DIR__ . '/shop')) $h .= aut_legal_section('LgPShopH', aut_t('LgPShop'));   // food & shop
+    // archers without an FFTA licence (booking/lib/other.php): their own account, World Archery
+    if (is_file(__DIR__ . '/booking/lib/other.php')) $h .= aut_legal_section('LgPOtherH', aut_t('LgPOther'));
     $h .= aut_legal_section('LgPRightsH', aut_t('LgPRights', $dpo !== ''
         ? '<a href="mailto:' . _le($dpo) . '">' . _le($dpo) . '</a>'
         : _le(aut_t('LgPRightsOperator'))));
+    if (is_file(__DIR__ . '/booking/public/delete-account.php')) $h .= '<p>' . aut_t('LgPSelfDelete') . '</p>';
     $h .= '<p>' . aut_t('LgPFederation') . '</p>';
     $h .= aut_legal_disclaimer_html($op);
     return $h;

@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 31);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 32);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -610,6 +610,19 @@ function bk_schema()
     bk_colonne('BookingRegistrations', 'BrLicHold',     "DATETIME NULL AFTER BrCreated");
     bk_colonne('BookingRegistrations', 'BrHoldSession', "SMALLINT NOT NULL DEFAULT 0 AFTER BrLicHold");
     bk_colonne('BookingWaitlist', 'BwReturn', "TINYINT NOT NULL DEFAULT 0 AFTER BwEnId");
+
+    // v32 — archers without an FFTA licence (lib/foreign.php): own account, signed in with their
+    // national licence (BaLicence) and a password (BaPassword). BaKind 'FFTA' (federal sign-in,
+    // identity from the federation file) or 'OTHER'. BaSource 'wa' when the identity comes from
+    // World Archery (BaWaId; names, sex and country then not editable), 'own' when typed.
+    bk_colonne('BookingArchers', 'BaKind',      "VARCHAR(8) NOT NULL DEFAULT 'FFTA' AFTER BaLicence");
+    bk_colonne('BookingArchers', 'BaCountry',   "VARCHAR(3) NOT NULL DEFAULT '' AFTER BaClubCode");
+    bk_colonne('BookingArchers', 'BaClubName',  "VARCHAR(80) NOT NULL DEFAULT '' AFTER BaCountry");
+    bk_colonne('BookingArchers', 'BaSex',       "TINYINT NOT NULL DEFAULT 0 AFTER BaClubName");
+    bk_colonne('BookingArchers', 'BaBirthYear', "SMALLINT NOT NULL DEFAULT 0 AFTER BaSex");
+    bk_colonne('BookingArchers', 'BaWaId',      "INT UNSIGNED NOT NULL DEFAULT 0 AFTER BaBirthYear");
+    bk_colonne('BookingArchers', 'BaSource',    "VARCHAR(4) NOT NULL DEFAULT '' AFTER BaWaId");
+    bk_index('BookingArchers', 'BaWaIdx', 'KEY BaWaIdx (BaWaId)');
 
     $_SESSION[$flag] = true;
 }

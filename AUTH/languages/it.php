@@ -828,6 +828,14 @@ $lang['CpSubmit']    = 'Modifica';
 /* ACL hooks (dist/BlockFunction.php) */
 $lang['ImportRefusedCode'] = 'Importazione rifiutata — il codice «{$a}» corrisponde a una competizione esistente che non le appartiene. Rinomini il codice della sua competizione prima di esportarla, oppure contatti l\'amministratore.';
 $lang['ImportRefused']     = 'Importazione rifiutata — {$a}';
+$lang['LoginOtherText']    = 'Nessuna licenza FFTA (arciere di un\'altra federazione)?';
+$lang['LoginOtherLink']    = 'Accedi con la tua licenza nazionale';
+$lang['UsNewPwd']          = 'Nuova password';
+$lang['UsConfirmNewPwd']   = 'Dare una nuova password a {$a}? La vecchia non funzionerà più e le sessioni saranno chiuse.';
+$lang['UsArcNewPwd']       = 'Nuova password di {$a[lic]}: {$a[pwd]} — comunicala all\'arciere, non verrà più mostrata.';
+$lang['LgPOtherH']         = 'Arcieri senza licenza FFTA';
+$lang['LgPOther']          = 'Un arciere di un\'altra federazione crea da sé il proprio account. Cognome, nome, sesso e paese vengono prima cercati nella banca dati pubblica di World Archery, che conosce solo gli arcieri che hanno partecipato a una gara internazionale. Se vi si riconosce, cognome, nome e sesso vengono ripresi, e il suo identificativo World Archery diventa il suo identificativo di accesso; altrimenti indica il numero di licenza della sua federazione, che fa da identificativo. Indica poi l\'anno di nascita, la società e una password (conservata cifrata). Le foto dell\'elenco World Archery sono caricate dal browser dell\'arciere direttamente dal sito di World Archery: non passano da questo server e non vengono mai conservate. Non viene chiesto alcun recapito. L\'account viene cancellato automaticamente un mese dopo l\'ultimo accesso e l\'ultima gara dell\'arciere, e mai finché è iscritto a una gara futura; i suoi risultati sportivi restano nelle gare disputate.';
+$lang['LgPSelfDelete']     = 'Può anche eliminare il suo account da sé dal suo spazio («Eliminare il mio account»): le sue iscrizioni alle gare non ancora iniziate e le sue richieste in lista d\'attesa vengono allora cancellate definitivamente; le gare iniziate, i risultati passati e le somme dovute o pagate restano invariati.';
 $lang['LicMainAnomaly']    = 'Alcuni arcieri non hanno una licenza attiva a oggi';
 $lang['LicMainCount']      = 'Arcieri interessati: {$a}';
 
