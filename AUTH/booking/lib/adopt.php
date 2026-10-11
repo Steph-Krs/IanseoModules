@@ -425,6 +425,11 @@ function bk_adopt($newId)
     // Payments journal: accounts are licences, they follow as they are. An account "#<EnId>"
     // (participant without a licence) keeps the old EnId and shows apart, with its payments.
     safe_w_sql("UPDATE BookingLedger         SET BlgTournament = $newId WHERE BlgTournament = $old");
+    // Check-in desk: decisions and journal are per account (licence), they follow as they are.
+    // The statuses found by the desk were those of the old entries: they go.
+    safe_w_sql("UPDATE BookingChecks         SET CkTournament = $newId WHERE CkTournament = $old");
+    safe_w_sql("UPDATE BookingCheckLog       SET KlTournament = $newId WHERE KlTournament = $old");
+    safe_w_sql("DELETE FROM BookingCheckEntries WHERE CeTournament = $old");
     if ($shopMove) {
         // The settings of the old version win (its public key is the one printed on the posters):
         // an empty row made by a visit to the new version goes.

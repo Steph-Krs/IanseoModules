@@ -287,7 +287,8 @@ JS;
 /* ---- Home page of a competition (ianseo core, not editable): join the core's list of anomalies
        (licence-lib.php, read only — menu.php writes nothing), competitions not over only:
        - archers without an active licence today;
-       - archers without an FFTA licence registered online: nobody checked their identity. ---- */
+       - archers without an FFTA licence registered online: nobody checked their identity;
+       - archers refused at the check-in desk (documents or equipment). ---- */
 if (strcasecmp(aut_script_rel(), '/Main.php') === 0 && intval($_SESSION['TourId'] ?? 0) > 0 && empty($_REQUEST['New'])) {
     require_once(__DIR__ . '/licence-lib.php');
     $_aut_t = intval($_SESSION['TourId']);
@@ -299,6 +300,9 @@ if (strcasecmp(aut_script_rel(), '/Main.php') === 0 && intval($_SESSION['TourId'
         if ($_aut_n > 0) $_aut_rows[] = array('msg' => aut_t('LicMainAnomaly'), 'count' => aut_t('LicMainCount', $_aut_n), 'link' => $_aut_link);
         $_aut_n = count(aut_lic_foreign($_aut_t));
         if ($_aut_n > 0) $_aut_rows[] = array('msg' => aut_t('ForMainAnomaly'), 'count' => aut_t('ForMainCount', $_aut_n), 'link' => $_aut_link);
+        $_aut_n = aut_lic_desk_refused($_aut_t);
+        if ($_aut_n > 0) $_aut_rows[] = array('msg' => aut_t('DeskMainAnomaly'), 'count' => aut_t('DeskMainCount', $_aut_n),
+            'link' => $CFG->ROOT_DIR . 'Modules/Custom/AUTH/shop/desk/list.php?f=ko');
     }
     if ($_aut_rows) {
         echo '<script>var AUT_LIC_ANOM = ' . json_encode(array(

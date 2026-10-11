@@ -134,7 +134,8 @@ if ($inv->SqKind === 'reset') {
         . '<input type="password" id="sj-pwd" name="pwd" required minlength="' . SHP_PWD_MIN . '" autocomplete="new-password">'
         . '<label for="sj-pwd2">' . shp_e(shp_t('ShStfPasswordAgain')) . '</label>'
         . '<input type="password" id="sj-pwd2" name="pwd2" required minlength="' . SHP_PWD_MIN . '" autocomplete="new-password">'
-        . '<p><button type="submit" class="shp-btn shp-btn-primary shp-btn-block shp-btn-big">' . shp_e(shp_t('ShStfResetSave')) . '</button></p>'
+        . '<p><button type="submit" class="shp-btn shp-btn-primary shp-btn-block shp-btn-big">'
+        . shp_e(shp_t(shp_enabled($TOUR) ? 'ShStfResetSave' : 'DkResetSave')) . '</button></p>'
         . '</form></div>';
     sj_page($title, $body);
 }
@@ -232,7 +233,8 @@ if ($mode === 'local') {
     }
 } else {
     $licLabel = $archer ? shp_t('ShStfIAmLicensedAs', trim($archer->BaName . ' ' . $archer->BaFamilyName)) : shp_t('ShStfIAmLicensed');
-    $body .= '<p>' . shp_e(shp_t('ShStfJoinIntro')) . '</p>'
+    // Who is being joined: the points of sale, the check-in desk, or both.
+    $body .= '<p>' . shp_e(shp_t(!shp_desk_on($TOUR) ? 'ShStfJoinIntro' : (shp_enabled($TOUR) ? 'DkJoinIntroBoth' : 'DkJoinIntro'))) . '</p>'
         . '<p><a class="shp-btn shp-btn-primary shp-btn-block shp-btn-big" href="' . shp_e($here . '&m=lic') . '">' . shp_e($licLabel) . '</a></p>'
         . '<p><a class="shp-btn shp-btn-block shp-btn-big" href="' . shp_e($here . '&m=local') . '">' . shp_e(shp_t('ShStfIAmNotLicensed')) . '</a></p>';
     if (!$window['local_open']) {

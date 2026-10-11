@@ -31,7 +31,7 @@ function shp_invite_create($tourId, $kind, $by, $staffId = 0)
     shp_schema();
     $tourId = intval($tourId);
     $staffId = intval($staffId);
-    if (!shp_enabled($tourId)) return array('error' => 1, 'code' => 'shop_off', 'msg' => shp_t('ShErrShopOff'));
+    if (!shp_staff_on($tourId)) return array('error' => 1, 'code' => 'shop_off', 'msg' => shp_t('ShErrShopOff'));
     $w = shp_window($tourId);
     if (!$w || $w['purge_due']) return array('error' => 1, 'code' => 'over', 'msg' => shp_t('ShStfErrOver'));
 
@@ -87,7 +87,7 @@ function shp_invite_check($token)
     if ($r->SqRevoked) $reason = 'revoked';
     elseif ($r->SqOver) $reason = 'expired';
     elseif (intval($r->SqMaxUses) > 0 && intval($r->SqUses) >= intval($r->SqMaxUses)) $reason = 'used';
-    elseif (!shp_enabled(intval($r->SqTournament))) $reason = 'shop_off';
+    elseif (!shp_staff_on(intval($r->SqTournament))) $reason = 'shop_off';
     return array('ok' => $reason === '', 'reason' => $reason, 'invite' => $r);
 }
 

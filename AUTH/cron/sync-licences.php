@@ -265,7 +265,11 @@ function lic_import_tabulated($data) {
     return $n;
 }
 
-/** Passes the licence statuses on to the registrations of a competition. */
+/**
+ * Passes the licence statuses on to the registrations of a competition. Left alone: 1 (written
+ * by the online registration, until the check-in desk), 6, 7 and 8 — decisions of the organiser
+ * or of the check-in desk (AUTH/shop/lib/desk.php), which the file of the night must not undo.
+ */
 function lic_entries_check($tid) {
     $tid = intval($tid);
     $now = date('Y-m-d H:i:s');
@@ -280,7 +284,7 @@ function lic_entries_check($tid) {
                 AND LueStatusValidUntil<>'0000-00-00',5,LueStatus),
             EnNameOrder=LueNameOrder, EnClassified=LueClassified
         WHERE EnTournament=$tid
-          AND NOT (EnStatus=6 OR EnStatus=7 OR EnStatus=1)");
+          AND NOT (EnStatus=6 OR EnStatus=7 OR EnStatus=1 OR EnStatus=8)");
 
     safe_w_sql("UPDATE Entries
         INNER JOIN Tournament ON EnTournament=ToId

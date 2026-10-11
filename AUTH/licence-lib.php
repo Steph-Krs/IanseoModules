@@ -67,6 +67,22 @@ function aut_lic_foreign($tourId)
 }
 
 /**
+ * Archers of a competition refused at the check-in desk (documents or equipment not compliant,
+ * AUTH/shop/lib/desk.php) and still among its participants: how many. Guarded: 0 while the
+ * table is missing.
+ */
+function aut_lic_desk_refused($tourId)
+{
+    $t = intval($tourId);
+    $rs = safe_r_sql("SELECT COUNT(DISTINCT CkAccount) AS n FROM BookingChecks
+        WHERE CkTournament = $t AND CkState = 2 AND EXISTS (SELECT 1 FROM Entries
+            WHERE EnTournament = $t AND EnAthlete = 1
+              AND IF(EnCode <> '', EnCode, CONCAT('#', EnId)) = CkAccount COLLATE utf8mb4_unicode_ci)", false, true);
+    $r = $rs ? safe_fetch($rs) : null;
+    return $r ? intval($r->n) : 0;
+}
+
+/**
  * Archers of a competition whose FFTA licence is not in today's file: [EnId => row (EnId,
  * EnCode, EnFirstName, EnName, EnStatus)]. Empty while the file cannot be believed.
  */

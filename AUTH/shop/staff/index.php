@@ -8,6 +8,7 @@
 
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/till.php';
+require_once dirname(__DIR__) . '/lib/desk.php';
 
 // staff/index.php?k=<public key> is the address of the till of a competition (QR code poster at
 // the stand, home screen of the phone). A phone that is not, or no longer, signed in to that
@@ -17,12 +18,21 @@ $key = (string) ($_GET['k'] ?? '');
 $keyTour = shp_tour_by_key($key);
 $st = shp_staff_session_state();
 $inTour = $st['reason'] === 'ok' && ($keyTour === 0 || intval($st['staff']->SfTournament) === $keyTour);
+// A volunteer of the check-in desk alone (no right at the stands, or the stands switched off):
+// the desk is their page. Every address of the volunteers (sign-in, joining) ends here.
+if ($inTour) {
+    $t = intval($st['staff']->SfTournament);
+    if ((!shp_enabled($t) || !shp_staff_can($st['staff'], '')) && shp_desk_on($t) && shp_desk_can($st['staff'])) {
+        header('Location: ' . shp_url('desk/index.php'));
+        exit;
+    }
+}
 if (!$inTour && in_array($st['reason'], array('ok', 'signed_out', 'expired'), true)) {
     $tour = $keyTour ?: ($st['row'] ? intval($st['row']->SfTournament) : 0);
     if ($tour <= 0) $tour = shp_tour_by_key(shp_cookie_get(SHP_TILL_COOKIE));
-    if ($tour <= 0 && intval($_SESSION['TourId'] ?? 0) > 0 && shp_enabled(intval($_SESSION['TourId']))) $tour = intval($_SESSION['TourId']);
+    if ($tour <= 0 && intval($_SESSION['TourId'] ?? 0) > 0 && shp_staff_on(intval($_SESSION['TourId']))) $tour = intval($_SESSION['TourId']);
     $set = $tour > 0 ? shp_settings($tour) : null;
-    if ($set && intval($set->SgEnabled) === 1) {
+    if ($set && shp_staff_on($tour)) {
         header('Location: ' . shp_url('staff/login.php?k=' . rawurlencode((string) $set->SgPublicKey)));
         exit;
     }
@@ -62,7 +72,7 @@ $texts = array(
     'ShPosToCollect', 'ShPosTotal', 'ShPosUndoSale', 'ShPosUndone', 'ShPosUnknown',
     'ShPosUnlimited', 'ShPosWaitLabel', 'ShPosWaitLess', 'ShPosWaitMore', 'ShPosWantedAsk', 'ShPosWantedAt',
     'ShPosWantedNone', 'ShStCancelled', 'ShStDelivered', 'ShStPlaced', 'ShStPreparing', 'ShStReady',
-    'ShStfErrRevoked', 'ShStfLoginAgain');
+    'ShStfErrRevoked', 'ShStfLoginAgain', 'DkMenu');
 $texts = shp_ts($texts) + shp_base_texts();
 
 $title = shp_t('ShStfTillTitle');
@@ -78,6 +88,7 @@ echo '  <div id="pos" class="pos"><p class="shp-muted pos-loading">' . shp_e(shp
         'stand' => shp_url('staff/api/stand.php'), 'search' => shp_url('staff/api/search.php'),
         'accounts' => shp_url('staff/api/accounts.php'), 'report' => shp_url('staff/api/report.php'),
         'logout' => shp_url('staff/api/logout.php'),
+        'desk' => shp_desk_on($TOUR) && shp_desk_can($me) ? shp_url('desk/index.php') : '',
         'login' => shp_url('staff/login.php?k=' . rawurlencode($tillKey)), 'key' => $tillKey,
         'title' => $title)));
 shp_foot(array('pos.js'));

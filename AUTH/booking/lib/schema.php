@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 34);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 35);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -656,6 +656,47 @@ function bk_schema()
         BfsState    VARCHAR(8)   NOT NULL DEFAULT '',
         BfsFileDate VARCHAR(19)  NOT NULL DEFAULT '',
         BfsMessage  VARCHAR(255) NOT NULL DEFAULT ''
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // v35 — check-in desk (shop/desk, shop/lib/desk.php). Decisions per archer, keyed by their
+    // account (licence, '#<EnId>' without one) so that they survive a re-import: CkDivision ''
+    // = documents (registry), a division = equipment of that weapon; CkState 1 accepted,
+    // 2 refused, no row = not seen yet.
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BookingChecks (
+        CkTournament INT UNSIGNED NOT NULL,
+        CkAccount    VARCHAR(25)  NOT NULL,
+        CkDivision   VARCHAR(4)   NOT NULL DEFAULT '',
+        CkState      TINYINT      NOT NULL DEFAULT 0,
+        CkStaff      INT UNSIGNED NOT NULL DEFAULT 0,
+        CkWhen       DATETIME     NULL,
+        PRIMARY KEY (CkTournament, CkAccount, CkDivision)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    // v35 — EnStatus of a participant before the desk first changed it, to give it back when a
+    // decision is undone. One row per Entries row, written once.
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BookingCheckEntries (
+        CeEntry      INT UNSIGNED NOT NULL PRIMARY KEY,
+        CeTournament INT UNSIGNED NOT NULL,
+        CeWas        TINYINT UNSIGNED NOT NULL DEFAULT 0,
+        KEY CeTourIdx (CeTournament)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    // v35 — journal of the desk, never changed: decisions (ok, ko, undo), draw weights measured
+    // (power, in pounds) and notes. KlDivision as in BookingChecks; KlPost = the desk post that
+    // wrote it (reg, equip). KlIdem: key sent by the phone, a line resent is written once.
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BookingCheckLog (
+        KlId         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        KlTournament INT UNSIGNED NOT NULL,
+        KlAccount    VARCHAR(25)  NOT NULL,
+        KlDivision   VARCHAR(4)   NOT NULL DEFAULT '',
+        KlPost       VARCHAR(5)   NOT NULL DEFAULT '',
+        KlKind       VARCHAR(5)   NOT NULL DEFAULT '',
+        KlPower      DECIMAL(5,1) NULL,
+        KlText       VARCHAR(500) NOT NULL DEFAULT '',
+        KlStaff      INT UNSIGNED NOT NULL DEFAULT 0,
+        KlBy         VARCHAR(64)  NOT NULL DEFAULT '',
+        KlWhen       DATETIME     NULL,
+        KlIdem       CHAR(36)     NULL,
+        KEY KlAccountIdx (KlTournament, KlAccount),
+        UNIQUE KEY KlIdemIdx (KlTournament, KlIdem)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     $_SESSION[$flag] = true;

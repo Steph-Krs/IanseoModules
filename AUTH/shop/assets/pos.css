@@ -19,6 +19,8 @@
 #shp .pos-open.off { background: var(--shp-coral); border-color: var(--shp-coral); }
 #shp button.pos-open { cursor: pointer; }
 #shp .pos-who { font-size: .95rem; opacity: .95; }
+#shp .pos-desk { display: inline-flex; align-items: center; min-height: 40px; padding: 0 10px; border: 1px solid rgba(255,255,255,.6);
+    border-radius: var(--shp-radius); font-size: .9rem; font-weight: 600; text-decoration: none; }
 #shp .pos-quit, #shp .shp-btn.pos-quit { min-height: 40px; padding: 0 10px; border: 1px solid rgba(255,255,255,.6); border-radius: var(--shp-radius);
     background: none; color: inherit; font: inherit; font-size: .9rem; cursor: pointer; }
 #shp .shp-btn.pos-quit.pos-sure { background: #fff; color: var(--shp-red, #a80000); font-weight: 700; }

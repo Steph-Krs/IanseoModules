@@ -888,6 +888,8 @@ $lang['LicMainAnomaly']    = 'Algunos arqueros no tienen licencia activa a día 
 $lang['LicMainCount']      = 'Arqueros afectados: {$a}';
 $lang['ForMainAnomaly']    = 'Inscritos en línea sin licencia FFTA';
 $lang['ForMainCount']      = '{$a} arquero(s): identidad no comprobada, a verificar';
+$lang['DeskMainAnomaly']   = 'Arqueros rechazados en la acreditación (documentos o material no conformes)';
+$lang['DeskMainCount']     = '{$a} arquero(s) con el estado «No puede competir»';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Contenido no válido.';

@@ -1,4 +1,4 @@
-/* Points of sale — organiser page of the volunteers (admin/staff.php).
+/* Points of sale and check-in desk — organiser page of the volunteers (admin/staff.php).
    Waiting requests and team are drawn from the JSON of the page (#shp-cfg) and refreshed every
    3 seconds (15 when the page is hidden). A card being edited is never redrawn under the
    organiser's fingers. Every text comes from #shp-texts. */
@@ -12,6 +12,10 @@
     C.stands.forEach(function (s) { standById[s.id] = s; });
     var presetByKey = {};
     C.presets.forEach(function (p) { presetByKey[p.key] = p; });
+    var deskPerms = C.desk_perms || [];
+    // Presets offered: those of the stands while there are stands, those of the desk while it is on.
+    var presets = C.presets.filter(function (p) { return p.perms === '' ? !!C.desk_on : (C.shop_on || C.stands.length > 0); });
+    function noRightText() { return T(C.desk_on ? 'DkErrNoRight' : 'ShStfErrNoStand'); }
 
     function $(id) { return document.getElementById(id); }
     function el(tag, cls, html) {
@@ -59,16 +63,16 @@
         });
     }
 
-    /* ---- Rights editor: role preset × stands ticked, or rights stand by stand ---- */
+    /* ---- Rights editor: role preset × stands ticked, or rights stand by stand; desk rights ---- */
     function rightsEditor(initial) {
-        // initial: {rights: [{stand, perms: []}], refund_max, refund_total} or null (new request)
+        // initial: {rights: [{stand, perms: []}], desk: [], refund_max, refund_total} or null (new request)
         var box = el('div', 'ss-ed');
         var grid = {};          // stand id → {perm → checkbox}
         var touched = false;    // the stand-by-stand grid was changed by hand: it wins
         var refundTouched = !!initial;
 
         var presetSel = el('select');
-        C.presets.forEach(function (p) {
+        presets.forEach(function (p) {
             var o = el('option'); o.value = p.key; o.textContent = p.label; presetSel.appendChild(o);
         });
         var oc = el('option'); oc.value = ''; oc.textContent = T('ShStfPresetCustom'); presetSel.appendChild(oc);
@@ -88,7 +92,27 @@
             l.appendChild(el('span', '', esc(s.name) + (s.active ? '' : ' <small>(' + esc(T('ShStfStandInactive')) + ')</small>')));
             standsBox.appendChild(l);
         });
-        box.appendChild(standsBox);
+        if (C.shop_on || C.stands.length) box.appendChild(standsBox);
+
+        // Check-in desk: rights for the whole competition.
+        var deskChk = {};
+        if (C.desk_on || (initial && initial.desk && initial.desk.length)) {
+            var deskBox = el('fieldset', 'ss-stands ss-desk');
+            deskBox.appendChild(el('legend', '', esc(T('DkRightsTitle'))));
+            deskPerms.forEach(function (p) {
+                var l = el('label', 'ss-chk');
+                var c = el('input'); c.type = 'checkbox'; c.value = p.key;
+                c.addEventListener('change', function () { fromGrid(); });
+                deskChk[p.key] = c;
+                l.appendChild(c);
+                l.appendChild(el('span', '', esc(p.label)));
+                deskBox.appendChild(l);
+            });
+            box.appendChild(deskBox);
+        }
+        function deskList() {
+            return deskPerms.filter(function (p) { return deskChk[p.key] && deskChk[p.key].checked; }).map(function (p) { return p.key; });
+        }
 
         var refRow = el('div', 'ss-refund');
         var rMax = el('input'); rMax.type = 'text'; rMax.inputMode = 'decimal'; rMax.size = 6;
@@ -98,7 +122,7 @@
             x[1].addEventListener('input', function () { refundTouched = true; });
         });
         refRow.appendChild(el('small', 'ss-muted', esc(T('ShStfRefundZero'))));
-        box.appendChild(refRow);
+        if (C.shop_on || C.stands.length) box.appendChild(refRow);
 
         var det = el('details', 'ss-fine');
         det.appendChild(el('summary', '', esc(T('ShStfFine'))));
@@ -123,7 +147,7 @@
             tbody.appendChild(tr);
         });
         det.appendChild(tbl);
-        box.appendChild(det);
+        if (C.stands.length) box.appendChild(det);
 
         function presetPerms() { var p = presetByKey[presetSel.value]; return p ? p.perms.split(',') : null; }
         function toGrid() {
@@ -132,12 +156,15 @@
             C.stands.forEach(function (s) {
                 C.perms.forEach(function (p) { grid[s.id][p.key].checked = standChk[s.id].checked && perms.indexOf(p.key) >= 0; });
             });
+            var dk = presetByKey[presetSel.value].desk.split(',');
+            Object.keys(deskChk).forEach(function (k) { deskChk[k].checked = dk.indexOf(k) >= 0; });
             if (!refundTouched) {
                 var pr = presetByKey[presetSel.value];
                 rMax.value = amountIn(pr.refund_max); rTot.value = amountIn(pr.refund_total);
             }
         }
-        // The grid changed by hand: stands ticked = stands with a right; preset shown when uniform.
+        // The grid changed by hand: stands ticked = stands with a right; preset shown when uniform
+        // (same rights on every stand ticked, and the same desk rights as the preset).
         function fromGrid() {
             var common = null, uniform = true;
             C.stands.forEach(function (s) {
@@ -146,8 +173,8 @@
                 if (list === '') return;
                 if (common === null) common = list; else if (common !== list) uniform = false;
             });
-            var match = '';
-            if (uniform && common !== null) C.presets.forEach(function (p) { if (p.perms === common) match = p.key; });
+            var match = '', dk = deskList().join(',');
+            if (uniform) presets.forEach(function (p) { if (p.perms === (common || '') && p.desk === dk) match = p.key; });
             presetSel.value = match;
         }
         presetSel.addEventListener('change', function () { touched = false; refundTouched = false; toGrid(); });
@@ -165,12 +192,14 @@
                 if (!grid[r.stand]) return;
                 r.perms.forEach(function (p) { if (grid[r.stand][p]) grid[r.stand][p].checked = true; });
             });
+            (initial.desk || []).forEach(function (k) { if (deskChk[k]) deskChk[k].checked = true; });
             touched = true;
             fromGrid();
             rMax.value = amountIn(initial.refund_max); rTot.value = amountIn(initial.refund_total);
-            if (presetSel.value === '') det.open = true;
+            if (presetSel.value === '' && C.stands.length) det.open = true;
         } else {
-            presetSel.value = C.default_preset;
+            presetSel.value = presetByKey[C.default_preset] && presets.indexOf(presetByKey[C.default_preset]) >= 0
+                ? C.default_preset : (presets[0] ? presets[0].key : '');
             C.stands.forEach(function (s) { standChk[s.id].checked = s.active; });
             toGrid();
         }
@@ -181,7 +210,8 @@
                 var list = C.perms.filter(function (p) { return grid[s.id][p.key].checked; }).map(function (p) { return p.key; });
                 if (list.length) { rights[s.id] = list.join(','); any = true; }
             });
-            return { rights: rights, any: any, refund_max: rMax.value, refund_total: rTot.value };
+            var dk = deskList();
+            return { rights: rights, desk: dk.join(','), any: any || dk.length > 0, refund_max: rMax.value, refund_total: rTot.value };
         };
         return box;
     }
@@ -201,9 +231,9 @@
         var row = el('div', 'ss-btns');
         var ok = btn(T('ShStfApprove'), 'ss-btn-ok ss-btn-big', function () {
             var v = ed.value();
-            if (!v.any) { flash(T('ShStfErrNoStand'), 'err'); return; }
+            if (!v.any) { flash(noRightText(), 'err'); return; }
             ok.disabled = true;
-            post({ act: 'approve', id: p.id, rights: v.rights, refund_max: v.refund_max, refund_total: v.refund_total })
+            post({ act: 'approve', id: p.id, rights: v.rights, desk: v.desk, refund_max: v.refund_max, refund_total: v.refund_total })
                 .then(function (res) { ok.disabled = false; if (res && !res.error) flash(T('ShStfDone'), 'ok'); });
         });
         row.appendChild(ok);
@@ -251,7 +281,12 @@
             var labels = C.perms.filter(function (p) { return r.perms.indexOf(p.key) >= 0; }).map(function (p) { return p.label; });
             html += '<li><b>' + esc(s ? s.name : r.stand) + '</b> : ' + esc(labels.join(', ')) + '</li>';
         });
+        if (m.desk && m.desk.length) {
+            var dl = deskPerms.filter(function (p) { return m.desk.indexOf(p.key) >= 0; }).map(function (p) { return p.label; });
+            html += '<li><b>' + esc(T('DkRightsShort')) + '</b> : ' + esc(dl.join(', ')) + '</li>';
+        }
         html += '</ul>';
+        if (!m.rights.length) return html;
         if (m.refund_max > 0 && m.refund_total > 0) {
             html += '<p class="ss-muted">' + esc(T('ShStfRefundSummary', amountText(m.refund_max)) + ' — '
                 + amountText(m.refunded) + ' / ' + amountText(m.refund_total)) + '</p>';
@@ -285,9 +320,9 @@
                 var eb = el('div', 'ss-btns');
                 eb.appendChild(btn(T('ShStfSave'), 'ss-btn-primary', function () {
                     var v = ed.value();
-                    if (!v.any) { flash(T('ShStfErrNoStand'), 'err'); return; }
+                    if (!v.any) { flash(noRightText(), 'err'); return; }
                     if (entry) entry.editing = false;
-                    post({ act: 'update', id: m.id, rights: v.rights, refund_max: v.refund_max, refund_total: v.refund_total })
+                    post({ act: 'update', id: m.id, rights: v.rights, desk: v.desk, refund_max: v.refund_max, refund_total: v.refund_total })
                         .then(function (res) { if (res && !res.error) flash(T('ShStfDone'), 'ok'); redrawMember(m.id); });
                 }));
                 eb.appendChild(btn(T('ShStfCancel'), '', function () { if (entry) entry.editing = false; redrawMember(m.id); }));

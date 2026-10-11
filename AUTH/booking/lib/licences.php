@@ -60,10 +60,11 @@ function bk_licence_daily($tourId)
         $enId = intval($r->EnId);
         $held = $r->BrLicHold !== null;
         if (!intval($r->InLicFile)) {
-            // Decisions of the organiser stand: withdrawn (6), not accredited (7). Status 1
-            // ("admitted after checking") is no exemption: bk_register writes it on every online
-            // registration, and an archer entered by the organiser needs a licence too.
-            if (in_array(intval($r->EnStatus), array(6, 7), true) || $held) continue;
+            // Decisions of the organiser stand: withdrawn (6), not accredited (7), and of the
+            // check-in desk: cannot participate (8). Status 1 ("admitted after checking") is no
+            // exemption: bk_register writes it on every online registration, and an archer
+            // entered by the organiser needs a licence too.
+            if (in_array(intval($r->EnStatus), array(6, 7, 8), true) || $held) continue;
             if ($online && !$open) continue;   // registration closed: the organiser is told only
             if ($open && $r->BrId !== null) {
                 $ses = intval($r->QuSession);
@@ -104,7 +105,9 @@ function bk_licence_daily($tourId)
 
 /**
  * Brings a suspended registration back into its departure (waiting row served, or the organiser
- * registering it by hand). Its status comes from the file again; the placement follows.
+ * registering it by hand). Its status comes from the file again — 1 rather than 0, as every
+ * online registration is written (bk_register): the check-in desk has not seen it yet. The
+ * placement follows.
  */
 function bk_licence_restore($tourId, $enId, $session)
 {
@@ -114,7 +117,7 @@ function bk_licence_restore($tourId, $enId, $session)
         WHERE QuId = $enId");
     safe_w_sql("UPDATE Entries
         INNER JOIN LookUpEntries ON LueCode = EnCode AND LueIocCode = 'FRA'
-        SET EnStatus = LueStatus
+        SET EnStatus = IF(LueStatus = 0, 1, LueStatus)
         WHERE EnId = $enId AND EnTournament = $tourId AND EnStatus = 5");
     safe_w_sql("UPDATE BookingRegistrations SET BrLicHold = NULL, BrHoldSession = 0 WHERE BrEnId = $enId");
 }

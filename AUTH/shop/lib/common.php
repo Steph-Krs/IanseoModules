@@ -105,8 +105,8 @@ function shp_settings_ensure($tourId)
 }
 
 /**
- * Saves settings of a competition. Keys of $d (all optional): enabled, guests, tab, trust_gate
- * (booleans), preorder_until ('' = none, 'YYYY-MM-DD HH:MM', the 'T' of a datetime-local input
+ * Saves settings of a competition. Keys of $d (all optional): enabled, desk (check-in desk),
+ * guests, tab, trust_gate (booleans), preorder_until ('' = none, 'YYYY-MM-DD HH:MM', the 'T' of a datetime-local input
  * accepted), guest_max_open (0-20), notice. Returns the fresh settings.
  */
 function shp_settings_save($tourId, array $d)
@@ -114,7 +114,7 @@ function shp_settings_save($tourId, array $d)
     $tourId = intval($tourId);
     if (!shp_settings_ensure($tourId)) return null;
     $set = array();
-    foreach (array('enabled' => 'SgEnabled', 'guests' => 'SgGuests', 'tab' => 'SgTab', 'trust_gate' => 'SgTrustGate') as $k => $col) {
+    foreach (array('enabled' => 'SgEnabled', 'desk' => 'SgDesk', 'guests' => 'SgGuests', 'tab' => 'SgTab', 'trust_gate' => 'SgTrustGate') as $k => $col) {
         if (array_key_exists($k, $d)) $set[] = "$col = " . (empty($d[$k]) ? 0 : 1);
     }
     if (array_key_exists('preorder_until', $d)) {
@@ -152,6 +152,19 @@ function shp_enabled($tourId)
 {
     $s = shp_settings($tourId);
     return $s && intval($s->SgEnabled) === 1;
+}
+
+/** Check-in desk switched on (desk/, lib/desk.php), with or without the stands. */
+function shp_desk_on($tourId)
+{
+    $s = shp_settings($tourId);
+    return $s && intval($s->SgDesk ?? 0) === 1;
+}
+
+/** Volunteers may join and sign in: the stands or the check-in desk are switched on. */
+function shp_staff_on($tourId)
+{
+    return shp_enabled($tourId) || shp_desk_on($tourId);
 }
 
 /** Competition of a public key, or 0. Says nothing about whether the shop is switched on. */

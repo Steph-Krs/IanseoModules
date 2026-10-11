@@ -317,6 +317,9 @@ function aut_anon_bk_tables($lic)
     if (aut_anon_table('BookingReimportConflicts')) {
         safe_w_sql("UPDATE BookingReimportConflicts SET RcLicence = $a, RcName = '' WHERE RcLicence = $l");
     }
+    // Check-in desk: decisions, draw weights and notes are about this person only, they go.
+    if (aut_anon_table('BookingChecks')) safe_w_sql("DELETE FROM BookingChecks WHERE CkAccount = $l");
+    if (aut_anon_table('BookingCheckLog')) safe_w_sql("DELETE FROM BookingCheckLog WHERE KlAccount = $l");
 }
 
 /**

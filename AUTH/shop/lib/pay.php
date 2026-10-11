@@ -385,9 +385,10 @@ function shp_accounts_open($tourId)
 }
 
 /**
- * Settles an account at a stand (end of the competition, "I pay everything now"). $amount:
- * null = what is left (shp_account_state). $standId: where the money was taken, for the cash
- * report of that stand; required from a volunteer. Not earmarked to orders.
+ * Settles an account at a stand (end of the competition, "I pay everything now") or at the
+ * check-in desk (lib/desk.php, $standId 0). $amount: null = what is left (shp_account_state).
+ * $standId: where the money was taken, for the cash report of that stand; a volunteer needs the
+ * right 'cash' there, or, without a stand, the desk right 'pay'. Not earmarked to orders.
  * Returns ['error' => 0, 'line', 'existing', 'account', 'remaining'] or an error.
  */
 function shp_pay_account($tourId, $account, $amount, $method, $staffId, $idem, $standId = 0)
@@ -397,7 +398,8 @@ function shp_pay_account($tourId, $account, $amount, $method, $staffId, $idem, $
     $account = (string) $account;
     $staffId = intval($staffId);
     $standId = intval($standId);
-    if (!preg_match('/^(G\d+|[A-Z0-9]{1,25})$/', $account) || $account === 'C' || $account === 'ANON') {
+    // Licence (other federations: a dash), '#<EnId>' (participant without one), guest.
+    if (!preg_match('/^(G\d+|#\d{1,10}|[A-Za-z0-9][A-Za-z0-9-]{0,24})$/', $account) || $account === 'C' || $account === 'ANON') {
         return shp_err('account', 'ShPayErrAccount');
     }
     $idem = shp_pay_idem($idem);
@@ -412,7 +414,9 @@ function shp_pay_account($tourId, $account, $amount, $method, $staffId, $idem, $
     }
     if ($staffId > 0) {
         $staff = shp_pay_staff($staffId, $tourId);
-        if (!$staff || $standId <= 0 || !shp_pay_staff_can($staff, 'cash', $standId)) return shp_err('forbidden', 'ShPayErrRight');
+        $allowed = $staff && ($standId > 0 ? shp_pay_staff_can($staff, 'cash', $standId)
+            : function_exists('shp_desk_can') && shp_desk_on($tourId) && shp_desk_can($staff, 'pay'));
+        if (!$allowed) return shp_err('forbidden', 'ShPayErrRight');
     }
     if (!aut_pay_ledger_method($method) || !isset(shp_pay_methods()[$method])) return shp_err('method', 'ShPayErrMethod');
     $amount = shp_pay_amount($amount);

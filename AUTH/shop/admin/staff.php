@@ -1,16 +1,18 @@
 <?php
 /**
- * admin/staff.php — the volunteers of the points of sale of the open competition (organiser).
+ * admin/staff.php — the volunteers of the points of sale and of the check-in desk of the open
+ * competition (organiser). Open as soon as either is switched on.
  *
  * Used on a computer before the competition and on the organiser's PHONE during it: the layout
  * works down to 360 px. What the page does:
  *   - "Invite volunteers": a QR code (30 min, reusable, can be stopped) shown full screen;
  *   - waiting requests, refreshed by themselves: the organiser checks the 4-digit code shown on
- *     the volunteer's phone, picks a role preset for the stands ticked (or rights stand by stand)
- *     and the refund ceilings, then approves — or refuses;
+ *     the volunteer's phone, picks a role preset for the stands ticked (or rights stand by stand),
+ *     the rights at the check-in desk and the refund ceilings, then approves — or refuses;
  *   - the team: rights, ceilings, last activity; change rights, withdraw access, reset a password
  *     (single-use QR code, 10 min), unlock;
- *   - "Use the till on this device": the organiser becomes a volunteer with every right;
+ *   - "Use the till on this device" / "Open the desk on this device": the organiser becomes a
+ *     volunteer with every right;
  *   - the retention notice (when accounts without a licence open and are erased), always shown;
  *   - the journal of the decisions taken on the team.
  *
@@ -38,7 +40,9 @@ $TOUR = intval($_SESSION['TourId']);
 $BY = shp_staff_by();
 $SELF = shp_url('admin/staff.php');
 $settings = shp_settings($TOUR);
-$enabled = $settings && intval($settings->SgEnabled) === 1;
+$shopOn = $settings && intval($settings->SgEnabled) === 1;
+$deskOn = shp_desk_on($TOUR);
+$enabled = $shopOn || $deskOn;
 $window = shp_window($TOUR);
 $over = !$window || $window['purge_due'];
 
@@ -91,13 +95,15 @@ if ((string) ($_SERVER['HTTP_X_SHP'] ?? '') === '1') {
             $r = array('error' => 0, 'msg' => '');
             break;
         case 'approve':
-            $r = shp_staff_approve($TOUR, $id, $rights, ss_amount($in['refund_max'] ?? ''), ss_amount($in['refund_total'] ?? ''), $BY);
+            $r = shp_staff_approve($TOUR, $id, $rights, ss_amount($in['refund_max'] ?? ''), ss_amount($in['refund_total'] ?? ''), $BY,
+                (string) ($in['desk'] ?? ''));
             break;
         case 'refuse':
             $r = shp_staff_refuse($TOUR, $id, $BY);
             break;
         case 'update':
-            $r = shp_staff_update($TOUR, $id, $rights, ss_amount($in['refund_max'] ?? ''), ss_amount($in['refund_total'] ?? ''), $BY);
+            $r = shp_staff_update($TOUR, $id, $rights, ss_amount($in['refund_max'] ?? ''), ss_amount($in['refund_total'] ?? ''), $BY,
+                (string) ($in['desk'] ?? ''));
             break;
         case 'revoke':
             $r = shp_staff_revoke($TOUR, $id, $BY);
@@ -118,19 +124,21 @@ if ((string) ($_SERVER['HTTP_X_SHP'] ?? '') === '1') {
 }
 
 /* ================================================================== */
-/* "Use the till on this device"                                       */
+/* "Use the till / open the desk on this device"                       */
 /* ================================================================== */
 $errors = array();
-if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === 'till') {
+$act = (string) ($_POST['act'] ?? '');
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($act === 'till' || $act === 'desk')) {
+    $on = $act === 'till' ? $shopOn : $deskOn;
     if (!bk_csrf_check()) {
         $errors[] = shp_t('ShStfErrSession');
-    } elseif (!$enabled || $over) {
-        $errors[] = shp_t($over ? 'ShStfErrOver' : 'ShErrShopOff');
+    } elseif (!$on || $over) {
+        $errors[] = shp_t($over ? 'ShStfErrOver' : ($act === 'till' ? 'ShErrShopOff' : 'DkErrOff'));
     } else {
         $me = shp_staff_organiser($TOUR, $BY);
         if ($me) {
             shp_staff_session_open(intval($me->SfId));
-            header('Location: ' . shp_url('staff/index.php'));
+            header('Location: ' . shp_url($act === 'till' ? 'staff/index.php' : 'desk/index.php'));
             exit;
         }
         $errors[] = shp_t('ShErrInternal');
@@ -173,12 +181,14 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 // Title and navigation in the frame of the other organiser pages (#shpadm, admin.css); the body
 // keeps its own scope (#shpstf): its fields and buttons are sized for the organiser's phone.
-echo '<div id="shpadm"><h1>' . shp_e(shp_t('ShStfPageTitle')) . '</h1>' . shp_adm_nav('staff.php') . '</div>';
+echo '<div id="shpadm"><h1>' . shp_e(shp_t($deskOn ? ($shopOn ? 'DkStaffTitleBoth' : 'DkStaffTitleDesk') : 'ShStfPageTitle')) . '</h1>'
+    . shp_adm_nav('staff.php') . '</div>';
 echo '<div id="shpstf">';
 
 if (!$enabled) {
     echo '<div class="ss-msg ss-warn">' . shp_e(shp_t('ShStfShopOff')) . ' <a href="' . shp_e(shp_url('admin/index.php')) . '">'
-        . shp_e(shp_t('MnuSettings')) . '</a></div></div>';
+        . shp_e(shp_t('MnuSettings')) . '</a> · <a href="' . shp_e(shp_url('desk/list.php')) . '">'
+        . shp_e(shp_t('DkMenu')) . '</a></div></div>';
     include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');
     exit;
 }
@@ -199,12 +209,18 @@ echo '</div>';
 
 if (!$over) {
     echo '<div class="ss-actions">'
-        . '<button type="button" class="ss-btn ss-btn-primary ss-btn-big" id="ss-invite">' . shp_e(shp_t('ShStfInvite')) . '</button>'
-        . '<form method="post" action="' . shp_e($SELF) . '">' . bk_csrf_field() . '<input type="hidden" name="act" value="till">'
-        . '<button type="submit" class="ss-btn ss-btn-big">' . shp_e(shp_t('ShStfUseTill')) . '</button></form>'
-        . '<a class="ss-btn ss-btn-big" target="_blank" href="' . shp_e(shp_url('admin/posters.php?pdf=till')) . '">'
-        . '<img src="' . shp_e($CFG->ROOT_DIR . 'Common/Images/pdf_small.gif') . '" alt="" width="16" height="16">&nbsp;' . shp_e(shp_t('ShStfTillPoster')) . '</a>'
-        . '</div>'
+        . '<button type="button" class="ss-btn ss-btn-primary ss-btn-big" id="ss-invite">' . shp_e(shp_t('ShStfInvite')) . '</button>';
+    if ($shopOn) {
+        echo '<form method="post" action="' . shp_e($SELF) . '">' . bk_csrf_field() . '<input type="hidden" name="act" value="till">'
+            . '<button type="submit" class="ss-btn ss-btn-big">' . shp_e(shp_t('ShStfUseTill')) . '</button></form>'
+            . '<a class="ss-btn ss-btn-big" target="_blank" href="' . shp_e(shp_url('admin/posters.php?pdf=till')) . '">'
+            . '<img src="' . shp_e($CFG->ROOT_DIR . 'Common/Images/pdf_small.gif') . '" alt="" width="16" height="16">&nbsp;' . shp_e(shp_t('ShStfTillPoster')) . '</a>';
+    }
+    if ($deskOn) {
+        echo '<form method="post" action="' . shp_e($SELF) . '">' . bk_csrf_field() . '<input type="hidden" name="act" value="desk">'
+            . '<button type="submit" class="ss-btn ss-btn-big">' . shp_e(shp_t('DkUseDesk')) . '</button></form>';
+    }
+    echo '</div>'
         . '<div class="ss-running" id="ss-running" hidden></div>';
 }
 echo '<div id="ss-flash" aria-live="polite"></div>';
@@ -231,6 +247,8 @@ $presets = array();
 foreach (shp_staff_presets() as $k => $p) $presets[] = array('key' => $k, 'label' => shp_staff_preset_label($k)) + $p;
 $perms = array();
 foreach (shp_perms_all() as $p) $perms[] = array('key' => $p, 'label' => shp_perm_label($p));
+$deskPerms = array();
+foreach (shp_desk_perms_all() as $p) $deskPerms[] = array('key' => $p, 'label' => shp_desk_perm_label($p));
 
 echo shp_json_script('shp-texts', shp_ts(array(
         'ShStfPendingNone', 'ShStfTeamNone', 'ShStfCode', 'ShStfCodeCheck', 'ShStfAgo', 'ShStfAgoNow', 'ShStfSeenAgo',
@@ -240,11 +258,13 @@ echo shp_json_script('shp-texts', shp_ts(array(
         'ShStfStatusRevoked', 'ShStfAllRights', 'ShStfNoRefund', 'ShStfRefundSummary', 'ShStfRevokedTitle',
         'ShStfInviteTitle', 'ShStfInviteLeft', 'ShStfInviteOver', 'ShStfInviteRunning', 'ShStfInviteNew', 'ShStfInviteStop',
         'ShStfPendingWaiting', 'ShStfResetTitle2', 'ShStfResetLeft', 'ShStfHide', 'ShStfClose', 'ShStfDone',
-        'ShStfNoStandSet', 'ShStfErrNoStand', 'ShStfStandInactive', 'ShStfQrMissing',
+        'ShStfNoStandSet', 'ShStfErrNoStand', 'ShStfStandInactive', 'ShStfQrMissing', 'DkRightsTitle', 'DkErrNoRight',
+        'DkRightsShort',
     )) + shp_base_texts())
     . shp_json_script('shp-cfg', shp_page_cfg($TOUR, 'staffadm', array(
         'self' => $SELF, 'csrf' => bk_csrf_token(), 'stands' => $stands, 'presets' => $presets, 'perms' => $perms,
-        'default_preset' => 'versatile', 'state' => ss_state($TOUR), 'over' => $over,
+        'desk_perms' => $deskPerms, 'desk_on' => $deskOn, 'shop_on' => $shopOn,
+        'default_preset' => $shopOn ? 'versatile' : 'registry', 'state' => ss_state($TOUR), 'over' => $over,
     )));
 echo '<script src="' . shp_e(shp_asset_url('shp.js')) . '"></script>'
     . '<script src="' . shp_e(shp_asset_url('staff-admin.js')) . '"></script>';

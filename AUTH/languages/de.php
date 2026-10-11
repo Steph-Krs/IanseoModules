@@ -888,6 +888,8 @@ $lang['LicMainAnomaly']    = 'Einige Schützen haben heute keine gültige Lizenz
 $lang['LicMainCount']      = 'Betroffene Schützen: {$a}';
 $lang['ForMainAnomaly']    = 'Online angemeldet ohne FFTA-Lizenz';
 $lang['ForMainCount']      = '{$a} Schütze(n): Identität nicht geprüft, zu überprüfen';
+$lang['DeskMainAnomaly']   = 'Bei der Akkreditierung abgelehnte Schützen (Unterlagen oder Material nicht in Ordnung)';
+$lang['DeskMainCount']     = '{$a} Schütze(n) mit Status „Darf nicht teilnehmen“';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Ungültiger Inhalt.';

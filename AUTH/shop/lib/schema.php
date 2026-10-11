@@ -20,7 +20,7 @@
 if (defined('SHP_SCHEMA_LOADED')) return;
 define('SHP_SCHEMA_LOADED', true);
 
-if (!defined('SHP_SCHEMA_VERSION')) define('SHP_SCHEMA_VERSION', 5);
+if (!defined('SHP_SCHEMA_VERSION')) define('SHP_SCHEMA_VERSION', 6);
 
 // The shop shares the payment journal and the licensee accounts of the online registration
 // (same module): booking's schema, clock and texts come first.
@@ -338,6 +338,11 @@ function shp_schema()
         SzSubject  VARCHAR(200) NOT NULL DEFAULT '',
         SzCreated  DATETIME     NULL
     )$opt");
+
+    // v6 — check-in desk (desk/, lib/desk.php): switched on per competition, independently of
+    // the stands (SgDesk), and rights of each volunteer there (SfDesk: reg, pay, equip).
+    shp_colonne('ShopSettings', 'SgDesk', "TINYINT NOT NULL DEFAULT 0 AFTER SgEnabled");
+    shp_colonne('ShopStaff', 'SfDesk', "VARCHAR(32) NOT NULL DEFAULT '' AFTER SfStatus");
 
     $_SESSION[$flag] = true;
     $busy = false;

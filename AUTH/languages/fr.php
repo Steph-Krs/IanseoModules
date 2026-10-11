@@ -888,6 +888,8 @@ $lang['LicMainAnomaly']    = 'Certains archers n\'ont pas de licence active à c
 $lang['LicMainCount']      = 'Archers concernés : {$a}';
 $lang['ForMainAnomaly']    = 'Inscrits en ligne sans licence FFTA';
 $lang['ForMainCount']      = '{$a} archer(s) : identité non contrôlée, à vérifier';
+$lang['DeskMainAnomaly']   = 'Archers refusés au greffe (documents ou matériel non conformes)';
+$lang['DeskMainCount']     = '{$a} archer(s) au statut « Ne peut pas participer »';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Contenu invalide.';

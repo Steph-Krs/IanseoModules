@@ -890,6 +890,8 @@ $lang['LicMainAnomaly']    = 'Some archers have no active licence today';
 $lang['LicMainCount']      = 'Archers concerned: {$a}';
 $lang['ForMainAnomaly']    = 'Registered online without an FFTA licence';
 $lang['ForMainCount']      = '{$a} archer(s): identity not checked, to verify';
+$lang['DeskMainAnomaly']   = 'Archers refused at the check-in (documents or equipment not compliant)';
+$lang['DeskMainCount']     = '{$a} archer(s) set to "Cannot participate"';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Invalid content.';

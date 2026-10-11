@@ -504,6 +504,16 @@ function aut_log_purge() {
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BookingWaitlist'"));
     if ($wl) safe_w_sql("DELETE BookingWaitlist FROM BookingWaitlist LEFT JOIN Tournament ON ToId = BwTournament
         WHERE ToId IS NULL OR ToWhenTo < DATE_SUB(UTC_DATE(), INTERVAL 1 DAY)");
+    // Check-in desk: what belonged to a competition deleted since (decisions, draw weights,
+    // notes). The statuses found by the desk are only needed while the competition runs.
+    $ck = safe_fetch(safe_r_sql("SELECT 1 AS x FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'BookingCheckEntries'"));
+    if ($ck) {
+        safe_w_sql("DELETE BookingChecks FROM BookingChecks LEFT JOIN Tournament ON ToId = CkTournament WHERE ToId IS NULL");
+        safe_w_sql("DELETE BookingCheckLog FROM BookingCheckLog LEFT JOIN Tournament ON ToId = KlTournament WHERE ToId IS NULL");
+        safe_w_sql("DELETE BookingCheckEntries FROM BookingCheckEntries LEFT JOIN Tournament ON ToId = CeTournament
+            WHERE ToId IS NULL OR ToWhenTo < DATE_SUB(UTC_DATE(), INTERVAL 1 DAY)");
+    }
     // Audience measurement: UsageSeen follows the log retention, aggregates 25 months.
     require_once __DIR__ . '/stats-usage.php';
     if (function_exists('aut_stats_purge')) aut_stats_purge();

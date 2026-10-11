@@ -278,6 +278,7 @@
                 kids.push(h('span', { class: 'pos-open ' + (st.open ? 'on' : 'off'), text: openTxt }));
             }
         }
+        if (C.desk) kids.push(h('a', { class: 'pos-desk', href: C.desk, text: T('DkMenu') }));
         kids.push(h('span', { class: 'pos-who', text: (S.me && S.me.name) || '' }));
         kids.push(confirmBtn(T('ShPosQuit'), T('ShPosConfirm'), 'pos-quit', logout));
         kids.forEach(function (k) { els.top.appendChild(k); });

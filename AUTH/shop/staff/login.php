@@ -1,7 +1,8 @@
 <?php
 /**
- * staff/login.php?k=<public key> — a volunteer of the team signs in again on a phone (new
- * phone, cookie lost, signed out).
+ * staff/login.php?k=<public key>[&to=desk] — a volunteer of the team signs in again on a phone
+ * (new phone, cookie lost, signed out). Back to the till, or to the check-in desk (to=desk, or a
+ * volunteer without any right at the stands: staff/index.php sends them there).
  *
  *   licensee          sign-in to the licensee space, back here; let in when they are in the team;
  *   without licence   family name, given name, password.
@@ -20,11 +21,12 @@ define('SHP_LOGIN_IP_MAX', 30);   // failures per address in 15 minutes
 
 $key = (string) ($_GET['k'] ?? '');
 $TOUR = shp_tour_by_key($key);
-if ($TOUR <= 0 || !shp_enabled($TOUR)) {
+if ($TOUR <= 0 || !shp_staff_on($TOUR)) {
     shp_page_message(shp_t('ShUnavailableTitle'), shp_t('ShUnavailable'), 'info', 404);
 }
-$SELF = shp_url('staff/login.php?k=' . $key);
-$TILL = shp_url('staff/index.php');
+$toDesk = (string) ($_GET['to'] ?? '') === 'desk';
+$SELF = shp_url('staff/login.php?k=' . rawurlencode($key) . ($toDesk ? '&to=desk' : ''));
+$TILL = shp_url($toDesk ? 'desk/index.php' : 'staff/index.php');
 $window = shp_window($TOUR);
 if (!$window || $window['purge_due']) shp_page_message(shp_t('ShStfTillTitle'), shp_t('ShStfErrOver'));
 
@@ -52,7 +54,7 @@ $mode = (string) ($_GET['m'] ?? '');
 /* ---- Licensee ---- */
 if ($mode === 'lic' && !$readOnly) {
     if (!$archer) {
-        $_SESSION['BK_NEXT'] = array('page' => 'shop/staff/login.php?k=' . $key, 'at' => time());
+        $_SESSION['BK_NEXT'] = array('page' => 'shop/staff/login.php?k=' . rawurlencode($key) . ($toDesk ? '&to=desk' : ''), 'at' => time());
         header('Location: ' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/login.php?p=comp');
         exit;
     }
@@ -126,7 +128,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     }
 }
 
-$title = shp_t('ShStfLoginTitle');
+$title = shp_t($toDesk || !shp_enabled($TOUR) ? 'DkLoginTitle' : 'ShStfLoginTitle');
 $body = '<div class="shp-card"><h1>' . shp_e($title) . '</h1><p class="sj-tour">' . shp_e(shp_staff_tour_name($TOUR)) . '</p>';
 if ($info !== '') $body .= shp_msg('info', $info);
 $licLabel = $archer ? shp_t('ShStfIAmLicensedAs', trim($archer->BaName . ' ' . $archer->BaFamilyName)) : shp_t('ShStfIAmLicensed');
@@ -144,7 +146,7 @@ $body .= '<p><a class="shp-btn shp-btn-block shp-btn-big" href="' . shp_e($SELF 
     . shp_e(shp_t('ShStfLoginSubmit')) . '</button></p>'
     . '</form>'
     . '<p class="shp-muted">' . shp_e(shp_t('ShStfLoginHelp')) . '</p>'
-    . '<p class="shp-muted">' . shp_e(shp_t('ShStfLoginOrganiser')) . '</p></div>';
+    . '<p class="shp-muted">' . shp_e(shp_t($toDesk || !shp_enabled($TOUR) ? 'DkLoginOrganiser' : 'ShStfLoginOrganiser')) . '</p></div>';
 
 shp_head($title, array('layout' => 'card', 'css' => array('staff.css')));
 echo '  <main class="shp-main">' . $body . "</main>\n";

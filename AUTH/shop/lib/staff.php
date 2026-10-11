@@ -57,31 +57,59 @@ function shp_perms_clean($perms)
 }
 
 /**
- * Role presets (D12): the organiser picks one, applied to the stands ticked. Refund ceilings
- * (per operation, total over the competition) are the defaults offered, editable.
+ * Rights at the check-in desk (desk/), for the whole competition — not stand by stand:
+ * reg (documents checked by the registry), pay (collect what an archer owes), equip (equipment
+ * checked by the judges).
+ */
+function shp_desk_perms_all()
+{
+    return array('reg', 'pay', 'equip');
+}
+
+function shp_desk_perm_label($perm)
+{
+    $k = array('reg' => 'DkPermReg', 'pay' => 'DkPermPay', 'equip' => 'DkPermEquip');
+    return isset($k[$perm]) ? shp_t($k[$perm]) : (string) $perm;
+}
+
+/** Desk rights (array or comma list in) → comma list in the canonical order. */
+function shp_desk_perms_clean($perms)
+{
+    $in = is_array($perms) ? $perms : explode(',', (string) $perms);
+    return implode(',', array_values(array_intersect(shp_desk_perms_all(), array_map('trim', $in))));
+}
+
+/**
+ * Role presets (D12): the organiser picks one, applied to the stands ticked (perms) and to the
+ * check-in desk (desk). Refund ceilings (per operation, total over the competition) are the
+ * defaults offered, editable.
  */
 function shp_staff_presets()
 {
     return array(
-        'seller'    => array('perms' => 'sell,cash', 'refund_max' => 0, 'refund_total' => 0),
-        'preparer'  => array('perms' => 'prepare', 'refund_max' => 0, 'refund_total' => 0),
-        'versatile' => array('perms' => 'sell,prepare,cash,stock', 'refund_max' => 0, 'refund_total' => 0),
-        'manager'   => array('perms' => 'sell,prepare,cash,refund,stock,manage', 'refund_max' => 20, 'refund_total' => 100),
+        'seller'    => array('perms' => 'sell,cash', 'desk' => '', 'refund_max' => 0, 'refund_total' => 0),
+        'preparer'  => array('perms' => 'prepare', 'desk' => '', 'refund_max' => 0, 'refund_total' => 0),
+        'versatile' => array('perms' => 'sell,prepare,cash,stock', 'desk' => '', 'refund_max' => 0, 'refund_total' => 0),
+        'manager'   => array('perms' => 'sell,prepare,cash,refund,stock,manage', 'desk' => '', 'refund_max' => 20, 'refund_total' => 100),
+        'registry'  => array('perms' => '', 'desk' => 'reg,pay', 'refund_max' => 0, 'refund_total' => 0),
+        'judge'     => array('perms' => '', 'desk' => 'equip', 'refund_max' => 0, 'refund_total' => 0),
     );
 }
 
 function shp_staff_preset_label($preset)
 {
     $k = array('seller' => 'ShStfPresetSeller', 'preparer' => 'ShStfPresetPreparer',
-        'versatile' => 'ShStfPresetVersatile', 'manager' => 'ShStfPresetManager');
+        'versatile' => 'ShStfPresetVersatile', 'manager' => 'ShStfPresetManager',
+        'registry' => 'DkPresetRegistry', 'judge' => 'DkPresetJudge');
     return isset($k[$preset]) ? shp_t($k[$preset]) : '';
 }
 
-/** Preset matching a list of rights exactly, or '' (custom rights). */
-function shp_staff_preset_of($perms)
+/** Preset matching a list of rights (stands, desk) exactly, or '' (custom rights). */
+function shp_staff_preset_of($perms, $desk = '')
 {
     $perms = shp_perms_clean($perms);
-    foreach (shp_staff_presets() as $k => $p) if ($p['perms'] === $perms) return $k;
+    $desk = shp_desk_perms_clean($desk);
+    foreach (shp_staff_presets() as $k => $p) if ($p['perms'] === $perms && $p['desk'] === $desk) return $k;
     return '';
 }
 
@@ -268,8 +296,8 @@ function shp_staff_pending($tourId)
 
 /**
  * The team of a competition: approved volunteers still able to work (active, locked) or whose
- * access was withdrawn (revoked after approval). Rights per stand, ceilings, total refunded,
- * minutes since last seen.
+ * access was withdrawn (revoked after approval). Rights per stand and at the check-in desk,
+ * ceilings, total refunded, minutes since last seen.
  */
 function shp_staff_team($tourId)
 {
@@ -287,6 +315,7 @@ function shp_staff_team($tourId)
         $out[] = array('id' => intval($r->SfId), 'kind' => $r->SfKind, 'kind_label' => shp_staff_kind_label($r->SfKind),
             'name' => shp_staff_label(intval($r->SfId)), 'licence' => (string) $r->SfLicence,
             'status' => $r->SfStatus, 'rights' => $perms,
+            'desk' => shp_desk_perms_clean($r->SfDesk ?? '') === '' ? array() : explode(',', shp_desk_perms_clean($r->SfDesk ?? '')),
             'refund_max' => round((float) $r->SfRefundMax, 2), 'refund_total' => round((float) $r->SfRefundTotal, 2),
             'refunded' => $r->SfKind === 'ORGANISER' ? 0.0 : shp_staff_refunded($r),
             'idle' => $r->Idle === null ? null : max(0, intval($r->Idle)));
@@ -363,27 +392,36 @@ function shp_staff_rights_write($staffId, array $rights)
     shp_staff_perms($staffId, true);
 }
 
+/** No right at all given to a volunteer: error to answer. */
+function shp_staff_no_right($tourId)
+{
+    return array('error' => 1, 'code' => 'no_stand',
+        'msg' => shp_t(function_exists('shp_desk_on') && shp_desk_on($tourId) ? 'DkErrNoRight' : 'ShStfErrNoStand'));
+}
+
 /**
- * Approves a waiting request: rights per stand and refund ceilings. Only once, and only while
- * the request is fresh (a request older than SHP_PENDING_MIN is refused: the code on the
- * volunteer's phone was meant to be checked face to face). Returns ['error', 'msg'].
+ * Approves a waiting request: rights per stand, at the check-in desk ($desk: reg, pay, equip)
+ * and refund ceilings — at least one right. Only once, and only while the request is fresh (a
+ * request older than SHP_PENDING_MIN is refused: the code on the volunteer's phone was meant
+ * to be checked face to face). Returns ['error', 'msg'].
  */
-function shp_staff_approve($tourId, $staffId, $rights, $refundMax, $refundTotal, $by)
+function shp_staff_approve($tourId, $staffId, $rights, $refundMax, $refundTotal, $by, $desk = '')
 {
     $tourId = intval($tourId);
     $staffId = intval($staffId);
     $rights = shp_staff_rights_clean($tourId, $rights);
-    if (!$rights) return array('error' => 1, 'code' => 'no_stand', 'msg' => shp_t('ShStfErrNoStand'));
+    $desk = shp_desk_perms_clean($desk);
+    if (!$rights && $desk === '') return shp_staff_no_right($tourId);
     $max = shp_staff_ceiling($refundMax);
     $total = shp_staff_ceiling($refundTotal);
     safe_w_sql("UPDATE ShopStaff SET SfStatus = 'active', SfCode = '', SfFails = 0,
-            SfRefundMax = $max, SfRefundTotal = $total,
+            SfRefundMax = $max, SfRefundTotal = $total, SfDesk = " . StrSafe_DB($desk) . ",
             SfApprovedBy = " . StrSafe_DB(mb_substr((string) $by, 0, 64)) . ", SfApprovedAt = UTC_TIMESTAMP()
         WHERE SfId = $staffId AND SfTournament = $tourId AND SfStatus = 'pending'
           AND SfCreated > DATE_SUB(UTC_TIMESTAMP(), INTERVAL " . SHP_PENDING_MIN . " MINUTE)");
     if (safe_w_affected_rows() < 1) return array('error' => 1, 'code' => 'gone', 'msg' => shp_t('ShStfErrGone'));
     shp_staff_rights_write($staffId, $rights);
-    shp_staff_log($tourId, $staffId, 'approve', $by, shp_staff_rights_text($rights) . " refund $max/$total");
+    shp_staff_log($tourId, $staffId, 'approve', $by, shp_staff_rights_text($rights) . " desk:$desk refund $max/$total");
     return array('error' => 0, 'msg' => '');
 }
 
@@ -409,8 +447,8 @@ function shp_staff_refuse($tourId, $staffId, $by)
     return array('error' => 0, 'msg' => '');
 }
 
-/** Changes the rights and ceilings of an approved volunteer (not of an organiser). */
-function shp_staff_update($tourId, $staffId, $rights, $refundMax, $refundTotal, $by)
+/** Changes the rights (stands, desk) and ceilings of an approved volunteer (not of an organiser). */
+function shp_staff_update($tourId, $staffId, $rights, $refundMax, $refundTotal, $by, $desk = '')
 {
     $tourId = intval($tourId);
     $staffId = intval($staffId);
@@ -420,12 +458,13 @@ function shp_staff_update($tourId, $staffId, $rights, $refundMax, $refundTotal, 
         return array('error' => 1, 'code' => 'gone', 'msg' => shp_t('ShStfErrGone'));
     }
     $rights = shp_staff_rights_clean($tourId, $rights);
-    if (!$rights) return array('error' => 1, 'code' => 'no_stand', 'msg' => shp_t('ShStfErrNoStand'));
+    $desk = shp_desk_perms_clean($desk);
+    if (!$rights && $desk === '') return shp_staff_no_right($tourId);
     $max = shp_staff_ceiling($refundMax);
     $total = shp_staff_ceiling($refundTotal);
-    safe_w_sql("UPDATE ShopStaff SET SfRefundMax = $max, SfRefundTotal = $total WHERE SfId = $staffId");
+    safe_w_sql("UPDATE ShopStaff SET SfRefundMax = $max, SfRefundTotal = $total, SfDesk = " . StrSafe_DB($desk) . " WHERE SfId = $staffId");
     shp_staff_rights_write($staffId, $rights);
-    shp_staff_log($tourId, $staffId, 'rights', $by, shp_staff_rights_text($rights) . " refund $max/$total");
+    shp_staff_log($tourId, $staffId, 'rights', $by, shp_staff_rights_text($rights) . " desk:$desk refund $max/$total");
     return array('error' => 0, 'msg' => '');
 }
 
