@@ -2453,6 +2453,7 @@ function aut_ffta_verify($username, $password, $otp, &$structures, &$error, &$co
     }
 
     $raw = aut_ffta_parse_structures($landing);
+    $person = aut_ffta_parse_person($landing);
     if (!count($raw)) {
         // the landing page varies (after MFA especially): try again on the home page
         curl_setopt_array($ch, array(CURLOPT_URL => AUT_FFTA_BASE . '/', CURLOPT_HTTPGET => true, CURLOPT_POST => false));
@@ -2460,8 +2461,10 @@ function aut_ffta_verify($username, $password, $otp, &$structures, &$error, &$co
         aut_ffta_debug('GET / (retry structures) http=' . curl_getinfo($ch, CURLINFO_HTTP_CODE)
             . ' ' . aut_ffta_debug_page($home));
         $raw = aut_ffta_parse_structures($home);
+        if (!$person) $person = aut_ffta_parse_person($home);
     }
     curl_close($ch);
+    aut_ffta_person($person);
 
     foreach ($raw as $st) {
         if ($m = aut_ffta_map_structure($st)) $structures[] = $m;
@@ -2504,8 +2507,100 @@ function aut_ffta_no_structure_reason($raw) {
 }
 
 /**
+ * Name of the person signed in, read on a page of the officers' space: the user menu at the top
+ * right ("<i class="icon-user-tie …"></i><span> M KRAUS Stephane <br>…"): a civility, the family
+ * name in capitals, then the given name. Returns ['family', 'given'] or null.
+ */
+function aut_ffta_parse_person($html) {
+    if (!preg_match('#<i class="icon-user-tie[^"]*"></i>\s*<span>\s*([^<]+?)\s*<br#s', (string) $html, $m)) return null;
+    $words = preg_split('/\s+/u', trim(html_entity_decode($m[1], ENT_QUOTES, 'UTF-8')));
+    if ($words && preg_match('/^(M|Mme|Mlle|Mr|Mrs|Ms|Melle|M\.)$/iu', $words[0])) array_shift($words);
+    $family = array();
+    $given = array();
+    foreach ($words as $w) {
+        // The family name is the run of words in capitals; the given name follows.
+        if (!$given && $w === mb_strtoupper($w) && preg_match('/\p{L}/u', $w)) $family[] = $w; else $given[] = $w;
+    }
+    if (!$family || !$given) return null;
+    return array('family' => implode(' ', $family), 'given' => implode(' ', $given));
+}
+
+/** The person read at the last sign-in to the officers' space (set by aut_ffta_verify). */
+function aut_ffta_person($set = false) {
+    static $person = null;
+    if ($set !== false) $person = $set ?: null;
+    return $person;
+}
+
+/** "Kraus S." from a family and a given name, whatever their case ("KRAUS", "stephane"). */
+function aut_person_short($family, $given) {
+    $title = function ($s) {
+        // Each part of a compound name: "LE SOMPTIER" → "Le Somptier", "DUPONT-MOREAU" → "Dupont-Moreau".
+        return preg_replace_callback('/(^|[\s\'\-])(\p{L})([^\s\'\-]*)/u', function ($m) {
+            return $m[1] . mb_strtoupper($m[2]) . mb_strtolower($m[3]);
+        }, trim((string) $s));
+    };
+    $family = $title($family);
+    $given = trim((string) $given);
+    if ($family === '') return '';
+    return $given === '' ? $family : $family . ' ' . mb_strtoupper(mb_substr($given, 0, 1)) . '.';
+}
+
+/**
+ * Name of an SSO account: "Kraus S. (SSO)", from the officers' space (person read at sign-in),
+ * else from the federation's licence file when the identifier is a licence number. '' when
+ * neither tells.
+ */
+function aut_sso_display_name($username) {
+    $p = aut_ffta_person();
+    if ($p) return aut_person_short($p['family'], $p['given']) . ' (SSO)';
+    if (preg_match('/^[0-9]{7}[a-z]$/i', (string) $username)) {
+        // bytes: a licence number is ASCII
+        $rs = safe_r_sql("SELECT LueFamilyName, LueName FROM LookUpEntries WHERE LueCode = " . StrSafe_DB(strtoupper($username))
+            . " ORDER BY LueDefault DESC LIMIT 1", false, true);
+        $r = $rs ? safe_fetch($rs) : null;
+        if ($r && trim($r->LueFamilyName) !== '') return aut_person_short($r->LueFamilyName, $r->LueName) . ' (SSO)';
+    }
+    return '';
+}
+
+/**
+ * May the name of an SSO account be set automatically? Only while nobody chose it: empty, the
+ * former default label (in any language), or a name set this way before ("… (SSO)").
+ */
+function aut_sso_name_auto($name) {
+    static $defaults = null;
+    if ($defaults === null) {
+        $defaults = array();
+        foreach (glob(__DIR__ . '/languages/*.php') ?: array() as $f) {
+            $lang = array();
+            include $f;
+            if (!empty($lang['SsoAccountName'])) $defaults[] = $lang['SsoAccountName'];
+        }
+    }
+    $name = trim((string) $name);
+    return $name === '' || in_array($name, $defaults, true) || preg_match('/ \(SSO\)$/u', $name);
+}
+
+/**
+ * SSO accounts still under the default name whose identifier is a licence number: named from
+ * the licence file (the users' page calls it, so that the list shows who is who).
+ */
+function aut_sso_names_refresh() {
+    $rs = safe_r_sql("SELECT AuId, AuUsername, AuName FROM AuthUsers WHERE AuPassword = '' AND AuUsername REGEXP '^[0-9]{7}[A-Za-z]$'");
+    $todo = array();
+    while ($r = safe_fetch($rs)) if (aut_sso_name_auto($r->AuName)) $todo[] = $r;
+    foreach ($todo as $r) {
+        $name = aut_sso_display_name($r->AuUsername);
+        if ($name !== '' && $name !== $r->AuName) {
+            safe_w_sql("UPDATE AuthUsers SET AuName = " . StrSafe_DB(mb_substr($name, 0, 100)) . " WHERE AuId = " . intval($r->AuId));
+        }
+    }
+}
+
+/**
  * Creates/refreshes the account of an SSO user after FFTA authentication: stores the list of
- * their structures (AuStructs). For a non-admin account, AuRole/AuScope = highest-level
+ * their structures (AuStructs) and, while nobody renamed it, its name (aut_sso_display_name). For a non-admin account, AuRole/AuScope = highest-level
  * structure (fallback base). The ADMIN role is NEVER set nor removed here (explicit grant only).
  * Returns the user object or null ($error filled).
  */
@@ -2534,6 +2629,8 @@ function aut_sso_sync($username, $structures, &$error) {
             return null;
         }
         $set = "AuStructs=" . StrSafe_DB($json);
+        $name = aut_sso_display_name($username);
+        if ($name !== '' && $name !== $u->AuName && aut_sso_name_auto($u->AuName)) $set .= ", AuName=" . StrSafe_DB(mb_substr($name, 0, 100));
         if ($u->AuRole != AUT_ROLE_ADMIN && $best) {
             $set .= ", AuRole=" . StrSafe_DB($best['role']) . ", AuScope=" . StrSafe_DB($best['scope']);
         }
@@ -2545,7 +2642,8 @@ function aut_sso_sync($username, $structures, &$error) {
         }
         safe_w_sql("INSERT INTO AuthUsers (AuUsername, AuPassword, AuRole, AuScope, AuMustChangePwd, AuName, AuStructs)
             VALUES (" . StrSafe_DB($username) . ", '', " . StrSafe_DB($best['role']) . ","
-            . StrSafe_DB($best['scope']) . ", 0, " . StrSafe_DB(aut_t('SsoAccountName')) . ", " . StrSafe_DB($json) . ")");
+            . StrSafe_DB($best['scope']) . ", 0, " . StrSafe_DB(mb_substr(aut_sso_display_name($username) ?: aut_t('SsoAccountName'), 0, 100))
+            . ", " . StrSafe_DB($json) . ")");
         aut_log('SSO_PROVISION', $username);
     }
     return aut_get_user($username);

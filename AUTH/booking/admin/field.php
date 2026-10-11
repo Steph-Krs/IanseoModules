@@ -9,6 +9,7 @@
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
+require_once dirname(__DIR__, 2) . '/adm-lib.php';   // frame of the organiser pages
 
 CheckTourSession(true);
 checkFullACL(AclParticipants, 'pTarget', AclReadWrite);
@@ -72,14 +73,12 @@ $boot['t'] = bk_ts(array('FjClickRemove', 'FjMin', 'FjDef', 'FjMax', 'FjSel0', '
     'FjClearAllConfirm', 'FjDepCleared', 'FjPickDest', 'FjCopyConfirm', 'FjCopied', 'FjPickSrc',
     'FjCopyFromConfirm', 'FjCopiedFrom'));
 
+$base = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/';
 $PAGE_TITLE = bk_t('MnuField');
+$JS_SCRIPT = aut_adm_assets(array('<link rel="stylesheet" href="' . $base . 'assets/field.css?v=' . bk_e(bk_version()) . '">'));
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
-$base = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/';
-$out = '<link rel="stylesheet" href="' . $base . 'assets/field.css?v=' . bk_e(bk_version()) . '">'
-    . '<div id="bkfield"><h1>' . bk_e(bk_t('MnuField')) . '</h1>'
-    . '<p class="bkf-back"><a href="' . $base . 'competition.php">← ' . bk_e(bk_t('Brand')) . '</a>'
-    . ' &nbsp;·&nbsp; <a href="' . $base . 'targets.php">' . bk_e(bk_t('MnuTargets')) . ' →</a></p>';
+$out = aut_adm_open('booking/admin/field.php', bk_t('MnuField')) . '<div id="bkfield">';
 
 if (!$sessions) {
     $out .= '<p class="bkf-warn">' . bk_t('FldNoSession') . '</p>';
@@ -167,7 +166,7 @@ if (!$sessions) {
         . '<div class="bkf-plot"><div id="bkf-axis" class="bkf-axis"></div><div id="bkf-grid" class="bkf-grid"></div></div>'
         . '<p class="bkf-legend">' . bk_e(bk_t('FldLegend')) . '</p></section></div>';
 }
-$out .= '</div>'
+$out .= '</div>' . aut_adm_close()
     . '<script>window.BKF = ' . json_encode($boot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . ';</script>'
     . '<script src="' . $base . 'assets/field.js?v=' . bk_e(bk_version()) . '"></script>';
 echo $out;

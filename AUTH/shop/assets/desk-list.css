@@ -2,9 +2,6 @@
 
 #shpadm .dl-access { margin-top: 12px; }
 #shpadm .dl-access > summary { cursor: pointer; font-weight: 600; color: #0254a8; margin-bottom: 8px; }
-#shpadm .dl-tot { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 14px; }
-#shpadm .dl-tot .sa-card { flex: 1 1 200px; display: flex; flex-direction: column; gap: 4px; margin: 0; }
-#shpadm .dl-tot small { display: flex; align-items: center; gap: 6px; }
 #shpadm .dl-filters { margin-bottom: 10px; }
 #shpadm .dl-st { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 #shpadm .dl-st0 { background: #f7f7f7; border: 1px solid #d2d4d6; color: #7d8183; }

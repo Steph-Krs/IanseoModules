@@ -3,13 +3,15 @@
  * admin/staff.php — the volunteers of the points of sale and of the check-in desk of the open
  * competition (organiser). Open as soon as either is switched on.
  *
- * Used on a computer before the competition and on the organiser's PHONE during it: the layout
- * works down to 360 px. What the page does:
+ * One team for the stands and the check-in desk, managed here (menu "Volunteers"). For a
+ * computer, in the frame shared by AUTH's organiser pages (adm-lib.php). What the page does:
  *   - "Invite volunteers": a QR code (30 min, reusable, can be stopped) shown full screen;
- *   - waiting requests, refreshed by themselves: the organiser checks the 4-digit code shown on
+ *   - waiting requests, refreshed by themselves WHILE an invitation runs or requests wait (no
+ *     request to the server otherwise): the organiser checks the 4-digit code shown on
  *     the volunteer's phone, picks a role preset for the stands ticked (or rights stand by stand),
  *     the rights at the check-in desk and the refund ceilings, then approves — or refuses;
- *   - the team: rights, ceilings, last activity; change rights, withdraw access, reset a password
+ *   - the team: rights, ceilings, last activity (shown two minutes, then hidden: it is not
+ *     refreshed — reload the page); change rights, withdraw access, reset a password
  *     (single-use QR code, 10 min), unlock;
  *   - "Use the till on this device" / "Open the desk on this device": the organiser becomes a
  *     volunteer with every right;
@@ -171,24 +173,19 @@ function ss_journal($tour)
         . shp_e(shp_t('ShStfJournalBy')) . '</th></tr></thead><tbody>' . $rows . '</tbody></table></div>';
 }
 
-$JS_SCRIPT = array(
-    '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    '<link rel="stylesheet" href="' . shp_e(shp_asset_url('admin.css')) . '">',
-    '<link rel="stylesheet" href="' . shp_e(shp_asset_url('staff-admin.css')) . '">',
-);
+$JS_SCRIPT = aut_adm_assets(array('<link rel="stylesheet" href="' . shp_e(shp_asset_url('staff-admin.css')) . '">'));
 $PAGE_TITLE = shp_t('MnuStaff');
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
-// Title and navigation in the frame of the other organiser pages (#shpadm, admin.css); the body
-// keeps its own scope (#shpstf): its fields and buttons are sized for the organiser's phone.
-echo '<div id="shpadm"><h1>' . shp_e(shp_t($deskOn ? ($shopOn ? 'DkStaffTitleBoth' : 'DkStaffTitleDesk') : 'ShStfPageTitle')) . '</h1>'
-    . shp_adm_nav('staff.php') . '</div>';
+// Frame of the organiser pages (#shpadm, assets/admin.css); the body keeps its own scope (#shpstf,
+// staff-admin.css) for the cards drawn by its script.
+echo aut_adm_open('shop/admin/staff.php', shp_t($deskOn ? ($shopOn ? 'DkStaffTitleBoth' : 'DkStaffTitleDesk') : ($shopOn ? 'ShStfPageTitle' : 'MnuStaff')));
 echo '<div id="shpstf">';
 
 if (!$enabled) {
-    echo '<div class="ss-msg ss-warn">' . shp_e(shp_t('ShStfShopOff')) . ' <a href="' . shp_e(shp_url('admin/index.php')) . '">'
+    echo '<div class="ss-msg ss-warn">' . shp_e(shp_t('DkStaffOff')) . ' <a href="' . shp_e(shp_url('admin/index.php')) . '">'
         . shp_e(shp_t('MnuSettings')) . '</a> · <a href="' . shp_e(shp_url('desk/list.php')) . '">'
-        . shp_e(shp_t('DkMenu')) . '</a></div></div>';
+        . shp_e(shp_t('DkMenu')) . '</a></div></div>' . aut_adm_close();
     include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');
     exit;
 }
@@ -268,6 +265,6 @@ echo shp_json_script('shp-texts', shp_ts(array(
     )));
 echo '<script src="' . shp_e(shp_asset_url('shp.js')) . '"></script>'
     . '<script src="' . shp_e(shp_asset_url('staff-admin.js')) . '"></script>';
-echo '</div>';
+echo '</div>' . aut_adm_close();
 
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

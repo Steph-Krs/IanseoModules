@@ -1,7 +1,10 @@
 /* Points of sale and check-in desk — organiser page of the volunteers (admin/staff.php).
-   Waiting requests and team are drawn from the JSON of the page (#shp-cfg) and refreshed every
-   3 seconds (15 when the page is hidden). A card being edited is never redrawn under the
-   organiser's fingers. Every text comes from #shp-texts. */
+   Waiting requests and team are drawn from the JSON of the page (#shp-cfg). The page asks the
+   server again every 3 seconds (15 when hidden) ONLY while an invitation runs or requests wait:
+   otherwise nothing changes by itself and nothing is asked. "Seen … ago" is shown two minutes
+   (it is not refreshed), then hidden. A redraw never moves the page: the reading position is
+   kept, a card being edited is never redrawn under the organiser's fingers, and a card is only
+   redrawn when what it shows changed. Every text comes from #shp-texts. */
 (function () {
     'use strict';
     var Shp = window.Shp;
@@ -52,15 +55,25 @@
     function post(body) {
         body.csrf = C.csrf;
         return Shp.api(C.self, body).then(function (res) {
-            if (res && res.pending) { state = res; render(); }
+            if (res && res.pending) { state = pick(res); render(); }
             if (res && res.error) flash(res.msg || T('ShErrNetwork'), 'err');
             return res;
         }, function () { flash(T('ShErrNetwork'), 'err'); return { error: 1 }; });
     }
+    function pick(res) { return { pending: res.pending, team: res.team, invite: res.invite }; }
     function refresh() {
         return Shp.api(C.self, null).then(function (res) {
-            if (res && res.pending) { state = res; render(); }
+            if (res && res.pending) { state = pick(res); render(); }
         });
+    }
+
+    /* Asking the server again only while something may change by itself: an invitation running
+       (volunteers scan it), or requests waiting for a decision. */
+    var poller = null;
+    function syncPolling() {
+        var need = (Number(state.invite) || 0) > 0 || (state.pending || []).length > 0;
+        if (need && !poller) poller = Shp.poll(refresh, 3000, 15000);
+        else if (!need && poller) { poller.stop(); poller = null; }
     }
 
     /* ---- Rights editor: role preset × stands ticked, or rights stand by stand; desk rights ---- */
@@ -303,7 +316,7 @@
         var seen = m.idle === null ? T('ShStfSeenNever') : T('ShStfSeenAgo', m.idle < 1 ? T('ShStfAgoNow') : T('ShStfAgo', m.idle));
         card.appendChild(el('div', 'ss-head', '<b>' + esc(m.name) + '</b> <span class="ss-kind">' + esc(m.kind_label)
             + (m.licence ? ' · ' + esc(m.licence) : '') + '</span> ' + badge
-            + (m.status === 'revoked' ? '' : ' <span class="ss-ago">' + esc(seen) + '</span>')));
+            + (m.status === 'revoked' ? '' : ' <span class="ss-ago ss-seen">' + esc(seen) + '</span>')));
         var body = el('div', 'ss-body', rightsSummary(m));
         card.appendChild(body);
         if (m.status === 'revoked') return card;
@@ -356,7 +369,7 @@
         if (!m) return;
         var fresh = teamCard(m);
         c.el.replaceWith(fresh);
-        c.el = fresh; c.json = JSON.stringify(m); c.editing = false;
+        c.el = fresh; c.json = JSON.stringify(Object.assign({}, m, { idle: null })); c.editing = false;
     }
 
     function renderTeam() {
@@ -374,7 +387,8 @@
         var next = {};
         var frag = document.createDocumentFragment();
         function place(m, parent) {
-            var j = JSON.stringify(m), c = teamCards[m.id];
+            // "Seen … ago" is not refreshed (hidden after two minutes): no redraw for it alone.
+            var j = JSON.stringify(Object.assign({}, m, { idle: null })), c = teamCards[m.id];
             if (keep[m.id]) c = keep[m.id];
             else if (!c || c.json !== j) c = { el: teamCard(m), json: j, editing: false };
             next[m.id] = c;
@@ -406,7 +420,13 @@
         r.appendChild(btn(T('ShStfInviteStop'), 'ss-btn-danger', stopInvite));
     }
 
-    function render() { renderPending(); renderTeam(); renderRunning(); }
+    function render() {
+        // The page must not move under the reader: the reading position is put back.
+        var y = window.pageYOffset;
+        renderPending(); renderTeam(); renderRunning();
+        if (window.pageYOffset !== y) window.scrollTo(0, y);
+        syncPolling();
+    }
 
     /* ---- Full-screen QR code ---- */
     var timer = null, ovKind = '';
@@ -456,5 +476,5 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('ss-overlay').hidden) hideQr(); });
 
     render();
-    Shp.poll(refresh, 3000, 15000);
+    setTimeout(function () { var r = $('shpstf'); if (r) r.classList.add('ss-stale'); }, 120000);
 })();

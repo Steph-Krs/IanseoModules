@@ -13,6 +13,7 @@
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+require_once(dirname(__DIR__) . '/adm-lib.php');   // navigation and save button of the organiser pages
 require_once(dirname(__DIR__, 2) . '/_shared/update-lib.php');
 
 upd_admin_guard();
@@ -37,7 +38,9 @@ $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };
 $on = aut_sfa_create_only();
 
 $PAGE_TITLE = aut_t('MenuSfaOnly');
+$JS_SCRIPT = aut_adm_assets(array(), false);
 include('Common/Templates/head.php');
+echo aut_adm_open_plain('admin/sfa.php');
 
 echo '<style>
 #aut-sfa h1 { font-size:22px; color:#01367c; margin:0 0 4px; }
@@ -64,14 +67,15 @@ if ($err) echo '<div class="msg err">' . $e($err) . '</div>';
 if (!$present) {
     echo '<div class="warn">' . $e(aut_t('SfaAbsent')) . '</div></div>';
 } else {
-    echo '<form method="post" action="" class="sec">' . aut_csrf_field()
+    echo '<form method="post" action="" class="sec" id="aut-sfa-form">' . aut_csrf_field()
         . '<label><input type="checkbox" name="create_only" value="1"' . ($on ? ' checked' : '') . '> '
         . $e(aut_t('SfaBox')) . '</label><ul>'
         . '<li>' . $e(aut_t('SfaNew')) . ' <a href="' . $e(aut_sfa_create_url()) . '">' . $e(aut_t('SfaCreatePage')) . ' →</a></li>'
         . '<li>' . $e(aut_t('SfaAdminKeeps')) . '</li>'
         . '<li>' . $e(aut_t('SfaImport')) . '</li>'
         . '<li>' . $e(aut_t('SfaUninstalled')) . '</li>'
-        . '</ul><button type="submit" class="btn">' . $e(aut_t('SfaSave')) . '</button></form></div>';
+        . '</ul></form>' . aut_adm_save('aut-sfa-form') . '</div>';
 }
 
+echo aut_adm_close();
 include('Common/Templates/tail.php');

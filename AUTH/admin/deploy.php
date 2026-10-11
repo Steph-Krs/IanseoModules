@@ -11,6 +11,7 @@
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+require_once(dirname(__DIR__) . '/adm-lib.php');   // navigation and save button of the organiser pages
 require_once('Common/Fun_FormatText.inc.php');
 
 checkFullACL(AclRoot, '', AclReadWrite);
@@ -74,7 +75,9 @@ $st = aut_dist_status();
 $flag = aut_userauth_flag_state();
 
 $PAGE_TITLE = aut_t('MenuTitle') . ' — ' . aut_t('MenuDeploy');
+$JS_SCRIPT = aut_adm_assets(array(), false);
 include('Common/Templates/head.php');
+echo aut_adm_open_plain('admin/deploy.php');
 
 $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };
 $action = function ($name, $label, $attrs = '') use ($e) {
@@ -120,4 +123,5 @@ echo '<tr><th class="Title" colspan="3">' . $e(aut_t('DpActivation')) . "</th></
     . '<tr><td colspan="3" style="font-size:11px;">' . aut_t('DpSelfheal') . "</td></tr>\n"
     . '<tr><td colspan="3" class="Center"><a href="config.php">' . $e(aut_t('DpConfigLink')) . " →</a></td></tr>\n"
     . "</table>\n";
+echo aut_adm_close();
 include('Common/Templates/tail.php');

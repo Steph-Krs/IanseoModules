@@ -9,6 +9,7 @@
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+require_once(dirname(__DIR__) . '/adm-lib.php');   // navigation and save button of the organiser pages
 require_once(dirname(__DIR__) . '/anonymise-lib.php');
 
 checkFullACL(AclRoot, '', AclReadWrite);
@@ -53,7 +54,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['action'] ?? '') ==
 }
 
 $PAGE_TITLE = aut_t('MenuTitle') . ' — ' . aut_t('MenuAnonymise');
+$JS_SCRIPT = aut_adm_assets(array(), false);
 include('Common/Templates/head.php');
+echo aut_adm_open_plain('admin/anonymise.php');
 
 $anon = '<b>' . aan_h(AUT_ANON_CODE) . '</b>';
 echo '<style>
@@ -174,4 +177,5 @@ if ($lic !== '') {
 }
 
 echo '</table></div>';
+echo aut_adm_close();
 include('Common/Templates/tail.php');

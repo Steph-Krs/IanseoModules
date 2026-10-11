@@ -9,6 +9,7 @@
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+require_once(dirname(__DIR__) . '/adm-lib.php');   // navigation and save button of the organiser pages
 require_once(dirname(__DIR__) . '/config-lib.php');
 require_once(dirname(__DIR__) . '/backup-lib.php');
 require_once(dirname(__DIR__) . '/health-lib.php');
@@ -34,7 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cfg !== null) {
     $new = null;
     if (!aut_csrf_check()) {
         $msgErr = aut_t('ShSessionExpired');
-    } elseif ($action === 'save_backup') {
+    } elseif ($action === 'save_settings') {
+        // The page's save button: backups and nightly window together.
         $d = aut_backup_defaults();
         $new = $cfg;
         $new['backup'] = array_merge(is_array($cfg['backup'] ?? null) ? $cfg['backup'] : array(), array(
@@ -49,8 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cfg !== null) {
             'live'              => !empty($_POST['bk_live']),
             'live_keep_hours'   => acf_int($_POST['bk_lkeep'] ?? '', 6, 720, $d['live_keep_hours']),
         ));
-    } elseif ($action === 'save_maint') {
-        $new = $cfg;
         $m = is_array($cfg['maintenance'] ?? null) ? $cfg['maintenance'] : array();
         $m['steps'] = array();
         foreach (array('core', 'modules', 'licences', 'logos') as $s) $m['steps'][$s] = !empty($_POST['st_' . $s]);
@@ -121,7 +121,9 @@ $steps = is_array($mt['steps'] ?? null) ? $mt['steps'] : array();
 $notice = is_array($mt['notice'] ?? null) ? $mt['notice'] : array();
 
 $PAGE_TITLE = aut_t('MenuTitle') . ' — ' . aut_t('MenuConfig');
+$JS_SCRIPT = aut_adm_assets(array(), false);
 include('Common/Templates/head.php');
+echo aut_adm_open_plain('admin/config.php');
 
 echo '<style>
 #acf .ok{color:#1a5c1a} #acf .ko{color:#8b1a1a} #acf .warn{color:#8a5a00}
@@ -250,7 +252,8 @@ $row = function ($label, $field, $hint = '') {
 $check = function ($name, $on, $label) use ($dis) {
     return '<label><input type="checkbox" name="' . $name . '" value="1"' . ($on ? ' checked' : '') . $dis . '> ' . $label . '</label>';
 };
-echo '</table><form method="post" action="">' . aut_csrf_field() . '<input type="hidden" name="action" value="save_backup"><table class="Tabella">';
+echo '</table><form method="post" action="" id="acf-settings">' . aut_adm_default_submit() . aut_csrf_field()
+    . '<input type="hidden" name="action" value="save_settings"><table class="Tabella">';
 echo $row(aut_t('CfBkEnabled'), $check('bk_enabled', $bk['enabled'], acf_h(aut_t('CfBkEnabledBox'))));
 echo $row(aut_t('CfBkDir'), '<input type="text" name="bk_dir" value="' . acf_h($bk['dir']) . '"' . $dis . '>', aut_t('CfBkDirHint'));
 echo $row(aut_t('CfBkKeep'), '<input type="number" name="bk_keep" min="1" max="3650" value="' . intval($bk['keep_days']) . '"' . $dis . '>', acf_h(aut_t('CfBkKeepHint')));
@@ -263,12 +266,11 @@ echo $row(aut_t('CfBkCore'), $check('bk_required', $bk['required_for_core'], acf
 echo $row(aut_t('CfBkRemote'), '<input type="text" name="bk_remote" placeholder="' . acf_h(aut_t('CfBkRemotePh')) . '" value="'
     . acf_h($bk['remote']) . '"' . $dis . '>', aut_t('CfBkRemoteHint'));
 echo $row(aut_t('CfBkRkeep'), '<input type="number" name="bk_rkeep" min="1" max="3650" value="' . intval($bk['remote_keep_days']) . '"' . $dis . '>');
-echo '<tr><td colspan="2" class="Center"><button type="submit"' . $dis . '>' . acf_h(aut_t('CfBkSave')) . '</button></td></tr></table></form>';
 if ($bk['remote'] !== '') {
-    echo '<form method="post" action="" class="Center" style="margin:4px 0">' . aut_csrf_field()
-        . '<input type="hidden" name="action" value="test_remote"><button type="submit"' . $dis . '>' . acf_h(aut_t('CfBkTest')) . '</button></form>';
+    // Comes after the hidden "save_settings" in the form: its value is the one PHP keeps.
+    echo '<tr><td colspan="2" class="Center"><button type="submit" name="action" value="test_remote"' . $dis . '>' . acf_h(aut_t('CfBkTest')) . '</button></td></tr>';
 }
-echo '<table class="Tabella">';
+echo '</table><table class="Tabella">';
 
 echo '<tr><td colspan="2" class="hint"><details><summary><b>' . acf_h(aut_t('CfRcloneHow')) . '</b></summary>'
     . '<p>' . aut_t('CfRclone1') . '</p>'
@@ -281,7 +283,7 @@ sudo -u www-data rclone config</code>'
     . '</details></td></tr>';
 
 /* ---------------- Nightly window ---------------- */
-echo '</table><form method="post" action="">' . aut_csrf_field() . '<input type="hidden" name="action" value="save_maint"><table class="Tabella">';
+echo '</table><table class="Tabella">';
 echo '<tr><th class="Title" colspan="2">' . acf_h(aut_t('CfNight')) . '</th></tr>';
 $lbl = array(
     'core'     => array(aut_t('CfStepCore'), false),
@@ -309,7 +311,7 @@ echo '<tr><td class="lbl">' . acf_h(aut_t('CfCommands')) . '</td><td class="hint
 echo '<tr><td class="lbl">' . acf_h(aut_t('CfPing')) . '</td><td class="hint">'
     . (trim((string) ($mt['ping_url'] ?? '')) !== '' ? '<code>' . acf_h($mt['ping_url']) . '</code>' : '<i>' . acf_h(aut_t('CfNoneM')) . '</i>')
     . '<br>' . aut_t('CfPingHint') . '</td></tr>';
-echo '<tr><td colspan="2" class="Center"><button type="submit"' . $dis . '>' . acf_h(aut_t('ShSave')) . '</button></td></tr></table></form><table class="Tabella">';
+echo '</table></form>' . ($dis === '' ? aut_adm_save('acf-settings') : '') . '<table class="Tabella">';
 
 /* ---------------- Raw editor ---------------- */
 echo '<tr><th class="Title" colspan="2">' . acf_h(aut_t('CfRaw')) . '</th></tr>';
@@ -327,4 +329,5 @@ echo '<tr><td colspan="2"><details' . ($rawPosted !== null ? ' open' : '') . '><
     . acf_h(aut_t('CfRawSave')) . '</button></div></form></details></td></tr>';
 
 echo '</table></div>';
+echo aut_adm_close();
 include('Common/Templates/tail.php');

@@ -10,6 +10,7 @@
 define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
 require_once(__DIR__ . '/lib.php');
+require_once(__DIR__ . '/adm-lib.php');   // navigation and save button of the organiser pages
 require_once('Common/Fun_FormatText.inc.php');
 
 aut_ensure_schema();
@@ -103,11 +104,13 @@ foreach ($rows as $r) {
 }
 
 $PAGE_TITLE = aut_t('ShTitle');
+$JS_SCRIPT = aut_adm_assets(array(), false);
 include('Common/Templates/head.php');
+echo aut_adm_open_plain('index.php');
 
 $e = function ($s) { return htmlspecialchars((string) $s); };
 if ($hasEditable) {
-    echo '<form method="post" action="">' . aut_csrf_field() . '<input type="hidden" name="action" value="save">';
+    echo '<form method="post" action="" id="autshare">' . aut_csrf_field() . '<input type="hidden" name="action" value="save">';
 }
 echo '<table class="Tabella">' . "\n"
     . '<tr><th class="Title" colspan="9">' . $e(aut_t('ShTitle')) . "</th></tr>\n";
@@ -156,10 +159,8 @@ foreach ($rows as $r) {
     }
     print "</tr>\n";
 }
-if ($hasEditable) {
-    echo '<tr><td colspan="9" class="Center"><button type="submit">' . $e(aut_t('ShSave')) . "</button></td></tr>\n";
-}
 echo '<tr><td colspan="9" style="font-size:10px; color:#667;">' . aut_t('ShNote') . "</td></tr>\n"
     . "</table>\n";
-if ($hasEditable) echo '</form>';
+if ($hasEditable) echo '</form>' . aut_adm_save('autshare');
+echo aut_adm_close();
 include('Common/Templates/tail.php');

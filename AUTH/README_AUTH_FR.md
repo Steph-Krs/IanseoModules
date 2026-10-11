@@ -36,7 +36,12 @@ des espaces en ligne (le module est prêt à basculer le jour venu).
 - 👤 Un compte par organisateur ; chaque compte ne voit que ses compétitions
 - 🤝 Partage contrôlé d'une compétition (aide à la saisie, visibilité pour la structure de tutelle)
 - 🔑 Connexion centralisée, avec repli sur des comptes locaux
-- 🛠️ Administration des comptes et journal d'activité
+- 🛠️ Administration des comptes et journal d'activité ; les comptes connectés par l'espace
+  dirigeant sont nommés d'eux-mêmes (« Kraus S. (SSO) »)
+- 🧭 Menus rangés dans l'ordre d'usage (inscriptions en ligne, greffe, arbitres, buvette et
+  boutique, bénévoles, multi-comptes) ; les pages d'organisation ont la même présentation, une
+  barre de navigation par rubrique et un bouton Enregistrer fixé en bas à droite (les pages
+  Multi-comptes gardent l'aspect compact de ianseo)
 
 ### Côté compétiteur (inscriptions en ligne — sous-module `booking/`)
 - 🎯 Espace licencié : calendrier des compétitions ouvertes, inscription en quelques clics
@@ -190,7 +195,7 @@ Voir le [README général](../README.md) pour le principe commun.
 
 | Statement | Table | Location | Notes |
 |---|---|---|---|
-| `DELETE FROM` | `LookUpEntries` | `admin/index.php:224` | review scope by hand |
+| `DELETE FROM` | `LookUpEntries` | `admin/index.php:228` | review scope by hand |
 | `DELETE FROM` | `TournamentInvolved` | `anonymise-lib.php:249` | — |
 | `UPDATE` | `Entries` | `anonymise-lib.php:377` | review scope by hand |
 | `DELETE FROM` | `Photos` | `anonymise-lib.php:382` | — |
@@ -235,21 +240,21 @@ Voir le [README général](../README.md) pour le principe commun.
 
 | Statement | Table | Location | Notes |
 |---|---|---|---|
-| `INSERT INTO` | `AuthUsers` | `admin/index.php:102` | — |
-| `UPDATE` | `AuthUsers` | `admin/index.php:125` | — |
-| `UPDATE` | `AuthUsers` | `admin/index.php:142` | — |
-| `UPDATE` | `AuthUsers` | `admin/index.php:153` | — |
-| `DELETE FROM` | `AuthUsers` | `admin/index.php:177` | — |
-| `UPDATE` | `BookingArchers` | `admin/index.php:193` | — |
-| `DELETE FROM` | `BookingSessions` | `admin/index.php:194` | — |
+| `INSERT INTO` | `AuthUsers` | `admin/index.php:106` | — |
+| `UPDATE` | `AuthUsers` | `admin/index.php:129` | — |
+| `UPDATE` | `AuthUsers` | `admin/index.php:146` | — |
+| `UPDATE` | `AuthUsers` | `admin/index.php:157` | — |
+| `DELETE FROM` | `AuthUsers` | `admin/index.php:181` | — |
+| `UPDATE` | `BookingArchers` | `admin/index.php:197` | — |
 | `DELETE FROM` | `BookingSessions` | `admin/index.php:198` | — |
-| `UPDATE` | `BookingArchers` | `admin/index.php:202` | — |
-| `UPDATE` | `BookingArchers` | `admin/index.php:208` | — |
-| `DELETE FROM` | `BookingSessions` | `admin/index.php:209` | — |
-| `UPDATE` | `BookingArchers` | `admin/index.php:216` | — |
-| `DELETE FROM` | `BookingSessions` | `admin/index.php:217` | — |
+| `DELETE FROM` | `BookingSessions` | `admin/index.php:202` | — |
+| `UPDATE` | `BookingArchers` | `admin/index.php:206` | — |
+| `UPDATE` | `BookingArchers` | `admin/index.php:212` | — |
+| `DELETE FROM` | `BookingSessions` | `admin/index.php:213` | — |
+| `UPDATE` | `BookingArchers` | `admin/index.php:220` | — |
 | `DELETE FROM` | `BookingSessions` | `admin/index.php:221` | — |
-| `DELETE FROM` | `BookingArchers` | `admin/index.php:227` | — |
+| `DELETE FROM` | `BookingSessions` | `admin/index.php:225` | — |
+| `DELETE FROM` | `BookingArchers` | `admin/index.php:231` | — |
 | `DELETE FROM` | `BookingShopOrders` | `anonymise-lib.php:250` | — |
 | `DELETE FROM` | `BookingPayments` | `anonymise-lib.php:251` | — |
 | `UPDATE` | `BookingRegistrations` | `anonymise-lib.php:287` | — |
@@ -275,10 +280,10 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `BookingArchers` | `anonymise-lib.php:401` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:406` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:407` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:129` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:133` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:216` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/mandate.php:40` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:97` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:116` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:173` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/mandate.php:44` | — |
 | `INSERT INTO` | `BookingReimportConflicts` | `booking/lib/adopt.php:105` | — |
 | `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:173` | — |
 | `DELETE FROM` | `BookingRegistrations` | `booking/lib/adopt.php:177` | — |
@@ -401,10 +406,10 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `BookingSessions` | `booking/public/security.php:35` | — |
 | `UPDATE` | `BookingArchers` | `booking/public/security.php:54` | — |
 | `DELETE FROM` | `BookingSessions` | `booking/public/security.php:56` | — |
-| `INSERT INTO` | `AuthShare` | `index.php:42` | — |
-| `DELETE FROM` | `AuthShareClub` | `index.php:52` | — |
-| `INSERT IGNORE INTO` | `AuthShareClub` | `index.php:54` | — |
-| `UPDATE` | `AuthShare` | `index.php:63` | — |
+| `INSERT INTO` | `AuthShare` | `index.php:43` | — |
+| `DELETE FROM` | `AuthShareClub` | `index.php:53` | — |
+| `INSERT IGNORE INTO` | `AuthShareClub` | `index.php:55` | — |
+| `UPDATE` | `AuthShare` | `index.php:64` | — |
 | `ALTER TABLE` | `AuthUsers` | `legal-lib.php:301` | — |
 | `UPDATE` | `AuthUsers` | `legal-lib.php:319` | — |
 | `UPDATE` | `BookingArchers` | `legal-lib.php:335` | — |
@@ -444,8 +449,9 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `AuthSessions` | `lib.php:1457` | — |
 | `UPDATE` | `AuthUsers` | `lib.php:1571` | — |
 | `UPDATE` | `AuthUsers` | `lib.php:1687` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:2540` | — |
-| `INSERT INTO` | `AuthUsers` | `lib.php:2546` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:2596` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:2637` | — |
+| `INSERT INTO` | `AuthUsers` | `lib.php:2643` | — |
 | `UPDATE` | `BookingArchers` | `login.php:92` | — |
 | `INSERT INTO` | `AuthClubLogos` | `logos-lib.php:158` | — |
 | `UPDATE` | `AuthClubLogos` | `logos-lib.php:166` | — |

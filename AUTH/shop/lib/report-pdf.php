@@ -34,26 +34,31 @@ function shp_pdf_eur($n)
 
 /**
  * A table: $cols [[label, width, align]], $rows [[cell, …]] (text), $total an optional last row in
- * bold. The header is printed again after a page break.
+ * bold. A row that does not fit goes to the next page with the header printed again above it —
+ * the total line too; the header is never left alone at the bottom of a page.
  */
 function shp_pdf_table($pdf, array $cols, array $rows, array $total = array())
 {
     $head = array();
     foreach ($cols as $c) $head[] = array($c[1], shp_pdf_text($c[0]), $c[2] ?? 'L', 'B');
+    $line = function ($r, $style) use ($cols) {
+        $cells = array();
+        foreach ($cols as $i => $c) $cells[] = array($c[1], shp_pdf_text($r[$i] ?? ''), $c[2] ?? 'L', $style);
+        return $cells;
+    };
+    $all = array();
+    foreach ($rows as $r) $all[] = array($line($r, ''), 'B');
+    if ($total) $all[] = array($line($total, 'B'), 'T');
+    $headH = bk_pdf_row_height($pdf, $head);
+    // The header and the first row together.
+    if ($all && $pdf->GetY() + $headH + bk_pdf_row_height($pdf, $all[0][0]) > bk_pdf_bottom($pdf)) $pdf->AddPage();
     bk_pdf_row($pdf, $head);
-    foreach ($rows as $r) {
-        if ($pdf->GetY() > $pdf->getPageHeight() - 24) {
+    foreach ($all as $row) {
+        if ($pdf->GetY() + bk_pdf_row_height($pdf, $row[0]) > bk_pdf_bottom($pdf)) {
             $pdf->AddPage();
             bk_pdf_row($pdf, $head);
         }
-        $cells = array();
-        foreach ($cols as $i => $c) $cells[] = array($c[1], shp_pdf_text($r[$i] ?? ''), $c[2] ?? 'L');
-        bk_pdf_row($pdf, $cells);
-    }
-    if ($total) {
-        $cells = array();
-        foreach ($cols as $i => $c) $cells[] = array($c[1], shp_pdf_text($total[$i] ?? ''), $c[2] ?? 'L', 'B');
-        bk_pdf_row($pdf, $cells, 'T');
+        bk_pdf_row($pdf, $row[0], $row[1]);
     }
 }
 

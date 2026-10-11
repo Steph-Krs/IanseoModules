@@ -9,6 +9,7 @@
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+require_once(dirname(__DIR__) . '/adm-lib.php');   // navigation and save button of the organiser pages
 require_once(dirname(__DIR__) . '/legal-lib.php');
 require_once(dirname(__DIR__) . '/stats-usage.php');
 
@@ -163,14 +164,17 @@ function st_render_traffic($d, $days, $tab, $sel) {
 }
 
 $PAGE_TITLE = aut_t('MenuStats');
+$JS_SCRIPT = aut_adm_assets(array(), false);
 include('Common/Templates/head.php');
+echo aut_adm_open_plain('admin/stats.php');
 $cookieUrl = function_exists('aut_legal_url') ? aut_legal_url('cookies') : '';
 ?>
 <style>
-#aut-tabs { display:flex; gap:8px; margin:6px 0 14px; }
-#aut-tabs button { padding:9px 18px; border:1px solid #c9d4df; border-radius:6px 6px 0 0;
-    background:#eef2f6; color:#334; font-size:14px; cursor:pointer; }
-#aut-tabs button.on { background:#1a4f8b; color:#fff; border-color:#1a4f8b; font-weight:600; }
+#aut-tabs { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
+#aut-tabs button { padding:6px 14px; border:1px solid #d2d4d6; border-radius:6px;
+    background:#f7f7f7; color:#20263d; font-size:14px; cursor:pointer; }
+#aut-tabs button:hover { background:#f0f4ff; border-color:#a7d6ff; }
+#aut-tabs button.on { background:#0254a8; color:#fff; border-color:#0254a8; }
 .aut-pane { display:none; }
 .aut-pane.on { display:block; }
 .st-intro { font-size:12.5px; color:#4c4e50; background:#f2f6fb; border:1px solid #d5e2f0;
@@ -273,4 +277,5 @@ if ($hasArchers) {
 })();
 </script>
 <?php
+echo aut_adm_close();
 include('Common/Templates/tail.php');

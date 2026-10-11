@@ -1,10 +1,18 @@
-/* Organiser pages of the points of sale — scoped by #shpadm. Desktop first, readable on a
-   tablet. Charter colours (CHARTE_GRAPHIQUE.md): blue carries the structure, coral and green
-   are signals. One primary button per block. */
+/* Organiser pages of AUTH (online registration, check-in, judges, food & shop, volunteers) — one
+   look for all, scoped by #shpadm (adm-lib.php: aut_adm_open). The accounts of the server keep
+   the core's look (#autadm, at the end).
+   For a computer: the organiser's configuration pages are not used on a phone (the volunteers'
+   pages are, with their own stylesheets). Charter colours (CHARTE_GRAPHIQUE.md): blue carries
+   the structure, coral and green are signals. One primary button per block; the page's save
+   button is fixed at the bottom right (.sa-save, assets/admin.js).
 
-#shpadm { color: #20263d; font-size: 14px; }
+   Levels: h1 the page (22 px), h2 a block (16 px), h3 a part of a block (14 px); text 14 px,
+   hints 12 px. */
+
+#shpadm { color: #20263d; font-size: 14px; line-height: 1.45; }
+#shpadm h3 { font-size: 14px; color: #01367c; margin: 14px 0 6px; }
 #shpadm h1 { font-size: 22px; color: #01367c; margin: 0 0 8px; }
-#shpadm h2 { font-size: 15px; color: #0254a8; margin: 16px 0 8px; }
+#shpadm h2 { font-size: 16px; color: #0254a8; margin: 16px 0 8px; }
 #shpadm h2:first-child { margin-top: 0; }
 #shpadm .sa-title { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
 #shpadm .sa-lead { color: #4c4e50; margin: 8px 0 14px; max-width: 900px; }
@@ -28,9 +36,11 @@
 #shpadm .sa-warn { background: #fdebd6; border-color: #cb8137; color: #7a4a10; }
 #shpadm .sa-info { background: #f0f4ff; border-color: #a7d6ff; color: #01367c; }
 
-#shpadm input[type=text], #shpadm input[type=number], #shpadm input[type=datetime-local], #shpadm select {
+#shpadm input[type=text], #shpadm input[type=number], #shpadm input[type=datetime-local], #shpadm input[type=date],
+#shpadm input[type=email], #shpadm input[type=password], #shpadm input[type=search], #shpadm select, #shpadm textarea {
     padding: 6px 8px; border: 1px solid #d2d4d6; border-radius: 6px; font-size: 14px; max-width: 100%; box-sizing: border-box; }
-#shpadm input:focus, #shpadm select:focus { outline: 2px solid #a7d6ff; border-color: #0254a8; }
+#shpadm input:focus, #shpadm select:focus, #shpadm textarea:focus { outline: 2px solid #a7d6ff; border-color: #0254a8; }
+#shpadm textarea { font-family: inherit; width: 100%; }
 #shpadm .sa-num { width: 90px; }
 #shpadm .sa-letter { width: 44px; text-align: center; text-transform: uppercase; font-weight: bold; }
 
@@ -103,3 +113,73 @@
     #shpadm .sa-stands td { border: 0; padding: 4px 0; text-align: left !important; }
     #shpadm .sa-stands td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; color: #4c4e50; }
 }
+
+/* ---- Shared frame (adm-lib.php) ---------------------------------------------------------- */
+#shpadm.sa-page { max-width: 1500px; }
+#shpadm .sa-title { margin: 4px 0 6px; align-items: center; }
+#shpadm .sa-title h1 { margin: 0; }
+#shpadm .sa-title-act { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#shpadm .sa-card > h2:first-child, #shpadm .sa-card > .sa-head:first-child { margin-top: 0; }
+#shpadm .sa-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 8px; }
+#shpadm .sa-head h2 { margin: 0; }
+#shpadm p { margin: 6px 0; }
+#shpadm a { color: #0254a8; }
+#shpadm .sa-btn:disabled { opacity: .5; cursor: not-allowed; }
+#shpadm .sa-btn-small { padding: 3px 10px; font-size: 13px; }
+#shpadm .sa-table tr:hover td { background: #fbfcfe; }
+#shpadm .sa-table td.sa-r, #shpadm .sa-table th.sa-r { text-align: right; }
+#shpadm .sa-table td.sa-nowrap { white-space: nowrap; }
+
+/* Key figures in a row */
+#shpadm .sa-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin: 0 0 14px; }
+#shpadm .sa-kpi { background: #fff; border: 1px solid #d2d4d6; border-top: 4px solid #0254a8; border-radius: 8px; padding: 10px 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+#shpadm .sa-kpi span { display: block; font-size: 12px; color: #4c4e50; }
+#shpadm .sa-kpi b { display: block; font-size: 20px; color: #01367c; margin-top: 2px; }
+#shpadm .sa-kpi small { margin-top: 2px; }
+
+/* State badges */
+#shpadm .sa-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600;
+    white-space: nowrap; background: #f7f7f7; border: 1px solid #d2d4d6; color: #4c4e50; }
+#shpadm .sa-badge.sa-b-ok { background: #d2f4cd; border-color: #75ae77; color: #035c07; }
+#shpadm .sa-badge.sa-b-ko { background: #ffd6db; border-color: #bb7575; color: #a80000; }
+#shpadm .sa-badge.sa-b-warn { background: #fdebd6; border-color: #cb8137; color: #7a4a10; }
+#shpadm .sa-badge.sa-b-info { background: #f0f4ff; border-color: #a7d6ff; color: #01367c; }
+
+/* Save button of the page: alone, fixed at the bottom right of the screen; the page keeps room
+   under its last block. admin.js moves it to the left of the GUIDE module's panel when there. */
+#shpadm .sa-save { position: fixed; right: 20px; bottom: 20px; z-index: 900; padding: 10px 24px; font-size: 15px;
+    border-radius: 8px; box-shadow: 0 4px 16px rgba(2, 84, 168, .35); }
+#shpadm .sa-save.sa-dirty { box-shadow: 0 0 0 3px #ffb347, 0 4px 16px rgba(2, 84, 168, .35); }
+#shpadm.sa-has-save { padding-bottom: 72px; }
+
+/* Message floating at the top right: the page does not move under the reader's eyes */
+#shpadm .sa-toast { position: fixed; top: 16px; right: 20px; z-index: 950; max-width: 420px; margin: 0;
+    box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+#shpadm .sa-default-submit { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* Buttons left without a class of the module look like its own. */
+#shpadm button:not([class]), #shpadm input[type=submit]:not([class]), #shpadm input[type=button]:not([class]) {
+    padding: 6px 12px; border: 1px solid #d2d4d6; border-radius: 6px; background: #f7f7f7; color: #20263d;
+    font: inherit; font-size: 13px; cursor: pointer; }
+#shpadm button:not([class]):hover, #shpadm input[type=submit]:not([class]):hover { background: #f0f4ff; border-color: #a7d6ff; }
+
+/* ---- Accounts of the server (aut_adm_open_plain, #autadm) -----------------------------------
+   These pages keep the core's look (user's choice: compact, part of ianseo). The frame adds only
+   the navigation, as tabs over the core's tables, in the font of the ianseo menus and with the
+   core's colour variables (themes follow), on one line: admin.js makes the font smaller as long
+   as it does not fit, and lets it wrap only below 9 px. And the fixed save button. */
+#autadm .sa-nav { display: flex; flex-wrap: nowrap; gap: 2px; margin: 4px 0 6px; overflow: hidden;
+    border-bottom: 2px solid var(--header-dark, #004488); }
+#autadm .sa-nav.sa-wrap { flex-wrap: wrap; }
+#autadm .sa-nav a { padding: .3em .7em; border-radius: 3px 3px 0 0; white-space: nowrap; text-decoration: none;
+    background: var(--table-background, #E1F0FF); color: var(--header-dark, #004488); }
+#autadm .sa-nav a:hover { background: var(--bg-cell-header, #BFDDFF); }
+#autadm .sa-nav a.on { background: var(--header-dark, #004488); color: var(--row-main-text, #F2F9ff); font-weight: bold; }
+#autadm .sa-save { position: fixed; right: 20px; bottom: 20px; z-index: 900; padding: 10px 24px; font-size: 15px; font-weight: 600;
+    border: 1px solid #0254a8; border-radius: 8px; background: #0254a8; color: #fff; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(2, 84, 168, .35); }
+#autadm .sa-save:hover { background: #01367c; border-color: #01367c; }
+#autadm .sa-save.sa-dirty { box-shadow: 0 0 0 3px #ffb347, 0 4px 16px rgba(2, 84, 168, .35); }
+#autadm.sa-has-save { padding-bottom: 72px; }
+#autadm .sa-default-submit { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }

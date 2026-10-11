@@ -1,8 +1,6 @@
 /* Field constraints — scoped to #bkfield (look: CHARTE_GRAPHIQUE.md). */
 
-#bkfield { font: 13px/1.5 "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #20263d; }
-#bkfield h1 { font-size: 20px; color: #01367c; margin: 0 0 6px; }
-#bkfield .bkf-back { margin: 0 0 14px; font-size: 13px; }
+#bkfield { font-size: 14px; line-height: 1.45; color: #20263d; }
 #bkfield .bkf-warn {
     background: #fdf0e6; border: 1px solid #cb8137; color: #8a5a26;
     padding: 10px 13px; border-radius: 6px; max-width: 780px;

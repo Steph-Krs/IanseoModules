@@ -6,13 +6,7 @@
  */
 
 require_once(__DIR__ . '/lib.php');
-
-// Merged sub-module (former BOOKING: online registration + shop). The ianseo glob only sweeps
-// Custom/*/menu.php → booking/menu.php no longer loads itself, so it is included here (it fills
-// $ret from $on/$acl, in this same context).
-if (is_file(__DIR__ . '/booking/menu.php')) include(__DIR__ . '/booking/menu.php');
-// Points of sale (refreshment bar, food, shop): same reason, same context.
-if (is_file(__DIR__ . '/shop/menu.php')) include(__DIR__ . '/shop/menu.php');
+require_once(__DIR__ . '/adm-lib.php');   // sections of the organiser side (functions only)
 
 $_aut_on     = !empty($CFG->USERAUTH);
 $_aut_logged = $_aut_on && !empty($_SESSION['AUTH_User']);
@@ -21,23 +15,18 @@ $_aut_root   = !empty($_SESSION['AUTH_ROOT']);
 $_aut_admin  = $_aut_root
     || (empty($_SESSION['AUTH_ENABLE']) && isset($acl) && subFeatureAcl($acl, AclRoot, '') == AclReadWrite);
 
-/* ---- Modules menu ---- */
-$ret['MODS']['AUTH'][] = aut_t('MenuTitle');
-if ($_aut_logged || $_aut_admin) {
-    $ret['MODS']['AUTH'][] = aut_t('MenuShare') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/';
-    $ret['MODS']['AUTH'][] = aut_t('MenuReport') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/tickets.php';
+/* ---- Modules menu: the sections of the organiser side (adm-lib.php), in the order they are
+       used — online registration | check-in, judges, food & shop, volunteers | accounts of the
+       server —, separated from each other and from the other modules. The pages show the same
+       sections in their navigation. ---- */
+$_aut_can = function ($f, $sub, $lvl) use ($acl) {
+    return isset($acl) && function_exists('subFeatureAcl') && subFeatureAcl($acl, $f, $sub) >= $lvl;
+};
+$_aut_others = count(glob(dirname(__DIR__) . '/*/menu.php') ?: array()) > 1;
+foreach (aut_adm_menu($_aut_can, !empty($on) ? intval($_SESSION['TourId'] ?? 0) : 0, $_aut_admin, $_aut_logged, $_aut_others) as $_aut_k => $_aut_v) {
+    if (is_int($_aut_k)) $ret['MODS'][] = $_aut_v; else $ret['MODS'][$_aut_k] = $_aut_v;
 }
-if ($_aut_admin) {
-    $ret['MODS']['AUTH'][] = aut_t('MenuUsers') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/';
-    $ret['MODS']['AUTH'][] = aut_t('MenuAnonymise') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/anonymise.php';
-    $ret['MODS']['AUTH'][] = aut_t('MenuTrust') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/trust.php';
-    $ret['MODS']['AUTH'][] = aut_t('MenuStats') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/stats.php';
-    $ret['MODS']['AUTH'][] = aut_t('MenuTickets') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/tickets.php';
-    $ret['MODS']['AUTH'][] = aut_t('MenuLegal') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/legal.php';
-    $ret['MODS']['AUTH'][] = aut_t('MenuDeploy') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/deploy.php';
-    $ret['MODS']['AUTH'][] = aut_t('MenuConfig') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/config.php';
-    $ret['MODS']['AUTH'][] = aut_t('MenuUpdate') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/update.php';
-}
+unset($_aut_can, $_aut_others, $_aut_k, $_aut_v);
 
 /* ---- Competitions created only through SYNCHRO_FFTA (option, lib.php): the core's "New" is
        hidden for everyone but the administrator (the guard of lib.php refuses it anyway).
@@ -46,9 +35,6 @@ if (!empty($ret['COMP']) && is_array($ret['COMP']) && aut_sfa_create_only() && !
     $ret['COMP'] = array_values(array_filter($ret['COMP'], function ($item) {
         return !is_string($item) || strpos($item, 'Tournament/index.php?New=') === false;
     }));
-}
-if ($_aut_admin && aut_sfa_present()) {
-    $ret['MODS']['AUTH'][] = aut_t('MenuSfaOnly') . '|' . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/sfa.php';
 }
 
 /* ---- User bar (once per page) ---- */

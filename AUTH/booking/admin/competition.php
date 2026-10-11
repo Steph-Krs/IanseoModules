@@ -3,8 +3,12 @@
  * admin/competition.php — opening of the online registration for the competition currently
  * open in ianseo.
  *
- * ORGANISER page: unlike public/, it sits in the ianseo look and follows the core's ACL. Markup
- * produced in PHP; the two scripts at the end get their texts from the page.
+ * ORGANISER page (computer): unlike public/, it sits in the ianseo look and follows the core's
+ * ACL, in the frame shared by AUTH's organiser pages (adm-lib.php). ONE form and ONE save button
+ * fixed at the bottom right: nothing is written while the organiser types, and the level chosen
+ * (closed, simple publication, detailed settings) is applied when saving too — after the settings
+ * of the level shown. Markup produced in PHP; the scripts at the end get their texts from the
+ * page.
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -26,6 +30,7 @@ require_once dirname(__DIR__) . '/lib/waitlist.php'; // waiting list
 require_once dirname(__DIR__) . '/lib/sessionrules.php'; // opening of each departure
 require_once dirname(__DIR__) . '/lib/ffta-event.php';    // what the FFTA extranet announces
 require_once dirname(__DIR__) . '/lib/licences.php';      // licences missing from the federation file
+require_once dirname(__DIR__, 2) . '/adm-lib.php';         // frame of the organiser pages
 
 bk_schema();
 
@@ -84,6 +89,91 @@ function bk_adm_pricing_from_post($post)
     return bk_pricing_is_advanced($norm) ? json_encode($norm) : '';
 }
 
+/** Level 1 (closed): use the payments and the shop or not, and their tariffs when used. */
+function bk_adm_save_level1($tourId, $post)
+{
+    $tourId = intval($tourId);
+    $pay = empty($post['payments']) ? 0 : 1;
+    safe_w_sql("INSERT INTO BookingCompetitions (BcTournament, BcPayments) VALUES ($tourId, $pay)
+        ON DUPLICATE KEY UPDATE BcPayments = VALUES(BcPayments)");
+    // Tariffs and payment methods: only what the archers are charged — nothing here opens the
+    // competition to them.
+    if ($pay && !empty($post['tariffs_present'])) {
+        $pricingJson = bk_adm_pricing_from_post($post);
+        $payJson = bk_payinfo_from_post($post['pay'] ?? array());
+        bk_comp_set_effective($tourId, array(
+            'BcFee' => number_format((float) str_replace(',', '.', (string) ($post['fee'] ?? 0)), 2, '.', ''),
+            'BcPricing' => $pricingJson === '' ? null : $pricingJson,
+            'BcPayInfo' => $payJson === '' ? null : $payJson,
+        ));
+    }
+}
+
+/** Level 2 (simple publication): the base fee only. */
+function bk_adm_save_level2($tourId, $post)
+{
+    $fee = number_format((float) str_replace(',', '.', (string) ($post['fee'] ?? 0)), 2, '.', '');
+    safe_w_sql("UPDATE BookingCompetitions SET BcFee = " . StrSafe_DB($fee) . " WHERE BcTournament = " . intval($tourId));
+}
+
+/** Level 3 (detailed settings): every setting of the form. Returns '' or the error shown. */
+function bk_adm_save_level3($tourId, $post)
+{
+    $tourId = intval($tourId);
+    $kind = (string) ($post['kind'] ?? '');
+    if (!array_key_exists($kind, bk_restrict_kinds())) $kind = '';
+    $err = bk_scope_error($kind, $post['code'] ?? '');
+    if ($err !== '') return $err;
+    $pricingJson = bk_adm_pricing_from_post($post);
+
+    // Placement rules: federation values, editable only overseas.
+    $isDromPost = bk_is_dromtom(bk_org_agrement($tourId));
+    $save = array(
+        'open'        => 1,   // level 3 = published (the level drives the publication)
+        'from'        => $post['from'] ?? '',
+        'to'          => $post['to'] ?? '',
+        'kind'        => $kind,
+        'code'        => $post['code'] ?? '',
+        'restrict_to' => $kind === '' ? '' : ($post['restrict_to'] ?? ''),
+        'max_club'    => $isDromPost ? ($post['max_club'] ?? 2) : 2,
+        'min_clubs'   => $isDromPost ? ($post['min_clubs'] ?? 3) : 3,
+        'show_assign' => !empty($post['show_assign']),
+        'show_gauges' => !empty($post['show_gauges']),
+        'scoresheet'  => !empty($post['scoresheet']),
+        'wish_letter' => !empty($post['wish_letter']),
+        'wish_with'   => !empty($post['wish_with']),
+        'wish_free'   => !empty($post['wish_free']),
+        'manual_validation' => !empty($post['manual_validation']),
+        'fee'         => $post['fee'] ?? 0,
+        'pricing'     => $pricingJson,
+        'payinfo'     => bk_payinfo_from_post($post['pay'] ?? array()),
+        'docs_present'      => 1,
+        'show_program'      => !empty($post['show_program']),
+        'show_participants' => !empty($post['show_participants']),
+        'show_results'      => !empty($post['show_results']),
+        'show_dossard'      => !empty($post['show_dossard']),
+    );
+    // Mandate visibility: written only when the box was there (it only is when a mandate
+    // exists) — keeps the three states.
+    if (!empty($post['show_mandate_present'])) $save['show_mandate'] = !empty($post['show_mandate']);
+    // Same for the ianseo.net link: the box is only shown when the competition has its
+    // publication codes. Without this guard, every save made without the box would erase the
+    // link. The ADDRESS itself is never posted: bk_comp_save() rebuilds it from ToOnlineId.
+    if (!empty($post['ianseo_present'])) {
+        $save['ianseo_present'] = 1;
+        $save['show_ianseo'] = !empty($post['show_ianseo']);
+    }
+    // Satisfaction survey, waiting list, one registration per archer: level 3 only.
+    if (!empty($post['survey_present'])) $save['survey'] = !empty($post['survey']);
+    if (!empty($post['waitlist_present'])) $save['waitlist'] = !empty($post['waitlist']);
+    if (!empty($post['single_reg_present'])) $save['single_reg'] = !empty($post['single_reg']);
+    bk_comp_save($tourId, $save);
+    // Opening of each departure (lib/sessionrules.php).
+    if (!empty($post['ses_present']) && is_array($post['ses'] ?? null)) bk_session_rules_save($tourId, $post['ses']);
+    safe_w_sql("UPDATE BookingCompetitions SET BcPublishLevel = 3 WHERE BcTournament = $tourId");
+    return '';
+}
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
         $err = bk_t('SessionExpired');
@@ -106,12 +196,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         } else {
             $err = bk_t('AcCopyFailed');
         }
-    } elseif (isset($_POST['set_level'])) {
-        // 3-level bar: applies the transition (snapshot / automatic / restore), then reloads the
-        // page (PRG) to show the chosen level.
-        bk_comp_set_level($TOUR, intval($_POST['set_level']));
-        header('Location: ' . $SELF);
-        exit;
     } elseif (isset($_POST['wait_action'])) {
         // Waiting list, by hand: register now (even on a full departure) or remove.
         $wid = intval($_POST['w'] ?? 0);
@@ -123,113 +207,24 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             bk_waitlist_remove($TOUR, $wid);
             $msg = bk_t('AcWaitRemoved');
         }
-    } elseif (isset($_POST['save_fee'])) {
-        // Level 2 "simple publication": base fee only (without the advanced modulation).
-        $fee = number_format((float) str_replace(',', '.', (string) ($_POST['fee'] ?? 0)), 2, '.', '');
-        safe_w_sql("UPDATE BookingCompetitions SET BcFee = " . StrSafe_DB($fee) . " WHERE BcTournament = $TOUR");
-        $msg = bk_t('AcFeeSaved');
-    } elseif (isset($_POST['set_payments'])) {
-        // Closed competition: use the payments and the shop (or stop showing them).
-        safe_w_sql("INSERT INTO BookingCompetitions (BcTournament, BcPayments) VALUES ($TOUR, " . (empty($_POST['payments']) ? 0 : 1) . ")
-            ON DUPLICATE KEY UPDATE BcPayments = VALUES(BcPayments)");
-        header('Location: ' . $SELF);
-        exit;
-    } elseif (isset($_POST['save_payments'])) {
-        // Closed competition using the payments: tariffs and payment methods only. Nothing
-        // here opens the competition to the archers.
-        $cur = bk_comp_config($TOUR);
-        if (intval($cur->BcPublishLevel ?? 1) !== 1 || empty($cur->BcPayments)) {
-            $err = bk_t('AcPayOffReload');
-        } else {
-            $pricingJson = bk_adm_pricing_from_post($_POST);
-            $payJson = bk_payinfo_from_post($_POST['pay'] ?? array());
-            bk_comp_set_effective($TOUR, array(
-                'BcFee' => number_format((float) str_replace(',', '.', (string) ($_POST['fee'] ?? 0)), 2, '.', ''),
-                'BcPricing' => $pricingJson === '' ? null : $pricingJson,
-                'BcPayInfo' => $payJson === '' ? null : $payJson,
-            ));
-            $msg = bk_t('AcTariffsSaved');
-        }
-    } else {
-        $kind = (string) ($_POST['kind'] ?? '');
-        if (!array_key_exists($kind, bk_restrict_kinds())) $kind = '';
-        $err = bk_scope_error($kind, $_POST['code'] ?? '');
+    } elseif (isset($_POST['save_all'])) {
+        // The page's save button: the settings of the level shown, then the level chosen (its
+        // transition: snapshot, automatic settings, restore) — nothing is written before.
+        $curLevel = intval(bk_comp_config($TOUR)->BcPublishLevel ?? 1);
+        if ($curLevel === 3) $err = bk_adm_save_level3($TOUR, $_POST);
+        elseif ($curLevel === 2) bk_adm_save_level2($TOUR, $_POST);
+        else bk_adm_save_level1($TOUR, $_POST);
+        $newLevel = intval($_POST['level'] ?? $curLevel);
+        if ($err === '' && $newLevel !== $curLevel && in_array($newLevel, array(1, 2, 3), true)) bk_comp_set_level($TOUR, $newLevel);
         if ($err === '') {
-            $pricingJson = bk_adm_pricing_from_post($_POST);
-
-            // Placement rules: federation values, editable only overseas.
-            $isDromPost = bk_is_dromtom(bk_org_agrement($TOUR));
-            $save = array(
-                'open'        => 1,   // level 3 = published (the bar drives the publication)
-                'from'        => $_POST['from'] ?? '',
-                'to'          => $_POST['to'] ?? '',
-                'kind'        => $kind,
-                'code'        => $_POST['code'] ?? '',
-                'restrict_to' => $kind === '' ? '' : ($_POST['restrict_to'] ?? ''),
-                'max_club'    => $isDromPost ? ($_POST['max_club'] ?? 2) : 2,
-                'min_clubs'   => $isDromPost ? ($_POST['min_clubs'] ?? 3) : 3,
-                'show_assign' => !empty($_POST['show_assign']),
-                'show_gauges' => !empty($_POST['show_gauges']),
-                'scoresheet'  => !empty($_POST['scoresheet']),
-                'wish_letter' => !empty($_POST['wish_letter']),
-                'wish_with'   => !empty($_POST['wish_with']),
-                'wish_free'   => !empty($_POST['wish_free']),
-                'manual_validation' => !empty($_POST['manual_validation']),
-                'fee'         => $_POST['fee'] ?? 0,
-                'pricing'     => $pricingJson,
-                'payinfo'     => bk_payinfo_from_post($_POST['pay'] ?? array()),
-                'docs_present'      => 1,
-                'show_program'      => !empty($_POST['show_program']),
-                'show_participants' => !empty($_POST['show_participants']),
-                'show_results'      => !empty($_POST['show_results']),
-                'show_dossard'      => !empty($_POST['show_dossard']),
-            );
-            // Mandate visibility: written only when the box was there (it only is when a mandate
-            // exists) — keeps the three states.
-            if (!empty($_POST['show_mandate_present'])) {
-                $save['show_mandate'] = !empty($_POST['show_mandate']);
-            }
-            // Same for the ianseo.net link: the box is only shown when the competition has its
-            // publication codes. Without this guard, every save made without the box would erase
-            // the link. The ADDRESS itself is never posted: bk_comp_save() rebuilds it from
-            // ToOnlineId.
-            if (!empty($_POST['ianseo_present'])) {
-                $save['ianseo_present'] = 1;
-                $save['show_ianseo'] = !empty($_POST['show_ianseo']);
-            }
-            // Satisfaction survey: the checkbox only exists at level 3.
-            if (!empty($_POST['survey_present'])) {
-                $save['survey'] = !empty($_POST['survey']);
-            }
-            // Waiting list: same, level 3 only.
-            if (!empty($_POST['waitlist_present'])) {
-                $save['waitlist'] = !empty($_POST['waitlist']);
-            }
-            if (!empty($_POST['single_reg_present'])) {
-                $save['single_reg'] = !empty($_POST['single_reg']);
-            }
-            bk_comp_save($TOUR, $save);
-            // Opening of each departure (lib/sessionrules.php).
-            if (!empty($_POST['ses_present']) && is_array($_POST['ses'] ?? null)) {
-                bk_session_rules_save($TOUR, $_POST['ses']);
-            }
-            safe_w_sql("UPDATE BookingCompetitions SET BcPublishLevel = 3 WHERE BcTournament = $TOUR");
-            $msg = bk_t('AcSaved');
+            header('Location: ' . $SELF . '?saved=1');
+            exit;
         }
     }
 }
 
-/* Autosave: same POST, same validation, but the state is returned instead of the page.
-   JsonOut() answers with "Access-Control-Allow-Origin: *", which exposes nothing here: a
-   browser never lets another site read a response sent with the session cookie under "*". */
-if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && !empty($_POST['ajax'])) {
-    JsonOut(array(
-        'error' => ($err === '' ? 0 : 1),
-        'msg'   => ($err !== '' ? $err : ($msg !== '' ? $msg : bk_t('AcSavedShort'))),
-    ));
-}
-
 if (isset($_GET['copied'])) $msg = bk_t('AcCopied');
+if (isset($_GET['saved'])) $msg = bk_t('AcSaved');
 
 // Places freed in ianseo's own screens (a participant deleted, targets added) go to the
 // waiting list as soon as the organiser comes back here; the cron catches the rest.
@@ -358,23 +353,25 @@ function bk_cat_row($i, $rule, $divs, $classes, $cur)
 }
 
 $PAGE_TITLE = bk_t('Brand');
+$JS_SCRIPT = aut_adm_assets();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <style>
 #bkadm { max-width: 100%; }
-#bkadm .bk-sec { background:#fff; border:1px solid #d2d4d6; border-radius:6px;
+#bkadm .bk-sec { background:#fff; border:1px solid #d2d4d6; border-radius:8px;
     box-shadow:0 1px 3px rgba(0,0,0,.08); padding:14px 16px; margin:0 0 14px; }
-#bkadm .bk-sec h2 { margin:0 0 10px; font-size:15px; color:#0254a8; }
-#bkadm label { display:inline-block; margin:6px 10px 6px 0; font-size:13px; }
+#bkadm .bk-sec h2 { margin:0 0 10px; font-size:16px; color:#0254a8; }
+#bkadm .bk-h3 { font-size:14px; color:#01367c; margin:14px 0 6px; }
+#bkadm label { display:inline-block; margin:6px 10px 6px 0; font-size:14px; }
 #bkadm input[type=text], #bkadm input[type=number], #bkadm input[type=datetime-local], #bkadm select {
     padding:6px 8px; border:1px solid #d2d4d6; border-radius:6px; font-size:14px; }
 #bkadm .bk-row { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; }
 #bkadm .bk-f { display:flex; flex-direction:column; gap:3px; }
 #bkadm .bk-f > span { font-size:12px; color:#7d8183; }
-#bkadm .bk-chk { display:block; margin:5px 0; font-size:13px; }
-#bkadm .bk-btn { padding:9px 18px; border:1px solid #0254a8; border-radius:6px;
-    background:#0254a8; color:#fff; font-size:14px; font-weight:600; cursor:pointer; }
-#bkadm .bk-btn:hover { background:#01367c; border-color:#01367c; }
+#bkadm .bk-chk { display:block; margin:5px 0; font-size:14px; }
+#bkadm .bk-btn { display:inline-block; padding:7px 14px; border:1px solid #d2d4d6; border-radius:6px;
+    background:#f7f7f7; color:#20263d; font-size:14px; cursor:pointer; text-decoration:none; }
+#bkadm .bk-btn:hover { background:#f0f4ff; border-color:#a7d6ff; }
 #bkadm .bk-msg { padding:9px 12px; border-radius:6px; margin:0 0 14px; font-size:13px; }
 #bkadm .bk-ok  { background:#d2f4cd; border:1px solid #75ae77; color:#04ac0b; }
 #bkadm .bk-err { background:#ffd6db; border:1px solid #bb7575; color:#a80000; }
@@ -413,44 +410,49 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #bkadm .bk-pay-name { min-width:150px; margin:0; }
 #bkadm .bk-pay-info { flex:1 1 240px; }
 #bkadm .bk-levels { display:flex; gap:10px; flex-wrap:wrap; }
-#bkadm .bk-lvl-form { margin:0; flex:1 1 200px; }
-#bkadm .bk-lvl { width:100%; height:100%; text-align:left; cursor:pointer; display:block;
+#bkadm .bk-lvl { flex:1 1 200px; margin:0; text-align:left; cursor:pointer; display:block;
     border:1px solid #d2d4d6; border-radius:8px; background:#fff; padding:12px 14px; font:inherit; }
+#bkadm .bk-lvl input { position:absolute; opacity:0; pointer-events:none; }
+#bkadm .bk-lvl:focus-within { outline:2px solid #a7d6ff; }
+#bkadm .bk-lvl-wait { margin:10px 0 0; padding:8px 12px; border-radius:6px; background:#fdebd6;
+    border:1px solid #cb8137; color:#7a4a10; }
 #bkadm .bk-lvl:hover { border-color:#0254a8; }
 #bkadm .bk-lvl.on { border-color:#0254a8; background:#eaf1fb; box-shadow:0 0 0 1px #0254a8 inset; }
 #bkadm .bk-lvl-n { display:inline-flex; width:22px; height:22px; border-radius:50%; background:#0254a8;
     color:#fff; align-items:center; justify-content:center; font-size:12px; font-weight:700; margin-right:6px; }
 #bkadm .bk-lvl.on .bk-lvl-n { background:#01367c; }
+#bkadm .bk-lvl.chosen { border-color:#e57b10; box-shadow:0 0 0 1px #e57b10 inset; }
 #bkadm .bk-lvl-t { font-weight:700; color:#01367c; font-size:14px; }
 #bkadm .bk-lvl-d { display:block; margin-top:5px; font-size:12px; color:#5b6470; line-height:1.35; }
 #bkadm .bk-shortcuts { display:flex; flex-wrap:wrap; gap:8px; }
 #bkadm .bk-shortcuts .bk-btn { text-decoration:none; }
-#bkadm .bk-sec-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
-#bkadm .bk-sec-head h2 { margin:0; }
-#bkadm .bk-copy { font-size:13px; }
-#bkadm .bk-copy > summary { cursor:pointer; color:#0254a8; font-weight:600; list-style:none;
-    padding:5px 11px; border:1px solid #a7d6ff; border-radius:6px; background:#f0f4ff; white-space:nowrap; }
-#bkadm .bk-copy > summary::-webkit-details-marker { display:none; }
-#bkadm .bk-copy[open] > summary { background:#0254a8; color:#fff; border-color:#0254a8; }
-#bkadm .bk-copy-body { margin-top:8px; padding:10px 12px; border:1px solid #d2d4d6; border-radius:8px;
-    background:#fafbfc; width:min(420px, 90vw); }
-#bkadm .bk-copy-body select, #bkadm .bk-copy-body input[type=text] { max-width:100%; width:100%; }
-#bkadm .bk-copy-body .bk-btn { margin-top:8px; }
 #bkadm .bk-pub-what { font-size:13px; line-height:1.5; margin:0 0 6px; padding:8px 10px;
     background:#eef4fb; border:1px solid #cddff2; border-radius:6px; color:#123a63; }
-/* Autosave: state pill, floating at the bottom right. */
-#bk-pill { position:fixed; right:14px; bottom:14px; z-index:60; padding:8px 13px;
-    border-radius:20px; font-size:12px; font-weight:600; border:1px solid transparent;
-    box-shadow:0 2px 10px rgba(0,0,0,.18); }
-#bk-pill.wait { background:#fdf4e3; border-color:#e8cf9a; color:#7a5b12; }
-#bk-pill.ok   { background:#eaf7ea; border-color:#bfe3bf; color:#1c6b1c; }
-#bk-pill.err  { background:#fdecea; border-color:#e8b4ae; color:#a02015; }
-#bkadm .bk-auto-note { font-size:12px; color:#5a6570; margin:10px 0 0; }
 </style>
 <?php
-$out = '<div id="bkadm"><h1>' . bk_e(bk_t('Brand')) . '</h1>'
-    . ($msg ? '<div class="bk-msg bk-ok">' . bk_e($msg) . '</div>' : '')
-    . ($err ? '<div class="bk-msg bk-err">' . bk_e($err) . '</div>' : '');
+// "Copy from…": at the right of the title, its own form.
+$copy = '';
+if ($copyAdmin) {
+    $copy = bk_fld(bk_t('AcCopyCode'), '<input type="text" name="copy_src_text" placeholder="' . bk_e(bk_t('AcCopyCodePh')) . '" autocomplete="off" required>')
+        . '<button type="submit" name="copy_from" value="1" class="sa-btn sa-primary">' . bk_e(bk_t('AcCopyBtn')) . '</button>';
+} elseif (!$copySources) {
+    $copy = '<p class="sa-hint">' . bk_e(bk_t('AcCopyNone')) . '</p>';
+} else {
+    $o = '<option value="">' . bk_e(bk_t('ChooseDash')) . '</option>';
+    foreach ($copySources as $s) {
+        $o .= '<option value="' . intval($s->ToId) . '">' . bk_e($s->ToName . ' (' . $s->ToCode . ') — ' . bk_date_fr($s->ToWhenFrom)) . '</option>';
+    }
+    $copy = bk_fld(bk_t('AcCopySrc'), '<select name="copy_src" required>' . $o . '</select>')
+        . '<button type="submit" name="copy_from" value="1" class="sa-btn sa-primary">' . bk_e(bk_t('AcCopyBtn')) . '</button>';
+}
+$copyBox = '<details class="sa-copy"><summary>' . bk_e(bk_t('AcCopySummary')) . '</summary><div class="sa-copy-body">'
+    . '<p class="sa-hint">' . bk_t('AcCopyHint') . '</p>'
+    . '<form method="post" onsubmit="return confirm(' . htmlspecialchars(json_encode(bk_t('AcCopyConfirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')">'
+    . bk_csrf_field() . $copy . '</form></div></details>';
+
+$out = aut_adm_open('booking/admin/competition.php', bk_t('Brand'), $copyBox) . '<div id="bkadm">'
+    . ($msg ? '<div class="sa-msg sa-ok" data-sa-toast>' . bk_e($msg) . '</div>' : '')
+    . ($err ? '<div class="sa-msg sa-err">' . bk_e($err) . '</div>' : '');
 
 // Report of a re-import just brought back (shown once).
 $ar = bk_adopt_report_pull();
@@ -520,39 +522,26 @@ if ($bigSes) {
         . bk_t('AcBigText') . '</div>';
 }
 
-// Opening of the registration on this server: copy from…, 3-level bar.
-$copy = '';
-if ($copyAdmin) {
-    $copy = bk_fld(bk_t('AcCopyCode'), '<input type="text" name="copy_src_text" placeholder="' . bk_e(bk_t('AcCopyCodePh')) . '" autocomplete="off" required>')
-        . '<button type="submit" name="copy_from" value="1" class="bk-btn">' . bk_e(bk_t('AcCopyBtn')) . '</button>';
-} elseif (!$copySources) {
-    $copy = '<p class="bk-hint" style="margin:0">' . bk_e(bk_t('AcCopyNone')) . '</p>';
-} else {
-    $o = '<option value="">' . bk_e(bk_t('ChooseDash')) . '</option>';
-    foreach ($copySources as $s) {
-        $o .= '<option value="' . intval($s->ToId) . '">' . bk_e($s->ToName . ' (' . $s->ToCode . ') — ' . bk_date_fr($s->ToWhenFrom)) . '</option>';
-    }
-    $copy = bk_fld(bk_t('AcCopySrc'), '<select name="copy_src" required>' . $o . '</select>')
-        . '<button type="submit" name="copy_from" value="1" class="bk-btn">' . bk_e(bk_t('AcCopyBtn')) . '</button>';
-}
+// Opening of the registration on this server: the level, chosen in the form, applied when saving.
 $levels = '';
 foreach (array(1 => 'AcLvl1', 2 => 'AcLvl2', 3 => 'AcLvl3') as $n => $key) {
-    $levels .= bk_post_form(array('set_level' => $n), '<button type="submit" class="bk-lvl ' . ($level === $n ? 'on' : '') . '">'
+    $levels .= '<label class="bk-lvl ' . ($level === $n ? 'on' : '') . '"><input type="radio" name="level" value="' . $n . '"'
+        . ($level === $n ? ' checked' : '') . '>'
         . '<span class="bk-lvl-t"><span class="bk-lvl-n">' . $n . '</span>' . bk_e(bk_t($key)) . '</span>'
-        . '<span class="bk-lvl-d">' . bk_e(bk_t($key . 'D')) . '</span></button>', '', ' class="bk-lvl-form"');
+        . '<span class="bk-lvl-d">' . bk_e(bk_t($key . 'D')) . '</span></label>';
 }
-$out .= '<div class="bk-sec"><div class="bk-sec-head"><h2>' . bk_e(bk_t('AcOpenTitle')) . '</h2>'
-    . '<details class="bk-copy"><summary>' . bk_e(bk_t('AcCopySummary')) . '</summary><div class="bk-copy-body">'
-    . '<p class="bk-hint" style="margin:0 0 8px">' . bk_t('AcCopyHint') . '</p>'
-    . '<form method="post" onsubmit="return confirm(' . htmlspecialchars(json_encode(bk_t('AcCopyConfirm'), JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')">'
-    . bk_csrf_field() . $copy . '</form></div></details></div>'
+$out .= '<form method="post" id="bk-cfg" data-level="' . $level . '">' . aut_adm_default_submit() . bk_csrf_field()
+    . '<input type="hidden" name="save_all" value="1">'
+    . '<div class="bk-sec"><h2>' . bk_e(bk_t('AcOpenTitle')) . '</h2>'
     . '<p class="bk-pub-what">' . bk_t('AcPubWhat') . '</p>'
     . '<p class="bk-hint" style="margin-top:0">' . bk_t('AcNotIanseoNet') . '</p>'
-    . '<div class="bk-levels">' . $levels . '</div></div>';
+    . '<div class="bk-levels">' . $levels . '</div>'
+    . '<p class="bk-lvl-wait" id="bk-lvl-wait" hidden>' . bk_e(bk_t('AcLvlPending')) . '</p></div>'
+    . '<div data-lvl-block>';
 
 // Tariffs and payment methods: the same blocks at level 3 and on a closed competition that
 // uses the payments and the shop (level 1, participants imported in ianseo).
-$showTariffs = $level == 3 || ($level == 1 && !empty($cfg->BcPayments));
+$showTariffs = $level == 3 || $level == 1;   // level 1: shown as soon as the payments box is ticked
 $cats = '';
 foreach ($pricing['categories'] as $i => $rule) $cats .= bk_cat_row($i, $rule, $divs, $classes, $CUR);
 $deps = '';
@@ -611,28 +600,24 @@ $tariffBlocks = '<div class="bk-sec"><h2>' . bk_e(bk_t('MnFees')) . '</h2><div c
     . '<p class="bk-sim-tot">' . bk_e(bk_t('AcSimTotal')) . ' <b id="sim-total">—</b></p></div></details></div>'
     . '<div class="bk-sec"><h2>' . bk_e(bk_t('PayMeansTitle')) . '</h2><p class="bk-hint">' . bk_e(bk_t('AcPayHint')) . '</p>' . $payRows . '</div>';
 
-$saveBtn = '<button type="submit" class="bk-btn" data-manual-save="1">' . bk_e(bk_t('AmSave')) . '</button>';
-
 if ($level == 1) {
+    // Closed: the payments and the shop used or not; their tariffs shown as soon as the box is
+    // ticked (they are saved with it).
     $out .= '<div class="bk-sec"><p class="bk-hint" style="margin:0">' . bk_t('AcL1Text') . '</p>'
-        . bk_post_form(array('set_payments' => 1), '<label class="bk-chk"><input type="checkbox" name="payments" value="1" onchange="this.form.submit()"'
+        . '<label class="bk-chk" style="margin:12px 0 0"><input type="checkbox" name="payments" value="1" id="bk-payments"'
             . (!empty($cfg->BcPayments) ? ' checked' : '') . '> ' . bk_t('AcL1Box') . '</label>'
-            . '<noscript><button type="submit" class="bk-btn">' . bk_e(bk_t('AcApply')) . '</button></noscript>', '', ' style="margin:12px 0 0"')
         . '<p class="bk-hint">' . bk_e(bk_t('AcL1Hint')) . '</p>'
         . (!empty($cfg->BcPayments) ? '<p class="bk-shortcuts"><a class="bk-btn" href="' . $SHOP_ADMIN . '">' . bk_e(shp_t('MnuTitle')) . ' →</a> '
             . '<a class="bk-btn" href="' . $ADMIN . 'dues.php">' . bk_e(bk_t('Payments')) . ' →</a></p>' : '')
-        . '</div>';
-    if (!empty($cfg->BcPayments)) {
-        $out .= '<form method="post" id="bk-cfg" data-autosave="1">' . bk_csrf_field() . '<input type="hidden" name="save_payments" value="1">'
-            . $tariffBlocks . $saveBtn . '</form><div id="bk-pill" hidden></div>';
-    }
+        . '</div>'
+        . '<div id="bk-tariffs"' . (!empty($cfg->BcPayments) ? '' : ' hidden') . '><input type="hidden" name="tariffs_present" value="1">'
+        . $tariffBlocks . '</div>';
 }
 
 if ($level == 2) {
     $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('AcL2Title')) . '</h2><p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('AcL2Hint')) . '</p>'
-        . '<form method="post" class="bk-row" style="margin:0 0 14px" data-autosave="1">' . bk_csrf_field() . '<input type="hidden" name="save_fee" value="1">'
-        . bk_fld(bk_t('AcRegFee', $CUR), '<input type="text" name="fee" size="8" value="' . bk_e(bk_amt((float) $cfg->BcFee)) . '">')
-        . '<button type="submit" class="bk-btn" data-manual-save="1" style="align-self:flex-end">' . bk_e(bk_t('AcSaveFee')) . '</button></form>'
+        . '<div class="bk-row" style="margin:0 0 14px">'
+        . bk_fld(bk_t('AcRegFee', $CUR), '<input type="text" name="fee" size="8" value="' . bk_e(bk_amt((float) $cfg->BcFee)) . '">') . '</div>'
         . '<p class="bk-hint" style="margin:0 0 6px">' . bk_t('AcL2FeeHint') . '</p><p class="bk-shortcuts">'
         . '<a class="bk-btn" href="' . $ADMIN . 'field.php">' . bk_e(bk_t('MnuField')) . ' →</a> '
         . '<a class="bk-btn" href="' . $SHOP_ADMIN . '">' . bk_e(shp_t('MnuTitle')) . ' →</a> '
@@ -645,7 +630,7 @@ if ($level == 3) {
     foreach (bk_restrict_kinds() as $k => $lab) {
         $kinds .= '<option value="' . bk_e($k) . '"' . ($cfg->BcRestrictKind === $k ? ' selected' : '') . '>' . bk_e($lab) . '</option>';
     }
-    $out .= '<form method="post" id="bk-cfg" data-autosave="1">' . bk_csrf_field()
+    $out .= ''
         // Registration period.
         . '<div class="bk-sec"><h2>' . bk_e(bk_t('AcPeriod')) . '</h2><div class="bk-row">'
         . bk_fld(bk_t('AcOpenFrom'), '<input type="datetime-local" name="from" value="' . bk_e(bk_dtval($cfg->BcOpenFrom)) . '">')
@@ -719,8 +704,10 @@ if ($level == 3) {
         . '<h3 class="bk-h3">' . bk_e(bk_t('AcAfter')) . '</h3><input type="hidden" name="survey_present" value="1">'
         . bk_chk('survey', !isset($cfg->BcSurvey) || !empty($cfg->BcSurvey), bk_t('AcSurveyBox', bk_e($ADMIN . 'survey.php')))
         . '<p class="bk-hint">' . bk_e(bk_t('AcSurveyHint')) . '</p></div>'
-        . $tariffBlocks . $saveBtn . '</form>';
+        . $tariffBlocks;
 }
+// End of the form (its save button is fixed at the bottom right).
+$out .= '</div></form>' . aut_adm_save('bk-cfg');
 
 if ($level >= 2) {
     // Departures, read from ianseo.
@@ -822,22 +809,20 @@ if ($level >= 2) {
     // Link for the archers.
     $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('AcLinkTitle')) . '</h2><p style="font-size:13px;margin:0">' . bk_e(bk_t('AcLinkGive'))
         . '<br><a class="bk-url" href="' . bk_e($publicUrl) . '" target="_blank" rel="noopener">' . bk_e($publicUrl) . '</a></p>'
-        . '<p class="bk-hint">' . bk_e(bk_t('AcLinkHint')) . '</p></div><div id="bk-pill" hidden></div>';
+        . '<p class="bk-hint">' . bk_e(bk_t('AcLinkHint')) . '</p></div>';
 }
-echo $out . '</div>';
+echo $out . '</div>' . aut_adm_close();
 
 // Texts and number format for the two scripts below.
 $seps = bk_number_seps();
 $jsT = array(
     'lang' => aut_lang_code(), 'dec' => $seps['dec'], 'th' => $seps['thousands'], 'cur' => $CUR,
-    'saving' => bk_t('AcJsSaving'), 'savedAt' => bk_t('AcJsSavedAt'), 'refused' => bk_t('AcJsRefused'),
-    'offline' => bk_t('AcJsOffline'), 'auto' => bk_t('AcJsAuto'),
     'base' => bk_t('PriceBase'), 'cat' => bk_t('PriceCat'), 'catNamed' => bk_t('PriceCatNamed'), 'dep' => bk_t('DepCap'),
     'dept' => bk_t('PriceDept'), 'region' => bk_t('PriceRegion'), 'rank' => bk_t('PriceRank'),
 );
 echo '<script>var BK_T = ' . json_encode($jsT, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . ', BK_CATN = ' . count($pricing['categories']) . ';</script>';
 $assets = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/assets/';
-if ($level >= 2 || $showTariffs) echo '<script src="' . $assets . 'autosave.js?v=' . bk_e(bk_version()) . '"></script>';
+echo '<script src="' . $assets . 'competition.js?v=' . bk_e(bk_version()) . '"></script>';
 if ($showTariffs) echo '<script src="' . $assets . 'tariffs.js?v=' . bk_e(bk_version()) . '"></script>';
 
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

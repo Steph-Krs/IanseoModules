@@ -892,12 +892,13 @@ $lang['FfBadCredentials']  = 'Benutzername oder Passwort falsch.';
 $lang['FfNoLicence']       = 'Anmeldung erfolgreich, aber Ihre Lizenznummer konnte im Lizenzinhaber-Bereich nicht gelesen werden. Melden Sie das dem Veranstalter.';
 $lang['FfAmbiguous']       = 'Anmeldung erfolgreich, aber auf der Seite stehen mehrere Lizenznummern. Melden Sie das dem Veranstalter.';
 
-/* Organiser menu (booking/menu.php) */
+/* Organiser menu (adm-lib.php) */
 $lang['MnuSettings'] = 'Aktivierungseinstellungen';
 $lang['MnuMandate']  = 'Einladung zum Turnier';
 $lang['MnuSurvey']   = 'Zufriedenheit der Schützen';
 $lang['MnuField']    = 'Einschränkungen der Platzzuweisung';
 $lang['MnuTargets']  = 'Scheibenzuweisung';
+$lang['AcLvlPending']      = 'Die gewählte Stufe wird beim Speichern angewendet; ihre Einstellungen erscheinen danach.';
 
 /* Organiser: field endpoint, survey results */
 $lang['AdmBadToken']       = 'Ungültiges Token — laden Sie die Seite neu.';

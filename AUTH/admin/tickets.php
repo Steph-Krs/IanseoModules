@@ -7,6 +7,7 @@
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+require_once(dirname(__DIR__) . '/adm-lib.php');   // navigation and save button of the organiser pages
 require_once('Common/Fun_FormatText.inc.php');
 
 checkFullACL(AclRoot, '', AclReadWrite);
@@ -58,7 +59,9 @@ function tk_url($over = array())
 }
 
 $PAGE_TITLE = aut_t('MenuTitle') . ' — ' . aut_t('MenuTickets');
+$JS_SCRIPT = aut_adm_assets(array(), false);
 include('Common/Templates/head.php');
+echo aut_adm_open_plain('admin/tickets.php');
 ?>
 <style>
 #aut-tk h1 { font-size:22px; color:#01367c; margin:0 0 12px; }
@@ -231,4 +234,5 @@ function tkCopy(btn) {
 }
 </script>
 <?php
+echo aut_adm_close();
 include('Common/Templates/tail.php');

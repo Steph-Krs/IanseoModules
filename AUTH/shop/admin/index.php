@@ -2,10 +2,12 @@
 /**
  * admin/index.php — settings of the points of sale (refreshment bar, food, shop) for the
  * competition currently open in ianseo: switch on, customer options, the points of sale
- * themselves, the public address, and "copy from…" another competition.
+ * themselves, the public address with its QR code posters and table cards, and "copy from…"
+ * another competition.
  *
- * ORGANISER page (desktop first): ianseo look and ACL of the core. Every save goes back to the
- * page (redirect after post) with its message kept in the session.
+ * ORGANISER page (computer): ianseo look and ACL of the core, frame shared by AUTH's organiser
+ * pages (adm-lib.php). Settings and points of sale are ONE form with ONE save button, fixed at
+ * the bottom right; a save goes back to the page (redirect after post) with its message.
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -14,6 +16,7 @@ CheckTourSession(true);
 checkFullACL(AclParticipants, 'pEntries', AclReadWrite);
 
 require_once dirname(__DIR__) . '/lib/copy.php';
+require_once dirname(__DIR__) . '/lib/posters.php';
 require_once dirname(__DIR__) . '/lib/admin-ui.php';
 require_once dirname(__DIR__, 2) . '/lib.php';   // aut_qr_svg
 
@@ -29,7 +32,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $act = (string) ($_POST['act'] ?? '');
     if (!bk_csrf_check()) {
         $errors[] = shp_t('ShSetErrSession');
-    } elseif ($act === 'save_settings') {
+    } elseif ($act === 'save' && !isset($_POST['form_end'])) {
+        $errors[] = shp_t('ShSetErrTruncated');   // fields beyond max_input_vars are dropped silently
+    } elseif ($act === 'save' && intval($_POST['delete_stand'] ?? 0) > 0) {
+        // A deletion applies to that point of sale only; nothing else of the form is saved.
+        $r = shp_stand_delete($TOUR, intval($_POST['delete_stand']));
+        shp_adm_flash_set($r['error'] ? 'err' : 'ok', array($r['msg']));
+        header('Location: ' . $SELF . '#stands');
+        exit;
+    } elseif ($act === 'save') {
+        // Settings checked first (nothing written), then the points of sale (checked as a whole
+        // before any write): one refusal and nothing is saved.
         $d = array('enabled' => !empty($_POST['enabled']), 'guests' => !empty($_POST['guests']),
             'tab' => !empty($_POST['tab']), 'trust_gate' => !empty($_POST['trust_gate']));
         $until = trim((string) ($_POST['preorder_until'] ?? ''));
@@ -44,32 +57,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $d['preorder_until'] = $until;
         $d['guest_max_open'] = intval($max);
         $d['notice'] = $notice;
+        $standRows = (array) ($_POST['stand'] ?? array());
+        if (!$errors) {
+            $r = shp_stands_save($TOUR, $standRows);
+            $errors = $r['errors'];
+        }
         if ($errors) {
             $settingsIn = $d;
         } else {
             shp_settings_save($TOUR, $d);
             shp_adm_flash_set('ok', array(shp_t('ShSetSaved')));
             header('Location: ' . $SELF);
-            exit;
-        }
-    } elseif ($act === 'save_stands' && !isset($_POST['form_end'])) {
-        $errors[] = shp_t('ShSetErrTruncated');   // fields beyond max_input_vars are dropped silently
-    } elseif ($act === 'save_stands') {
-        $standRows = (array) ($_POST['stand'] ?? array());
-        $delId = intval($_POST['delete_stand'] ?? 0);
-        if ($delId > 0) {
-            // A deletion applies to that point of sale only; the other lines are not saved.
-            $r = shp_stand_delete($TOUR, $delId);
-            shp_adm_flash_set($r['error'] ? 'err' : 'ok', array($r['msg']));
-            header('Location: ' . $SELF . '#stands');
-            exit;
-        }
-        $r = shp_stands_save($TOUR, $standRows);
-        if ($r['errors']) {
-            $errors = $r['errors'];
-        } else {
-            shp_adm_flash_set('ok', array(shp_t('ShSetStandsSaved')));
-            header('Location: ' . $SELF . '#stands');
             exit;
         }
     } elseif ($act === 'new_key') {
@@ -177,7 +175,7 @@ $period = $win && $win['from'] > '0000-00-00'
     ? shp_t('ShSetPeriod', array('from' => shp_adm_date($win['from']), 'to' => shp_adm_date($win['to'])))
     : '';
 
-$settingsForm = '<form method="post" class="sa-card" id="settings">' . bk_csrf_field() . '<input type="hidden" name="act" value="save_settings">'
+$settingsForm = '<div class="sa-card" id="settings">'
     . '<h2>' . shp_e(shp_t('ShSetSectSwitch')) . '</h2>'
     . '<div class="sa-switch ' . ($on ? 'sa-on' : 'sa-off') . '">'
     . shp_adm_check('enabled', $on, shp_t('ShSetEnable'), shp_t('ShSetEnableWhat'))
@@ -195,16 +193,18 @@ $settingsForm = '<form method="post" class="sa-card" id="settings">' . bk_csrf_f
     . shp_adm_field(shp_t('ShSetGuestMax'), '<input type="number" name="guest_max_open" min="0" max="20" value="' . $gmax . '" class="sa-num">', shp_t('ShSetGuestMaxHint'))
     . '</div>'
     . shp_adm_field(shp_t('ShSetNotice'), '<input type="text" name="notice" maxlength="255" value="' . shp_e($notice) . '">', shp_t('ShSetNoticeHint'), 'sa-wide')
-    . '<div class="sa-bar"><button type="submit" class="sa-btn sa-primary">' . shp_e(shp_t('ShSetSaveSettings')) . '</button></div></form>';
+    . '</div>';
 
-$standsForm = '<form method="post" class="sa-card" id="stands">' . bk_csrf_field() . '<input type="hidden" name="act" value="save_stands">'
+$standsForm = '<div class="sa-card" id="stands">'
     . '<h2>' . shp_e(shp_t('ShSetSectStands')) . '</h2><p class="sa-hint">' . shp_e(shp_t('ShSetStandsHint')) . '</p>'
     . '<div class="sa-scroll"><table class="sa-table sa-stands"><thead><tr>' . $standHead . '<th></th></tr></thead>'
     . '<tbody id="stand-rows" data-next="' . $nextIndex . '">' . $rowsHtml . '</tbody></table></div>'
     . '<template id="stand-tpl"><table><tbody>' . shp_adm_stand_row('__i__', array(), false) . '</tbody></table></template>'
-    . '<input type="hidden" name="form_end" value="1">'
-    . '<div class="sa-bar"><button type="button" class="sa-btn" data-add="stand-tpl" data-into="stand-rows">' . shp_e(shp_t('ShSetAddStand')) . '</button> '
-    . '<button type="submit" class="sa-btn sa-primary">' . shp_e(shp_t('ShSetSaveStands')) . '</button></div></form>';
+    . '<div class="sa-bar"><button type="button" class="sa-btn" data-add="stand-tpl" data-into="stand-rows">' . shp_e(shp_t('ShSetAddStand')) . '</button></div></div>';
+
+// Settings and points of sale: one form, one save button (fixed at the bottom right).
+$mainForm = '<form method="post" id="shopset">' . aut_adm_default_submit() . bk_csrf_field() . '<input type="hidden" name="act" value="save">'
+    . $settingsForm . $standsForm . '<input type="hidden" name="form_end" value="1"></form>';
 
 /* ---------------- Public address ---------------- */
 
@@ -217,7 +217,28 @@ $addressBox = '<div class="sa-card" id="address"><h2>' . shp_e(shp_t('ShSetSectA
     . '<p><a class="sa-btn" href="' . shp_e($publicUrl) . '" target="_blank" rel="noopener">' . shp_e(shp_t('ShSetAddressOpen')) . '</a></p>'
     . '<form method="post">' . bk_csrf_field() . '<input type="hidden" name="act" value="new_key">'
     . '<button type="submit" class="sa-btn sa-danger" data-confirm="' . shp_e(shp_t('ShSetNewKeyConfirm')) . '">' . shp_e(shp_t('ShSetNewKey')) . '</button></form>'
-    . '</div></div></div>';
+    . '</div></div>';
+
+// QR code posters (A4) and table cards (A6) leading to the shop: all the stands, or one.
+$pdfLink = function ($kind, $standId, $label) {
+    global $CFG;
+    return '<a class="sa-pdf" target="_blank" href="' . shp_e(shp_adm_url('posters.php') . '?pdf=' . $kind . ($standId > 0 ? '&s=' . intval($standId) : '')) . '">'
+        . '<img src="' . shp_e($CFG->ROOT_DIR . 'Common/Images/pdf_small.gif') . '" alt="" width="16" height="16"> ' . shp_e($label) . '</a>';
+};
+$posterRows = '<tr><td><b>' . shp_e(shp_t('ShSetPostersAll')) . '</b></td><td>' . $pdfLink('poster', 0, shp_t('ShSetPosterA4'))
+    . '</td><td>' . $pdfLink('cards', 0, shp_t('ShSetCardsA6')) . '</td></tr>';
+$onlineStands = 0;
+foreach ($stands as $sid => $s) {
+    if (intval($s->SdOnline) !== 1) continue;
+    $onlineStands++;
+    $posterRows .= '<tr><td>' . shp_e($s->SdName) . '</td><td>' . $pdfLink('poster', $sid, shp_t('ShSetPosterA4'))
+        . '</td><td>' . $pdfLink('cards', $sid, shp_t('ShSetCardsA6')) . '</td></tr>';
+}
+$addressBox .= '<h3>' . shp_e(shp_t('ShSetPostersTitle')) . '</h3><p class="sa-hint">' . shp_e(shp_t('ShSetPostersLead')) . '</p>'
+    . '<table class="sa-table sa-posters"><thead><tr><th>' . shp_e(shp_t('ShSetPostersFor')) . '</th><th>' . shp_e(shp_t('ShSetPosterA4'))
+    . '</th><th>' . shp_e(shp_t('ShSetCardsA6')) . '</th></tr></thead><tbody>' . $posterRows . '</tbody></table>'
+    . ($onlineStands ? '' : '<p class="sa-hint">' . shp_e(shp_t('ShSetPostersNoStand')) . '</p>')
+    . '<p class="sa-hint">' . shp_e(shp_t('ShSetPostersHint')) . '</p></div>';
 
 /* ---------------- Copy from… ---------------- */
 
@@ -246,11 +267,10 @@ $PAGE_TITLE = shp_t('MnuSettings') . ' — ' . shp_t('MnuTitle');
 $JS_SCRIPT = shp_adm_assets();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
-echo '<div id="shpadm"><div class="sa-title"><h1>' . shp_e(shp_t('ShSetTitle')) . '</h1>' . $copyBox . '</div>'
-    . shp_adm_nav('index.php')
+echo aut_adm_open('shop/admin/index.php', shp_t('ShSetTitle'), $copyBox)
     . '<p class="sa-lead">' . shp_e(shp_t('ShSetLead')) . '</p>'
     . ($flash ? shp_adm_msg($flash['type'], $flash['lines']) : '')
     . ($errors ? shp_adm_msg('err', array_merge(array(shp_t('ShSetNothingSaved')), $errors)) : '')
-    . $settingsForm . $standsForm . $addressBox . '</div>';
+    . $mainForm . $addressBox . aut_adm_save('shopset') . aut_adm_close();
 
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

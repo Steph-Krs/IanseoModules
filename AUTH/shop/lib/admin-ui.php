@@ -14,14 +14,13 @@ if (defined('SHP_ADMIN_UI_LOADED')) return;
 define('SHP_ADMIN_UI_LOADED', true);
 
 require_once __DIR__ . '/ui.php';   // shp_asset_url, shp_e
+require_once dirname(__DIR__, 2) . '/adm-lib.php';   // frame shared by the organiser pages of AUTH
 
-/** Stylesheet and script of the organiser pages, for $JS_SCRIPT (printed in the page head). */
-function shp_adm_assets()
+/** Stylesheets and scripts of the organiser pages, for $JS_SCRIPT: the shared frame of AUTH
+ * (adm-lib.php) and the lines editing of the points of sale (assets/admin.js). */
+function shp_adm_assets(array $extra = array())
 {
-    return array(
-        '<link rel="stylesheet" href="' . shp_e(shp_asset_url('admin.css')) . '">',
-        '<script defer src="' . shp_e(shp_asset_url('admin.js')) . '"></script>',
-    );
+    return aut_adm_assets(array_merge(array('<script defer src="' . shp_e(shp_asset_url('admin.js')) . '"></script>'), $extra));
 }
 
 /** Address of a page of the organiser side. */
@@ -44,34 +43,20 @@ function shp_adm_flash_take()
     return is_array($f) ? $f : null;
 }
 
-/** A message block ($type ok, err, warn, info) with one or several lines. */
+/**
+ * A message block ($type ok, err, warn, info) with one or several lines. A confirmation (ok)
+ * floats at the top right for a few seconds (assets/admin.js): the page does not move.
+ */
 function shp_adm_msg($type, $lines)
 {
     $lines = array_values(array_filter((array) $lines, 'strlen'));
     if (!$lines) return '';
     $type = in_array($type, array('ok', 'err', 'warn', 'info'), true) ? $type : 'info';
-    $html = '<div class="sa-msg sa-' . $type . '" role="' . ($type === 'err' ? 'alert' : 'status') . '">';
+    $html = '<div class="sa-msg sa-' . $type . '" role="' . ($type === 'err' ? 'alert' : 'status') . '"' . ($type === 'ok' ? ' data-sa-toast' : '') . '>';
     if (count($lines) === 1) return $html . shp_e($lines[0]) . '</div>';
     $html .= '<ul>';
     foreach ($lines as $l) $html .= '<li>' . shp_e($l) . '</li>';
     return $html . '</ul></div>';
-}
-
-/**
- * Navigation between the organiser pages of the points of sale. A page that does not exist
- * (yet) is left out, so that no link leads to an error. $current: file name of the page shown.
- */
-function shp_adm_nav($current)
-{
-    $items = array('index.php' => 'MnuSettings', 'catalog.php' => 'MnuCatalog', 'posters.php' => 'MnuPosters',
-        'staff.php' => 'MnuStaff', 'orders.php' => 'MnuOrders', 'reports.php' => 'MnuReports');
-    $html = '<nav class="sa-nav" aria-label="' . shp_e(shp_t('MnuTitle')) . '">';
-    foreach ($items as $file => $key) {
-        if (!is_file(dirname(__DIR__) . '/admin/' . $file)) continue;
-        $html .= '<a href="' . shp_e(shp_adm_url($file)) . '"' . ($file === $current ? ' class="on" aria-current="page"' : '') . '>'
-            . shp_e(shp_t($key)) . '</a>';
-    }
-    return $html . '</nav>';
 }
 
 /** A labelled field: $input is markup already escaped by the caller. */

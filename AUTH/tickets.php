@@ -10,6 +10,7 @@
 define('HTDOCS', dirname(__DIR__, 3));
 require_once(HTDOCS . '/config.php');
 require_once(__DIR__ . '/lib.php');
+require_once(__DIR__ . '/adm-lib.php');   // navigation and save button of the organiser pages
 require_once('Common/Fun_FormatText.inc.php');
 
 // Reserved to signed-in organisers (or the local console without authentication) — same logic
@@ -102,7 +103,9 @@ $isAdmin = !empty($_SESSION['AUTH_ROOT'])
     || (empty($_SESSION['AUTH_ENABLE']) && isset($acl) && subFeatureAcl($acl, AclRoot, '') == AclReadWrite);
 
 $PAGE_TITLE = aut_t('BarReportTitle');
+$JS_SCRIPT = aut_adm_assets(array(), false);
 include('Common/Templates/head.php');
+echo aut_adm_open_plain('tickets.php');
 ?>
 <style>
 #aut-tk h1 { font-size:22px; color:#01367c; margin:0 0 6px; }
@@ -270,4 +273,5 @@ echo '<script>var AUT_TK_LABELS = ' . json_encode($labels) . ";</script>\n";
 })();
 </script>
 <?php
+echo aut_adm_close();
 include('Common/Templates/tail.php');

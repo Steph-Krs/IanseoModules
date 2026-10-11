@@ -10,6 +10,7 @@
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+require_once(dirname(__DIR__) . '/adm-lib.php');   // navigation and save button of the organiser pages
 require_once(dirname(__DIR__) . '/legal-lib.php');
 require_once('Common/Fun_FormatText.inc.php');
 
@@ -65,7 +66,9 @@ if ($hasArchers) {
 }
 
 $PAGE_TITLE = aut_t('MenuLegal');
+$JS_SCRIPT = aut_adm_assets(array(), false);
 include('Common/Templates/head.php');
+echo aut_adm_open_plain('admin/legal.php');
 $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES); };
 ?>
 <style>
@@ -109,7 +112,7 @@ echo '<div class="sec">'
         . $e(aut_t('MenuTitle') . ' › ' . aut_t('MenuUsers')) . '</a>') . '</p>'
     . "</div>\n";
 
-echo '<form method="post">' . aut_csrf_field() . "\n"
+echo '<form method="post" id="aut-legal">' . aut_csrf_field() . "\n"
     . '<div class="sec"><h2>' . $e(aut_t('AlOperator')) . "</h2>\n";
 foreach ($fields as $k => $f) {
     $id = 'op_' . $e($k);
@@ -149,7 +152,7 @@ foreach ($docs as $k => $d) {
         . $e($conf['custom'][$k] ?? '') . "</textarea>\n";
 }
 echo "</details>\n</div>\n"
-    . '<p><button type="submit" class="btn">' . $e(aut_t('ShSave')) . "</button></p>\n"
-    . "</form>\n</div>\n";
+    . "</form>\n" . aut_adm_save('aut-legal') . "</div>\n";
 
+echo aut_adm_close();
 include('Common/Templates/tail.php');

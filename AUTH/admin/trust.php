@@ -8,6 +8,7 @@
 define('HTDOCS', dirname(__DIR__, 4));
 require_once(HTDOCS . '/config.php');
 require_once(dirname(__DIR__) . '/lib.php');
+require_once(dirname(__DIR__) . '/adm-lib.php');   // navigation and save button of the organiser pages
 require_once(dirname(__DIR__) . '/trust-lib.php');
 
 checkFullACL(AclRoot, '', AclReadWrite);
@@ -87,7 +88,9 @@ $rs = safe_r_sql("SELECT AuthTrust.*, ToName, ToWhenFrom FROM AuthTrust LEFT JOI
 while ($r = safe_fetch($rs)) $accepts[] = $r;
 
 $PAGE_TITLE = aut_t('MenuTitle') . ' — ' . aut_t('MenuTrust');
+$JS_SCRIPT = aut_adm_assets(array(), false);
 include('Common/Templates/head.php');
+echo aut_adm_open_plain('admin/trust.php');
 
 $out = '<style>
 #atr .hint{font-size:11px;color:#555}
@@ -130,13 +133,13 @@ foreach (aut_trust_bounds() as $k => $b) {
         . '" min="' . $b[1] . '" max="' . $b[2] . '" step="' . (is_float($b[0]) ? '0.01' : '1') . '" required> '
         . '<span class="hint">' . atr_h(aut_t('TrSetHelp_' . $k)) . '</span></td></tr>';
 }
-$out .= '<tr><td class="Bold">' . atr_h(aut_t('TrSettings')) . '</td><td><form method="post" action="' . atr_h($self) . '">'
+$out .= '<tr><td class="Bold">' . atr_h(aut_t('TrSettings')) . '</td><td><form method="post" action="' . atr_h($self) . '" id="atr-settings">'
     . aut_csrf_field() . '<input type="hidden" name="action" value="settings">'
     . '<div class="modes">' . $modes . '</div><div class="hint warn" style="padding:4px;margin:4px 0">' . aut_t('TrDpoNote') . '</div>'
     . '<table>' . $nums . '</table>'
     . '<div class="hint">' . aut_t('TrRulesSummary', array('late' => $cfg['orange_late'], 'red' => $cfg['red_unpaid'],
         'days' => $cfg['red_unpaid_days'], 'reject' => $cfg['red_reject'], 'months' => AUT_TRUST_MONTHS)) . '</div>'
-    . '<button type="submit">' . atr_h(aut_t('TrSave')) . '</button></form></td></tr>';
+    . '</form>' . aut_adm_save('atr-settings') . '</td></tr>';
 
 /* ---------------- One subject ---------------- */
 $out .= '<tr><td class="Bold">' . atr_h(aut_t('TrSearch')) . '</td><td><form method="get" action="' . atr_h($self) . '">'
@@ -219,4 +222,5 @@ foreach ($accepts as $a) {
 }
 
 echo $out . '</table></div>';
+echo aut_adm_close();
 include('Common/Templates/tail.php');

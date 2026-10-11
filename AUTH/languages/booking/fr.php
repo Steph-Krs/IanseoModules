@@ -891,12 +891,13 @@ $lang['FfBadCredentials']  = 'Identifiant ou mot de passe incorrect.';
 $lang['FfNoLicence']       = 'Connexion réussie, mais votre numéro de licence n\'a pas pu être lu sur l\'espace licencié. Signalez-le à l\'organisateur.';
 $lang['FfAmbiguous']       = 'Connexion réussie, mais plusieurs numéros de licence figurent sur la page. Signalez-le à l\'organisateur.';
 
-/* Organiser menu (booking/menu.php) */
+/* Organiser menu (adm-lib.php) */
 $lang['MnuSettings'] = 'Paramètres d\'activation';
 $lang['MnuMandate']  = 'Invitation de compétition';
 $lang['MnuSurvey']   = 'Satisfaction des archers';
 $lang['MnuField']    = 'Contraintes d\'affectation du terrain';
 $lang['MnuTargets']  = 'Attribution des cibles';
+$lang['AcLvlPending']      = 'Le niveau choisi sera appliqué quand vous enregistrerez ; ses réglages s\'afficheront ensuite.';
 
 /* Organiser: field endpoint, survey results */
 $lang['AdmBadToken']       = 'Jeton invalide — rechargez la page.';

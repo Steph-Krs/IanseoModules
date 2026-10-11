@@ -19,6 +19,7 @@
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
+require_once dirname(__DIR__, 2) . '/adm-lib.php';   // frame of the organiser pages
 
 CheckTourSession(true);
 checkFullACL(AclParticipants, 'pEntries', AclReadWrite);
@@ -91,25 +92,23 @@ $bulk = function ($side, $confirm, $labelKey, $class) {
 };
 
 $PAGE_TITLE = bk_t('RiPageTitle');
+$JS_SCRIPT = aut_adm_assets();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <style>
 #bkadm { max-width: 100%; }
-#bkadm .bk-sec { background:#fff; border:1px solid #d2d4d6; border-radius:6px;
+#bkadm .bk-sec { background:#fff; border:1px solid #d2d4d6; border-radius:8px;
     box-shadow:0 1px 3px rgba(0,0,0,.08); padding:14px 16px; margin:0 0 14px; }
-#bkadm .bk-sec h2 { margin:0 0 6px; font-size:15px; color:#0254a8; }
-#bkadm .bk-msg { padding:9px 12px; border-radius:6px; margin:0 0 14px; font-size:13px; }
-#bkadm .bk-ok  { background:#d2f4cd; border:1px solid #75ae77; color:#04ac0b; }
-#bkadm .bk-err { background:#ffd6db; border:1px solid #bb7575; color:#a80000; }
+#bkadm .bk-sec h2 { margin:0 0 6px; font-size:16px; color:#0254a8; }
 #bkadm .bk-hint { margin:2px 0 10px; font-size:12px; color:#7d8183; }
 #bkadm table.bk-t { border-collapse:collapse; font-size:13px; width:100%; }
 #bkadm table.bk-t th, #bkadm table.bk-t td { border:1px solid #d2d4d6; padding:6px 10px; text-align:left; vertical-align:middle; }
 #bkadm table.bk-t th { background:#f0f4ff; color:#01367c; }
-#bkadm .bk-btn { padding:7px 13px; border:1px solid #0254a8; border-radius:6px;
-    background:#0254a8; color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
+#bkadm .bk-btn { padding:7px 14px; border:1px solid #0254a8; border-radius:6px;
+    background:#0254a8; color:#fff; font-size:14px; font-weight:600; cursor:pointer; }
 #bkadm .bk-btn:hover { background:#01367c; border-color:#01367c; }
-#bkadm .bk-btn2 { padding:7px 13px; border:1px solid #d2d4d6; border-radius:6px;
-    background:#fff; color:#334; font-size:13px; cursor:pointer; }
+#bkadm .bk-btn2 { padding:7px 14px; border:1px solid #d2d4d6; border-radius:6px;
+    background:#f7f7f7; color:#20263d; font-size:14px; cursor:pointer; }
 #bkadm .bk-btn2:hover { background:#f0f4ff; border-color:#0254a8; }
 #bkadm .bk-btn-danger { border-color:#c0392b; color:#c0392b; background:#fff; }
 #bkadm .bk-btn-danger:hover { background:#fdf0ef; }
@@ -120,13 +119,13 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #bkadm details.bk-fold > summary { cursor:pointer; font-weight:600; color:#0254a8; margin:4px 0; }
 </style>
 <?php
-$out = '<div id="bkadm"><h1>' . bk_e(bk_t('RiTitle')) . '</h1>'
-    . '<p><a class="bk-back" href="' . bk_e($backUrl) . '">' . bk_e(bk_t('RiBack')) . '</a></p>'
-    . ($msg ? '<div class="bk-msg bk-ok">' . bk_e($msg) . '</div>' : '')
-    . ($err ? '<div class="bk-msg bk-err">' . bk_e($err) . '</div>' : '');
+$out = aut_adm_open('booking/admin/reimport.php', bk_t('RiTitle'), '<a class="sa-btn" href="' . bk_e($backUrl) . '">' . bk_e(bk_t('RiBack')) . '</a>')
+    . '<div id="bkadm">'
+    . ($msg ? '<div class="sa-msg sa-ok" data-sa-toast>' . bk_e($msg) . '</div>' : '')
+    . ($err ? '<div class="sa-msg sa-err">' . bk_e($err) . '</div>' : '');
 
 if (!$conflicts) {
-    echo $out . '<div class="bk-sec"><p class="bk-empty">' . bk_e(bk_t('RiNothing')) . '</p></div></div>';
+    echo $out . '<div class="bk-sec"><p class="bk-empty">' . bk_e(bk_t('RiNothing')) . '</p></div></div>' . aut_adm_close();
     include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');
     exit;
 }
@@ -190,5 +189,5 @@ if ($by['reinject']) {
     $out .= '</table></div>';
 }
 
-echo $out . '</div>';
+echo $out . '</div>' . aut_adm_close();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

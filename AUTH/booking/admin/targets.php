@@ -4,6 +4,7 @@
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
+require_once dirname(__DIR__, 2) . '/adm-lib.php';   // frame of the organiser pages
 
 CheckTourSession(true);
 checkFullACL(AclParticipants, 'pTarget', AclReadWrite);
@@ -94,20 +95,18 @@ $rs = safe_r_sql("SELECT EnFirstName, EnName, EnCode, BrRequest, QuSession
 while ($r = safe_fetch($rs)) $requests[] = $r;
 
 $PAGE_TITLE = bk_t('MnuTargets');
+$JS_SCRIPT = aut_adm_assets();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <style>
-#bkadm .bk-sec { background:#fff; border:1px solid #d2d4d6; border-radius:6px;
+#bkadm .bk-sec { background:#fff; border:1px solid #d2d4d6; border-radius:8px;
     box-shadow:0 1px 3px rgba(0,0,0,.08); padding:14px 16px; margin:0 0 14px; }
-#bkadm .bk-sec h2 { margin:0 0 10px; font-size:15px; color:#0254a8; }
-#bkadm .bk-msg { padding:9px 12px; border-radius:6px; margin:0 0 14px; font-size:13px; }
-#bkadm .bk-ok  { background:#d2f4cd; border:1px solid #75ae77; color:#04ac0b; }
-#bkadm .bk-err { background:#ffd6db; border:1px solid #bb7575; color:#a80000; }
+#bkadm .bk-sec h2 { margin:0 0 10px; font-size:16px; color:#0254a8; }
 #bkadm table.bk-t { border-collapse:collapse; font-size:13px; margin-bottom:6px; }
 #bkadm table.bk-t th, #bkadm table.bk-t td { border:1px solid #d2d4d6; padding:5px 10px; text-align:left; }
 #bkadm table.bk-t th { background:#f0f4ff; color:#01367c; }
 #bkadm .bk-btn { padding:7px 14px; border:1px solid #d2d4d6; border-radius:6px;
-    background:#f7f7f7; color:#20263d; font-size:13px; cursor:pointer; }
+    background:#f7f7f7; color:#20263d; font-size:14px; cursor:pointer; }
 #bkadm .bk-btn-primary { background:#0254a8; border-color:#0254a8; color:#fff; font-weight:600; }
 #bkadm .bk-btn-primary:hover { background:#01367c; }
 #bkadm .bk-pill { display:inline-block; padding:1px 8px; border-radius:5px; font-size:12px; }
@@ -135,11 +134,9 @@ $th = function ($keys) {
 };
 $base = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/';
 
-$out = '<div id="bkadm"><h1>' . bk_e(bk_t('MnuTargets')) . '</h1>'
-    . '<p style="font-size:13px"><a href="' . $base . 'competition.php">← ' . bk_e(bk_t('Brand')) . '</a>'
-    . ' &nbsp;·&nbsp; <a href="' . $base . 'field.php">' . bk_e(bk_t('MnuField')) . '</a></p>'
-    . ($msg ? '<div class="bk-msg bk-ok">' . bk_e($msg) . '</div>' : '')
-    . ($err ? '<div class="bk-msg bk-err">' . bk_e($err) . '</div>' : '');
+$out = aut_adm_open('booking/admin/targets.php', bk_t('MnuTargets')) . '<div id="bkadm">'
+    . ($msg ? '<div class="sa-msg sa-ok" data-sa-toast>' . bk_e($msg) . '</div>' : '')
+    . ($err ? '<div class="sa-msg sa-err">' . bk_e($err) . '</div>' : '');
 
 if ($pending) {
     if ($trust && in_array(aut_trust_mode(), array('alert', 'block'), true)) {   // one query for the whole list
@@ -256,5 +253,5 @@ if ($voir && $plan) {
     }
     $out .= '</table></div>';
 }
-echo $out . '</div>';
+echo $out . '</div>' . aut_adm_close();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

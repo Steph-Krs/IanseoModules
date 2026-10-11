@@ -892,12 +892,13 @@ $lang['FfBadCredentials']  = 'Identificativo o password errati.';
 $lang['FfNoLicence']       = 'Accesso riuscito, ma non è stato possibile leggere il suo numero di licenza nell\'area tesserati. Lo segnali all\'organizzatore.';
 $lang['FfAmbiguous']       = 'Accesso riuscito, ma sulla pagina compaiono più numeri di licenza. Lo segnali all\'organizzatore.';
 
-/* Organiser menu (booking/menu.php) */
+/* Organiser menu (adm-lib.php) */
 $lang['MnuSettings'] = 'Parametri di attivazione';
 $lang['MnuMandate']  = 'Invito della competizione';
 $lang['MnuSurvey']   = 'Soddisfazione degli arcieri';
 $lang['MnuField']    = 'Vincoli di assegnazione del campo';
 $lang['MnuTargets']  = 'Assegnazione delle piazzole';
+$lang['AcLvlPending']      = 'Il livello scelto sarà applicato al salvataggio; le sue impostazioni saranno mostrate dopo.';
 
 /* Organiser: field endpoint, survey results */
 $lang['AdmBadToken']       = 'Token non valido — ricarichi la pagina.';

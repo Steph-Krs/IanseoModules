@@ -892,6 +892,7 @@ $lang['ForMainAnomaly']    = 'Registered online without an FFTA licence';
 $lang['ForMainCount']      = '{$a} archer(s): identity not checked, to verify';
 $lang['DeskMainAnomaly']   = 'Archers refused at the check-in (documents or equipment not compliant)';
 $lang['DeskMainCount']     = '{$a} archer(s) set to "Cannot participate"';
+$lang['AdmSave']           = 'Save';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Invalid content.';

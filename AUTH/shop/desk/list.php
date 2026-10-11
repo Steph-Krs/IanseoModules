@@ -10,7 +10,12 @@
  * and QR code of the desk are given for the volunteers' phones, and each row opens the archer's
  * file at the desk (GET with the session's CSRF token).
  *
- * ianseo look and ACL of the core: reading with participants read-only, acting with read-write.
+ * Two views of the same list, two menus: "Check-in" (this address) and "Judges" (?v=equip:
+ * opened on the equipment not checked yet, without the switch block) — until the judges have
+ * their own page.
+ *
+ * ianseo look and ACL of the core, frame shared by AUTH's organiser pages (adm-lib.php): reading
+ * with participants read-only, acting with read-write.
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -27,6 +32,7 @@ shp_schema();
 
 $TOUR = intval($_SESSION['TourId']);
 $RW = hasFullACL(AclParticipants, 'pEntries', AclReadWrite);
+$JUDGES = (string) ($_GET['v'] ?? '') === 'equip';
 $SELF = shp_url('desk/list.php');
 $BY = shp_staff_by();
 $window = shp_window($TOUR);
@@ -69,7 +75,7 @@ $deskOn = shp_desk_on($TOUR);
 $settings = shp_settings($TOUR);
 
 /* ---- Filters ---- */
-$f = (string) ($_GET['f'] ?? '');
+$f = (string) ($_GET['f'] ?? ($JUDGES ? 'eq0' : ''));
 $fs = array('' => 'DkLsAll', 'reg0' => 'DkLsReg0', 'reg1' => 'DkLsReg1', 'reg2' => 'DkLsReg2',
     'eq0' => 'DkLsEq0', 'eq1' => 'DkLsEq1', 'eq2' => 'DkLsEq2', 'ko' => 'DkLsKo');
 if (!isset($fs[$f])) $f = '';
@@ -106,23 +112,20 @@ $rows = array_filter($all, function ($r) use ($f, $fSes, $words, $fold) {
 });
 
 /* ---- Page ---- */
-$JS_SCRIPT = array(
-    '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    '<link rel="stylesheet" href="' . shp_e(shp_asset_url('admin.css')) . '">',
-    '<link rel="stylesheet" href="' . shp_e(shp_asset_url('desk-list.css')) . '">',
-);
-$PAGE_TITLE = shp_t('DkMenu');
+$JS_SCRIPT = aut_adm_assets(array('<link rel="stylesheet" href="' . shp_e(shp_asset_url('desk-list.css')) . '">'));
+$PAGE_TITLE = shp_t($JUDGES ? 'DkJudges' : 'DkMenu');
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 $state = function ($s) {
     return '<span class="dl-st dl-st' . intval($s) . '">' . shp_e(shp_t(array('DkStateNone', 'DkStateOk', 'DkStateKo')[intval($s)] ?? 'DkStateNone')) . '</span>';
 };
 
-$html = '<div id="shpadm" class="dl"><h1>' . shp_e(shp_t('DkListTitle')) . '</h1>'
-    . '<p class="sa-lead">' . shp_e(shp_t('DkListLead')) . '</p>';
+$html = aut_adm_open('shop/desk/list.php' . ($JUDGES ? '?v=equip' : ''), shp_t($JUDGES ? 'DkJudgesTitle' : 'DkListTitle'), '', 'dl')
+    . '<p class="sa-lead">' . shp_e(shp_t($JUDGES ? 'DkJudgesLead' : 'DkListLead')) . '</p>';
 foreach ($errors as $e) $html .= shp_adm_msg('err', $e);
 
-// Switch and access for the volunteers.
+// Switch and access for the volunteers (check-in view).
+if (!$JUDGES) {
 $html .= '<div class="sa-card"><div class="sa-switch' . ($deskOn ? ' sa-on' : '') . '"><div><b>' . shp_e(shp_t('DkSwitch')) . '</b>'
     . '<div class="sa-hint">' . shp_e(shp_t($deskOn ? 'DkSwitchOnHint' : 'DkSwitchOffHint')) . '</div></div>'
     . '<span class="sa-tag">' . shp_e(shp_t($deskOn ? 'DkOn' : 'DkOff')) . '</span></div>';
@@ -144,25 +147,25 @@ if ($deskOn && $settings) {
         . '<input type="text" class="sa-url" readonly value="' . shp_e($url) . '" onclick="this.select()"></div></div></details>';
 }
 $html .= '</div>';
+}
 
-// Totals.
-$pct = function ($n, $of) { return $of > 0 ? ' (' . round(100 * $n / $of) . ' %)' : ''; };
-$html .= '<div class="dl-tot">'
-    . '<div class="sa-card"><b>' . shp_e(shp_t('DkLsArchers', $tot['archers'])) . '</b><small>' . shp_e(shp_t('DkLsEntries', $tot['n'])) . '</small></div>'
-    . '<div class="sa-card"><b>' . shp_e(shp_t('DkRegTitle')) . '</b>'
-    . '<small>' . $state(1) . ' ' . $tot['reg'][1] . $pct($tot['reg'][1], $tot['archers']) . '</small>'
-    . '<small>' . $state(2) . ' ' . $tot['reg'][2] . '</small><small>' . $state(0) . ' ' . $tot['reg'][0] . '</small></div>'
-    . '<div class="sa-card"><b>' . shp_e(shp_t('DkEquipTitle')) . '</b>'
-    . '<small>' . $state(1) . ' ' . $tot['eq'][1] . $pct($tot['eq'][1], $tot['n']) . '</small>'
-    . '<small>' . $state(2) . ' ' . $tot['eq'][2] . '</small><small>' . $state(0) . ' ' . $tot['eq'][0] . '</small></div>'
-    . '</div>';
+// Key figures: the post of this view first.
+$pct = function ($n, $of) { return $of > 0 ? ' · ' . round(100 * $n / $of) . ' %' : ''; };
+$kReg = '<div class="sa-kpi"><span>' . shp_e(shp_t('DkRegTitle')) . '</span><b>' . $tot['reg'][1] . ' / ' . $tot['archers'] . '</b>'
+    . '<small>' . $state(1) . $pct($tot['reg'][1], $tot['archers']) . ' · ' . $state(2) . ' ' . $tot['reg'][2] . ' · ' . $state(0) . ' ' . $tot['reg'][0] . '</small></div>';
+$kEq = '<div class="sa-kpi"><span>' . shp_e(shp_t('DkEquipTitle')) . '</span><b>' . $tot['eq'][1] . ' / ' . $tot['n'] . '</b>'
+    . '<small>' . $state(1) . $pct($tot['eq'][1], $tot['n']) . ' · ' . $state(2) . ' ' . $tot['eq'][2] . ' · ' . $state(0) . ' ' . $tot['eq'][0] . '</small></div>';
+$html .= '<div class="sa-kpis">'
+    . '<div class="sa-kpi"><span>' . shp_e(shp_t('DkLsName')) . '</span><b>' . shp_e(shp_t('DkLsArchers', $tot['archers'])) . '</b>'
+    . '<small>' . shp_e(shp_t('DkLsEntries', $tot['n'])) . '</small></div>'
+    . ($JUDGES ? $kEq . $kReg : $kReg . $kEq) . '</div>';
 
 // Filters (GET form).
 $fOpts = array();
 foreach ($fs as $k => $key) $fOpts[$k] = shp_t($key);
 $sOpts = array('' => shp_t('DkAllSessions'));
 foreach ($sessions as $o => $s) $sOpts[(string) $o] = $s['label'];
-$html .= '<form method="get" action="' . shp_e($SELF) . '" class="sa-row dl-filters">'
+$html .= '<form method="get" action="' . shp_e($SELF) . '" class="sa-row dl-filters">' . ($JUDGES ? '<input type="hidden" name="v" value="equip">' : '')
     . shp_adm_field(shp_t('DkLsShow'), '<select name="f" onchange="this.form.submit()">' . shp_adm_options($fOpts, $f) . '</select>')
     . shp_adm_field(shp_t('DkFilterSession'), '<select name="s" onchange="this.form.submit()">' . shp_adm_options($sOpts, $fSes) . '</select>')
     . shp_adm_field(shp_t('DkLsSearch'), '<input type="search" name="q" value="' . shp_e($q) . '" placeholder="' . shp_e(shp_t('DkSearchPh')) . '">', '', 'sa-grow')
@@ -201,7 +204,7 @@ if (!$rows) {
     }
     $html .= '</tbody></table></div>';
 }
-$html .= '</div>';
+$html .= aut_adm_close();
 echo $html;
 
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

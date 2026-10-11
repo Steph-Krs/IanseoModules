@@ -9,6 +9,7 @@
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
+require_once dirname(__DIR__, 2) . '/adm-lib.php';   // frame of the organiser pages
 
 CheckTourSession(true);
 checkFullACL(AclParticipants, 'pEntries', AclReadOnly);
@@ -39,7 +40,6 @@ function sv_tone($v)
 }
 
 $h = '<div id="bksv">';
-$h .= '<h1>' . bk_e(bk_t('MnuSurvey')) . '</h1>';
 
 // Status of the survey for this competition.
 if ($comp) {
@@ -114,16 +114,17 @@ if ($res['answers'] === 0) {
 $h .= '</div>';
 
 $PAGE_TITLE = bk_t('MnuSurvey');
+$JS_SCRIPT = aut_adm_assets();
 include('Common/Templates/head.php');
 ?>
 <style>
-#bksv { padding:6px 10px 30px; color:#1f2d3d; }
-#bksv h1 { font-size:22px; color:#01367c; margin:10px 0 12px; }
+#bksv { padding:0 0 30px; color:#20263d; }
 #bksv h2 { font-size:16px; color:#0254a8; margin:22px 0 8px; }
 #bksv h3 { font-size:14px; color:#01367c; margin:16px 0 6px; }
 #bksv .sv-status { font-size:13px; background:#eef4fb; border:1px solid #cddff2; border-radius:6px; padding:9px 12px; margin:0 0 14px; }
 #bksv .sv-cards { display:flex; flex-wrap:wrap; gap:12px; margin:0 0 10px; }
-#bksv .sv-kpi { flex:1 1 150px; background:#fff; border:1px solid #d5dee8; border-radius:8px; padding:10px 14px; }
+#bksv .sv-kpi { flex:1 1 150px; background:#fff; border:1px solid #d2d4d6; border-top:4px solid #0254a8; border-radius:8px; padding:10px 14px;
+  box-shadow:0 1px 3px rgba(0,0,0,.08); }
 #bksv .sv-kv { font-size:26px; font-weight:700; color:#01367c; line-height:1.1; }
 #bksv .sv-kl { font-size:13px; color:#33506f; }
 #bksv .sv-empty, #bksv .sv-note { font-size:13px; color:#7d8183; font-style:italic; }
@@ -148,5 +149,5 @@ include('Common/Templates/head.php');
 @media (max-width:700px) { #bksv .sv-row { grid-template-columns:1fr 70px; } #bksv .sv-dist { grid-column:1 / -1; } }
 </style>
 <?php
-echo $h;
+echo aut_adm_open('booking/admin/survey.php', bk_t('MnuSurvey')) . $h . aut_adm_close();
 include('Common/Templates/tail.php');

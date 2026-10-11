@@ -12,8 +12,11 @@
  * uses the engine's own functions, as the organiser ($staffId = 0). Cancelling an order that was
  * paid refunds it first (shp_refund) with the means and reason given on the page.
  *
- * ianseo look and ACL of the core; JSON with the X-Shp header, CSRF token of the session in the
- * body of a write.
+ * The public screen of the orders (television at a stand) is opened from here, for all the
+ * stands or one of those that prepare.
+ *
+ * ianseo look and ACL of the core, frame shared by AUTH's organiser pages (adm-lib.php); JSON
+ * with the X-Shp header, CSRF token of the session in the body of a write.
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -24,6 +27,7 @@ $canWrite = hasFullACL(AclParticipants, 'pEntries', AclReadWrite);
 
 require_once dirname(__DIR__) . '/lib/report.php';
 require_once dirname(__DIR__) . '/lib/pay.php';
+require_once dirname(__DIR__) . '/lib/posters.php';   // shp_board_url
 require_once dirname(__DIR__) . '/lib/admin-ui.php';
 
 shp_schema();
@@ -112,18 +116,22 @@ if ((string) ($_SERVER['HTTP_X_SHP'] ?? '') === '1') {
 /* Page                                                                */
 /* ================================================================== */
 $PAGE_TITLE = shp_t('MnuOrders') . ' — ' . shp_t('MnuTitle');
-$JS_SCRIPT = array(
-    '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    '<link rel="stylesheet" href="' . shp_e(shp_asset_url('admin.css')) . '">',
-    '<link rel="stylesheet" href="' . shp_e(shp_asset_url('reports.css')) . '">',
-);
+$JS_SCRIPT = shp_adm_assets(array('<link rel="stylesheet" href="' . shp_e(shp_asset_url('reports.css')) . '">'));
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
-echo '<div id="shpadm" class="sr-live"><h1>' . shp_e(shp_t('ShRepOrdersTitle')) . '</h1>' . shp_adm_nav('orders.php');
+// The public screen of the orders, for a television at a stand: all of them, or one that prepares.
+$boards = '<li><a target="_blank" href="' . shp_e(shp_board_url($TOUR)) . '">' . shp_e(shp_t('ShSetPostersAll')) . '</a></li>';
+foreach (shp_stands($TOUR, false) as $sid => $s) {
+    if ((string) $s->SdMode === 'prep') $boards .= '<li><a target="_blank" href="' . shp_e(shp_board_url($TOUR, $sid)) . '">' . shp_e($s->SdName) . '</a></li>';
+}
+$tv = $enabled ? '<details class="sa-copy"><summary>' . shp_e(shp_t('ShSetBoardTitle')) . '</summary><div class="sa-copy-body">'
+    . '<p class="sa-hint">' . shp_e(shp_t('ShSetBoardHint')) . '</p><ul class="sa-links">' . $boards . '</ul></div></details>' : '';
+
+echo aut_adm_open('shop/admin/orders.php', shp_t('ShRepOrdersTitle'), $tv, 'sr-live');
 
 if (!$enabled) {
     echo shp_adm_msg('warn', array(shp_t('ShRepShopOff'))) . '<p><a class="sa-btn sa-primary" href="' . shp_e(shp_adm_url('index.php')) . '">'
-        . shp_e(shp_t('MnuSettings')) . '</a></p></div>';
+        . shp_e(shp_t('MnuSettings')) . '</a></p>' . aut_adm_close();
     include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');
     exit;
 }
@@ -156,6 +164,6 @@ echo shp_json_script('shp-texts', shp_ts(array(
     )));
 echo '<script src="' . shp_e(shp_asset_url('shp.js')) . '"></script>'
     . '<script src="' . shp_e(shp_asset_url('orders-admin.js')) . '"></script>';
-echo '</div>';
+echo aut_adm_close();
 
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

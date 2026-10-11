@@ -68,10 +68,10 @@ function bk_pdf_title($pdf, $title, $sub = '')
     $pdf->Ln(2);
 }
 
-/** Section heading with a light band. */
+/** Section heading with a light band, never alone at the bottom of a page (room kept for two rows). */
 function bk_pdf_section($pdf, $label)
 {
-    if ($pdf->GetY() > $pdf->getPageHeight() - 40) $pdf->AddPage();
+    if ($pdf->GetY() + 8.5 + 2 * 5.5 > bk_pdf_bottom($pdf)) $pdf->AddPage();
     $pdf->Ln(2);
     $pdf->SetFont($pdf->FontStd, 'B', 10);
     $pdf->SetFillColor(225, 233, 245);
@@ -79,16 +79,37 @@ function bk_pdf_section($pdf, $label)
     $pdf->SetFillColor(255, 255, 255);
 }
 
-/** One row of cells: [[width, text, align, style]]. Wraps the widest text column if needed. */
-function bk_pdf_row($pdf, $cells, $border = 'B', $h = 5.5)
+/**
+ * Lowest Y a row may reach on the page: the automatic page break of TCPDF (bottom margin, the
+ * footer of the competition), never lower than 22 mm from the bottom.
+ */
+function bk_pdf_bottom($pdf)
 {
-    if ($pdf->GetY() > $pdf->getPageHeight() - 22) $pdf->AddPage();
+    return $pdf->getPageHeight() - max(22, (float) $pdf->getBreakMargin());
+}
+
+/** Height a row of these cells takes (the tallest cell once wrapped). */
+function bk_pdf_row_height($pdf, $cells, $h = 5.5)
+{
     $lines = 1;
     foreach ($cells as $c) {
         $pdf->SetFont($pdf->FontStd, $c[3] ?? '', 9);
         $lines = max($lines, $pdf->getNumLines((string) $c[1], $c[0]));
     }
-    $rowH = $h * $lines;
+    return $h * $lines;
+}
+
+/**
+ * One row of cells: [[width, text, align, style]]. Wraps the widest text column if needed.
+ *
+ * The page is turned BEFORE a row that does not fit: left to TCPDF, the break happened inside
+ * the row — its first cell on the next page, the others at the old height — and what followed
+ * was written over it (a total line of a report under the heading of the next table).
+ */
+function bk_pdf_row($pdf, $cells, $border = 'B', $h = 5.5)
+{
+    $rowH = bk_pdf_row_height($pdf, $cells, $h);
+    if ($pdf->GetY() + $rowH > bk_pdf_bottom($pdf)) $pdf->AddPage();
     $x = $pdf->GetX(); $y = $pdf->GetY();
     foreach ($cells as $c) {
         $pdf->SetFont($pdf->FontStd, $c[3] ?? '', 9);

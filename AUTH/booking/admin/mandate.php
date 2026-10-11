@@ -8,6 +8,9 @@
  *  2. Preview (?print=1): standalone HTML document in the chosen colours. The rendering itself
  *     lives in bk_mandate_document() (lib), shared with the public view the archers read.
  *  3. Paper (?pdf=1): the same content through the core's PDF classes (lib/mandate-pdf.php).
+ *
+ * For a computer, in the frame shared by AUTH's organiser pages (adm-lib.php): preview and PDF at
+ * the right of the title, ONE save button fixed at the bottom right.
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -20,6 +23,7 @@ require_once dirname(__DIR__) . '/lib/competition.php';
 require_once dirname(__DIR__) . '/lib/mandate.php';
 require_once dirname(__DIR__) . '/lib/archer.php';   // bk_csrf_*
 require_once dirname(__DIR__) . '/lib/ui.php';       // bk_e, bk_date_*
+require_once dirname(__DIR__, 2) . '/adm-lib.php';   // frame of the organiser pages
 
 bk_schema();
 
@@ -87,15 +91,13 @@ if (!empty($_GET['print']) && $data) {
 /* Settings page                                                      */
 /* ================================================================== */
 $PAGE_TITLE = bk_t('MnuMandate');
+$JS_SCRIPT = aut_adm_assets();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <style>
-#bkadm .bk-sec { background:#fff; border:1px solid #d2d4d6; border-radius:6px;
+#bkadm .bk-sec { background:#fff; border:1px solid #d2d4d6; border-radius:8px;
     box-shadow:0 1px 3px rgba(0,0,0,.08); padding:14px 16px; margin:0 0 14px; }
-#bkadm .bk-sec h2 { margin:0 0 10px; font-size:15px; color:#0254a8; }
-#bkadm .bk-msg { padding:9px 12px; border-radius:6px; margin:0 0 14px; font-size:13px; }
-#bkadm .bk-ok  { background:#d2f4cd; border:1px solid #75ae77; color:#04ac0b; }
-#bkadm .bk-err { background:#ffd6db; border:1px solid #bb7575; color:#a80000; }
+#bkadm .bk-sec h2 { margin:0 0 10px; font-size:16px; color:#0254a8; }
 #bkadm label { display:block; font-size:13px; font-weight:600; color:#01367c; margin:10px 0 3px; }
 #bkadm select, #bkadm textarea, #bkadm input[type=text] { width:100%; max-width:520px; padding:7px 9px;
     border:1px solid #cfd3d6; border-radius:6px; font:inherit; font-size:14px; }
@@ -131,10 +133,13 @@ $select = function ($name, $list, $current) {
     return '<select id="' . $name . '" name="' . $name . '">' . $o . '</select>';
 };
 
-$out = '<div id="bkadm"><h1>' . bk_e(bk_t('MnuMandate')) . '</h1>'
-    . '<p style="font-size:13px"><a href="' . $settingsUrl . '">← ' . bk_e(bk_t('Brand')) . '</a></p>'
-    . ($msg ? '<div class="bk-msg bk-ok">' . bk_e($msg) . '</div>' : '')
-    . ($err ? '<div class="bk-msg bk-err">' . bk_e($err) . '</div>' : '')
+// Preview and PDF at the right of the title.
+$acts = '<a class="sa-btn" href="' . bk_e($self) . '?print=1" target="_blank" rel="noopener">' . bk_e(bk_t('AmPreview')) . '</a>'
+    . '<a class="sa-btn" href="' . bk_e($self) . '?pdf=1" target="_blank" rel="noopener"><img src="' . bk_e($CFG->ROOT_DIR . 'Common/Images/pdf_small.gif')
+    . '" alt="" width="16" height="16"> ' . bk_e(bk_t('PrintOrPdf')) . '</a>';
+$out = aut_adm_open('booking/admin/mandate.php', bk_t('MnuMandate'), $acts) . '<div id="bkadm">'
+    . ($msg ? '<div class="sa-msg sa-ok" data-sa-toast>' . bk_e($msg) . '</div>' : '')
+    . ($err ? '<div class="sa-msg sa-err">' . bk_e($err) . '</div>' : '')
     . bk_ffta_warning_html($TOUR);
 
 // Visibility to the archers.
@@ -158,7 +163,7 @@ $swatches = '';
 foreach (array('#0254a8', '#c0392b', '#1a8a3f', '#7d3c98', '#d35400', '#00838f', '#e67e22', '#20263d') as $sw) {
     $swatches .= '<span class="bk-swatch" style="background:' . bk_e($sw) . '" data-c="' . bk_e($sw) . '" title="' . bk_e($sw) . '"></span>';
 }
-$out .= '<form method="post">' . bk_csrf_field()
+$out .= '<form method="post" id="bk-mandate">' . bk_csrf_field()
     . '<div class="bk-sec"><h2>' . bk_e(bk_t('AmTplTitle')) . '</h2><div class="bk-two">'
     . '<div><label for="template">' . bk_e(bk_t('AmTplMandate')) . '</label>' . $select('template', bk_mandate_templates(), $m['template'])
     . '<p class="bk-hint">' . bk_e(bk_t('AmTplMandateHint')) . '</p></div>'
@@ -203,9 +208,6 @@ foreach (bk_mandate_sections() as $k => $lab) {
     $out .= '<label for="block_' . bk_e($k) . '">' . bk_e($lab) . '</label>'
         . '<textarea id="block_' . bk_e($k) . '" name="block_' . bk_e($k) . '" maxlength="4000">' . bk_e($m['blocks'][$k] ?? '') . '</textarea>';
 }
-$out .= '</div><p><button type="submit" class="bk-btn bk-btn-primary">' . bk_e(bk_t('AmSave')) . '</button> &nbsp; '
-    . '<a class="bk-btn" href="' . bk_e($self) . '?print=1" target="_blank" rel="noopener">' . bk_e(bk_t('AmPreview')) . '</a> &nbsp; '
-    . '<a class="bk-btn" href="' . bk_e($self) . '?pdf=1" target="_blank" rel="noopener">' . $pdfIcon . bk_e(bk_t('PrintOrPdf')) . '</a></p>'
-    . '</form></div>';
+$out .= '</div></form>' . aut_adm_save('bk-mandate') . '</div>' . aut_adm_close();
 echo $out;
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

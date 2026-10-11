@@ -7,7 +7,7 @@
  */
 
 /* Core: menu, shell, labels, engine errors */
-$lang['MnuTitle']    = 'Buvette & boutique';
+$lang['MnuTitle']    = 'Buvette et boutique';
 $lang['MnuSettings'] = 'Réglages et points de vente';
 $lang['MnuCatalog']  = 'Catalogue et stocks';
 $lang['MnuStaff']    = 'Bénévoles';
@@ -82,7 +82,7 @@ $lang['ShErrRefundFirst']    = 'Cette commande a déjà été payée : rembourse
 $lang['ShErrWanted']         = 'Cette heure de service n\'est pas possible : choisissez une heure pendant la compétition, dans quelques minutes au moins.';
 
 /* Settings */
-$lang['ShSetTitle']        = 'Buvette & boutique : réglages';
+$lang['ShSetTitle']        = 'Buvette et boutique : réglages';
 $lang['ShSetLead']         = 'Activez la buvette, la restauration et la boutique pour cette compétition, créez vos points de vente, puis remplissez le catalogue. Tout peut être préparé à l\'avance ; rien n\'est visible des clients tant que vous ne l\'avez pas activé.';
 $lang['ShSetErrTruncated'] = "Le formulaire est trop volumineux pour les réglages du serveur (max_input_vars) et a été tronqué : rien n'a été enregistré. Enregistrez moins de produits à la fois, ou demandez à l'administrateur du serveur d'augmenter max_input_vars.";
 $lang['ShSetErrSession']   = 'Votre session a expiré. Rechargez la page et recommencez.';
@@ -183,7 +183,7 @@ $lang['ShSetNewKey']       = 'Changer l\'adresse';
 $lang['ShSetNewKeyConfirm'] = 'L\'adresse va changer. Tous les QR codes déjà imprimés cesseront de fonctionner. Continuer ?';
 $lang['ShSetNewKeyDone']   = 'Nouvelle adresse générée. Imprimez de nouveau les affiches.';
 
-$lang['ShSetCatTitle']     = 'Buvette & boutique : catalogue et stocks';
+$lang['ShSetCatTitle']     = 'Buvette et boutique : catalogue et stocks';
 $lang['ShSetCatLead']      = 'Les produits de chaque point de vente, avec leurs prix et leurs stocks. Un produit peut avoir des options (taille, garniture…), chacune avec son stock et, si besoin, son prix.';
 $lang['ShSetCatNoStand']   = 'Il n\'y a pas encore de point de vente. Créez-en un dans';
 $lang['ShSetCatHint']      = 'Stock : laissez vide pour une quantité illimitée. Une fois la compétition commencée, le stock est la quantité restante ; ce qui a été vendu s\'affiche sous le champ.';
@@ -229,7 +229,7 @@ $lang['ShSetNoteVarOrdered'] = 'L\'option « {$a[v]} » de « {$a[p]} » a déj�
 $lang['ShSetNoteOptionKept'] = '« {$a} » : des options ont déjà été commandées, le nom de l\'option a donc été conservé.';
 $lang['ShSetNoteStockBusy'] = '« {$a} » : le stock a changé pendant votre saisie (une vente ?). Il n\'a pas été modifié, vérifiez-le.';
 
-$lang['ShSetPostersTitle'] = 'Buvette & boutique : affiches QR code';
+$lang['ShSetPostersTitle'] = 'Affiches et chevalets QR code';
 $lang['ShSetPostersLead']  = 'Affiches et chevalets qui mènent à la boutique. Les clients scannent le code avec l\'appareil photo de leur téléphone.';
 $lang['ShSetPostersOff']   = 'La boutique est désactivée : les codes fonctionnent, mais les clients voient seulement « boutique non ouverte ». Activez-la dans les réglages.';
 $lang['ShSetPostersFor']   = 'Pour';
@@ -886,6 +886,12 @@ $lang['DkErrNote']         = 'Le commentaire est vide.';
 $lang['DkErrForbidden']    = 'Vous n\'avez pas ce droit au greffe : demandez à l\'organisateur.';
 $lang['DkStaffTitleDesk']  = 'Bénévoles du greffe';
 $lang['DkStaffTitleBoth']  = 'Bénévoles des points de vente et du greffe';
+$lang['DkStaffOff']        = 'Ni la buvette et la boutique, ni le greffe ne sont activés pour cette compétition : activez l\'un des deux pour inviter des bénévoles.';
+$lang['DkJudges']          = 'Arbitres';
+$lang['DkJudgesList']      = 'Contrôle du matériel';
+$lang['DkJudgesTitle']     = 'Arbitres — contrôle du matériel';
+$lang['DkJudgesLead']      = 'Le matériel de chaque participant : conforme, non conforme ou pas encore contrôlé. La liste s\'ouvre sur ceux qui restent à contrôler ; les arbitres font les contrôles sur leur téléphone, depuis le greffe.';
+$lang['MnuStaffPage']      = 'Équipe et invitations';
 $lang['DkJoinIntro']       = 'Pour aider au greffe, dites-nous qui vous êtes.';
 $lang['DkJoinIntroBoth']   = 'Pour aider aux points de vente ou au greffe, dites-nous qui vous êtes.';
 $lang['DkLoginTitle']      = 'Connexion au greffe';

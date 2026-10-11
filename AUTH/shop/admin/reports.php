@@ -132,18 +132,14 @@ function sr_cash_cells(array $g)
 /* Page                                                                */
 /* ================================================================== */
 $PAGE_TITLE = shp_t('MnuReports') . ' — ' . shp_t('MnuTitle');
-$JS_SCRIPT = array(
-    '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    '<link rel="stylesheet" href="' . shp_e(shp_asset_url('admin.css')) . '">',
-    '<link rel="stylesheet" href="' . shp_e(shp_asset_url('reports.css')) . '">',
-);
+$JS_SCRIPT = shp_adm_assets(array('<link rel="stylesheet" href="' . shp_e(shp_asset_url('reports.css')) . '">'));
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
-echo '<div id="shpadm" class="sr-page"><h1>' . shp_e(shp_t('ShRepReportsTitle')) . '</h1>' . shp_adm_nav('reports.php');
+echo aut_adm_open('shop/admin/reports.php', shp_t('ShRepReportsTitle'), '', 'sr-page');
 
 if (!$enabled) {
     echo shp_adm_msg('warn', array(shp_t('ShRepShopOff'))) . '<p><a class="sa-btn sa-primary" href="' . shp_e(shp_adm_url('index.php')) . '">'
-        . shp_e(shp_t('MnuSettings')) . '</a></p></div>';
+        . shp_e(shp_t('MnuSettings')) . '</a></p>' . aut_adm_close();
     include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');
     exit;
 }
@@ -303,5 +299,5 @@ $body = $rows ? sr_table(array(array(shp_t('ShRepColName')), array(shp_t('ShRepC
 if ($duesLinks) $body .= '<p><a class="sa-btn" href="' . shp_e($CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/dues.php') . '">' . shp_e(shp_t('ShRepGoPayments')) . '</a></p>';
 echo sr_card(shp_t('ShRepAccountsTitle'), $body, shp_t('ShRepAccountsHint'));
 
-echo '</div>';
+echo aut_adm_close();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

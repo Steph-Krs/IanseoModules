@@ -893,12 +893,13 @@ $lang['FfBadCredentials']  = 'Wrong identifier or password.';
 $lang['FfNoLicence']       = 'Signed in, but your licence number could not be read on the licensee space. Tell the organiser.';
 $lang['FfAmbiguous']       = 'Signed in, but several licence numbers appear on the page. Tell the organiser.';
 
-/* Organiser menu (booking/menu.php) */
+/* Organiser menu (adm-lib.php) */
 $lang['MnuSettings'] = 'Activation settings';
 $lang['MnuMandate']  = 'Competition invitation';
 $lang['MnuSurvey']   = 'Archers\' satisfaction';
 $lang['MnuField']    = 'Field assignment constraints';
 $lang['MnuTargets']  = 'Target assignment';
+$lang['AcLvlPending']      = 'The level chosen is applied when you save; its settings are shown then.';
 
 /* Organiser: field endpoint, survey results */
 $lang['AdmBadToken']       = 'Invalid token — reload the page.';

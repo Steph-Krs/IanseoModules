@@ -4,7 +4,9 @@
  * form per point of sale, one card per product, options (variants) with their own price and
  * stock. Deleting something already ordered is refused (deactivate it instead).
  *
- * ORGANISER page (desktop first, readable on a tablet): ianseo look and ACL of the core.
+ * ORGANISER page (computer): ianseo look and ACL of the core, frame shared by AUTH's organiser
+ * pages (adm-lib.php). "Add a product" comes after the products; the save button is fixed at the
+ * bottom right.
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
@@ -167,26 +169,26 @@ if (!$stands) {
     $cats = '';
     $rs = safe_r_sql("SELECT DISTINCT SpCategory FROM ShopProducts WHERE SpTournament = $TOUR AND SpCategory <> '' ORDER BY SpCategory");
     while ($r = safe_fetch($rs)) $cats .= '<option value="' . shp_e($r->SpCategory) . '">';
-    $body = '<form method="post" id="catalog" data-product-form>' . bk_csrf_field()
+    $body = '<form method="post" id="catalog" data-product-form>' . aut_adm_default_submit() . bk_csrf_field()
         . '<input type="hidden" name="stand_id" value="' . $standId . '">'
         . '<div id="prod-list" data-next="' . $i . '">' . $cards . '</div>'
+        . '<div class="sa-bar"><button type="button" class="sa-btn" data-add="prod-tpl" data-into="prod-list">' . shp_e(shp_t('ShSetAddProduct')) . '</button></div>'
         . '<datalist id="sa-cats">' . $cats . '</datalist>'
         . '<template id="prod-tpl">' . shp_adm_product_card('__i__', array(), $stats, $cur) . '</template>'
         . '<template id="var-tpl">' . shp_adm_var_row('__i__', '__v__', array(), $stats) . '</template>'
         . '<p class="sa-hint">' . shp_e(shp_t('ShSetCatHint')) . '</p>'
-        . '<input type="hidden" name="form_end" value="1">'
-        . '<div class="sa-bar sa-sticky"><button type="button" class="sa-btn" data-add="prod-tpl" data-into="prod-list">' . shp_e(shp_t('ShSetAddProduct')) . '</button> '
-        . '<button type="submit" class="sa-btn sa-primary">' . shp_e(shp_t('ShSetCatSave')) . '</button></div></form>';
+        . '<input type="hidden" name="form_end" value="1"></form>'
+        . aut_adm_save('catalog');
 }
 
 $PAGE_TITLE = shp_t('MnuCatalog') . ' — ' . shp_t('MnuTitle');
 $JS_SCRIPT = shp_adm_assets();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
-echo '<div id="shpadm"><h1>' . shp_e(shp_t('ShSetCatTitle')) . '</h1>' . shp_adm_nav('catalog.php')
+echo aut_adm_open('shop/admin/catalog.php', shp_t('ShSetCatTitle'))
     . '<p class="sa-lead">' . shp_e(shp_t('ShSetCatLead')) . '</p>'
     . ($flash ? shp_adm_msg($flash['type'], $flash['lines']) : '')
     . ($errors ? shp_adm_msg('err', array_merge(array(shp_t('ShSetNothingSaved')), $errors)) : '')
-    . ($tabs !== '' ? '<div class="sa-tabs">' . $tabs . '</div>' : '') . $body . '</div>';
+    . ($tabs !== '' ? '<div class="sa-tabs">' . $tabs . '</div>' : '') . $body . aut_adm_close();
 
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

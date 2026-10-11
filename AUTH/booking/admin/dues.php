@@ -14,6 +14,7 @@
  */
 define('HTDOCS', dirname(__DIR__, 5));
 require_once(HTDOCS . '/config.php');
+require_once dirname(__DIR__, 2) . '/adm-lib.php';   // frame of the organiser pages
 
 CheckTourSession(true);
 checkFullACL(AclParticipants, 'pEntries', AclReadWrite);
@@ -217,17 +218,18 @@ function due_by($m, $standNames)
 }
 
 $PAGE_TITLE = bk_t('Payments');
+$JS_SCRIPT = aut_adm_assets();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 echo '<style>
-#bkdue h1 { font-size:22px; color:#01367c; margin:0 0 4px; }
-#bkdue h2 { font-size:17px; color:#01367c; margin:18px 0 8px; }
-#bkdue .due-sub { color:#4c4e50; font-size:13px; margin:0 0 14px; }
-#bkdue .due-kpis { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 14px; }
-#bkdue .due-kpi { background:#f0f4ff; border:1px solid #c9d6ee; border-radius:8px; padding:8px 14px; min-width:150px; }
-#bkdue .due-kpi b { display:block; font-size:18px; color:#01367c; }
+#bkdue h2 { font-size:16px; color:#0254a8; margin:18px 0 8px; }
+#bkdue .due-sub { color:#4c4e50; font-size:14px; margin:0 0 14px; }
+#bkdue .due-kpis { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:12px; margin:0 0 14px; }
+#bkdue .due-kpi { background:#fff; border:1px solid #d2d4d6; border-top:4px solid #0254a8; border-radius:8px; padding:10px 12px;
+    box-shadow:0 1px 3px rgba(0,0,0,.08); }
+#bkdue .due-kpi b { display:block; font-size:20px; color:#01367c; }
 #bkdue .due-kpi span { font-size:12px; color:#4c4e50; }
-#bkdue .due-kpi.warn { background:#fdf0ef; border-color:#e8b4ae; }
+#bkdue .due-kpi.warn { border-top-color:#ff5043; }
 #bkdue .due-kpi.warn b { color:#a32019; }
 #bkdue .due-scroll { overflow-x:auto; }
 #bkdue table { border-collapse:collapse; width:100%; font-size:14px; background:#fff; }
@@ -238,8 +240,8 @@ echo '<style>
 #bkdue .num { text-align:right; white-space:nowrap; }
 #bkdue tr.tot td { background:#eef4fb; font-weight:700; color:#01367c; }
 #bkdue .due-mut { font-size:12px; color:#7d8183; }
-#bkdue .due-btn { padding:6px 12px; border:1px solid #0254a8; border-radius:6px; background:#0254a8; color:#fff;
-    font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-block; }
+#bkdue .due-btn { padding:7px 14px; border:1px solid #0254a8; border-radius:6px; background:#0254a8; color:#fff;
+    font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-block; }
 #bkdue .due-btn-light { background:#fff; color:#0254a8; }
 #bkdue .due-btn-warn { background:#c0392b; border-color:#c0392b; }
 #bkdue .due-btn-sm { padding:3px 9px; font-size:12px; }
@@ -269,13 +271,13 @@ echo '<style>
 #bkdue tr.due-line td { border-top:none; border-bottom:none; font-size:12px; color:#4c4e50; padding-top:1px; padding-bottom:1px; }
 </style>';
 
-echo '<div id="bkdue"><h1>' . bk_e(bk_t('Payments')) . '</h1><p class="due-sub">' . bk_e($tour->ToName ?? '') . ' — '
+echo aut_adm_open('booking/admin/dues.php', bk_t('Payments')) . '<div id="bkdue"><p class="due-sub">' . bk_e($tour->ToName ?? '') . ' — '
     . bk_e(bk_t(count($rows) > 1 ? 'DuAccountsMany' : 'DuAccountsOne', count($rows))) . ' · ' . bk_e(bk_t('DuScope')) . '</p>';
 
 if ($adopted && !empty($adopted['ok'])) {
     echo '<div class="due-msg due-msg-info">' . bk_t('DuAdopted', bk_e($CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php')) . '</div>';
 }
-if ($msg) echo '<div class="due-msg due-msg-' . ($msg[0] === 'ok' ? 'ok' : 'err') . '">' . bk_e($msg[1]) . '</div>';
+if ($msg) echo '<div class="due-msg due-msg-' . ($msg[0] === 'ok' ? 'ok" data-sa-toast' : 'err"') . '>' . bk_e($msg[1]) . '</div>';
 
 $cfgUrl = bk_e($CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/competition.php');
 if (!bk_comp_payments_on($cfg)) {
@@ -596,5 +598,5 @@ if (!$rows) {
 })();
 </script>';
 }
-echo '</div>';
+echo '</div>' . aut_adm_close();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

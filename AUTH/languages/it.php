@@ -890,6 +890,7 @@ $lang['ForMainAnomaly']    = 'Iscritti online senza licenza FFTA';
 $lang['ForMainCount']      = '{$a} arciere/i: identità non verificata, da controllare';
 $lang['DeskMainAnomaly']   = 'Arcieri rifiutati agli accrediti (documenti o materiale non conformi)';
 $lang['DeskMainCount']     = '{$a} arciere/i con lo stato «Non può gareggiare»';
+$lang['AdmSave']           = 'Salvare';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Contenuto non valido.';
