@@ -204,7 +204,8 @@ if (!$comps) {
             foreach ($segs as $sg) {
                 $c = $sg['c'];
                 $dd  = bk_comp_discipline($c->ToType, $c->ToTypeSubRule, $c->ToTypeName);
-                $lab = $sg['len'] > 1 ? $c->ToName : ($c->ToWhere ?: $c->ToName);
+                // The town alone: the place and the name are too long for a bar (both in the title).
+                $lab = trim((string) $c->ToVenue) ?: (trim((string) $c->ToWhere) ?: $c->ToName);
                 echo '<a class="bk-cal-comp bk-cal-bar' . ($sg['len'] === 1 ? ' bk-cal-single' : '')
                     . (isset($already[intval($c->ToId)]) ? ' bk-cal-in' : '') . ($sg['contl'] ? ' bk-cal-contl' : '')
                     . ($sg['contr'] ? ' bk-cal-contr' : '') . '"'

@@ -661,7 +661,7 @@ function bk_comp_calendar($filters = array())
         $w[] = "LEFT(ToCommitee, 2) = " . StrSafe_DB($filters['region']);
     }
 
-    $rs = safe_r_sql("SELECT ToId, ToCode, ToName, ToWhere, ToComDescr, ToCommitee,
+    $rs = safe_r_sql("SELECT ToId, ToCode, ToName, ToWhere, ToVenue, ToComDescr, ToCommitee,
                 ToWhenFrom, ToWhenTo, ToTypeName, ToType, ToTypeSubRule, ToNumSession,
                 BookingCompetitions.*, " . bk_comp_calc_sql() . "
         FROM BookingCompetitions
