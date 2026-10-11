@@ -412,10 +412,33 @@ function bk_events_after_removal($tourId, $old)
 }
 
 /**
+ * One registration at a time per competition: a named MySQL lock, re-entrant for the same
+ * connection (the waiting list registers under the lock of the registration that served it).
+ * Without it, two requests could both find the last place free, or the same archer twice on a
+ * departure (the waiting list and a direct registration at the same moment). False after 15 s.
+ */
+function bk_reg_lock($tourId)
+{
+    $r = safe_fetch(safe_r_sql("SELECT GET_LOCK(CONCAT('bkreg:', DATABASE(), ':', " . intval($tourId) . "), 15) AS l"));
+    return $r && intval($r->l) === 1;
+}
+
+function bk_reg_unlock($tourId)
+{
+    safe_r_sql("SELECT RELEASE_LOCK(CONCAT('bkreg:', DATABASE(), ':', " . intval($tourId) . "))");
+}
+
+/**
  * Registers an archer. Returns ['ok'=>true, 'enid'=>N] or ['ok'=>false, 'msg'=>…].
  *
  * $lue     : LookUpEntries record (federation identity)
  * $by      : ['role'=>'SELF'|'MANAGER', 'who'=>identifier, 'archer'=>BaId]
+ * $opts    : face, letter, with; skip_capacity (re-import, organiser registering by hand from the
+ *            waiting list); from_wait (the waiting list serving one of its rows)
+ *
+ * Under the competition's lock (bk_reg_lock): a direct registration first lets the waiting list
+ * take the places freed (whoever freed them: an archer, the organiser in ianseo), then the
+ * departure is checked again — never two shoots of one archer on it, never over its places.
  */
 function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, $by, $opts = array())
 {
@@ -443,6 +466,44 @@ function bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, 
         if (empty($gate['allow'])) return array('ok' => false, 'msg' => $gate['msg']);
     }
 
+    if (!bk_reg_lock($tourId)) return array('ok' => false, 'msg' => bk_t('RegBusy'));
+    try {
+        $mineOn = function () use ($tourId, $lue, $sessionOrder) {
+            foreach (bk_reg_existing($tourId, $lue->LueCode) as $e) {
+                if (intval($e->QuSession) === intval($sessionOrder)) return true;
+            }
+            return false;
+        };
+        $wasOn = $mineOn();
+        if (empty($opts['from_wait']) && empty($opts['skip_capacity'])) {
+            require_once __DIR__ . '/waitlist.php';
+            bk_waitlist_process($tourId);
+        }
+        if ($mineOn()) {
+            // The waiting list has just given this archer the place they came for.
+            return array('ok' => false, 'msg' => bk_t($wasOn ? 'RgAlreadyDep' : 'RgFromWait'));
+        }
+        if (empty($opts['skip_capacity']) && bk_reg_session_left($tourId, $sessionOrder) < 1) {
+            return array('ok' => false, 'msg' => bk_t('RgDepFull'));
+        }
+        $res = bk_register_write($tourId, $lue, $division, $class, $sessionOrder, $request, $by, $opts);
+        // Registered directly: the archer's waiting request for this departure (or for any) is
+        // met — it would otherwise register them a second time later.
+        if (!empty($res['ok']) && empty($opts['from_wait'])) {
+            safe_w_sql("UPDATE BookingWaitlist SET BwStatus = 2, BwSeen = 0, BwNote = " . StrSafe_DB(mb_substr(bk_t('WlServedDirect'), 0, 120)) . "
+                WHERE BwTournament = $tourId AND BwStatus = 0 AND BwReturn = 0
+                  AND BwLicence = " . StrSafe_DB(bk_clean_licence($lue->LueCode)) . " AND BwDivision = " . StrSafe_DB($division) . "
+                  AND BwSession IN (0, " . intval($sessionOrder) . ")");
+        }
+        return $res;
+    } finally {
+        bk_reg_unlock($tourId);
+    }
+}
+
+/** The write of a registration (bk_register, under the competition's lock). */
+function bk_register_write($tourId, $lue, $division, $class, $sessionOrder, $request, $by, $opts)
+{
     return bk_with_tournament($tourId, function () use ($tourId, $lue, $division, $class, $sessionOrder, $request, $by, $opts) {
 
         $now  = date('Y-m-d H:i:s');

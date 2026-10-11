@@ -1806,6 +1806,41 @@ function aut_logos_hook_entry_save() {
     });
 }
 
+/**
+ * A place freed in ianseo's own screens (participant deleted, moved to another departure) goes
+ * to the online waiting list AT ONCE, not at the next look (booking/lib/waitlist.php): the
+ * head count of each departure is read at the start of the request and again at its end; one
+ * went down → the list is served. Only for a competition where somebody waits (one indexed,
+ * guarded query otherwise); not on the API (bursts of ISK requests) nor on the module's own
+ * pages (they serve the list themselves).
+ */
+function aut_waitlist_watch() {
+    $t = intval($_SESSION['TourId'] ?? 0);
+    if ($t <= 0 || !is_file(__DIR__ . '/booking/lib/waitlist.php')) return;
+    $s = aut_script_rel();
+    if (stripos($s, '/Api/') === 0 || stripos($s, '/Modules/Custom/AUTH/') === 0) return;
+    $rs = safe_r_sql("SELECT BwId FROM BookingWaitlist WHERE BwTournament = $t AND BwStatus = 0 LIMIT 1", false, true);
+    if (!$rs || !safe_fetch($rs)) return;
+    $heads = function () use ($t) {
+        $out = array();
+        $q = safe_r_sql("SELECT QuSession, COUNT(*) AS n FROM Entries INNER JOIN Qualifications ON QuId = EnId
+            WHERE EnTournament = $t GROUP BY QuSession", false, true);
+        while ($q && ($r = safe_fetch($q))) $out[intval($r->QuSession)] = intval($r->n);
+        return $out;
+    };
+    $before = $heads();
+    register_shutdown_function(function () use ($t, $before, $heads) {
+        $after = $heads();
+        foreach ($before as $ses => $n) {
+            if ($ses > 0 && ($after[$ses] ?? 0) < $n) {
+                require_once __DIR__ . '/booking/lib/waitlist.php';
+                bk_waitlist_process($t);
+                return;
+            }
+        }
+    });
+}
+
 function aut_request_bootstrap() {
     global $CFG;
 
@@ -1816,6 +1851,8 @@ function aut_request_bootstrap() {
     // Placed BEFORE the early "localhost" return: the server console enters participants
     // too, and its competitions deserve their logos.
     aut_logos_hook_entry_save();
+    // A participant removed or moved in ianseo's screens: the waiting list gets the place at once.
+    aut_waitlist_watch();
 
     // Session care: when a competition is created, the core sets $_SESSION['TourId'] WITHOUT
     // TourCode (Tournament/index.php) → warnings in define_session_flags() on every page.

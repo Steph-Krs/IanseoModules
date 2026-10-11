@@ -12,14 +12,17 @@
  * registrations"), never by e-mail; if they no longer want the place they cancel it like
  * any registration, which frees it for the next one.
  *
- * Fairness: a freed place goes to the list before anyone else — register-comp.php runs
- * bk_waitlist_process() before computing the places it offers.
+ * Fairness: a freed place goes to the list before anyone else — every direct registration
+ * (archer, clubmate, club manager) serves the list first, under the competition's lock
+ * (bk_register, bk_reg_lock), and register-comp.php also does it before computing the places it
+ * offers. A participant removed or moved in ianseo's own screens serves it at the end of that
+ * request (aut_waitlist_watch, AUTH lib.php).
  *
  * Places are looked for after an online cancellation, on the registration page, on the
- * archer's home page (lists they are on), on the organiser's page, and every 10 minutes
- * by cron/waitlist.php — places freed in ianseo's own screens (a participant deleted,
- * targets added) are seen by no booking page. Once registrations close the list is
- * frozen: the organiser keeps it and can register or remove by hand.
+ * archer's home page (lists they are on), on the organiser's page, after a removal in ianseo's
+ * screens, and every 10 minutes by cron/waitlist.php (targets added in ianseo, anything else).
+ * Once registrations close the list is frozen: the organiser keeps it and can register or
+ * remove by hand.
  */
 
 if (defined('BK_WAITLIST_LOADED')) return;
@@ -143,8 +146,8 @@ function bk_waitlist_pending($tourId, $session, $division, $class, $face)
 
 /**
  * Registers the first compatible archers of the list for every place freed. Returns the
- * number of archers registered. Cheap when nobody waits (one indexed query); one run at
- * a time per competition (GET_LOCK).
+ * number of archers registered. Cheap when nobody waits (one indexed query); under the
+ * competition's registration lock (bk_reg_lock): no registration slips in meanwhile.
  */
 function bk_waitlist_process($tourId)
 {
@@ -157,9 +160,7 @@ function bk_waitlist_process($tourId)
     // (BwReturn, lib/licences.php) are still served — they are registrations, not requests.
     $onlyReturns = !bk_waitlist_on($cfg);
 
-    $lockName = "CONCAT('bkwl:', DATABASE(), ':', $tourId)";
-    $lk = safe_fetch(safe_r_sql("SELECT GET_LOCK($lockName, 0) AS l"));
-    if (!$lk || !intval($lk->l)) return 0;   // another request is already on it
+    if (!bk_reg_lock($tourId)) return 0;   // a request held it for 15 s: the next look will do
 
     $done = 0;
     try {
@@ -213,7 +214,7 @@ function bk_waitlist_process($tourId)
 
                 $res = bk_register($tourId, $lue, $w->BwDivision, $w->BwClass, $o, (string) $w->BwRequest,
                     array('role' => $w->BwByRole, 'who' => $w->BwBy, 'archer' => intval($w->BwArcher)),
-                    array('face' => intval($w->BwFace), 'letter' => $w->BwWantLetter, 'with' => $w->BwWantWith));
+                    array('face' => intval($w->BwFace), 'letter' => $w->BwWantLetter, 'with' => $w->BwWantWith, 'from_wait' => true));
                 if (empty($res['ok'])) continue;
 
                 safe_w_sql("UPDATE BookingWaitlist SET BwStatus = 1, BwSeen = 0, BwEnId = " . intval($res['enid'])
@@ -227,7 +228,7 @@ function bk_waitlist_process($tourId)
             }
         }
     } finally {
-        safe_r_sql("SELECT RELEASE_LOCK($lockName)");
+        bk_reg_unlock($tourId);
     }
     return $done;
 }
@@ -412,7 +413,8 @@ function bk_waitlist_register_now($tourId, $id, $session)
     }
     $res = bk_register($tourId, $lue, $w->BwDivision, $w->BwClass, $session, (string) $w->BwRequest,
         array('role' => $w->BwByRole, 'who' => $w->BwBy, 'archer' => intval($w->BwArcher)),
-        array('face' => intval($w->BwFace), 'letter' => $w->BwWantLetter, 'with' => $w->BwWantWith, 'skip_capacity' => true));
+        array('face' => intval($w->BwFace), 'letter' => $w->BwWantLetter, 'with' => $w->BwWantWith, 'skip_capacity' => true,
+              'from_wait' => true));
     if (empty($res['ok'])) return array('ok' => false, 'msg' => $res['msg'] ?? bk_t('RegFailed'));
     safe_w_sql("UPDATE BookingWaitlist SET BwStatus = 1, BwSeen = 0, BwEnId = " . intval($res['enid'])
         . ", BwSession = $session, BwDone = " . bk_waitlist_now_sql($tourId) . " WHERE BwId = " . intval($w->BwId));
