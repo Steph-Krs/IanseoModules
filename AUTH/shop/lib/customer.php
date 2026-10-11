@@ -67,7 +67,8 @@ function shp_guest_create($tourId, $pseudo)
 {
     $tourId = intval($tourId);
     $s = shp_settings($tourId);
-    if (!$s || intval($s->SgEnabled) !== 1) return array('error' => 1, 'code' => 'shop_off', 'msg' => shp_t('ShErrShopOff'));
+    // A guest only orders from their phone on the day: the phone orders must be open.
+    if (!$s || !shp_clients_on($tourId)) return array('error' => 1, 'code' => 'shop_off', 'msg' => shp_t('ShErrShopOff'));
     if (intval($s->SgGuests) !== 1) return array('error' => 1, 'code' => 'guests_off', 'msg' => shp_t('ShErrGuestsOff'));
     $p = shp_pseudo_clean($pseudo);
     if ($p === '') return array('error' => 1, 'code' => 'pseudo', 'msg' => shp_t('ShErrPseudo'));

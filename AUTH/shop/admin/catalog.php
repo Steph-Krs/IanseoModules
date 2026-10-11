@@ -72,13 +72,16 @@ function shp_adm_var_row($i, $vi, array $v, $stats)
         . '<input type="hidden" name="' . $n . '[del]" value="' . (empty($v['del']) ? 0 : 1) . '" data-del>'
         . '<label><span>' . shp_e(shp_t('ShSetFVarLabel')) . '</span><input type="text" name="' . $n . '[label]" maxlength="80" value="' . shp_e($v['label']) . '"></label>'
         . '<label><span>' . shp_e(shp_t('ShSetFVarPrice')) . '</span><input type="text" name="' . $n . '[price]" size="6" value="' . shp_e($v['price']) . '" placeholder="' . shp_e(shp_t('ShSetFVarPricePh')) . '"></label>'
-        . '<label><span>' . shp_e(shp_t('ShSetFStock')) . '</span><input type="number" min="0" name="' . $n . '[stock]" class="sa-num" value="' . shp_e($v['stock']) . '" placeholder="' . shp_e(shp_t('ShSetUnlimited')) . '">'
-        . ($id > 0 ? shp_adm_stock_stats('v' . $id, $stats) : '') . '</label>'
+        . '<label><span>' . shp_e(shp_t('ShSetFStock')) . '</span><span class="sa-inl"><input type="number" min="0" name="' . $n . '[stock]" class="sa-num" value="' . shp_e($v['stock']) . '" placeholder="' . shp_e(shp_t('ShSetUnlimited')) . '">'
+        . ($id > 0 ? shp_adm_stock_stats('v' . $id, $stats) : '') . '</span></label>'
         . '<button type="button" class="sa-btn sa-danger" data-mark-del="[data-var]" aria-label="' . shp_e(shp_t('ShSetVarDelete')) . '">' . shp_e(shp_t('ShSetVarDelete')) . '</button></div>';
 }
 
-/** One product card (server rendering AND script template, index __i__). */
-function shp_adm_product_card($i, array $p, $stats, $cur)
+/**
+ * One product card (server rendering AND script template, index __i__). $labels: texts of the two
+ * sales boxes, which name the pre-order deadline of the settings (shp_adm_sale_labels).
+ */
+function shp_adm_product_card($i, array $p, $stats, $cur, array $labels)
 {
     $p = shp_product_row_defaults($p);
     $n = 'p[' . $i . ']';
@@ -109,11 +112,11 @@ function shp_adm_product_card($i, array $p, $stats, $cur)
         . '<div class="sa-row">' . $f(shp_t('ShSetFDescription'), '<input type="text" name="' . $n . '[description]" maxlength="255" value="' . shp_e($p['description']) . '">', 'sa-grow') . '</div>'
         . '<div class="sa-row">'
         . '<label class="sa-f" data-simple-stock' . ($hasOpt ? ' hidden' : '') . '><span>' . shp_e(shp_t('ShSetFStock')) . '</span>'
-        . '<input type="number" min="0" name="' . $n . '[stock]" class="sa-num" value="' . shp_e($p['stock']) . '" placeholder="' . shp_e(shp_t('ShSetUnlimited')) . '">'
-        . ($id > 0 ? shp_adm_stock_stats('p' . $id, $stats) : '') . '</label>'
+        . '<span class="sa-inl"><input type="number" min="0" name="' . $n . '[stock]" class="sa-num" value="' . shp_e($p['stock']) . '" placeholder="' . shp_e(shp_t('ShSetUnlimited')) . '">'
+        . ($id > 0 ? shp_adm_stock_stats('p' . $id, $stats) : '') . '</span></label>'
         . $f(shp_t('ShSetFAlert'), '<input type="number" min="0" name="' . $n . '[alert]" class="sa-num" value="' . shp_e($p['alert']) . '">')
         . $f(shp_t('ShSetFMaxPer'), '<input type="number" min="0" max="999" name="' . $n . '[maxper]" class="sa-num" value="' . intval($p['maxper']) . '">')
-        . '<div class="sa-checks">' . $chk('preorder', $p['preorder'], shp_t('ShSetFPreorder')) . $chk('onsite', $p['onsite'], shp_t('ShSetFOnsite'))
+        . '<div class="sa-checks">' . $chk('preorder', $p['preorder'], $labels['preorder']) . $chk('onsite', $p['onsite'], $labels['onsite'])
         . $chk('active', $p['active'], shp_t('ShSetFActive')) . '</div>'
         . '</div>'
         . '<div class="sa-row">' . $f(shp_t('ShSetFOption'), '<input type="text" name="' . $n . '[option]" maxlength="40" value="' . shp_e($p['option']) . '" data-option placeholder="' . shp_e(shp_t('ShSetFOptionPh')) . '">', 'sa-grow') . '</div>'
@@ -127,7 +130,29 @@ function shp_adm_product_card($i, array $p, $stats, $cur)
         . ($id > 0 ? ' data-confirm="' . shp_e(shp_t('ShSetProdDeleteConfirm')) . '"' : '') . '>' . shp_e(shp_t('ShSetDelete')) . '</button></div></div>';
 }
 
+/**
+ * Texts of the two sales boxes of a product. Pre-ordered: before the competition, once the
+ * pre-orders are opened in the settings, until their deadline — or the eve of the competition
+ * without one. Sold during the competition: at the stands, and from the customers' phones.
+ */
+function shp_adm_sale_labels($tourId)
+{
+    $set = shp_settings($tourId);
+    $until = $set ? trim((string) $set->SgPreorderUntil) : '';
+    if (!shp_preorders_on($tourId)) {
+        $pre = shp_t('ShSetFPreorderNone');
+    } elseif ($until !== '' && strpos($until, '0000') !== 0) {
+        // bytes: an ASCII DATETIME
+        $pre = shp_t('ShSetFPreorder', shp_adm_date(substr($until, 0, 10)) . ' ' . substr($until, 11, 5));
+    } else {
+        $pre = shp_t('ShSetFPreorderEve');
+    }
+    return array('preorder' => $pre, 'onsite' => shp_t('ShSetFOnsite'));
+}
+
 /* ---------------- Page content ---------------- */
+
+$saleLabels = shp_adm_sale_labels($TOUR);
 
 $tabs = '';
 foreach ($stands as $sid => $s) {
@@ -145,7 +170,7 @@ if (!$stands) {
     if ($productRows !== null) {
         foreach ($productRows as $r) {
             if (!is_array($r)) continue;
-            $cards .= shp_adm_product_card($i++, $r, $stats, $cur);
+            $cards .= shp_adm_product_card($i++, $r, $stats, $cur, $saleLabels);
         }
     } else {
         foreach (shp_catalog($TOUR, $standId, 'all') as $p) {
@@ -163,7 +188,7 @@ if (!$stands) {
                 'description' => $p['description'], 'price' => shp_adm_amount($p['price']),
                 'stock' => $p['stock'] === null ? '' : $p['stock'], 'stock0' => $p['stock'] === null ? '' : $p['stock'],
                 'alert' => $p['alert'] === null ? '' : $p['alert'], 'maxper' => $p['maxper'], 'option' => $p['option'],
-                'preorder' => $p['preorder'], 'onsite' => $p['onsite'], 'active' => $p['active'], 'variants' => $vs), $stats, $cur);
+                'preorder' => $p['preorder'], 'onsite' => $p['onsite'], 'active' => $p['active'], 'variants' => $vs), $stats, $cur, $saleLabels);
         }
     }
     $cats = '';
@@ -174,9 +199,8 @@ if (!$stands) {
         . '<div id="prod-list" data-next="' . $i . '">' . $cards . '</div>'
         . '<div class="sa-bar"><button type="button" class="sa-btn" data-add="prod-tpl" data-into="prod-list">' . shp_e(shp_t('ShSetAddProduct')) . '</button></div>'
         . '<datalist id="sa-cats">' . $cats . '</datalist>'
-        . '<template id="prod-tpl">' . shp_adm_product_card('__i__', array(), $stats, $cur) . '</template>'
+        . '<template id="prod-tpl">' . shp_adm_product_card('__i__', array(), $stats, $cur, $saleLabels) . '</template>'
         . '<template id="var-tpl">' . shp_adm_var_row('__i__', '__v__', array(), $stats) . '</template>'
-        . '<p class="sa-hint">' . shp_e(shp_t('ShSetCatHint')) . '</p>'
         . '<input type="hidden" name="form_end" value="1"></form>'
         . aut_adm_save('catalog');
 }
@@ -185,8 +209,7 @@ $PAGE_TITLE = shp_t('MnuCatalog') . ' — ' . shp_t('MnuTitle');
 $JS_SCRIPT = shp_adm_assets();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
-echo aut_adm_open('shop/admin/catalog.php', shp_t('ShSetCatTitle'))
-    . '<p class="sa-lead">' . shp_e(shp_t('ShSetCatLead')) . '</p>'
+echo aut_adm_open('shop/admin/catalog.php', shp_t('ShSetCatTitle'), '', '', shp_e(shp_t('ShSetCatLead')) . '<br>' . shp_e(shp_t('ShSetCatHint')))
     . ($flash ? shp_adm_msg($flash['type'], $flash['lines']) : '')
     . ($errors ? shp_adm_msg('err', array_merge(array(shp_t('ShSetNothingSaved')), $errors)) : '')
     . ($tabs !== '' ? '<div class="sa-tabs">' . $tabs . '</div>' : '') . $body . aut_adm_close();

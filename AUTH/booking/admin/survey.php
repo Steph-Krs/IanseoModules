@@ -109,7 +109,6 @@ if ($res['answers'] === 0) {
             $h .= '</div>';
         }
     }
-    $h .= '<p class="sv-note">' . bk_e(bk_t('SvaAnon')) . '</p>';
 }
 $h .= '</div>';
 
@@ -119,23 +118,23 @@ include('Common/Templates/head.php');
 ?>
 <style>
 #bksv { padding:0 0 30px; color:#20263d; }
-#bksv h2 { font-size:16px; color:#0254a8; margin:22px 0 8px; }
-#bksv h3 { font-size:14px; color:#01367c; margin:16px 0 6px; }
-#bksv .sv-status { font-size:13px; background:#eef4fb; border:1px solid #cddff2; border-radius:6px; padding:9px 12px; margin:0 0 14px; }
-#bksv .sv-cards { display:flex; flex-wrap:wrap; gap:12px; margin:0 0 10px; }
-#bksv .sv-kpi { flex:1 1 150px; background:#fff; border:1px solid #d2d4d6; border-top:4px solid #0254a8; border-radius:8px; padding:10px 14px;
+#bksv h2 { font-size:14px; color:#0254a8; margin:14px 0 6px; }
+#bksv h3 { font-size:13px; color:#01367c; margin:10px 0 4px; }
+#bksv .sv-status { font-size:13px; background:#eef4fb; border:1px solid #cddff2; border-radius:6px; padding:6px 10px; margin:0 0 10px; }
+#bksv .sv-cards { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 8px; }
+#bksv .sv-kpi { flex:1 1 150px; background:#fff; border:1px solid #d2d4d6; border-top:3px solid #0254a8; border-radius:8px; padding:6px 10px;
   box-shadow:0 1px 3px rgba(0,0,0,.08); }
-#bksv .sv-kv { font-size:26px; font-weight:700; color:#01367c; line-height:1.1; }
+#bksv .sv-kv { font-size:20px; font-weight:700; color:#01367c; line-height:1.1; }
 #bksv .sv-kl { font-size:13px; color:#33506f; }
 #bksv .sv-empty, #bksv .sv-note { font-size:13px; color:#7d8183; font-style:italic; }
 #bksv .sv-legend { font-size:12px; color:#4c4e50; margin:6px 0 0; }
 #bksv .sv-sw { display:inline-block; width:11px; height:11px; border-radius:2px; vertical-align:-1px; margin:0 2px 0 6px; }
-#bksv .sv-list { display:flex; flex-direction:column; gap:8px; }
+#bksv .sv-list { display:flex; flex-direction:column; gap:5px; }
 #bksv .sv-row { display:grid; grid-template-columns:minmax(180px, 2fr) 78px minmax(200px, 3fr); gap:12px; align-items:center;
-  background:#fff; border:1px solid #e1e7ee; border-radius:8px; padding:9px 12px; }
+  background:#fff; border:1px solid #e1e7ee; border-radius:8px; padding:5px 10px; }
 #bksv .sv-lab { font-size:13.5px; font-weight:600; color:#1f3b5a; }
 #bksv .sv-lab span { display:block; font-weight:400; font-size:11.5px; color:#7d8183; margin-top:2px; }
-#bksv .sv-avg { font-size:24px; font-weight:700; text-align:center; }
+#bksv .sv-avg { font-size:19px; font-weight:700; text-align:center; }
 #bksv .sv-avg small { font-size:12px; font-weight:400; color:#7d8183; margin-left:2px; }
 #bksv .sv-good { color:#1c7a3a; } #bksv .sv-mid { color:#a86b00; } #bksv .sv-low { color:#b3261e; } #bksv .sv-none { color:#aab4bf; }
 #bksv .sv-bar { display:flex; height:20px; border-radius:5px; overflow:hidden; background:#eef2f6; }
@@ -149,5 +148,5 @@ include('Common/Templates/head.php');
 @media (max-width:700px) { #bksv .sv-row { grid-template-columns:1fr 70px; } #bksv .sv-dist { grid-column:1 / -1; } }
 </style>
 <?php
-echo aut_adm_open('booking/admin/survey.php', bk_t('MnuSurvey')) . $h . aut_adm_close();
+echo aut_adm_open('booking/admin/survey.php', bk_t('MnuSurvey'), '', '', bk_e(bk_t('SvaAnon'))) . $h . aut_adm_close();
 include('Common/Templates/tail.php');

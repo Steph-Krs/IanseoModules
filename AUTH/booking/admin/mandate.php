@@ -96,20 +96,21 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <style>
 #bkadm .bk-sec { background:#fff; border:1px solid #d2d4d6; border-radius:8px;
-    box-shadow:0 1px 3px rgba(0,0,0,.08); padding:14px 16px; margin:0 0 14px; }
-#bkadm .bk-sec h2 { margin:0 0 10px; font-size:16px; color:#0254a8; }
-#bkadm label { display:block; font-size:13px; font-weight:600; color:#01367c; margin:10px 0 3px; }
-#bkadm select, #bkadm textarea, #bkadm input[type=text] { width:100%; max-width:520px; padding:7px 9px;
-    border:1px solid #cfd3d6; border-radius:6px; font:inherit; font-size:14px; }
+    box-shadow:0 1px 3px rgba(0,0,0,.08); padding:10px 12px; margin:0 0 10px; }
+#bkadm .bk-sec h2 { margin:0 0 6px; font-size:14px; color:#0254a8; }
+#bkadm label { display:block; font-size:13px; font-weight:600; color:#01367c; margin:6px 0 2px; }
+#bkadm select, #bkadm textarea, #bkadm input[type=text] { width:100%; max-width:520px; padding:4px 6px;
+    border:1px solid #cfd3d6; border-radius:5px; font:inherit; font-size:13px; }
 #bkadm textarea { min-height:60px; resize:vertical; }
-#bkadm .bk-check { display:flex; align-items:center; gap:8px; font-weight:400; margin:6px 0; }
+#bkadm .bk-check { display:flex; align-items:center; gap:6px; font-weight:400; margin:3px 0; }
 #bkadm .bk-check input { width:auto; }
 #bkadm .bk-hint { font-size:12px; color:#7d8183; margin:4px 0 0; }
-#bkadm .bk-btn { padding:8px 16px; border:1px solid #d2d4d6; border-radius:6px;
-    background:#f7f7f7; color:#20263d; font-size:14px; cursor:pointer; text-decoration:none;
+#bkadm .bk-btn { padding:4px 10px; border:1px solid #d2d4d6; border-radius:5px;
+    background:#f7f7f7; color:#20263d; font-family:inherit; font-size:13px; cursor:pointer; text-decoration:none;
     display:inline-block; }
 #bkadm .bk-btn-primary { background:#0254a8; border-color:#0254a8; color:#fff; font-weight:600; }
-#bkadm .bk-cols { display:flex; flex-wrap:wrap; gap:6px 24px; }
+#bkadm .bk-cols { display:flex; flex-wrap:wrap; gap:2px 24px; }
+#bkadm .bk-cols-sep { margin-top:6px; padding-top:6px; border-top:1px solid #eef1f7; }
 #bkadm .bk-two { display:flex; flex-wrap:wrap; gap:2px 28px; }
 #bkadm .bk-two > div { flex:1 1 240px; min-width:0; }
 #bkadm .bk-color-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -137,13 +138,14 @@ $select = function ($name, $list, $current) {
 $acts = '<a class="sa-btn" href="' . bk_e($self) . '?print=1" target="_blank" rel="noopener">' . bk_e(bk_t('AmPreview')) . '</a>'
     . '<a class="sa-btn" href="' . bk_e($self) . '?pdf=1" target="_blank" rel="noopener"><img src="' . bk_e($CFG->ROOT_DIR . 'Common/Images/pdf_small.gif')
     . '" alt="" width="16" height="16"> ' . bk_e(bk_t('PrintOrPdf')) . '</a>';
-$out = aut_adm_open('booking/admin/mandate.php', bk_t('MnuMandate'), $acts) . '<div id="bkadm">'
+$out = aut_adm_open('booking/admin/mandate.php', bk_t('MnuMandate'), $acts, '', bk_t('AmIntro')) . '<div id="bkadm">'
     . ($msg ? '<div class="sa-msg sa-ok" data-sa-toast>' . bk_e($msg) . '</div>' : '')
     . ($err ? '<div class="sa-msg sa-err">' . bk_e($err) . '</div>' : '')
     . bk_ffta_warning_html($TOUR);
 
 // Visibility to the archers.
-$out .= '<div class="bk-sec bk-vis ' . ($mandateVisible ? 'on' : 'off') . '"><h2 style="margin-bottom:6px">' . bk_e(bk_t('AmVisTitle')) . '</h2>';
+$out .= '<div class="bk-sec bk-vis ' . ($mandateVisible ? 'on' : 'off') . '">'
+    . aut_adm_title('h2', bk_t('AmVisTitle'), bk_t('AmSameBox', bk_e($settingsUrl)));
 if (!$hasMandate) {
     $out .= '<p style="margin:0;font-size:13px">' . bk_t('AmNotSaved') . '</p>';
 } else {
@@ -155,25 +157,26 @@ if (!$hasMandate) {
         . '<button type="submit" class="bk-btn' . ($mandateVisible ? '' : ' bk-btn-primary') . '">'
         . bk_e(bk_t($mandateVisible ? 'AmHideBtn' : 'AmShowBtn')) . '</button></form>';
 }
-$out .= '<p class="bk-hint" style="margin-top:8px">' . bk_t('AmSameBox', bk_e($settingsUrl)) . '</p></div>'
-    . '<p style="font-size:13px; color:#4c4e50; max-width:640px">' . bk_t('AmIntro') . '</p>';
+$out .= '</div>';
 
 // Templates and colour.
 $swatches = '';
 foreach (array('#0254a8', '#c0392b', '#1a8a3f', '#7d3c98', '#d35400', '#00838f', '#e67e22', '#20263d') as $sw) {
     $swatches .= '<span class="bk-swatch" style="background:' . bk_e($sw) . '" data-c="' . bk_e($sw) . '" title="' . bk_e($sw) . '"></span>';
 }
+list($qTpl, $hTpl) = aut_adm_help(bk_e(bk_t('AmTplMandateHint')));
+list($qShare, $hShare) = aut_adm_help(bk_e(bk_t('AmTplShareHint')));
+list($qCol, $hCol) = aut_adm_help(bk_e(bk_t('AmColourHint')));
 $out .= '<form method="post" id="bk-mandate">' . bk_csrf_field()
     . '<div class="bk-sec"><h2>' . bk_e(bk_t('AmTplTitle')) . '</h2><div class="bk-two">'
-    . '<div><label for="template">' . bk_e(bk_t('AmTplMandate')) . '</label>' . $select('template', bk_mandate_templates(), $m['template'])
-    . '<p class="bk-hint">' . bk_e(bk_t('AmTplMandateHint')) . '</p></div>'
-    . '<div><label for="share_template">' . bk_e(bk_t('AmTplShare')) . '</label>' . $select('share_template', bk_share_templates(), $m['share_template'])
-    . '<p class="bk-hint">' . bk_e(bk_t('AmTplShareHint')) . '</p></div></div>'
-    . '<label for="color">' . bk_e(bk_t('AmColour')) . '</label><div class="bk-color-row">'
+    . '<div><label for="template">' . bk_e(bk_t('AmTplMandate')) . $qTpl . '</label>' . $select('template', bk_mandate_templates(), $m['template'])
+    . $hTpl . '</div>'
+    . '<div><label for="share_template">' . bk_e(bk_t('AmTplShare')) . $qShare . '</label>' . $select('share_template', bk_share_templates(), $m['share_template'])
+    . $hShare . '</div></div>'
+    . '<label for="color">' . bk_e(bk_t('AmColour')) . $qCol . '</label>' . $hCol . '<div class="bk-color-row">'
     . '<input type="color" id="color" name="color" value="' . bk_e($m['color']) . '">'
     . '<input type="text" id="colorhex" value="' . bk_e($m['color']) . '" maxlength="7" style="width:110px; font-family:monospace" aria-label="' . bk_e(bk_t('AmHex')) . '">'
-    . '<span style="font-size:12px; color:#7d8183">' . bk_e(bk_t('AmFreeChoice')) . '</span>' . $swatches . '</div>'
-    . '<p class="bk-hint">' . bk_e(bk_t('AmColourHint')) . '</p>';
+    . '<span style="font-size:12px; color:#7d8183">' . bk_e(bk_t('AmFreeChoice')) . '</span>' . $swatches . '</div>';
 echo $out;
 ?>
   <script>
@@ -189,9 +192,10 @@ echo $out;
   })();
   </script>
 <?php
-// Logos, automatic sections, free blocks.
-$out = '</div><div class="bk-sec"><h2>' . bk_e(bk_t('AmLogos')) . '</h2>'
-    . '<p class="bk-hint" style="margin-top:0">' . bk_t('AmLogosHint', bk_e($CFG->ROOT_DIR . 'Tournament/ManLogo.php')) . '</p>';
+// What the invitation shows (user's choice: logos and automatic sections in one block), then the
+// free blocks.
+$out = '</div><div class="bk-sec">' . aut_adm_title('h2', bk_t('AmShowTitle'), bk_t('AmLogosHint', bk_e($CFG->ROOT_DIR . 'Tournament/ManLogo.php')))
+    . '<div class="bk-cols">';
 $has = $data
     ? array('L' => intval($data['tour']->HasL), 'R' => intval($data['tour']->HasR), 'B' => intval($data['tour']->HasB))
     : array('L' => 0, 'R' => 0, 'B' => 0);
@@ -200,10 +204,9 @@ foreach (array('L' => 'AmLogoL', 'R' => 'AmLogoR', 'B' => 'AmLogoB') as $k => $k
     $out .= $check('logo_' . $k, !empty($m['logos'][$k]) && $present, bk_t($key) . ($present ? '' : ' — ' . bk_t('AmNoImage')),
         $present ? '' : ' disabled', $present ? '' : ' bk-disabled');
 }
-$out .= '</div><div class="bk-sec"><h2>' . bk_e(bk_t('AmAutoTitle')) . '</h2><div class="bk-cols">';
+$out .= '</div><div class="bk-cols bk-cols-sep">';
 foreach (bk_mandate_auto_sections() as $k => $lab) $out .= $check('show_' . $k, !empty($m['show'][$k]), $lab);
-$out .= '</div></div><div class="bk-sec"><h2>' . bk_e(bk_t('AmBlocksTitle')) . '</h2>'
-    . '<p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('AmBlocksHint')) . '</p>';
+$out .= '</div></div><div class="bk-sec">' . aut_adm_title('h2', bk_t('AmBlocksTitle'), bk_e(bk_t('AmBlocksHint')));
 foreach (bk_mandate_sections() as $k => $lab) {
     $out .= '<label for="block_' . bk_e($k) . '">' . bk_e($lab) . '</label>'
         . '<textarea id="block_' . bk_e($k) . '" name="block_' . bk_e($k) . '" maxlength="4000">' . bk_e($m['blocks'][$k] ?? '') . '</textarea>';

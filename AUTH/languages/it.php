@@ -891,6 +891,7 @@ $lang['ForMainCount']      = '{$a} arciere/i: identità non verificata, da contr
 $lang['DeskMainAnomaly']   = 'Arcieri rifiutati agli accrediti (documenti o materiale non conformi)';
 $lang['DeskMainCount']     = '{$a} arciere/i con lo stato «Non può gareggiare»';
 $lang['AdmSave']           = 'Salvare';
+$lang['AdmHelpQ']          = 'Spiegazione';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Contenuto non valido.';

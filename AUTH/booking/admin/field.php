@@ -78,7 +78,7 @@ $PAGE_TITLE = bk_t('MnuField');
 $JS_SCRIPT = aut_adm_assets(array('<link rel="stylesheet" href="' . $base . 'assets/field.css?v=' . bk_e(bk_version()) . '">'));
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
-$out = aut_adm_open('booking/admin/field.php', bk_t('MnuField')) . '<div id="bkfield">';
+$out = aut_adm_open('booking/admin/field.php', bk_t('MnuField'), '', '', bk_e(bk_t('FldLegend'))) . '<div id="bkfield">';
 
 if (!$sessions) {
     $out .= '<p class="bkf-warn">' . bk_t('FldNoSession') . '</p>';
@@ -157,14 +157,14 @@ if (!$sessions) {
             . '<label class="bkf-copy">' . bk_e(bk_t('FldCopyTo')) . ' <select id="bkf-copyto">' . $depOpts . '</select></label> '
             . '<button type="button" class="bkf-btn" data-act="copy" title="' . bk_e(bk_t('FldCopyToTip')) . '">' . bk_e(bk_t('FldCopyToBtn')) . '</button>';
     }
+    list($qSize, $hSize) = aut_adm_help(bk_e(bk_t('FldSizeHint')));
     $out .= '<span class="bkf-sep"></span>'
         . '<button type="button" class="bkf-btn bkf-btn-danger" data-act="clearall">' . bk_e(bk_t('FldClearAll')) . '</button>'
         . '<span id="bkf-state" class="bkf-state"></span></div>'
         . '<div class="bkf-zoom"><label>' . bk_e(bk_t('FldSize'))
-        . ' <input type="range" id="bkf-size" min="34" max="110" value="56" step="2"></label>'
-        . ' <span class="bkf-hint-inline">' . bk_e(bk_t('FldSizeHint')) . '</span></div>'
+        . ' <input type="range" id="bkf-size" min="34" max="110" value="56" step="2"></label>' . $qSize . $hSize . '</div>'
         . '<div class="bkf-plot"><div id="bkf-axis" class="bkf-axis"></div><div id="bkf-grid" class="bkf-grid"></div></div>'
-        . '<p class="bkf-legend">' . bk_e(bk_t('FldLegend')) . '</p></section></div>';
+        . '</section></div>';
 }
 $out .= '</div>' . aut_adm_close()
     . '<script>window.BKF = ' . json_encode($boot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . ';</script>'

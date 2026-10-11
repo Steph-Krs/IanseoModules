@@ -1,7 +1,5 @@
 /* Check-in desk — the organiser's list (desk/list.php), on top of admin.css (#shpadm). */
 
-#shpadm .dl-access { margin-top: 12px; }
-#shpadm .dl-access > summary { cursor: pointer; font-weight: 600; color: #0254a8; margin-bottom: 8px; }
 #shpadm .dl-filters { margin-bottom: 10px; }
 #shpadm .dl-st { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 #shpadm .dl-st0 { background: #f7f7f7; border: 1px solid #d2d4d6; color: #7d8183; }

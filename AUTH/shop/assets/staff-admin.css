@@ -6,16 +6,16 @@
 #shpstf { --ss-blue: #0254a8; --ss-blue-dark: #01367c; --ss-light: #f0f4ff; --ss-sky: #a7d6ff;
     --ss-green: #04ac0b; --ss-green-bg: #d2f4cd; --ss-orange-bg: #fdebd6; --ss-red: #a80000;
     --ss-red-bg: #ffd6db; --ss-coral: #ff5043; --ss-grey: #7d8183; --ss-border: #d2d4d6; --ss-text: #20263d;
-    color: var(--ss-text); font-size: 14px; box-sizing: border-box; }
+    color: var(--ss-text); font-size: 13px; box-sizing: border-box; }
 #shpstf *, #shpstf *::before, #shpstf *::after { box-sizing: border-box; }
 /* The rules below give display: flex to some blocks; the hidden attribute must still win. */
 #shpstf [hidden] { display: none !important; }
-#shpstf h2 { font-size: 16px; color: var(--ss-blue); margin: 18px 0 8px; display: flex; align-items: center; gap: 8px; }
+#shpstf h2 { font-size: 14px; color: var(--ss-blue); margin: 12px 0 6px; display: flex; align-items: center; gap: 8px; }
 #shpstf .ss-muted { color: var(--ss-grey); }
 
-#shpstf .ss-notice { background: var(--ss-light); border: 1px solid var(--ss-sky); border-radius: 6px; padding: 8px 12px; margin: 0 0 14px; color: #01367c; }
+#shpstf .ss-notice { background: var(--ss-light); border: 1px solid var(--ss-sky); border-radius: 6px; padding: 6px 10px; margin: 0 0 10px; color: #01367c; }
 #shpstf .ss-notice p { margin: 3px 0; }
-#shpstf .ss-msg { padding: 9px 12px; border-radius: 6px; margin: 0 0 14px; border: 1px solid; }
+#shpstf .ss-msg { padding: 6px 10px; border-radius: 6px; margin: 0 0 10px; border: 1px solid; }
 #shpstf .ss-ok { background: var(--ss-green-bg); border-color: #75ae77; color: #04ac0b; }
 #shpstf .ss-err { background: var(--ss-red-bg); border-color: #bb7575; color: var(--ss-red); }
 #shpstf .ss-warn { background: var(--ss-orange-bg); border-color: #cb8137; color: #7a4a10; }
@@ -24,9 +24,9 @@
 #shpstf #ss-flash .ss-msg { margin: 0; box-shadow: 0 4px 16px rgba(0,0,0,.15); }
 
 /* Buttons: those of the organiser pages (.sa-btn) */
-#shpstf .ss-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 14px;
-    border: 1px solid var(--ss-border); border-radius: 6px; background: #f7f7f7; color: var(--ss-text);
-    font: inherit; font-size: 14px; cursor: pointer; text-decoration: none; }
+#shpstf .ss-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 4px 10px;
+    border: 1px solid var(--ss-border); border-radius: 5px; background: #f7f7f7; color: var(--ss-text);
+    font: inherit; font-size: 13px; cursor: pointer; text-decoration: none; }
 #shpstf .ss-btn:hover { background: var(--ss-light); border-color: var(--ss-sky); }
 #shpstf .ss-btn:disabled { opacity: .5; cursor: not-allowed; }
 #shpstf .ss-btn-primary { background: var(--ss-blue); border-color: var(--ss-blue); color: #fff; font-weight: 600; }
@@ -36,7 +36,7 @@
 #shpstf .ss-btn-danger:hover { background: var(--ss-red-bg); }
 #shpstf .ss-btn-big { font-weight: 600; }
 #shpstf .ss-btn:focus-visible, #shpstf input:focus, #shpstf select:focus { outline: 2px solid var(--ss-sky); outline-offset: 1px; }
-#shpstf .ss-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+#shpstf .ss-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
 #shpstf .ss-actions form { margin: 0; }
 #shpstf .ss-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 #shpstf .ss-running { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px;
@@ -47,15 +47,15 @@
     background: #e6e8ea; color: var(--ss-grey); font-size: 12px; }
 #shpstf .ss-count.on { background: var(--ss-coral); color: #fff; }
 
-#shpstf .ss-card { background: #fff; border: 1px solid var(--ss-border); border-radius: 8px; padding: 14px 16px;
+#shpstf .ss-card { background: #fff; border: 1px solid var(--ss-border); border-radius: 8px; padding: 10px 12px;
     margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
 #shpstf .ss-pend { border-left: 4px solid var(--ss-coral); max-width: 900px; }
 /* The team: a grid of cards, the width of a computer screen is used. */
-#shpstf #ss-team { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px; align-items: start; }
+#shpstf #ss-team { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 8px; align-items: start; }
 #shpstf #ss-team > .ss-card { margin: 0; }
 #shpstf #ss-team > .ss-revoked, #shpstf #ss-team > p { grid-column: 1 / -1; }
 #shpstf .ss-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-#shpstf .ss-head b { font-size: 15px; }
+#shpstf .ss-head b { font-size: 14px; }
 #shpstf .ss-kind, #shpstf .ss-ago { color: var(--ss-grey); font-size: 12px; }
 #shpstf .ss-code { font-size: 15px; margin-top: 6px; }
 #shpstf .ss-code b { font-size: 28px; letter-spacing: .08em; color: var(--ss-blue-dark); font-variant-numeric: tabular-nums; }
@@ -72,7 +72,7 @@
 #shpstf .ss-ed { margin-top: 8px; }
 #shpstf .ss-f { display: block; margin: 8px 0; }
 #shpstf .ss-f > span { display: block; font-size: 12px; color: #4c4e50; margin-bottom: 3px; }
-#shpstf .ss-f select, #shpstf .ss-f input { padding: 6px 8px; font: inherit; font-size: 14px;
+#shpstf .ss-f select, #shpstf .ss-f input { padding: 4px 6px; font: inherit; font-size: 13px;
     border: 1px solid var(--ss-border); border-radius: 6px; background: #fff; max-width: 100%; }
 #shpstf .ss-f-small { display: inline-block; margin-right: 12px; }
 #shpstf .ss-f-small input { width: 7em; }

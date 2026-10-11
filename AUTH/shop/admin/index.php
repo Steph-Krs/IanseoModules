@@ -18,7 +18,9 @@ checkFullACL(AclParticipants, 'pEntries', AclReadWrite);
 require_once dirname(__DIR__) . '/lib/copy.php';
 require_once dirname(__DIR__) . '/lib/posters.php';
 require_once dirname(__DIR__) . '/lib/admin-ui.php';
+require_once dirname(__DIR__) . '/lib/staff-session.php';   // the organiser's till on this device
 require_once dirname(__DIR__, 2) . '/lib.php';   // aut_qr_svg
+if (is_file(dirname(__DIR__, 2) . '/trust-lib.php')) require_once dirname(__DIR__, 2) . '/trust-lib.php';   // aut_trust_mode
 
 shp_schema();
 
@@ -43,8 +45,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     } elseif ($act === 'save') {
         // Settings checked first (nothing written), then the points of sale (checked as a whole
         // before any write): one refusal and nothing is saved.
-        $d = array('enabled' => !empty($_POST['enabled']), 'guests' => !empty($_POST['guests']),
-            'tab' => !empty($_POST['tab']), 'trust_gate' => !empty($_POST['trust_gate']));
+        $d = array('guests' => !empty($_POST['guests']), 'tab' => !empty($_POST['tab']), 'trust_gate' => !empty($_POST['trust_gate']));
         $until = trim((string) ($_POST['preorder_until'] ?? ''));
         if ($until !== '') {
             $ok = preg_match('/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})$/', $until, $m)
@@ -70,6 +71,47 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             header('Location: ' . $SELF);
             exit;
         }
+    } elseif ($act === 'switch') {
+        // The openings, one step at a time (user's choice, 2026-10-12). A way for the customers to
+        // order (pre-orders, phone orders on the day) opens the volunteers too — they serve those
+        // orders; closing the volunteers closes those ways as well. "On this device": the
+        // organiser's till, whatever is open.
+        $what = (string) ($_POST['what'] ?? '');
+        $s0 = shp_settings($TOUR);
+        $vol0 = $s0 && intval($s0->SgEnabled) === 1;
+        $pre0 = $vol0 && intval($s0->SgPreorders ?? 0) === 1;
+        $cli0 = $vol0 && intval($s0->SgClients ?? 0) === 1;
+        $w0 = shp_window($TOUR);
+        $lines = array();
+        if ($what === 'till') {
+            $me = ($w0 && !$w0['purge_due']) ? shp_staff_organiser($TOUR, shp_staff_by()) : null;
+            if ($me) {
+                shp_staff_session_open(intval($me->SfId));
+                header('Location: ' . shp_url('staff/index.php'));
+                exit;
+            }
+            shp_adm_flash_set('err', array(shp_t($w0 && !$w0['purge_due'] ? 'ShErrInternal' : 'ShStfErrOver')));
+        } elseif (in_array($what, array('vol_on', 'pre_on', 'cli_on'), true) && !shp_stands($TOUR, false)) {
+            shp_adm_flash_set('err', array(shp_t('ShSetNoStandYet')));
+        } else {
+            $open = array(
+                'vol_on'  => array(array('enabled' => 1), 'ShSetVolOpened'),
+                'vol_off' => array(array('enabled' => 0, 'preorders' => 0, 'clients' => 0), 'ShSetVolClosed'),
+                'pre_on'  => array(array('preorders' => 1, 'enabled' => 1), 'ShSetPreOpened'),
+                'pre_off' => array(array('preorders' => 0), 'ShSetPreClosed'),
+                'cli_on'  => array(array('clients' => 1, 'enabled' => 1), 'ShSetCliOpened'),
+                'cli_off' => array(array('clients' => 0), 'ShSetCliClosed'),
+            );
+            if (isset($open[$what])) {
+                shp_settings_save($TOUR, $open[$what][0]);
+                $lines[] = shp_t($open[$what][1]);
+                if (($what === 'pre_on' || $what === 'cli_on') && !$vol0) $lines[] = shp_t('ShSetVolAlso');
+                if ($what === 'vol_off' && ($pre0 || $cli0)) $lines[] = shp_t('ShSetVolClosedAll');
+                shp_adm_flash_set('ok', $lines);
+            }
+        }
+        header('Location: ' . $SELF . '#settings');
+        exit;
     } elseif ($act === 'new_key') {
         shp_settings_new_key($TOUR);
         shp_adm_flash_set('ok', array(shp_t('ShSetNewKeyDone')));
@@ -161,9 +203,16 @@ foreach (array('ShSetColKind', 'ShSetColName', 'ShSetColMode', 'ShSetColPay', 'S
     $standHead .= '<th title="' . shp_e(shp_t($k . 'Tip')) . '">' . shp_e(shp_t($k)) . '</th>';
 }
 
-/* ---------------- Settings block ---------------- */
+/* ---------------- Opening, step by step ---------------- */
 
-$on = $settingsIn !== null ? !empty($settingsIn['enabled']) : intval($set->SgEnabled) === 1;
+// What is open (user's choice, 2026-10-12): the pre-orders (archers' space, before the
+// competition), the customers' phone orders on the day, and the volunteers (their till: the
+// sales at the stand, and they serve the two others) — each way for the customers needs the
+// volunteers. The organiser's till on their own device is always there.
+$volOn = intval($set->SgEnabled) === 1;
+$preOn = $volOn && intval($set->SgPreorders ?? 0) === 1;
+$cliOn = $volOn && intval($set->SgClients ?? 0) === 1;
+$over = !$win || $win['purge_due'];
 $guests = $settingsIn !== null ? !empty($settingsIn['guests']) : intval($set->SgGuests) === 1;
 $tab = $settingsIn !== null ? !empty($settingsIn['tab']) : intval($set->SgTab) === 1;
 $trust = $settingsIn !== null ? !empty($settingsIn['trust_gate']) : intval($set->SgTrustGate) === 1;
@@ -171,53 +220,57 @@ $until = $settingsIn !== null ? (string) $settingsIn['preorder_until'] : shp_adm
 $gmax = $settingsIn !== null ? intval($settingsIn['guest_max_open']) : intval($set->SgGuestMaxOpen);
 $notice = $settingsIn !== null ? (string) $settingsIn['notice'] : (string) $set->SgNotice;
 
+$trustLive = function_exists('aut_trust_mode') && in_array(aut_trust_mode(), array('alert', 'block'), true);
 $period = $win && $win['from'] > '0000-00-00'
     ? shp_t('ShSetPeriod', array('from' => shp_adm_date($win['from']), 'to' => shp_adm_date($win['to'])))
     : '';
 
-$settingsForm = '<div class="sa-card" id="settings">'
-    . '<h2>' . shp_e(shp_t('ShSetSectSwitch')) . '</h2>'
-    . '<div class="sa-switch ' . ($on ? 'sa-on' : 'sa-off') . '">'
-    . shp_adm_check('enabled', $on, shp_t('ShSetEnable'), shp_t('ShSetEnableWhat'))
-    . '<span class="sa-tag">' . shp_e(shp_t($on ? 'ShSetOn' : 'ShSetOff')) . '</span></div>'
-    . ($stands ? '' : '<p class="sa-hint">' . shp_e(shp_t('ShSetNoStandYet')) . '</p>')
-    . '<h2>' . shp_e(shp_t('ShSetSectCustomers')) . '</h2>'
-    . '<div class="sa-checks">'
-    . shp_adm_check('guests', $guests, shp_t('ShSetGuests'), shp_t('ShSetGuestsHint'))
-    . shp_adm_check('tab', $tab, shp_t('ShSetTab'), shp_t('ShSetTabHint'))
-    . shp_adm_check('trust_gate', $trust, shp_t('ShSetTrust'), shp_t('ShSetTrustHint'))
+// One opening: its state and its explanation on demand (same look as the desk); its buttons go in
+// a bar of their own.
+$switch = function ($on, $title, $help, $tagOn, $tagOff, $area = '') {
+    list($q, $h) = aut_adm_help($help);
+    return '<div class="sa-switch' . ($on ? ' sa-on' : '') . '"' . ($area !== '' ? ' style="grid-area:' . $area . '"' : '') . '><div><b>'
+        . shp_e($title) . '</b>' . $q . $h . '</div><span class="sa-tag">' . shp_e($on ? $tagOn : $tagOff) . '</span></div>';
+};
+// The buttons send their own small form (#shop-switch), never the settings typed on the page.
+$sw = function ($what, $label, $primary, $confirm = '') {
+    return '<button type="submit" form="shop-switch" name="what" value="' . shp_e($what) . '" class="sa-btn' . ($primary ? ' sa-primary' : '') . '"'
+        . ($confirm !== '' ? ' data-confirm="' . shp_e($confirm) . '"' : '') . '>' . shp_e(shp_t($label)) . '</button>';
+};
+
+$tillUrl = shp_till_url($TOUR);
+list($qUntil, $hUntil) = aut_adm_help(shp_e(shp_t('ShSetPreorderHint') . ($period !== '' ? ' ' . $period : '')));
+$settingsForm = '<div class="sa-card" id="settings">' . aut_adm_title('h2', shp_t('ShSetSectSwitch'))
+    . ($stands ? '' : '<p class="sa-msg sa-info">' . shp_e(shp_t('ShSetNoStandYet')) . '</p>')
+    // The two ways for the customers to order, side by side (user's choice: height saved) —
+    // pre-orders on the left with their deadline, phone orders on the day on the right; one
+    // under the other on a narrow screen (admin.css, .sa-pair).
+    . '<div class="sa-pair">'
+    . $switch($preOn, shp_t('ShSetPreTitle'), shp_e(shp_t('ShSetPreHelp')), shp_t('ShSetPreTagOn'), shp_t('ShSetPreTagOff'), 'ls')
+    . $switch($cliOn, shp_t('ShSetEnable'), shp_e(shp_t('ShSetEnableWhat')), shp_t('ShSetCliTagOn'), shp_t('ShSetCliTagOff'), 'rs')
+    // The deadline of the pre-orders right of their button (user's choice: height saved); its
+    // explanation unfolds under both, across the bar.
+    . '<div class="sa-bar" style="grid-area:lb">' . $sw($preOn ? 'pre_off' : 'pre_on', $preOn ? 'ShSetPreCloseBtn' : 'ShSetPreOpenBtn', false)
+    . '<label class="sa-inline-f"><span>' . shp_e(shp_t('ShSetPreorder')) . $qUntil . '</span>'
+    . '<input type="datetime-local" name="preorder_until" value="' . shp_e($until) . '"></label>' . $hUntil . '</div>'
+    . '<div class="sa-bar" style="grid-area:rb">' . $sw($cliOn ? 'cli_off' : 'cli_on', $cliOn ? 'ShSetCliCloseBtn' : 'ShSetCliOpenBtn', false) . '</div>'
+    . ($preOn && $win && !$win['preorder_open'] ? '<p class="sa-hint" style="grid-area:lx">' . shp_e(shp_t('ShSetPreOver')) . '</p>' : '')
     . '</div>'
-    . '<div class="sa-row">'
-    . shp_adm_field(shp_t('ShSetPreorder'), '<input type="datetime-local" name="preorder_until" value="' . shp_e($until) . '">',
-        shp_t('ShSetPreorderHint') . ($period !== '' ? ' ' . $period : ''))
-    . shp_adm_field(shp_t('ShSetGuestMax'), '<input type="number" name="guest_max_open" min="0" max="20" value="' . $gmax . '" class="sa-num">', shp_t('ShSetGuestMaxHint'))
-    . '</div>'
-    . shp_adm_field(shp_t('ShSetNotice'), '<input type="text" name="notice" maxlength="255" value="' . shp_e($notice) . '">', shp_t('ShSetNoticeHint'), 'sa-wide')
+    // The volunteers under them, with every button of the stands in one bar (as at the desk).
+    . $switch($volOn, shp_t('ShSetVolTitle'), shp_e(shp_t('ShSetVolHelp')), shp_t('DkOn'), shp_t('DkOff'))
+    . '<div class="sa-bar">'
+    . $sw($volOn ? 'vol_off' : 'vol_on', $volOn ? 'ShSetVolCloseBtn' : 'ShSetVolOpenBtn', false,
+        $volOn && ($preOn || $cliOn) ? shp_t('ShSetVolCloseConfirm') : '')
+    . ($over ? '' : $sw('till', 'ShSetUseHere', true))
+    . '<a class="sa-btn" href="' . shp_e(shp_adm_url('staff.php')) . '">' . shp_e(shp_t('DkVolunteers')) . '</a></div>'
+    . ($volOn && $tillUrl !== ''
+        ? '<details class="sa-access"><summary>' . shp_e(shp_t('DkAddressTitle')) . '</summary><div class="sa-address">'
+          . '<div class="sa-qr">' . aut_qr_svg($tillUrl, 180) . '</div><div class="sa-address-text"><p>' . shp_e(shp_t('ShSetVolAccessHint')) . '</p>'
+          . '<input type="text" class="sa-url" readonly value="' . shp_e($tillUrl) . '" data-select aria-label="' . shp_e(shp_t('DkAddressTitle')) . '"></div></div></details>'
+        : '')
     . '</div>';
 
-$standsForm = '<div class="sa-card" id="stands">'
-    . '<h2>' . shp_e(shp_t('ShSetSectStands')) . '</h2><p class="sa-hint">' . shp_e(shp_t('ShSetStandsHint')) . '</p>'
-    . '<div class="sa-scroll"><table class="sa-table sa-stands"><thead><tr>' . $standHead . '<th></th></tr></thead>'
-    . '<tbody id="stand-rows" data-next="' . $nextIndex . '">' . $rowsHtml . '</tbody></table></div>'
-    . '<template id="stand-tpl"><table><tbody>' . shp_adm_stand_row('__i__', array(), false) . '</tbody></table></template>'
-    . '<div class="sa-bar"><button type="button" class="sa-btn" data-add="stand-tpl" data-into="stand-rows">' . shp_e(shp_t('ShSetAddStand')) . '</button></div></div>';
-
-// Settings and points of sale: one form, one save button (fixed at the bottom right).
-$mainForm = '<form method="post" id="shopset">' . aut_adm_default_submit() . bk_csrf_field() . '<input type="hidden" name="act" value="save">'
-    . $settingsForm . $standsForm . '<input type="hidden" name="form_end" value="1"></form>';
-
-/* ---------------- Public address ---------------- */
-
-$publicUrl = shp_abs_url('public/index.php?k=' . $set->SgPublicKey);
-$qr = aut_qr_svg($publicUrl, 180);
-$addressBox = '<div class="sa-card" id="address"><h2>' . shp_e(shp_t('ShSetSectAddress')) . '</h2>'
-    . '<p class="sa-hint">' . shp_e(shp_t($on ? 'ShSetAddressHint' : 'ShSetAddressOff')) . '</p>'
-    . '<div class="sa-address"><div class="sa-qr">' . $qr . '</div><div class="sa-address-text">'
-    . '<input type="text" readonly value="' . shp_e($publicUrl) . '" class="sa-url" data-select aria-label="' . shp_e(shp_t('ShSetSectAddress')) . '">'
-    . '<p><a class="sa-btn" href="' . shp_e($publicUrl) . '" target="_blank" rel="noopener">' . shp_e(shp_t('ShSetAddressOpen')) . '</a></p>'
-    . '<form method="post">' . bk_csrf_field() . '<input type="hidden" name="act" value="new_key">'
-    . '<button type="submit" class="sa-btn sa-danger" data-confirm="' . shp_e(shp_t('ShSetNewKeyConfirm')) . '">' . shp_e(shp_t('ShSetNewKey')) . '</button></form>'
-    . '</div></div>';
+/* ---------------- Customers ---------------- */
 
 // QR code posters (A4) and table cards (A6) leading to the shop: all the stands, or one.
 $pdfLink = function ($kind, $standId, $label) {
@@ -228,17 +281,54 @@ $pdfLink = function ($kind, $standId, $label) {
 $posterRows = '<tr><td><b>' . shp_e(shp_t('ShSetPostersAll')) . '</b></td><td>' . $pdfLink('poster', 0, shp_t('ShSetPosterA4'))
     . '</td><td>' . $pdfLink('cards', 0, shp_t('ShSetCardsA6')) . '</td></tr>';
 $onlineStands = 0;
-foreach ($stands as $sid => $s) {
-    if (intval($s->SdOnline) !== 1) continue;
+foreach ($stands as $sid => $st) {
+    if (intval($st->SdOnline) !== 1) continue;
     $onlineStands++;
-    $posterRows .= '<tr><td>' . shp_e($s->SdName) . '</td><td>' . $pdfLink('poster', $sid, shp_t('ShSetPosterA4'))
+    $posterRows .= '<tr><td>' . shp_e($st->SdName) . '</td><td>' . $pdfLink('poster', $sid, shp_t('ShSetPosterA4'))
         . '</td><td>' . $pdfLink('cards', $sid, shp_t('ShSetCardsA6')) . '</td></tr>';
 }
-$addressBox .= '<h3>' . shp_e(shp_t('ShSetPostersTitle')) . '</h3><p class="sa-hint">' . shp_e(shp_t('ShSetPostersLead')) . '</p>'
+$publicUrl = shp_abs_url('public/index.php?k=' . $set->SgPublicKey);
+$customersForm = '<div class="sa-card" id="clients">' . aut_adm_title('h2', shp_t('ShSetSectCustomers'))
+    . '<div class="sa-checks">'
+    . shp_adm_check('guests', $guests, shp_t('ShSetGuests'), shp_t('ShSetGuestsHint'))
+    . shp_adm_check('tab', $tab, shp_t('ShSetTab'), shp_t('ShSetTabHint'))
+    // The payer trust index only where the server administrator switched it on (alert or block):
+    // off or only observed, the box would promise nothing — its value is kept as it is.
+    . ($trustLive ? shp_adm_check('trust_gate', $trust, shp_t('ShSetTrust'), shp_t('ShSetTrustHint'))
+        : ($trust ? '<input type="hidden" name="trust_gate" value="1">' : ''))
+    . '</div>'
+    . '<div class="sa-row">'
+    . shp_adm_field(shp_t('ShSetGuestMax'), '<input type="number" name="guest_max_open" min="0" max="20" value="' . $gmax . '" class="sa-num">', shp_t('ShSetGuestMaxHint'))
+    . '</div>'
+    . shp_adm_field(shp_t('ShSetNotice'), '<input type="text" name="notice" maxlength="255" value="' . shp_e($notice) . '">', shp_t('ShSetNoticeHint'), 'sa-wide')
+    // The customers' address, its QR code and the printed posters (the new key: its own form).
+    . '<details class="sa-access" id="address"><summary>' . shp_e(shp_t('ShSetSectAddress')) . '</summary>'
+    . (!$preOn && !$cliOn ? '<p class="sa-hint">' . shp_e(shp_t('ShSetAddressOff')) . '</p>' : '')
+    . '<div class="sa-address"><div class="sa-qr">' . aut_qr_svg($publicUrl, 180) . '</div><div class="sa-address-text">'
+    . '<p>' . shp_e(shp_t('ShSetAddressHint')) . '</p>'
+    . '<input type="text" readonly value="' . shp_e($publicUrl) . '" class="sa-url" data-select aria-label="' . shp_e(shp_t('ShSetSectAddress')) . '">'
+    . '<div class="sa-bar"><a class="sa-btn" href="' . shp_e($publicUrl) . '" target="_blank" rel="noopener">' . shp_e(shp_t('ShSetAddressOpen')) . '</a>'
+    . '<button type="submit" form="shop-newkey" class="sa-btn sa-danger" data-confirm="' . shp_e(shp_t('ShSetNewKeyConfirm')) . '">'
+    . shp_e(shp_t('ShSetNewKey')) . '</button></div></div></div>'
+    . aut_adm_title('h3', shp_t('ShSetPostersTitle'), shp_e(shp_t('ShSetPostersLead')) . '<br>' . shp_e(shp_t('ShSetPostersHint')))
     . '<table class="sa-table sa-posters"><thead><tr><th>' . shp_e(shp_t('ShSetPostersFor')) . '</th><th>' . shp_e(shp_t('ShSetPosterA4'))
     . '</th><th>' . shp_e(shp_t('ShSetCardsA6')) . '</th></tr></thead><tbody>' . $posterRows . '</tbody></table>'
     . ($onlineStands ? '' : '<p class="sa-hint">' . shp_e(shp_t('ShSetPostersNoStand')) . '</p>')
-    . '<p class="sa-hint">' . shp_e(shp_t('ShSetPostersHint')) . '</p></div>';
+    . '</details></div>';
+
+$standsForm = '<div class="sa-card" id="stands">'
+    . aut_adm_title('h2', shp_t('ShSetSectStands'), shp_e(shp_t('ShSetStandsHint')))
+    . '<div class="sa-scroll"><table class="sa-table sa-stands"><thead><tr>' . $standHead . '<th></th></tr></thead>'
+    . '<tbody id="stand-rows" data-next="' . $nextIndex . '">' . $rowsHtml . '</tbody></table></div>'
+    . '<template id="stand-tpl"><table><tbody>' . shp_adm_stand_row('__i__', array(), false) . '</tbody></table></template>'
+    . '<div class="sa-bar"><button type="button" class="sa-btn" data-add="stand-tpl" data-into="stand-rows">' . shp_e(shp_t('ShSetAddStand')) . '</button></div></div>';
+
+// Settings, customers and points of sale: one form, one save button (fixed at the bottom right).
+// The openings and the new key send forms of their own, outside it.
+$mainForm = '<form method="post" id="shopset">' . aut_adm_default_submit() . bk_csrf_field() . '<input type="hidden" name="act" value="save">'
+    . $settingsForm . $customersForm . $standsForm . '<input type="hidden" name="form_end" value="1"></form>'
+    . '<form method="post" id="shop-switch">' . bk_csrf_field() . '<input type="hidden" name="act" value="switch"></form>'
+    . '<form method="post" id="shop-newkey">' . bk_csrf_field() . '<input type="hidden" name="act" value="new_key"></form>';
 
 /* ---------------- Copy from… ---------------- */
 
@@ -267,10 +357,9 @@ $PAGE_TITLE = shp_t('MnuSettings') . ' — ' . shp_t('MnuTitle');
 $JS_SCRIPT = shp_adm_assets();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
-echo aut_adm_open('shop/admin/index.php', shp_t('ShSetTitle'), $copyBox)
-    . '<p class="sa-lead">' . shp_e(shp_t('ShSetLead')) . '</p>'
+echo aut_adm_open('shop/admin/index.php', shp_t('ShSetTitle'), $copyBox, '', shp_e(shp_t('ShSetLead')))
     . ($flash ? shp_adm_msg($flash['type'], $flash['lines']) : '')
     . ($errors ? shp_adm_msg('err', array_merge(array(shp_t('ShSetNothingSaved')), $errors)) : '')
-    . $mainForm . $addressBox . aut_adm_save('shopset') . aut_adm_close();
+    . $mainForm . aut_adm_save('shopset') . aut_adm_close();
 
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

@@ -891,6 +891,7 @@ $lang['ForMainCount']      = '{$a} Schütze(n): Identität nicht geprüft, zu ü
 $lang['DeskMainAnomaly']   = 'Bei der Akkreditierung abgelehnte Schützen (Unterlagen oder Material nicht in Ordnung)';
 $lang['DeskMainCount']     = '{$a} Schütze(n) mit Status „Darf nicht teilnehmen“';
 $lang['AdmSave']           = 'Speichern';
+$lang['AdmHelpQ']          = 'Erklärung';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Ungültiger Inhalt.';

@@ -16,9 +16,13 @@
     var presetByKey = {};
     C.presets.forEach(function (p) { presetByKey[p.key] = p; });
     var deskPerms = C.desk_perms || [];
-    // Presets offered: those of the stands while there are stands, those of the desk while it is on.
-    var presets = C.presets.filter(function (p) { return p.perms === '' ? !!C.desk_on : (C.shop_on || C.stands.length > 0); });
-    function noRightText() { return T(C.desk_on ? 'DkErrNoRight' : 'ShStfErrNoStand'); }
+    // Presets offered: those of the stands while there are stands; those of the registry and of the
+    // judges while that post is open to the volunteers (two posts opened apart).
+    var presets = C.presets.filter(function (p) {
+        if (p.perms !== '') return C.shop_on || C.stands.length > 0;
+        return p.desk.indexOf('equip') >= 0 ? !!C.judges_on : !!C.desk_on;
+    });
+    function noRightText() { return T(C.desk_on || C.judges_on ? 'DkErrNoRight' : 'ShStfErrNoStand'); }
 
     function $(id) { return document.getElementById(id); }
     function el(tag, cls, html) {
@@ -107,22 +111,27 @@
         });
         if (C.shop_on || C.stands.length) box.appendChild(standsBox);
 
-        // Check-in desk: rights for the whole competition.
+        // Check-in desk: rights for the whole competition, in two posts opened apart — the registry
+        // (documents, payments) and the judges (equipment). A post is shown while it is open to the
+        // volunteers, or while the volunteer holds one of its rights.
         var deskChk = {};
-        if (C.desk_on || (initial && initial.desk && initial.desk.length)) {
-            var deskBox = el('fieldset', 'ss-stands ss-desk');
-            deskBox.appendChild(el('legend', '', esc(T('DkRightsTitle'))));
-            deskPerms.forEach(function (p) {
+        [['desk', 'DkRightsTitle', C.desk_on], ['judges', 'DkJudgesRightsTitle', C.judges_on]].forEach(function (post) {
+            var mine = deskPerms.filter(function (p) { return p.post === post[0]; });
+            var had = !!initial && (initial.desk || []).some(function (k) { return mine.some(function (p) { return p.key === k; }); });
+            if (!mine.length || !(post[2] || had)) return;
+            var fs = el('fieldset', 'ss-stands ss-desk');
+            fs.appendChild(el('legend', '', esc(T(post[1]))));
+            mine.forEach(function (p) {
                 var l = el('label', 'ss-chk');
                 var c = el('input'); c.type = 'checkbox'; c.value = p.key;
                 c.addEventListener('change', function () { fromGrid(); });
                 deskChk[p.key] = c;
                 l.appendChild(c);
                 l.appendChild(el('span', '', esc(p.label)));
-                deskBox.appendChild(l);
+                fs.appendChild(l);
             });
-            box.appendChild(deskBox);
-        }
+            box.appendChild(fs);
+        });
         function deskList() {
             return deskPerms.filter(function (p) { return deskChk[p.key] && deskChk[p.key].checked; }).map(function (p) { return p.key; });
         }
@@ -295,8 +304,10 @@
             html += '<li><b>' + esc(s ? s.name : r.stand) + '</b> : ' + esc(labels.join(', ')) + '</li>';
         });
         if (m.desk && m.desk.length) {
-            var dl = deskPerms.filter(function (p) { return m.desk.indexOf(p.key) >= 0; }).map(function (p) { return p.label; });
-            html += '<li><b>' + esc(T('DkRightsShort')) + '</b> : ' + esc(dl.join(', ')) + '</li>';
+            [['desk', 'DkRightsShort'], ['judges', 'DkJudges']].forEach(function (post) {
+                var dl = deskPerms.filter(function (p) { return p.post === post[0] && m.desk.indexOf(p.key) >= 0; }).map(function (p) { return p.label; });
+                if (dl.length) html += '<li><b>' + esc(T(post[1])) + '</b> : ' + esc(dl.join(', ')) + '</li>';
+            });
         }
         html += '</ul>';
         if (!m.rights.length) return html;
@@ -319,7 +330,20 @@
             + (m.status === 'revoked' ? '' : ' <span class="ss-ago ss-seen">' + esc(seen) + '</span>')));
         var body = el('div', 'ss-body', rightsSummary(m));
         card.appendChild(body);
-        if (m.status === 'revoked') return card;
+        if (m.status === 'revoked') {
+            // Cancel: the access back, with its rights. A volunteer without a licence lost their
+            // password when it was withdrawn: the answer brings the reset QR code.
+            var rb = el('div', 'ss-btns');
+            rb.appendChild(btn(T('ShStfRestore'), 'ss-btn-ok', function () {
+                post({ act: 'restore', id: m.id }).then(function (res) {
+                    if (!res || res.error) return;
+                    if (res.svg || res.url) showQr('reset', res);
+                    else flash(T('ShStfRestoreDone'), 'ok');
+                });
+            }));
+            card.appendChild(rb);
+            return card;
+        }
 
         var row = el('div', 'ss-btns');
         var entry = null;

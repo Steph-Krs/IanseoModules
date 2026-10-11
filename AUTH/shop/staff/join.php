@@ -234,7 +234,8 @@ if ($mode === 'local') {
 } else {
     $licLabel = $archer ? shp_t('ShStfIAmLicensedAs', trim($archer->BaName . ' ' . $archer->BaFamilyName)) : shp_t('ShStfIAmLicensed');
     // Who is being joined: the points of sale, the check-in desk, or both.
-    $body .= '<p>' . shp_e(shp_t(!shp_desk_on($TOUR) ? 'ShStfJoinIntro' : (shp_enabled($TOUR) ? 'DkJoinIntroBoth' : 'DkJoinIntro'))) . '</p>'
+    $deskVol = shp_desk_on($TOUR) || shp_judges_on($TOUR);
+    $body .= '<p>' . shp_e(shp_t(!$deskVol ? 'ShStfJoinIntro' : (shp_enabled($TOUR) ? 'DkJoinIntroBoth' : 'DkJoinIntro'))) . '</p>'
         . '<p><a class="shp-btn shp-btn-primary shp-btn-block shp-btn-big" href="' . shp_e($here . '&m=lic') . '">' . shp_e($licLabel) . '</a></p>'
         . '<p><a class="shp-btn shp-btn-block shp-btn-big" href="' . shp_e($here . '&m=local') . '">' . shp_e(shp_t('ShStfIAmNotLicensed')) . '</a></p>';
     if (!$window['local_open']) {

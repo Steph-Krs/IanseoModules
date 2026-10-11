@@ -41,14 +41,28 @@ define('SHP_DESK_POWER_MAX', 99.9);   // pounds
 /* Rights                                                              */
 /* ------------------------------------------------------------------ */
 
-/** Desk rights of a volunteer: ['reg', …]; an ORGANISER has them all. */
+/** Desk rights a volunteer was given (ShopStaff.SfDesk), whether the posts are open or not. */
+function shp_desk_rights_given($staff)
+{
+    $s = shp_staff_row($staff);
+    if (!$s) return array();
+    $c = shp_desk_perms_clean($s->SfDesk ?? '');
+    return $c === '' ? array() : explode(',', $c);
+}
+
+/**
+ * Desk rights a volunteer may USE now: ['reg', …]. An ORGANISER has them all, always. A volunteer
+ * only where the organiser opened the post to the volunteers: registry (reg, pay) with SgDesk,
+ * equipment (equip) with SgJudges.
+ */
 function shp_desk_rights($staff)
 {
     $s = shp_staff_row($staff);
     if (!$s || !shp_staff_working($s)) return array();
     if ($s->SfKind === 'ORGANISER') return shp_desk_perms_all();
-    $c = shp_desk_perms_clean($s->SfDesk ?? '');
-    return $c === '' ? array() : explode(',', $c);
+    $tour = intval($s->SfTournament);
+    $open = array_merge(shp_desk_on($tour) ? array('reg', 'pay') : array(), shp_judges_on($tour) ? array('equip') : array());
+    return array_values(array_intersect(shp_desk_rights_given($s), $open));
 }
 
 /** May this volunteer do $perm at the desk? '' = any desk right. */
@@ -66,9 +80,10 @@ function shp_require_desk($perm = '')
 {
     $st = shp_staff_session_state();
     $reason = $st['reason'];
-    if ($st['staff']) {
-        if (!shp_desk_on(intval($st['staff']->SfTournament))) $reason = 'desk_off';
-        elseif (!shp_desk_can($st['staff'], $perm)) $reason = 'forbidden';
+    if ($st['staff'] && !shp_desk_can($st['staff'], $perm)) {
+        // Rights given but the post closed to the volunteers: say so, not "forbidden".
+        $given = shp_desk_rights_given($st['staff']);
+        $reason = ($perm === '' ? (bool) $given : in_array((string) $perm, $given, true)) ? 'desk_off' : 'forbidden';
     }
     if ($st['staff'] && $reason === 'ok') return $st['staff'];
 

@@ -20,8 +20,10 @@ define('SHP_CUS_RECENT_MIN', 15);
 
 /**
  * How can this competition be ordered from right now?
- *   mode 'onsite'    orders from the phone, during the competition (from the day before);
- *   mode 'preorder'  beforehand, until the deadline the organiser set;
+ *   mode 'onsite'    orders from the phone, during the competition (from the day before), once the
+ *                    organiser opened them (SgClients);
+ *   mode 'preorder'  beforehand, once the organiser opened them (SgPreorders), until the deadline
+ *                    set or the eve of the competition;
  *   mode 'closed'    neither: 'why' says 'over' (competition finished), 'before' (not yet, 'date'
  *                    = first day orders open) or 'none'.
  */
@@ -32,8 +34,9 @@ function shp_cus_mode($tourId)
     if (!$w || $w['to'] === '' || $w['from'] <= '0000-00-00') return $out;
     if ($w['today'] > $w['to']) return array('mode' => 'closed', 'why' => 'over', 'date' => '');
     if ($w['preorder_open'] && !$w['live']) return array('mode' => 'preorder', 'why' => '', 'date' => '');
-    if ($w['local_open']) return array('mode' => 'onsite', 'why' => '', 'date' => '');
-    return array('mode' => 'closed', 'why' => 'before', 'date' => (string) $w['open_from']);
+    if ($w['local_open']) return $w['clients_open'] ? array('mode' => 'onsite', 'why' => '', 'date' => '') : $out;
+    // Before the days of the competition: the date the phone orders open, when they are opened.
+    return $w['clients_open'] ? array('mode' => 'closed', 'why' => 'before', 'date' => (string) $w['open_from']) : $out;
 }
 
 /** Name of a competition. */

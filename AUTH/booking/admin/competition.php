@@ -109,11 +109,22 @@ function bk_adm_save_level1($tourId, $post)
     }
 }
 
-/** Level 2 (simple publication): the base fee only. */
+/**
+ * Level 2 (simple publication): the base fee only — its own field (fee_simple): the tariffs of
+ * levels 1 and 3, in the same page, have theirs.
+ */
 function bk_adm_save_level2($tourId, $post)
 {
-    $fee = number_format((float) str_replace(',', '.', (string) ($post['fee'] ?? 0)), 2, '.', '');
+    $fee = number_format((float) str_replace(',', '.', (string) ($post['fee_simple'] ?? $post['fee'] ?? 0)), 2, '.', '');
     safe_w_sql("UPDATE BookingCompetitions SET BcFee = " . StrSafe_DB($fee) . " WHERE BcTournament = " . intval($tourId));
+}
+
+/** Level 3: what is refused before anything is written. Returns '' or the error shown. */
+function bk_adm_check_level3($post)
+{
+    $kind = (string) ($post['kind'] ?? '');
+    if (!array_key_exists($kind, bk_restrict_kinds())) $kind = '';
+    return bk_scope_error($kind, $post['code'] ?? '');
 }
 
 /** Level 3 (detailed settings): every setting of the form. Returns '' or the error shown. */
@@ -208,14 +219,27 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $msg = bk_t('AcWaitRemoved');
         }
     } elseif (isset($_POST['save_all'])) {
-        // The page's save button: the settings of the level shown, then the level chosen (its
-        // transition: snapshot, automatic settings, restore) — nothing is written before.
+        // The page's save button. Every level is in the page and the one chosen shows its settings
+        // at once, so the organiser sets a level up completely before it goes live (user's
+        // request). Order: what was typed for the CURRENT level, then the level chosen (its
+        // transition: leaving level 3 puts its settings aside, coming back restores them — so they
+        // carry what was just typed), then what was typed for the CHOSEN level. Level 3 is checked
+        // first: a refused restriction leaves everything as it was.
         $curLevel = intval(bk_comp_config($TOUR)->BcPublishLevel ?? 1);
-        if ($curLevel === 3) $err = bk_adm_save_level3($TOUR, $_POST);
-        elseif ($curLevel === 2) bk_adm_save_level2($TOUR, $_POST);
-        else bk_adm_save_level1($TOUR, $_POST);
         $newLevel = intval($_POST['level'] ?? $curLevel);
-        if ($err === '' && $newLevel !== $curLevel && in_array($newLevel, array(1, 2, 3), true)) bk_comp_set_level($TOUR, $newLevel);
+        if (!in_array($newLevel, array(1, 2, 3), true)) $newLevel = $curLevel;
+        if ($curLevel === 3 || $newLevel === 3) $err = bk_adm_check_level3($_POST);
+        $saveLevel = function ($lvl) use ($TOUR) {
+            if ($lvl === 3) return bk_adm_save_level3($TOUR, $_POST);
+            if ($lvl === 2) bk_adm_save_level2($TOUR, $_POST);
+            else bk_adm_save_level1($TOUR, $_POST);
+            return '';
+        };
+        if ($err === '') $err = $saveLevel($curLevel);
+        if ($err === '' && $newLevel !== $curLevel) {
+            bk_comp_set_level($TOUR, $newLevel);
+            $err = $saveLevel($newLevel);
+        }
         if ($err === '') {
             header('Location: ' . $SELF . '?saved=1');
             exit;
@@ -237,15 +261,25 @@ $level    = intval($cfg->BcPublishLevel ?? 1);          // 3-level bar
 $copyAdmin  = bk_copy_is_admin();
 $copySources = $copyAdmin ? array() : bk_copy_sources($TOUR);
 $isDrom   = bk_is_dromtom(bk_org_agrement($TOUR));       // placement rules editable
-$rules    = ($level >= 2) ? bk_rules_check($TOUR, $cfg) : array();
+$rules    = bk_rules_check($TOUR, $cfg);   // shown by levels 2 and 3, which the page may choose
+// The detailed settings as level 3 would have them. At level 2 — or at 1 after it — they are put
+// aside in BcAdvancedBackup (bk_comp_set_level) and come back when level 3 is chosen again: the
+// form must show THOSE, or saving would write the automatic values of level 2 over them. $cfg
+// stays the effective setup (states, departures, waiting list).
+$cfg3 = clone $cfg;
+$aside = json_decode((string) ($cfg->BcAdvancedBackup ?? ''), true);
+if (is_array($aside)) {
+    foreach (bk_comp_advanced_cols() as $c) if (array_key_exists($c, $aside)) $cfg3->$c = $aside[$c];
+}
+$cfg3->BcPublishLevel = 3;   // bk_mandate_visible: the rule of level 3
 // Address given to the archers: the page of this competition in their space. Not signed in,
 // they sign in first and come back to it (bk_require_archer / bk_next_after_login).
 $publicUrl = (empty($_SERVER['HTTPS']) ? 'http' : 'https') . '://'
     . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/public/competition.php?t=' . $TOUR;
 
-// Tariff: current settings + lists of categories for the editor.
-$pricing = bk_pricing_get($cfg);
-$payinfo = bk_payinfo_get($cfg);
+// Tariff: the settings of levels 1 and 3 (one block for both) + lists of categories for the editor.
+$pricing = bk_pricing_get($cfg3);
+$payinfo = bk_payinfo_get($cfg3);
 $payByM = array();
 foreach ($payinfo as $pi) $payByM[$pi['m']] = $pi;
 $divs = array();
@@ -285,13 +319,24 @@ function bk_amt($v)
     return ($v === '' || $v === null) ? '' : number_format((float) $v, 2, bk_number_seps()['dec'], '');
 }
 
-/** A labelled field: <label class="bk-f"><span>label</span>input</label>. */
-function bk_fld($label, $input)
+/** A labelled field: <label class="bk-f"><span>label</span>input</label>; $q: its "?" (bk_help). */
+function bk_fld($label, $input, $q = '')
 {
-    return '<label class="bk-f"><span>' . bk_e($label) . '</span>' . $input . '</label>';
+    return '<label class="bk-f"><span>' . bk_e($label) . $q . '</span>' . $input . '</label>';
 }
 
-/** A checkbox line; $label is markup from the language file or escaped by the caller. */
+/** Explanation shown on demand ("?" that unfolds it): [button, text] — aut_adm_help (adm-lib.php). */
+function bk_help($html)
+{
+    return aut_adm_help($html);
+}
+
+/** A heading (h2, or h3.bk-h3) with its explanation on demand; $help: markup, or ''. */
+function bk_title($tag, $title, $help = '')
+{
+    return aut_adm_title($tag, $title, $help, $tag === 'h3' ? ' class="bk-h3"' : '');
+}
+
 /**
  * Level 3, "Registration period" block: opening of each departure — open, closed or opening
  * once the earlier ones are full — with dates of its own replacing the general ones.
@@ -302,7 +347,7 @@ function bk_adm_session_rules($tourId, $cfg, $sessions)
     $rules  = bk_session_rules($tourId);
     $states = bk_session_states($tourId, $cfg, $sessions);
     $labels = array(BK_SES_OPEN => bk_t('AcSesOpen'), BK_SES_CLOSED => bk_t('AcSesClosed'), BK_SES_AFTER_FULL => bk_t('AcSesAfterFull'));
-    $h = '<h3 class="bk-h3">' . bk_e(bk_t('AcSesTitle')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcSesHint')) . '</p>'
+    $h = bk_title('h3', bk_t('AcSesTitle'), bk_e(bk_t('AcSesHint')))
         . '<input type="hidden" name="ses_present" value="1"><div class="bk-scroll"><table class="bk-t bk-sesrules"><tr><th>'
         . bk_e(bk_t('SsDeparture')) . '</th><th>' . bk_e(bk_t('AcSesState')) . '</th><th>' . bk_e(bk_t('AcOpenFrom')) . '</th><th>'
         . bk_e(bk_t('AcOpenTo')) . '</th><th>' . bk_e(bk_t('AcSesNow')) . '</th></tr>';
@@ -325,10 +370,15 @@ function bk_adm_session_rules($tourId, $cfg, $sessions)
     return $h . '</table></div>';
 }
 
-function bk_chk($name, $on, $label, $style = '')
+/** A checkbox line; $label is markup from the language file or escaped by the caller; $help: its
+    explanation on demand (markup), or ''. */
+function bk_chk($name, $on, $label, $style = '', $help = '')
 {
-    return '<label class="bk-chk"' . ($style !== '' ? ' style="' . $style . '"' : '') . '><input type="checkbox" name="' . $name
+    $box = '<label class="bk-chk"' . ($style !== '' ? ' style="' . $style . '"' : '') . '><input type="checkbox" name="' . $name
         . '" value="1"' . ($on ? ' checked' : '') . '> ' . $label . '</label>';
+    if ($help === '') return $box;
+    list($q, $h) = bk_help($help);
+    return '<div class="bk-opt sa-opt">' . $box . $q . $h . '</div>';
 }
 
 /** A form with one confirmation, hidden fields and a submit button. */
@@ -357,77 +407,85 @@ $JS_SCRIPT = aut_adm_assets();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <style>
-#bkadm { max-width: 100%; }
 #bkadm .bk-sec { background:#fff; border:1px solid #d2d4d6; border-radius:8px;
-    box-shadow:0 1px 3px rgba(0,0,0,.08); padding:14px 16px; margin:0 0 14px; }
-#bkadm .bk-sec h2 { margin:0 0 10px; font-size:16px; color:#0254a8; }
-#bkadm .bk-h3 { font-size:14px; color:#01367c; margin:14px 0 6px; }
-#bkadm label { display:inline-block; margin:6px 10px 6px 0; font-size:14px; }
+    box-shadow:0 1px 3px rgba(0,0,0,.08); padding:10px 12px; margin:0 0 10px; }
+#bkadm .bk-sec h2 { margin:0 0 6px; font-size:14px; color:#0254a8; }
+#bkadm .bk-h3 { font-size:13px; color:#01367c; margin:10px 0 4px; }
+#bkadm label { display:inline-block; margin:3px 8px 3px 0; font-size:13px; }
 #bkadm input[type=text], #bkadm input[type=number], #bkadm input[type=datetime-local], #bkadm select {
-    padding:6px 8px; border:1px solid #d2d4d6; border-radius:6px; font-size:14px; }
-#bkadm .bk-row { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; }
+    padding:4px 6px; border:1px solid #d2d4d6; border-radius:5px; font-size:13px; }
+#bkadm .bk-row { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:flex-end; }
 #bkadm .bk-f { display:flex; flex-direction:column; gap:3px; }
 #bkadm .bk-f > span { font-size:12px; color:#7d8183; }
-#bkadm .bk-chk { display:block; margin:5px 0; font-size:14px; }
-#bkadm .bk-btn { display:inline-block; padding:7px 14px; border:1px solid #d2d4d6; border-radius:6px;
-    background:#f7f7f7; color:#20263d; font-size:14px; cursor:pointer; text-decoration:none; }
+#bkadm .bk-chk { display:block; margin:3px 0; font-size:13px; }
+#bkadm .bk-opt { margin:3px 0; }
+#bkadm .bk-opt > .bk-chk { display:inline; margin:0; }
+#bkadm .bk-btn { display:inline-block; padding:4px 10px; border:1px solid #d2d4d6; border-radius:5px;
+    background:#f7f7f7; color:#20263d; font-size:13px; cursor:pointer; text-decoration:none; }
 #bkadm .bk-btn:hover { background:#f0f4ff; border-color:#a7d6ff; }
-#bkadm .bk-msg { padding:9px 12px; border-radius:6px; margin:0 0 14px; font-size:13px; }
-#bkadm .bk-ok  { background:#d2f4cd; border:1px solid #75ae77; color:#04ac0b; }
-#bkadm .bk-err { background:#ffd6db; border:1px solid #bb7575; color:#a80000; }
-#bkadm .bk-hint { margin:6px 0 0; font-size:12px; color:#7d8183; }
+#bkadm .bk-msg { padding:6px 10px; border-radius:6px; margin:0 0 10px; font-size:13px; }
+#bkadm .bk-hint { margin:3px 0 0; font-size:12px; color:#7d8183; }
+#bkadm .bk-state { margin:6px 0 0; font-size:12px; color:#4c4e50; }
+#bkadm .bk-state b { color:crimson; }
 #bkadm table.bk-t { border-collapse:collapse; font-size:13px; }
-#bkadm table.bk-t th, #bkadm table.bk-t td { border:1px solid #d2d4d6; padding:5px 10px; text-align:left; }
+#bkadm table.bk-t th, #bkadm table.bk-t td { border:1px solid #d2d4d6; padding:3px 8px; text-align:left; }
 #bkadm table.bk-t th { background:#f0f4ff; color:#01367c; }
 #bkadm .bk-scroll { overflow-x:auto; }
-#bkadm table.bk-sesrules { margin:6px 0 4px; }
+#bkadm table.bk-sesrules { margin:4px 0; }
 #bkadm table.bk-sesrules select, #bkadm table.bk-sesrules input { font-size:13px; }
 #bkadm .bk-ses-on { color:#04ac0b; font-weight:700; }
 #bkadm .bk-ses-off { color:#a86b00; }
 #bkadm .bk-gauge { display:inline-block; width:130px; height:9px; background:#e9ecef;
     border-radius:5px; overflow:hidden; vertical-align:middle; margin-right:7px; }
 #bkadm .bk-gauge i { display:block; height:100%; background:#0254a8; }
-#bkadm .bk-url { font-family:monospace; font-size:12px; background:#f0f4ff;
-    border:1px solid #a7d6ff; border-radius:5px; padding:3px 7px; }
-#bkadm .bk-adv > summary { cursor:pointer; font-weight:600; color:#0254a8; margin:6px 0 10px; }
-#bkadm .bk-adv h3 { font-size:13px; color:#01367c; margin:16px 0 4px; }
-#bkadm .bk-cat-row { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;
-    border:1px solid #e2e6ee; border-radius:6px; padding:8px 10px; margin:0 0 8px; }
+#bkadm .bk-adv > summary { cursor:pointer; font-weight:600; color:#0254a8; margin:6px 0 6px; }
+#bkadm .bk-adv h3 { font-size:13px; color:#01367c; margin:10px 0 4px; }
+#bkadm .bk-cat-row { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;
+    border:1px solid #e2e6ee; border-radius:6px; padding:6px 8px; margin:0 0 6px; }
 #bkadm .bk-cat-row select[multiple] { min-width:150px; padding:2px 4px; }
-#bkadm .bk-cat-del { border:1px solid #d2d4d6; background:#fff; color:#c0392b; border-radius:6px;
-    padding:6px 10px; cursor:pointer; font-size:13px; align-self:center; }
+#bkadm .bk-cat-del { border:1px solid #d2d4d6; background:#fff; color:#c0392b; border-radius:5px;
+    padding:4px 8px; cursor:pointer; font-size:13px; align-self:center; }
 #bkadm .bk-cat-del:hover { background:#ffd6db; }
 #bkadm .bk-add { background:#f0f4ff; color:#0254a8; border-color:#a7d6ff; margin:2px 0 4px; }
-#bkadm .bk-sim-out { margin-top:10px; padding:10px 12px; border:1px solid #a7d6ff; border-radius:8px;
+#bkadm .bk-sim-out { margin-top:8px; padding:8px 10px; border:1px solid #a7d6ff; border-radius:8px;
     background:#f7faff; max-width:340px; }
 #bkadm .bk-sim-t { width:100%; border-collapse:collapse; font-size:13px; }
-#bkadm .bk-sim-t td { padding:3px 0; border:0; }
+#bkadm .bk-sim-t td { padding:2px 0; border:0; }
 #bkadm .bk-sim-t td:last-child { text-align:right; white-space:nowrap; }
-#bkadm .bk-sim-tot { margin:8px 0 0; padding-top:8px; border-top:1px solid #cfe0f5;
-    font-size:14px; color:#01367c; }
-#bkadm .bk-sim-tot b { font-size:17px; }
-#bkadm .bk-pay-row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:7px 0; }
+#bkadm .bk-sim-tot { margin:6px 0 0; padding-top:6px; border-top:1px solid #cfe0f5; font-size:13px; color:#01367c; }
+#bkadm .bk-sim-tot b { font-size:16px; }
+#bkadm .bk-pay-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:4px 0; }
 #bkadm .bk-pay-name { min-width:150px; margin:0; }
 #bkadm .bk-pay-info { flex:1 1 240px; }
-#bkadm .bk-levels { display:flex; gap:10px; flex-wrap:wrap; }
+#bkadm .bk-levels { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
 #bkadm .bk-lvl { flex:1 1 200px; margin:0; text-align:left; cursor:pointer; display:block;
-    border:1px solid #d2d4d6; border-radius:8px; background:#fff; padding:12px 14px; font:inherit; }
+    border:1px solid #d2d4d6; border-radius:8px; background:#fff; padding:6px 10px; font:inherit; }
 #bkadm .bk-lvl input { position:absolute; opacity:0; pointer-events:none; }
 #bkadm .bk-lvl:focus-within { outline:2px solid #a7d6ff; }
-#bkadm .bk-lvl-wait { margin:10px 0 0; padding:8px 12px; border-radius:6px; background:#fdebd6;
-    border:1px solid #cb8137; color:#7a4a10; }
 #bkadm .bk-lvl:hover { border-color:#0254a8; }
 #bkadm .bk-lvl.on { border-color:#0254a8; background:#eaf1fb; box-shadow:0 0 0 1px #0254a8 inset; }
-#bkadm .bk-lvl-n { display:inline-flex; width:22px; height:22px; border-radius:50%; background:#0254a8;
+#bkadm .bk-lvl-n { display:inline-flex; width:20px; height:20px; border-radius:50%; background:#0254a8;
     color:#fff; align-items:center; justify-content:center; font-size:12px; font-weight:700; margin-right:6px; }
 #bkadm .bk-lvl.on .bk-lvl-n { background:#01367c; }
 #bkadm .bk-lvl.chosen { border-color:#e57b10; box-shadow:0 0 0 1px #e57b10 inset; }
-#bkadm .bk-lvl-t { font-weight:700; color:#01367c; font-size:14px; }
-#bkadm .bk-lvl-d { display:block; margin-top:5px; font-size:12px; color:#5b6470; line-height:1.35; }
-#bkadm .bk-shortcuts { display:flex; flex-wrap:wrap; gap:8px; }
-#bkadm .bk-shortcuts .bk-btn { text-decoration:none; }
-#bkadm .bk-pub-what { font-size:13px; line-height:1.5; margin:0 0 6px; padding:8px 10px;
-    background:#eef4fb; border:1px solid #cddff2; border-radius:6px; color:#123a63; }
+#bkadm .bk-lvl-t { font-weight:700; color:#01367c; font-size:13px; }
+#bkadm .bk-lvl .sa-help { margin:4px 0 0; }
+#bkadm .bk-lvl-wait { margin:8px 0 0; padding:6px 10px; border-radius:6px; background:#fdebd6;
+    border:1px solid #cb8137; color:#7a4a10; }
+#bkadm .bk-link { margin:8px 0 0; font-size:13px; }
+#bkadm .bk-link a { font-family:Consolas, monospace; font-size:12px; }
+#bkadm .bk-shortcuts { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:8px 0 0; }
+
+/* Tabs of levels 2 and 3: display only, every field stays in the form. */
+#bkadm .bk-tabs { display:flex; flex-wrap:wrap; gap:2px; margin:12px 0 8px; border-bottom:2px solid #0254a8; }
+#bkadm .bk-tab { padding:5px 12px; border:1px solid #d2d4d6; border-bottom:0; border-radius:6px 6px 0 0; background:#f7f7f7;
+    color:#20263d; font:inherit; font-size:13px; cursor:pointer; }
+#bkadm .bk-tab:hover { background:#f0f4ff; }
+#bkadm .bk-tab.on { background:#0254a8; border-color:#0254a8; color:#fff; font-weight:600; }
+#bkadm .bk-tab-n, #bkadm .bk-tab-w { display:inline-block; margin-left:6px; padding:0 6px; border-radius:8px; font-size:11px; font-weight:700; }
+#bkadm .bk-tab-n { background:#e57b10; color:#fff; }
+#bkadm .bk-tab-w { background:#c0392b; color:#fff; }
+
 </style>
 <?php
 // "Copy from…": at the right of the title, its own form.
@@ -522,26 +580,158 @@ if ($bigSes) {
         . bk_t('AcBigText') . '</div>';
 }
 
+/*
+ * The page shows every level; competition.js shows the parts of the level chosen ([data-lvl])
+ * and, at levels 2 and 3, of its tab ([data-tab]). Every field stays in the form: a level picked
+ * and left again keeps what was typed in it. What is visible before the script runs is the
+ * current level on its first tab — the same thing.
+ */
+$tabsOf = array(
+    2 => array('fin' => bk_t('AcL2Title'), 'state' => bk_t('AcTabState')),
+    3 => array('period' => bk_t('AcPeriod'), 'restrict' => bk_t('AcTabRestrict'), 'see' => bk_t('AcWhatSee'),
+        'tariffs' => bk_t('MnFees'), 'state' => bk_t('AcTabState')),
+);
+$panel = function ($levels, $tab, $html) use ($level, $tabsOf, $cfg) {
+    $lv = array_map('intval', explode(' ', $levels));
+    $shown = in_array($level, $lv, true);
+    if ($shown && $tab !== '' && isset($tabsOf[$level])) $shown = $tab === array_keys($tabsOf[$level])[0];
+    if ($shown && $tab === 'tariffs' && $level === 1) $shown = !empty($cfg->BcPayments);
+    return '<div class="bk-panel" data-lvl="' . $levels . '"' . ($tab !== '' ? ' data-tab="' . $tab . '"' : '')
+        . ($shown ? '' : ' hidden') . '>' . $html . '</div>';
+};
+
 // Opening of the registration on this server: the level, chosen in the form, applied when saving.
+// The registration link right under it, for the levels that publish.
+list($qPub, $hPub) = bk_help(bk_t('AcPubWhat') . '<br>' . bk_t('AcNotIanseoNet'));
 $levels = '';
 foreach (array(1 => 'AcLvl1', 2 => 'AcLvl2', 3 => 'AcLvl3') as $n => $key) {
+    list($q, $h) = bk_help(bk_e(bk_t($key . 'D')));
     $levels .= '<label class="bk-lvl ' . ($level === $n ? 'on' : '') . '"><input type="radio" name="level" value="' . $n . '"'
         . ($level === $n ? ' checked' : '') . '>'
-        . '<span class="bk-lvl-t"><span class="bk-lvl-n">' . $n . '</span>' . bk_e(bk_t($key)) . '</span>'
-        . '<span class="bk-lvl-d">' . bk_e(bk_t($key . 'D')) . '</span></label>';
+        . '<span class="bk-lvl-t"><span class="bk-lvl-n">' . $n . '</span>' . bk_e(bk_t($key)) . $q . '</span>' . $h . '</label>';
 }
+list($qLink, $hLink) = bk_help(bk_e(bk_t('AcLinkHint')));
 $out .= '<form method="post" id="bk-cfg" data-level="' . $level . '">' . aut_adm_default_submit() . bk_csrf_field()
     . '<input type="hidden" name="save_all" value="1">'
-    . '<div class="bk-sec"><h2>' . bk_e(bk_t('AcOpenTitle')) . '</h2>'
-    . '<p class="bk-pub-what">' . bk_t('AcPubWhat') . '</p>'
-    . '<p class="bk-hint" style="margin-top:0">' . bk_t('AcNotIanseoNet') . '</p>'
+    . '<div class="bk-sec"><h2>' . bk_e(bk_t('AcOpenTitle')) . $qPub . '</h2>' . $hPub
     . '<div class="bk-levels">' . $levels . '</div>'
-    . '<p class="bk-lvl-wait" id="bk-lvl-wait" hidden>' . bk_e(bk_t('AcLvlPending')) . '</p></div>'
-    . '<div data-lvl-block>';
+    . '<div class="bk-link" data-lvl="2 3"' . ($level >= 2 ? '' : ' hidden') . '>' . bk_e(bk_t('AcRegLink'))
+    . ' <a href="' . bk_e($publicUrl) . '" target="_blank" rel="noopener">' . bk_e($publicUrl) . '</a>' . $qLink . $hLink . '</div>'
+    . '<p class="bk-lvl-wait" id="bk-lvl-wait" hidden>' . bk_e(bk_t('AcLvlPending')) . '</p></div>';
 
-// Tariffs and payment methods: the same blocks at level 3 and on a closed competition that
-// uses the payments and the shop (level 1, participants imported in ianseo).
-$showTariffs = $level == 3 || $level == 1;   // level 1: shown as soon as the payments box is ticked
+// ---- Level 1 (closed): the payments and the shop used or not; their tariffs below as soon as
+//      the box is ticked (saved with it).
+list($q, $h) = bk_help(bk_e(bk_t('AcL1Hint')));
+$out .= $panel('1', '', '<div class="bk-sec"><div class="bk-opt"><label class="bk-chk"><input type="checkbox" name="payments" value="1" id="bk-payments"'
+    . (!empty($cfg->BcPayments) ? ' checked' : '') . '> ' . bk_t('AcL1Box') . '</label>' . $q . '</div>' . $h
+    . (!empty($cfg->BcPayments) ? '<p class="bk-shortcuts"><a class="bk-btn" href="' . $SHOP_ADMIN . '">' . bk_e(shp_t('MnuTitle')) . ' →</a> '
+        . '<a class="bk-btn" href="' . $ADMIN . 'dues.php">' . bk_e(bk_t('Payments')) . ' →</a></p>' : '')
+    . '</div>');
+
+// ---- Tabs of levels 2 and 3. The registration state carries what needs looking at.
+$waitN = count($waitList['waiting']);
+$rulesKo = 0;
+foreach ($rules as $rc) if (!$rc['ok']) $rulesKo++;
+$stateBadge = ($waitN ? '<span class="bk-tab-n">' . $waitN . '</span>' : '') . ($rulesKo ? '<span class="bk-tab-w">!</span>' : '');
+foreach ($tabsOf as $l => $tabs) {
+    $bar = '';
+    $first = true;
+    foreach ($tabs as $t => $lab) {
+        $bar .= '<button type="button" class="bk-tab' . ($first ? ' on' : '') . '" data-tab="' . $t . '" role="tab" aria-selected="'
+            . ($first ? 'true' : 'false') . '">' . bk_e($lab) . ($t === 'state' ? $stateBadge : '') . '</button>';
+        $first = false;
+    }
+    $out .= '<div class="bk-tabs" data-tabs="' . $l . '" role="tablist"' . ($level === $l ? '' : ' hidden') . '>' . $bar . '</div>';
+}
+
+// ---- Level 2, "To finish": the fee (its own field, kept equal to the one of the tariffs by the
+//      script), and the constraints of the field.
+list($qFee, $hFee) = bk_help(bk_t('AcL2FeeHint'));
+list($qFld, $hFld) = bk_help(bk_e(bk_t('AcFieldHint')));
+$out .= $panel('2', 'fin', '<div class="bk-sec"><div class="bk-row">'
+    . bk_fld(bk_t('AcRegFee', $CUR), '<input type="text" name="fee_simple" data-fee size="8" value="' . bk_e(bk_amt((float) $cfg->BcFee)) . '">', $qFee)
+    . '</div>' . $hFee
+    . '<p class="bk-shortcuts"><a class="bk-btn" href="' . $ADMIN . 'field.php">' . bk_e(bk_t('MnuField')) . ' →</a>' . $qFld . '</p>' . $hFld . '</div>');
+
+// ---- Level 3, registration period. The current state only when it is level 3's own.
+$kinds = '';
+foreach (bk_restrict_kinds() as $k => $lab) {
+    $kinds .= '<option value="' . bk_e($k) . '"' . ($cfg3->BcRestrictKind === $k ? ' selected' : '') . '>' . bk_e($lab) . '</option>';
+}
+list($q, $h) = bk_help(bk_e(bk_t('AcPeriodHint')));
+$out .= $panel('3', 'period', '<div class="bk-sec"><div class="bk-row">'
+    . bk_fld(bk_t('AcOpenFrom'), '<input type="datetime-local" name="from" value="' . bk_e(bk_dtval($cfg3->BcOpenFrom)) . '">')
+    . bk_fld(bk_t('AcOpenTo'), '<input type="datetime-local" name="to" value="' . bk_e(bk_dtval($cfg3->BcOpenTo)) . '">', $q)
+    . '</div>' . $h
+    . ($level === 3 ? '<p class="bk-state">' . bk_e(bk_t('AcGeoState')) . ' <b>' . bk_e(bk_t($cfg->BcIsOpen ? 'AcStateOpen' : 'AcStateOut')) . '</b></p>' : '')
+    . bk_adm_session_rules($TOUR, $cfg, $sessions) . '</div>');
+
+// ---- Level 3, restrictions: geographic, then placement and validation.
+$out .= $panel('3', 'restrict', '<div class="bk-sec">' . bk_title('h2', bk_t('AcGeo'), bk_e(bk_t('AcGeoHint'))) . '<div class="bk-row">'
+    . bk_fld(bk_t('AcGeoFor'), '<select name="kind">' . $kinds . '</select>')
+    . bk_fld(bk_t('AcGeoCode'), '<input type="text" name="code" size="8" maxlength="12" value="' . bk_e($cfg3->BcRestrictCode) . '">')
+    . bk_fld(bk_t('AcGeoAll'), '<input type="datetime-local" name="restrict_to" value="' . bk_e(bk_dtval($cfg3->BcRestrictTo)) . '">')
+    . '</div>'
+    . ($level === 3 && $cfg->BcRestrictKind !== ''
+        ? '<p class="bk-state">' . bk_e(bk_t('AcGeoState')) . ' <b>' . bk_e(bk_t($cfg->BcAllOpen ? 'AcGeoOpen' : 'AcGeoRestricted')) . '</b></p>' : '')
+    . '</div>'
+    . '<div class="bk-sec">' . bk_title('h2', bk_t('AcPlacement'), $isDrom ? bk_e(bk_t('AcDromHint')) : bk_t('AcFedRules'))
+    . ($isDrom
+        ? '<div class="bk-row">'
+          . bk_fld(bk_t('AcMaxClub'), '<input type="number" name="max_club" min="1" max="20" value="' . intval($cfg3->BcMaxPerClubPerTarget) . '">')
+          . bk_fld(bk_t('AcMinClubs'), '<input type="number" name="min_clubs" min="1" max="50" value="' . intval($cfg3->BcMinClubsPerSession) . '">') . '</div>'
+        : '')
+    . bk_chk('manual_validation', !empty($cfg3->BcManualValidation), bk_t('AcManualBox'), '', bk_t('AcManualHint'))
+    . '<input type="hidden" name="single_reg_present" value="1">'
+    . bk_chk('single_reg', !empty($cfg3->BcSingleReg), bk_e(bk_t('AcSingleReg')), '', bk_e(bk_t('AcSingleRegHint')))
+    . '</div>');
+
+// ---- Level 3, what the archers see. Documents: the ianseo.net address is no longer asked, it
+//      is rebuilt from the online id given with the publication codes — only whether to show it.
+$hasMandate = trim((string) ($cfg3->BcMandate ?? '')) !== '';
+$see = '<div class="bk-sec">'
+    . bk_chk('show_gauges', $cfg3->BcShowGauges, bk_e(bk_t('AcShowGauges')))
+    . bk_chk('show_assign', $cfg3->BcShowAssignment, bk_e(bk_t('AcShowAssign')))
+    . bk_chk('scoresheet', $cfg3->BcAllowScoresheet, bk_e(bk_t('AcScoresheet')))
+    . ($hasMandate
+        ? '<input type="hidden" name="show_mandate_present" value="1">'
+          . bk_chk('show_mandate', bk_mandate_visible($cfg3), bk_t('AcShowMandate', bk_e($ADMIN . 'mandate.php')))
+        : '<p class="bk-hint">' . bk_t('AcNoMandate', bk_e($ADMIN . 'mandate.php')) . '</p>');
+$ianseoUrl      = bk_ianseo_url($TOUR);
+$ianseoUrlSaved = trim((string) ($cfg3->BcIanseoUrl ?? ''));
+$see .= bk_title('h3', bk_t('DocsTitle'), bk_e(bk_t('AcDocsHint')) . '<br>' . bk_e(bk_t('AcOfficialHint')));
+if ($ianseoUrl !== '') {
+    $see .= '<input type="hidden" name="ianseo_present" value="1">'
+        . bk_chk('show_ianseo', $ianseoUrlSaved !== '', bk_t('AcIanseoLink', $onlineId) . ' <a href="' . bk_e($ianseoUrl)
+            . '" target="_blank" rel="noopener">' . bk_e($ianseoUrl) . '</a>');
+} elseif ($ianseoUrlSaved !== '') {
+    // Derived value whose source is gone (re-import without an online id, or an address typed
+    // when the field was free): said here, and the next save removes it — there is no page to
+    // point to any more.
+    $see .= '<input type="hidden" name="ianseo_present" value="1"><p class="bk-hint" style="color:#a86b00">'
+        . bk_e(bk_t('AcIanseoStale', $ianseoUrlSaved)) . '</p>';
+}
+$dossardCard = bk_dossard_card($TOUR);
+$see .= '<input type="hidden" name="docs_present" value="1">'
+    . bk_chk('show_program', !empty($cfg3->BcShowProgram), bk_e(bk_t('AcShowProgram')))
+    . bk_chk('show_participants', !empty($cfg3->BcShowParticipants), bk_e(bk_t('AcShowParticipants')))
+    . bk_chk('show_results', !empty($cfg3->BcShowResults), bk_e(bk_t('AcShowResults')))
+    . bk_chk('show_dossard', !empty($cfg3->BcShowDossard), bk_t('AcShowDossard', bk_e($CFG->ROOT_DIR . 'Accreditation/IdCards.php?CardType=Q'))
+        . ($dossardCard === null ? ' <span class="bk-hint" style="color:#a86b00">' . bk_e(bk_t('AcNoDossard')) . '</span>' : ''))
+    // Wishes, waiting list, after the competition.
+    . bk_title('h3', bk_t('AcWishes'), bk_e(bk_t('AcWishesHint')))
+    . bk_chk('wish_letter', $cfg3->BcWishLetter, bk_e(bk_t('AcWishLetter')))
+    . bk_chk('wish_with', $cfg3->BcWishWith, bk_e(bk_t('AcWishWith')))
+    . bk_chk('wish_free', $cfg3->BcWishFree, bk_e(bk_t('AcWishFree')))
+    . '<input type="hidden" name="waitlist_present" value="1">'
+    . bk_chk('waitlist', !isset($cfg3->BcWaitlist) || !empty($cfg3->BcWaitlist), bk_t('AcWaitBox'))
+    . bk_title('h3', bk_t('AcAfter')) . '<input type="hidden" name="survey_present" value="1">'
+    . bk_chk('survey', !isset($cfg3->BcSurvey) || !empty($cfg3->BcSurvey), bk_t('AcSurveyBox', bk_e($ADMIN . 'survey.php')), '', bk_e(bk_t('AcSurveyHint')))
+    . '</div>';
+$out .= $panel('3', 'see', $see);
+
+// ---- Tariffs and payment methods: ONE block for level 3 and for a closed competition that
+//      uses the payments and the shop (level 1, participants imported in ianseo).
 $cats = '';
 foreach ($pricing['categories'] as $i => $rule) $cats .= bk_cat_row($i, $rule, $divs, $classes, $CUR);
 $deps = '';
@@ -568,26 +758,26 @@ foreach (bk_payment_methods() as $mk => $ml) {
         . '<input type="text" class="bk-pay-info" name="pay[' . bk_e($mk) . '][info]" value="' . bk_e($cur['info'] ?? '') . '" placeholder="'
         . bk_e(bk_t('AcPayInfoPh')) . '"></div>';
 }
-$tariffBlocks = '<div class="bk-sec"><h2>' . bk_e(bk_t('MnFees')) . '</h2><div class="bk-row">'
-    . bk_fld(bk_t('AcBaseFee', $CUR), '<input type="text" name="fee" size="8" value="' . bk_e(bk_amt((float) $cfg->BcFee)) . '">') . '</div>'
-    . '<p class="bk-hint">' . bk_e(bk_t('AcBaseFeeHint')) . '</p>'
+list($q, $h) = bk_help(bk_e(bk_t('AcBaseFeeHint')));
+$out .= $panel('1 3', 'tariffs', '<input type="hidden" name="tariffs_present" value="1">'
+    . '<div class="bk-sec">' . bk_title('h2', bk_t('MnFees')) . '<div class="bk-row">'
+    . bk_fld(bk_t('AcBaseFee', $CUR), '<input type="text" name="fee" data-fee size="8" value="' . bk_e(bk_amt((float) $cfg->BcFee)) . '">', $q) . '</div>' . $h
     . '<details class="bk-adv"' . (bk_pricing_is_advanced($pricing) ? ' open' : '') . '><summary>' . bk_e(bk_t('AcAdvSummary')) . '</summary>'
-    . '<p class="bk-hint" style="margin:0 0 6px">' . bk_t('AcHowPrice', bk_e(bk_eur(0))) . '</p>'
-    . '<h3>' . bk_e(bk_t('AcByCat')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcByCatHint')) . '</p>'
+    . bk_title('h3', bk_t('AcByCat'), bk_t('AcHowPrice', bk_e(bk_eur(0))) . '<br>' . bk_e(bk_t('AcByCatHint')))
     . '<div id="bk-cat-list">' . $cats . '</div>'
     . '<button type="button" class="bk-btn bk-add" onclick="bkAddCat()">' . bk_e(bk_t('AcAddRule')) . '</button>'
     . '<template id="bk-cat-tpl">' . bk_cat_row('__i__', array(), $divs, $classes, $CUR) . '</template>'
-    . '<h3>' . bk_e(bk_t('AcByDep')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcByDepHint')) . '</p>'
+    . bk_title('h3', bk_t('AcByDep'), bk_e(bk_t('AcByDepHint')))
     . ($sessions ? '<div class="bk-row">' . $deps . '</div>' : '<p class="bk-hint">' . bk_e(bk_t('AcNoSessionYet')) . '</p>')
-    . '<h3>' . bk_e(bk_t('AcByProv')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcByProvHint')) . '</p><div class="bk-row">'
+    . bk_title('h3', bk_t('AcByProv'), bk_e(bk_t('AcByProvHint'))) . '<div class="bk-row">'
     . bk_fld(bk_t('AcLocalDept'), '<input type="text" name="prov_deptcode" size="4" maxlength="2" value="' . bk_e($provDeptDef) . '">')
     . bk_fld(bk_t('AcDeltaDept', $CUR), '<input type="text" name="prov_dept" size="6" value="' . bk_e(bk_amt($pricing['prov']['dept'] ?: '')) . '">')
     . bk_fld(bk_t('AcLocalRegion'), '<input type="text" name="prov_regioncode" size="4" maxlength="2" value="' . bk_e($provRegionDef) . '">')
     . bk_fld(bk_t('AcDeltaRegion', $CUR), '<input type="text" name="prov_region" size="6" value="' . bk_e(bk_amt($pricing['prov']['region'] ?: '')) . '">')
-    . '</div><h3>' . bk_e(bk_t('AcRankTitle')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcRankHint')) . '</p><div class="bk-row">'
+    . '</div>' . bk_title('h3', bk_t('AcRankTitle'), bk_e(bk_t('AcRankHint'))) . '<div class="bk-row">'
     . bk_fld(bk_t('AcFromNth', array('n' => 2, 'cur' => $CUR)), '<input type="text" name="rank[2]" size="6" value="' . bk_e(bk_amt($pricing['rank']['2'] ?? '')) . '">')
     . bk_fld(bk_t('AcFromNth', array('n' => 3, 'cur' => $CUR)), '<input type="text" name="rank[3]" size="6" value="' . bk_e(bk_amt($pricing['rank']['3'] ?? '')) . '">')
-    . '</div><h3>' . bk_e(bk_t('AcPreview')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcPreviewHint')) . '</p>'
+    . '</div>' . bk_title('h3', bk_t('AcPreview'), bk_e(bk_t('AcPreviewHint')))
     . '<div class="bk-row bk-sim-in">'
     . bk_fld(bk_t('AcSimBow'), '<select id="sim-div">' . $simDiv . '</select>')
     . bk_fld(bk_t('SsCategory'), '<select id="sim-cls">' . $simCls . '</select>')
@@ -598,219 +788,108 @@ $tariffBlocks = '<div class="bk-sec"><h2>' . bk_e(bk_t('MnFees')) . '</h2><div c
         . bk_e(bk_t('AcSimR2')) . '</option><option value="3">' . bk_e(bk_t('AcSimR3')) . '</option></select>')
     . '</div><div class="bk-sim-out"><table class="bk-sim-t"><tbody id="sim-lines"></tbody></table>'
     . '<p class="bk-sim-tot">' . bk_e(bk_t('AcSimTotal')) . ' <b id="sim-total">—</b></p></div></details></div>'
-    . '<div class="bk-sec"><h2>' . bk_e(bk_t('PayMeansTitle')) . '</h2><p class="bk-hint">' . bk_e(bk_t('AcPayHint')) . '</p>' . $payRows . '</div>';
+    . '<div class="bk-sec">' . bk_title('h2', bk_t('PayMeansTitle'), bk_e(bk_t('AcPayHint'))) . $payRows . '</div>');
 
-if ($level == 1) {
-    // Closed: the payments and the shop used or not; their tariffs shown as soon as the box is
-    // ticked (they are saved with it).
-    $out .= '<div class="bk-sec"><p class="bk-hint" style="margin:0">' . bk_t('AcL1Text') . '</p>'
-        . '<label class="bk-chk" style="margin:12px 0 0"><input type="checkbox" name="payments" value="1" id="bk-payments"'
-            . (!empty($cfg->BcPayments) ? ' checked' : '') . '> ' . bk_t('AcL1Box') . '</label>'
-        . '<p class="bk-hint">' . bk_e(bk_t('AcL1Hint')) . '</p>'
-        . (!empty($cfg->BcPayments) ? '<p class="bk-shortcuts"><a class="bk-btn" href="' . $SHOP_ADMIN . '">' . bk_e(shp_t('MnuTitle')) . ' →</a> '
-            . '<a class="bk-btn" href="' . $ADMIN . 'dues.php">' . bk_e(bk_t('Payments')) . ' →</a></p>' : '')
-        . '</div>'
-        . '<div id="bk-tariffs"' . (!empty($cfg->BcPayments) ? '' : ' hidden') . '><input type="hidden" name="tariffs_present" value="1">'
-        . $tariffBlocks . '</div>';
-}
-
-if ($level == 2) {
-    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('AcL2Title')) . '</h2><p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('AcL2Hint')) . '</p>'
-        . '<div class="bk-row" style="margin:0 0 14px">'
-        . bk_fld(bk_t('AcRegFee', $CUR), '<input type="text" name="fee" size="8" value="' . bk_e(bk_amt((float) $cfg->BcFee)) . '">') . '</div>'
-        . '<p class="bk-hint" style="margin:0 0 6px">' . bk_t('AcL2FeeHint') . '</p><p class="bk-shortcuts">'
-        . '<a class="bk-btn" href="' . $ADMIN . 'field.php">' . bk_e(bk_t('MnuField')) . ' →</a> '
-        . '<a class="bk-btn" href="' . $SHOP_ADMIN . '">' . bk_e(shp_t('MnuTitle')) . ' →</a> '
-        . '<a class="bk-btn" href="' . $ADMIN . 'dues.php">' . bk_e(bk_t('Payments')) . ' →</a> '
-        . '<a class="bk-btn" href="' . $ADMIN . 'survey.php">' . bk_e(bk_t('MnuSurvey')) . ' →</a></p></div>';
-}
-
-if ($level == 3) {
-    $kinds = '';
-    foreach (bk_restrict_kinds() as $k => $lab) {
-        $kinds .= '<option value="' . bk_e($k) . '"' . ($cfg->BcRestrictKind === $k ? ' selected' : '') . '>' . bk_e($lab) . '</option>';
-    }
-    $out .= ''
-        // Registration period.
-        . '<div class="bk-sec"><h2>' . bk_e(bk_t('AcPeriod')) . '</h2><div class="bk-row">'
-        . bk_fld(bk_t('AcOpenFrom'), '<input type="datetime-local" name="from" value="' . bk_e(bk_dtval($cfg->BcOpenFrom)) . '">')
-        . bk_fld(bk_t('AcOpenTo'), '<input type="datetime-local" name="to" value="' . bk_e(bk_dtval($cfg->BcOpenTo)) . '">')
-        . '</div><p class="bk-hint">' . bk_e(bk_t('AcPeriodHint')) . ' <b style="color: crimson;">'
-        . bk_e(bk_t($cfg->BcIsOpen ? 'AcStateOpen' : 'AcStateOut')) . '</b>.</p>'
-        . bk_adm_session_rules($TOUR, $cfg, $sessions) . '</div>'
-        // Geographic restriction.
-        . '<div class="bk-sec"><h2>' . bk_e(bk_t('AcGeo')) . '</h2><div class="bk-row">'
-        . bk_fld(bk_t('AcGeoFor'), '<select name="kind">' . $kinds . '</select>')
-        . bk_fld(bk_t('AcGeoCode'), '<input type="text" name="code" size="8" maxlength="12" value="' . bk_e($cfg->BcRestrictCode) . '">')
-        . bk_fld(bk_t('AcGeoAll'), '<input type="datetime-local" name="restrict_to" value="' . bk_e(bk_dtval($cfg->BcRestrictTo)) . '">')
-        . '</div><p class="bk-hint">' . bk_e(bk_t('AcGeoHint'))
-        . ($cfg->BcRestrictKind !== '' ? ' ' . bk_e(bk_t('AcGeoState')) . ' <b>' . bk_e(bk_t($cfg->BcAllOpen ? 'AcGeoOpen' : 'AcGeoRestricted')) . '</b>.' : '')
-        . '</p></div>'
-        // Placement and validation.
-        . '<div class="bk-sec"><h2>' . bk_e(bk_t('AcPlacement')) . '</h2>'
-        . ($isDrom
-            ? '<p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('AcDromHint')) . '</p><div class="bk-row">'
-              . bk_fld(bk_t('AcMaxClub'), '<input type="number" name="max_club" min="1" max="20" value="' . intval($cfg->BcMaxPerClubPerTarget) . '">')
-              . bk_fld(bk_t('AcMinClubs'), '<input type="number" name="min_clubs" min="1" max="50" value="' . intval($cfg->BcMinClubsPerSession) . '">') . '</div>'
-            : '<p class="bk-hint" style="margin-top:0">' . bk_t('AcFedRules') . '</p>')
-        . bk_chk('manual_validation', !empty($cfg->BcManualValidation), bk_t('AcManualBox'), 'margin-top:6px')
-        . '<p class="bk-hint">' . bk_t('AcManualHint') . '</p>'
-        . '<input type="hidden" name="single_reg_present" value="1">'
-        . bk_chk('single_reg', !empty($cfg->BcSingleReg), bk_e(bk_t('AcSingleReg')), 'margin-top:6px')
-        . '<p class="bk-hint">' . bk_e(bk_t('AcSingleRegHint')) . '</p></div>';
-
-    // What the archers see.
-    $hasMandate = trim((string) ($cfg->BcMandate ?? '')) !== '';
-    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('AcWhatSee')) . '</h2>'
-        . bk_chk('show_gauges', $cfg->BcShowGauges, bk_e(bk_t('AcShowGauges')))
-        . bk_chk('show_assign', $cfg->BcShowAssignment, bk_e(bk_t('AcShowAssign')))
-        . bk_chk('scoresheet', $cfg->BcAllowScoresheet, bk_e(bk_t('AcScoresheet')))
-        . ($hasMandate
-            ? '<input type="hidden" name="show_mandate_present" value="1">'
-              . bk_chk('show_mandate', bk_mandate_visible($cfg), bk_t('AcShowMandate', bk_e($ADMIN . 'mandate.php')))
-            : '<p class="bk-hint" style="margin:6px 0 0">' . bk_t('AcNoMandate', bk_e($ADMIN . 'mandate.php')) . '</p>');
-
-    // Documents. The address is no longer asked: it is rebuilt from the online id given with the
-    // publication codes. Only whether to show it is left to decide.
-    $ianseoUrl      = bk_ianseo_url($TOUR);
-    $ianseoUrlSaved = trim((string) ($cfg->BcIanseoUrl ?? ''));
-    $out .= '<h3 class="bk-h3">' . bk_e(bk_t('DocsTitle')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcDocsHint')) . '</p>';
-    if ($ianseoUrl !== '') {
-        $out .= '<input type="hidden" name="ianseo_present" value="1">'
-            . bk_chk('show_ianseo', $ianseoUrlSaved !== '', bk_t('AcIanseoLink', $onlineId) . ' <a href="' . bk_e($ianseoUrl)
-                . '" target="_blank" rel="noopener">' . bk_e($ianseoUrl) . '</a>');
-    } elseif ($ianseoUrlSaved !== '') {
-        // Derived value whose source is gone (re-import without an online id, or an address typed
-        // when the field was free): said here, and the next save removes it — there is no page
-        // to point to any more.
-        $out .= '<input type="hidden" name="ianseo_present" value="1"><p class="bk-hint" style="margin:6px 0 0; color:#a86b00">'
-            . bk_e(bk_t('AcIanseoStale', $ianseoUrlSaved)) . '</p>';
-    }
-    $dossardCard = bk_dossard_card($TOUR);
-    $out .= '<p class="bk-hint" style="margin-top:12px">' . bk_e(bk_t('AcOfficialHint')) . '</p><input type="hidden" name="docs_present" value="1">'
-        . bk_chk('show_program', !empty($cfg->BcShowProgram), bk_e(bk_t('AcShowProgram')))
-        . bk_chk('show_participants', !empty($cfg->BcShowParticipants), bk_e(bk_t('AcShowParticipants')))
-        . bk_chk('show_results', !empty($cfg->BcShowResults), bk_e(bk_t('AcShowResults')))
-        . bk_chk('show_dossard', !empty($cfg->BcShowDossard), bk_t('AcShowDossard', bk_e($CFG->ROOT_DIR . 'Accreditation/IdCards.php?CardType=Q'))
-            . ($dossardCard === null ? ' <span class="bk-hint" style="color:#a86b00">' . bk_e(bk_t('AcNoDossard')) . '</span>' : ''));
-
-    // Wishes, waiting list, after the competition.
-    $out .= '<h3 class="bk-h3">' . bk_e(bk_t('AcWishes')) . '</h3><p class="bk-hint">' . bk_e(bk_t('AcWishesHint')) . '</p>'
-        . bk_chk('wish_letter', $cfg->BcWishLetter, bk_e(bk_t('AcWishLetter')))
-        . bk_chk('wish_with', $cfg->BcWishWith, bk_e(bk_t('AcWishWith')))
-        . bk_chk('wish_free', $cfg->BcWishFree, bk_e(bk_t('AcWishFree')))
-        . '<input type="hidden" name="waitlist_present" value="1">'
-        . bk_chk('waitlist', !isset($cfg->BcWaitlist) || !empty($cfg->BcWaitlist), bk_t('AcWaitBox'))
-        . '<h3 class="bk-h3">' . bk_e(bk_t('AcAfter')) . '</h3><input type="hidden" name="survey_present" value="1">'
-        . bk_chk('survey', !isset($cfg->BcSurvey) || !empty($cfg->BcSurvey), bk_t('AcSurveyBox', bk_e($ADMIN . 'survey.php')))
-        . '<p class="bk-hint">' . bk_e(bk_t('AcSurveyHint')) . '</p></div>'
-        . $tariffBlocks;
-}
 // End of the form (its save button is fixed at the bottom right).
-$out .= '</div></form>' . aut_adm_save('bk-cfg');
+$out .= '</form>' . aut_adm_save('bk-cfg');
 
-if ($level >= 2) {
-    // Departures, read from ianseo.
-    $out .= '<div class="bk-sec" style="margin-top:18px"><h2>' . bk_e(bk_t('TgDepartures')) . '</h2>';
-    if (!$sessions) {
-        $out .= '<p class="bk-hint">' . bk_t('AcNoDepConf') . '</p>';
-    } else {
-        $out .= '<table class="bk-t"><tr><th>' . bk_e(bk_t('SsDeparture')) . '</th><th>' . bk_e(bk_t('AcTargets')) . '</th><th>'
-            . bk_e(bk_t('AcPerTarget')) . '</th><th>' . bk_e(bk_t('SsTotal')) . '</th><th>' . bk_e(bk_t('AcOccupancy')) . '</th></tr>';
-        foreach ($sessions as $s) {
-            $pl = intval($s->Places); $pr = intval($s->Pris);
-            $pc = $pl > 0 ? min(100, round($pr * 100 / $pl)) : 0;
-            $out .= '<tr><td>' . intval($s->SesOrder) . ($s->SesName ? ' — ' . bk_e($s->SesName) : '') . '</td><td>' . intval($s->SesTar4Session) . '</td>'
-                . '<td>' . intval($s->SesAth4Target) . '</td><td>' . $pl . '</td>'
-                . '<td><span class="bk-gauge"><i style="width:' . $pc . '%"></i></span>' . $pr . ' / ' . $pl . '</td></tr>';
-        }
-        $out .= '</table><p class="bk-hint">' . bk_e(bk_t('AcDepsHint')) . '</p>';
+// ---- Levels 2 and 3, registration state: read from ianseo and the waiting list; its own small
+//      forms (waiting list), hence outside the settings form.
+list($qFld, $hFld) = bk_help(bk_e(bk_t('AcFieldHint')));
+$state = '<div class="bk-sec">' . bk_title('h2', bk_t('TgDepartures'), bk_e(bk_t('AcDepsHint')));
+if (!$sessions) {
+    $state .= '<p class="bk-hint">' . bk_t('AcNoDepConf') . '</p>';
+} else {
+    $state .= '<table class="bk-t"><tr><th>' . bk_e(bk_t('SsDeparture')) . '</th><th>' . bk_e(bk_t('AcTargets')) . '</th><th>'
+        . bk_e(bk_t('AcPerTarget')) . '</th><th>' . bk_e(bk_t('SsTotal')) . '</th><th>' . bk_e(bk_t('AcOccupancy')) . '</th></tr>';
+    foreach ($sessions as $s) {
+        $pl = intval($s->Places); $pr = intval($s->Pris);
+        $pc = $pl > 0 ? min(100, round($pr * 100 / $pl)) : 0;
+        $state .= '<tr><td>' . intval($s->SesOrder) . ($s->SesName ? ' — ' . bk_e($s->SesName) : '') . '</td><td>' . intval($s->SesTar4Session) . '</td>'
+            . '<td>' . intval($s->SesAth4Target) . '</td><td>' . $pl . '</td>'
+            . '<td><span class="bk-gauge"><i style="width:' . $pc . '%"></i></span>' . $pr . ' / ' . $pl . '</td></tr>';
     }
-    $out .= '<p style="margin:10px 0 0"><a class="bk-btn" style="text-decoration:none;display:inline-block" href="' . $ADMIN . 'field.php">'
-        . bk_e(bk_t('MnuField')) . ' →</a><span class="bk-hint" style="display:block;margin-top:6px">' . bk_e(bk_t('AcFieldHint')) . '</span></p></div>';
-
-    // Waiting list (lib/waitlist.php): order of arrival; register by hand (even on a full
-    // departure: the organiser's call) or remove.
-    if ($waitList['waiting'] || $waitList['done']) {
-        $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('AcWaitTitle')) . '</h2>';
-        if (!bk_waitlist_on($cfg)) $out .= '<p class="bk-hint">' . bk_e(bk_t('AcWaitOff')) . '</p>';
-        if ($waitList['waiting']) {
-            $out .= '<p class="bk-hint">' . bk_e(bk_t('AcWaitHint')) . (empty($cfg->BcIsOpen) ? ' ' . bk_t('AcWaitFrozen') : '') . '</p>'
-                . '<table class="bk-t"><tr><th>#</th><th>' . bk_e(bk_t('ColArcher')) . '</th><th>' . bk_e(bk_t('Club')) . '</th><th>'
-                . bk_e(bk_t('AcBowCat')) . '</th><th>' . bk_e(bk_t('AcWishedDep')) . '</th><th>' . bk_e(bk_t('AcPlannedPay')) . '</th><th>'
-                . bk_e(bk_t('AcSince')) . '</th><th></th></tr>';
-            foreach ($waitList['waiting'] as $i => $w) {
-                $pc = explode('|', (string) $w->BwPayChoice . '|', 3);   // "method|when", or empty
-                $opts = '';
-                foreach ($sessions as $s) {
-                    $o = intval($s->SesOrder);
-                    $opts .= '<option value="' . $o . '"' . (intval($w->BwSession) === $o ? ' selected' : '') . '>'
-                        . bk_e(bk_t('AcDepPl', array('dep' => bk_t('DepCap', $o), 'n' => max(0, intval($s->Places) - intval($s->Pris))))) . '</option>';
-                }
-                $out .= '<tr><td>' . ($i + 1) . '</td><td>' . bk_e(trim($w->LueFamilyName . ' ' . $w->LueName)) . ' <span class="bk-hint">'
-                    . bk_e($w->BwLicence) . '</span></td><td>' . bk_e($w->LueCoDescr) . '</td><td>'
-                    . bk_e(($w->DivDescription ?: $w->BwDivision) . ' / ' . ($w->ClDescription ?: $w->BwClass)) . '</td><td>'
-                    . bk_e(intval($w->BwSession) ? bk_t('DepCap', intval($w->BwSession)) : bk_t('AcAnyDep')) . '</td><td>'
-                    . bk_e(bk_payment_decl_label($pc[0], $pc[1])) . '</td><td>' . bk_e(bk_date_fr($w->BwCreated)) . '</td>'
-                    . '<td style="white-space:nowrap">'
-                    . bk_post_form(array('wait_action' => 'register', 'w' => intval($w->BwId)), '<select name="wait_session">' . $opts . '</select> '
-                        . '<button type="submit" class="bk-btn">' . bk_e(bk_t('ClubRegisterBtn')) . '</button>', bk_t('AcWaitRegConfirm'), ' style="display:inline"') . ' '
-                    . bk_post_form(array('wait_action' => 'remove', 'w' => intval($w->BwId)),
-                        '<button type="submit" class="bk-btn">' . bk_e(bk_t('RiRemove')) . '</button>', bk_t('AcWaitRemoveConfirm'), ' style="display:inline"')
-                    . '</td></tr>';
-            }
-            $out .= '</table>';
-        }
-        if ($waitList['done']) {
-            $out .= '<h3 class="bk-h3">' . bk_e(bk_t('AcLastResults')) . '</h3><table class="bk-t"><tr><th>' . bk_e(bk_t('ColArcher')) . '</th><th>'
-                . bk_e(bk_t('AcOn')) . '</th><th>' . bk_e(bk_t('AcResult')) . '</th></tr>';
-            foreach ($waitList['done'] as $w) {
-                $out .= '<tr><td>' . bk_e(trim($w->LueFamilyName . ' ' . $w->LueName)) . ' <span class="bk-hint">' . bk_e($w->BwLicence)
-                    . '</span></td><td>' . bk_e(bk_date_fr($w->BwDone)) . '</td><td>'
-                    . bk_e(intval($w->BwStatus) === 1 ? bk_t('AcWaitRegOn', intval($w->BwSession)) : bk_t('AcWaitRemovedX', $w->BwNote))
-                    . '</td></tr>';
-            }
-            $out .= '</table>';
-        }
-        $out .= '</div>';
-    }
-
-    // Check of the rules.
-    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('TgRulesTitle')) . '</h2>';
-    if (!$rules) {
-        $out .= '<p class="bk-hint" style="margin:0">' . bk_e(bk_t('AcNoRules')) . '</p>';
-    } else {
-        $out .= '<p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('AcRulesHint')) . '</p><table class="bk-t"><tr><th>'
-            . bk_e(bk_t('SsDeparture')) . '</th><th>' . bk_e(bk_t('TgRegistered')) . '</th><th>' . bk_e(bk_t('TgClubs')) . '</th><th>'
-            . bk_e(bk_t('AcRules')) . '</th></tr>';
-        foreach ($rules as $rc) {
-            $out .= '<tr><td>' . intval($rc['depart']) . ($rc['nom'] ? ' — ' . bk_e($rc['nom']) : '') . '</td><td>' . intval($rc['archers']) . '</td>'
-                . '<td>' . bk_e(bk_t('AcClubsMin', array('n' => intval($rc['clubs']), 'min' => intval($rc['minClubs'])))) . '</td><td>';
-            if ($rc['ok']) {
-                $out .= '<span style="color:#04ac0b;font-weight:600">' . bk_e(bk_t('AcCompliant')) . '</span>';
-            } else {
-                $li = '';
-                if (!$rc['clubsOk']) $li .= '<li>' . bk_e(bk_t('AcLessClubs', intval($rc['minClubs']))) . '</li>';
-                foreach ($rc['exces'] as $ex) {
-                    $li .= '<li>' . bk_e(bk_t('AcTooManyLow', array('target' => intval($ex['cible']), 'n' => intval($ex['n']),
-                        'club' => $ex['club'], 'max' => intval($rc['max'])))) . '</li>';
-                }
-                if (intval($rc['nonPlaces']) > 0) $li .= '<li>' . bk_e(bk_t('AcUnplaced', intval($rc['nonPlaces']))) . '</li>';
-                if (!empty($rc['doublons'])) $li .= '<li>' . bk_e(bk_t('AcDupes')) . '</li>';
-                $out .= '<span style="color:#c0392b;font-weight:600">' . bk_e(bk_t('AcReview')) . '</span>'
-                    . '<ul class="bk-hint" style="margin:4px 0 0; padding-left:18px; color:#a80000">' . $li . '</ul>';
-            }
-            $out .= '</td></tr>';
-        }
-        $out .= '</table>';
-    }
-    $out .= '</div>';
-
-    // Link for the archers.
-    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('AcLinkTitle')) . '</h2><p style="font-size:13px;margin:0">' . bk_e(bk_t('AcLinkGive'))
-        . '<br><a class="bk-url" href="' . bk_e($publicUrl) . '" target="_blank" rel="noopener">' . bk_e($publicUrl) . '</a></p>'
-        . '<p class="bk-hint">' . bk_e(bk_t('AcLinkHint')) . '</p></div>';
+    $state .= '</table>';
 }
+$state .= '<p class="bk-shortcuts"><a class="bk-btn" href="' . $ADMIN . 'field.php">' . bk_e(bk_t('MnuField')) . ' →</a>' . $qFld . '</p>' . $hFld . '</div>';
+
+// Waiting list (lib/waitlist.php): order of arrival; register by hand (even on a full departure:
+// the organiser's call) or remove.
+if ($waitList['waiting'] || $waitList['done']) {
+    $state .= '<div class="bk-sec">' . bk_title('h2', bk_t('AcWaitTitle'), $waitList['waiting'] ? bk_e(bk_t('AcWaitHint')) : '');
+    if (!bk_waitlist_on($cfg)) $state .= '<p class="bk-hint">' . bk_e(bk_t('AcWaitOff')) . '</p>';
+    if ($waitList['waiting']) {
+        $state .= (empty($cfg->BcIsOpen) ? '<p class="bk-hint">' . bk_t('AcWaitFrozen') . '</p>' : '')
+            . '<table class="bk-t"><tr><th>#</th><th>' . bk_e(bk_t('ColArcher')) . '</th><th>' . bk_e(bk_t('Club')) . '</th><th>'
+            . bk_e(bk_t('AcBowCat')) . '</th><th>' . bk_e(bk_t('AcWishedDep')) . '</th><th>' . bk_e(bk_t('AcPlannedPay')) . '</th><th>'
+            . bk_e(bk_t('AcSince')) . '</th><th></th></tr>';
+        foreach ($waitList['waiting'] as $i => $w) {
+            $pc = explode('|', (string) $w->BwPayChoice . '|', 3);   // "method|when", or empty
+            $opts = '';
+            foreach ($sessions as $s) {
+                $o = intval($s->SesOrder);
+                $opts .= '<option value="' . $o . '"' . (intval($w->BwSession) === $o ? ' selected' : '') . '>'
+                    . bk_e(bk_t('AcDepPl', array('dep' => bk_t('DepCap', $o), 'n' => max(0, intval($s->Places) - intval($s->Pris))))) . '</option>';
+            }
+            $state .= '<tr><td>' . ($i + 1) . '</td><td>' . bk_e(trim($w->LueFamilyName . ' ' . $w->LueName)) . ' <span class="bk-hint">'
+                . bk_e($w->BwLicence) . '</span></td><td>' . bk_e($w->LueCoDescr) . '</td><td>'
+                . bk_e(($w->DivDescription ?: $w->BwDivision) . ' / ' . ($w->ClDescription ?: $w->BwClass)) . '</td><td>'
+                . bk_e(intval($w->BwSession) ? bk_t('DepCap', intval($w->BwSession)) : bk_t('AcAnyDep')) . '</td><td>'
+                . bk_e(bk_payment_decl_label($pc[0], $pc[1])) . '</td><td>' . bk_e(bk_date_fr($w->BwCreated)) . '</td>'
+                . '<td style="white-space:nowrap">'
+                . bk_post_form(array('wait_action' => 'register', 'w' => intval($w->BwId)), '<select name="wait_session">' . $opts . '</select> '
+                    . '<button type="submit" class="bk-btn">' . bk_e(bk_t('ClubRegisterBtn')) . '</button>', bk_t('AcWaitRegConfirm'), ' style="display:inline"') . ' '
+                . bk_post_form(array('wait_action' => 'remove', 'w' => intval($w->BwId)),
+                    '<button type="submit" class="bk-btn">' . bk_e(bk_t('RiRemove')) . '</button>', bk_t('AcWaitRemoveConfirm'), ' style="display:inline"')
+                . '</td></tr>';
+        }
+        $state .= '</table>';
+    }
+    if ($waitList['done']) {
+        $state .= '<h3 class="bk-h3">' . bk_e(bk_t('AcLastResults')) . '</h3><table class="bk-t"><tr><th>' . bk_e(bk_t('ColArcher')) . '</th><th>'
+            . bk_e(bk_t('AcOn')) . '</th><th>' . bk_e(bk_t('AcResult')) . '</th></tr>';
+        foreach ($waitList['done'] as $w) {
+            $state .= '<tr><td>' . bk_e(trim($w->LueFamilyName . ' ' . $w->LueName)) . ' <span class="bk-hint">' . bk_e($w->BwLicence)
+                . '</span></td><td>' . bk_e(bk_date_fr($w->BwDone)) . '</td><td>'
+                . bk_e(intval($w->BwStatus) === 1 ? bk_t('AcWaitRegOn', intval($w->BwSession)) : bk_t('AcWaitRemovedX', $w->BwNote))
+                . '</td></tr>';
+        }
+        $state .= '</table>';
+    }
+    $state .= '</div>';
+}
+
+// Check of the rules.
+$state .= '<div class="bk-sec">' . bk_title('h2', bk_t('TgRulesTitle'), $rules ? bk_e(bk_t('AcRulesHint')) : '');
+if (!$rules) {
+    $state .= '<p class="bk-hint">' . bk_e(bk_t('AcNoRules')) . '</p>';
+} else {
+    $state .= '<table class="bk-t"><tr><th>' . bk_e(bk_t('SsDeparture')) . '</th><th>' . bk_e(bk_t('TgRegistered')) . '</th><th>'
+        . bk_e(bk_t('TgClubs')) . '</th><th>' . bk_e(bk_t('AcRules')) . '</th></tr>';
+    foreach ($rules as $rc) {
+        $state .= '<tr><td>' . intval($rc['depart']) . ($rc['nom'] ? ' — ' . bk_e($rc['nom']) : '') . '</td><td>' . intval($rc['archers']) . '</td>'
+            . '<td>' . bk_e(bk_t('AcClubsMin', array('n' => intval($rc['clubs']), 'min' => intval($rc['minClubs'])))) . '</td><td>';
+        if ($rc['ok']) {
+            $state .= '<span style="color:#04ac0b;font-weight:600">' . bk_e(bk_t('AcCompliant')) . '</span>';
+        } else {
+            $li = '';
+            if (!$rc['clubsOk']) $li .= '<li>' . bk_e(bk_t('AcLessClubs', intval($rc['minClubs']))) . '</li>';
+            foreach ($rc['exces'] as $ex) {
+                $li .= '<li>' . bk_e(bk_t('AcTooManyLow', array('target' => intval($ex['cible']), 'n' => intval($ex['n']),
+                    'club' => $ex['club'], 'max' => intval($rc['max'])))) . '</li>';
+            }
+            if (intval($rc['nonPlaces']) > 0) $li .= '<li>' . bk_e(bk_t('AcUnplaced', intval($rc['nonPlaces']))) . '</li>';
+            if (!empty($rc['doublons'])) $li .= '<li>' . bk_e(bk_t('AcDupes')) . '</li>';
+            $state .= '<span style="color:#c0392b;font-weight:600">' . bk_e(bk_t('AcReview')) . '</span>'
+                . '<ul class="bk-hint" style="margin:4px 0 0; padding-left:18px; color:#a80000">' . $li . '</ul>';
+        }
+        $state .= '</td></tr>';
+    }
+    $state .= '</table>';
+}
+$state .= '</div>';
+$out .= $panel('2 3', 'state', $state);
+
 echo $out . '</div>' . aut_adm_close();
 
 // Texts and number format for the two scripts below.
@@ -820,9 +899,9 @@ $jsT = array(
     'base' => bk_t('PriceBase'), 'cat' => bk_t('PriceCat'), 'catNamed' => bk_t('PriceCatNamed'), 'dep' => bk_t('DepCap'),
     'dept' => bk_t('PriceDept'), 'region' => bk_t('PriceRegion'), 'rank' => bk_t('PriceRank'),
 );
-echo '<script>var BK_T = ' . json_encode($jsT, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . ', BK_CATN = ' . count($pricing['categories']) . ';</script>';
+echo '<script>var BK_T = ' . json_encode($jsT, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . ', BK_CATN = ' . count($pricing['categories']) . ', BK_TOUR = ' . $TOUR . ';</script>';
 $assets = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/assets/';
 echo '<script src="' . $assets . 'competition.js?v=' . bk_e(bk_version()) . '"></script>';
-if ($showTariffs) echo '<script src="' . $assets . 'tariffs.js?v=' . bk_e(bk_version()) . '"></script>';
+echo '<script src="' . $assets . 'tariffs.js?v=' . bk_e(bk_version()) . '"></script>';
 
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

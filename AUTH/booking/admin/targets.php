@@ -100,13 +100,13 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 ?>
 <style>
 #bkadm .bk-sec { background:#fff; border:1px solid #d2d4d6; border-radius:8px;
-    box-shadow:0 1px 3px rgba(0,0,0,.08); padding:14px 16px; margin:0 0 14px; }
-#bkadm .bk-sec h2 { margin:0 0 10px; font-size:16px; color:#0254a8; }
+    box-shadow:0 1px 3px rgba(0,0,0,.08); padding:10px 12px; margin:0 0 10px; }
+#bkadm .bk-sec h2 { margin:0 0 6px; font-size:14px; color:#0254a8; }
 #bkadm table.bk-t { border-collapse:collapse; font-size:13px; margin-bottom:6px; }
-#bkadm table.bk-t th, #bkadm table.bk-t td { border:1px solid #d2d4d6; padding:5px 10px; text-align:left; }
+#bkadm table.bk-t th, #bkadm table.bk-t td { border:1px solid #d2d4d6; padding:3px 8px; text-align:left; }
 #bkadm table.bk-t th { background:#f0f4ff; color:#01367c; }
-#bkadm .bk-btn { padding:7px 14px; border:1px solid #d2d4d6; border-radius:6px;
-    background:#f7f7f7; color:#20263d; font-size:14px; cursor:pointer; }
+#bkadm .bk-btn { padding:4px 10px; border:1px solid #d2d4d6; border-radius:5px;
+    background:#f7f7f7; color:#20263d; font-family:inherit; font-size:13px; cursor:pointer; }
 #bkadm .bk-btn-primary { background:#0254a8; border-color:#0254a8; color:#fff; font-weight:600; }
 #bkadm .bk-btn-primary:hover { background:#01367c; }
 #bkadm .bk-pill { display:inline-block; padding:1px 8px; border-radius:5px; font-size:12px; }
@@ -144,9 +144,9 @@ if ($pending) {
         foreach ($pending as $p) $subjects[] = aut_trust_subject($p->EnCode);
         aut_trust_preload($subjects);
     }
+    list($q, $h) = aut_adm_help(bk_e(bk_t('TgPendingHint')));
     $out .= '<div class="bk-sec" style="border-color:#cb8137"><h2 style="color:#cb8137">' . bk_e(bk_t('TgPendingTitle'))
-        . ' <span class="bk-pill bk-pill-warn">' . count($pending) . '</span></h2>'
-        . '<p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('TgPendingHint')) . '</p><table class="bk-t">'
+        . ' <span class="bk-pill bk-pill-warn">' . count($pending) . '</span>' . $q . '</h2>' . $h . '<table class="bk-t">'
         . $th(array('ColArcher', 'Licence', 'SsCategory', 'Club', 'SsDeparture', ''));
     foreach ($pending as $p) {
         $out .= '<tr><td>' . bk_e(trim($p->EnFirstName . ' ' . $p->EnName)) . ($trust ? aut_trust_badge($p->EnCode, $TOUR) : '')
@@ -161,7 +161,7 @@ if ($pending) {
 }
 if ($trust) $out .= aut_trust_org_html($TOUR, bk_csrf_field());
 
-$out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('TgDepartures')) . '</h2>';
+$out .= '<div class="bk-sec">' . aut_adm_title('h2', bk_t('TgDepartures'), $sessions ? bk_e(bk_t('TgReassignHint')) : '');
 if (!$sessions) {
     $out .= '<p class="bk-hint">' . bk_e(bk_t('TgNoSession')) . '</p>';
 } else {
@@ -180,18 +180,17 @@ if (!$sessions) {
             . '</td></tr>';
     }
     $out .= '</table>' . $form(array('action' => 'assign_all'), bk_t('TgReassignAll'), 'bk-btn bk-btn-primary', bk_t('TgReassignAllConfirm'), 'margin-top:8px');
-    // Link to PlanQualifs (printable target plan), when installed.
-    // ⚠️ That module is to be renamed/moved in the future: keep the path in one place here.
-    $planQualifsDir = 'Modules/Custom/PlanQualifs/';
-    if (is_dir($CFG->DOCUMENT_PATH . $planQualifsDir)) {
+    // The core's visual target plan (drag and drop), under its own name in every language. Same
+    // conditions as its entry in the core's Participants menu (Modules/DragDropTarget/menu.php).
+    if (is_file($CFG->DOCUMENT_PATH . 'Modules/DragDropTarget/Qualification/index.php') && empty($_SESSION['TourField3D'])) {
         $out .= '<a class="bk-btn" style="text-decoration:none;display:inline-block;margin-top:8px" href="'
-            . bk_e($CFG->ROOT_DIR . $planQualifsDir) . '">' . bk_e(bk_t('TgPrintPlan')) . '</a>';
+            . bk_e($CFG->ROOT_DIR . 'Modules/DragDropTarget/Qualification/index.php') . '">' . bk_e(get_text('MenuLM_DragDropTarget')) . '</a>';
     }
-    $out .= '<p class="bk-hint">' . bk_e(bk_t('TgReassignHint')) . '</p>';
 }
 $out .= '</div>';
 
-$out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('TgRulesTitle')) . '</h2>';
+$out .= '<div class="bk-sec">' . aut_adm_title('h2', bk_t('TgRulesTitle'), $controle ? bk_t('TgRulesHint', array('max' => intval($cfg->BcMaxPerClubPerTarget),
+    'clubs' => intval($cfg->BcMinClubsPerSession))) : '');
 if (!$controle) {
     $out .= '<p class="bk-hint">' . bk_e(bk_t('TgNobody')) . '</p>';
 } else {
@@ -217,13 +216,12 @@ if (!$controle) {
         }
         $out .= '</td></tr>';
     }
-    $out .= '</table><p class="bk-hint">' . bk_t('TgRulesHint', array('max' => intval($cfg->BcMaxPerClubPerTarget),
-        'clubs' => intval($cfg->BcMinClubsPerSession))) . '</p>';
+    $out .= '</table>';
 }
 $out .= '</div>';
 
 if ($requests) {
-    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('TgRequestsTitle')) . '</h2><p class="bk-hint">' . bk_e(bk_t('TgRequestsHint')) . '</p>'
+    $out .= '<div class="bk-sec">' . aut_adm_title('h2', bk_t('TgRequestsTitle'), bk_e(bk_t('TgRequestsHint')))
         . '<table class="bk-t">' . $th(array('ColArcher', 'Licence', 'SsDeparture', 'TgRequest'));
     foreach ($requests as $d) {
         $out .= '<tr><td>' . bk_e(trim($d->EnFirstName . ' ' . $d->EnName)) . '</td><td>' . bk_e($d->EnCode) . '</td>'

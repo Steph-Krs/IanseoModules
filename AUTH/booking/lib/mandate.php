@@ -203,7 +203,7 @@ function bk_mandate_shop($tourId)
     $rs = safe_r_sql("SELECT SpId, SpName, SpPrice, SpDescription, SpOptionName FROM ShopProducts
         INNER JOIN ShopStands ON SdId = SpStand
         INNER JOIN ShopSettings ON SgTournament = SpTournament
-        WHERE SpTournament = $tourId AND SpActive = 1 AND SpPreorder = 1 AND SdActive = 1 AND SgEnabled = 1
+        WHERE SpTournament = $tourId AND SpActive = 1 AND SpPreorder = 1 AND SdActive = 1 AND SgPreorders = 1
         ORDER BY SdOrder, SdId, SpOrder, SpId");
     while ($r = safe_fetch($rs)) {
         $out[intval($r->SpId)] = array('label' => (string) $r->SpName, 'price' => (float) $r->SpPrice,

@@ -222,30 +222,30 @@ $JS_SCRIPT = aut_adm_assets();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 echo '<style>
-#bkdue h2 { font-size:16px; color:#0254a8; margin:18px 0 8px; }
-#bkdue .due-sub { color:#4c4e50; font-size:14px; margin:0 0 14px; }
-#bkdue .due-kpis { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:12px; margin:0 0 14px; }
-#bkdue .due-kpi { background:#fff; border:1px solid #d2d4d6; border-top:4px solid #0254a8; border-radius:8px; padding:10px 12px;
+#bkdue h2 { font-size:14px; color:#0254a8; margin:12px 0 6px; }
+#bkdue .due-sub { color:#4c4e50; font-size:13px; margin:0 0 10px; }
+#bkdue .due-kpis { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:8px; margin:0 0 10px; }
+#bkdue .due-kpi { background:#fff; border:1px solid #d2d4d6; border-top:3px solid #0254a8; border-radius:8px; padding:6px 10px;
     box-shadow:0 1px 3px rgba(0,0,0,.08); }
-#bkdue .due-kpi b { display:block; font-size:20px; color:#01367c; }
+#bkdue .due-kpi b { display:block; font-size:17px; color:#01367c; }
 #bkdue .due-kpi span { font-size:12px; color:#4c4e50; }
 #bkdue .due-kpi.warn { border-top-color:#ff5043; }
 #bkdue .due-kpi.warn b { color:#a32019; }
 #bkdue .due-scroll { overflow-x:auto; }
-#bkdue table { border-collapse:collapse; width:100%; font-size:14px; background:#fff; }
-#bkdue th, #bkdue td { border:1px solid #d2d4d6; padding:6px 9px; text-align:left; vertical-align:top; }
+#bkdue table { border-collapse:collapse; width:100%; font-size:13px; background:#fff; }
+#bkdue th, #bkdue td { border:1px solid #d2d4d6; padding:4px 7px; text-align:left; vertical-align:top; }
 #bkdue th { background:#f0f4ff; color:#01367c; white-space:nowrap; }
 #bkdue th a { color:#01367c; text-decoration:none; }
 #bkdue th a.on { text-decoration:underline; }
 #bkdue .num { text-align:right; white-space:nowrap; }
 #bkdue tr.tot td { background:#eef4fb; font-weight:700; color:#01367c; }
 #bkdue .due-mut { font-size:12px; color:#7d8183; }
-#bkdue .due-btn { padding:7px 14px; border:1px solid #0254a8; border-radius:6px; background:#0254a8; color:#fff;
-    font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-block; }
+#bkdue .due-btn { padding:4px 10px; border:1px solid #0254a8; border-radius:5px; background:#0254a8; color:#fff;
+    font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-block; }
 #bkdue .due-btn-light { background:#fff; color:#0254a8; }
 #bkdue .due-btn-warn { background:#c0392b; border-color:#c0392b; }
 #bkdue .due-btn-sm { padding:3px 9px; font-size:12px; }
-#bkdue .due-msg { padding:9px 12px; border-radius:6px; margin:0 0 14px; font-size:13px; }
+#bkdue .due-msg { padding:6px 10px; border-radius:6px; margin:0 0 10px; font-size:13px; }
 #bkdue .due-msg-ok { background:#d2f4cd; border:1px solid #75ae77; color:#1d6b21; }
 #bkdue .due-msg-err { background:#fdf0ef; border:1px solid #e8b4ae; color:#8b1a1a; }
 #bkdue .due-msg-info { background:#fff8e1; border:1px solid #f0d58c; color:#6b5300; }
@@ -265,13 +265,13 @@ echo '<style>
 #bkdue .due-note input { width:180px; }
 #bkdue details.due-box { border:1px solid #c9d6ee; border-radius:8px; padding:8px 12px; margin:0 0 12px; background:#fff; }
 #bkdue details.due-box > summary { cursor:pointer; font-weight:600; color:#01367c; }
-#bkdue .due-panel { border:2px solid #0254a8; border-radius:10px; padding:12px 16px; margin:0 0 18px; background:#fbfcff; }
+#bkdue .due-panel { border:2px solid #0254a8; border-radius:10px; padding:8px 12px; margin:0 0 12px; background:#fbfcff; }
 #bkdue tr.is-cancelled td { color:#9a9ea1; text-decoration:line-through; }
 #bkdue tr.is-cancelled td.keep { text-decoration:none; }
 #bkdue tr.due-line td { border-top:none; border-bottom:none; font-size:12px; color:#4c4e50; padding-top:1px; padding-bottom:1px; }
 </style>';
 
-echo aut_adm_open('booking/admin/dues.php', bk_t('Payments')) . '<div id="bkdue"><p class="due-sub">' . bk_e($tour->ToName ?? '') . ' — '
+echo aut_adm_open('booking/admin/dues.php', bk_t('Payments'), '', '', bk_e(bk_t('DuFoot'))) . '<div id="bkdue"><p class="due-sub">' . bk_e($tour->ToName ?? '') . ' — '
     . bk_e(bk_t(count($rows) > 1 ? 'DuAccountsMany' : 'DuAccountsOne', count($rows))) . ' · ' . bk_e(bk_t('DuScope')) . '</p>';
 
 if ($adopted && !empty($adopted['ok'])) {
@@ -327,7 +327,7 @@ if ($open === BK_SHOP_SUMMARY && isset($accounts[$open])) {
     $sum = $accounts[$open];
     echo '<div class="due-panel" id="detail"><p style="float:right;margin:0"><a class="due-btn due-btn-light" href="'
         . bk_e(due_url(array('sort' => $sort))) . '">' . bk_e(bk_t('Close')) . '</a></p>'
-        . '<h2 style="margin-top:0">' . bk_e($sum['name']) . '</h2><p class="due-sub">' . bk_e(bk_t('DuShopNoAccountHint')) . '</p>'
+        . aut_adm_title('h2', $sum['name'], bk_e(bk_t('DuShopNoAccountHint')), ' style="margin-top:0"')
         . '<div class="due-scroll"><table><tr><th>' . bk_e(bk_t('DuCustomer')) . '</th><th class="num">' . bk_e(bk_t('TotalDue')) . '</th>'
         . '<th class="num">' . bk_e(bk_t('ColPaid')) . '</th><th class="num">' . bk_e(bk_t('ColLeft')) . '</th><th>'
         . bk_e(bk_t('ColState')) . '</th><th></th></tr>';
@@ -530,7 +530,6 @@ if (!$rows) {
     echo '<tr class="tot"><td colspan="3">' . bk_e(bk_t(count($rows) > 1 ? 'TotalAccountsMany' : 'TotalAccountsOne', count($rows))) . '</td>'
         . '<td class="num">' . due_eur($tot['due']) . '</td><td class="num">' . due_eur($tot['paid']) . '</td>'
         . '<td class="num">' . due_eur($tot['remaining'] - $tot['over']) . '</td><td colspan="2"></td></tr></table></div>';
-    echo '<p class="due-mut" style="margin-top:10px">' . bk_e(bk_t('DuFoot')) . '</p>';
     $seps = bk_number_seps();
     $fmt = array('dec' => $seps['dec'], 'th' => $seps['thousands'], 'cur' => bk_currency($TOUR), 'over' => bk_t('DuSplitOver'));
 

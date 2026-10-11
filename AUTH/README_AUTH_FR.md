@@ -66,8 +66,12 @@ Gestion complète des points de vente (buvette, restauration, boutique) d'une co
 commande par téléphone des archers et des visiteurs, et caisse mobile pour les bénévoles.
 
 - 🏪 **Configuration et catalogue** : création de points de vente (mode direct ou file d'attente,
-  paiement avant ou au retrait), produits avec variantes, stocks, limite par commande et par personne,
-  précommandes jusqu'à une date fixée
+  paiement avant ou au retrait), produits avec variantes, stocks, limite par commande et par personne
+- 🚦 **Ouverture par étapes** : tout se prépare à l'avance ; on ouvre ensuite séparément les
+  **précommandes** (espace archer, avant la compétition, jusqu'à une date ou la veille), la
+  **buvette et la boutique en direct** aux clients (commandes par téléphone le jour J) et l'**accès
+  des bénévoles** (vente au point de vente, préparation, remise des précommandes) ; ouvrir un moyen
+  de commande ouvre aussi les bénévoles ; l'organisateur vend toujours depuis son appareil
 - 🛒 **Commande** : sélection des produits, panier mémorisé par téléphone, suivi en direct du statut
   (« reçue » → « préparation » → « prête »), estimation du temps d'attente, annulation avant retrait ;
   commande ou précommande **pour un jour et une heure** (le repas de midi commandé le matin n'est pas
@@ -89,10 +93,11 @@ commande par téléphone des archers et des visiteurs, et caisse mobile pour les
 - 👔 **Bénévoles** : invitation par code QR avec validation et code de vérification à 4 chiffres
   pour l'organisateur, rôles préréglés (vendeur, préparateur, polyvalent, responsable de stand),
   plafonds de remboursement, droits donnés **par stand** pour une meilleure autonomie, révocation
-  immédiate possible ; comptes non licenciés ouverts de la veille à la fin (effacés automatiquement
-  le lendemain)
-- 📊 **Bilans** : synthèse par stand, par jour, par moyen de paiement, par bénévole ; clôture de
-  caisse PDF et exports CSV ; comptes ouverts (« sur compte ») lien avec la page Paiements
+  immédiate possible et annulable (l'accès revient avec ses droits) ; comptes non licenciés ouverts
+  de la veille à la fin (effacés automatiquement le lendemain)
+- 📊 **Bilans** en onglets (comptes encore ouverts, encaissement, ventes, stock, documents) :
+  synthèse par stand, par jour, par moyen de paiement, par bénévole ; clôture de caisse PDF et
+  exports CSV ; comptes ouverts (« sur compte ») liés à la page Paiements
 - 📋 **Copie** : reproduire les paramètres et le catalogue d'une compétition précédente ; stocks
   conservent la quantité initiale
 - 🔐 **Indice de confiance des payeurs** : impayés et retards calculés chaque nuit sur les
@@ -124,9 +129,12 @@ arbitres ou sur l'ordinateur de l'organisateur.
   caisse des bénévoles
 - 🧑‍⚖️ **Vue des arbitres** : les archers dont le matériel n'est pas encore contrôlé, filtrés par
   départ, arme, classe et épreuve ; un filtre ne propose que les choix où il reste quelqu'un
+- 🔓 **Toujours disponible pour l'organisateur**, depuis son ordinateur ou son téléphone ; le greffe
+  et le contrôle du matériel s'ouvrent **séparément aux bénévoles** (« Ouvrir la modification aux
+  bénévoles ») — sans cette option, seuls les organisateurs interviennent
 - 👔 **Droits par personne**, donnés sur la page Bénévoles (mêmes invitations que la buvette) :
-  contrôle des inscriptions, paiements, contrôle du matériel ; réglages tout faits « Greffe » et
-  « Arbitre » ; le greffe fonctionne même sans la buvette
+  greffe (contrôle des inscriptions, paiements) et arbitres (contrôle du matériel) ; réglages tout
+  faits « Greffe » et « Arbitre » ; le greffe fonctionne même sans la buvette
 - 📋 **Liste de l'organisateur** : chaque participant avec l'état du greffe et du matériel (validé,
   refusé, pas encore passé), filtres et totaux ; les archers refusés apparaissent dans les
   anomalies de la page d'accueil de la compétition ; le contrôle nocturne des licences ne revient
@@ -234,7 +242,7 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `Entries` | `cron/sync-licences.php:299` | — |
 | `INSERT INTO` | `Flags` | `logos-lib.php:267` | — |
 | `INSERT INTO` | `Flags` | `logos-lib.php:313` | — |
-| `UPDATE` | `Entries` | `shop/lib/desk.php:244` | review scope by hand |
+| `UPDATE` | `Entries` | `shop/lib/desk.php:259` | review scope by hand |
 
 ### Tables owned by this module
 
@@ -281,8 +289,8 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:406` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:407` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:97` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:116` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:173` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:119` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:184` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/admin/mandate.php:44` | — |
 | `INSERT INTO` | `BookingReimportConflicts` | `booking/lib/adopt.php:105` | — |
 | `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:173` | — |
@@ -472,8 +480,8 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `ShopStockMoves` | `shop/lib/catalog-admin.php:411` | — |
 | `DELETE FROM` | `ShopVariants` | `shop/lib/catalog-admin.php:412` | — |
 | `INSERT IGNORE INTO` | `ShopSettings` | `shop/lib/common.php:97` | — |
-| `UPDATE` | `ShopSettings` | `shop/lib/common.php:133` | — |
-| `UPDATE IGNORE` | `ShopSettings` | `shop/lib/common.php:145` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/common.php:135` | — |
+| `UPDATE IGNORE` | `ShopSettings` | `shop/lib/common.php:147` | — |
 | `DELETE FROM` | `ShopStaffStands` | `shop/lib/copy.php:119` | — |
 | `DELETE FROM` | `ShopStands` | `shop/lib/copy.php:120` | — |
 | `UPDATE` | `ShopSettings` | `shop/lib/copy.php:124` | — |
@@ -481,13 +489,13 @@ Voir le [README général](../README.md) pour le principe commun.
 | `INSERT INTO` | `ShopProducts` | `shop/lib/copy.php:144` | — |
 | `INSERT INTO` | `ShopVariants` | `shop/lib/copy.php:157` | — |
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:46` | — |
-| `UPDATE` | `ShopGuests` | `shop/lib/customer.php:78` | — |
-| `INSERT INTO` | `ShopGuests` | `shop/lib/customer.php:84` | — |
-| `UPDATE` | `ShopGuests` | `shop/lib/customer.php:97` | — |
-| `INSERT IGNORE INTO` | `BookingCheckEntries` | `shop/lib/desk.php:242` | — |
-| `INSERT INTO` | `BookingCheckLog` | `shop/lib/desk.php:477` | — |
-| `DELETE FROM` | `BookingChecks` | `shop/lib/desk.php:528` | — |
-| `REPLACE INTO` | `BookingChecks` | `shop/lib/desk.php:531` | — |
+| `UPDATE` | `ShopGuests` | `shop/lib/customer.php:79` | — |
+| `INSERT INTO` | `ShopGuests` | `shop/lib/customer.php:85` | — |
+| `UPDATE` | `ShopGuests` | `shop/lib/customer.php:98` | — |
+| `INSERT IGNORE INTO` | `BookingCheckEntries` | `shop/lib/desk.php:257` | — |
+| `INSERT INTO` | `BookingCheckLog` | `shop/lib/desk.php:492` | — |
+| `DELETE FROM` | `BookingChecks` | `shop/lib/desk.php:543` | — |
+| `REPLACE INTO` | `BookingChecks` | `shop/lib/desk.php:546` | — |
 | `UPDATE` | `ShopInvites` | `shop/lib/invite.php:46` | — |
 | `UPDATE` | `ShopInvites` | `shop/lib/invite.php:51` | — |
 | `INSERT INTO` | `ShopInvites` | `shop/lib/invite.php:57` | — |
@@ -501,16 +509,16 @@ Voir le [README général](../README.md) pour le principe commun.
 | `INSERT INTO` | `ShopOrderLines` | `shop/lib/legacy.php:175` | — |
 | `INSERT INTO` | `ShopStockMoves` | `shop/lib/legacy.php:180` | — |
 | `UPDATE` | `ShopSettings` | `shop/lib/legacy.php:186` | — |
-| `UPDATE` | `ShopStands` | `shop/lib/orders.php:305` | — |
-| `INSERT INTO` | `ShopOrders` | `shop/lib/orders.php:312` | — |
-| `INSERT INTO` | `ShopOrderLines` | `shop/lib/orders.php:337` | — |
-| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:342` | — |
-| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:404` | — |
-| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:431` | — |
-| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:454` | — |
-| `UPDATE` | `ShopOrderLines` | `shop/lib/orders.php:469` | — |
-| `UPDATE` | `ShopOrderLines` | `shop/lib/orders.php:499` | — |
-| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:509` | — |
+| `UPDATE` | `ShopStands` | `shop/lib/orders.php:308` | — |
+| `INSERT INTO` | `ShopOrders` | `shop/lib/orders.php:315` | — |
+| `INSERT INTO` | `ShopOrderLines` | `shop/lib/orders.php:340` | — |
+| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:345` | — |
+| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:407` | — |
+| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:434` | — |
+| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:457` | — |
+| `UPDATE` | `ShopOrderLines` | `shop/lib/orders.php:472` | — |
+| `UPDATE` | `ShopOrderLines` | `shop/lib/orders.php:502` | — |
+| `UPDATE` | `ShopOrders` | `shop/lib/orders.php:512` | — |
 | `UPDATE` | `ShopOrders` | `shop/lib/pay.php:148` | — |
 | `UPDATE` | `ShopOrders` | `shop/lib/pay.php:245` | — |
 | `DELETE FROM` | `ShopStaffSessions` | `shop/lib/purge.php:64` | — |
@@ -536,13 +544,16 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `ShopPush` | `shop/lib/push.php:249` | — |
 | `UPDATE` | `ShopPush` | `shop/lib/push.php:251` | — |
 | `DELETE FROM` | `ShopPush` | `shop/lib/push.php:252` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/schema.php:353` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/schema.php:362` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/schema.php:365` | — |
 | `INSERT INTO` | `ShopStaffSessions` | `shop/lib/staff-session.php:36` | — |
 | `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff-session.php:42` | — |
 | `UPDATE` | `ShopStaff` | `shop/lib/staff-session.php:45` | — |
 | `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff-session.php:55` | — |
-| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff-session.php:98` | — |
-| `UPDATE` | `ShopStaffSessions` | `shop/lib/staff-session.php:117` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff-session.php:119` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff-session.php:99` | — |
+| `UPDATE` | `ShopStaffSessions` | `shop/lib/staff-session.php:118` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff-session.php:120` | — |
 | `INSERT INTO` | `ShopStaffLog` | `shop/lib/staff.php:341` | — |
 | `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:388` | — |
 | `INSERT INTO` | `ShopStaffStands` | `shop/lib/staff.php:390` | — |
@@ -553,14 +564,15 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `ShopStaff` | `shop/lib/staff.php:480` | — |
 | `UPDATE` | `ShopInvites` | `shop/lib/staff.php:483` | — |
 | `UPDATE` | `ShopStaff` | `shop/lib/staff.php:493` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:517` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:523` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:581` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:582` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:585` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:650` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:674` | — |
-| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff.php:678` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:510` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:535` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:541` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:599` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:600` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:603` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:668` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:692` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff.php:696` | — |
 | `INSERT INTO` | `ShopStockMoves` | `shop/lib/stock.php:28` | — |
 | `UPDATE` | `ShopVariants` | `shop/lib/stock.php:56` | — |
 | `UPDATE` | `ShopProducts` | `shop/lib/stock.php:59` | — |

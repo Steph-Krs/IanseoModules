@@ -26,8 +26,9 @@ function shp_public_links($tourId)
     if ($tourId <= 0) return $none;
     if (isset($cache[$tourId])) return $cache[$tourId];
     $now = bk_local_now_sql('(SELECT ToTimeZone FROM Tournament WHERE ToId = ' . $tourId . ')');
-    $rs = safe_r_sql("SELECT SgPublicKey,
-            (SgPreorderUntil IS NOT NULL AND SgPreorderUntil >= $now) AS PreorderOpen,
+    // The shop link once the phone orders are open, the pre-order link while the pre-orders are.
+    $rs = safe_r_sql("SELECT SgPublicKey, SgClients,
+            " . shp_preorder_open_sql($now) . " AS PreorderOpen,
             EXISTS(SELECT 1 FROM ShopProducts INNER JOIN ShopStands ON SdId = SpStand
                 WHERE SpTournament = SgTournament AND SpActive = 1 AND SdActive = 1) AS HasProducts,
             EXISTS(SELECT 1 FROM ShopProducts INNER JOIN ShopStands ON SdId = SpStand
@@ -37,7 +38,7 @@ function shp_public_links($tourId)
     if (!$r || !preg_match('/^[a-z0-9]{10}$/', (string) $r->SgPublicKey)) return $cache[$tourId] = $none;
     $url = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/shop/public/index.php?k=' . $r->SgPublicKey;
     return $cache[$tourId] = array(
-        'shop' => intval($r->HasProducts) ? $url : '',
+        'shop' => intval($r->HasProducts) && intval($r->SgClients) === 1 ? $url : '',
         'preorder' => intval($r->PreorderOpen) && intval($r->HasPreorder) ? $url : '',
     );
 }

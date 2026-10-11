@@ -22,7 +22,7 @@ $inTour = $st['reason'] === 'ok' && ($keyTour === 0 || intval($st['staff']->SfTo
 // the desk is their page. Every address of the volunteers (sign-in, joining) ends here.
 if ($inTour) {
     $t = intval($st['staff']->SfTournament);
-    if ((!shp_enabled($t) || !shp_staff_can($st['staff'], '')) && shp_desk_on($t) && shp_desk_can($st['staff'])) {
+    if ((!shp_till_open($t, $st['staff']) || !shp_staff_can($st['staff'], '')) && shp_desk_can($st['staff'])) {
         header('Location: ' . shp_url('desk/index.php'));
         exit;
     }
@@ -88,7 +88,7 @@ echo '  <div id="pos" class="pos"><p class="shp-muted pos-loading">' . shp_e(shp
         'stand' => shp_url('staff/api/stand.php'), 'search' => shp_url('staff/api/search.php'),
         'accounts' => shp_url('staff/api/accounts.php'), 'report' => shp_url('staff/api/report.php'),
         'logout' => shp_url('staff/api/logout.php'),
-        'desk' => shp_desk_on($TOUR) && shp_desk_can($me) ? shp_url('desk/index.php') : '',
+        'desk' => shp_desk_can($me) ? shp_url('desk/index.php') : '',
         'login' => shp_url('staff/login.php?k=' . rawurlencode($tillKey)), 'key' => $tillKey,
         'title' => $title)));
 shp_foot(array('pos.js'));

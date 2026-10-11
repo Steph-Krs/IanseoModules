@@ -59,18 +59,24 @@ function shp_adm_msg($type, $lines)
     return $html . '</ul></div>';
 }
 
-/** A labelled field: $input is markup already escaped by the caller. */
+/** A labelled field: $input is markup already escaped by the caller; $hint: its explanation,
+    behind a "?" (aut_adm_help). */
 function shp_adm_field($label, $input, $hint = '', $class = '')
 {
-    return '<label class="sa-f' . ($class !== '' ? ' ' . $class : '') . '"><span>' . shp_e($label) . '</span>' . $input
-        . ($hint !== '' ? '<small>' . shp_e($hint) . '</small>' : '') . '</label>';
+    $q = $h = '';
+    if ($hint !== '') list($q, $h) = aut_adm_help(shp_e($hint));
+    return '<label class="sa-f' . ($class !== '' ? ' ' . $class : '') . '"><span>' . shp_e($label) . $q . '</span>' . $input . $h . '</label>';
 }
 
-/** A checkbox with its text. */
+/** A checkbox with its text; $hint: its explanation, behind a "?", out of the label (a click on
+    the text must not tick the box). */
 function shp_adm_check($name, $checked, $label, $hint = '', $extra = '')
 {
-    return '<label class="sa-chk"><input type="checkbox" name="' . shp_e($name) . '" value="1"' . ($checked ? ' checked' : '') . $extra . '> '
-        . '<span>' . shp_e($label) . ($hint !== '' ? '<small>' . shp_e($hint) . '</small>' : '') . '</span></label>';
+    $q = $h = '';
+    if ($hint !== '') list($q, $h) = aut_adm_help(shp_e($hint));
+    $box = '<label class="sa-chk"><input type="checkbox" name="' . shp_e($name) . '" value="1"' . ($checked ? ' checked' : '') . $extra . '> '
+        . '<span>' . shp_e($label) . $q . '</span></label>';
+    return $h === '' ? $box : '<div class="sa-opt">' . $box . $h . '</div>';
 }
 
 /** <option> list: [value => label], $sel the selected value. */

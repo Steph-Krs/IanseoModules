@@ -157,7 +157,10 @@ function shp_order_create($tourId, $standId, array $lines, array $customer, arra
     if ($ex = shp_order_by_idem($tourId, $idem)) return shp_order_answer($ex, true);
 
     $set = shp_settings($tourId);
-    if (!$set || intval($set->SgEnabled) !== 1) return shp_err('shop_off', 'ShErrShopOff');
+    // Each way of ordering has its own opening (shp_enabled): the counter while the stands are open
+    // to the volunteers — always for the organiser —, the phones and the pre-orders below.
+    if (!$set) return shp_err('shop_off', 'ShErrShopOff');
+    if ($channel === 'counter' && !shp_till_open($tourId, $staffId)) return shp_err('shop_off', 'ShErrShopOff');
     $stand = shp_stand($standId);
     if (!$stand || intval($stand->SdTournament) !== $tourId || intval($stand->SdActive) !== 1) {
         return shp_err('stand', 'ShErrStand');
@@ -173,7 +176,7 @@ function shp_order_create($tourId, $standId, array $lines, array $customer, arra
     // Channel.
     if ($channel === 'online') {
         if (intval($stand->SdOnline) !== 1 || intval($stand->SdOpen) !== 1) return shp_err('stand_closed', 'ShErrStandClosed');
-        if (!$win || !$win['local_open']) return shp_err('not_now', 'ShErrNotNow');
+        if (!$win || !$win['local_open'] || !$win['clients_open']) return shp_err('not_now', 'ShErrNotNow');
     } elseif ($channel === 'counter') {
         if ($staffId <= 0) return shp_err('bad_request', 'ShErrBadRequest');
     } elseif (!$win || !$win['preorder_open']) {

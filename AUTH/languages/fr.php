@@ -891,6 +891,7 @@ $lang['ForMainCount']      = '{$a} archer(s) : identité non contrôlée, à vé
 $lang['DeskMainAnomaly']   = 'Archers refusés au greffe (documents ou matériel non conformes)';
 $lang['DeskMainCount']     = '{$a} archer(s) au statut « Ne peut pas participer »';
 $lang['AdmSave']           = 'Enregistrer';
+$lang['AdmHelpQ']          = 'Explication';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Contenu invalide.';

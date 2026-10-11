@@ -20,7 +20,7 @@
 if (defined('SHP_SCHEMA_LOADED')) return;
 define('SHP_SCHEMA_LOADED', true);
 
-if (!defined('SHP_SCHEMA_VERSION')) define('SHP_SCHEMA_VERSION', 6);
+if (!defined('SHP_SCHEMA_VERSION')) define('SHP_SCHEMA_VERSION', 8);
 
 // The shop shares the payment journal and the licensee accounts of the online registration
 // (same module): booking's schema, clock and texts come first.
@@ -343,6 +343,27 @@ function shp_schema()
     // the stands (SgDesk), and rights of each volunteer there (SfDesk: reg, pay, equip).
     shp_colonne('ShopSettings', 'SgDesk', "TINYINT NOT NULL DEFAULT 0 AFTER SgEnabled");
     shp_colonne('ShopStaff', 'SfDesk', "VARCHAR(32) NOT NULL DEFAULT '' AFTER SfStatus");
+
+    // v7 — the desk is always there for the organisers (user's choice, 1.4.2): SgDesk now says
+    // whether the VOLUNTEERS may work at the registry (documents, payments), SgJudges whether they
+    // may check the equipment — two posts opened apart. Until then one switch opened both: the
+    // new column takes its value, once (only when it was just added — this body replays at every
+    // session).
+    if (shp_colonne('ShopSettings', 'SgJudges', "TINYINT NOT NULL DEFAULT 0 AFTER SgDesk")) {
+        safe_w_sql("UPDATE ShopSettings SET SgJudges = SgDesk");
+    }
+
+    // v8 — the food & shop opened step by step (1.4.2): SgEnabled now says the stands are open to
+    // the VOLUNTEERS (till); SgPreorders opens the pre-orders (archers' space, before the
+    // competition), SgClients the customers' phone orders on the day — each needs the volunteers.
+    // Until then one switch opened everything, pre-orders as soon as a deadline was set: the new
+    // columns take that, once (only when just added — this body replays at every session).
+    if (shp_colonne('ShopSettings', 'SgPreorders', "TINYINT NOT NULL DEFAULT 0 AFTER SgEnabled")) {
+        safe_w_sql("UPDATE ShopSettings SET SgPreorders = IF(SgEnabled = 1 AND SgPreorderUntil IS NOT NULL, 1, 0)");
+    }
+    if (shp_colonne('ShopSettings', 'SgClients', "TINYINT NOT NULL DEFAULT 0 AFTER SgPreorders")) {
+        safe_w_sql("UPDATE ShopSettings SET SgClients = SgEnabled");
+    }
 
     $_SESSION[$flag] = true;
     $busy = false;

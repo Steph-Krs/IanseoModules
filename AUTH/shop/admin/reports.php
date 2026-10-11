@@ -24,7 +24,9 @@ shp_schema();
 
 $TOUR = intval($_SESSION['TourId']);
 $settings = shp_settings($TOUR);
-$enabled = $settings && intval($settings->SgEnabled) === 1;
+// Always there for the organiser once the settings exist (user's choice: everything is
+// prepared beforehand, the openings are decided on the settings page).
+$enabled = (bool) $settings;
 $F = shp_rep_filter($TOUR, (string) ($_GET['day'] ?? ''), intval($_GET['stand'] ?? 0));
 $stands = shp_stands($TOUR, false);
 $code = preg_replace('/[^A-Za-z0-9]+/', '', (string) ($_SESSION['TourCode'] ?? '')) ?: 'comp';
@@ -94,16 +96,18 @@ function sr_table(array $cols, array $rows, array $total = array(), $class = '')
     return $html . '</table></div>';
 }
 
-/** A card with a title. */
+/** A card with a title; $hint: its explanation, behind a "?" (aut_adm_help). */
 function sr_card($title, $body, $hint = '')
 {
-    return '<section class="sa-card"><h2>' . shp_e($title) . '</h2>' . ($hint !== '' ? '<p class="sa-hint">' . shp_e($hint) . '</p>' : '') . $body . '</section>';
+    return '<section class="sa-card">' . aut_adm_title('h2', $title, $hint !== '' ? shp_e($hint) : '') . $body . '</section>';
 }
 
-/** A key figure. */
-function sr_tile($label, $value, $sub = '')
+/** A key figure; $hint: what it means, behind a "?" (aut_adm_help). */
+function sr_tile($label, $value, $hint = '')
 {
-    return '<div class="sr-tile"><span>' . shp_e($label) . '</span><b>' . shp_e($value) . '</b>' . ($sub !== '' ? '<small>' . shp_e($sub) . '</small>' : '') . '</div>';
+    $q = $h = '';
+    if ($hint !== '') list($q, $h) = aut_adm_help(shp_e($hint));
+    return '<div class="sr-tile"><span>' . shp_e($label) . $q . '</span><b>' . shp_e($value) . '</b>' . $h . '</div>';
 }
 
 /** Link to a PDF, with the core's PDF icon beside its text. */
@@ -135,7 +139,7 @@ $PAGE_TITLE = shp_t('MnuReports') . ' — ' . shp_t('MnuTitle');
 $JS_SCRIPT = shp_adm_assets(array('<link rel="stylesheet" href="' . shp_e(shp_asset_url('reports.css')) . '">'));
 include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
-echo aut_adm_open('shop/admin/reports.php', shp_t('ShRepReportsTitle'), '', 'sr-page');
+echo aut_adm_open('shop/admin/reports.php', shp_t('ShRepReportsTitle'), '', 'sr-page', shp_e(shp_t('ShRepReportsLead')));
 
 if (!$enabled) {
     echo shp_adm_msg('warn', array(shp_t('ShRepShopOff'))) . '<p><a class="sa-btn sa-primary" href="' . shp_e(shp_adm_url('index.php')) . '">'
@@ -147,8 +151,6 @@ if (!$enabled) {
 bk_money_tour($TOUR);
 $days = shp_rep_days($TOUR);
 $win = shp_window($TOUR);
-
-echo '<p class="sa-lead">' . shp_e(shp_t('ShRepReportsLead')) . '</p>';
 
 // Names of volunteers without a licence disappear the day after the competition (decision D3).
 if ($win && $win['from'] > '0000-00-00') {
@@ -195,7 +197,8 @@ $docs .= $rows ? '<h3>' . shp_e(shp_t('ShRepClosingsTitle')) . '</h3>'
     . sr_table(array(array(shp_t('ShRepColDay')), array(shp_t('ShRepColStand')), array(shp_t('ShRepColOrders'), 'r'), array(shp_t('ShRepColSales'), 'r'),
         array(shp_t('ShRepColCashNet'), 'r'), array(shp_t('ShRepColNet'), 'r'), array('')), $rows)
     : '<p class="sa-muted">' . shp_e(shp_t('ShRepNoClosing')) . '</p>';
-echo sr_card(shp_t('ShRepDocsTitle'), $docs, shp_t('ShRepDocsHint'));
+// Tabs (user's choice: there is a lot to read), the key figures above them.
+$tab = array('docs' => sr_card(shp_t('ShRepDocsTitle'), $docs, shp_t('ShRepDocsHint')), 'cash' => '', 'sales' => '', 'stock' => '', 'accounts' => '');
 
 // Collections.
 $cashCols = array(array(shp_t('ShRepColMethod')), array(shp_t('ShRepColCollected'), 'r'), array(shp_t('ShRepColRefunded'), 'r'),
@@ -214,7 +217,7 @@ if ($rows) {
     foreach ($cash['staff'] as $id => $g) $r3[] = array_merge(array(shp_rep_staff_name($id)), sr_cash_cells($g));
     $body .= '<h3>' . shp_e(shp_t('ShRepByStaff')) . '</h3>' . sr_table($cashCols, $r3);
 }
-echo sr_card(shp_t('ShRepCollectionsTitle'), $body, shp_t('ShRepCollectionsHint'));
+$tab['cash'] .= sr_card(shp_t('ShRepCollectionsTitle'), $body, shp_t('ShRepCollectionsHint'));
 
 // Sales: by article, category, hour.
 $body = '';
@@ -234,13 +237,13 @@ if (!$sales) {
     $body = sr_table(array(array(shp_t('ShRepColProduct')), array(shp_t('ShRepColCategory')), array(shp_t('ShRepColUnit'), 'r'),
         array(shp_t('ShRepColQty'), 'r'), array(shp_t('ShRepColAmount'), 'r')), $rows, array(shp_t('ShRepTotal'), '', '', (string) $q, sr_m($a)));
 }
-echo sr_card(shp_t('ShRepSalesByProduct'), $body);
+$tab['sales'] .= sr_card(shp_t('ShRepSalesByProduct'), $body);
 
 $cats = shp_rep_by_category($sales);
 if ($cats) {
     $rows = array();
     foreach ($cats as $c) $rows[] = array($c['category'] !== '' ? $c['category'] : shp_t('ShRepNoCategory'), (string) $c['qty'], sr_m($c['amount']));
-    echo sr_card(shp_t('ShRepByCategory'), sr_table(array(array(shp_t('ShRepColCategory')), array(shp_t('ShRepColQty'), 'r'), array(shp_t('ShRepColAmount'), 'r')), $rows));
+    $tab['sales'] .= sr_card(shp_t('ShRepByCategory'), sr_table(array(array(shp_t('ShRepColCategory')), array(shp_t('ShRepColQty'), 'r'), array(shp_t('ShRepColAmount'), 'r')), $rows));
 }
 
 $hours = shp_rep_hours($F);
@@ -253,7 +256,7 @@ if ($hours) {
         $rows[] = array(($F['day'] === '' ? shp_adm_date($h['day']) . ' ' : '') . sprintf('%02d:00', $h['hour']), (string) $h['orders'], sr_m($h['amount']),
             array('<span class="sr-bar" style="width:' . intval($pct) . '%"></span>'), '_class' => $h['orders'] === $maxOrders ? 'sr-peak' : '');
     }
-    echo sr_card(shp_t('ShRepByHour'), sr_table(array(array(shp_t('ShRepColHour')), array(shp_t('ShRepColOrders'), 'r'), array(shp_t('ShRepColAmount'), 'r'), array('')), $rows, array(), 'sr-hours'),
+    $tab['sales'] .= sr_card(shp_t('ShRepByHour'), sr_table(array(array(shp_t('ShRepColHour')), array(shp_t('ShRepColOrders'), 'r'), array(shp_t('ShRepColAmount'), 'r'), array('')), $rows, array(), 'sr-hours'),
         shp_t('ShRepByHourHint'));
 }
 
@@ -264,7 +267,7 @@ foreach ($refunds as $r) {
     $rows[] = array(bk_date_time($r['when']), $r['order'], sr_m($r['amount']), shp_rep_method_label($r['method']),
         trim($r['label'] . ($r['cancelled'] ? ' — ' . shp_t('ShRepCancelledWord') : ''), ' —'), shp_rep_staff_name($r['staff']));
 }
-echo sr_card(shp_t('ShRepRefundsTitle'), $rows
+$tab['cash'] .= sr_card(shp_t('ShRepRefundsTitle'), $rows
     ? sr_table(array(array(shp_t('ShRepColDate')), array(shp_t('ShRepColOrder')), array(shp_t('ShRepColAmount'), 'r'), array(shp_t('ShRepColMethod')),
         array(shp_t('ShRepColLabel')), array(shp_t('ShRepColStaff'))), $rows)
     : '<p class="sa-muted">' . shp_e(shp_t('ShRepNoRefund')) . '</p>');
@@ -277,7 +280,7 @@ if ($stock) {
         $rows[] = array($s['label'], shp_rep_stand_name($stands[$s['stand']] ?? null), (string) $s['initial'], (string) $s['restock'], (string) $s['sold'],
             (string) $s['lost'], array('<b>' . shp_e((string) $s['left']) . '</b>' . ($s['low'] ? ' <span class="sr-low">' . shp_e(shp_t('ShRepLow')) . '</span>' : '')));
     }
-    echo sr_card(shp_t('ShRepStockTitle'), sr_table(array(array(shp_t('ShRepColProduct')), array(shp_t('ShRepColStand')), array(shp_t('ShRepColInitial'), 'r'),
+    $tab['stock'] = sr_card(shp_t('ShRepStockTitle'), sr_table(array(array(shp_t('ShRepColProduct')), array(shp_t('ShRepColStand')), array(shp_t('ShRepColInitial'), 'r'),
         array(shp_t('ShRepColRestock'), 'r'), array(shp_t('ShRepColSold'), 'r'), array(shp_t('ShRepColLost'), 'r'), array(shp_t('ShRepColLeft'), 'r')), $rows),
         shp_t('ShRepStockHint'));
 }
@@ -297,7 +300,14 @@ $body = $rows ? sr_table(array(array(shp_t('ShRepColName')), array(shp_t('ShRepC
         array(shp_t('ShRepColLeft'), 'r')), $rows, array(shp_t('ShRepAccountsCount') . ' : ' . count($acc['rows']), '', '', '', sr_m($acc['remaining'])))
     : '<p class="sa-muted">' . shp_e(shp_t('ShRepNoAccount')) . '</p>';
 if ($duesLinks) $body .= '<p><a class="sa-btn" href="' . shp_e($CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/dues.php') . '">' . shp_e(shp_t('ShRepGoPayments')) . '</a></p>';
-echo sr_card(shp_t('ShRepAccountsTitle'), $body, shp_t('ShRepAccountsHint'));
+$tab['accounts'] = sr_card(shp_t('ShRepAccountsTitle'), $body, shp_t('ShRepAccountsHint'));
 
-echo aut_adm_close();
+$tabs = array(
+    'accounts' => array(shp_e(shp_t('ShRepAccountsTitle')) . ($acc['rows'] ? '<span class="sa-tab-n">' . count($acc['rows']) . '</span>' : ''), $tab['accounts']),
+    'cash'     => array(shp_e(shp_t('ShRepTabCash')), $tab['cash']),
+    'sales'    => array(shp_e(shp_t('ShRepTabSales')), $tab['sales']),
+    'stock'    => array(shp_e(shp_t('ShRepStockTitle')), $tab['stock'] !== '' ? $tab['stock'] : '<p class="sa-muted">' . shp_e(shp_t('ShRepNothing')) . '</p>'),
+    'docs'     => array(shp_e(shp_t('ShRepDocsTitle')), $tab['docs']),
+);
+echo aut_adm_tabs('reports', $tabs) . aut_adm_close();
 include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');

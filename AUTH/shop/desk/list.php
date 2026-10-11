@@ -5,14 +5,15 @@
  * check — accepted, refused or not seen yet —, the last draw weight measured and the notes.
  * Filters by state and departure, and a search; totals on top.
  *
- * Also where the desk is switched on (ShopSettings.SgDesk) and opened: "Open the desk on this
- * device" makes the organiser a volunteer with every right (shp_staff_organiser), the address
- * and QR code of the desk are given for the volunteers' phones, and each row opens the archer's
- * file at the desk (GET with the session's CSRF token).
+ * The desk is always there for the organisers (user's choice, 1.4.2 — it costs nothing while
+ * nobody opens it: no task, no cron): "Open the desk on this device" makes the organiser a
+ * volunteer with every right (shp_staff_organiser), and each row opens the archer's file at the
+ * desk (GET with the session's CSRF token). Each view has ONE option: open the changes to the
+ * volunteers — the registry here (ShopSettings.SgDesk), the equipment check in the judges' view
+ * (SgJudges) —, and then gives the address and QR code of the desk for their phones.
  *
  * Two views of the same list, two menus: "Check-in" (this address) and "Judges" (?v=equip:
- * opened on the equipment not checked yet, without the switch block) — until the judges have
- * their own page.
+ * opened on the equipment not checked yet) — until the judges have their own page.
  *
  * ianseo look and ACL of the core, frame shared by AUTH's organiser pages (adm-lib.php): reading
  * with participants read-only, acting with read-write.
@@ -33,7 +34,7 @@ shp_schema();
 $TOUR = intval($_SESSION['TourId']);
 $RW = hasFullACL(AclParticipants, 'pEntries', AclReadWrite);
 $JUDGES = (string) ($_GET['v'] ?? '') === 'equip';
-$SELF = shp_url('desk/list.php');
+$SELF = shp_url('desk/list.php' . ($JUDGES ? '?v=equip' : ''));
 $BY = shp_staff_by();
 $window = shp_window($TOUR);
 $over = !$window || $window['purge_due'];
@@ -55,23 +56,24 @@ if ($RW && !shp_impersonating()) {
         if (!bk_csrf_check()) {
             $errors[] = shp_t('ShStfErrSession');
         } elseif ($act === 'on' || $act === 'off') {
-            shp_settings_save($TOUR, array('desk' => $act === 'on'));
+            // The post of this view opened to the volunteers, or closed again.
+            shp_settings_save($TOUR, array($JUDGES ? 'judges' : 'desk' => $act === 'on'));
             header('Location: ' . $SELF);
             exit;
         } elseif ($act === 'open') {
-            if (!shp_desk_on($TOUR) || $over) $errors[] = shp_t($over ? 'ShStfErrOver' : 'DkErrOff');
+            if ($over) $errors[] = shp_t('ShStfErrOver');
             else $errors[] = dl_open_desk($TOUR, $BY, '');
         }
     } elseif (isset($_GET['open'])) {
         // A row of the list: the token of the session guards this address against another site.
         $acc = (string) $_GET['open'];
         if (!hash_equals(bk_csrf_token(), (string) ($_GET['t'] ?? '')) || !shp_desk_account_ok($acc)) $errors[] = shp_t('ShStfErrSession');
-        elseif (!shp_desk_on($TOUR) || $over) $errors[] = shp_t($over ? 'ShStfErrOver' : 'DkErrOff');
+        elseif ($over) $errors[] = shp_t('ShStfErrOver');
         else $errors[] = dl_open_desk($TOUR, $BY, $acc);
     }
 }
 
-$deskOn = shp_desk_on($TOUR);
+$volOn = $JUDGES ? shp_judges_on($TOUR) : shp_desk_on($TOUR);   // this view's post opened to the volunteers
 $settings = shp_settings($TOUR);
 
 /* ---- Filters ---- */
@@ -120,34 +122,32 @@ $state = function ($s) {
     return '<span class="dl-st dl-st' . intval($s) . '">' . shp_e(shp_t(array('DkStateNone', 'DkStateOk', 'DkStateKo')[intval($s)] ?? 'DkStateNone')) . '</span>';
 };
 
-$html = aut_adm_open('shop/desk/list.php' . ($JUDGES ? '?v=equip' : ''), shp_t($JUDGES ? 'DkJudgesTitle' : 'DkListTitle'), '', 'dl')
-    . '<p class="sa-lead">' . shp_e(shp_t($JUDGES ? 'DkJudgesLead' : 'DkListLead')) . '</p>';
+$html = aut_adm_open('shop/desk/list.php' . ($JUDGES ? '?v=equip' : ''), shp_t($JUDGES ? 'DkJudgesTitle' : 'DkListTitle'), '', 'dl',
+    shp_e(shp_t($JUDGES ? 'DkJudgesLead' : 'DkListLead')));
 foreach ($errors as $e) $html .= shp_adm_msg('err', $e);
 
-// Switch and access for the volunteers (check-in view).
-if (!$JUDGES) {
-$html .= '<div class="sa-card"><div class="sa-switch' . ($deskOn ? ' sa-on' : '') . '"><div><b>' . shp_e(shp_t('DkSwitch')) . '</b>'
-    . '<div class="sa-hint">' . shp_e(shp_t($deskOn ? 'DkSwitchOnHint' : 'DkSwitchOffHint')) . '</div></div>'
-    . '<span class="sa-tag">' . shp_e(shp_t($deskOn ? 'DkOn' : 'DkOff')) . '</span></div>';
+// The desk on this device (organisers, always), and the one option of this view: the changes
+// opened to the volunteers.
+list($qS, $hS) = aut_adm_help(shp_e(shp_t($JUDGES ? 'DkJSwitchHint' : 'DkSwitchHint')));
+$html .= '<div class="sa-card">' . aut_adm_title('h2', shp_t('ShSetSectSwitch')) . '<div class="sa-switch' . ($volOn ? ' sa-on' : '') . '"><div><b>' . shp_e(shp_t('DkSwitch')) . '</b>' . $qS . $hS . '</div>'
+    . '<span class="sa-tag">' . shp_e(shp_t($volOn ? 'DkOn' : 'DkOff')) . '</span></div>';
 if ($RW && !shp_impersonating()) {
     $html .= '<div class="sa-bar"><form method="post" action="' . shp_e($SELF) . '">' . bk_csrf_field()
-        . '<input type="hidden" name="act" value="' . ($deskOn ? 'off' : 'on') . '">'
-        . '<button type="submit" class="sa-btn' . ($deskOn ? '' : ' sa-primary') . '">' . shp_e(shp_t($deskOn ? 'DkTurnOff' : 'DkTurnOn')) . '</button></form>';
-    if ($deskOn && !$over) {
+        . '<input type="hidden" name="act" value="' . ($volOn ? 'off' : 'on') . '">'
+        . '<button type="submit" class="sa-btn">' . shp_e(shp_t($volOn ? 'DkTurnOff' : 'DkTurnOn')) . '</button></form>';
+    if (!$over) {
         $html .= '<form method="post" action="' . shp_e($SELF) . '">' . bk_csrf_field() . '<input type="hidden" name="act" value="open">'
-            . '<button type="submit" class="sa-btn sa-primary">' . shp_e(shp_t('DkUseDesk')) . '</button></form>'
-            . '<a class="sa-btn" href="' . shp_e(shp_url('admin/staff.php')) . '">' . shp_e(shp_t('DkVolunteers')) . '</a>';
+            . '<button type="submit" class="sa-btn sa-primary">' . shp_e(shp_t($JUDGES ? 'DkJUseDesk' : 'DkUseDesk')) . '</button></form>';
     }
-    $html .= '</div>';
+    $html .= '<a class="sa-btn" href="' . shp_e(shp_url('admin/staff.php')) . '">' . shp_e(shp_t('DkVolunteers')) . '</a></div>';
 }
-if ($deskOn && $settings) {
+if ($volOn && $settings) {
     $url = shp_abs_url('desk/index.php?k=' . rawurlencode((string) $settings->SgPublicKey));
-    $html .= '<details class="dl-access"><summary>' . shp_e(shp_t('DkAddressTitle')) . '</summary><div class="sa-address">'
+    $html .= '<details class="sa-access"><summary>' . shp_e(shp_t('DkAddressTitle')) . '</summary><div class="sa-address">'
         . '<div class="sa-qr">' . aut_qr_svg($url, 180) . '</div><div class="sa-address-text"><p>' . shp_e(shp_t('DkAddressHint')) . '</p>'
         . '<input type="text" class="sa-url" readonly value="' . shp_e($url) . '" onclick="this.select()"></div></div></details>';
 }
 $html .= '</div>';
-}
 
 // Key figures: the post of this view first.
 $pct = function ($n, $of) { return $of > 0 ? ' · ' . round(100 * $n / $of) . ' %' : ''; };
@@ -172,7 +172,7 @@ $html .= '<form method="get" action="' . shp_e($SELF) . '" class="sa-row dl-filt
     . '<button type="submit" class="sa-btn">' . shp_e(shp_t('DkLsApply')) . '</button></form>';
 
 // Table.
-$canOpen = $RW && $deskOn && !$over && !shp_impersonating();
+$canOpen = $RW && !$over && !shp_impersonating();
 $token = bk_csrf_token();
 $html .= '<p class="sa-muted">' . shp_e(shp_t('DkLsShown', count($rows))) . '</p>';
 if (!$rows) {

@@ -35,7 +35,9 @@ shp_schema();
 $TOUR = intval($_SESSION['TourId']);
 $SELF = shp_url('admin/orders.php');
 $settings = shp_settings($TOUR);
-$enabled = $settings && intval($settings->SgEnabled) === 1;
+// Always there for the organiser once the settings exist (user's choice: everything is
+// prepared beforehand, the openings are decided on the settings page).
+$enabled = (bool) $settings;
 
 $STATUS_FILTERS = array('open', 'placed', 'preparing', 'ready', 'delivered', 'cancelled', 'all');
 $PAY_FILTERS = array('all', 'unpaid', 'paid', 'tab', 'refunded');
@@ -127,7 +129,7 @@ foreach (shp_stands($TOUR, false) as $sid => $s) {
 $tv = $enabled ? '<details class="sa-copy"><summary>' . shp_e(shp_t('ShSetBoardTitle')) . '</summary><div class="sa-copy-body">'
     . '<p class="sa-hint">' . shp_e(shp_t('ShSetBoardHint')) . '</p><ul class="sa-links">' . $boards . '</ul></div></details>' : '';
 
-echo aut_adm_open('shop/admin/orders.php', shp_t('ShRepOrdersTitle'), $tv, 'sr-live');
+echo aut_adm_open('shop/admin/orders.php', shp_t('ShRepOrdersTitle'), $tv, 'sr-live', shp_e(shp_t('ShRepOrdersLead')));
 
 if (!$enabled) {
     echo shp_adm_msg('warn', array(shp_t('ShRepShopOff'))) . '<p><a class="sa-btn sa-primary" href="' . shp_e(shp_adm_url('index.php')) . '">'
@@ -136,8 +138,7 @@ if (!$enabled) {
     exit;
 }
 
-echo '<p class="sa-lead">' . shp_e(shp_t('ShRepOrdersLead')) . '</p>'
-    . ($canWrite ? '' : shp_adm_msg('info', array(shp_t('ShRepReadOnlyNote'))))
+echo ($canWrite ? '' : shp_adm_msg('info', array(shp_t('ShRepReadOnlyNote'))))
     . '<div id="so-flash" aria-live="polite"></div>'
     . '<div id="so-stands" class="sr-stands"></div>'
     . '<div class="sa-card"><div class="sr-filters" id="so-filters"></div>'

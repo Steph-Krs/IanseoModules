@@ -893,6 +893,7 @@ $lang['ForMainCount']      = '{$a} archer(s): identity not checked, to verify';
 $lang['DeskMainAnomaly']   = 'Archers refused at the check-in (documents or equipment not compliant)';
 $lang['DeskMainCount']     = '{$a} archer(s) set to "Cannot participate"';
 $lang['AdmSave']           = 'Save';
+$lang['AdmHelpQ']          = 'Explanation';
 
 /* Configuration file (config-lib.php), continued */
 $lang['ClBadContent'] = 'Invalid content.';

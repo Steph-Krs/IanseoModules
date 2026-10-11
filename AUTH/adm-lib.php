@@ -61,7 +61,6 @@ function aut_adm_sections($can, $tour, $admin, $logged)
 
         // What the competition uses.
         $showPay = $showSurvey = true;
-        $shopOn = $deskOn = false;
         $rs = safe_r_sql("SELECT BcPublishLevel, BcPayments, BcSurvey FROM BookingCompetitions WHERE BcTournament = $tour", false, true);
         if ($rs) {
             $c = safe_fetch($rs);
@@ -69,11 +68,9 @@ function aut_adm_sections($can, $tour, $admin, $logged)
             $showPay = $level >= 2 || ($c && intval($c->BcPayments) === 1);
             $showSurvey = $level >= 2 && $c && intval($c->BcSurvey) === 1;
         }
-        // SELECT *: SgDesk may be missing on a server not updated yet.
+        // SELECT *: a column may be missing on a server not updated yet.
         $rs = safe_r_sql("SELECT * FROM ShopSettings WHERE SgTournament = $tour", false, true);
         if ($rs && ($c = safe_fetch($rs))) {
-            $shopOn = intval($c->SgEnabled) === 1;
-            $deskOn = intval($c->SgDesk ?? 0) === 1;
             // "On my account" at the stands needs the payments page.
             if (intval($c->SgTab ?? 0) === 1) $showPay = true;
         }
@@ -93,11 +90,12 @@ function aut_adm_sections($can, $tour, $admin, $logged)
         $out['judges'] = array('title' => shp_t('DkJudges'), 'pages' => $ro ? array(array('shop/desk/list.php?v=equip', shp_t('DkJudgesList'))) : array());
 
         // Food & shop: settings and points of sale, catalogue, live orders, reports.
+        // Every page, opened or not: the organiser prepares everything beforehand (user's choice).
         $p = array();
         if ($rw) $p[] = array('shop/admin/index.php', shp_t('MnuSettings'));
-        if ($rw && $shopOn) $p[] = array('shop/admin/catalog.php', shp_t('MnuCatalog'));
-        if ($ro && $shopOn) $p[] = array('shop/admin/orders.php', shp_t('MnuOrders'));
-        if ($ro && $shopOn) $p[] = array('shop/admin/reports.php', shp_t('MnuReports'));
+        if ($rw) $p[] = array('shop/admin/catalog.php', shp_t('MnuCatalog'));
+        if ($ro) $p[] = array('shop/admin/orders.php', shp_t('MnuOrders'));
+        if ($ro) $p[] = array('shop/admin/reports.php', shp_t('MnuReports'));
         $out['shop'] = array('title' => shp_t('MnuTitle'), 'pages' => $p);
 
         // Volunteers: one team for the stands and the check-in.
@@ -202,19 +200,68 @@ function aut_adm_nav($section, $page, $class = 'sa-nav')
  * when the section has several pages, the navigation between them. $page: the page's file
  * relative to AUTH/ with its query when it is one of two views ('shop/desk/list.php?v=equip').
  * $actions: markup shown at the right of the title (buttons, already escaped). $class: extra
- * class of the frame, for the page's own styles.
+ * class of the frame, for the page's own styles. $help: what the page is for (markup), behind a
+ * "?" next to the title (aut_adm_help).
  */
-function aut_adm_open($page, $title, $actions = '', $class = '')
+function aut_adm_open($page, $title, $actions = '', $class = '', $help = '')
 {
     $ctx = aut_adm_context();
     $sections = aut_adm_sections($ctx['can'], $ctx['tour'], $ctx['admin'], $ctx['logged']);
     $parts = explode('?', $page, 2);
     list($key, ) = aut_adm_where($sections, $parts[0], $parts[1] ?? '');
     $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); };
+    $q = $h = '';
+    if ($help !== '') list($q, $h) = aut_adm_help($help);
     $html = '<div id="shpadm" class="sa-page' . ($class !== '' ? ' ' . $e($class) : '') . '">'
-        . '<div class="sa-title"><h1>' . $e($title) . '</h1>' . ($actions !== '' ? '<div class="sa-title-act">' . $actions . '</div>' : '') . '</div>';
+        . '<div class="sa-title"><h1>' . $e($title) . $q . '</h1>' . ($actions !== '' ? '<div class="sa-title-act">' . $actions . '</div>' : '') . '</div>'
+        . $h;
     if ($key !== null) $html .= aut_adm_nav($sections[$key], $page);
     return $html;
+}
+
+/**
+ * An explanation shown on demand (user's choice, 2026-10-11: regular users do not need them and
+ * they took the room; of the three ways tried, the fold-out was kept): [the "?" button, the text].
+ * The button goes next to the title, field or option it explains, the text right after it — out
+ * of a checkbox's label, or clicking the text would tick the box. A click unfolds the text under
+ * it (assets/admin.js). $html: markup, escaped by the caller.
+ */
+function aut_adm_help($html)
+{
+    static $n = 0;
+    $id = 'sa-help-' . (++$n);
+    return array(
+        '<button type="button" class="sa-q" aria-expanded="false" aria-controls="' . $id . '" title="'
+            . htmlspecialchars(aut_t('AdmHelpQ'), ENT_QUOTES, 'UTF-8') . '">?</button>',
+        '<span class="sa-help" id="' . $id . '" hidden>' . $html . '</span>',
+    );
+}
+
+/**
+ * Tabs of a page — display only, everything is in the page (assets/admin.js; the tab shown is
+ * kept for the visit). $group: name of the set (unique in the page); $tabs: [key => [label
+ * (markup, escaped by the caller), content]]. The first tab shows before the script runs.
+ */
+function aut_adm_tabs($group, array $tabs)
+{
+    $e = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); };
+    $bar = $panels = '';
+    $first = true;
+    foreach ($tabs as $k => $t) {
+        $bar .= '<button type="button" class="sa-tab' . ($first ? ' on' : '') . '" role="tab" aria-selected="' . ($first ? 'true' : 'false')
+            . '" data-tab="' . $e($k) . '">' . $t[0] . '</button>';
+        $panels .= '<div class="sa-tabpanel" role="tabpanel" data-tabpanel="' . $e($k) . '"' . ($first ? '' : ' hidden') . '>' . $t[1] . '</div>';
+        $first = false;
+    }
+    return '<div class="sa-tabset" data-tabset="' . $e($group) . '"><div class="sa-tabbar" role="tablist">' . $bar . '</div>' . $panels . '</div>';
+}
+
+/** A heading with its explanation on demand: <hN>title ?</hN> + the text. $help: markup or ''. */
+function aut_adm_title($tag, $title, $help = '', $attr = '')
+{
+    $q = $h = '';
+    if ($help !== '') list($q, $h) = aut_adm_help($help);
+    return '<' . $tag . $attr . '>' . htmlspecialchars((string) $title, ENT_QUOTES, 'UTF-8') . $q . '</' . $tag . '>' . $h;
 }
 
 /**

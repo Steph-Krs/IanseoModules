@@ -5,18 +5,24 @@
 #shpadm .sr-r, #shpadm .sa-table th.sr-r { text-align: right; white-space: nowrap; }
 
 /* ---- Cards of the stands ---- */
-#shpadm .sr-stands { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin: 0 0 14px; }
-#shpadm .sr-stand { text-align: left; font: inherit; color: inherit; cursor: pointer; background: #fff; border: 1px solid #d2d4d6;
-    border-left: 5px solid #04ac0b; border-radius: 8px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+#shpadm .sr-stands { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; margin: 0 0 10px; }
+/* A card is a button: a button centres what it holds vertically, so cards of one row (as high as
+   the highest) had their content at different heights. Laid out from the top instead. */
+#shpadm .sr-stand { display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch;
+    text-align: left; font: inherit; color: inherit; cursor: pointer; background: #fff; border: 1px solid #d2d4d6;
+    border-left: 5px solid #04ac0b; border-radius: 8px; padding: 8px 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
 #shpadm .sr-stand.sr-closed { border-left-color: #aaa; background: #f7f7f7; }
 #shpadm .sr-stand.sr-on { outline: 2px solid #0254a8; }
 #shpadm .sr-stand:hover { background: #f0f4ff; }
 #shpadm .sr-stand-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
-#shpadm .sr-stand-name { font-weight: 600; color: #01367c; font-size: 15px; }
+#shpadm .sr-stand-name { font-weight: 600; color: #01367c; font-size: 14px; }
 #shpadm .sr-tag { padding: 1px 9px; border-radius: 5px; font-size: 12px; background: #ddd; border: 1px solid #aaa; color: #333; white-space: nowrap; }
 #shpadm .sr-tag-on { background: #d2f4cd; border-color: #75ae77; color: #04ac0b; }
-#shpadm .sr-counts { display: flex; gap: 6px; flex-wrap: wrap; }
-#shpadm .sr-count { flex: 1 1 0; min-width: 52px; text-align: center; padding: 4px 2px; border-radius: 6px; background: #f0f4ff; }
+/* Counters side by side, as wide and as high as each other: numbers on one line, texts starting
+   on one line, even when one text takes two. */
+#shpadm .sr-counts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; align-items: stretch; }
+#shpadm .sr-count { display: flex; flex-direction: column; justify-content: flex-start; text-align: center; padding: 4px 2px;
+    border-radius: 6px; background: #f0f4ff; }
 #shpadm .sr-count b { display: block; font-size: 22px; line-height: 1.1; color: #01367c; }
 #shpadm .sr-count span { display: block; font-size: 11px; color: #4c4e50; }
 #shpadm .sr-count.sr-warn { background: #fdebd6; }
@@ -49,13 +55,13 @@
 
 /* ---- Reports ---- */
 #shpadm .sr-filter .sa-row { margin: 0; }
-#shpadm .sr-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin: 0 0 14px; }
-#shpadm .sr-tile { background: #fff; border: 1px solid #d2d4d6; border-top: 4px solid #0254a8; border-radius: 8px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+#shpadm .sr-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin: 0 0 10px; }
+#shpadm .sr-tile { background: #fff; border: 1px solid #d2d4d6; border-top: 3px solid #0254a8; border-radius: 8px; padding: 6px 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
 #shpadm .sr-tile span { display: block; font-size: 12px; color: #4c4e50; }
-#shpadm .sr-tile b { display: block; font-size: 20px; color: #01367c; margin-top: 2px; }
+#shpadm .sr-tile b { display: block; font-size: 17px; color: #01367c; margin-top: 1px; }
 #shpadm .sr-tile small { margin-top: 2px; }
 #shpadm .sr-docs { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; margin: 0 0 10px; }
-#shpadm h3 { font-size: 14px; color: #0254a8; margin: 14px 0 6px; }
+#shpadm h3 { font-size: 13px; color: #0254a8; margin: 10px 0 4px; }
 #shpadm .sr-table tfoot td { font-weight: 600; border-top: 2px solid #d2d4d6; border-bottom: 0; }
 #shpadm .sr-group td { background: #f0f4ff; color: #01367c; }
 #shpadm .sr-peak td { background: #fdebd6; }

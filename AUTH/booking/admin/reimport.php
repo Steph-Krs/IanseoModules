@@ -98,17 +98,17 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 <style>
 #bkadm { max-width: 100%; }
 #bkadm .bk-sec { background:#fff; border:1px solid #d2d4d6; border-radius:8px;
-    box-shadow:0 1px 3px rgba(0,0,0,.08); padding:14px 16px; margin:0 0 14px; }
-#bkadm .bk-sec h2 { margin:0 0 6px; font-size:16px; color:#0254a8; }
+    box-shadow:0 1px 3px rgba(0,0,0,.08); padding:10px 12px; margin:0 0 10px; }
+#bkadm .bk-sec h2 { margin:0 0 6px; font-size:14px; color:#0254a8; }
 #bkadm .bk-hint { margin:2px 0 10px; font-size:12px; color:#7d8183; }
 #bkadm table.bk-t { border-collapse:collapse; font-size:13px; width:100%; }
-#bkadm table.bk-t th, #bkadm table.bk-t td { border:1px solid #d2d4d6; padding:6px 10px; text-align:left; vertical-align:middle; }
+#bkadm table.bk-t th, #bkadm table.bk-t td { border:1px solid #d2d4d6; padding:4px 8px; text-align:left; vertical-align:middle; }
 #bkadm table.bk-t th { background:#f0f4ff; color:#01367c; }
-#bkadm .bk-btn { padding:7px 14px; border:1px solid #0254a8; border-radius:6px;
-    background:#0254a8; color:#fff; font-size:14px; font-weight:600; cursor:pointer; }
+#bkadm .bk-btn { padding:4px 10px; border:1px solid #0254a8; border-radius:5px;
+    background:#0254a8; color:#fff; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; }
 #bkadm .bk-btn:hover { background:#01367c; border-color:#01367c; }
-#bkadm .bk-btn2 { padding:7px 14px; border:1px solid #d2d4d6; border-radius:6px;
-    background:#f7f7f7; color:#20263d; font-size:14px; cursor:pointer; }
+#bkadm .bk-btn2 { padding:4px 10px; border:1px solid #d2d4d6; border-radius:5px;
+    background:#f7f7f7; color:#20263d; font-family:inherit; font-size:13px; cursor:pointer; }
 #bkadm .bk-btn2:hover { background:#f0f4ff; border-color:#0254a8; }
 #bkadm .bk-btn-danger { border-color:#c0392b; color:#c0392b; background:#fff; }
 #bkadm .bk-btn-danger:hover { background:#fdf0ef; }
@@ -130,15 +130,13 @@ if (!$conflicts) {
     exit;
 }
 
-$out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('RiAllTitle')) . '</h2>'
-    . '<p class="bk-hint">' . bk_e(bk_t('RiAllHint', count($conflicts))) . '</p><div class="bk-bulk">'
+$out .= '<div class="bk-sec">' . aut_adm_title('h2', bk_t('RiAllTitle'), bk_e(bk_t('RiAllHint', count($conflicts)))) . '<div class="bk-bulk">'
     . $bulk('import', bk_t('RiAllImportConfirm'), 'RiAllImport', 'bk-btn')
     . $bulk('booking', bk_t('RiAllBookingConfirm', count($by['onlyimport'])), 'RiAllBooking', 'bk-btn2 bk-btn-danger')
     . '</div></div>';
 
 if ($by['category']) {
-    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('RiCatTitle', count($by['category']))) . '</h2>'
-        . '<p class="bk-hint">' . bk_e(bk_t('RiCatHint')) . '</p><table class="bk-t">'
+    $out .= '<div class="bk-sec">' . aut_adm_title('h2', bk_t('RiCatTitle', count($by['category'])), bk_e(bk_t('RiCatHint'))) . '<table class="bk-t">'
         . $head(array('ColArcher', 'Licence', 'RiColBooking', 'RiColImport', 'RiColChoice'));
     foreach ($by['category'] as $c) {
         $out .= '<tr><td>' . bk_e($c->RcName ?: '—') . '</td><td>' . bk_e($c->RcLicence) . '</td><td>' . $catLabel($c->RcBooking) . '</td>'
@@ -149,8 +147,7 @@ if ($by['category']) {
 }
 
 if ($by['onlybooking']) {
-    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('RiOnlyBkTitle', count($by['onlybooking']))) . '</h2>'
-        . '<p class="bk-hint">' . bk_e(bk_t('RiOnlyBkHint')) . '</p><table class="bk-t">'
+    $out .= '<div class="bk-sec">' . aut_adm_title('h2', bk_t('RiOnlyBkTitle', count($by['onlybooking'])), bk_e(bk_t('RiOnlyBkHint'))) . '<table class="bk-t">'
         . $head(array('ColArcher', 'Licence', 'SsCategory', 'RiColChoice'));
     foreach ($by['onlybooking'] as $c) {
         $out .= '<tr><td>' . bk_e($c->RcName ?: '—') . '</td><td>' . bk_e($c->RcLicence) . '</td><td>' . $catLabel($c->RcBooking) . '</td>'
@@ -163,8 +160,7 @@ if ($by['onlybooking']) {
 if ($by['onlyimport']) {
     $oi = $by['onlyimport'];
     $cap = 200;
-    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('RiOnlyImTitle', count($oi))) . '</h2>'
-        . '<p class="bk-hint">' . bk_t('RiOnlyImHint') . '</p>'
+    $out .= '<div class="bk-sec">' . aut_adm_title('h2', bk_t('RiOnlyImTitle', count($oi)), bk_t('RiOnlyImHint'))
         . '<details class="bk-fold"' . (count($oi) <= 30 ? ' open' : '') . '><summary>' . bk_e(bk_t('RiSeeList', count($oi))) . '</summary>'
         . '<table class="bk-t">' . $head(array('ColArcher', 'Licence', 'SsCategory', 'RiColChoice'));
     foreach (array_slice($oi, 0, $cap) as $c) {
@@ -177,8 +173,7 @@ if ($by['onlyimport']) {
 }
 
 if ($by['reinject']) {
-    $out .= '<div class="bk-sec"><h2>' . bk_e(bk_t('RiReinjTitle', count($by['reinject']))) . '</h2>'
-        . '<p class="bk-hint">' . bk_e(bk_t('RiReinjHint')) . '</p><table class="bk-t">'
+    $out .= '<div class="bk-sec">' . aut_adm_title('h2', bk_t('RiReinjTitle', count($by['reinject'])), bk_e(bk_t('RiReinjHint'))) . '<table class="bk-t">'
         . $head(array('Licence', 'SsCategory', 'RiColReason', 'RiColChoice'));
     foreach ($by['reinject'] as $c) {
         $b = (array) json_decode((string) $c->RcBooking, true);

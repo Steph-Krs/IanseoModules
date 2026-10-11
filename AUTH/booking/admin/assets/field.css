@@ -1,13 +1,13 @@
 /* Field constraints — scoped to #bkfield (look: CHARTE_GRAPHIQUE.md). */
 
-#bkfield { font-size: 14px; line-height: 1.45; color: #20263d; }
+#bkfield { font-size: 13px; line-height: 1.4; color: #20263d; }
 #bkfield .bkf-warn {
     background: #fdf0e6; border: 1px solid #cb8137; color: #8a5a26;
-    padding: 10px 13px; border-radius: 6px; max-width: 780px;
+    padding: 6px 10px; border-radius: 6px;
 }
 
 /* Departure tabs */
-#bkfield .bkf-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 14px;
+#bkfield .bkf-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 10px;
     border-bottom: 2px solid #d2d4d6; }
 #bkfield .bkf-tab {
     padding: 7px 14px; border: 1px solid #d2d4d6; border-bottom: 0;
@@ -24,7 +24,7 @@
 #bkfield .bkf-palette {
     display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start;
     background: #fff; border: 1px solid #d2d4d6; border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 12px 14px; margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 8px 10px; margin-bottom: 10px;
 }
 #bkfield .bkf-pcol { flex: 1 1 260px; min-width: 0; }
 #bkfield .bkf-pcol.bkf-help { flex: 1 1 300px; }
@@ -161,7 +161,7 @@
 #bkfield .bkf-tag:hover { filter: brightness(.92); text-decoration: line-through; }
 #bkfield .bkf-free { font-size: 11px; color: #c9ccce; font-style: italic; }
 
-#bkfield .bkf-legend { margin-top: 12px; font-size: 12px; color: #7d8183; max-width: 760px; }
+#bkfield .bkf-legend { margin-top: 8px; font-size: 12px; color: #7d8183; }
 
 @media (max-width: 780px) {
     #bkfield .bkf-palette { position: static; flex-basis: 100%; }

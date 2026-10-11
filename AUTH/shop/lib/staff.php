@@ -396,7 +396,7 @@ function shp_staff_rights_write($staffId, array $rights)
 function shp_staff_no_right($tourId)
 {
     return array('error' => 1, 'code' => 'no_stand',
-        'msg' => shp_t(function_exists('shp_desk_on') && shp_desk_on($tourId) ? 'DkErrNoRight' : 'ShStfErrNoStand'));
+        'msg' => shp_t(function_exists('shp_desk_on') && (shp_desk_on($tourId) || shp_judges_on($tourId)) ? 'DkErrNoRight' : 'ShStfErrNoStand'));
 }
 
 /**
@@ -495,6 +495,24 @@ function shp_staff_unlock($tourId, $staffId, $by)
     if (safe_w_affected_rows() < 1) return array('error' => 1, 'code' => 'gone', 'msg' => shp_t('ShStfErrGone'));
     shp_staff_log($tourId, $staffId, 'unlock', $by);
     return array('error' => 0, 'msg' => '');
+}
+
+/**
+ * Gives a withdrawn access back (the organiser's "Cancel" in the withdrawn list): active again,
+ * with the rights and ceilings it had — withdrawing kept them. Withdrawing erased the password
+ * of a volunteer without a licence ('need_password' => true): the caller gives them the reset
+ * QR code. A request refused before approval is not an access: it stays refused.
+ */
+function shp_staff_restore($tourId, $staffId, $by)
+{
+    $tourId = intval($tourId);
+    $staffId = intval($staffId);
+    safe_w_sql("UPDATE ShopStaff SET SfStatus = 'active', SfFails = 0
+        WHERE SfId = $staffId AND SfTournament = $tourId AND SfStatus = 'revoked' AND SfApprovedAt IS NOT NULL");
+    if (safe_w_affected_rows() < 1) return array('error' => 1, 'code' => 'gone', 'msg' => shp_t('ShStfErrGone'));
+    shp_staff_log($tourId, $staffId, 'restore', $by);
+    $s = shp_staff_row($staffId);
+    return array('error' => 0, 'msg' => '', 'need_password' => $s && $s->SfKind === 'LOCAL');
 }
 
 /**

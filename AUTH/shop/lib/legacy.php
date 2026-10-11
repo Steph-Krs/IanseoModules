@@ -184,7 +184,7 @@ function shp_legacy_move($tourId)
     }
 
     safe_w_sql("UPDATE ShopSettings SET SgOldShop = 1, SgTab = 1"
-        . ($visible ? ", SgEnabled = 1" : "")
+        . ($visible ? ", SgEnabled = 1, SgPreorders = 1" : "")   // the former shop: pre-orders
         . ($until !== null ? ", SgPreorderUntil = COALESCE(SgPreorderUntil, " . StrSafe_DB($until) . ")" : "")
         . ", SgUpdated = $now WHERE SgTournament = $tourId");
     safe_w_Commit();

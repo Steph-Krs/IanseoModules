@@ -105,8 +105,9 @@ function shp_settings_ensure($tourId)
 }
 
 /**
- * Saves settings of a competition. Keys of $d (all optional): enabled, desk (check-in desk),
- * guests, tab, trust_gate (booleans), preorder_until ('' = none, 'YYYY-MM-DD HH:MM', the 'T' of a datetime-local input
+ * Saves settings of a competition. Keys of $d (all optional): enabled (stands open to the
+ * volunteers), preorders, clients (customers' phone orders), desk (registry opened to the
+ * volunteers), judges (equipment check opened to the volunteers), guests, tab, trust_gate (booleans), preorder_until ('' = none, 'YYYY-MM-DD HH:MM', the 'T' of a datetime-local input
  * accepted), guest_max_open (0-20), notice. Returns the fresh settings.
  */
 function shp_settings_save($tourId, array $d)
@@ -114,7 +115,8 @@ function shp_settings_save($tourId, array $d)
     $tourId = intval($tourId);
     if (!shp_settings_ensure($tourId)) return null;
     $set = array();
-    foreach (array('enabled' => 'SgEnabled', 'desk' => 'SgDesk', 'guests' => 'SgGuests', 'tab' => 'SgTab', 'trust_gate' => 'SgTrustGate') as $k => $col) {
+    foreach (array('enabled' => 'SgEnabled', 'preorders' => 'SgPreorders', 'clients' => 'SgClients', 'desk' => 'SgDesk',
+        'judges' => 'SgJudges', 'guests' => 'SgGuests', 'tab' => 'SgTab', 'trust_gate' => 'SgTrustGate') as $k => $col) {
         if (array_key_exists($k, $d)) $set[] = "$col = " . (empty($d[$k]) ? 0 : 1);
     }
     if (array_key_exists('preorder_until', $d)) {
@@ -148,23 +150,75 @@ function shp_settings_new_key($tourId)
     return '';
 }
 
+/**
+ * The points of sale are open to the VOLUNTEERS (their till; the customers' pages, where an order
+ * placed is followed). The ways the customers order are opened apart, each one needing this:
+ * pre-orders (SgPreorders, shp_window preorder_open) and phone orders on the day (SgClients,
+ * shp_window clients_open). Nothing of it binds the organiser, whose till on their own device is
+ * always there (shp_till_open).
+ */
 function shp_enabled($tourId)
 {
     $s = shp_settings($tourId);
     return $s && intval($s->SgEnabled) === 1;
 }
 
-/** Check-in desk switched on (desk/, lib/desk.php), with or without the stands. */
+/** Pre-orders opened by the organiser (with the volunteers): shp_window says whether it is the time. */
+function shp_preorders_on($tourId)
+{
+    $s = shp_settings($tourId);
+    return $s && intval($s->SgEnabled) === 1 && intval($s->SgPreorders ?? 0) === 1;
+}
+
+/** Customers' phone orders opened by the organiser (with the volunteers), for the days of the competition. */
+function shp_clients_on($tourId)
+{
+    $s = shp_settings($tourId);
+    return $s && intval($s->SgEnabled) === 1 && intval($s->SgClients ?? 0) === 1;
+}
+
+/** May this volunteer use the till now? An ORGANISER always; the others while the stands are open to them. */
+function shp_till_open($tourId, $staff)
+{
+    require_once __DIR__ . '/staff.php';   // shp_staff_row (guarded: loaded once)
+    $s = shp_staff_row($staff);
+    if ($s && ($s->SfKind ?? '') === 'ORGANISER') return true;
+    return shp_enabled($tourId);
+}
+
+/**
+ * SQL condition: the pre-orders of the competition of the ShopSettings row are open now ($now: SQL
+ * of the local time). Opened by the organiser (volunteers too), until the deadline when one is
+ * set, otherwise until the eve of the competition (user's choice: the date is optional).
+ */
+function shp_preorder_open_sql($now)
+{
+    return "(SgEnabled = 1 AND SgPreorders = 1 AND IF(SgPreorderUntil IS NULL,
+        DATE($now) < (SELECT ToWhenFrom FROM Tournament WHERE ToId = SgTournament), SgPreorderUntil >= $now))";
+}
+
+/**
+ * Registry of the check-in desk (documents, payments) opened to the VOLUNTEERS. The desk itself
+ * is always there for the organisers (desk/list.php: "Open the desk on this device"); without
+ * this, only they can act there. Nothing runs while nobody opens a desk page: no task, no cron.
+ */
 function shp_desk_on($tourId)
 {
     $s = shp_settings($tourId);
     return $s && intval($s->SgDesk ?? 0) === 1;
 }
 
-/** Volunteers may join and sign in: the stands or the check-in desk are switched on. */
+/** Equipment check (judges) opened to the volunteers — apart from the registry (shp_desk_on). */
+function shp_judges_on($tourId)
+{
+    $s = shp_settings($tourId);
+    return $s && intval($s->SgJudges ?? 0) === 1;
+}
+
+/** Volunteers may join and sign in: the stands, the registry or the equipment check are open to them. */
 function shp_staff_on($tourId)
 {
-    return shp_enabled($tourId) || shp_desk_on($tourId);
+    return shp_enabled($tourId) || shp_desk_on($tourId) || shp_judges_on($tourId);
 }
 
 /** Competition of a public key, or 0. Says nothing about whether the shop is switched on. */
@@ -198,7 +252,8 @@ function shp_window($tourId, $fresh = false)
             DATE_SUB(ToWhenFrom, INTERVAL 1 DAY) AS OpenFrom,
             DATE_ADD(ToWhenTo, INTERVAL 1 DAY) AS PurgeFrom,
             $now AS LocalNow, DATE($now) AS Today,
-            (SgPreorderUntil IS NOT NULL AND SgPreorderUntil >= $now) AS PreorderOpen
+            IFNULL(" . shp_preorder_open_sql($now) . ", 0) AS PreorderOpen,
+            IFNULL(SgEnabled = 1 AND SgClients = 1, 0) AS ClientsOpen
         FROM Tournament
         LEFT JOIN ShopSettings ON SgTournament = ToId
         WHERE ToId = $tourId"));
@@ -214,6 +269,7 @@ function shp_window($tourId, $fresh = false)
         'purge_due' => $valid && $today >= (string) $r->PurgeFrom,
         'open_from' => (string) $r->OpenFrom, 'purge_from' => (string) $r->PurgeFrom,
         'preorder_open' => (bool) $r->PreorderOpen,
+        'clients_open' => (bool) $r->ClientsOpen,   // phone orders opened (the window says when)
     );
 }
 

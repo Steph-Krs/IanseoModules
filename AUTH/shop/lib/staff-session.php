@@ -68,8 +68,9 @@ function shp_staff_session_close()
  *   locked      too many sign-in failures: refused by the sign-in page only; a phone already
  *               signed in keeps working (shp_staff_working), so this state is not returned here
  *   expired     12 h without activity, competition over, password reset elsewhere
- *   shop_off    the organiser switched the points of sale AND the check-in desk off (the till
- *               itself also stops with the points of sale alone: shp_require_staff)
+ *   shop_off    nothing is open to the volunteers: neither the points of sale nor the registry
+ *               nor the equipment check (the till itself also stops with the points of sale
+ *               alone: shp_require_staff). Never for an ORGANISER: the desk is always theirs.
  * 'row' is the volunteer's row whenever one was found (to name the competition).
  */
 function shp_staff_session_state($reset = false)
@@ -106,7 +107,7 @@ function shp_staff_session_state($reset = false)
         $state['reason'] = $r->SfApprovedAt === null ? 'refused' : 'revoked';
     } elseif (!shp_staff_working($r)) {
         $state['reason'] = 'expired';
-    } elseif (!shp_staff_on($tour)) {
+    } elseif (!shp_staff_on($tour) && $r->SfKind !== 'ORGANISER') {
         $state['reason'] = 'shop_off';
     } else {
         $state['reason'] = 'ok';
@@ -155,8 +156,9 @@ function shp_require_staff($perm = '', $standId = 0)
 {
     $st = shp_staff_session_state();
     $reason = $st['reason'];
-    // The session may be open for the check-in desk alone: the till needs the stands on.
-    if ($st['staff'] && !shp_enabled(intval($st['staff']->SfTournament))) $reason = 'shop_off';
+    // The session may be open for the check-in desk alone: the till needs the stands open to the
+    // volunteers — not for an ORGANISER, whose till is always there (shp_till_open).
+    if ($st['staff'] && !shp_till_open(intval($st['staff']->SfTournament), $st['staff'])) $reason = 'shop_off';
     elseif ($st['staff'] && !shp_staff_can($st['staff'], $perm, $standId)) $reason = 'forbidden';
     if ($st['staff'] && $reason === 'ok') return $st['staff'];
 

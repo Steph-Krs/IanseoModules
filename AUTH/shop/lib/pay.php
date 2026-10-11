@@ -415,7 +415,7 @@ function shp_pay_account($tourId, $account, $amount, $method, $staffId, $idem, $
     if ($staffId > 0) {
         $staff = shp_pay_staff($staffId, $tourId);
         $allowed = $staff && ($standId > 0 ? shp_pay_staff_can($staff, 'cash', $standId)
-            : function_exists('shp_desk_can') && shp_desk_on($tourId) && shp_desk_can($staff, 'pay'));
+            : function_exists('shp_desk_can') && shp_desk_can($staff, 'pay'));   // the post's opening is in the right
         if (!$allowed) return shp_err('forbidden', 'ShPayErrRight');
     }
     if (!aut_pay_ledger_method($method) || !isset(shp_pay_methods()[$method])) return shp_err('method', 'ShPayErrMethod');

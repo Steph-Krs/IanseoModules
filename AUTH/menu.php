@@ -80,6 +80,9 @@ if ($_aut_logged) {
 #aut-bar a:hover { color:#fff; text-decoration:underline; }
 #aut-bar select { font:11px Verdana,Arial,sans-serif; margin-left:6px; max-width:230px;
     border-radius:8px; border:0; padding:1px 4px; background:#eef4fb; color:#14396b; }
+/* Folded (choice of the user): only the account, the rest unfolds when pointed at. */
+#aut-bar.aut-folded { cursor:pointer; opacity:.8; }
+#aut-bar.aut-folded .aut-bar-more { display:none; }
 #aut-warn { position:fixed; top:30px; right:8px; z-index:99990; background:#8b1a1a; color:#fff;
     font:11px Verdana,Arial,sans-serif; border-radius:4px; padding:4px 12px; }
 #aut-warn a { color:#ffd7d7; }
@@ -87,7 +90,7 @@ if ($_aut_logged) {
 .WhatIanseoDoes { display:none !important; }
 </style>
 ';
-    echo '<div id="aut-bar">👤 ' . htmlspecialchars($_SESSION['AUTH_User']) . "\n";
+    echo '<div id="aut-bar">👤 ' . htmlspecialchars($_SESSION['AUTH_User']) . '<span class="aut-bar-more">' . "\n";
     if (count($_aut_views) > 1) {
         // view switched on the fly
         $_aut_curIdx = 0;
@@ -119,7 +122,18 @@ if ($_aut_logged) {
         echo '<a href="' . $_aut_r . 'Modules/Authentication/ChangePassword.php">' . htmlspecialchars(aut_t('BarPassword')) . "</a>\n";
     }
     echo '<a href="' . $_aut_r . 'Modules/Authentication/LogOut.php">' . htmlspecialchars(aut_t('BarLogout')) . "</a>\n"
-        . "</div>\n";
+        . "</span></div>\n"
+        // Folds 2 seconds after the pointer left it (and after the page opened); unfolds when
+        // pointed at, focused or touched. Never while pointed at or while one of its fields is in
+        // use (view list): it looks again 2 seconds later.
+        . '<script>(function(){var b=document.getElementById("aut-bar");if(!b)return;var t=null;'
+        . 'function fold(){if(b.matches(":hover")||b.contains(document.activeElement)){later();return;}b.classList.add("aut-folded");}'
+        . 'function later(){clearTimeout(t);t=setTimeout(fold,2000);}'
+        . 'function open(){clearTimeout(t);b.classList.remove("aut-folded");}'
+        . 'b.addEventListener("mouseenter",open);b.addEventListener("mouseleave",later);'
+        . 'b.addEventListener("focusin",open);b.addEventListener("focusout",later);'
+        . 'b.addEventListener("click",function(){if(b.classList.contains("aut-folded")){open();later();}});'
+        . "later();})();</script>\n";
     unset($_aut_r, $_aut_views, $_aut_curRole, $_aut_curScope, $_aut_curIdx, $_aut_i, $_aut_v);
 }
 

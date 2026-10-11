@@ -21,7 +21,7 @@ $inTour = $st['reason'] === 'ok' && ($keyTour === 0 || intval($st['staff']->SfTo
 if (!$inTour && in_array($st['reason'], array('ok', 'signed_out', 'expired'), true)) {
     $tour = $keyTour ?: ($st['row'] ? intval($st['row']->SfTournament) : 0);
     $set = $tour > 0 ? shp_settings($tour) : null;
-    if ($set && shp_desk_on($tour)) {
+    if ($set) {   // the desk is always there (organisers; volunteers where a post is open)
         header('Location: ' . shp_url('staff/login.php?k=' . rawurlencode((string) $set->SgPublicKey) . '&to=desk'));
         exit;
     }
@@ -56,7 +56,7 @@ echo '  <div id="desk" class="dk"><p class="shp-muted dk-pad">' . shp_e(shp_t('S
         'act' => shp_url('desk/api/act.php'), 'todo' => shp_url('desk/api/todo.php'),
         'logout' => shp_url('staff/api/logout.php'),
         'login' => shp_url('staff/login.php?k=' . rawurlencode($deskKey) . '&to=desk'),
-        'till' => shp_enabled($TOUR) && shp_staff_can($me, '') ? shp_url('staff/index.php') : '',
+        'till' => shp_till_open($TOUR, $me) && shp_staff_can($me, '') ? shp_url('staff/index.php') : '',
         'tour' => shp_staff_tour_name($TOUR), 'me' => shp_staff_label(intval($me->SfId)),
         'rights' => $rights, 'methods' => $methods,
         'open' => shp_desk_account_ok((string) ($_GET['a'] ?? '')) ? (string) $_GET['a'] : '',
