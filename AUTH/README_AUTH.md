@@ -96,7 +96,9 @@ competitors' and visitors' phones, and a mobile till for volunteers.
   licensees (settlement at end of competition); no payment card data is stored on the server
 - 👔 **Volunteers**: invited by QR code with organiser validation and a 4-digit verification code,
   or a **licensee added at a distance and ahead** (searched by licence number or name in the licence
-  file, then their rights); pre-set roles (seller, preparer, all-in-one, stand supervisor), refund ceilings, rights given
+  file, then their rights), or of an **official already entered in ianseo's field crew**; pre-set
+  accesses (chairman of judges, judge, DOS, shop, check-in) and ianseo **function**, the one proposing
+  the other, the function written in the field crew; refund ceilings, rights given
   **per stand** for better autonomy, immediate revocation possible and undoable (the access comes
   back with its rights); unlicensed accounts open from day-before to day-after (auto-deleted next
   day)
@@ -250,6 +252,10 @@ See the [general README](../README.md) for the common principle.
 | `INSERT INTO` | `Flags` | `logos-lib.php:267` | — |
 | `INSERT INTO` | `Flags` | `logos-lib.php:313` | — |
 | `UPDATE` | `Entries` | `shop/lib/desk.php:259` | review scope by hand |
+| `INSERT INTO` | `Countries` | `shop/lib/officials.php:130` | — |
+| `DELETE FROM` | `TournamentInvolved` | `shop/lib/officials.php:165` | — |
+| `UPDATE` | `TournamentInvolved` | `shop/lib/officials.php:167` | review scope by hand |
+| `INSERT INTO` | `TournamentInvolved` | `shop/lib/officials.php:194` | — |
 
 ### Tables owned by this module
 
@@ -489,12 +495,12 @@ See the [general README](../README.md) for the common principle.
 | `INSERT IGNORE INTO` | `ShopSettings` | `shop/lib/common.php:110` | — |
 | `UPDATE` | `ShopSettings` | `shop/lib/common.php:148` | — |
 | `UPDATE IGNORE` | `ShopSettings` | `shop/lib/common.php:160` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/copy.php:160` | — |
-| `DELETE FROM` | `ShopStands` | `shop/lib/copy.php:161` | — |
-| `UPDATE` | `ShopSettings` | `shop/lib/copy.php:165` | — |
-| `INSERT INTO` | `ShopStands` | `shop/lib/copy.php:173` | — |
-| `INSERT INTO` | `ShopProducts` | `shop/lib/copy.php:185` | — |
-| `INSERT INTO` | `ShopVariants` | `shop/lib/copy.php:198` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/copy.php:161` | — |
+| `DELETE FROM` | `ShopStands` | `shop/lib/copy.php:162` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/copy.php:166` | — |
+| `INSERT INTO` | `ShopStands` | `shop/lib/copy.php:174` | — |
+| `INSERT INTO` | `ShopProducts` | `shop/lib/copy.php:186` | — |
+| `INSERT INTO` | `ShopVariants` | `shop/lib/copy.php:199` | — |
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:46` | — |
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:79` | — |
 | `INSERT INTO` | `ShopGuests` | `shop/lib/customer.php:85` | — |
@@ -561,29 +567,29 @@ See the [general README](../README.md) for the common principle.
 | `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff-session.php:99` | — |
 | `UPDATE` | `ShopStaffSessions` | `shop/lib/staff-session.php:118` | — |
 | `UPDATE` | `ShopStaff` | `shop/lib/staff-session.php:120` | — |
-| `INSERT INTO` | `ShopStaffLog` | `shop/lib/staff.php:341` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:388` | — |
-| `INSERT INTO` | `ShopStaffStands` | `shop/lib/staff.php:390` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:417` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:442` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:445` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:465` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:480` | — |
-| `UPDATE` | `ShopInvites` | `shop/lib/staff.php:483` | — |
+| `INSERT INTO` | `ShopStaffLog` | `shop/lib/staff.php:351` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:398` | — |
+| `INSERT INTO` | `ShopStaffStands` | `shop/lib/staff.php:400` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:428` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:453` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:456` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:477` | — |
 | `UPDATE` | `ShopStaff` | `shop/lib/staff.php:493` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:510` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:535` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:541` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:591` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:621` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:622` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:625` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:753` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:754` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:756` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:825` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:849` | — |
-| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff.php:853` | — |
+| `UPDATE` | `ShopInvites` | `shop/lib/staff.php:496` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:506` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:523` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:548` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:554` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:604` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:634` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:635` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:638` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:770` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:771` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:773` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:842` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:866` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff.php:870` | — |
 | `INSERT INTO` | `ShopStockMoves` | `shop/lib/stock.php:28` | — |
 | `UPDATE` | `ShopVariants` | `shop/lib/stock.php:56` | — |
 | `UPDATE` | `ShopProducts` | `shop/lib/stock.php:59` | — |

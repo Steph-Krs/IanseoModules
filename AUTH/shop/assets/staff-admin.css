@@ -50,6 +50,23 @@
 #shpstf .ss-find-act .ss-badge { margin-right: 6px; }
 #shpstf .ss-add-row > td { padding: 4px 0 8px; }
 #shpstf .ss-add { margin: 0; }
+/* Waiting requests and ianseo's field crew without an access, side by side (no line added). */
+#shpstf .ss-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 0 20px; align-items: start; }
+#shpstf .ss-col > h2 { flex-wrap: wrap; }
+#shpstf .ss-h-btn { margin-left: auto; font-size: 12px; font-weight: 400; padding: 2px 8px; }
+#shpstf .ss-col .ss-pend { max-width: none; }
+/* Access and function side by side. */
+#shpstf .ss-pair { display: flex; flex-wrap: wrap; gap: 0 12px; }
+#shpstf .ss-pair > .ss-f { flex: 1 1 140px; min-width: 0; max-width: 260px; }
+#shpstf .ss-pair select { width: 100%; }
+#shpstf .ss-acc { margin: 4px 0; font-weight: 600; }
+/* "(not the function)" under "Withdraw the access", small: the button keeps the width of the
+   card's line (342 px cards on a 1400 px screen). */
+#shpstf .ss-btn.ss-btn-2l { flex-direction: column; gap: 0; line-height: 1.15; padding-top: 2px; padding-bottom: 2px; }
+#shpstf .ss-btn-note { font-size: 10.5px; font-weight: 400; }
+#shpstf .ss-stands .ss-fine { margin-top: 6px; }
+/* A fieldset takes the width of its content: the fine-tuning grid scrolls inside the card instead. */
+#shpstf .ss-stands { min-width: 0; }
 #shpstf .ss-badge-in { background: var(--ss-green-bg); border-color: #75ae77; color: #035c07; }
 #shpstf .ss-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 #shpstf .ss-running { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px;

@@ -20,7 +20,7 @@
 if (defined('SHP_SCHEMA_LOADED')) return;
 define('SHP_SCHEMA_LOADED', true);
 
-if (!defined('SHP_SCHEMA_VERSION')) define('SHP_SCHEMA_VERSION', 8);
+if (!defined('SHP_SCHEMA_VERSION')) define('SHP_SCHEMA_VERSION', 9);
 
 // The shop shares the payment journal and the licensee accounts of the online registration
 // (same module): booking's schema, clock and texts come first.
@@ -364,6 +364,11 @@ function shp_schema()
     if (shp_colonne('ShopSettings', 'SgClients', "TINYINT NOT NULL DEFAULT 0 AFTER SgPreorders")) {
         safe_w_sql("UPDATE ShopSettings SET SgClients = SgEnabled");
     }
+
+    // v9 — the access chosen for a volunteer (1.4.5): a preset of shp_staff_presets(), 'custom', or
+    // '' (from before: read from the rights). Kept because two accesses may give the same rights
+    // (chairman of judges, judge) and one gives none yet (director of shooting).
+    shp_colonne('ShopStaff', 'SfAccess', "VARCHAR(16) NOT NULL DEFAULT '' AFTER SfDesk");
 
     $_SESSION[$flag] = true;
     $busy = false;

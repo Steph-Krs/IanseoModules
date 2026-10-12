@@ -100,7 +100,9 @@ commande par téléphone des archers et des visiteurs, et caisse mobile pour les
   bancaire n'est stockée sur le serveur
 - 👔 **Bénévoles** : invitation par code QR avec validation et code de vérification à 4 chiffres
   pour l'organisateur, ou **ajout d'un licencié à distance et à l'avance** (recherche par numéro de
-  licence ou par nom dans le fichier des licences, puis ses droits) ; rôles préréglés (vendeur, préparateur, polyvalent, responsable de stand),
+  licence ou par nom dans le fichier des licences, puis ses droits), ou d'un **officiel déjà saisi
+  dans l'équipe de terrain d'ianseo** ; accès préréglés (arbitre responsable, arbitre, DOS, boutique,
+  greffe) et **fonction** d'ianseo, l'un proposant l'autre, la fonction écrite dans l'équipe de terrain ;
   plafonds de remboursement, droits donnés **par stand** pour une meilleure autonomie, révocation
   immédiate possible et annulable (l'accès revient avec ses droits) ; comptes non licenciés ouverts
   de la veille à la fin (effacés automatiquement le lendemain)
@@ -180,7 +182,9 @@ arbitres ou sur l'ordinateur de l'organisateur.
 
 Tables internes créées automatiquement : préfixe `Auth` (comptes organisateurs), `Booking`
 (comptes licenciés, inscriptions, boutique, paiements, greffe) et `Shop` (buvette & boutique,
-bénévoles).
+bénévoles). Seule table du cœur modifiée par les bénévoles : l'équipe de terrain de la compétition
+ouverte (`TournamentInvolved`, celle du menu « Equipe de terrain »), quand l'organisateur donne une
+fonction à un bénévole licencié.
 
 Jusqu'à la version 1.1.17, elles s'appelaient `AUT_*` et `BK_*`. Un serveur mis à jour depuis une
 telle version bascule de lui-même, à la première page ouverte : chaque table est renommée sur
@@ -257,6 +261,10 @@ Voir le [README général](../README.md) pour le principe commun.
 | `INSERT INTO` | `Flags` | `logos-lib.php:267` | — |
 | `INSERT INTO` | `Flags` | `logos-lib.php:313` | — |
 | `UPDATE` | `Entries` | `shop/lib/desk.php:259` | review scope by hand |
+| `INSERT INTO` | `Countries` | `shop/lib/officials.php:130` | — |
+| `DELETE FROM` | `TournamentInvolved` | `shop/lib/officials.php:165` | — |
+| `UPDATE` | `TournamentInvolved` | `shop/lib/officials.php:167` | review scope by hand |
+| `INSERT INTO` | `TournamentInvolved` | `shop/lib/officials.php:194` | — |
 
 ### Tables owned by this module
 
@@ -496,12 +504,12 @@ Voir le [README général](../README.md) pour le principe commun.
 | `INSERT IGNORE INTO` | `ShopSettings` | `shop/lib/common.php:110` | — |
 | `UPDATE` | `ShopSettings` | `shop/lib/common.php:148` | — |
 | `UPDATE IGNORE` | `ShopSettings` | `shop/lib/common.php:160` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/copy.php:160` | — |
-| `DELETE FROM` | `ShopStands` | `shop/lib/copy.php:161` | — |
-| `UPDATE` | `ShopSettings` | `shop/lib/copy.php:165` | — |
-| `INSERT INTO` | `ShopStands` | `shop/lib/copy.php:173` | — |
-| `INSERT INTO` | `ShopProducts` | `shop/lib/copy.php:185` | — |
-| `INSERT INTO` | `ShopVariants` | `shop/lib/copy.php:198` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/copy.php:161` | — |
+| `DELETE FROM` | `ShopStands` | `shop/lib/copy.php:162` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/copy.php:166` | — |
+| `INSERT INTO` | `ShopStands` | `shop/lib/copy.php:174` | — |
+| `INSERT INTO` | `ShopProducts` | `shop/lib/copy.php:186` | — |
+| `INSERT INTO` | `ShopVariants` | `shop/lib/copy.php:199` | — |
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:46` | — |
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:79` | — |
 | `INSERT INTO` | `ShopGuests` | `shop/lib/customer.php:85` | — |
@@ -568,29 +576,29 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff-session.php:99` | — |
 | `UPDATE` | `ShopStaffSessions` | `shop/lib/staff-session.php:118` | — |
 | `UPDATE` | `ShopStaff` | `shop/lib/staff-session.php:120` | — |
-| `INSERT INTO` | `ShopStaffLog` | `shop/lib/staff.php:341` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:388` | — |
-| `INSERT INTO` | `ShopStaffStands` | `shop/lib/staff.php:390` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:417` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:442` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:445` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:465` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:480` | — |
-| `UPDATE` | `ShopInvites` | `shop/lib/staff.php:483` | — |
+| `INSERT INTO` | `ShopStaffLog` | `shop/lib/staff.php:351` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:398` | — |
+| `INSERT INTO` | `ShopStaffStands` | `shop/lib/staff.php:400` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:428` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:453` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:456` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:477` | — |
 | `UPDATE` | `ShopStaff` | `shop/lib/staff.php:493` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:510` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:535` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:541` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:591` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:621` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:622` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:625` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:753` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:754` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:756` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:825` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:849` | — |
-| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff.php:853` | — |
+| `UPDATE` | `ShopInvites` | `shop/lib/staff.php:496` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:506` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:523` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:548` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:554` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:604` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:634` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:635` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:638` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:770` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:771` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:773` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:842` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:866` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff.php:870` | — |
 | `INSERT INTO` | `ShopStockMoves` | `shop/lib/stock.php:28` | — |
 | `UPDATE` | `ShopVariants` | `shop/lib/stock.php:56` | — |
 | `UPDATE` | `ShopProducts` | `shop/lib/stock.php:59` | — |

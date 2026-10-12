@@ -83,7 +83,7 @@ function shp_copy_staff($destTour, $srcTour, $by)
     $srcName = array();
     foreach (shp_stands($srcTour, false) as $sd => $s) $srcName[intval($sd)] = mb_strtolower(trim((string) $s->SdName));
     $n = 0;
-    $rs = safe_r_sql("SELECT SfId, SfLicence, SfDesk, SfRefundMax, SfRefundTotal FROM ShopStaff
+    $rs = safe_r_sql("SELECT SfId, SfLicence, SfDesk, SfAccess, SfRefundMax, SfRefundTotal FROM ShopStaff
         WHERE SfTournament = $srcTour AND SfKind = 'LICENSEE' AND SfStatus IN ('active', 'locked') AND SfLicence <> ''
         ORDER BY SfId");
     $rows = array();
@@ -94,7 +94,8 @@ function shp_copy_staff($destTour, $srcTour, $by)
             $k = $srcName[intval($sd)] ?? '';
             if ($k !== '' && isset($byName[$k])) $rights[$byName[$k]] = implode(',', $perms);
         }
-        $res = shp_staff_add_licensee($destTour, $r->SfLicence, $rights, $r->SfRefundMax, $r->SfRefundTotal, $by, (string) $r->SfDesk);
+        $res = shp_staff_add_licensee($destTour, $r->SfLicence, $rights, $r->SfRefundMax, $r->SfRefundTotal, $by, (string) $r->SfDesk,
+            (string) $r->SfAccess);
         if (empty($res['error'])) $n++;
     }
     return $n;

@@ -10,6 +10,10 @@
  *   - or a licensee found by licence number or name (licence file, licensee space) and added at
  *     once with their rights — ahead of the competition and at a distance, no QR code (user's
  *     choice, 2026-10-12); they sign in with their licensee-space account;
+ *   - beside the waiting requests, the officials of ianseo's field crew without an access yet
+ *     (Tournament/ManStaffField.php), given one in a click; every licensed volunteer has an
+ *     "Access" (preset rights) and a "Function" (ianseo's), the one proposing the other, the
+ *     function written in ianseo's field crew (lib/officials.php — user's choice, 2026-10-13);
  *   - waiting requests, refreshed by themselves WHILE an invitation runs or requests wait (no
  *     request to the server otherwise): the organiser checks the 4-digit code shown on
  *     the volunteer's phone, picks a role preset for the stands ticked (or rights stand by stand),
@@ -32,6 +36,7 @@ CheckTourSession(true);
 checkFullACL(AclParticipants, 'pEntries', AclReadWrite);
 
 require_once dirname(__DIR__) . '/lib/staff-session.php';
+require_once dirname(__DIR__) . '/lib/officials.php';
 require_once dirname(__DIR__) . '/lib/invite.php';
 require_once dirname(__DIR__) . '/lib/purge.php';
 require_once dirname(__DIR__) . '/lib/ui.php';
@@ -51,11 +56,23 @@ $judgesOn = shp_judges_on($TOUR);   // equipment check opened to the volunteers
 $enabled = $shopOn || $deskOn || $judgesOn;
 $window = shp_window($TOUR);
 $over = !$window || $window['purge_due'];
+// The functions are ianseo's field crew: changed with the right the core asks on its own page.
+$canFn = hasFullACL(AclCompetition, 'cData', AclReadWrite);
 
 /** Everything the page script shows, in one answer. */
 function ss_state($tour)
 {
-    return array('pending' => shp_staff_pending($tour), 'team' => shp_staff_team($tour), 'invite' => shp_invite_running($tour));
+    return array('pending' => shp_fn_decorate(shp_staff_pending($tour), $tour), 'team' => shp_fn_decorate(shp_staff_team($tour), $tour),
+        'invite' => shp_invite_running($tour), 'officials' => shp_fn_officials($tour));
+}
+
+/** The function chosen on a card, written in ianseo's field crew (and journaled) when allowed. */
+function ss_function($tour, $staffId, array $in, $by)
+{
+    global $canFn;
+    if (!$canFn || !array_key_exists('fn', $in) || $in['fn'] === null || $in['fn'] === '') return;
+    $r = shp_fn_save($tour, intval($staffId), intval($in['fn_was'] ?? 0), intval($in['fn']));
+    if ($r['changed']) shp_staff_log($tour, intval($staffId), 'function', $by, 'fn:' . $r['from'] . '>' . $r['to']);
 }
 
 /** An amount typed by the organiser ("12,50"), 0 when unreadable. */
@@ -81,7 +98,11 @@ if ((string) ($_SERVER['HTTP_X_SHP'] ?? '') === '1') {
     $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
     if ($method === 'GET') {
         session_write_close();
-        if (isset($_GET['find'])) shp_json(array('error' => 0) + shp_staff_find($TOUR, (string) $_GET['find']));
+        if (isset($_GET['find'])) {
+            $f = shp_staff_find($TOUR, (string) $_GET['find']);
+            $f['rows'] = shp_fn_decorate($f['rows'], $TOUR);
+            shp_json(array('error' => 0) + $f);
+        }
         shp_json(ss_state($TOUR));
     }
     if ($method !== 'POST' || stripos((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'application/json') !== 0) {
@@ -93,6 +114,7 @@ if ((string) ($_SERVER['HTTP_X_SHP'] ?? '') === '1') {
     if (!$enabled) shp_json_error('shop_off', shp_t('ShErrShopOff'));
     $id = intval($in['id'] ?? 0);
     $rights = is_array($in['rights'] ?? null) ? $in['rights'] : array();
+    $access = (string) ($in['access'] ?? '');
     switch ((string) ($in['act'] ?? '')) {
         case 'invite':
             $r = ss_qr(shp_invite_create($TOUR, 'enrol', $BY));
@@ -103,22 +125,31 @@ if ((string) ($_SERVER['HTTP_X_SHP'] ?? '') === '1') {
             break;
         case 'approve':
             $r = shp_staff_approve($TOUR, $id, $rights, ss_amount($in['refund_max'] ?? ''), ss_amount($in['refund_total'] ?? ''), $BY,
-                (string) ($in['desk'] ?? ''));
+                (string) ($in['desk'] ?? ''), $access);
+            if (!$r['error']) ss_function($TOUR, $id, $in, $BY);
             break;
         case 'add':
             if ($over) shp_json_error('over', shp_t('ShStfErrOver'));
             $r = shp_staff_add_licensee($TOUR, (string) ($in['licence'] ?? ''), $rights, ss_amount($in['refund_max'] ?? ''),
-                ss_amount($in['refund_total'] ?? ''), $BY, (string) ($in['desk'] ?? ''));
+                ss_amount($in['refund_total'] ?? ''), $BY, (string) ($in['desk'] ?? ''), $access);
+            if (!$r['error']) ss_function($TOUR, intval($r['id']), $in, $BY);
             break;
         case 'refuse':
             $r = shp_staff_refuse($TOUR, $id, $BY);
             break;
         case 'update':
             $r = shp_staff_update($TOUR, $id, $rights, ss_amount($in['refund_max'] ?? ''), ss_amount($in['refund_total'] ?? ''), $BY,
-                (string) ($in['desk'] ?? ''));
+                (string) ($in['desk'] ?? ''), $access);
+            if (!$r['error']) ss_function($TOUR, $id, $in, $BY);
             break;
         case 'revoke':
             $r = shp_staff_revoke($TOUR, $id, $BY);
+            // The function stays in ianseo's field crew (user's choice): the organiser is told.
+            if (!$r['error']) {
+                $s = shp_staff_get($id);
+                $m = shp_fn_decorate(array(array('licence' => $s ? (string) $s->SfLicence : '')), $TOUR)[0];
+                if ($m['fn']) $r['fn_note'] = shp_t('ShStfRevokedFn', array('name' => shp_staff_label($id), 'fn' => $m['fn_label']));
+            }
             break;
         case 'unlock':
             $r = shp_staff_unlock($TOUR, $id, $BY);
@@ -151,7 +182,7 @@ if ((string) ($_SERVER['HTTP_X_SHP'] ?? '') === '1') {
 /** Journal of the decisions on the team (latest first), in the competition's local time. */
 function ss_journal($tour)
 {
-    $ev = array('approve' => 'ShStfEvApprove', 'add' => 'ShStfEvAdd', 'refuse' => 'ShStfEvRefuse', 'rights' => 'ShStfEvRights',
+    $ev = array('approve' => 'ShStfEvApprove', 'add' => 'ShStfEvAdd', 'function' => 'ShStfEvFunction', 'refuse' => 'ShStfEvRefuse', 'rights' => 'ShStfEvRights',
         'revoke' => 'ShStfEvRevoke', 'unlock' => 'ShStfEvUnlock', 'reset' => 'ShStfEvReset',
         'reset_done' => 'ShStfEvResetDone', 'lock' => 'ShStfEvLock', 'organiser' => 'ShStfEvOrganiser', 'restore' => 'ShStfEvRestore');
     // The connection of an organiser page runs in the competition's zone: NOW() - UTC gives its offset.
@@ -219,8 +250,13 @@ if (!$over) {
 }
 echo '<div id="ss-flash" aria-live="polite"></div>';
 
-echo '<section><h2>' . shp_e(shp_t('ShStfPendingTitle')) . ' <span class="ss-count" id="ss-pending-count">0</span></h2>'
+// Beside the waiting requests (no line added: user's choice), the officials of ianseo's field
+// crew without an access, and the way to that page of the core.
+echo '<div class="ss-cols"><section class="ss-col"><h2>' . shp_e(shp_t('ShStfPendingTitle')) . ' <span class="ss-count" id="ss-pending-count">0</span></h2>'
     . '<div id="ss-pending"><p class="ss-muted">' . shp_e(shp_t('ShLoading')) . '</p></div></section>'
+    . '<section class="ss-col"><h2>' . shp_e(shp_t('ShStfOfficialsTitle')) . ' <span class="ss-count" id="ss-off-count">0</span>'
+    . '<a class="ss-btn ss-h-btn" href="' . shp_e($CFG->ROOT_DIR . 'Tournament/ManStaffField.php') . '">' . shp_e(get_text('MenuLM_Field Crew')) . '</a></h2>'
+    . '<div id="ss-officials"></div></section></div>'
     . '<section><h2>' . shp_e(shp_t('ShStfTeamTitle')) . '</h2><div id="ss-team"></div></section>'
     . '<details class="ss-journal"><summary>' . shp_e(shp_t('ShStfJournalTitle')) . '</summary>' . ss_journal($TOUR) . '</details>';
 
@@ -239,6 +275,8 @@ foreach (shp_stands($TOUR, false) as $sd => $st) {
 }
 $presets = array();
 foreach (shp_staff_presets() as $k => $p) $presets[] = array('key' => $k, 'label' => shp_staff_preset_label($k)) + $p;
+$functions = array();
+foreach (shp_fn_list() as $f) $functions[] = array('id' => $f['id'], 'label' => $f['label'], 'group' => $f['group']);
 $perms = array();
 foreach (shp_perms_all() as $p) $perms[] = array('key' => $p, 'label' => shp_perm_label($p));
 // Rights at the desk, in two posts opened apart: registry (documents, payments), judges (equipment).
@@ -255,6 +293,8 @@ echo shp_json_script('shp-texts', shp_ts(array(
         'ShStfPendingWaiting', 'ShStfResetTitle2', 'ShStfResetLeft', 'ShStfHide', 'ShStfClose', 'ShStfDone',
         'ShStfNoStandSet', 'ShStfErrNoStand', 'ShStfStandInactive', 'ShStfQrMissing', 'DkRightsTitle', 'DkErrNoRight',
         'DkRightsShort', 'DkJudgesRightsTitle', 'DkJudges', 'ShStfRestore', 'ShStfRestoreDone',
+        'ShStfFunction', 'ShStfAccessIs', 'ShStfFunctionIs', 'ShStfRevokeKeepFn', 'ShStfOfficialsNone', 'ShStfOfficialsAdd', 'ShStfFnKept',
+        'ShStfFamilyName', 'ShStfGivenName',
         'ShStfFindTitle', 'ShStfFindNone', 'ShStfFindMore', 'ShStfFindLicence', 'ShStfFindName', 'ShStfFindClub',
         'ShStfFindBorn', 'ShStfFindSpace', 'ShStfFindYes', 'ShStfFindNo', 'ShStfFindAdd', 'ShStfFindInTeam',
         'ShStfFindPending', 'ShStfFindNoAccount', 'ShStfAddConfirm', 'ShStfAdded', 'ShStfKindLicensee',
@@ -262,7 +302,8 @@ echo shp_json_script('shp-texts', shp_ts(array(
     . shp_json_script('shp-cfg', shp_page_cfg($TOUR, 'staffadm', array(
         'self' => $SELF, 'csrf' => bk_csrf_token(), 'stands' => $stands, 'presets' => $presets, 'perms' => $perms,
         'desk_perms' => $deskPerms, 'desk_on' => $deskOn, 'judges_on' => $judgesOn, 'shop_on' => $shopOn,
-        'default_preset' => $shopOn ? 'versatile' : ($deskOn ? 'registry' : 'judge'), 'state' => ss_state($TOUR), 'over' => $over,
+        'default_preset' => $shopOn ? 'shop' : ($deskOn ? 'registry' : ($judgesOn ? 'judge' : '')), 'state' => ss_state($TOUR), 'over' => $over,
+        'functions' => $functions, 'fn_access' => shp_staff_fn_access(), 'fn_edit' => $canFn,
     )));
 echo '<script src="' . shp_e(shp_asset_url('shp.js')) . '"></script>'
     . '<script src="' . shp_e(shp_asset_url('staff-admin.js')) . '"></script>';
