@@ -32,8 +32,9 @@ Modules pour le projet I@nseo :
   ligne** : les licenciés se connectent avec leurs identifiants fédéraux (aucun mot de passe
   stocké), consultent le calendrier des compétitions ouvertes et s'inscrivent eux-mêmes.
   Attribution automatique des cibles (règles fédérales, dont cohabitation des blasons), inscription
-  groupée par un camarade de club, suivi des paiements, boutique, mandat et feuilles de marque.
-  Inclut le sous-module `booking/` (ex-« Inscriptions en ligne »).
+  groupée par un camarade de club, suivi des paiements, mandat et feuilles de marque. Sur place :
+  buvette et boutique avec commandes par téléphone, greffe et contrôle du matériel, équipe de
+  bénévoles sur téléphone. Inclut le sous-module `booking/` (ex-« Inscriptions en ligne »).
 - [Sélection Équipe de France](SELEC/README_SELEC.md) — Calcul des classements d'une épreuve de
   sélection nationale : qualifications, journées à points cumulés, tournois montante/descendante,
   poules et duels simulés. Les règlements sont de simples fichiers de configuration ; chaque
