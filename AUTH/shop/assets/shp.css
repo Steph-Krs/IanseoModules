@@ -33,6 +33,31 @@ html, body { margin: 0; padding: 0; background: #f0f4ff; }
 #shp .shp-top-title { flex: 1; font-weight: 700; font-size: 1.05rem; overflow: hidden;
     text-overflow: ellipsis; white-space: nowrap; }
 #shp .shp-top a, #shp .shp-top button { color: #fff; }
+/* Top bar of the volunteer pages (Shp.topbar): one line on a phone — the post selector takes
+   what is left, the name stays short. Its menu floats under it. */
+#shp .shp-bar { flex-wrap: nowrap; gap: 6px; padding-left: 8px; padding-right: 8px; }
+#shp .shp-postsel { flex: 1 1 auto; min-width: 0; max-width: 420px; margin-right: auto; width: auto; min-height: 40px; padding: 4px 6px; border: 0;
+    border-radius: var(--shp-radius); font-weight: 700; font-size: 1rem; color: var(--shp-blue-dark); background: #fff; }
+#shp .shp-who { flex: 0 1 auto; max-width: 36%; min-height: 40px; padding: 0 10px; border: 1px solid rgba(255,255,255,.6);
+    border-radius: var(--shp-radius); background: none; font: inherit; font-size: .9rem; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+#shp .shp-who[aria-expanded="true"] { background: rgba(255,255,255,.18); }
+#shp .shp-menu { position: fixed; top: calc(54px + env(safe-area-inset-top)); right: 8px; z-index: 40; width: 260px;
+    max-width: calc(100vw - 16px); padding: 6px; background: #fff; border: 1px solid var(--shp-border);
+    border-radius: var(--shp-radius); box-shadow: 0 6px 20px rgba(0,0,0,.2); }
+#shp .shp-menu[hidden] { display: none; }
+#shp .shp-menu-head { padding: 8px 10px; border-bottom: 1px solid var(--shp-border); }
+#shp .shp-menu-head b { display: block; color: var(--shp-blue-dark); }
+#shp .shp-menu-head small { display: block; color: var(--shp-grey); }
+#shp .shp-menu-item { display: flex; align-items: center; width: 100%; min-height: 48px; padding: 0 10px; border: 0; background: none;
+    font: inherit; color: var(--shp-blue); text-decoration: none; text-align: left; cursor: pointer; }
+#shp .shp-menu-item + .shp-menu-item { border-top: 1px solid var(--shp-light); }
+#shp .shp-menu-out { color: var(--shp-red); }
+/* Choice of a competition (staff/enter.php) */
+#shp .shp-stack { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+#shp .shp-btn.shp-choice { flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; height: auto;
+    padding-top: 10px; padding-bottom: 10px; text-align: left; }
+#shp .shp-btn.shp-choice small { font-weight: 400; color: var(--shp-grey); }
 
 /* Bottom tab bar: text labels, never a pictogram alone */
 #shp .shp-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex;

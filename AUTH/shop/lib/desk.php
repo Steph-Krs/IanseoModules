@@ -97,16 +97,16 @@ function shp_require_desk($perm = '')
     echo '  <main class="shp-main"><div class="shp-card"><h1>' . shp_e($title) . '</h1>'
         . shp_msg(in_array($reason, array('desk_off', 'shop_off'), true) ? 'info' : 'warn', $msg);
     $s = $tour > 0 ? shp_settings($tour) : null;
-    if ($s && in_array($reason, array('signed_out', 'expired', 'locked'), true)) {
+    if ($s && in_array($reason, array('signed_out', 'expired', 'locked', 'revoked', 'refused'), true)) {
         echo '<p><a class="shp-btn shp-btn-primary shp-btn-block" href="'
             . shp_e(shp_url('staff/login.php?k=' . rawurlencode($s->SgPublicKey) . '&to=desk')) . '">' . shp_e(shp_t('ShStfLoginAgain')) . '</a></p>';
     } elseif ($reason === 'pending') {
         echo '<p><a class="shp-btn shp-btn-primary shp-btn-block" href="' . shp_e(shp_url('staff/join.php')) . '">'
             . shp_e(shp_t('ShStfBackToWait')) . '</a></p>';
     } elseif ($reason === 'signed_out') {
-        echo '<p class="shp-muted">' . shp_e(shp_t('DkScanToSignIn')) . '</p>';
+        echo shp_staff_way_in() ?: '<p class="shp-muted">' . shp_e(shp_t('DkScanToSignIn')) . '</p>';
     }
-    echo "</div></main>\n";
+    echo shp_licensee_space_btn() . "</div></main>\n";
     shp_foot();
     exit;
 }
@@ -653,19 +653,35 @@ function shp_desk_rows($tourId)
 }
 
 /**
- * The judges' view: entries whose equipment was not checked yet (no decision for that weapon),
- * participants still in the competition (not withdrawn, not accredited, licence allowing to
- * shoot). $f: ['session', 'division', 'class', 'event'] ('' = any). Each filter only offers the
- * values left once the OTHER filters are applied — a departure, weapon, class or event with
- * nobody left to check is not offered. Returns ['rows', 'facets' => [name => [[value, label,
- * count]]], 'left' (all entries still to check)].
+ * The volunteers' list of a post, without any search (user's choice, 2026-10-12): who is left to
+ * check at the registry ($post 'reg') or at the equipment check ('equip'), or who was checked.
+ * $f: state 'todo' (not checked yet; the participants who cannot take part — 6, 7, 9 — left
+ * aside) or 'done' (accepted or refused), session, division, class, event. With the options of
+ * each filter where somebody is left, and the totals of the post: left to check, checked.
+ * The registry counts ARCHERS (documents are checked once per archer, rows merged), the judges
+ * count WEAPONS (each weapon of an archer is checked).
  */
-function shp_desk_todo($tourId, array $f)
+function shp_desk_list($tourId, $post, array $f)
 {
     $tourId = intval($tourId);
-    $all = array_values(array_filter(shp_desk_rows($tourId), function ($r) {
-        return $r['equip'] === 0 && !in_array($r['status'], array(6, 7, 9), true);
+    $field = $post === 'reg' ? 'reg' : 'equip';
+    $byArcher = $field === 'reg';
+    $done = (string) ($f['state'] ?? '') === 'done';
+    $todo = function ($r) use ($field) { return $r[$field] === 0 && !in_array($r['status'], array(6, 7, 9), true); };
+    $rows0 = shp_desk_rows($tourId);
+    $all = array_values(array_filter($rows0, function ($r) use ($done, $field, $todo) {
+        return $done ? $r[$field] !== 0 : $todo($r);
     }));
+    // Totals of the post, whatever the filters.
+    $count = function (array $rows) use ($byArcher) {
+        if (!$byArcher) return count($rows);
+        $a = array();
+        foreach ($rows as $r) $a[$r['account']] = true;
+        return count($a);
+    };
+    $left = $count(array_filter($rows0, $todo));
+    $checked = $count(array_filter($rows0, function ($r) use ($field) { return $r[$field] !== 0; }));
+
     $sessions = shp_desk_sessions($tourId);
     $events = shp_desk_events($tourId);
     $want = array();
@@ -676,30 +692,28 @@ function shp_desk_todo($tourId, array $f)
         if ($k === 'event') return in_array($v, $r['events'], true);
         return (string) $r[$k] === $v;
     };
+    // One unit = a row (weapon), or an archer at the registry: an option counts units once.
+    $unit = function ($r) use ($byArcher) { return $byArcher ? $r['account'] : $r['account'] . '|' . $r['entry']; };
     $facets = array();
     foreach (array_keys($want) as $dim) {
         $opts = array();
+        $add = function ($v, $l, $u) use (&$opts) {
+            if (!isset($opts[$v])) $opts[$v] = array($v, $l, array());
+            $opts[$v][2][$u] = true;
+        };
         foreach ($all as $r) {
             $ok = true;
             foreach ($want as $k => $v) if ($k !== $dim && !$match($r, $k, $v)) { $ok = false; break; }
             if (!$ok) continue;
             if ($dim === 'event') {
-                foreach ($r['events'] as $e) {
-                    if (!isset($opts[$e])) $opts[$e] = array($e, $events[$e] ?? $e, 0);
-                    $opts[$e][2]++;
-                }
-                continue;
-            }
-            if ($dim === 'session') {
-                $v = (string) $r['session'];
-                $l = $r['session'] > 0 ? ($sessions[$r['session']]['label'] ?? bk_t('DepCap', $r['session'])) : shp_t('DkNoSession');
+                foreach ($r['events'] as $e) $add($e, $events[$e] ?? $e, $unit($r));
+            } elseif ($dim === 'session') {
+                $add((string) $r['session'], $r['session'] > 0 ? ($sessions[$r['session']]['label'] ?? bk_t('DepCap', $r['session'])) : shp_t('DkNoSession'), $unit($r));
             } else {
-                $v = (string) $r[$dim];
-                $l = $r[$dim . '_label'];
+                $add((string) $r[$dim], $r[$dim . '_label'], $unit($r));
             }
-            if (!isset($opts[$v])) $opts[$v] = array($v, $l, 0);
-            $opts[$v][2]++;
         }
+        foreach ($opts as $v => $o) $opts[$v][2] = count($o[2]);
         // The value chosen stays offered even when nothing is left in it (it can be unticked).
         if ($want[$dim] !== '' && !isset($opts[$want[$dim]])) $opts[$want[$dim]] = array($want[$dim], $want[$dim], 0);
         if ($dim === 'session') ksort($opts, SORT_NUMERIC);
@@ -711,11 +725,22 @@ function shp_desk_todo($tourId, array $f)
         }
         $facets[$dim] = array_values($opts);
     }
-    $rows = array();
+    $rows = $seen = array();
     foreach ($all as $r) {
         $ok = true;
         foreach ($want as $k => $v) if (!$match($r, $k, $v)) { $ok = false; break; }
-        if ($ok) $rows[] = $r;
+        if (!$ok) continue;
+        if ($byArcher) {
+            if (isset($seen[$r['account']])) continue;
+            $seen[$r['account']] = true;
+        }
+        $rows[] = $r;
     }
-    return array('rows' => $rows, 'facets' => $facets, 'left' => count($all));
+    return array('rows' => $rows, 'facets' => $facets, 'left' => $left, 'checked' => $checked, 'state' => $done ? 'done' : 'todo');
+}
+
+/** The judges' list of the equipment left to check (former name, kept for its callers). */
+function shp_desk_todo($tourId, array $f)
+{
+    return shp_desk_list($tourId, 'equip', array('state' => 'todo') + $f);
 }

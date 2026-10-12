@@ -168,6 +168,20 @@ function shp_require_staff($perm = '', $standId = 0)
     shp_staff_denied_page($reason, $tour, $http);
 }
 
+/**
+ * Button into the volunteer space for a licensee signed in to the archer space with a post open
+ * to them (staff/enter.php: no organiser's address needed), or ''.
+ */
+function shp_staff_way_in()
+{
+    require_once __DIR__ . '/posts.php';
+    $archer = shp_impersonating() ? null : bk_current_archer();
+    $vol = $archer ? shp_archer_volunteer_tours($archer) : array();
+    if (!$vol) return '';
+    return '<p><a class="shp-btn shp-btn-primary shp-btn-block" href="'
+        . shp_e(shp_url('staff/enter.php' . (count($vol) === 1 ? '?t=' . $vol[0]['tour'] : ''))) . '">' . shp_e(bk_t('VolBoxBtn')) . '</a></p>';
+}
+
 /** Page "you cannot use the till", with the way back in when there is one. */
 function shp_staff_denied_page($reason, $tourId, $http = 403)
 {
@@ -177,7 +191,7 @@ function shp_staff_denied_page($reason, $tourId, $http = 403)
     echo '  <main class="shp-main"><div class="shp-card"><h1>' . shp_e($title) . '</h1>'
         . shp_msg($reason === 'shop_off' ? 'info' : 'warn', shp_staff_reason_msg($reason));
     $s = $tourId > 0 ? shp_settings($tourId) : null;
-    if ($s && in_array($reason, array('signed_out', 'expired', 'locked'), true)) {
+    if ($s && in_array($reason, array('signed_out', 'expired', 'locked', 'revoked', 'refused'), true)) {
         echo '<p><a class="shp-btn shp-btn-primary shp-btn-block" href="'
             . shp_e(shp_url('staff/login.php?k=' . rawurlencode($s->SgPublicKey))) . '">' . shp_e(shp_t('ShStfLoginAgain')) . '</a></p>';
     } elseif ($reason === 'pending') {
@@ -185,9 +199,9 @@ function shp_staff_denied_page($reason, $tourId, $http = 403)
             . shp_e(shp_t('ShStfBackToWait')) . '</a></p>';
     } elseif ($reason === 'signed_out') {
         // Which competition is unknown here: the poster at the stand carries its address.
-        echo '<p class="shp-muted">' . shp_e(shp_t('ShStfScanTill')) . '</p>';
+        echo shp_staff_way_in() ?: '<p class="shp-muted">' . shp_e(shp_t('ShStfScanTill')) . '</p>';
     }
-    echo "</div></main>\n";
+    echo shp_licensee_space_btn() . "</div></main>\n";
     shp_foot();
     exit;
 }

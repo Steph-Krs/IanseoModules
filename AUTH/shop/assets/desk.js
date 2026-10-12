@@ -1,10 +1,17 @@
-/* Check-in desk (desk/index.php) — search, an archer's file, the judges' view.
+/* Check-in desk (desk/index.php?v=reg|equip) — the registry (documents, payments) or the judges'
+ * equipment check: two posts apart, switched from the volunteers' bar (Shp.topbar).
  *
  * Phone first (one column: the file replaces the list, "Back" returns to it); from 900 px the
- * list and the file sit side by side. Everything comes from the JSON endpoints of desk/api/;
- * every write goes through Shp.send (idempotency key, resent until answered) and answers the
- * archer's fresh file. Buttons follow the volunteer's rights (C.rights); the server checks them
- * again. Every text comes from #shp-texts.
+ * list and the file sit side by side. The list of the post shows at once, without any search:
+ * who is left to check (by default) or who was checked, narrowed by filters folded under a
+ * button. The search works apart from them: two letters or more show the archers found in place
+ * of the list, emptying it brings the list back. An archer's file shows what the post checks —
+ * documents and payments at the registry, equipment at the judges' — and, at both, the comments
+ * and the history of the decisions.
+ *
+ * Everything comes from the JSON endpoints of desk/api/; every write goes through Shp.send
+ * (idempotency key, resent until answered) and answers the archer's fresh file. Buttons follow the
+ * volunteer's rights (C.rights); the server checks them again. Every text comes from #shp-texts.
  *
  * QR code button: only where the browser reads QR codes itself (BarcodeDetector — Chrome on
  * Android) and may open the camera (HTTPS). Elsewhere, an iPhone among them, no button: a
@@ -16,12 +23,15 @@
     var root = document.getElementById('desk');
     if (!Shp || !root || !Shp.cfg || !Shp.cfg.search) return;
     var C = Shp.cfg, T = Shp.t;
+    var POST = C.post === 'equip' ? 'equip' : 'reg';
     var rights = C.rights || [];
     function can(p) { return rights.indexOf(p) >= 0; }
 
-    var ui = { view: 'search', q: '', res: null, file: null, todo: null, filters: { session: '', division: '', 'class': '', event: '' },
-        locked: false, seq: 0 };
+    var DIMS = [['session', 'DkFilterSession', 'DkAllSessions'], ['division', 'DkFilterWeapon', 'DkAllWeapons'],
+        ['class', 'DkFilterClass', 'DkAllClasses'], ['event', 'DkFilterEvent', 'DkAllEvents']];
+    var ui = { q: '', res: null, file: null, list: null, f: remembered(), sig: '', locked: false, seq: 0, lseq: 0 };
     var els = {};
+    var listPoll = null;
 
     function h(tag, props, kids) {
         var el = document.createElement(tag), k, v;
@@ -45,7 +55,19 @@
     function num(v) { return String(v).replace('.', C.dec || ','); }
     function stateClass(s) { return s === 1 ? 'dk-ok' : (s === 2 ? 'dk-ko' : 'dk-none'); }
     function stateText(s) { return T(s === 1 ? 'DkStateOk' : (s === 2 ? 'DkStateKo' : 'DkStateNone')); }
-    function badge(label, s) { return h('span', { class: 'dk-badge ' + stateClass(s), text: label + ' : ' + stateText(s) }); }
+
+    /* Filters of the list, kept for the tab's life (each post its own): not checked yet and folded
+       by default (user's choice). */
+    function remembered() {
+        var d = { state: 'todo', session: '', division: '', 'class': '', event: '', open: false }, s = null, k;
+        try { s = JSON.parse(window.sessionStorage.getItem('dk-list-' + POST) || 'null'); } catch (e) { /* private mode */ }
+        if (s) for (k in d) if (typeof s[k] === typeof d[k]) d[k] = s[k];
+        if (d.state !== 'done') d.state = 'todo';
+        return d;
+    }
+    function remember() {
+        try { window.sessionStorage.setItem('dk-list-' + POST, JSON.stringify(ui.f)); } catch (e) { /* private mode */ }
+    }
 
     /* Two taps to confirm (the first one changes the label for 4 s). */
     function confirmBtn(label, sureLabel, cls, fire) {
@@ -61,7 +83,7 @@
         return b;
     }
 
-    /* ---- Access lost (withdrawn, signed out, desk switched off): the page stops ---- */
+    /* ---- Access lost (withdrawn, signed out, post closed): the page stops ---- */
     var LOCK_CODES = ['signed_out', 'expired', 'revoked', 'refused', 'pending', 'locked', 'desk_off', 'shop_off', 'forbidden'];
     function check(res) {
         if (res && res.error && LOCK_CODES.indexOf(res.code) >= 0) { lock(res.msg); return false; }
@@ -69,12 +91,15 @@
     }
     function lock(msg) {
         ui.locked = true;
-        if (todoPoll) todoPoll.stop();
+        if (listPoll) listPoll.stop();
         clear(root);
         root.appendChild(h('div', { class: 'shp-main' }, [h('div', { class: 'shp-card' }, [
             h('h1', { text: C.title }),
             h('div', { class: 'shp-msg shp-msg-warn', role: 'alert', text: msg || T('ShStfErrRevoked') }),
-            h('p', {}, [h('a', { class: 'shp-btn shp-btn-primary shp-btn-block', href: C.login, text: T('ShStfLoginAgain') })])
+            h('div', { class: 'shp-stack' }, [
+                h('a', { class: 'shp-btn shp-btn-primary shp-btn-block', href: C.login, text: T('ShStfLoginAgain') }),
+                C.bar && C.bar.archer ? h('a', { class: 'shp-btn shp-btn-block', href: C.bar.archer, text: T('ShStfLicSpace') }) : null
+            ])
         ])]));
     }
     function fail(res) {
@@ -85,83 +110,82 @@
     /* ---- Frame ---- */
     function build() {
         clear(root);
-        els.top = h('div', { class: 'shp-top dk-top' }, [
-            h('span', { class: 'shp-top-title' }, [h('b', { text: C.title }), h('small', { class: 'dk-tour', text: C.tour || '' })]),
-            C.till ? h('a', { class: 'dk-toplink', href: C.till, text: T('DkTill') }) : null,
-            h('span', { class: 'dk-who', text: C.me || '' }),
-            confirmBtn(T('ShPosQuit'), T('ShPosConfirm'), 'dk-quit', function () {
-                Shp.api(C.logout, {}).then(function () { window.location.replace(C.login); }, function () { Shp.toast(T('ShErrNetwork')); });
-            })
-        ]);
+        els.top = Shp.topbar(C.bar, { title: C.title });
         els.side = h('div', { class: 'dk-side' });
         els.pane = h('div', { class: 'dk-pane' });
         els.body = h('div', { class: 'dk-body' }, [els.side, els.pane]);
         root.appendChild(els.top);
         root.appendChild(els.body);
-        if (can('equip')) {
-            els.tabs = h('nav', { class: 'shp-tabs dk-tabs' });
-            root.appendChild(els.tabs);
-            root.classList.add('dk-with-tabs');
-        }
-        renderTabs();
-        renderSide();
+        buildSide();
         renderPane();
     }
 
-    function renderTabs() {
-        if (!els.tabs) return;
-        clear(els.tabs);
-        [['search', T('DkTabSearch')], ['todo', T('DkTabTodo')]].forEach(function (t) {
-            els.tabs.appendChild(h('button', { type: 'button', class: 'shp-tab' + (ui.view === t[0] ? ' on' : ''), text: t[1],
-                onclick: function () { setView(t[0]); } }));
-        });
-    }
-
-    function setView(v) {
-        ui.view = v;
-        closeFile();
-        renderTabs();
-        renderSide();
-        if (v === 'todo') loadTodo(); else if (els.input) els.input.focus();
-    }
-
     function openedFile(on) { root.classList.toggle('dk-has-file', !!on); }
-    function closeFile() { ui.file = null; openedFile(false); renderPane(); }
+    function closeFile() { ui.file = null; openedFile(false); renderPane(); renderSide(); }
 
-    /* ---- Search ---- */
+    /* ---- The side: search, filters, list or archers found ---- */
     var searchTimer = null;
-    function renderSide() {
+    function buildSide() {
         clear(els.side);
-        if (ui.view === 'todo') { renderTodo(); return; }
         els.input = h('input', { type: 'search', class: 'dk-q', placeholder: T('DkSearchPh'), 'aria-label': T('DkSearchPh'),
             autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', enterkeyhint: 'search', value: ui.q });
         els.input.addEventListener('input', function () {
-            ui.q = els.input.value;
             clearTimeout(searchTimer);
+            var q = els.input.value.trim();
+            if (q.length < 2) { search(q, false); return; }   // back to the list at once
             searchTimer = setTimeout(function () { search(els.input.value, false); }, 350);
         });
         els.input.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') { e.preventDefault(); clearTimeout(searchTimer); search(els.input.value, true); }
         });
-        var bar = h('div', { class: 'dk-searchbar' }, [els.input]);
-        if (scanReady) bar.appendChild(h('button', { type: 'button', class: 'shp-btn dk-scan', text: T('DkScan'), onclick: scan }));
-        els.side.appendChild(bar);
-        els.side.appendChild(h('p', { class: 'shp-muted dk-help', text: T('DkSearchHelp') }));
+        els.search = h('div', { class: 'dk-searchbar' }, [els.input]);
+        addScan();
+        els.fbtn = h('button', { type: 'button', class: 'shp-btn dk-fbtn', 'aria-expanded': 'false', onclick: function () {
+            ui.f.open = !ui.f.open;
+            remember();
+            renderSide();
+        } });
+        els.count = h('span', { class: 'dk-count' });
+        els.fbar = h('div', { class: 'dk-fbar' }, [els.count, els.fbtn]);
+        els.filters = h('div', { class: 'dk-filters' });
         els.results = h('div', { class: 'dk-results', 'aria-live': 'polite' });
-        els.side.appendChild(els.results);
-        renderResults();
+        [els.search, els.fbar, els.filters, els.results].forEach(function (e) { els.side.appendChild(e); });
+        renderSide();
+    }
+    function addScan() {
+        if (!scanReady || !els.search || els.scan) return;
+        els.scan = h('button', { type: 'button', class: 'shp-btn dk-scan', text: T('DkScan'), onclick: scan });
+        els.search.appendChild(els.scan);
+    }
+
+    function searching() { return ui.q.length >= 2; }
+
+    function renderSide() {
+        if (!els.results) return;
+        var s = searching();
+        els.fbar.classList.toggle('shp-hidden', s);
+        els.filters.classList.toggle('shp-hidden', s || !ui.f.open);
+        if (s) { renderResults(); return; }
+        renderFilters();
+        renderList();
     }
 
     function search(q, submitted) {
         q = String(q || '').trim();
         ui.q = q;
         var seq = ++ui.seq;
-        if (q.length < 2) { ui.res = null; renderResults(); return; }
+        if (q.length < 2) {
+            var was = ui.res !== null;
+            ui.res = null;
+            renderSide();
+            if (was && listPoll) listPoll.now();   // the list may have moved meanwhile
+            return;
+        }
         Shp.api(C.search + '?q=' + encodeURIComponent(q), null).then(function (res) {
             if (seq !== ui.seq) return;
             if (!res || res.error) { fail(res); return; }
             ui.res = res;
-            renderResults();
+            renderSide();
             // One archer: their file at once — after a scan or a confirmed search; side by side on
             // a computer, while typing too (the list stays in view).
             if (res.rows.length === 1 && (submitted || res.scan || wide())) openFile(res.rows[0].account);
@@ -174,8 +198,10 @@
         return s;
     }
 
+    /* The state shown on a row is the post's own: documents at the registry, equipment at the judges'. */
+    function rowState(st) { return h('span', { class: 'dk-dot ' + stateClass(st), text: stateText(st) }); }
+
     function renderResults() {
-        if (!els.results) return;
         clear(els.results);
         var res = ui.res;
         if (!res) return;
@@ -188,10 +214,7 @@
                     h('small', { text: [r.licence, r.club].filter(Boolean).join(' · ') }),
                     h('small', { text: r.places.map(placeText).filter(Boolean).join(' / ') })
                 ]),
-                h('span', { class: 'dk-row-st' }, [
-                    h('span', { class: 'dk-dot ' + stateClass(r.reg), title: T('DkRegTitle') + ' : ' + stateText(r.reg), text: T('DkRegTitle') }),
-                    h('span', { class: 'dk-dot ' + stateClass(r.equip), title: T('DkEquipTitle') + ' : ' + stateText(r.equip), text: T('DkEquipTitle') })
-                ])
+                rowState(r[POST])
             ]));
         });
         if (res.more) els.results.appendChild(h('p', { class: 'shp-muted', text: T('DkMoreResults') }));
@@ -205,7 +228,7 @@
             window.BarcodeDetector.getSupportedFormats().then(function (f) {
                 if (f.indexOf('qr_code') < 0) return;
                 scanReady = true;
-                if (ui.view === 'search' && !ui.locked) renderSide();
+                if (!ui.locked) addScan();
             }, function () {});
         } catch (e) { /* not available */ }
     }
@@ -261,7 +284,7 @@
         ui.file = file;
         openedFile(!!file);
         renderPane();
-        renderResults();
+        renderSide();
         if (!wide()) window.scrollTo(0, 0);
     }
 
@@ -271,7 +294,7 @@
             if (!res || res.error) { fail(res); return res; }
             if (res.file) showFile(res.file);
             Shp.toast(okText || T('DkSaved'));
-            if (ui.view === 'todo') loadTodo();
+            if (listPoll) listPoll.now();
             return res;
         }, function () { Shp.toast(T('ShErrNetwork'), null, 6000); });
     }
@@ -304,6 +327,25 @@
         return box;
     }
 
+    function equipSection(f, d) {
+        var list = d.powers.length ? h('ul', { class: 'dk-powers' }, d.powers.map(function (p) {
+            return h('li', {}, [h('b', { text: num(p.power) + ' ' + T('DkPowerUnit') }), ' — ' + p.when + ' — ' + p.by]);
+        })) : h('p', { class: 'shp-muted', text: T('DkPowerNone') });
+        var block = [decisionBlock(d.division, d.state, T('DkEquipOk'), T('DkEquipKo'), 'equip'), h('h3', { text: T('DkPowerTitle') }), list];
+        if (can('equip')) {
+            var inp = h('input', { type: 'text', inputmode: 'decimal', class: 'dk-power', placeholder: T('DkPowerPh'), 'aria-label': T('DkPowerPh'), maxlength: '5' });
+            var add = function () {
+                var v = inp.value.trim();
+                if (!v) { inp.focus(); return; }
+                write({ act: 'power', division: d.division, power: v });
+            };
+            inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+            block.push(h('div', { class: 'dk-inline' }, [inp, h('span', { class: 'dk-unit', text: T('DkPowerUnit') }),
+                h('button', { type: 'button', class: 'shp-btn shp-btn-primary', text: T('DkPowerAdd'), onclick: add })]));
+        }
+        return section(T('DkEquipTitle') + (f.equip.length > 1 || d.label ? ' — ' + d.label : ''), block, 'dk-sec-equip');
+    }
+
     function renderPane() {
         clear(els.pane);
         var f = ui.file;
@@ -327,7 +369,6 @@
         if (f.status9) idLines.push(h('div', { class: 'shp-msg shp-msg-warn', text: T('DkStatus9') }));
         kids.push(h('section', { class: 'shp-card dk-sec dk-id' }, idLines));
 
-        // Entries
         var entries = section(T('DkEntries'), f.entries.map(function (e) {
             return h('div', { class: 'dk-entry' }, [
                 h('div', { class: 'dk-entry-head' }, [
@@ -340,60 +381,34 @@
                 h('small', { class: 'dk-status', text: T('DkStatus') + ' : ' + e.status_label })
             ]);
         }));
-        // A judge (equipment only) gets the equipment right under the identity.
-        var judge = can('equip') && !can('reg');
-        if (!judge) kids.push(entries);
 
-        // Documents (registry)
-        kids.push(section(T('DkRegTitle'), [decisionBlock('', f.reg, T('DkRegOk'), T('DkRegKo'), 'reg')], 'dk-sec-reg'));
+        // What the post checks: documents and payments at the registry; at the judges', the
+        // equipment weapon by weapon, right under the identity.
+        if (POST === 'reg') {
+            kids.push(entries);
+            kids.push(section(T('DkRegTitle'), [decisionBlock('', f.reg, T('DkRegOk'), T('DkRegKo'), 'reg')], 'dk-sec-reg'));
+            if (f.pay) kids.push(section(T('DkPayTitle'), payBlock(f.pay)));
+        } else {
+            f.equip.forEach(function (d) { kids.push(equipSection(f, d)); });
+            kids.push(entries);
+        }
 
-        // Payments
-        if (f.pay) kids.push(section(T('DkPayTitle'), payBlock(f.pay)));
-
-        // Equipment, weapon by weapon
-        f.equip.forEach(function (d) {
-            var list = d.powers.length ? h('ul', { class: 'dk-powers' }, d.powers.map(function (p) {
-                return h('li', {}, [h('b', { text: num(p.power) + ' ' + T('DkPowerUnit') }), ' — ' + p.when + ' — ' + p.by]);
-            })) : h('p', { class: 'shp-muted', text: T('DkPowerNone') });
-            var block = [decisionBlock(d.division, d.state, T('DkEquipOk'), T('DkEquipKo'), 'equip'), h('h3', { text: T('DkPowerTitle') }), list];
-            if (can('equip')) {
-                var inp = h('input', { type: 'text', inputmode: 'decimal', class: 'dk-power', placeholder: T('DkPowerPh'), 'aria-label': T('DkPowerPh'), maxlength: '5' });
-                var add = function () {
-                    var v = inp.value.trim();
-                    if (!v) { inp.focus(); return; }
-                    write({ act: 'power', division: d.division, power: v });
-                };
-                inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); add(); } });
-                block.push(h('div', { class: 'dk-inline' }, [inp, h('span', { class: 'dk-unit', text: T('DkPowerUnit') }),
-                    h('button', { type: 'button', class: 'shp-btn shp-btn-primary', text: T('DkPowerAdd'), onclick: add })]));
-            }
-            var sec = section(T('DkEquipTitle') + (f.equip.length > 1 || d.label ? ' — ' + d.label : ''), block, 'dk-sec-equip');
-            if (judge) kids.splice(2 + f.equip.indexOf(d), 0, sec); else kids.push(sec);
-        });
-        if (judge) kids.splice(2 + f.equip.length, 0, entries);
-
-        // Notes
+        // Comments: both posts read all of them, each writes as itself.
         var notes = f.notes.length ? h('ul', { class: 'dk-notes' }, f.notes.map(function (n) {
             return h('li', {}, [h('p', { text: n.text }), h('small', { text: (n.post === 'equip' ? T('DkPostEquip') : T('DkPostReg')) + ' — ' + n.by + ' — ' + n.when })]);
         })) : h('p', { class: 'shp-muted', text: T('DkNotesNone') });
         var noteKids = [notes];
-        if (can('reg') || can('equip')) {
+        if (can(POST)) {
             var ta = h('textarea', { class: 'dk-text', rows: '2', maxlength: '500', placeholder: T('DkNotePh'), 'aria-label': T('DkNotePh') });
-            var post = can('reg') ? 'reg' : 'equip';
-            var postSel = null;
-            if (can('reg') && can('equip')) {
-                postSel = h('select', { class: 'dk-post', 'aria-label': T('DkNotesTitle') }, [
-                    h('option', { value: 'reg', text: T('DkPostReg') }), h('option', { value: 'equip', text: T('DkPostEquip') })]);
-            }
-            noteKids.push(h('div', { class: 'dk-noteform' }, [ta, h('div', { class: 'dk-inline' }, [postSel,
+            noteKids.push(h('div', { class: 'dk-noteform' }, [ta, h('div', { class: 'dk-inline' }, [
                 h('button', { type: 'button', class: 'shp-btn shp-btn-primary', text: T('DkNoteAdd'), onclick: function () {
                     if (!ta.value.trim()) { ta.focus(); return; }
-                    write({ act: 'note', post: postSel ? postSel.value : post, text: ta.value });
+                    write({ act: 'note', post: POST, text: ta.value });
                 } })])]));
         }
         kids.push(section(T('DkNotesTitle'), noteKids));
 
-        // History of the decisions
+        // History of the decisions, of both posts
         if (f.history.length) {
             var kindKey = { ok: 'DkKindOk', ko: 'DkKindKo', undo: 'DkKindUndo' };
             var divLabel = {};
@@ -431,58 +446,82 @@
         return box;
     }
 
-    /* ---- Judges' view: equipment not checked yet ---- */
-    var todoPoll = null;
-    function loadTodo() {
-        var f = ui.filters, q = [];
-        Object.keys(f).forEach(function (k) { if (f[k] !== '') q.push(encodeURIComponent(k) + '=' + encodeURIComponent(f[k])); });
-        return Shp.api(C.todo + (q.length ? '?' + q.join('&') : ''), null).then(function (res) {
+    /* ---- The list of the post, without any search ---- */
+    function listQuery() {
+        var q = ['post=' + POST];
+        ['state', 'session', 'division', 'class', 'event'].forEach(function (k) {
+            if (ui.f[k] !== '') q.push(encodeURIComponent(k) + '=' + encodeURIComponent(ui.f[k]));
+        });
+        return q.join('&');
+    }
+    function loadList() {
+        if (ui.locked) return null;
+        var seq = ++ui.lseq;
+        return Shp.api(C.todo + '?' + listQuery(), null).then(function (res) {
+            if (seq !== ui.lseq || ui.locked) return;
             if (!res || res.error) { fail(res); return; }
-            ui.todo = res;
-            if (ui.view === 'todo') renderTodo();
+            ui.list = res;
+            renderSide();
         });
     }
-    function renderTodo() {
-        if (ui.view !== 'todo') return;
-        clear(els.side);
-        var d = ui.todo;
-        if (!d) { els.side.appendChild(h('p', { class: 'shp-muted dk-pad', text: T('ShLoading') })); return; }
-        var dims = [['session', 'DkFilterSession', 'DkAllSessions'], ['division', 'DkFilterWeapon', 'DkAllWeapons'],
-            ['class', 'DkFilterClass', 'DkAllClasses'], ['event', 'DkFilterEvent', 'DkAllEvents']];
-        var filters = h('div', { class: 'dk-filters' });
-        dims.forEach(function (dm) {
+    function setFilter(k, v) {
+        ui.f[k] = v;
+        remember();
+        if (listPoll) listPoll.now();
+    }
+
+    /* Drawn again only when the options change: a selector open under the finger stays open. */
+    function renderFilters() {
+        var d = ui.list, n = ui.f.state === 'done' ? 1 : 0;
+        DIMS.forEach(function (dm) { if (ui.f[dm[0]] !== '') n++; });
+        els.fbtn.textContent = T('DkFilters') + (n ? ' (' + n + ')' : '') + (ui.f.open ? ' ▴' : ' ▾');
+        els.fbtn.setAttribute('aria-expanded', ui.f.open ? 'true' : 'false');
+        var sig = JSON.stringify([d ? d.facets : null, ui.f.state, ui.f.session, ui.f.division, ui.f['class'], ui.f.event]);
+        if (sig === ui.sig) return;
+        ui.sig = sig;
+        clear(els.filters);
+        var st = h('select', { 'aria-label': T('DkFilters') }, [
+            h('option', { value: 'todo', text: T('DkStateTodo') }), h('option', { value: 'done', text: T('DkStateDone') })]);
+        st.value = ui.f.state;
+        st.addEventListener('change', function () { setFilter('state', st.value); });
+        els.filters.appendChild(h('label', { class: 'dk-filter' }, [st]));
+        if (!d) return;
+        DIMS.forEach(function (dm) {
             var opts = d.facets[dm[0]] || [];
-            if (!opts.length && ui.filters[dm[0]] === '') return;   // nobody left with any value of it
+            if (!opts.length && ui.f[dm[0]] === '') return;   // nobody in the list with any value of it
             var sel = h('select', { 'aria-label': T(dm[1]) }, [h('option', { value: '', text: T(dm[2]) })]
                 .concat(opts.map(function (o) {
-                    return h('option', { value: o[0], selected: ui.filters[dm[0]] === o[0] ? true : null, text: o[1] + ' (' + o[2] + ')' });
+                    return h('option', { value: o[0], selected: ui.f[dm[0]] === o[0] ? true : null, text: o[1] + ' (' + o[2] + ')' });
                 })));
-            sel.addEventListener('change', function () { ui.filters[dm[0]] = sel.value; loadTodo(); });
-            filters.appendChild(h('label', { class: 'dk-filter' }, [sel]));
+            sel.addEventListener('change', function () { setFilter(dm[0], sel.value); });
+            els.filters.appendChild(h('label', { class: 'dk-filter' }, [sel]));
         });
-        els.side.appendChild(filters);
-        els.side.appendChild(h('p', { class: 'dk-count', text: T('DkTodoLeft', d.rows.length) + (d.rows.length !== d.left ? ' ' + T('DkOf', d.left) : '') }));
-        var list = h('div', { class: 'dk-results' });
-        if (!d.rows.length) list.appendChild(h('p', { class: 'shp-muted', text: T('DkTodoNone') }));
+    }
+
+    function renderList() {
+        clear(els.results);
+        var d = ui.list;
+        if (!d) { els.count.textContent = ''; els.results.appendChild(h('p', { class: 'shp-muted', text: T('ShLoading') })); return; }
+        var done = d.state === 'done', total = done ? d.checked : d.left;
+        els.count.textContent = T(done ? 'DkDoneCount' : 'DkTodoLeft', d.rows.length) + (d.rows.length !== total ? ' ' + T('DkOf', total) : '');
+        if (!d.rows.length) { els.results.appendChild(h('p', { class: 'shp-muted', text: T(done ? 'DkDoneNone' : 'DkTodoNone') })); return; }
         d.rows.forEach(function (r) {
             var on = ui.file && ui.file.account === r.account;
-            list.appendChild(h('button', { type: 'button', class: 'dk-row' + (on ? ' on' : ''), onclick: function () { openFile(r.account); } }, [
+            els.results.appendChild(h('button', { type: 'button', class: 'dk-row' + (on ? ' on' : ''), onclick: function () { openFile(r.account); } }, [
                 h('span', { class: 'dk-tgt', text: r.target || '—' }),
                 h('span', { class: 'dk-row-main' }, [
                     h('b', { text: r.family + ' ' + r.given }),
                     h('small', { text: [r.club, r.club_name].filter(Boolean).join(' ') }),
                     h('small', { text: r.division_label + ' — ' + r.class_label + (r.session > 0 ? ' · ' + T('DkSession') + ' ' + r.session : '') })
-                ])
+                ]),
+                done ? rowState(r[POST]) : null
             ]));
         });
-        els.side.appendChild(list);
     }
 
     build();
     scanCheck();
-    if (can('equip')) {
-        todoPoll = Shp.poll(function () { return ui.view === 'todo' ? loadTodo() : null; }, 20000, 60000);
-    }
+    listPoll = Shp.poll(function () { return searching() ? null : loadList(); }, 20000, 60000);
     if (C.open) openFile(C.open);
-    else if (els.input && wide()) els.input.focus();
+    else if (wide()) els.input.focus();
 })();

@@ -493,6 +493,103 @@
         post({ act: 'invite_stop' }).then(function () { hideQr(); });
     }
 
+    /* ---- A licensee added without the QR code: search, then rights, then confirm ----
+       The licence file of the competition and the licensee-space accounts (admin/staff.php?find=).
+       The rights are those of a waiting request; the card opens under the licensee's row. */
+    var findSeq = 0;
+    function find(q) {
+        var box = $('ss-find');
+        q = String(q || '').trim();
+        if (q.length < 2) { box.hidden = true; box.innerHTML = ''; return; }
+        var seq = ++findSeq;
+        box.hidden = false;
+        box.innerHTML = '<p class="ss-muted">' + esc(T('ShLoading')) + '</p>';
+        Shp.api(C.self + '?find=' + encodeURIComponent(q), null).then(function (res) {
+            if (seq !== findSeq) return;
+            if (!res || res.error) { box.hidden = true; flash((res && res.msg) || T('ShErrNetwork'), 'err'); return; }
+            renderFind(res);
+        }, function () { flash(T('ShErrNetwork'), 'err'); });
+    }
+    function closeFind() {
+        findSeq++;
+        $('ss-find').hidden = true;
+        $('ss-find').innerHTML = '';
+    }
+    function teamBadge(st) {
+        if (st === 'active' || st === 'locked') return '<span class="ss-badge ss-badge-in">' + esc(T('ShStfFindInTeam')) + '</span>';
+        if (st === 'pending') return '<span class="ss-badge ss-badge-warn">' + esc(T('ShStfFindPending')) + '</span>';
+        if (st === 'revoked') return '<span class="ss-badge ss-badge-off">' + esc(T('ShStfStatusRevoked')) + '</span>';
+        return '';
+    }
+    function renderFind(res) {
+        var box = $('ss-find');
+        box.innerHTML = '';
+        var head = el('div', 'ss-find-head');
+        head.appendChild(el('b', '', esc(T('ShStfFindTitle'))));
+        head.appendChild(btn(T('ShStfClose'), '', closeFind));
+        box.appendChild(head);
+        if (!res.rows.length) { box.appendChild(el('p', 'ss-muted', esc(T('ShStfFindNone')))); return; }
+        var wrap = el('div', 'ss-scroll');
+        var tbl = el('table', 'ss-table ss-find-table');
+        tbl.innerHTML = '<thead><tr><th>' + esc(T('ShStfFindLicence')) + '</th><th>' + esc(T('ShStfFindName')) + '</th><th>'
+            + esc(T('ShStfFindClub')) + '</th><th>' + esc(T('ShStfFindBorn')) + '</th><th>' + esc(T('ShStfFindSpace'))
+            + '</th><th></th></tr></thead>';
+        var tb = el('tbody');
+        res.rows.forEach(function (r) {
+            var tr = el('tr');
+            tr.innerHTML = '<td>' + esc(r.licence) + '</td><td><b>' + esc(r.family) + '</b> ' + esc(r.given) + '</td><td>'
+                + esc([r.club, r.club_name].filter(Boolean).join(' — ')) + '</td><td>' + esc(r.born) + '</td><td>'
+                + esc(T(r.account ? 'ShStfFindYes' : 'ShStfFindNo')) + '</td>';
+            var act = el('td', 'ss-find-act', teamBadge(r.team));
+            if (r.team !== 'active' && r.team !== 'locked') {
+                act.appendChild(btn(T('ShStfFindAdd'), 'ss-btn-primary', function () { openAdd(r, tr); }));
+            }
+            tr.appendChild(act);
+            tb.appendChild(tr);
+        });
+        tbl.appendChild(tb);
+        wrap.appendChild(tbl);
+        box.appendChild(wrap);
+        if (res.more) box.appendChild(el('p', 'ss-muted', esc(T('ShStfFindMore'))));
+    }
+    // The licensee's card under their row: who, the rights (as for a waiting request), confirm.
+    function openAdd(r, tr) {
+        var old = $('ss-find').querySelector('tr.ss-add-row');
+        if (old) old.remove();
+        var row = el('tr', 'ss-add-row');
+        var td = el('td');
+        td.colSpan = 6;
+        var card = el('div', 'ss-card ss-pend ss-add');
+        var name = r.given + ' ' + r.family;
+        card.appendChild(el('div', 'ss-head', '<b>' + esc(name) + '</b> <span class="ss-kind">' + esc(T('ShStfKindLicensee'))
+            + ' · ' + esc(r.licence) + (r.club ? ' · ' + esc([r.club, r.club_name].filter(Boolean).join(' — ')) : '') + '</span>'));
+        if (!r.account) card.appendChild(el('p', 'ss-msg ss-warn', esc(T('ShStfFindNoAccount'))));
+        var ed = rightsEditor(null);
+        card.appendChild(ed);
+        var b = el('div', 'ss-btns');
+        var ok = btn(T('ShStfAddConfirm'), 'ss-btn-ok ss-btn-big', function () {
+            var v = ed.value();
+            if (!v.any) { flash(noRightText(), 'err'); return; }
+            ok.disabled = true;
+            post({ act: 'add', licence: r.licence, rights: v.rights, desk: v.desk, refund_max: v.refund_max, refund_total: v.refund_total })
+                .then(function (res) {
+                    ok.disabled = false;
+                    if (!res || res.error) return;
+                    flash(T('ShStfAdded', name), 'ok');
+                    closeFind();
+                    $('ss-find-q').value = '';
+                });
+        });
+        b.appendChild(ok);
+        b.appendChild(btn(T('ShStfCancel'), '', function () { row.remove(); }));
+        card.appendChild(b);
+        td.appendChild(card);
+        row.appendChild(td);
+        tr.parentNode.insertBefore(row, tr.nextSibling);
+    }
+    var ff = $('ss-find-form');
+    if (ff) ff.addEventListener('submit', function (e) { e.preventDefault(); find($('ss-find-q').value); });
+
     var inv = $('ss-invite');
     if (inv) inv.addEventListener('click', invite);
     $('ss-ov-close').addEventListener('click', hideQr);

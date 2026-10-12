@@ -98,6 +98,10 @@ body {
 #bk .bk-live-go { background: rgba(255, 255, 255, .22); padding: 2px 10px; border-radius: 10px; font-weight: 700; }
 @keyframes bk-live-pulse { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { #bk .bk-live-dot { animation: none; } }
+/* The volunteer space (bk_live_banner): same banner, in blue */
+#bk .bk-live-vol { background: #0254a8; }
+#bk .bk-live-vol .bk-live-a:hover, #bk .bk-live-vol .bk-live-a:focus,
+#bk .bk-live-vol .bk-live-x:hover, #bk .bk-live-vol .bk-live-x:focus { background: #013f7e; }
 
 /* ---- "From another account" view (admin, read only) ---- */
 #bk .bk-imp { position: sticky; top: 0; z-index: 60; background: #5b2a86; color: #fff;

@@ -571,6 +571,27 @@ function shp_staff_join_full($tourId)
 }
 
 /**
+ * SQL condition: the volunteer rows of this licensee-space account — by the account, or by the
+ * licence for a licensee the organiser added before the account was linked (SfArcher = 0,
+ * shp_staff_add_licensee). The licence is the identity of the licensee space (bookings, sums owed).
+ */
+function shp_staff_archer_sql($archer)
+{
+    $id = intval($archer->BaId ?? 0);
+    $lic = bk_clean_licence($archer->BaLicence ?? '');
+    return $lic === '' ? "SfArcher = $id" : "(SfArcher = $id OR (SfArcher = 0 AND SfLicence = " . StrSafe_DB($lic) . "))";
+}
+
+/** Links a row added by licence to the account that signs in with this licence (once). */
+function shp_staff_attach_archer($staff, $archer)
+{
+    $s = shp_staff_row($staff);
+    $id = intval($archer->BaId ?? 0);
+    if (!$s || $id <= 0 || intval($s->SfArcher) !== 0) return;
+    safe_w_sql("UPDATE ShopStaff SET SfArcher = $id WHERE SfId = " . intval($s->SfId) . " AND SfArcher = 0");
+}
+
+/**
  * Join request of a signed-in licensee. Returns ['state' => 'active'|'pending'|'full',
  * 'staff' => row]: a licensee already active on the competition is let in again at once.
  */
@@ -580,8 +601,9 @@ function shp_staff_join_licensee($tourId, $archer)
     $tourId = intval($tourId);
     $archerId = intval($archer->BaId);
     $s = safe_fetch(safe_r_sql("SELECT *, (SfCreated > DATE_SUB(UTC_TIMESTAMP(), INTERVAL " . SHP_PENDING_MIN . " MINUTE)) AS Fresh
-        FROM ShopStaff WHERE SfTournament = $tourId AND SfKind = 'LICENSEE' AND SfArcher = $archerId
+        FROM ShopStaff WHERE SfTournament = $tourId AND SfKind = 'LICENSEE' AND " . shp_staff_archer_sql($archer) . "
         ORDER BY SfId DESC LIMIT 1"));
+    if ($s) shp_staff_attach_archer($s, $archer);
     if ($s && shp_staff_working($s)) return array('state' => 'active', 'staff' => $s);
     if ($s && $s->SfStatus === 'pending' && $s->Fresh) return array('state' => 'pending', 'staff' => $s);
     if (shp_staff_join_full($tourId)) return array('state' => 'full', 'staff' => null);
@@ -604,6 +626,141 @@ function shp_staff_join_licensee($tourId, $archer)
         $id = intval(safe_w_last_id());
     }
     return array('state' => 'pending', 'staff' => shp_staff_get($id));
+}
+
+/* ------------------------------------------------------------------ */
+/* A licensee added by the organiser (no QR code: at a distance, ahead) */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Licensees the organiser may add to the team (admin/staff.php): the licence file of the
+ * competition's federation, as the core's own search reads it (LookUpEntries on ToIocCode), and
+ * the accounts of the licensee space. An exact licence number, or words each found in the family
+ * or the given name. At most $max, by name, 'more' when there are others; each with what the team
+ * already says of them (active, locked, pending, revoked).
+ */
+function shp_staff_find($tourId, $q, $max = 25)
+{
+    $tourId = intval($tourId);
+    $q = trim(preg_replace('/\s+/u', ' ', (string) $q));
+    if (mb_strlen($q) < 2) return array('rows' => array(), 'more' => false);
+    $lic = bk_clean_licence($q);
+    $isLic = preg_match('/^[A-Z0-9-]{4,25}$/', $lic) && preg_match('/[0-9]/', $lic);
+    if ($isLic) {
+        $wL = 'LueCode = ' . StrSafe_DB($lic);
+        $wB = 'BaLicence = ' . StrSafe_DB($lic);
+    } else {
+        $wL = $wB = array();
+        foreach (array_slice(explode(' ', $q), 0, 4) as $w) {
+            $like = "'%" . StrSafe_DB($w, true) . "%'";
+            $wL[] = "(LueFamilyName LIKE $like OR LueName LIKE $like)";
+            $wB[] = "(BaFamilyName LIKE $like OR BaName LIKE $like)";
+        }
+        $wL = implode(' AND ', $wL);
+        $wB = implode(' AND ', $wB);
+    }
+    $found = array();
+    $rs = safe_r_sql("SELECT LueCode, LueFamilyName, LueName, LueCountry, LueCoShort, LueCoDescr, LueCtrlCode
+        FROM LookUpEntries INNER JOIN Tournament ON ToId = $tourId AND ToIocCode = LueIocCode
+        WHERE $wL ORDER BY LueFamilyName, LueName, LueCode, LueDefault DESC LIMIT 400");
+    while ($r = safe_fetch($rs)) {
+        $k = bk_clean_licence($r->LueCode);
+        if ($k === '' || isset($found[$k])) continue;   // one licence, several divisions and classes
+        $born = (string) $r->LueCtrlCode;
+        $found[$k] = array('licence' => $k, 'family' => mb_strtoupper((string) $r->LueFamilyName), 'given' => (string) $r->LueName,
+            'club' => (string) $r->LueCountry, 'club_name' => (string) ($r->LueCoShort !== '' ? $r->LueCoShort : $r->LueCoDescr),
+            'born' => preg_match('/^(\d{4})-/', $born, $m) && $m[1] > '1900' ? $m[1] : '', 'account' => false);
+    }
+    $rs = safe_r_sql("SELECT BaId, BaLicence, BaFamilyName, BaName, BaClubCode, BaClubName, BaBirthYear
+        FROM BookingArchers WHERE BaActive = 1 AND $wB ORDER BY BaFamilyName, BaName LIMIT 200", false, true);
+    while ($rs && ($r = safe_fetch($rs))) {
+        $k = bk_clean_licence($r->BaLicence);
+        if ($k === '') continue;
+        if (!isset($found[$k])) {
+            $found[$k] = array('licence' => $k, 'family' => mb_strtoupper((string) $r->BaFamilyName), 'given' => (string) $r->BaName,
+                'club' => (string) $r->BaClubCode, 'club_name' => (string) $r->BaClubName,
+                'born' => intval($r->BaBirthYear) > 1900 ? (string) intval($r->BaBirthYear) : '', 'account' => false);
+        }
+        $found[$k]['account'] = true;
+    }
+    uasort($found, function ($a, $b) { return strcasecmp($a['family'], $b['family']) ?: strcasecmp($a['given'], $b['given']); });
+    $more = count($found) > $max;
+    $rows = array_slice(array_values($found), 0, $max);
+    // What the team says of them: the latest row of each licence on this competition.
+    if ($rows) {
+        $in = implode(',', array_map(function ($r) { return StrSafe_DB($r['licence']); }, $rows));
+        $team = array();
+        $rs = safe_r_sql("SELECT SfLicence, SfStatus, SfApprovedAt FROM ShopStaff
+            WHERE SfTournament = $tourId AND SfKind = 'LICENSEE' AND SfLicence IN ($in) ORDER BY SfId");
+        while ($r = safe_fetch($rs)) {
+            $st = (string) $r->SfStatus;
+            if ($st === 'revoked' && $r->SfApprovedAt === null) $st = '';   // a refused request: nothing to say
+            if (in_array($st, array('active', 'locked', 'pending', 'revoked'), true)) $team[bk_clean_licence($r->SfLicence)] = $st;
+            else unset($team[bk_clean_licence($r->SfLicence)]);
+        }
+        foreach ($rows as $i => $r) $rows[$i]['team'] = $team[$r['licence']] ?? '';
+    }
+    return array('rows' => $rows, 'more' => $more);
+}
+
+/** Name and account of a licence (licence file of the competition, else licensee space), or null. */
+function shp_staff_licensee_lookup($tourId, $licence)
+{
+    $lic = bk_clean_licence($licence);
+    if ($lic === '') return null;
+    $acc = safe_r_sql("SELECT BaId, BaFamilyName, BaName FROM BookingArchers WHERE BaLicence = " . StrSafe_DB($lic) . "
+        AND BaActive = 1 ORDER BY BaId DESC LIMIT 1", false, true);
+    $acc = $acc ? safe_fetch($acc) : null;
+    $l = safe_fetch(safe_r_sql("SELECT LueFamilyName, LueName FROM LookUpEntries
+        INNER JOIN Tournament ON ToId = " . intval($tourId) . " AND ToIocCode = LueIocCode
+        WHERE LueCode = " . StrSafe_DB($lic) . " ORDER BY LueDefault DESC LIMIT 1"));
+    if (!$l && !$acc) return null;
+    return array('licence' => $lic, 'archer' => $acc ? intval($acc->BaId) : 0,
+        'family' => mb_strtoupper((string) ($l ? $l->LueFamilyName : $acc->BaFamilyName)),
+        'given' => (string) ($l ? $l->LueName : $acc->BaName));
+}
+
+/**
+ * Adds a licensee to the team from the organiser's page, without the QR code — ahead of the
+ * competition and at a distance (user's choice, 2026-10-12): active at once with the rights given
+ * (at least one), like an approved request. They sign in with their licensee-space account; one
+ * not created yet is linked by the licence at its first sign-in (shp_staff_archer_sql). A row of
+ * this licensee already there is reused: still working → refused (already in the team); waiting
+ * or withdrawn → this new decision. Returns ['error', 'msg', 'id'].
+ */
+function shp_staff_add_licensee($tourId, $licence, $rights, $refundMax, $refundTotal, $by, $desk = '')
+{
+    shp_schema();
+    $tourId = intval($tourId);
+    $who = shp_staff_licensee_lookup($tourId, $licence);
+    if (!$who) return array('error' => 1, 'code' => 'unknown', 'msg' => shp_t('ShStfErrUnknownLic'));
+    $rights = shp_staff_rights_clean($tourId, $rights);
+    $desk = shp_desk_perms_clean($desk);
+    if (!$rights && $desk === '') return shp_staff_no_right($tourId);
+    $lic = StrSafe_DB($who['licence']);
+    $match = "SfLicence = $lic" . ($who['archer'] > 0 ? " OR SfArcher = " . $who['archer'] : '');
+    $s = safe_fetch(safe_r_sql("SELECT * FROM ShopStaff WHERE SfTournament = $tourId AND SfKind = 'LICENSEE' AND ($match)
+        ORDER BY SfId DESC LIMIT 1"));
+    if ($s && shp_staff_working($s)) return array('error' => 1, 'code' => 'already', 'msg' => shp_t('ShStfErrAlready'));
+    $set = "SfLicence = $lic, SfFamilyName = " . StrSafe_DB(mb_substr($who['family'], 0, 60))
+         . ", SfGivenName = " . StrSafe_DB(mb_substr($who['given'], 0, 60))
+         . ", SfStatus = 'active', SfCode = '', SfFails = 0"
+         . ", SfRefundMax = " . shp_staff_ceiling($refundMax) . ", SfRefundTotal = " . shp_staff_ceiling($refundTotal)
+         . ", SfDesk = " . StrSafe_DB($desk)
+         . ", SfApprovedBy = " . StrSafe_DB(mb_substr((string) $by, 0, 64)) . ", SfApprovedAt = UTC_TIMESTAMP()";
+    if ($s) {
+        $id = intval($s->SfId);
+        safe_w_sql("UPDATE ShopStaff SET $set, SfArcher = IF(SfArcher = 0, " . $who['archer'] . ", SfArcher) WHERE SfId = $id");
+        safe_w_sql("DELETE FROM ShopStaffStands WHERE StStaff = $id");
+    } else {
+        safe_w_sql("INSERT INTO ShopStaff SET SfTournament = $tourId, SfKind = 'LICENSEE', SfArcher = " . $who['archer']
+            . ", $set, SfCreated = UTC_TIMESTAMP()");
+        $id = intval(safe_w_last_id());
+    }
+    shp_staff_rights_write($id, $rights);
+    shp_staff_perms($id, true);
+    shp_staff_log($tourId, $id, 'add', $by, shp_staff_rights_text($rights) . " desk:$desk");
+    return array('error' => 0, 'msg' => '', 'id' => $id);
 }
 
 /** Name as typed: trimmed, spaces folded, at most $max characters, no control character. */

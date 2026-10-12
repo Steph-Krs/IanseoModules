@@ -38,6 +38,19 @@
 #shpstf .ss-btn:focus-visible, #shpstf input:focus, #shpstf select:focus { outline: 2px solid var(--ss-sky); outline-offset: 1px; }
 #shpstf .ss-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
 #shpstf .ss-actions form { margin: 0; }
+/* Adding a licensee: the search on the line of the buttons, the licensees found under it across the page. */
+#shpstf .ss-find-form { display: flex; gap: 6px; flex: 0 1 520px; min-width: 300px; }
+#shpstf .ss-find-form input { flex: 1 1 auto; min-width: 0; padding: 4px 8px; font: inherit; font-size: 13px;
+    border: 1px solid var(--ss-border); border-radius: 5px; background: #fff; }
+#shpstf .ss-find { background: #fff; border: 1px solid var(--ss-border); border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; }
+#shpstf .ss-find-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+#shpstf .ss-find-table { width: 100%; }
+#shpstf .ss-find-table td { vertical-align: middle; }
+#shpstf .ss-find-act { text-align: right; white-space: nowrap; }
+#shpstf .ss-find-act .ss-badge { margin-right: 6px; }
+#shpstf .ss-add-row > td { padding: 4px 0 8px; }
+#shpstf .ss-add { margin: 0; }
+#shpstf .ss-badge-in { background: var(--ss-green-bg); border-color: #75ae77; color: #035c07; }
 #shpstf .ss-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 #shpstf .ss-running { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px;
     background: var(--ss-green-bg); border-radius: 6px; margin: 0 0 14px; font-weight: 600; }

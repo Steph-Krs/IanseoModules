@@ -220,7 +220,10 @@
         root.appendChild(h('div', { class: 'shp-card pos-lock' }, [
             h('h1', { text: C.title }),
             h('div', { class: 'shp-msg shp-msg-err', role: 'alert', text: msg }),
-            h('a', { class: 'shp-btn shp-btn-primary shp-btn-block', href: C.login, text: T('ShStfLoginAgain') })
+            h('div', { class: 'shp-stack' }, [
+                h('a', { class: 'shp-btn shp-btn-primary shp-btn-block', href: C.login, text: T('ShStfLoginAgain') }),
+                C.bar && C.bar.archer ? h('a', { class: 'shp-btn shp-btn-block', href: C.bar.archer, text: T('ShStfLicSpace') }) : null
+            ])
         ]));
     }
 
@@ -247,41 +250,43 @@
         return out;
     }
 
+    /* The common bar of the volunteers (Shp.topbar): the stands come from the state (they follow
+       the rights live), the registry and the judges from the page. Another stand switches here;
+       the other posts open their page. The pill says whether the stand takes orders from phones. */
     function renderTop() {
-        clear(els.top);
-        var st = stand(), kids = [];
-        if ((S.stands || []).length > 1) {
-            var sel = h('select', { class: 'pos-standsel', 'aria-label': T('ShPosStand') });
-            S.stands.forEach(function (s) {
-                sel.appendChild(h('option', { value: s.id, text: s.name, selected: s.id === S.stand ? true : null }));
-            });
-            sel.addEventListener('change', function () {
-                S.stand = parseInt(sel.value, 10);
-                store('stand', String(S.stand));
-                resetStandData();
-                if (poller) poller.now();
-                renderAll();
-            });
-            kids.push(sel);
-        } else if (st) {
-            kids.push(h('span', { class: 'shp-top-title', text: st.name }));
-        }
+        var st = stand(), b = {}, k;
+        for (k in (C.bar || {})) b[k] = C.bar[k];
+        b.posts = (S.stands || []).map(function (s) { return { key: 'stand-' + s.id, label: s.name, url: '' }; })
+            .concat(((C.bar && C.bar.posts) || []).filter(function (p) { return p.key.indexOf('stand-') !== 0; }));
+        b.post = 'stand-' + S.stand;
+        // Drawn again only when it changes: a selector open under the finger stays open.
+        var sig = JSON.stringify([b.posts, b.post, st ? st.open : null, can('manage')]);
+        if (sig === ui.head && els.top.firstChild) return;
+        ui.head = sig;
+        var pill = null;
         if (st) {
-            var openTxt = st.open ? T('ShPosOpen') : T('ShPosClosed');
-            if (can('manage')) {
-                kids.push(h('button', {
-                    type: 'button', class: 'pos-open ' + (st.open ? 'on' : 'off'), text: openTxt,
-                    'aria-label': st.open ? T('ShPosCloseIt') : T('ShPosOpenIt'),
-                    onclick: function () { setOpen(!st.open); }
-                }));
-            } else {
-                kids.push(h('span', { class: 'pos-open ' + (st.open ? 'on' : 'off'), text: openTxt }));
-            }
+            var txt = st.open ? T('ShPosOnlineOpen') : T('ShPosOnlineClosed');
+            pill = can('manage')
+                ? h('button', { type: 'button', class: 'pos-open ' + (st.open ? 'on' : 'off'), text: txt,
+                    'aria-label': st.open ? T('ShPosCloseIt') : T('ShPosOpenIt'), onclick: function () { setOpen(!st.open); } })
+                : h('span', { class: 'pos-open ' + (st.open ? 'on' : 'off'), text: txt });
         }
-        if (C.desk) kids.push(h('a', { class: 'pos-desk', href: C.desk, text: T('DkMenu') }));
-        kids.push(h('span', { class: 'pos-who', text: (S.me && S.me.name) || '' }));
-        kids.push(confirmBtn(T('ShPosQuit'), T('ShPosConfirm'), 'pos-quit', logout));
-        kids.forEach(function (k) { els.top.appendChild(k); });
+        var bar = Shp.topbar(b, { extra: pill, local: function (key) {
+            var id = parseInt(key.replace('stand-', ''), 10), i;
+            for (i = 0; i < (S.stands || []).length; i++) if (S.stands[i].id === id) { switchStand(id); return true; }
+            return false;
+        } });
+        bar.classList.add('pos-top');
+        els.top.parentNode.replaceChild(bar, els.top);
+        els.top = bar;
+    }
+
+    function switchStand(id) {
+        S.stand = id;
+        store('stand', String(id));
+        resetStandData();
+        if (poller) poller.now();
+        renderAll();
     }
 
     /* Another stand: nothing of the previous one stays on screen until the server has answered. */
@@ -301,10 +306,6 @@
         renderTop();
         renderBody();
         post(C.stand, { stand: st.id, open: open ? 1 : 0 }).then(refresh);
-    }
-
-    function logout() {
-        Shp.api(C.logout, {}).then(function () { window.location.replace(C.login); }, function () { note(T('ShErrNetwork')); });
     }
 
     function renderTabs() {
@@ -1342,11 +1343,14 @@
     }
 
     function start() {
-        if (C.key && window.history && window.history.replaceState && !/[?&]k=/.test(window.location.search)) {
-            try { window.history.replaceState(null, '', window.location.pathname + '?k=' + encodeURIComponent(C.key)); } catch (e) { /* not allowed */ }
+        // ?s=<stand>: a stand chosen from the selector of another post. It wins over the one kept on
+        // the phone, then leaves the address (a reload keeps the stand chosen since).
+        var asked = /[?&]s=(\d+)/.exec(window.location.search);
+        if (window.history && window.history.replaceState && (asked || (C.key && !/[?&]k=/.test(window.location.search)))) {
+            try { window.history.replaceState(null, '', window.location.pathname + (C.key ? '?k=' + encodeURIComponent(C.key) : '')); } catch (e) { /* not allowed */ }
         }
         ui.alertOn = store('alert') === '1';
-        var saved = parseInt(store('stand') || '0', 10), i, switched = false;
+        var saved = parseInt((asked && asked[1]) || store('stand') || '0', 10), i, switched = false;
         if (saved !== S.stand) {
             for (i = 0; i < (S.stands || []).length; i++) if (S.stands[i].id === saved) { S.stand = saved; resetStandData(); switched = true; }
         }

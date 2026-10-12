@@ -7,6 +7,7 @@
  */
 
 require_once __DIR__ . '/boot.php';
+require_once dirname(__DIR__) . '/lib/posts.php';
 require_once dirname(__DIR__) . '/lib/till.php';
 require_once dirname(__DIR__) . '/lib/desk.php';
 
@@ -18,15 +19,19 @@ $key = (string) ($_GET['k'] ?? '');
 $keyTour = shp_tour_by_key($key);
 $st = shp_staff_session_state();
 $inTour = $st['reason'] === 'ok' && ($keyTour === 0 || intval($st['staff']->SfTournament) === $keyTour);
-// A volunteer of the check-in desk alone (no right at the stands, or the stands switched off):
-// the desk is their page. Every address of the volunteers (sign-in, joining) ends here.
+// The till closed to this volunteer (stands not open to the volunteers, or no right there): their
+// next open post — registry, judges —, or the page saying none is open (user's choice). Every
+// address of the volunteers (sign-in, joining) ends here.
 if ($inTour) {
     $t = intval($st['staff']->SfTournament);
-    if ((!shp_till_open($t, $st['staff']) || !shp_staff_can($st['staff'], '')) && shp_desk_can($st['staff'])) {
-        header('Location: ' . shp_url('desk/index.php'));
+    if (!shp_till_open($t, $st['staff']) || !shp_staff_can($st['staff'], '')) {
+        $first = shp_staff_first_post($st['staff']);
+        if ($first === '') shp_staff_no_post_page($st['staff']);
+        header('Location: ' . $first);
         exit;
     }
 }
+if ($st['reason'] === 'shop_off' && $st['row'] && ($keyTour === 0 || intval($st['row']->SfTournament) === $keyTour)) shp_staff_no_post_page($st['row']);
 if (!$inTour && in_array($st['reason'], array('ok', 'signed_out', 'expired'), true)) {
     $tour = $keyTour ?: ($st['row'] ? intval($st['row']->SfTournament) : 0);
     if ($tour <= 0) $tour = shp_tour_by_key(shp_cookie_get(SHP_TILL_COOKIE));
@@ -50,7 +55,7 @@ $texts = array(
     'ShPosBackTo', 'ShPosCancelOrder', 'ShPosCashAccounts', 'ShPosCashCount', 'ShPosCashGiven',
     'ShPosCashMine', 'ShPosCashNet', 'ShPosCashNone', 'ShPosCashRefunds', 'ShPosCashStand',
     'ShPosChangeToGive', 'ShPosChanged', 'ShPosChooseVariant', 'ShPosClear', 'ShPosCloseIt',
-    'ShPosClosed', 'ShPosClosedNote', 'ShPosCollect', 'ShPosCollectHand', 'ShPosCollectNow',
+    'ShPosClosedNote', 'ShPosCollect', 'ShPosCollectHand', 'ShPosCollectNow',
     'ShPosCollectOrder', 'ShPosCollected', 'ShPosConfirm', 'ShPosConfirmCash', 'ShPosCustomer',
     'ShPosCustomerPh', 'ShPosEdit', 'ShPosExact', 'ShPosFilterLater', 'ShPosFilterQueue',
     'ShPosFilterReady', 'ShPosFilterRecent', 'ShPosFilterToPay', 'ShPosFrom', 'ShPosGiveBack',
@@ -58,7 +63,7 @@ $texts = array(
     'ShPosLowStock', 'ShPosMaxPer', 'ShPosMinutes', 'ShPosMissing', 'ShPosMore', 'ShPosNewOrder',
     'ShPosNoAccount', 'ShPosNoOrders', 'ShPosNoPayWay', 'ShPosNoResult', 'ShPosNoRight',
     'ShPosNoStand', 'ShPosNote', 'ShPosNothingToSell', 'ShPosNow', 'ShPosOk', 'ShPosOnAccountOf',
-    'ShPosOnline', 'ShPosOnlyLeft', 'ShPosOpen', 'ShPosOpenIt', 'ShPosOrderCancelled',
+    'ShPosOnline', 'ShPosOnlyLeft', 'ShPosOpenIt', 'ShPosOrderCancelled',
     'ShPosOrderTitle', 'ShPosOut', 'ShPosPaidAmount', 'ShPosPayFailed', 'ShPosPayPickup',
     'ShPosPayTab', 'ShPosPreorder', 'ShPosQty', 'ShPosQtyTitleLoss', 'ShPosQtyTitleRestock',
     'ShPosQuit', 'ShPosReady', 'ShPosReasonLeft', 'ShPosReasonMistake', 'ShPosReasonPh',
@@ -72,7 +77,7 @@ $texts = array(
     'ShPosToCollect', 'ShPosTotal', 'ShPosUndoSale', 'ShPosUndone', 'ShPosUnknown',
     'ShPosUnlimited', 'ShPosWaitLabel', 'ShPosWaitLess', 'ShPosWaitMore', 'ShPosWantedAsk', 'ShPosWantedAt',
     'ShPosWantedNone', 'ShStCancelled', 'ShStDelivered', 'ShStPlaced', 'ShStPreparing', 'ShStReady',
-    'ShStfErrRevoked', 'ShStfLoginAgain', 'DkMenu');
+    'ShStfErrRevoked', 'ShStfLoginAgain', 'ShStfLicSpace', 'ShStfPost', 'ShPosOnlineOpen', 'ShPosOnlineClosed');
 $texts = shp_ts($texts) + shp_base_texts();
 
 $title = shp_t('ShStfTillTitle');
@@ -88,7 +93,7 @@ echo '  <div id="pos" class="pos"><p class="shp-muted pos-loading">' . shp_e(shp
         'stand' => shp_url('staff/api/stand.php'), 'search' => shp_url('staff/api/search.php'),
         'accounts' => shp_url('staff/api/accounts.php'), 'report' => shp_url('staff/api/report.php'),
         'logout' => shp_url('staff/api/logout.php'),
-        'desk' => shp_desk_can($me) ? shp_url('desk/index.php') : '',
+        'bar' => shp_staff_bar_cfg($me, 'stand-' . intval($state['stand'] ?? 0)),
         'login' => shp_url('staff/login.php?k=' . rawurlencode($tillKey)), 'key' => $tillKey,
         'title' => $title)));
 shp_foot(array('pos.js'));

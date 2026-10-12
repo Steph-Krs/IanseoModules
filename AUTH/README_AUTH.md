@@ -85,10 +85,16 @@ competitors' and visitors' phones, and a mobile till for volunteers.
 - 🧾 **Volunteers' till**: sale, payment, order queue sorted by requested time, **wait time set per
   order** (entered at payment, adjusted by the preparer with +2 / +5 / −2 / −5 min buttons); stable
   address and a QR code poster to come back to the till
+- 📱 **Volunteer space on the phone**: one top bar for the till, the check-in and the judges, with a
+  selector of the posts open to the volunteer; their name opens a menu (their licensee space, sign
+  out — of the volunteer space and of the licensee space); a closed post leads to the next open one. A
+  licensed volunteer comes in from their **licensee space** (banner and home-page box as soon as one of
+  their posts is open), without the organiser's address
 - 💰 **Payments**: cash, cheque, card terminal, other means set by the organiser; tab for connected
   licensees (settlement at end of competition); no payment card data is stored on the server
 - 👔 **Volunteers**: invited by QR code with organiser validation and a 4-digit verification code,
-  pre-set roles (seller, preparer, all-in-one, stand supervisor), refund ceilings, rights given
+  or a **licensee added at a distance and ahead** (searched by licence number or name in the licence
+  file, then their rights); pre-set roles (seller, preparer, all-in-one, stand supervisor), refund ceilings, rights given
   **per stand** for better autonomy, immediate revocation possible and undoable (the access comes
   back with its rights); unlicensed accounts open from day-before to day-after (auto-deleted next
   day)
@@ -110,22 +116,24 @@ competitors' and visitors' phones, and a mobile till for volunteers.
 The check-in and the equipment check of a competition, on the phones of the volunteers and the
 judges or on the organiser's computer.
 
-- 🔎 **Search** in a single field: family name, given name, licence or club, in any order, accents
-  ignored; reading of the **back-number QR code** with the camera (Android) or a scanner; a single
+- 🗂️ **Two separate posts**, check-in (documents, payments) and judges (equipment): each shows at
+  once the **list of the archers to check** (or already checked), filtered by session, division, class
+  and event — filters folded by default, a filter only offers the choices where somebody is left
+- 🔎 **Search** apart from the list, in a single field: family name, given name, licence or club, in
+  any order, accents ignored; reading of the **back-number QR code** with the camera (Android) or a scanner; a single
   archer found: their file opens at once
 - 🪪 **Archer's file**: identity, date of birth, club, licence (in today's federal file or not),
-  entries with session, target, division, class and events
+  entries with session, target, division, class and events; then what the post checks — documents
+  and payments at the check-in, equipment at the judges'
 - ✅ **Check-in**: "Documents compliant" sets the archer to "Can participate", "Documents not
   compliant" to "Cannot participate - Incomplete documentation"; a licence that does not allow to
   shoot keeps its status
 - 🏹 **Equipment check** division by division: compliant or not (same status as the check-in),
   **draw weight measured** in pounds, every measurement kept with its time and judge
-- 💬 **Notes** of the check-in and the judges, and history of the decisions (a decision can be
-  undone)
+- 💬 **Notes** of the check-in and the judges, and history of the decisions, shared by both posts
+  (a decision can be undone)
 - 💰 **Payments**: what the archer owes (registrations, food and shop), collected as at the
   volunteers' till
-- 🧑‍⚖️ **Judges' view**: the archers whose equipment is not checked yet, filtered by session,
-  division, class and event; a filter only offers the choices where somebody is left
 - 🔓 **Always there for the organiser**, from their computer or phone; the check-in and the
   equipment check are **opened to the volunteers separately** ("Open the changes to the
   volunteers") — without it, only the organisers act
@@ -473,9 +481,9 @@ See the [general README](../README.md) for the common principle.
 | `INSERT INTO` | `ShopVariants` | `shop/lib/catalog-admin.php:399` | — |
 | `DELETE FROM` | `ShopStockMoves` | `shop/lib/catalog-admin.php:411` | — |
 | `DELETE FROM` | `ShopVariants` | `shop/lib/catalog-admin.php:412` | — |
-| `INSERT IGNORE INTO` | `ShopSettings` | `shop/lib/common.php:97` | — |
-| `UPDATE` | `ShopSettings` | `shop/lib/common.php:135` | — |
-| `UPDATE IGNORE` | `ShopSettings` | `shop/lib/common.php:147` | — |
+| `INSERT IGNORE INTO` | `ShopSettings` | `shop/lib/common.php:110` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/common.php:148` | — |
+| `UPDATE IGNORE` | `ShopSettings` | `shop/lib/common.php:160` | — |
 | `DELETE FROM` | `ShopStaffStands` | `shop/lib/copy.php:119` | — |
 | `DELETE FROM` | `ShopStands` | `shop/lib/copy.php:120` | — |
 | `UPDATE` | `ShopSettings` | `shop/lib/copy.php:124` | — |
@@ -561,12 +569,16 @@ See the [general README](../README.md) for the common principle.
 | `UPDATE` | `ShopStaff` | `shop/lib/staff.php:510` | — |
 | `UPDATE` | `ShopStaff` | `shop/lib/staff.php:535` | — |
 | `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:541` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:599` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:600` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:603` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:668` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:692` | — |
-| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff.php:696` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:591` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:621` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:622` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:625` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:753` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:754` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:756` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:825` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:849` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff.php:853` | — |
 | `INSERT INTO` | `ShopStockMoves` | `shop/lib/stock.php:28` | — |
 | `UPDATE` | `ShopVariants` | `shop/lib/stock.php:56` | — |
 | `UPDATE` | `ShopProducts` | `shop/lib/stock.php:59` | — |
@@ -578,9 +590,9 @@ See the [general README](../README.md) for the common principle.
 | `UPDATE` | `ShopStands` | `shop/lib/till.php:538` | — |
 | `DELETE FROM` | `ShopGuests` | `shop/public/api/order.php:66` | — |
 | `UPDATE` | `ShopOrders` | `shop/public/api/seen.php:16` | — |
-| `UPDATE` | `ShopStaff` | `shop/staff/login.php:112` | — |
-| `UPDATE` | `ShopStaff` | `shop/staff/login.php:121` | — |
+| `UPDATE` | `ShopStaff` | `shop/staff/login.php:113` | — |
 | `UPDATE` | `ShopStaff` | `shop/staff/login.php:122` | — |
+| `UPDATE` | `ShopStaff` | `shop/staff/login.php:123` | — |
 | `ALTER TABLE` | `AuthUsage` | `stats-usage.php:128` | — |
 | `ALTER TABLE` | `AuthUsageSeen` | `stats-usage.php:132` | — |
 | `INSERT INTO` | `AuthUsage` | `stats-usage.php:241` | — |

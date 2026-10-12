@@ -19,8 +19,19 @@ if ($r = safe_fetch($q)) {
     $clubName = $r->LueCoDescr;
 }
 
+// The volunteer space has its link under the archer's name here: no banner for it on this page.
+define('BK_VOL_BOX', true);
 bk_head(bk_t('NavHome'));
 echo '<h1>' . bk_t('HomeHello', bk_e($archer->BaName)) . '</h1>';
+
+// Volunteer of a team with a post open now: the way in, kept here once the banner is closed.
+$vol = bk_vol_competitions($archer);
+if ($vol) {
+    echo '<div class="bk-sv-banner bk-vol-box"><span class="bk-sv-banner-txt">'
+       . (count($vol) === 1 ? bk_t('VolBoxOne', '<b>' . bk_e($vol[0]['name']) . '</b>') : bk_t('VolBoxMany', count($vol))) . '</span>'
+       . '<a class="bk-btn bk-btn-primary" style="width:auto" href="' . bk_e(bk_vol_url($vol)) . '">'
+       . bk_e(bk_t('VolBoxBtn')) . '</a></div>';
+}
 
 // Satisfaction surveys waiting for this archer (open, not answered yet), newest first.
 require_once dirname(__DIR__) . '/lib/survey.php';

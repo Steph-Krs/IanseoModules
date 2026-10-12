@@ -10,25 +10,19 @@
 #shp .pos-stack { display: flex; flex-direction: column; gap: 8px; }
 #shp .pos-h { margin-top: 4px; }
 
-/* Top bar */
-#shp .pos-top { flex-wrap: wrap; row-gap: 4px; }
-#shp .pos-standsel { flex: 1; min-width: 120px; min-height: 40px; width: auto; padding: 4px 8px; font-weight: 700; }
-#shp .pos-open { min-height: 36px; padding: 0 12px; border-radius: 18px; border: 2px solid #fff; background: none;
-    font: inherit; font-size: .9rem; font-weight: 700; color: #fff; }
+/* Top bar (Shp.topbar): the pill "open / closed online" between the selector and the name, small,
+   on two lines balanced ("Ouvert" / "en ligne"). */
+#shp .pos-open { flex: 0 0 auto; max-width: 6.5em; min-height: 36px; padding: 2px 8px; border-radius: 10px; border: 2px solid #fff;
+    background: none; font: inherit; font-size: .72rem; font-weight: 700; line-height: 1.15; text-align: center;
+    color: #fff; text-wrap: balance; }
 #shp .pos-open.on { background: var(--shp-green); border-color: var(--shp-green); }
 #shp .pos-open.off { background: var(--shp-coral); border-color: var(--shp-coral); }
 #shp button.pos-open { cursor: pointer; }
-#shp .pos-who { font-size: .95rem; opacity: .95; }
-#shp .pos-desk { display: inline-flex; align-items: center; min-height: 40px; padding: 0 10px; border: 1px solid rgba(255,255,255,.6);
-    border-radius: var(--shp-radius); font-size: .9rem; font-weight: 600; text-decoration: none; }
-#shp .pos-quit, #shp .shp-btn.pos-quit { min-height: 40px; padding: 0 10px; border: 1px solid rgba(255,255,255,.6); border-radius: var(--shp-radius);
-    background: none; color: inherit; font: inherit; font-size: .9rem; cursor: pointer; }
-#shp .shp-btn.pos-quit.pos-sure { background: #fff; color: var(--shp-red, #a80000); font-weight: 700; }
 
-/* Pills (categories, filters) */
-#shp .pos-pills { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 10px; -webkit-overflow-scrolling: touch; }
-#shp .pos-pill { flex: 0 0 auto; min-height: 44px; padding: 0 16px; border: 1px solid var(--shp-border); border-radius: 22px;
-    background: #fff; font: inherit; font-size: 1rem; font-weight: 600; color: var(--shp-text); cursor: pointer; white-space: nowrap; }
+/* Pills (categories, filters): they wrap — every choice in sight, no hidden scroll. */
+#shp .pos-pills { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 10px; }
+#shp .pos-pill { flex: 0 0 auto; min-height: 36px; padding: 0 12px; border: 1px solid var(--shp-border); border-radius: 18px;
+    background: #fff; font: inherit; font-size: .9rem; font-weight: 600; color: var(--shp-text); cursor: pointer; white-space: nowrap; }
 #shp .pos-pill.on { background: var(--shp-blue); border-color: var(--shp-blue); color: #fff; }
 
 /* Tiles */

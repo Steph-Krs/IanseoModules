@@ -31,6 +31,19 @@ function shp_url($path = '')
     return $CFG->ROOT_DIR . 'Modules/Custom/AUTH/shop/' . ltrim((string) $path, '/');
 }
 
+/** Address of the licensee space (booking), offered to a volunteer who loses their access. */
+function shp_licensee_space_url()
+{
+    global $CFG;
+    return $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/public/index.php';
+}
+
+/** Button to the licensee space, for the pages of a volunteer without access (block). */
+function shp_licensee_space_btn()
+{
+    return '<p><a class="shp-btn shp-btn-block" href="' . shp_e(shp_licensee_space_url()) . '">' . shp_e(shp_t('ShStfLicSpace')) . '</a></p>';
+}
+
 /** Full address (scheme and host), for a QR code. */
 function shp_abs_url($path = '')
 {

@@ -87,11 +87,17 @@ commande par téléphone des archers et des visiteurs, et caisse mobile pour les
 - 🧾 **Caisse des bénévoles** : vente, encaissement, file des commandes classée par heure demandée,
   **temps d'attente propre à chaque commande** (saisi à l'encaissement, ajusté par le préparateur
   par boutons +2 / +5 / −2 / −5 min) ; adresse stable et affiche avec QR code pour revenir à la caisse
+- 📱 **Espace bénévole sur téléphone** : un seul bandeau pour la caisse, le greffe et l'arbitrage,
+  avec un sélecteur des postes ouverts au bénévole ; son nom ouvre un menu (son espace licencié, se
+  déconnecter — de l'espace bénévole et de l'espace licencié) ; un poste fermé mène au poste ouvert
+  suivant. Un licencié bénévole y entre depuis son **espace licencié** (bandeau et encart d'accueil dès
+  qu'un de ses postes est ouvert), sans l'adresse de l'organisateur
 - 💰 **Paiements** : espèces, chèque, terminal bancaire, autre moyen défini par l'organisateur ;
   sur-compte pour les licenciés connectés (règlement à la fin de la compétition) ; aucune donnée
   bancaire n'est stockée sur le serveur
 - 👔 **Bénévoles** : invitation par code QR avec validation et code de vérification à 4 chiffres
-  pour l'organisateur, rôles préréglés (vendeur, préparateur, polyvalent, responsable de stand),
+  pour l'organisateur, ou **ajout d'un licencié à distance et à l'avance** (recherche par numéro de
+  licence ou par nom dans le fichier des licences, puis ses droits) ; rôles préréglés (vendeur, préparateur, polyvalent, responsable de stand),
   plafonds de remboursement, droits donnés **par stand** pour une meilleure autonomie, révocation
   immédiate possible et annulable (l'accès revient avec ses droits) ; comptes non licenciés ouverts
   de la veille à la fin (effacés automatiquement le lendemain)
@@ -113,22 +119,24 @@ commande par téléphone des archers et des visiteurs, et caisse mobile pour les
 Le greffe et le contrôle du matériel d'une compétition, sur le téléphone des bénévoles et des
 arbitres ou sur l'ordinateur de l'organisateur.
 
-- 🔎 **Recherche** dans un seul champ : nom, prénom, licence ou club, dans n'importe quel ordre, sans
-  tenir compte des accents ; lecture du **QR code du dossard** à l'appareil photo (Android) ou par une
+- 🗂️ **Deux postes séparés**, greffe (documents, paiements) et arbitrage (matériel) : chacun affiche
+  d'emblée la **liste des archers à contrôler** (ou déjà contrôlés), filtrée par départ, arme, classe
+  et épreuve — filtres repliés par défaut, un filtre ne propose que les choix où il reste quelqu'un
+- 🔎 **Recherche** indépendante de la liste, dans un seul champ : nom, prénom, licence ou club, dans
+  n'importe quel ordre, sans tenir compte des accents ; lecture du **QR code du dossard** à l'appareil photo (Android) ou par une
   douchette ; un seul archer trouvé : sa fiche s'ouvre directement
 - 🪪 **Fiche de l'archer** : identité, date de naissance, club, licence (présente ou non dans le
-  fichier fédéral du jour), inscriptions avec départ, cible, arme, catégorie et épreuves
+  fichier fédéral du jour), inscriptions avec départ, cible, arme, catégorie et épreuves ; puis ce que
+  contrôle le poste — documents et paiements au greffe, matériel à l'arbitrage
 - ✅ **Greffe** : « Documents conformes » passe l'archer au statut « Peut participer »,
   « Documents non conformes » au statut « Ne peut pas participer - Documentation incomplète » ; une
   licence qui ne permet pas la pratique garde son statut
 - 🏹 **Contrôle du matériel** arme par arme : conforme ou non conforme (même statut que le greffe),
   **puissance mesurée** en livres, toutes les mesures conservées avec l'heure et l'arbitre
-- 💬 **Commentaires** du greffe et des arbitres, et historique des décisions (une décision peut être
-  annulée)
+- 💬 **Commentaires** du greffe et des arbitres, et historique des décisions, communs aux deux postes
+  (une décision peut être annulée)
 - 💰 **Paiements** : ce que doit l'archer (inscriptions, buvette et boutique), encaissé comme à la
   caisse des bénévoles
-- 🧑‍⚖️ **Vue des arbitres** : les archers dont le matériel n'est pas encore contrôlé, filtrés par
-  départ, arme, classe et épreuve ; un filtre ne propose que les choix où il reste quelqu'un
 - 🔓 **Toujours disponible pour l'organisateur**, depuis son ordinateur ou son téléphone ; le greffe
   et le contrôle du matériel s'ouvrent **séparément aux bénévoles** (« Ouvrir la modification aux
   bénévoles ») — sans cette option, seuls les organisateurs interviennent
@@ -479,9 +487,9 @@ Voir le [README général](../README.md) pour le principe commun.
 | `INSERT INTO` | `ShopVariants` | `shop/lib/catalog-admin.php:399` | — |
 | `DELETE FROM` | `ShopStockMoves` | `shop/lib/catalog-admin.php:411` | — |
 | `DELETE FROM` | `ShopVariants` | `shop/lib/catalog-admin.php:412` | — |
-| `INSERT IGNORE INTO` | `ShopSettings` | `shop/lib/common.php:97` | — |
-| `UPDATE` | `ShopSettings` | `shop/lib/common.php:135` | — |
-| `UPDATE IGNORE` | `ShopSettings` | `shop/lib/common.php:147` | — |
+| `INSERT IGNORE INTO` | `ShopSettings` | `shop/lib/common.php:110` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/common.php:148` | — |
+| `UPDATE IGNORE` | `ShopSettings` | `shop/lib/common.php:160` | — |
 | `DELETE FROM` | `ShopStaffStands` | `shop/lib/copy.php:119` | — |
 | `DELETE FROM` | `ShopStands` | `shop/lib/copy.php:120` | — |
 | `UPDATE` | `ShopSettings` | `shop/lib/copy.php:124` | — |
@@ -567,12 +575,16 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `ShopStaff` | `shop/lib/staff.php:510` | — |
 | `UPDATE` | `ShopStaff` | `shop/lib/staff.php:535` | — |
 | `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:541` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:599` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:600` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:603` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:668` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:692` | — |
-| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff.php:696` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:591` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:621` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:622` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:625` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:753` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:754` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:756` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:825` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:849` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff.php:853` | — |
 | `INSERT INTO` | `ShopStockMoves` | `shop/lib/stock.php:28` | — |
 | `UPDATE` | `ShopVariants` | `shop/lib/stock.php:56` | — |
 | `UPDATE` | `ShopProducts` | `shop/lib/stock.php:59` | — |
@@ -584,9 +596,9 @@ Voir le [README général](../README.md) pour le principe commun.
 | `UPDATE` | `ShopStands` | `shop/lib/till.php:538` | — |
 | `DELETE FROM` | `ShopGuests` | `shop/public/api/order.php:66` | — |
 | `UPDATE` | `ShopOrders` | `shop/public/api/seen.php:16` | — |
-| `UPDATE` | `ShopStaff` | `shop/staff/login.php:112` | — |
-| `UPDATE` | `ShopStaff` | `shop/staff/login.php:121` | — |
+| `UPDATE` | `ShopStaff` | `shop/staff/login.php:113` | — |
 | `UPDATE` | `ShopStaff` | `shop/staff/login.php:122` | — |
+| `UPDATE` | `ShopStaff` | `shop/staff/login.php:123` | — |
 | `ALTER TABLE` | `AuthUsage` | `stats-usage.php:128` | — |
 | `ALTER TABLE` | `AuthUsageSeen` | `stats-usage.php:132` | — |
 | `INSERT INTO` | `AuthUsage` | `stats-usage.php:241` | — |

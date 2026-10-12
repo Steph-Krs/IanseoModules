@@ -7,6 +7,9 @@
  * One team for the stands and the check-in desk, managed here (menu "Volunteers"). For a
  * computer, in the frame shared by AUTH's organiser pages (adm-lib.php). What the page does:
  *   - "Invite volunteers": a QR code (30 min, reusable, can be stopped) shown full screen;
+ *   - or a licensee found by licence number or name (licence file, licensee space) and added at
+ *     once with their rights — ahead of the competition and at a distance, no QR code (user's
+ *     choice, 2026-10-12); they sign in with their licensee-space account;
  *   - waiting requests, refreshed by themselves WHILE an invitation runs or requests wait (no
  *     request to the server otherwise): the organiser checks the 4-digit code shown on
  *     the volunteer's phone, picks a role preset for the stands ticked (or rights stand by stand),
@@ -78,6 +81,7 @@ if ((string) ($_SERVER['HTTP_X_SHP'] ?? '') === '1') {
     $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
     if ($method === 'GET') {
         session_write_close();
+        if (isset($_GET['find'])) shp_json(array('error' => 0) + shp_staff_find($TOUR, (string) $_GET['find']));
         shp_json(ss_state($TOUR));
     }
     if ($method !== 'POST' || stripos((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'application/json') !== 0) {
@@ -100,6 +104,11 @@ if ((string) ($_SERVER['HTTP_X_SHP'] ?? '') === '1') {
         case 'approve':
             $r = shp_staff_approve($TOUR, $id, $rights, ss_amount($in['refund_max'] ?? ''), ss_amount($in['refund_total'] ?? ''), $BY,
                 (string) ($in['desk'] ?? ''));
+            break;
+        case 'add':
+            if ($over) shp_json_error('over', shp_t('ShStfErrOver'));
+            $r = shp_staff_add_licensee($TOUR, (string) ($in['licence'] ?? ''), $rights, ss_amount($in['refund_max'] ?? ''),
+                ss_amount($in['refund_total'] ?? ''), $BY, (string) ($in['desk'] ?? ''));
             break;
         case 'refuse':
             $r = shp_staff_refuse($TOUR, $id, $BY);
@@ -142,7 +151,7 @@ if ((string) ($_SERVER['HTTP_X_SHP'] ?? '') === '1') {
 /** Journal of the decisions on the team (latest first), in the competition's local time. */
 function ss_journal($tour)
 {
-    $ev = array('approve' => 'ShStfEvApprove', 'refuse' => 'ShStfEvRefuse', 'rights' => 'ShStfEvRights',
+    $ev = array('approve' => 'ShStfEvApprove', 'add' => 'ShStfEvAdd', 'refuse' => 'ShStfEvRefuse', 'rights' => 'ShStfEvRights',
         'revoke' => 'ShStfEvRevoke', 'unlock' => 'ShStfEvUnlock', 'reset' => 'ShStfEvReset',
         'reset_done' => 'ShStfEvResetDone', 'lock' => 'ShStfEvLock', 'organiser' => 'ShStfEvOrganiser', 'restore' => 'ShStfEvRestore');
     // The connection of an organiser page runs in the competition's zone: NOW() - UTC gives its offset.
@@ -198,7 +207,14 @@ if (!$over) {
         echo '<a class="ss-btn ss-btn-big" target="_blank" href="' . shp_e(shp_url('admin/posters.php?pdf=till')) . '">'
             . '<img src="' . shp_e($CFG->ROOT_DIR . 'Common/Images/pdf_small.gif') . '" alt="" width="16" height="16">&nbsp;' . shp_e(shp_t('ShStfTillPoster')) . '</a>';
     }
-    echo '</div>'
+    // Adding a licensee without the QR code: one line right of the buttons, the licensees found
+    // under it across the page.
+    echo '<form class="ss-find-form" id="ss-find-form" role="search">'
+        . '<input type="search" id="ss-find-q" maxlength="60" autocomplete="off" placeholder="' . shp_e(shp_t('ShStfFindPh')) . '"'
+        . ' aria-label="' . shp_e(shp_t('ShStfFindPh')) . '">'
+        . '<button type="submit" class="ss-btn ss-btn-big">' . shp_e(shp_t('ShStfFind')) . '</button></form>'
+        . '</div>'
+        . '<div class="ss-find" id="ss-find" hidden aria-live="polite"></div>'
         . '<div class="ss-running" id="ss-running" hidden></div>';
 }
 echo '<div id="ss-flash" aria-live="polite"></div>';
@@ -239,6 +255,9 @@ echo shp_json_script('shp-texts', shp_ts(array(
         'ShStfPendingWaiting', 'ShStfResetTitle2', 'ShStfResetLeft', 'ShStfHide', 'ShStfClose', 'ShStfDone',
         'ShStfNoStandSet', 'ShStfErrNoStand', 'ShStfStandInactive', 'ShStfQrMissing', 'DkRightsTitle', 'DkErrNoRight',
         'DkRightsShort', 'DkJudgesRightsTitle', 'DkJudges', 'ShStfRestore', 'ShStfRestoreDone',
+        'ShStfFindTitle', 'ShStfFindNone', 'ShStfFindMore', 'ShStfFindLicence', 'ShStfFindName', 'ShStfFindClub',
+        'ShStfFindBorn', 'ShStfFindSpace', 'ShStfFindYes', 'ShStfFindNo', 'ShStfFindAdd', 'ShStfFindInTeam',
+        'ShStfFindPending', 'ShStfFindNoAccount', 'ShStfAddConfirm', 'ShStfAdded', 'ShStfKindLicensee',
     )) + shp_base_texts())
     . shp_json_script('shp-cfg', shp_page_cfg($TOUR, 'staffadm', array(
         'self' => $SELF, 'csrf' => bk_csrf_token(), 'stands' => $stands, 'presets' => $presets, 'perms' => $perms,

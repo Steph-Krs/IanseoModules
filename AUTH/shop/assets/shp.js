@@ -11,6 +11,9 @@
  * Shp.money(n)         amount with the separators and currency of #shp-cfg.
  * Shp.toast(text, undo) message with an "Undo" button for 5 seconds.
  * Shp.beep(), Shp.vibrate(), Shp.unlockAudio()  signals (sound needs a first tap).
+ * Shp.topbar(bar, opt) top bar of the volunteer pages: post selector, the page's own element,
+ *                      the volunteer's name opening a small menu (archer space, sign out).
+ * [data-shp-logout]    a "sign out" button of a plain page (data-to: where to go then).
  *
  * No text for people is written here: they all come from the page (#shp-texts).
  */
@@ -198,4 +201,112 @@
     Shp.vibrate = function (pattern) {
         if (navigator.vibrate) { try { navigator.vibrate(pattern || [200, 100, 200]); } catch (e) { /* not allowed */ } }
     };
+
+    /* ---- Top bar of the volunteer pages (till, registry, judges) ----
+       Phone first, one line: the selector of the posts open to the volunteer (bar.posts: the
+       stands, the registry, the judges — lib/posts.php), an element of the page (opt.extra), and
+       the name: its menu gives the competition, the way back (archer space, or the organiser's
+       page) and signing out. opt.local(key) returns true when the page switches by itself (another
+       stand of the till); otherwise the post's address opens. The menu lives outside the bar: a
+       page redrawing its bar does not close it. */
+    var menuEl = null;
+    function menuClose() {
+        if (!menuEl) return;
+        menuEl.hidden = true;
+        var b = document.querySelector('.shp-who[aria-expanded="true"]');
+        if (b) b.setAttribute('aria-expanded', 'false');
+    }
+    function menuOpen(bar, who) {
+        if (!menuEl) {
+            menuEl = document.createElement('div');
+            menuEl.className = 'shp-menu';
+            menuEl.setAttribute('role', 'menu');
+            (document.getElementById('shp') || document.body).appendChild(menuEl);
+            document.addEventListener('click', function (e) {
+                if (menuEl.hidden || menuEl.contains(e.target) || (e.target.closest && e.target.closest('.shp-who'))) return;
+                menuClose();
+            });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') menuClose(); });
+        }
+        while (menuEl.firstChild) menuEl.removeChild(menuEl.firstChild);
+        var head = document.createElement('div');
+        head.className = 'shp-menu-head';
+        var b = document.createElement('b'); b.textContent = bar.full || bar.name || '';
+        var sm = document.createElement('small'); sm.textContent = bar.tour || '';
+        head.appendChild(b); head.appendChild(sm);
+        menuEl.appendChild(head);
+        if (bar.back) {
+            var a = document.createElement('a');
+            a.className = 'shp-menu-item';
+            a.setAttribute('role', 'menuitem');
+            a.href = bar.back;
+            a.textContent = bar.back_label || '';
+            menuEl.appendChild(a);
+        }
+        var out = document.createElement('button');
+        out.type = 'button';
+        out.className = 'shp-menu-item shp-menu-out';
+        out.setAttribute('role', 'menuitem');
+        out.textContent = Shp.t('ShPosQuit');
+        out.addEventListener('click', function () {
+            out.disabled = true;
+            Shp.api(bar.logout, {}).then(function () { window.location.replace(bar.login || bar.back || '/'); },
+                function () { out.disabled = false; Shp.toast(Shp.t('ShErrNetwork')); });
+        });
+        menuEl.appendChild(out);
+        menuEl.hidden = false;
+        who.setAttribute('aria-expanded', 'true');
+    }
+    Shp.topbar = function (bar, opt) {
+        opt = opt || {};
+        bar = bar || {};
+        var top = document.createElement('div');
+        top.className = 'shp-top shp-bar';
+        var posts = bar.posts || [];
+        if (posts.length > 1) {
+            var sel = document.createElement('select');
+            sel.className = 'shp-postsel';
+            sel.setAttribute('aria-label', Shp.t('ShStfPost'));
+            posts.forEach(function (p) {
+                var o = document.createElement('option');
+                o.value = p.key;
+                o.textContent = p.label;
+                if (p.key === bar.post) o.selected = true;
+                sel.appendChild(o);
+            });
+            sel.addEventListener('change', function () {
+                var p = posts.filter(function (x) { return x.key === sel.value; })[0];
+                if (!p || (opt.local && opt.local(p.key))) return;
+                window.location.href = p.url;
+            });
+            top.appendChild(sel);
+        } else {
+            var cur = posts.filter(function (x) { return x.key === bar.post; })[0];
+            var t = document.createElement('span');
+            t.className = 'shp-top-title';
+            t.textContent = cur ? cur.label : (opt.title || '');
+            top.appendChild(t);
+        }
+        if (opt.extra) top.appendChild(opt.extra);
+        var who = document.createElement('button');
+        who.type = 'button';
+        who.className = 'shp-who';
+        who.setAttribute('aria-haspopup', 'menu');
+        who.setAttribute('aria-expanded', menuEl && !menuEl.hidden ? 'true' : 'false');
+        who.textContent = bar.name || bar.full || '';
+        who.addEventListener('click', function () {
+            if (menuEl && !menuEl.hidden) menuClose(); else menuOpen(bar, who);
+        });
+        top.appendChild(who);
+        return top;
+    };
+
+    /* ---- "Sign out" of a plain page (no post open, …) ---- */
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('[data-shp-logout]') : null;
+        if (!b) return;
+        b.disabled = true;
+        Shp.api(b.getAttribute('data-shp-logout'), {}).then(function () { window.location.replace(b.getAttribute('data-to') || '/'); },
+            function () { b.disabled = false; });
+    });
 })();

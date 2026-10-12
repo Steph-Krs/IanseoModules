@@ -61,9 +61,10 @@ if ($mode === 'lic' && !$readOnly) {
 }
 // A signed-in licensee of the team is let in at once (also when back from the sign-in).
 if ($archer && !$readOnly) {
-    $s = safe_fetch(safe_r_sql("SELECT SfId FROM ShopStaff WHERE SfTournament = $TOUR AND SfKind = 'LICENSEE'
-        AND SfArcher = " . intval($archer->BaId) . " AND SfStatus = 'active' ORDER BY SfId DESC LIMIT 1"));
+    $s = safe_fetch(safe_r_sql("SELECT SfId, SfArcher FROM ShopStaff WHERE SfTournament = $TOUR AND SfKind = 'LICENSEE'
+        AND " . shp_staff_archer_sql($archer) . " AND SfStatus = 'active' ORDER BY SfId DESC LIMIT 1"));
     if ($s) {
+        shp_staff_attach_archer($s, $archer);
         shp_staff_session_open(intval($s->SfId));
         header('Location: ' . $TILL);
         exit;
@@ -128,7 +129,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     }
 }
 
-$title = shp_t($toDesk || !shp_enabled($TOUR) ? 'DkLoginTitle' : 'ShStfLoginTitle');
+// One sign-in for every post (stands, registry, judges): "Volunteer sign-in" (user's choice).
+$title = shp_t('ShStfLoginTitle');
 $body = '<div class="shp-card"><h1>' . shp_e($title) . '</h1><p class="sj-tour">' . shp_e(shp_staff_tour_name($TOUR)) . '</p>';
 if ($info !== '') $body .= shp_msg('info', $info);
 $licLabel = $archer ? shp_t('ShStfIAmLicensedAs', trim($archer->BaName . ' ' . $archer->BaFamilyName)) : shp_t('ShStfIAmLicensed');
@@ -146,7 +148,8 @@ $body .= '<p><a class="shp-btn shp-btn-block shp-btn-big" href="' . shp_e($SELF 
     . shp_e(shp_t('ShStfLoginSubmit')) . '</button></p>'
     . '</form>'
     . '<p class="shp-muted">' . shp_e(shp_t('ShStfLoginHelp')) . '</p>'
-    . '<p class="shp-muted">' . shp_e(shp_t($toDesk || !shp_enabled($TOUR) ? 'DkLoginOrganiser' : 'ShStfLoginOrganiser')) . '</p></div>';
+    . '<p class="shp-muted">' . shp_e(shp_t('ShStfLoginOrganiser')) . '</p>'
+    . shp_licensee_space_btn() . '</div>';
 
 shp_head($title, array('layout' => 'card', 'css' => array('staff.css')));
 echo '  <main class="shp-main">' . $body . "</main>\n";

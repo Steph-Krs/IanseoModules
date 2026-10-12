@@ -163,35 +163,83 @@ function bk_live_competitions($archer)
 }
 
 /**
- * Banners closed by the archer. Kept in the PHP session with the sign-in they were closed in:
- * the next sign-in has another token, so the banners come back on their own.
+ * Competitions where the archer volunteers with a post open to them now (shop/lib/posts.php):
+ * the quick access to the volunteer space. One guarded query for everybody else — the shop's
+ * libraries load only for an archer of a team, and its tables may not exist yet.
  */
-function bk_live_hidden()
+function bk_vol_competitions($archer)
+{
+    static $cache = array();
+    $id = intval($archer->BaId ?? 0);
+    if ($id <= 0) return array();
+    if (isset($cache[$id])) return $cache[$id];
+    // By the account, or by the licence for a volunteer the organiser added (shp_staff_archer_sql).
+    $lic = bk_clean_licence($archer->BaLicence ?? '');
+    $rs = safe_r_sql("SELECT SfId FROM ShopStaff WHERE SfKind = 'LICENSEE' AND SfStatus = 'active'
+        AND (SfArcher = $id" . ($lic !== '' ? " OR (SfArcher = 0 AND SfLicence = " . StrSafe_DB($lic) . ")" : '') . ") LIMIT 1", false, true);
+    if (!$rs || !safe_fetch($rs)) return $cache[$id] = array();
+    require_once dirname(__DIR__, 2) . '/shop/lib/posts.php';
+    return $cache[$id] = shp_archer_volunteer_tours($archer);
+}
+
+/** Address of the volunteer space for these competitions: the one, or the choice among them. */
+function bk_vol_url(array $tours)
+{
+    global $CFG;
+    return $CFG->ROOT_DIR . 'Modules/Custom/AUTH/shop/staff/enter.php' . (count($tours) === 1 ? '?t=' . intval($tours[0]['tour']) : '');
+}
+
+/**
+ * Banners closed by the archer ($kind: 'ids' competitions taking place, 'vol' volunteer space).
+ * Kept in the PHP session with the sign-in they were closed in: the next sign-in has another
+ * token, so the banners come back on their own.
+ */
+function bk_live_hidden($kind = 'ids')
 {
     $h = $_SESSION['BK_LiveHidden'] ?? null;
     $tok = function_exists('bk_current_token_hash') ? bk_current_token_hash() : '';
-    return (is_array($h) && $tok !== '' && ($h['tok'] ?? '') === $tok) ? array_map('intval', (array) ($h['ids'] ?? array())) : array();
+    return (is_array($h) && $tok !== '' && ($h['tok'] ?? '') === $tok) ? array_map('intval', (array) ($h[$kind] ?? array())) : array();
 }
 
-function bk_live_hide($tourId)
+function bk_live_hide(array $tourIds, $kind = 'ids')
 {
     $tok = bk_current_token_hash();
-    if ($tok === '' || $tourId <= 0) return;
-    $ids = bk_live_hidden();
-    $ids[] = intval($tourId);
-    $_SESSION['BK_LiveHidden'] = array('tok' => $tok, 'ids' => array_values(array_unique($ids)));
+    $tourIds = array_filter(array_map('intval', $tourIds), function ($x) { return $x > 0; });
+    if ($tok === '' || !$tourIds) return;
+    $h = $_SESSION['BK_LiveHidden'] ?? null;
+    if (!is_array($h) || ($h['tok'] ?? '') !== $tok) $h = array('tok' => $tok);
+    $h[$kind] = array_values(array_unique(array_merge(bk_live_hidden($kind), $tourIds)));
+    $_SESSION['BK_LiveHidden'] = $h;
 }
 
 /**
  * Banner on every page of the archer space while one of their competitions takes place —
  * except on the pages of that competition (any page opened with its id: the competition
  * itself, its documents, a registration to it…), and once the archer closed it.
+ *
+ * Under it, the volunteer space while one of their posts is open (user's choice, 2026-10-12):
+ * one banner, to the competition or to the choice among several — except on the home page,
+ * which always shows the same link under the archer's name.
  */
 function bk_live_banner($archer)
 {
     $self = intval($_GET['t'] ?? $_POST['t'] ?? $_GET['comp'] ?? 0);
     $hidden = bk_live_hidden();
     $html = '';
+    if (!defined('BK_VOL_BOX')) {
+        $volHidden = bk_live_hidden('vol');
+        $vol = array_values(array_filter(bk_vol_competitions($archer), function ($v) use ($volHidden) {
+            return !in_array($v['tour'], $volHidden, true);
+        }));
+        if ($vol) {
+            $html .= '  <div class="bk-live bk-live-vol" data-k="vol" data-t="' . implode(',', array_column($vol, 'tour')) . '"><a class="bk-live-a" href="'
+                . bk_e(bk_vol_url($vol)) . '"><span>' . bk_e(bk_t('VolNow')) . '</span> <b>'
+                . bk_e(count($vol) === 1 ? $vol[0]['name'] : bk_t('VolMany', count($vol))) . '</b><span class="bk-live-go">'
+                . bk_e(bk_t(count($vol) === 1 ? 'LiveOpen' : 'VolChoose')) . ' →</span></a>'
+                . '<button type="button" class="bk-live-x" title="' . bk_e(bk_t('LiveHide')) . '" aria-label="'
+                . bk_e(bk_t('LiveHide')) . '">×</button></div>' . "\n";
+        }
+    }
     foreach (bk_live_competitions($archer) as $c) {
         $id = intval($c->ToId);
         if ($id === $self || in_array($id, $hidden, true)) continue;
@@ -208,6 +256,7 @@ function bk_live_banner($archer)
     b.addEventListener("click", function () {
       var box = b.parentNode, f = new FormData();
       f.append("t", box.getAttribute("data-t"));
+      f.append("k", box.getAttribute("data-k") || "");
       f.append("bk_csrf", ' . json_encode(bk_csrf_token()) . ');
       box.parentNode.removeChild(box);
       if (window.fetch) fetch(' . json_encode(bk_public_url('live-hide.php')) . ', { method: "POST", body: f, credentials: "same-origin" });
