@@ -1229,7 +1229,7 @@ $lang['AcPayOffReload']      = 'La gestión de pagos no está activada para esta
 $lang['AcTariffsSaved']      = 'Tarifas y medios de pago guardados.';
 $lang['AcSaved']             = 'Configuración guardada.';
 $lang['AcSavedShort']        = 'Guardado';
-$lang['AcCopied']            = 'Configuración tomada de la otra competición. Compruebe las fechas y las restricciones del campo.';
+$lang['AcCopied']            = 'Configuración tomada de la otra competición. Compruebe las fechas y las restricciones del campo; el bar y tienda, la acreditación y los jueces quedan por abrir desde sus páginas.';
 $lang['AcCatLabelPh']        = 'p. ej. Jóvenes';
 $lang['AcCatBows']           = 'Arcos (vacío = todos)';
 $lang['AcCatClasses']        = 'Categorías (vacío = todas)';
@@ -1258,8 +1258,10 @@ $lang['AcCopyNone']          = 'Ninguna otra competición configurada es accesib
 $lang['AcCopySrc']           = 'Competición de origen';
 $lang['AcOpenTitle']         = 'Apertura de las inscripciones en este servidor';
 $lang['AcCopySummary']       = '📋 Copiar desde…';
-$lang['AcCopyHint']          = 'Tomar la configuración de <b>otra competición</b>: nivel de publicación, inscripciones, visibilidad, tarifa, invitación, tienda y restricciones del campo. Las <b>fechas</b> mantienen el mismo desfase respecto a la fecha de inicio. Los logotipos y el enlace de ianseo.net no se copian. <b>Los ajustes actuales se sustituirán.</b>';
-$lang['AcCopyConfirm']       = '¿Copiar toda la configuración de la competición de origen? Los ajustes actuales (inscripciones, tarifa, invitación, tienda, restricciones del campo) se SUSTITUIRÁN.';
+$lang['AcCopyHint']          = 'Tomar la configuración de <b>otra competición</b>: nivel de publicación, inscripciones, visibilidad, tarifa, invitación, restricciones del campo, y el bar y tienda (ajustes, puntos de venta, catálogo). Las <b>fechas</b> mantienen el mismo desfase respecto a la fecha de inicio. Los logotipos y el enlace de ianseo.net no se copian; el bar y tienda, la acreditación y los jueces quedan <b>cerrados</b> (se abren desde sus páginas). Los voluntarios licenciados solo se toman si la casilla está marcada. <b>Los ajustes actuales se sustituirán.</b>';
+$lang['AcCopyConfirm']       = '¿Copiar toda la configuración de la competición de origen? Los ajustes actuales (inscripciones, tarifa, invitación, bar y tienda, restricciones del campo) se SUSTITUIRÁN.';
+$lang['AcCopyStaff']         = 'Tomar también los voluntarios licenciados y sus derechos';
+$lang['AcCopiedStaff']       = '{$a} voluntario(s) licenciado(s) tomado(s) con sus derechos.';
 $lang['AcPubWhat']           = 'Esta es la <b>página de inscripción en línea de este servidor</b>: lo que ven los arqueros que se conectan aquí <b>con su número de licencia</b>. Solo ellos tienen acceso: la competición no es visible ni para el público ni para los motores de búsqueda.';
 $lang['AcNotIanseoNet']      = 'Esto <b>no afecta a ianseo.net</b>: desde esta página no se envía ni se publica nada allí. El envío de los resultados a ianseo.net sigue siendo el menú habitual de ianseo (<i>Competición › Enviar a ianseo.net</i>).';
 $lang['AcLvl1']              = 'Cerrada';

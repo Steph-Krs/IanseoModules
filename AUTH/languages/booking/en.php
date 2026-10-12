@@ -1230,7 +1230,7 @@ $lang['AcPayOffReload']      = 'Payment management is not turned on for this com
 $lang['AcTariffsSaved']      = 'Tariffs and means of payment saved.';
 $lang['AcSaved']             = 'Settings saved.';
 $lang['AcSavedShort']        = 'Saved';
-$lang['AcCopied']            = 'Settings taken from the other competition. Check the dates and the field constraints.';
+$lang['AcCopied']            = 'Settings taken from the other competition. Check the dates and the field constraints; the food & shop, the check-in and the judges are still to be opened from their pages.';
 $lang['AcCatLabelPh']        = 'e.g. Youth';
 $lang['AcCatBows']           = 'Bows (empty = all)';
 $lang['AcCatClasses']        = 'Categories (empty = all)';
@@ -1259,8 +1259,10 @@ $lang['AcCopyNone']          = 'No other configured competition can be reached f
 $lang['AcCopySrc']           = 'Source competition';
 $lang['AcOpenTitle']         = 'Opening of the registration on this server';
 $lang['AcCopySummary']       = '📋 Copy from…';
-$lang['AcCopyHint']          = 'Take the settings of <b>another competition</b>: publication level, registration, visibility, tariff, invitation, shop and field constraints. The <b>dates</b> keep the same offset from the start date. The logos and the ianseo.net link are not copied. <b>The current settings will be replaced.</b>';
-$lang['AcCopyConfirm']       = 'Copy all the settings of the source competition? The current settings (registration, tariff, invitation, shop, field constraints) will be REPLACED.';
+$lang['AcCopyHint']          = 'Take the settings of <b>another competition</b>: publication level, registration, visibility, tariff, invitation, field constraints, and the food & shop (settings, points of sale, catalogue). The <b>dates</b> keep the same offset from the start date. The logos and the ianseo.net link are not copied; the food & shop, the check-in and the judges stay <b>closed</b> (to be opened from their pages). Licensed volunteers are taken only when the box is ticked. <b>The current settings will be replaced.</b>';
+$lang['AcCopyConfirm']       = 'Copy all the settings of the source competition? The current settings (registration, tariff, invitation, food & shop, field constraints) will be REPLACED.';
+$lang['AcCopyStaff']         = 'Also take the licensed volunteers and their rights';
+$lang['AcCopiedStaff']       = '{$a} licensed volunteer(s) taken with their rights.';
 $lang['AcPubWhat']           = 'This is the <b>online registration page of this server</b>: what the archers who sign in here <b>with their licence number</b> see. Only they can reach it — the competition is visible neither to the public nor to search engines.';
 $lang['AcNotIanseoNet']      = 'This <b>does not concern ianseo.net</b>: nothing is sent or published there from this page. Sending the results to ianseo.net stays the usual ianseo menu (<i>Competition › Send to ianseo.net</i>).';
 $lang['AcLvl1']              = 'Closed';

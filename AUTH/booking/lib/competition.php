@@ -237,12 +237,14 @@ function bk_copy_resolve($input, $currentTour)
 
 /**
  * Copies the booking setup of $srcTour to $destTour. REPLACES the settings (publication
- * level, registration, visibility, tariff, mandate, shop, field constraints). DATES keep the
- * same OFFSET from the start date. Not copied: identity (BcCode), geocoding (by venue), the
+ * level, registration, visibility, tariff, mandate, food & shop, field constraints). DATES keep
+ * the same OFFSET from the start date. Not copied: identity (BcCode), geocoding (by venue), the
  * ianseo.net link (each competition's own), the LOGOS — only the mandate's "which logos"
- * boxes are. Returns true when copied.
+ * boxes are —, the openings of the food & shop, the registry and the judges (opened by hand).
+ * $staff: also the licensed volunteers with their rights (shp_copy_staff), decided by this organiser.
+ * Returns false, or the number of volunteers added (0 included: compare with === false).
  */
-function bk_comp_copy_from($destTour, $srcTour)
+function bk_comp_copy_from($destTour, $srcTour, $staff = false)
 {
     bk_schema();
     $destTour = intval($destTour); $srcTour = intval($srcTour);
@@ -289,7 +291,10 @@ function bk_comp_copy_from($destTour, $srcTour)
 
     bk_comp_copy_shop($destTour, $srcTour);
     bk_comp_copy_caps($destTour, $srcTour);
-    return true;
+    if (!$staff) return 0;
+    // After the shop: the rights on a stand follow the stands just copied.
+    require_once dirname(__DIR__, 2) . '/shop/lib/copy.php';
+    return shp_copy_staff($destTour, $srcTour, shp_staff_by());
 }
 
 /**

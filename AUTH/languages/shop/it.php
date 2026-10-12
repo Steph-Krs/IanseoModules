@@ -99,7 +99,7 @@ $lang['ShSetUnlimited']    = 'illimitato';
 $lang['ShSetInactiveTag']  = '(inattivo)';
 
 $lang['ShSetCopySummary']  = 'Copia da…';
-$lang['ShSetCopyHint']     = 'Riprende le impostazioni, i punti vendita, i prodotti e le scorte iniziali di un\'altra gara (le date mantengono la stessa distanza dal primo giorno). Volontari, ordini e pagamenti non vengono copiati.';
+$lang['ShSetCopyHint']     = 'Riprende le impostazioni, i punti vendita, i prodotti e le scorte iniziali di un\'altra gara (le date mantengono la stessa distanza dal primo giorno). Le aperture (preordini, vendita il giorno della gara, volontari) restano chiuse; i volontari tesserati vengono ripresi solo se la casella è spuntata; ordini e pagamenti non vengono mai copiati.';
 $lang['ShSetCopySrc']      = 'Gara da copiare';
 $lang['ShSetCopyCode']     = 'Codice o numero della gara';
 $lang['ShSetCopyCodePh']   = 'es. F2025-1234';
@@ -108,7 +108,9 @@ $lang['ShSetCopyBtn']      = 'Copia';
 $lang['ShSetCopyConfirm']  = 'I punti vendita e il catalogo attuali di questa gara saranno sostituiti. Continuare?';
 $lang['ShSetCopyNoSrc']    = 'Scelga una gara da cui può copiare.';
 $lang['ShSetCopyOrders']   = 'Questa gara ha già degli ordini: il suo catalogo non può più essere sostituito.';
-$lang['ShSetCopied']       = 'Copiati: {$a[stands]} punto/i vendita e {$a[products]} prodotto/i.';
+$lang['ShSetCopied']       = 'Copiati: {$a[stands]} punto/i vendita e {$a[products]} prodotto/i. Le aperture restano da fare.';
+$lang['ShSetCopyStaff']      = 'Riprendere anche i volontari tesserati e i loro diritti';
+$lang['ShSetCopiedStaff']    = '{$a} volontario/i tesserato/i ripreso/i con i loro diritti.';
 
 $lang['ShSetSectSwitch']   = 'Attivazione';
 $lang['ShSetEnable']       = 'Usare il bar e il negozio in diretta in questa gara';

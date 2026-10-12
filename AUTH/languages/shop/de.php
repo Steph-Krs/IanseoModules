@@ -99,7 +99,7 @@ $lang['ShSetUnlimited']    = 'unbegrenzt';
 $lang['ShSetInactiveTag']  = '(inaktiv)';
 
 $lang['ShSetCopySummary']  = 'Kopieren von…';
-$lang['ShSetCopyHint']     = 'Übernimmt Einstellungen, Verkaufsstellen, Artikel und Anfangsbestand eines anderen Wettkampfs (die Daten behalten denselben Abstand zum ersten Tag). Helfer, Bestellungen und Zahlungen werden nicht kopiert.';
+$lang['ShSetCopyHint']     = 'Übernimmt Einstellungen, Verkaufsstellen, Artikel und Anfangsbestand eines anderen Wettkampfs (die Daten behalten denselben Abstand zum ersten Tag). Die Öffnungen (Vorbestellungen, Verkauf am Wettkampftag, Helfer) bleiben geschlossen; Helfer mit Lizenz werden nur übernommen, wenn das Kästchen angekreuzt ist; Bestellungen und Zahlungen werden nie kopiert.';
 $lang['ShSetCopySrc']      = 'Zu kopierender Wettkampf';
 $lang['ShSetCopyCode']     = 'Code oder Nummer des Wettkampfs';
 $lang['ShSetCopyCodePh']   = 'z. B. F2025-1234';
@@ -108,7 +108,9 @@ $lang['ShSetCopyBtn']      = 'Kopieren';
 $lang['ShSetCopyConfirm']  = 'Die aktuellen Verkaufsstellen und das Sortiment dieses Wettkampfs werden ersetzt. Fortfahren?';
 $lang['ShSetCopyNoSrc']    = 'Wählen Sie einen Wettkampf, von dem Sie kopieren dürfen.';
 $lang['ShSetCopyOrders']   = 'Dieser Wettkampf hat bereits Bestellungen: Sein Sortiment kann nicht mehr ersetzt werden.';
-$lang['ShSetCopied']       = 'Kopiert: {$a[stands]} Verkaufsstelle(n) und {$a[products]} Artikel.';
+$lang['ShSetCopied']       = 'Kopiert: {$a[stands]} Verkaufsstelle(n) und {$a[products]} Artikel. Die Öffnungen stehen noch aus.';
+$lang['ShSetCopyStaff']      = 'Auch die Helfer mit Lizenz und ihre Rechte übernehmen';
+$lang['ShSetCopiedStaff']    = '{$a} Helfer mit Lizenz samt Rechten übernommen.';
 
 $lang['ShSetSectSwitch']   = 'Einschalten';
 $lang['ShSetEnable']       = 'Verpflegung und Shop live bei diesem Wettkampf nutzen';

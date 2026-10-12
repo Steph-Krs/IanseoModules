@@ -264,6 +264,8 @@ function aut_legal_gen_confid($op)
         $h .= aut_trust_privacy_html();
     }
     if (is_dir(__DIR__ . '/shop')) $h .= aut_legal_section('LgPShopH', aut_t('LgPShop'));   // food & shop
+    // check-in desk and equipment check: decisions, draw weights, comments on a participant
+    if (is_file(__DIR__ . '/shop/lib/desk.php')) $h .= aut_legal_section('LgPDeskH', aut_t('LgPDesk'));
     // archers without an FFTA licence (booking/lib/other.php): their own account, World Archery
     if (is_file(__DIR__ . '/booking/lib/other.php')) $h .= aut_legal_section('LgPOtherH', aut_t('LgPOther'));
     $h .= aut_legal_section('LgPRightsH', aut_t('LgPRights', $dpo !== ''

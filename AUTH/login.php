@@ -395,12 +395,12 @@ echo '<div class="pitch-col">' . "\n"
     . '<p class="pitch-brand">' . $e(aut_t('LoginBrand')) . "</p>\n";
 if ($hasOrganiser) {
     echo $pitch('org', aut_t('LoginPitchOrgTitle'), array(
-        '🗂️' => 'LoginPitchOrg1', '🚀' => 'LoginPitchOrg2', '🔄' => 'LoginPitchOrg3', '🛡️' => 'LoginPitchOrg4',
+        '🗂️' => 'LoginPitchOrg1', '📱' => 'LoginPitchOrg5', '🚀' => 'LoginPitchOrg2', '🔄' => 'LoginPitchOrg3', '🛡️' => 'LoginPitchOrg4',
     ), aut_t('LoginPitchOrgEnd'));
 }
 if ($hasCompetitor) {
     echo $pitch('comp', aut_t('LoginPitchCompTitle'), array(
-        '🎯' => 'LoginPitchComp1', '🗺️' => 'LoginPitchComp2', '📄' => 'LoginPitchComp3', '📊' => 'LoginPitchComp4',
+        '🎯' => 'LoginPitchComp1', '🗺️' => 'LoginPitchComp2', '📄' => 'LoginPitchComp3', '📊' => 'LoginPitchComp4', '🥪' => 'LoginPitchComp5',
     ), aut_t('LoginPitchCompEnd'));
 }
 echo "</div>\n</div></div>\n";   // pitch-col, landing, page

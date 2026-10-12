@@ -1229,7 +1229,7 @@ $lang['AcPayOffReload']      = 'Die Zahlungsverwaltung ist für dieses Turnier n
 $lang['AcTariffsSaved']      = 'Gebühren und Zahlungsarten gespeichert.';
 $lang['AcSaved']             = 'Konfiguration gespeichert.';
 $lang['AcSavedShort']        = 'Gespeichert';
-$lang['AcCopied']            = 'Konfiguration vom anderen Turnier übernommen. Prüfen Sie die Daten und die Einschränkungen des Platzes.';
+$lang['AcCopied']            = 'Konfiguration vom anderen Turnier übernommen. Prüfen Sie die Daten und die Einschränkungen des Platzes; Bewirtung & Shop, Akkreditierung und Kampfrichter sind noch auf ihren Seiten zu öffnen.';
 $lang['AcCatLabelPh']        = 'z. B. Jugend';
 $lang['AcCatBows']           = 'Bogenarten (leer = alle)';
 $lang['AcCatClasses']        = 'Kategorien (leer = alle)';
@@ -1258,8 +1258,10 @@ $lang['AcCopyNone']          = 'Derzeit ist kein anderes konfiguriertes Turnier 
 $lang['AcCopySrc']           = 'Quellturnier';
 $lang['AcOpenTitle']         = 'Öffnung der Anmeldungen auf diesem Server';
 $lang['AcCopySummary']       = '📋 Kopieren von…';
-$lang['AcCopyHint']          = 'Die Konfiguration eines <b>anderen Turniers</b> übernehmen: Veröffentlichungsstufe, Anmeldungen, Sichtbarkeit, Gebühr, Einladung, Shop und Einschränkungen des Platzes. Die <b>Daten</b> behalten denselben Abstand zum Startdatum. Logos und der Link zu ianseo.net werden nicht kopiert. <b>Die aktuellen Einstellungen werden ersetzt.</b>';
-$lang['AcCopyConfirm']       = 'Die gesamte Konfiguration des Quellturniers kopieren? Die aktuellen Einstellungen (Anmeldungen, Gebühr, Einladung, Shop, Einschränkungen des Platzes) werden ERSETZT.';
+$lang['AcCopyHint']          = 'Die Konfiguration eines <b>anderen Turniers</b> übernehmen: Veröffentlichungsstufe, Anmeldungen, Sichtbarkeit, Gebühr, Einladung, Einschränkungen des Platzes sowie Bewirtung & Shop (Einstellungen, Verkaufsstellen, Katalog). Die <b>Daten</b> behalten denselben Abstand zum Startdatum. Logos und der Link zu ianseo.net werden nicht kopiert; Bewirtung & Shop, Akkreditierung und Kampfrichter bleiben <b>geschlossen</b> (auf ihren Seiten zu öffnen). Helfer mit Lizenz werden nur übernommen, wenn das Kästchen angekreuzt ist. <b>Die aktuellen Einstellungen werden ersetzt.</b>';
+$lang['AcCopyConfirm']       = 'Die gesamte Konfiguration des Quellturniers kopieren? Die aktuellen Einstellungen (Anmeldungen, Gebühr, Einladung, Bewirtung & Shop, Einschränkungen des Platzes) werden ERSETZT.';
+$lang['AcCopyStaff']         = 'Auch die Helfer mit Lizenz und ihre Rechte übernehmen';
+$lang['AcCopiedStaff']       = '{$a} Helfer mit Lizenz samt Rechten übernommen.';
 $lang['AcPubWhat']           = 'Dies ist die <b>Online-Anmeldeseite dieses Servers</b>: was die Schützen sehen, die sich hier <b>mit ihrer Lizenznummer</b> anmelden. Nur sie haben Zugriff — das Turnier ist weder für die Öffentlichkeit noch für Suchmaschinen sichtbar.';
 $lang['AcNotIanseoNet']      = 'Dies <b>betrifft ianseo.net nicht</b>: Von dieser Seite wird dort nichts gesendet oder veröffentlicht. Das Senden der Ergebnisse an ianseo.net bleibt das gewohnte ianseo-Menü (<i>Turnier › An ianseo.net senden</i>).';
 $lang['AcLvl1']              = 'Geschlossen';

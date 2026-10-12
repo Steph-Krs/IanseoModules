@@ -124,18 +124,20 @@ $lang['LoginPitchOrg1']      = 'Iscrizioni, piano del campo, invito, cartellini 
 $lang['LoginPitchOrg2']      = '<b>Nessuna installazione</b>, nessun aggiornamento, nessuna manutenzione a suo carico.';
 $lang['LoginPitchOrg3']      = 'Archivio federale dei tesserati <b>aggiornato automaticamente</b>.';
 $lang['LoginPitchOrg4']      = '<b>Backup e sicurezza</b> garantiti dal server.';
+$lang['LoginPitchOrg5']      = '<b>Accrediti, giudici, bar e negozio</b> sul telefono dei suoi volontari.';
 $lang['LoginPitchOrgEnd']    = 'Acceda con le sue credenziali dell\'area dirigenti della FFTA (Espace Dirigeant).';
 $lang['LoginPitchCompTitle'] = 'Si iscriva alle competizioni in pochi clic.';
 $lang['LoginPitchComp1']     = 'Iscrizione online con le sue <b>credenziali federali</b>.';
 $lang['LoginPitchComp2']     = '<b>Calendario e mappa</b> delle competizioni aperte vicino a lei.';
 $lang['LoginPitchComp3']     = 'I suoi documenti: <b>cartellino di punteggio, ricevuta, attestato di licenza</b>.';
 $lang['LoginPitchComp4']     = 'Monitoraggio delle sue <b>iscrizioni e statistiche</b>.';
+$lang['LoginPitchComp5']     = '<b>Preordini</b> al bar e accesso diretto al suo <b>spazio volontari</b>.';
 $lang['LoginPitchCompEnd']   = 'Acceda con le sue credenziali dell\'area tesserati della FFTA (Espace Licencié).';
 $lang['LegalNotice']         = 'Note legali';
 $lang['LegalTerms']          = 'Condizioni d\'uso';
 $lang['LegalPrivacy']        = 'Privacy';
 $lang['LegalCookies']        = 'Cookie';
-$lang['LoginCredits']        = 'Il calcolo e la pubblicazione dei <b>risultati</b> si basano sul software <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a>. La gestione degli <b>account</b>, delle <b>iscrizioni</b> e del <b>calendario</b> è uno sviluppo indipendente. Questo sito utilizza solo un <b>cookie di sessione</b> strettamente necessario.';
+$lang['LoginCredits']        = 'Il calcolo e la pubblicazione dei <b>risultati</b> si basano sul software <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a>. La gestione degli <b>account</b>, delle <b>iscrizioni</b>, del <b>calendario</b>, del <b>bar</b> e degli <b>accrediti</b> è uno sviluppo indipendente. Questo sito <b>non utilizza cookie pubblicitari né di tracciamento</b>.';
 $lang['LoginBusy']           = 'Accesso in corso';
 
 /* Menu and user bar (menu.php) */
@@ -245,7 +247,7 @@ $lang['LgMHostingH']        = 'Hosting';
 $lang['LgMHostFallback']    = 'Fornitore di hosting';
 $lang['LgMHostMissing']     = 'Fornitore di hosting non indicato dal gestore.';
 $lang['LgMIpH']             = 'Proprietà intellettuale';
-$lang['LgMIp']              = 'Il calcolo e la pubblicazione dei risultati si basano sul software libero <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a>. La gestione degli account, delle iscrizioni e del calendario è assicurata da un modulo indipendente. I marchi, i loghi e i contenuti delle federazioni e delle società restano di proprietà dei rispettivi titolari.';
+$lang['LgMIp']              = 'Il calcolo e la pubblicazione dei risultati si basano sul software libero <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a>. La gestione degli account, delle iscrizioni, del calendario, del bar e degli accrediti è assicurata da un modulo indipendente. I marchi, i loghi e i contenuti delle federazioni e delle società restano di proprietà dei rispettivi titolari.';
 $lang['LgCSiteFallback']    = 'il servizio';
 $lang['LgCIntro']           = 'Le presenti condizioni generali d\'uso (di seguito «Condizioni») disciplinano l\'accesso e l\'uso di <b>{$a[site]}</b> (di seguito «il servizio»), gestito da {$a[name]}. Utilizzando il servizio, l\'utente accetta le presenti Condizioni.';
 $lang['LgC1H']              = '1. Oggetto';
@@ -287,7 +289,9 @@ $lang['LgPRetention1']      = 'Sessioni: al massimo 7 giorni, poi eliminazione a
 $lang['LgPRetention2']      = 'Registro degli accessi: alcuni mesi per fini di sicurezza.';
 $lang['LgPRetention3']      = 'Iscrizioni e dati delle competizioni: il tempo necessario all\'organizzazione e all\'archiviazione dei risultati.';
 $lang['LgPShopH']           = 'Bar e negozio';
-$lang['LgPShop']            = 'Nei punti vendita di una gara: i volontari senza tessera indicano cognome, nome e una password, cancellati automaticamente il giorno dopo la gara (lo storico indica allora «Volontario n. X»); i volontari tesserati usano il loro account da tesserato. Un visitatore che ordina fornisce uno pseudonimo: è conservato con i suoi ordini, affinché l\'organizzatore sappia quali ordini sono stati ritirati e pagati, ma l\'accesso del suo telefono viene chiuso il giorno dopo la gara. Quando un cliente lo chiede, il suo browser fornisce l\'indirizzo del suo servizio di notifica e due chiavi, usate solo per annunciare che un ordine è pronto e cancellate il giorno dopo la gara. Sullo schermo pubblico degli ordini, il nome e l\'iniziale del cognome del tesserato, o lo pseudonimo del visitatore, compaiono accanto al numero fino al ritiro dell\'ordine. Nessun dato di carta di pagamento viene mai registrato.';
+$lang['LgPShop']            = 'Nei punti vendita di una gara: i volontari senza tessera indicano cognome, nome e una password, cancellati automaticamente il giorno dopo la gara (lo storico indica allora «Volontario n. X»); i volontari tesserati usano il loro account da tesserato; l\'organizzatore può anche aggiungere un tesserato alla squadra a partire dal file dei tesserati (tessera, cognome, nome). Un visitatore che ordina fornisce uno pseudonimo: è conservato con i suoi ordini, affinché l\'organizzatore sappia quali ordini sono stati ritirati e pagati, ma l\'accesso del suo telefono viene chiuso il giorno dopo la gara. Quando un cliente lo chiede, il suo browser fornisce l\'indirizzo del suo servizio di notifica e due chiavi, usate solo per annunciare che un ordine è pronto e cancellate il giorno dopo la gara. Sullo schermo pubblico degli ordini, il nome e l\'iniziale del cognome del tesserato, o lo pseudonimo del visitatore, compaiono accanto al numero fino al ritiro dell\'ordine. Nessun dato di carta di pagamento viene mai registrato.';
+$lang['LgPDeskH']            = 'Accrediti e controllo del materiale';
+$lang['LgPDesk']             = 'Agli accrediti di una gara, l\'organizzatore e i suoi volontari registrano per ogni partecipante la conformità dei documenti e del materiale, il libraggio dell\'arco misurato dai giudici ed eventuali commenti; ogni decisione è conservata con il suo autore e aggiorna lo stato di partecipazione in ianseo. Queste informazioni sono visibili solo agli organizzatori e ai volontari degli accrediti della gara; sono cancellate con la gara o all\'anonimizzazione del tesserato.';
 $lang['LgPRightsH']         = 'I suoi diritti';
 $lang['LgPRights']          = 'Lei dispone di un diritto di accesso, rettifica, cancellazione, limitazione e opposizione sui suoi dati. Per esercitarli, contatti {$a}. Può inoltre presentare un reclamo alla CNIL (www.cnil.fr).';
 $lang['LgPRightsOperator']  = 'il gestore del server';
@@ -296,7 +300,7 @@ $lang['LgKIntro']           = 'Questo servizio utilizza lo stretto minimo di coo
 $lang['LgKUsedH']           = 'Cookie utilizzati';
 $lang['LgKSession']         = '<b>Cookie di sessione</b> (strettamente necessario): la mantiene collegato per la durata della visita. Contiene solo un identificativo di sessione, nessuna informazione personale utilizzabile, e scade al termine della sessione.';
 $lang['LgKAudience']        = '<b>Cookie di misurazione dell\'audience</b> (chiamato <code>aud</code>): installato solo per i visitatori <b>non connessi</b> della pagina iniziale, per misurare la frequentazione del servizio (numero di visitatori, pagine consultate, tipo di dispositivo: telefono, tablet o computer — viene conservata solo questa categoria, non il dettaglio del browser). È un identificativo casuale, proprio di questo solo sito (nessun tracciamento tra siti), con una durata massima di 13 mesi. Le statistiche prodotte sono rigorosamente <b>anonime e aggregate</b>: non viene conservato alcun indirizzo IP, non viene costituito alcun profilo individuale. Gli utenti connessi non ricevono questo cookie (sono conteggiati, in forma anonima, a partire dal loro account).';
-$lang['LgKShop']            = '<b>Bar e negozio</b>: un cookie tecnico (<code>shp_s</code>) mantiene il telefono di un volontario collegato alla cassa fino al giorno dopo la gara; un altro (<code>shp_g…</code>) riconosce il telefono di un visitatore che ordina con uno pseudonimo, fino al giorno dopo la gara; un terzo (<code>shp_tk</code>) ricorda l\'ultima cassa aperta sul telefono (30 giorni). Contengono solo identificativi casuali.';
+$lang['LgKShop']            = '<b>Bar e negozio</b>: un cookie tecnico (<code>shp_s</code>) mantiene il telefono di un volontario collegato allo spazio volontari (cassa, accrediti, giudici) fino al giorno dopo la gara; un altro (<code>shp_g…</code>) riconosce il telefono di un visitatore che ordina con uno pseudonimo, fino al giorno dopo la gara; un terzo (<code>shp_tk</code>) ricorda l\'ultima cassa aperta sul telefono (30 giorni). Contengono solo identificativi casuali.';
 $lang['LgKExempt']          = 'Questi cookie sono esentati dal consenso preventivo (articolo 82 della legge francese «Informatique et Libertés»): il cookie di sessione in quanto cookie strettamente necessario, e il cookie di misurazione dell\'audience in virtù dell\'esenzione prevista dalla CNIL per gli strumenti di misurazione limitati alla sola misurazione del servizio. Può configurare il suo browser per rifiutarli; il servizio non potrebbe più mantenerla collegata.';
 
 /* Legal pages (legal.php) */

@@ -1228,7 +1228,7 @@ $lang['AcPayOffReload']      = 'La gestion des paiements n\'est pas activée pou
 $lang['AcTariffsSaved']      = 'Tarifs et moyens de paiement enregistrés.';
 $lang['AcSaved']             = 'Configuration enregistrée.';
 $lang['AcSavedShort']        = 'Enregistré';
-$lang['AcCopied']            = 'Configuration reprise depuis l\'autre compétition. Vérifiez les dates et les contraintes du terrain.';
+$lang['AcCopied']            = 'Configuration reprise depuis l\'autre compétition. Vérifiez les dates et les contraintes du terrain ; la buvette, le greffe et l\'arbitrage restent à ouvrir depuis leurs pages.';
 $lang['AcCatLabelPh']        = 'ex. Jeunes';
 $lang['AcCatBows']           = 'Armes (vide = toutes)';
 $lang['AcCatClasses']        = 'Catégories (vide = toutes)';
@@ -1257,8 +1257,10 @@ $lang['AcCopyNone']          = 'Aucune autre compétition configurée n\'est acc
 $lang['AcCopySrc']           = 'Compétition source';
 $lang['AcOpenTitle']         = 'Ouverture des inscriptions sur ce serveur';
 $lang['AcCopySummary']       = '📋 Copier depuis…';
-$lang['AcCopyHint']          = 'Reprendre la configuration d\'une <b>autre compétition</b> : niveau de publication, inscriptions, visibilité, tarif, invitation, boutique et contraintes du terrain. Les <b>dates</b> gardent le même décalage par rapport à la date de début. Les logos et le lien ianseo.net ne sont pas copiés. <b>Les réglages actuels seront remplacés.</b>';
-$lang['AcCopyConfirm']       = 'Copier toute la configuration de la compétition source ? Les réglages actuels (inscriptions, tarif, invitation, boutique, contraintes du terrain) seront REMPLACÉS.';
+$lang['AcCopyHint']          = 'Reprendre la configuration d\'une <b>autre compétition</b> : niveau de publication, inscriptions, visibilité, tarif, invitation, contraintes du terrain, et la buvette et boutique (réglages, points de vente, catalogue). Les <b>dates</b> gardent le même décalage par rapport à la date de début. Les logos et le lien ianseo.net ne sont pas copiés ; la buvette, le greffe et l\'arbitrage restent <b>fermés</b> (à ouvrir depuis leurs pages). Les bénévoles licenciés ne sont repris que si la case est cochée. <b>Les réglages actuels seront remplacés.</b>';
+$lang['AcCopyConfirm']       = 'Copier toute la configuration de la compétition source ? Les réglages actuels (inscriptions, tarif, invitation, buvette et boutique, contraintes du terrain) seront REMPLACÉS.';
+$lang['AcCopyStaff']         = 'Reprendre aussi les bénévoles licenciés et leurs droits';
+$lang['AcCopiedStaff']       = '{$a} bénévole(s) licencié(s) repris avec leurs droits.';
 $lang['AcPubWhat']           = 'Il s\'agit de la <b>page d\'inscription en ligne de ce serveur</b> : ce que voient les archers qui se connectent ici <b>avec leur numéro de licence</b>. Eux seuls y ont accès — la compétition n\'est visible ni du public, ni des moteurs de recherche.';
 $lang['AcNotIanseoNet']      = 'Cela <b>ne concerne pas ianseo.net</b> : rien n\'y est envoyé ni publié depuis cette page. L\'envoi des résultats vers ianseo.net reste le menu habituel de ianseo (<i>Compétition › Envoyer à ianseo.net</i>).';
 $lang['AcLvl1']              = 'Fermée';

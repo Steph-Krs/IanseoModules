@@ -99,7 +99,7 @@ $lang['ShSetUnlimited']    = 'unlimited';
 $lang['ShSetInactiveTag']  = '(inactive)';
 
 $lang['ShSetCopySummary']  = 'Copy from…';
-$lang['ShSetCopyHint']     = 'Takes the settings, points of sale, products and initial stock of another competition (dates keep the same distance from the first day). Volunteers, orders and payments are not copied.';
+$lang['ShSetCopyHint']     = 'Takes the settings, points of sale, products and initial stock of another competition (dates keep the same distance from the first day). The openings (pre-orders, sales on the day, volunteers) stay closed; licensed volunteers are taken only when the box is ticked; orders and payments are never copied.';
 $lang['ShSetCopySrc']      = 'Competition to copy';
 $lang['ShSetCopyCode']     = 'Competition code or number';
 $lang['ShSetCopyCodePh']   = 'e.g. F2025-1234';
@@ -108,7 +108,9 @@ $lang['ShSetCopyBtn']      = 'Copy';
 $lang['ShSetCopyConfirm']  = 'The current points of sale and catalogue of this competition will be replaced. Continue?';
 $lang['ShSetCopyNoSrc']    = 'Choose a competition you can copy from.';
 $lang['ShSetCopyOrders']   = 'This competition already has orders: its catalogue can no longer be replaced.';
-$lang['ShSetCopied']       = 'Copied: {$a[stands]} point(s) of sale and {$a[products]} product(s).';
+$lang['ShSetCopied']       = 'Copied: {$a[stands]} point(s) of sale and {$a[products]} product(s). The openings are still to be done.';
+$lang['ShSetCopyStaff']      = 'Also take the licensed volunteers and their rights';
+$lang['ShSetCopiedStaff']    = '{$a} licensed volunteer(s) taken with their rights.';
 
 $lang['ShSetSectSwitch']   = 'Switch on';
 $lang['ShSetEnable']       = 'Use the live food & shop on this competition';

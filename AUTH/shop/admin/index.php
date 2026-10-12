@@ -129,7 +129,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             if ($r['error']) {
                 $errors[] = $r['msg'];
             } else {
-                shp_adm_flash_set('ok', array(shp_t('ShSetCopied', array('stands' => $r['stands'], 'products' => $r['products']))));
+                $lines = array(shp_t('ShSetCopied', array('stands' => $r['stands'], 'products' => $r['products'])));
+                if (!empty($_POST['copy_staff'])) $lines[] = shp_t('ShSetCopiedStaff', shp_copy_staff($TOUR, $srcId, shp_staff_by()));
+                shp_adm_flash_set('ok', $lines);
                 header('Location: ' . $SELF);
                 exit;
             }
@@ -344,8 +346,10 @@ if (bk_copy_is_admin()) {
         $copyBody = shp_adm_field(shp_t('ShSetCopySrc'), '<select name="copy_src" required>' . shp_adm_options($o, '') . '</select>');
     }
 }
+// The licensed volunteers come along only when asked (unticked by default: user's choice).
 $copyBtn = (bk_copy_is_admin() || !empty($sources))
-    ? '<button type="submit" class="sa-btn sa-primary">' . shp_e(shp_t('ShSetCopyBtn')) . '</button>' : '';
+    ? '<label class="sa-chk"><input type="checkbox" name="copy_staff" value="1"> <span>' . shp_e(shp_t('ShSetCopyStaff')) . '</span></label>'
+      . '<button type="submit" class="sa-btn sa-primary">' . shp_e(shp_t('ShSetCopyBtn')) . '</button>' : '';
 $copyBox = '<details class="sa-copy"><summary>' . shp_e(shp_t('ShSetCopySummary')) . '</summary><div class="sa-copy-body">'
     . '<p class="sa-hint">' . shp_e(shp_t('ShSetCopyHint')) . '</p>'
     . '<form method="post" data-confirm="' . shp_e(shp_t('ShSetCopyConfirm')) . '">' . bk_csrf_field() . '<input type="hidden" name="act" value="copy">'

@@ -99,7 +99,7 @@ $lang['ShSetUnlimited']    = 'ilimitado';
 $lang['ShSetInactiveTag']  = '(inactivo)';
 
 $lang['ShSetCopySummary']  = 'Copiar de…';
-$lang['ShSetCopyHint']     = 'Toma los ajustes, los puntos de venta, los productos y las existencias iniciales de otra competición (las fechas conservan la misma distancia respecto al primer día). No se copian los voluntarios, los pedidos ni los pagos.';
+$lang['ShSetCopyHint']     = 'Toma los ajustes, los puntos de venta, los productos y las existencias iniciales de otra competición (las fechas conservan la misma distancia respecto al primer día). Las aperturas (pedidos anticipados, venta en el día, voluntarios) quedan cerradas; los voluntarios licenciados solo se toman si la casilla está marcada; los pedidos y los pagos nunca se copian.';
 $lang['ShSetCopySrc']      = 'Competición que copiar';
 $lang['ShSetCopyCode']     = 'Código o número de la competición';
 $lang['ShSetCopyCodePh']   = 'p. ej. F2025-1234';
@@ -108,7 +108,9 @@ $lang['ShSetCopyBtn']      = 'Copiar';
 $lang['ShSetCopyConfirm']  = 'Se sustituirán los puntos de venta y el catálogo actuales de esta competición. ¿Continuar?';
 $lang['ShSetCopyNoSrc']    = 'Elija una competición de la que pueda copiar.';
 $lang['ShSetCopyOrders']   = 'Esta competición ya tiene pedidos: su catálogo ya no se puede sustituir.';
-$lang['ShSetCopied']       = 'Copiado: {$a[stands]} punto(s) de venta y {$a[products]} producto(s).';
+$lang['ShSetCopied']       = 'Copiado: {$a[stands]} punto(s) de venta y {$a[products]} producto(s). Las aperturas quedan por hacer.';
+$lang['ShSetCopyStaff']      = 'Tomar también los voluntarios licenciados y sus derechos';
+$lang['ShSetCopiedStaff']    = '{$a} voluntario(s) licenciado(s) tomado(s) con sus derechos.';
 
 $lang['ShSetSectSwitch']   = 'Activación';
 $lang['ShSetEnable']       = 'Usar el bar y la tienda en directo en esta competición';

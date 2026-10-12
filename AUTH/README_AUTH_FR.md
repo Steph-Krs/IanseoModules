@@ -8,7 +8,9 @@ l'arc.
 Transforme une installation ianseo hébergée en ligne en **serveur multi-organisateurs**
 **avec inscriptions en ligne** : chaque structure dispose de son compte et ne voit / ne modifie
 que ses propres compétitions (partage possible pour l'entraide à la saisie), et **les licenciés
-s'inscrivent eux-mêmes** aux compétitions ouvertes depuis leur propre espace.
+s'inscrivent eux-mêmes** aux compétitions ouvertes depuis leur propre espace. Sur place, il tient
+aussi la **buvette et la boutique**, le **greffe** et le **contrôle du matériel**, avec une équipe de
+bénévoles sur téléphone.
 
 L'interface suit la langue choisie par ianseo pour le visiteur. Les textes sont dans `languages/`
 (format du cœur, l'anglais servant de repli pour toute clé manquante). Langues disponibles : anglais,
@@ -49,7 +51,8 @@ des espaces en ligne (le module est prêt à basculer le jour venu).
 - ⏳ Liste d'attente quand un départ est complet, depuis le formulaire d'inscription habituel :
   dès qu'une place se libère, le premier archer compatible est inscrit automatiquement et prévenu
   dans son espace
-- 👥 Inscription groupée d'un camarade de club ; boutique
+- 👥 Inscription groupée d'un camarade de club ; précommandes à la buvette et à la boutique
+- 🙋 Accès direct à son espace bénévole quand l'organisateur l'a mis dans l'équipe
 - 💶 **Paiements** : un compte par participant (inscrit en ligne ou saisi dans ianseo) — total dû
   d'après les tarifs de la compétition, déjà payé, reste à payer ; historique des encaissements,
   annulations et remboursements ; règlement d'un club en une fois, du montant choisi ; reçus et liste
@@ -105,7 +108,8 @@ commande par téléphone des archers et des visiteurs, et caisse mobile pour les
   synthèse par stand, par jour, par moyen de paiement, par bénévole ; clôture de caisse PDF et
   exports CSV ; comptes ouverts (« sur compte ») liés à la page Paiements
 - 📋 **Copie** : reproduire les paramètres et le catalogue d'une compétition précédente ; stocks
-  conservent la quantité initiale
+  conservent la quantité initiale ; bénévoles licenciés et leurs droits sur demande ; les ouvertures
+  restent à faire à chaque compétition
 - 🔐 **Indice de confiance des payeurs** : impayés et retards calculés chaque nuit sur les
   compétitions dont l'organisateur enregistre les paiements ; ne freine que le paiement différé
   (inscription payée plus tard, précommande, sur compte), jamais un paiement immédiat ; modes :
@@ -191,6 +195,8 @@ renommage, et la migre avant de rouvrir le site.
 - Gestion des comptes et administration : **administrateur du serveur**.
 - Chaque organisateur : uniquement ses compétitions (et celles qu'on lui a partagées).
 - Chaque licencié : son propre espace d'inscription (connexion par son compte fédéral).
+- Chaque bénévole : sur son téléphone, les seuls postes que l'organisateur lui a donnés (caisse,
+  greffe, arbitrage), le temps de la compétition.
 - Avec le module SYNCHRO_FFTA, l'administrateur peut réserver la création des compétitions à
   l'extranet FFTA (menu **Création par l'extranet FFTA**) : « Nouveau » est alors masqué et
   renvoie vers SYNCHRO_FFTA pour tous sauf lui, et l'import n'accepte qu'une compétition déjà
@@ -338,24 +344,24 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `BookingTargetCaps` | `booking/lib/caps.php:218` | — |
 | `INSERT INTO` | `BookingTargetCaps` | `booking/lib/caps.php:223` | — |
 | `DELETE FROM` | `BookingTargetCaps` | `booking/lib/caps.php:231` | — |
-| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/competition.php:257` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:266` | — |
-| `DELETE FROM` | `BookingSessionRules` | `booking/lib/competition.php:283` | — |
-| `INSERT INTO` | `BookingSessionRules` | `booking/lib/competition.php:284` | — |
-| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/competition.php:329` | — |
-| `INSERT INTO` | `BookingTargetCaps` | `booking/lib/competition.php:337` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:438` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:467` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:490` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:493` | — |
+| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/competition.php:259` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:268` | — |
+| `DELETE FROM` | `BookingSessionRules` | `booking/lib/competition.php:285` | — |
+| `INSERT INTO` | `BookingSessionRules` | `booking/lib/competition.php:286` | — |
+| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/competition.php:334` | — |
+| `INSERT INTO` | `BookingTargetCaps` | `booking/lib/competition.php:342` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:443` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:472` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:495` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:498` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:537` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:556` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:565` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:569` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:573` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:503` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:542` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:561` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:570` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:574` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:578` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:580` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:583` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:585` | — |
 | `DELETE FROM` | `BookingFedLicences` | `booking/lib/fedlic.php:188` | — |
 | `INSERT IGNORE INTO` | `BookingFedLicences` | `booking/lib/fedlic.php:189` | — |
 | `INSERT INTO` | `BookingFedSources` | `booking/lib/fedlic.php:241` | — |
@@ -426,9 +432,9 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `AuthShareClub` | `index.php:53` | — |
 | `INSERT IGNORE INTO` | `AuthShareClub` | `index.php:55` | — |
 | `UPDATE` | `AuthShare` | `index.php:64` | — |
-| `ALTER TABLE` | `AuthUsers` | `legal-lib.php:301` | — |
-| `UPDATE` | `AuthUsers` | `legal-lib.php:319` | — |
-| `UPDATE` | `BookingArchers` | `legal-lib.php:335` | — |
+| `ALTER TABLE` | `AuthUsers` | `legal-lib.php:303` | — |
+| `UPDATE` | `AuthUsers` | `legal-lib.php:321` | — |
+| `UPDATE` | `BookingArchers` | `legal-lib.php:337` | — |
 | `ALTER TABLE` | `AuthUsers` | `lib.php:181` | — |
 | `ALTER TABLE` | `AuthUsers` | `lib.php:189` | — |
 | `ALTER TABLE` | `AuthShare` | `lib.php:210` | — |
@@ -490,12 +496,12 @@ Voir le [README général](../README.md) pour le principe commun.
 | `INSERT IGNORE INTO` | `ShopSettings` | `shop/lib/common.php:110` | — |
 | `UPDATE` | `ShopSettings` | `shop/lib/common.php:148` | — |
 | `UPDATE IGNORE` | `ShopSettings` | `shop/lib/common.php:160` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/copy.php:119` | — |
-| `DELETE FROM` | `ShopStands` | `shop/lib/copy.php:120` | — |
-| `UPDATE` | `ShopSettings` | `shop/lib/copy.php:124` | — |
-| `INSERT INTO` | `ShopStands` | `shop/lib/copy.php:132` | — |
-| `INSERT INTO` | `ShopProducts` | `shop/lib/copy.php:144` | — |
-| `INSERT INTO` | `ShopVariants` | `shop/lib/copy.php:157` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/copy.php:160` | — |
+| `DELETE FROM` | `ShopStands` | `shop/lib/copy.php:161` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/copy.php:165` | — |
+| `INSERT INTO` | `ShopStands` | `shop/lib/copy.php:173` | — |
+| `INSERT INTO` | `ShopProducts` | `shop/lib/copy.php:185` | — |
+| `INSERT INTO` | `ShopVariants` | `shop/lib/copy.php:198` | — |
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:46` | — |
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:79` | — |
 | `INSERT INTO` | `ShopGuests` | `shop/lib/customer.php:85` | — |

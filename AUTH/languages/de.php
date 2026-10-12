@@ -124,18 +124,20 @@ $lang['LoginPitchOrg1']      = 'Anmeldungen, Platzplan, Einladung, Schießzettel
 $lang['LoginPitchOrg2']      = '<b>Keine Installation</b>, keine Updates, kein Wartungsaufwand für Sie.';
 $lang['LoginPitchOrg3']      = 'Verbandsdatenbank der Lizenzinhaber <b>automatisch aktuell gehalten</b>.';
 $lang['LoginPitchOrg4']      = '<b>Sicherungen und Sicherheit</b> durch den Server gewährleistet.';
+$lang['LoginPitchOrg5']      = '<b>Akkreditierung, Kampfrichter, Bewirtung & Shop</b> auf den Telefonen Ihrer Helfer.';
 $lang['LoginPitchOrgEnd']    = 'Melden Sie sich mit Ihren Zugangsdaten des FFTA-Funktionärsbereichs (Espace Dirigeant) an.';
 $lang['LoginPitchCompTitle'] = 'Melden Sie sich mit wenigen Klicks zu Turnieren an.';
 $lang['LoginPitchComp1']     = 'Online-Anmeldung mit Ihren <b>Verbandszugangsdaten</b>.';
 $lang['LoginPitchComp2']     = '<b>Kalender und Karte</b> der offenen Turniere in Ihrer Nähe.';
 $lang['LoginPitchComp3']     = 'Ihre Dokumente: <b>Schießzettel, Quittung, Lizenzbescheinigung</b>.';
 $lang['LoginPitchComp4']     = 'Überblick über Ihre <b>Anmeldungen und Statistiken</b>.';
+$lang['LoginPitchComp5']     = '<b>Vorbestellungen</b> bei der Bewirtung und direkter Zugang zu Ihrem <b>Helferbereich</b>.';
 $lang['LoginPitchCompEnd']   = 'Melden Sie sich mit Ihren Zugangsdaten des FFTA-Lizenzinhaber-Bereichs (Espace Licencié) an.';
 $lang['LegalNotice']         = 'Impressum';
 $lang['LegalTerms']          = 'Nutzungsbedingungen';
 $lang['LegalPrivacy']        = 'Datenschutz';
 $lang['LegalCookies']        = 'Cookies';
-$lang['LoginCredits']        = 'Die Berechnung und Veröffentlichung der <b>Ergebnisse</b> beruhen auf der Software <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a>. Die Verwaltung der <b>Konten</b>, der <b>Anmeldungen</b> und des <b>Kalenders</b> ist eine unabhängige Entwicklung. Diese Website verwendet nur ein unbedingt erforderliches <b>Sitzungs-Cookie</b>.';
+$lang['LoginCredits']        = 'Die Berechnung und Veröffentlichung der <b>Ergebnisse</b> beruhen auf der Software <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a>. Die Verwaltung der <b>Konten</b>, der <b>Anmeldungen</b>, des <b>Kalenders</b>, der <b>Bewirtung</b> und der <b>Akkreditierung</b> ist eine unabhängige Entwicklung. Diese Website verwendet <b>keine Werbe- oder Tracking-Cookies</b>.';
 $lang['LoginBusy']           = 'Anmeldung läuft';
 
 /* Menu and user bar (menu.php) */
@@ -245,7 +247,7 @@ $lang['LgMHostingH']        = 'Hosting';
 $lang['LgMHostFallback']    = 'Hosting-Anbieter';
 $lang['LgMHostMissing']     = 'Hosting-Anbieter vom Betreiber nicht angegeben.';
 $lang['LgMIpH']             = 'Geistiges Eigentum';
-$lang['LgMIp']              = 'Die Berechnung und Veröffentlichung der Ergebnisse beruhen auf der freien Software <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a>. Die Verwaltung der Konten, der Anmeldungen und des Kalenders erfolgt über ein unabhängiges Modul. Die Marken, Logos und Inhalte der Verbände und Vereine bleiben Eigentum ihrer jeweiligen Inhaber.';
+$lang['LgMIp']              = 'Die Berechnung und Veröffentlichung der Ergebnisse beruhen auf der freien Software <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a>. Die Verwaltung der Konten, der Anmeldungen, des Kalenders, der Bewirtung und der Akkreditierung erfolgt über ein unabhängiges Modul. Die Marken, Logos und Inhalte der Verbände und Vereine bleiben Eigentum ihrer jeweiligen Inhaber.';
 $lang['LgCSiteFallback']    = 'den Dienst';
 $lang['LgCIntro']           = 'Diese allgemeinen Nutzungsbedingungen (nachfolgend „Bedingungen“) regeln den Zugang zu und die Nutzung von <b>{$a[site]}</b> (nachfolgend „der Dienst“), betrieben von {$a[name]}. Mit der Nutzung des Dienstes akzeptiert der Nutzer diese Bedingungen.';
 $lang['LgC1H']              = '1. Gegenstand';
@@ -287,7 +289,9 @@ $lang['LgPRetention1']      = 'Sitzungen: höchstens 7 Tage, danach automatische
 $lang['LgPRetention2']      = 'Anmeldeprotokoll: einige Monate zu Sicherheitszwecken.';
 $lang['LgPRetention3']      = 'Anmeldungen und Turnierdaten: so lange, wie es für die Organisation und die Archivierung der Ergebnisse erforderlich ist.';
 $lang['LgPShopH']           = 'Bewirtung & Shop';
-$lang['LgPShop']            = 'An den Verkaufsstellen eines Wettkampfs: Helfer ohne Lizenz geben Nachname, Vorname und ein Passwort an, die am Tag nach dem Wettkampf automatisch gelöscht werden (der Verlauf zeigt dann „Helfer Nr. X“); Helfer mit Lizenz nutzen ihr Lizenzinhaber-Konto. Ein Besucher, der bestellt, gibt einen Spitznamen an: Er bleibt bei seinen Bestellungen gespeichert, damit der Veranstalter weiß, welche Bestellungen abgeholt und bezahlt wurden, aber der Zugang seines Telefons wird am Tag nach dem Wettkampf geschlossen. Wenn ein Kunde es wünscht, übermittelt sein Browser die Adresse seines Benachrichtigungsdienstes und zwei Schlüssel, die nur dazu dienen, eine fertige Bestellung anzukündigen, und am Tag nach dem Wettkampf gelöscht werden. Auf dem öffentlichen Bildschirm der Bestellungen erscheinen neben der Nummer der Vorname und der Anfangsbuchstabe des Nachnamens des Lizenzinhabers oder der Spitzname des Besuchers, bis die Bestellung abgeholt ist. Es werden niemals Zahlungskartendaten gespeichert.';
+$lang['LgPShop']            = 'An den Verkaufsstellen eines Wettkampfs: Helfer ohne Lizenz geben Nachname, Vorname und ein Passwort an, die am Tag nach dem Wettkampf automatisch gelöscht werden (der Verlauf zeigt dann „Helfer Nr. X“); Helfer mit Lizenz nutzen ihr Lizenzinhaber-Konto; der Veranstalter kann einen Lizenzinhaber auch anhand der Lizenzdatei ins Team aufnehmen (Lizenz, Nachname, Vorname). Ein Besucher, der bestellt, gibt einen Spitznamen an: Er bleibt bei seinen Bestellungen gespeichert, damit der Veranstalter weiß, welche Bestellungen abgeholt und bezahlt wurden, aber der Zugang seines Telefons wird am Tag nach dem Wettkampf geschlossen. Wenn ein Kunde es wünscht, übermittelt sein Browser die Adresse seines Benachrichtigungsdienstes und zwei Schlüssel, die nur dazu dienen, eine fertige Bestellung anzukündigen, und am Tag nach dem Wettkampf gelöscht werden. Auf dem öffentlichen Bildschirm der Bestellungen erscheinen neben der Nummer der Vorname und der Anfangsbuchstabe des Nachnamens des Lizenzinhabers oder der Spitzname des Besuchers, bis die Bestellung abgeholt ist. Es werden niemals Zahlungskartendaten gespeichert.';
+$lang['LgPDeskH']            = 'Akkreditierung und Materialkontrolle';
+$lang['LgPDesk']             = 'Bei der Akkreditierung eines Wettkampfs erfassen der Veranstalter und seine Helfer für jeden Teilnehmer, ob Dokumente und Material in Ordnung sind, das von den Kampfrichtern gemessene Zuggewicht und etwaige Kommentare; jede Entscheidung wird mit ihrem Urheber gespeichert und aktualisiert den Teilnahmestatus in ianseo. Diese Angaben sehen nur die Veranstalter und die Akkreditierungshelfer des Wettkampfs; sie werden mit dem Wettkampf oder bei der Anonymisierung des Lizenzinhabers gelöscht.';
 $lang['LgPRightsH']         = 'Ihre Rechte';
 $lang['LgPRights']          = 'Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung und Widerspruch bezüglich Ihrer Daten. Zur Ausübung wenden Sie sich an {$a}. Sie können außerdem eine Beschwerde bei der CNIL (www.cnil.fr) einreichen.';
 $lang['LgPRightsOperator']  = 'den Betreiber des Servers';
@@ -296,7 +300,7 @@ $lang['LgKIntro']           = 'Dieser Dienst verwendet das absolute Minimum an C
 $lang['LgKUsedH']           = 'Verwendete Cookies';
 $lang['LgKSession']         = '<b>Sitzungs-Cookie</b> (unbedingt erforderlich): Es hält Sie für die Dauer Ihres Besuchs angemeldet. Es enthält nur eine Sitzungskennung, keine verwertbaren personenbezogenen Informationen, und läuft am Ende der Sitzung ab.';
 $lang['LgKAudience']        = '<b>Cookie zur Reichweitenmessung</b> (Name <code>aud</code>): wird nur bei <b>nicht angemeldeten</b> Besuchern der Startseite gesetzt, um die Nutzung des Dienstes zu messen (Anzahl der Besucher, aufgerufene Seiten, Gerätetyp: Telefon, Tablet oder Computer — nur diese Kategorie wird gespeichert, nicht die Browserdetails). Es handelt sich um eine zufällige Kennung, die nur für diese eine Website gilt (kein websiteübergreifendes Tracking), mit einer Höchstlebensdauer von 13 Monaten. Die erzeugten Statistiken sind streng <b>anonym und aggregiert</b>: Es wird keine IP-Adresse gespeichert und kein individuelles Profil erstellt. Angemeldete Nutzer erhalten dieses Cookie nicht (sie werden anonym anhand ihres Kontos gezählt).';
-$lang['LgKShop']            = '<b>Bewirtung & Shop</b>: Ein technisches Cookie (<code>shp_s</code>) hält das Telefon eines Helfers bis zum Tag nach dem Wettkampf an der Kasse angemeldet; ein weiteres (<code>shp_g…</code>) erkennt das Telefon eines Besuchers, der mit einem Spitznamen bestellt, bis zum Tag nach dem Wettkampf; ein drittes (<code>shp_tk</code>) merkt sich die zuletzt auf dem Telefon geöffnete Kasse (30 Tage). Sie enthalten nur zufällige Kennungen.';
+$lang['LgKShop']            = '<b>Bewirtung & Shop</b>: Ein technisches Cookie (<code>shp_s</code>) hält das Telefon eines Helfers bis zum Tag nach dem Wettkampf im Helferbereich (Kasse, Akkreditierung, Kampfrichter) angemeldet; ein weiteres (<code>shp_g…</code>) erkennt das Telefon eines Besuchers, der mit einem Spitznamen bestellt, bis zum Tag nach dem Wettkampf; ein drittes (<code>shp_tk</code>) merkt sich die zuletzt auf dem Telefon geöffnete Kasse (30 Tage). Sie enthalten nur zufällige Kennungen.';
 $lang['LgKExempt']          = 'Diese Cookies sind von der vorherigen Einwilligung ausgenommen (Artikel 82 des französischen Gesetzes „Informatique et Libertés“): das Sitzungs-Cookie als unbedingt erforderliches Cookie und das Cookie zur Reichweitenmessung aufgrund der von der CNIL vorgesehenen Ausnahme für Reichweitenmessung, die auf die Messung des Dienstes selbst beschränkt ist. Sie können Ihren Browser so einstellen, dass er sie ablehnt; der Dienst könnte Sie dann nicht mehr angemeldet halten.';
 
 /* Legal pages (legal.php) */

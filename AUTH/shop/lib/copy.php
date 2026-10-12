@@ -3,10 +3,13 @@
  * lib/copy.php — "Copy from…": takes the settings, points of sale and catalogue of another
  * competition (the same stalls are usually run from one year to the next).
  *
- * Copied: the settings (not the public key, not the on/off switch; the pre-order deadline keeps
- * the same distance from the first day), the points of sale (closed, order counter back to 0),
- * the products and variants with their INITIAL stock. Not copied: volunteers, customers, orders,
- * payments. The destination's catalogue is REPLACED, which is refused once it has orders.
+ * Copied: the settings (not the public key; the pre-order deadline keeps the same distance from
+ * the first day), the points of sale (closed, order counter back to 0), the products and variants
+ * with their INITIAL stock. Never copied: the openings — volunteers, pre-orders, sales on the day,
+ * registry, judges: each is opened by hand on every competition (user's choice, 2026-10-12) —,
+ * customers, orders, payments. On request only (shp_copy_staff): the licensed volunteers with
+ * their rights; a volunteer without a licence never (their account is erased after the
+ * competition). The destination's catalogue is REPLACED, which is refused once it has orders.
  *
  * Which competitions may be the source follows the booking module's rule (bk_copy_*): the ones
  * the organiser can reach, or any code for the server administrator.
@@ -16,6 +19,7 @@ if (defined('SHP_COPY_LOADED')) return;
 define('SHP_COPY_LOADED', true);
 
 require_once __DIR__ . '/catalog-admin.php';
+require_once __DIR__ . '/staff.php';   // shp_staff_add_licensee
 require_once dirname(__DIR__, 2) . '/booking/lib/competition.php';   // bk_copy_access_where, bk_copy_is_admin
 
 /** Competitions that can be copied from: reachable, with at least one point of sale, not the current one. */
@@ -57,6 +61,43 @@ function shp_copy_resolve($input, $currentTour)
           AND EXISTS (SELECT 1 FROM ShopStands WHERE SdTournament = ToId)
         ORDER BY ToWhenFrom DESC LIMIT 1"));
     return $r ? intval($r->ToId) : 0;
+}
+
+/**
+ * The licensed volunteers of $srcTour (still in the team) added to $destTour with their rights, as
+ * the organiser adds a licensee (shp_staff_add_licensee): rights on a stand follow the stand of the
+ * same name at the destination, rights at the desk and refund ceilings are kept. A licensee already
+ * in the destination's team keeps their rights; one left without any right is skipped. Returns the
+ * number of volunteers added.
+ */
+function shp_copy_staff($destTour, $srcTour, $by)
+{
+    shp_schema();
+    $destTour = intval($destTour); $srcTour = intval($srcTour);
+    if ($destTour <= 0 || $srcTour <= 0 || $destTour === $srcTour) return 0;
+    $byName = array();   // stand name at the destination => SdId
+    foreach (shp_stands($destTour, false) as $sd => $s) {
+        $k = mb_strtolower(trim((string) $s->SdName));
+        if (!isset($byName[$k])) $byName[$k] = intval($sd);
+    }
+    $srcName = array();
+    foreach (shp_stands($srcTour, false) as $sd => $s) $srcName[intval($sd)] = mb_strtolower(trim((string) $s->SdName));
+    $n = 0;
+    $rs = safe_r_sql("SELECT SfId, SfLicence, SfDesk, SfRefundMax, SfRefundTotal FROM ShopStaff
+        WHERE SfTournament = $srcTour AND SfKind = 'LICENSEE' AND SfStatus IN ('active', 'locked') AND SfLicence <> ''
+        ORDER BY SfId");
+    $rows = array();
+    while ($r = safe_fetch($rs)) $rows[] = $r;
+    foreach ($rows as $r) {
+        $rights = array();
+        foreach (shp_staff_perms(intval($r->SfId), true) as $sd => $perms) {
+            $k = $srcName[intval($sd)] ?? '';
+            if ($k !== '' && isset($byName[$k])) $rights[$byName[$k]] = implode(',', $perms);
+        }
+        $res = shp_staff_add_licensee($destTour, $r->SfLicence, $rights, $r->SfRefundMax, $r->SfRefundTotal, $by, (string) $r->SfDesk);
+        if (empty($res['error'])) $n++;
+    }
+    return $n;
 }
 
 /** A date-time moved by the same distance from the first day: [source first day, source value, destination first day]. */

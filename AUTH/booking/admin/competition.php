@@ -201,8 +201,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         }
         if ($srcId <= 0) {
             $err = bk_t('AcCopyNoSrc');
-        } elseif (bk_comp_copy_from($TOUR, $srcId)) {
-            header('Location: ' . $SELF . '?copied=1');
+        } elseif (($nStaff = bk_comp_copy_from($TOUR, $srcId, !empty($_POST['copy_staff']))) !== false) {
+            header('Location: ' . $SELF . '?copied=1' . (!empty($_POST['copy_staff']) ? '&staff=' . intval($nStaff) : ''));
             exit;
         } else {
             $err = bk_t('AcCopyFailed');
@@ -247,7 +247,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     }
 }
 
-if (isset($_GET['copied'])) $msg = bk_t('AcCopied');
+if (isset($_GET['copied'])) $msg = bk_t('AcCopied') . (isset($_GET['staff']) ? ' ' . bk_t('AcCopiedStaff', intval($_GET['staff'])) : '');
 if (isset($_GET['saved'])) $msg = bk_t('AcSaved');
 
 // Places freed in ianseo's own screens (a participant deleted, targets added) go to the
@@ -502,6 +502,11 @@ if ($copyAdmin) {
     }
     $copy = bk_fld(bk_t('AcCopySrc'), '<select name="copy_src" required>' . $o . '</select>')
         . '<button type="submit" name="copy_from" value="1" class="sa-btn sa-primary">' . bk_e(bk_t('AcCopyBtn')) . '</button>';
+}
+// The licensed volunteers come along only when asked (unticked by default: user's choice).
+if ($copyAdmin || $copySources) {
+    $copy = str_replace('<button type="submit" name="copy_from"', '<label class="sa-chk"><input type="checkbox" name="copy_staff" value="1"> <span>'
+        . bk_e(bk_t('AcCopyStaff')) . '</span></label><button type="submit" name="copy_from"', $copy);
 }
 $copyBox = '<details class="sa-copy"><summary>' . bk_e(bk_t('AcCopySummary')) . '</summary><div class="sa-copy-body">'
     . '<p class="sa-hint">' . bk_t('AcCopyHint') . '</p>'

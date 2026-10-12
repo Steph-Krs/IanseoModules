@@ -1229,7 +1229,7 @@ $lang['AcPayOffReload']      = 'La gestione dei pagamenti non è attivata per qu
 $lang['AcTariffsSaved']      = 'Tariffe e metodi di pagamento salvati.';
 $lang['AcSaved']             = 'Configurazione salvata.';
 $lang['AcSavedShort']        = 'Salvato';
-$lang['AcCopied']            = 'Configurazione ripresa dall\'altra competizione. Verifichi le date e i vincoli del campo.';
+$lang['AcCopied']            = 'Configurazione ripresa dall\'altra competizione. Verifichi le date e i vincoli del campo; bar e negozio, accrediti e giudici restano da aprire dalle loro pagine.';
 $lang['AcCatLabelPh']        = 'es. Giovani';
 $lang['AcCatBows']           = 'Archi (vuoto = tutti)';
 $lang['AcCatClasses']        = 'Categorie (vuoto = tutte)';
@@ -1258,8 +1258,10 @@ $lang['AcCopyNone']          = 'Nessun\'altra competizione configurata è access
 $lang['AcCopySrc']           = 'Competizione di origine';
 $lang['AcOpenTitle']         = 'Apertura delle iscrizioni su questo server';
 $lang['AcCopySummary']       = '📋 Copia da…';
-$lang['AcCopyHint']          = 'Riprendere la configurazione di <b>un\'altra competizione</b>: livello di pubblicazione, iscrizioni, visibilità, tariffa, invito, negozio e vincoli del campo. Le <b>date</b> mantengono lo stesso scarto rispetto alla data di inizio. I loghi e il link a ianseo.net non vengono copiati. <b>Le impostazioni attuali saranno sostituite.</b>';
-$lang['AcCopyConfirm']       = 'Copiare tutta la configurazione della competizione di origine? Le impostazioni attuali (iscrizioni, tariffa, invito, negozio, vincoli del campo) saranno SOSTITUITE.';
+$lang['AcCopyHint']          = 'Riprendere la configurazione di <b>un\'altra competizione</b>: livello di pubblicazione, iscrizioni, visibilità, tariffa, invito, vincoli del campo, e bar e negozio (impostazioni, punti vendita, catalogo). Le <b>date</b> mantengono lo stesso scarto rispetto alla data di inizio. I loghi e il link a ianseo.net non vengono copiati; bar e negozio, accrediti e giudici restano <b>chiusi</b> (da aprire dalle loro pagine). I volontari tesserati vengono ripresi solo se la casella è spuntata. <b>Le impostazioni attuali saranno sostituite.</b>';
+$lang['AcCopyConfirm']       = 'Copiare tutta la configurazione della competizione di origine? Le impostazioni attuali (iscrizioni, tariffa, invito, bar e negozio, vincoli del campo) saranno SOSTITUITE.';
+$lang['AcCopyStaff']         = 'Riprendere anche i volontari tesserati e i loro diritti';
+$lang['AcCopiedStaff']       = '{$a} volontario/i tesserato/i ripreso/i con i loro diritti.';
 $lang['AcPubWhat']           = 'Questa è la <b>pagina di iscrizione online di questo server</b>: ciò che vedono gli arcieri che si collegano qui <b>con il loro numero di licenza</b>. Solo loro vi hanno accesso — la competizione non è visibile né al pubblico né ai motori di ricerca.';
 $lang['AcNotIanseoNet']      = 'Questo <b>non riguarda ianseo.net</b>: da questa pagina non viene inviato né pubblicato nulla. L\'invio dei risultati a ianseo.net resta il consueto menu di ianseo (<i>Competizione › Invia a ianseo.net</i>).';
 $lang['AcLvl1']              = 'Chiusa';

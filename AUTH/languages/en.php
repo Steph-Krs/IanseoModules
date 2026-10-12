@@ -126,18 +126,20 @@ $lang['LoginPitchOrg1']      = 'Registrations, field plan, invitation, scorecard
 $lang['LoginPitchOrg2']      = '<b>No installation</b>, no update, no maintenance on your side.';
 $lang['LoginPitchOrg3']      = 'Federation database of licensees <b>kept up to date automatically</b>.';
 $lang['LoginPitchOrg4']      = '<b>Backups and security</b> handled by the server.';
+$lang['LoginPitchOrg5']      = '<b>Check-in, judges, food & shop</b> on your volunteers\' phones.';
 $lang['LoginPitchOrgEnd']    = 'Sign in with your credentials of the FFTA officers\' space (Espace Dirigeant).';
 $lang['LoginPitchCompTitle'] = 'Register for competitions in a few clicks.';
 $lang['LoginPitchComp1']     = 'Online registration with your <b>federation credentials</b>.';
 $lang['LoginPitchComp2']     = '<b>Calendar and map</b> of the open competitions near you.';
 $lang['LoginPitchComp3']     = 'Your documents: <b>scorecard, receipt, licence certificate</b>.';
 $lang['LoginPitchComp4']     = 'Follow-up of your <b>registrations and statistics</b>.';
+$lang['LoginPitchComp5']     = '<b>Pre-orders</b> at the food stand and direct access to your <b>volunteer space</b>.';
 $lang['LoginPitchCompEnd']   = 'Sign in with your credentials of the FFTA licensee space (Espace Licencié).';
 $lang['LegalNotice']         = 'Legal notice';
 $lang['LegalTerms']          = 'Terms of use';
 $lang['LegalPrivacy']        = 'Privacy';
 $lang['LegalCookies']        = 'Cookies';
-$lang['LoginCredits']        = 'The computation and publication of the <b>results</b> rely on the <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a> software. The management of <b>accounts</b>, <b>registrations</b> and the <b>calendar</b> is an independent development. This site only uses one strictly necessary <b>session cookie</b>.';
+$lang['LoginCredits']        = 'The computation and publication of the <b>results</b> rely on the <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a> software. The management of <b>accounts</b>, <b>registrations</b>, the <b>calendar</b>, the <b>food & shop</b> and the <b>check-in</b> is an independent development. This site uses <b>no advertising or tracking cookie</b>.';
 $lang['LoginBusy']           = 'Signing in';
 
 /* Menu and user bar (menu.php) */
@@ -247,7 +249,7 @@ $lang['LgMHostingH']        = 'Hosting';
 $lang['LgMHostFallback']    = 'Host';
 $lang['LgMHostMissing']     = 'Host not filled in by the operator.';
 $lang['LgMIpH']             = 'Intellectual property';
-$lang['LgMIp']              = 'The computation and publication of the results rely on the free software <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a>. The management of accounts, registrations and the calendar is provided by an independent module. The trademarks, logos and contents of the federations and clubs remain the property of their respective owners.';
+$lang['LgMIp']              = 'The computation and publication of the results rely on the free software <a href="https://www.ianseo.net" target="_blank" rel="noopener">ianseo</a>. The management of accounts, registrations, the calendar, the food & shop and the check-in is provided by an independent module. The trademarks, logos and contents of the federations and clubs remain the property of their respective owners.';
 $lang['LgCSiteFallback']    = 'the service';
 $lang['LgCIntro']           = 'These terms of use (hereafter the "Terms") govern the access to and the use of <b>{$a[site]}</b> (hereafter "the service"), run by {$a[name]}. By using the service, the user accepts these Terms.';
 $lang['LgC1H']              = '1. Purpose';
@@ -289,7 +291,9 @@ $lang['LgPRetention1']      = 'Sessions: 7 days at most, then deleted automatica
 $lang['LgPRetention2']      = 'Sign-in log: a few months, for security purposes.';
 $lang['LgPRetention3']      = 'Registrations and competition data: as long as needed for the organisation and the archiving of the results.';
 $lang['LgPShopH']           = 'Food & shop';
-$lang['LgPShop']            = 'At the points of sale of a competition: volunteers without a licence give their family name, given name and a password, erased automatically the day after the competition (the history then says “Volunteer no. X”); licensed volunteers use their licensee account. A visitor who orders gives a nickname: it is kept with their orders, so that the organiser knows which orders were collected and paid, but the access of their phone is closed the day after the competition. When a customer asks for it, their browser gives the address of its notification service and two keys, used only to say that an order is ready, and deleted the day after the competition. On the public screen of the orders, the given name and the initial of the family name of a licensee, or the nickname of a visitor, are shown next to the order number until the order is collected. No payment card data is ever recorded.';
+$lang['LgPShop']            = 'At the points of sale of a competition: volunteers without a licence give their family name, given name and a password, erased automatically the day after the competition (the history then says “Volunteer no. X”); licensed volunteers use their licensee account; the organiser may also add a licensee to the team from the licence file (licence, family and given name). A visitor who orders gives a nickname: it is kept with their orders, so that the organiser knows which orders were collected and paid, but the access of their phone is closed the day after the competition. When a customer asks for it, their browser gives the address of its notification service and two keys, used only to say that an order is ready, and deleted the day after the competition. On the public screen of the orders, the given name and the initial of the family name of a licensee, or the nickname of a visitor, are shown next to the order number until the order is collected. No payment card data is ever recorded.';
+$lang['LgPDeskH']            = 'Check-in and equipment check';
+$lang['LgPDesk']             = 'At the check-in of a competition, the organiser and their volunteers record for each participant whether their documents and equipment comply, the draw weight measured by the judges and any comments; every decision is kept with its author and updates the participation status in ianseo. This information is visible only to the organisers and the check-in volunteers of the competition; it is deleted with the competition, or when the licensee is anonymised.';
 $lang['LgPRightsH']         = 'Your rights';
 $lang['LgPRights']          = 'You have a right of access, rectification, erasure, restriction and objection over your data. To exercise them, contact {$a}. You may also lodge a complaint with the CNIL (www.cnil.fr).';
 $lang['LgPRightsOperator']  = 'the operator of the server';
@@ -298,7 +302,7 @@ $lang['LgKIntro']           = 'This service uses the bare minimum of cookies. <b
 $lang['LgKUsedH']           = 'Cookies used';
 $lang['LgKSession']         = '<b>Session cookie</b> (strictly necessary): it keeps you signed in for the time of your visit. It only holds a session identifier, no usable personal information, and expires at the end of the session.';
 $lang['LgKAudience']        = '<b>Audience measurement cookie</b> (named <code>aud</code>): set only for the <b>not signed-in</b> visitors of the home page, to measure the use of the service (number of visitors, pages viewed, type of device: phone, tablet or computer — only this category is kept, not the details of the browser). It is a random identifier, specific to this site alone (no cross-site tracking), with a maximum lifetime of 13 months. The statistics produced are strictly <b>anonymous and aggregated</b>: no IP address is kept, no individual profile is built. Signed-in users do not receive this cookie (they are counted, anonymously, from their account).';
-$lang['LgKShop']            = '<b>Food & shop</b>: a technical cookie (<code>shp_s</code>) keeps a volunteer\'s phone signed in to the till until the day after the competition; another (<code>shp_g…</code>) recognises the phone of a visitor who orders with a nickname, until the day after the competition; a third (<code>shp_tk</code>) remembers which till was last opened on the phone (30 days). They hold random identifiers only.';
+$lang['LgKShop']            = '<b>Food & shop</b>: a technical cookie (<code>shp_s</code>) keeps a volunteer\'s phone signed in to the volunteer space (till, check-in, judges) until the day after the competition; another (<code>shp_g…</code>) recognises the phone of a visitor who orders with a nickname, until the day after the competition; a third (<code>shp_tk</code>) remembers which till was last opened on the phone (30 days). They hold random identifiers only.';
 $lang['LgKExempt']          = 'These cookies are exempt from prior consent (article 82 of the French "Informatique et Libertés" act): the session cookie as a strictly necessary cookie, and the audience measurement cookie under the exemption set by the CNIL for audience measurement tools limited to measuring the service alone. You can set your browser to refuse them; the service could then no longer keep you signed in.';
 
 /* Legal pages (legal.php) */

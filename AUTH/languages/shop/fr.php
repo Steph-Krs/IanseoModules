@@ -97,7 +97,7 @@ $lang['ShSetUnlimited']    = 'illimité';
 $lang['ShSetInactiveTag']  = '(inactif)';
 
 $lang['ShSetCopySummary']  = 'Copier depuis…';
-$lang['ShSetCopyHint']     = 'Reprend les réglages, points de vente, produits et stocks initiaux d\'une autre compétition (les dates gardent le même écart avec le premier jour). Les bénévoles, commandes et paiements ne sont pas copiés.';
+$lang['ShSetCopyHint']     = 'Reprend les réglages, points de vente, produits et stocks initiaux d\'une autre compétition (les dates gardent le même écart avec le premier jour). Les ouvertures (précommandes, vente en direct, bénévoles) restent fermées ; les bénévoles licenciés ne sont repris que si la case est cochée ; commandes et paiements ne sont jamais copiés.';
 $lang['ShSetCopySrc']      = 'Compétition à copier';
 $lang['ShSetCopyCode']     = 'Code ou numéro de la compétition';
 $lang['ShSetCopyCodePh']   = 'ex. F2025-1234';
@@ -106,7 +106,9 @@ $lang['ShSetCopyBtn']      = 'Copier';
 $lang['ShSetCopyConfirm']  = 'Les points de vente et le catalogue actuels de cette compétition seront remplacés. Continuer ?';
 $lang['ShSetCopyNoSrc']    = 'Choisissez une compétition que vous pouvez copier.';
 $lang['ShSetCopyOrders']   = 'Cette compétition a déjà des commandes : son catalogue ne peut plus être remplacé.';
-$lang['ShSetCopied']       = 'Copié : {$a[stands]} point(s) de vente et {$a[products]} produit(s).';
+$lang['ShSetCopied']       = 'Copié : {$a[stands]} point(s) de vente et {$a[products]} produit(s). Les ouvertures restent à faire.';
+$lang['ShSetCopyStaff']      = 'Reprendre aussi les bénévoles licenciés et leurs droits';
+$lang['ShSetCopiedStaff']    = '{$a} bénévole(s) licencié(s) repris avec leurs droits.';
 
 $lang['ShSetSectSwitch']   = 'Activation';
 $lang['ShSetEnable']       = 'Utiliser la buvette et la boutique en direct sur cette compétition';
