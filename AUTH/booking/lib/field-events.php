@@ -4,7 +4,7 @@
  * choice, 2026-10-14): for the organiser setting them up (admin/field.php), shown live.
  *
  * For each event of the competition (individual or team), only its categories OPEN to online
- * registration count (bk_cat_allowed); an event without any is left out. An event can take part
+ * registration on this departure count (bk_cat_allowed); an event without any is left out. An event can take part
  * when at least one target of the departure accepts the distances and a target face of one of
  * these categories, as the placement decides (bk_caps_target_ok). Its places: the maximum the
  * empty departure offers to this event alone — on each target, the archers its best face lets
@@ -20,18 +20,18 @@ require_once __DIR__ . '/cohabitation.php';
 require_once __DIR__ . '/competition.php';
 
 /**
- * Distances (metres) and target faces (TfId) of the categories open to online registration: the
- * palette of the field page offers only those (user's choice, 2026-10-15). Empty lists when no
- * category gives any (the page then offers everything, as before).
+ * Distances (metres) and target faces (TfId) of the categories open to online registration on
+ * this departure: the palette of the field page offers only those (user's choice, 2026-10-15).
+ * Empty lists when no category gives any (the page then offers everything, as before).
  */
-function bk_field_palette($tourId)
+function bk_field_palette($tourId, $sessionOrder)
 {
     $tourId = intval($tourId);
     $tr = safe_fetch(safe_r_sql("SELECT ToType FROM Tournament WHERE ToId = $tourId"));
     if (!$tr) return array('d' => array(), 'f' => array());
     $faces = bk_caps_faces($tourId);
     $d = $f = array();
-    foreach (bk_cat_grid($tourId)['cells'] as $div => $row) {
+    foreach (bk_cat_grid($tourId, bk_cat_forbidden($tourId, intval($sessionOrder)))['cells'] as $div => $row) {
         foreach ($row as $cls => $open) {
             if (!$open) continue;
             foreach (bk_caps_needs($tourId, $tr->ToType, $div, $cls, 0)['d'] as $m) $d[$m] = true;
@@ -82,14 +82,14 @@ function bk_field_events($tourId, $sessionOrder)
         return $perTarget[$k];
     };
 
-    // Categories of each event, open to online registration only.
+    // Categories of each event, open to online registration on this departure only.
     $cats = array();
     $rs = safe_r_sql("SELECT EcCode, EcTeamEvent, EcDivision, EcClass FROM EventClass WHERE EcTournament = $tourId");
     while ($r = safe_fetch($rs)) {
-        if (!bk_cat_allowed($tourId, $r->EcDivision, $r->EcClass)) continue;
+        if (!bk_cat_allowed($tourId, $r->EcDivision, $r->EcClass, $sessionOrder)) continue;
         $cats[(intval($r->EcTeamEvent) > 0 ? 'team' : 'ind') . '|' . $r->EcCode][$r->EcDivision . '|' . $r->EcClass] = array((string) $r->EcDivision, (string) $r->EcClass);
     }
-    $grid = bk_cat_grid($tourId);
+    $grid = bk_cat_grid($tourId, array());
 
     $rs = safe_r_sql("SELECT EvCode, EvTeamEvent, EvEventName FROM Events WHERE EvTournament = $tourId ORDER BY EvTeamEvent, EvProgr, EvCode");
     while ($ev = safe_fetch($rs)) {

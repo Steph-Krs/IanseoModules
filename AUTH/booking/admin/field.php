@@ -50,10 +50,10 @@ if ($sesRow) {
     for ($i = 0; $i < intval($sesRow->SesTar4Session); $i++) $targets[] = $first + $i;
 }
 
-// Palette: the distances and faces of the categories open to online registration only
-// (Restrictions); everything when none gives any. The faces all stay known to the script: a
+// Palette: the distances and faces of the categories open to online registration on this
+// departure only (Restrictions); everything when none gives any. The faces all stay known to the script: a
 // target already set with another one keeps showing it.
-$pal = bk_field_palette($TOUR);
+$pal = bk_field_palette($TOUR, $ses);
 $palD = $pal['d'] ? array_values(array_intersect(array_keys($dists), $pal['d'])) : array_keys($dists);
 sort($palD);
 $palF = $pal['f'] ? array_flip($pal['f']) : $faces;

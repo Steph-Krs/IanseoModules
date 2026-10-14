@@ -84,48 +84,95 @@
   show();
 })();
 
-/* Categories open to online registration (Restrictions, level 3). The mouse paints: the first
-   cell pressed decides (open or closed), every cell passed over while the button is down takes
-   the same; a header switches its whole row or column, the two buttons every cell. The closed
-   ones go in the hidden field, saved with the form (a change event: the save button lights up). */
+/* Categories open to online registration (Restrictions, level 3), one grid per departure. The
+   mouse paints: the first cell pressed decides (open or closed), every cell passed over while the
+   button is down takes the same; a header switches its whole row or column, the two buttons every
+   cell. A tab per departure; "take from" / "copy to" copy a grid onto another, in the page. The
+   closed ones go in the hidden field of each departure, saved with the form (a change event: the
+   save button lights up). */
 (function () {
   'use strict';
   var box = document.getElementById('bk-cats');
   if (!box) return;
-  var input = box.querySelector('input[name="cat_forbid"]');
-  var count = box.querySelector('.bk-cat-on');
-  var cells = Array.prototype.slice.call(box.querySelectorAll('td.bk-cat'));
+  var T = window.BK_T || {};
+  var KEY = 'bk-cat-ses-' + (window.BK_TOUR || 0);
+  var panes = Array.prototype.slice.call(box.querySelectorAll('.bk-cat-pane'));
   var paint = null;
 
-  function sync() {
+  function cellsOf(p) { return Array.prototype.slice.call(p.querySelectorAll('td.bk-cat')); }
+  function paneOf(ses) { return panes.filter(function (p) { return p.getAttribute('data-ses') === String(ses); })[0]; }
+  function sync(p) {
     var closed = [], on = 0;
-    cells.forEach(function (c) { if (c.classList.contains('on')) on++; else closed.push(c.getAttribute('data-c')); });
+    cellsOf(p).forEach(function (c) { if (c.classList.contains('on')) on++; else closed.push(c.getAttribute('data-c')); });
+    var input = p.querySelector('input[data-forbid]');
     input.value = closed.join(',');
-    count.textContent = on;
+    p.querySelector('.bk-cat-on').textContent = on;
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
-  function set(list, open) { list.forEach(function (c) { c.classList.toggle('on', open); }); sync(); }
+  function set(p, list, open) { list.forEach(function (c) { c.classList.toggle('on', open); }); sync(p); }
+
+  function show(ses) {
+    if (!paneOf(ses)) ses = panes[0].getAttribute('data-ses');
+    panes.forEach(function (p) { p.hidden = p.getAttribute('data-ses') !== String(ses); });
+    Array.prototype.forEach.call(box.querySelectorAll('.bk-cat-tab'), function (t) {
+      var on = t.getAttribute('data-ses') === String(ses);
+      t.classList.toggle('on', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    try { localStorage.setItem(KEY, ses); } catch (e) { /* storage off: the first departure next time */ }
+  }
+  if (panes.length > 1) {
+    var kept = null;
+    try { kept = localStorage.getItem(KEY); } catch (e) { kept = null; }
+    if (kept) show(kept);
+  }
+
+  function say(p, text, ko) {
+    var m = p.querySelector('.bk-cat-msg');
+    if (!m) return;
+    m.textContent = text;
+    m.classList.toggle('ko', !!ko);
+  }
+  // The grid of one departure onto another: every cell takes the state of the source one.
+  function copy(p, way) {
+    var other = p.querySelector('select[data-copy-sel="' + way + '"]').value;
+    if (!other) { say(p, way === 'from' ? T.pickSrc : T.pickDest, true); return; }
+    var src = way === 'from' ? paneOf(other) : p, dst = way === 'from' ? p : paneOf(other);
+    if (!src || !dst) return;
+    var open = {};
+    cellsOf(src).forEach(function (c) { open[c.getAttribute('data-c')] = c.classList.contains('on'); });
+    cellsOf(dst).forEach(function (c) { c.classList.toggle('on', !!open[c.getAttribute('data-c')]); });
+    sync(dst);
+    say(p, String(way === 'from' ? T.catsFrom : T.catsTo).replace('%s', other));
+  }
 
   box.addEventListener('mousedown', function (e) {
     var c = e.target.closest('td.bk-cat');
     if (!c || e.button !== 0) return;
     e.preventDefault();
     paint = !c.classList.contains('on');
-    set([c], paint);
+    set(c.closest('.bk-cat-pane'), [c], paint);
   });
   box.addEventListener('mouseover', function (e) {
     if (paint === null) return;
     var c = e.target.closest('td.bk-cat');
-    if (c && c.classList.contains('on') !== paint) set([c], paint);
+    if (c && c.classList.contains('on') !== paint) set(c.closest('.bk-cat-pane'), [c], paint);
   });
   document.addEventListener('mouseup', function () { paint = null; });
 
   box.addEventListener('click', function (e) {
+    var t = e.target.closest('.bk-cat-tab');
+    if (t) { show(t.getAttribute('data-ses')); return; }
+    var p = e.target.closest('.bk-cat-pane');
+    if (!p) return;
+    var a = e.target.closest('[data-copy]');
+    if (a) { copy(p, a.getAttribute('data-copy')); return; }
     var b = e.target.closest('[data-cats], .bk-cat-h');
     if (!b) return;
-    if (b.hasAttribute('data-cats')) { set(cells, b.getAttribute('data-cats') === '1'); return; }
+    var cells = cellsOf(p);
+    if (b.hasAttribute('data-cats')) { set(p, cells, b.getAttribute('data-cats') === '1'); return; }
     var row = b.getAttribute('data-row'), col = b.getAttribute('data-col');
     var list = cells.filter(function (c) { return row ? c.getAttribute('data-row') === row : c.getAttribute('data-col') === col; });
-    set(list, !list.every(function (c) { return c.classList.contains('on'); }));
+    set(p, list, !list.every(function (c) { return c.classList.contains('on'); }));
   });
 })();

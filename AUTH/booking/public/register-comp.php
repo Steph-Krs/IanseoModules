@@ -398,10 +398,12 @@ foreach ($sessions as $s) {
     $profFull = ($pl !== null && $pl < 1);
     // Departure closed, not open yet or waiting for the earlier ones (lib/sessionrules.php).
     $shut = isset($sesStates[$o]) && !$sesStates[$o]['open'];
-    $avail = ($left > 0 && !$taken && !$profFull && !$shut);
+    // Category closed to online registration on this departure (Restrictions, by departure).
+    $catShut = $class !== '' && !bk_cat_allowed($tourId, $division, $class, $o);
+    $avail = ($left > 0 && !$taken && !$profFull && !$shut && !$catShut);
     // Full departure: selectable when the waiting list is on and this weapon is not already
     // waited for — the form then joins the list (data-wait, script below).
-    $wait = !$avail && !$taken && !$shut && $waitOn && !isset($myWait[$division]);
+    $wait = !$avail && !$taken && !$shut && !$catShut && $waitOn && !isset($myWait[$division]);
     if ($avail) $free++;
     if ($wait) $waitable++;
     if ($wait && $sessionOrder === $o) $selWait = true;
@@ -418,6 +420,8 @@ foreach ($sessions as $s) {
         $state = bk_t('StAlready');
     } elseif ($shut) {
         $state = bk_session_state_text($sesStates[$o]);
+    } elseif ($catShut) {
+        $state = bk_t('StCatClosed');
     } elseif (!$avail) {
         $state = bk_t($left === 0 ? 'StFull' : 'StFullFace');
         if ($wait) $state .= ' · ' . bk_t('StWait');

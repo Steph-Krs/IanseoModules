@@ -179,7 +179,8 @@ function bk_adm_save_level3($tourId, $post)
     if (!empty($post['waitlist_present'])) $save['waitlist'] = !empty($post['waitlist']);
     if (!empty($post['single_reg_present'])) $save['single_reg'] = !empty($post['single_reg']);
     // Categories closed to online registration (grid of the Restrictions tab, level 3 only).
-    if (!empty($post['cats_present'])) $save['cat_forbid'] = (string) ($post['cat_forbid'] ?? '');
+    // One list per departure ([SesOrder => "DIV|CLS,…"]).
+    if (!empty($post['cats_present'])) $save['cat_forbid'] = is_array($post['cat_forbid'] ?? null) ? $post['cat_forbid'] : array();
     bk_comp_save($tourId, $save);
     // Opening of each departure (lib/sessionrules.php).
     if (!empty($post['ses_present']) && is_array($post['ses'] ?? null)) bk_session_rules_save($tourId, $post['ses']);
@@ -480,16 +481,22 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 /* Tabs of levels 2 and 3: display only, every field stays in the form. */
 #bkadm .bk-tabs { display:flex; flex-wrap:wrap; gap:2px; margin:12px 0 8px; border-bottom:2px solid #0254a8; }
-#bkadm .bk-tab { padding:5px 12px; border:1px solid #d2d4d6; border-bottom:0; border-radius:6px 6px 0 0; background:#f7f7f7;
+#bkadm .bk-tab, #bkadm .bk-cat-tab { padding:5px 12px; border:1px solid #d2d4d6; border-bottom:0; border-radius:6px 6px 0 0; background:#f7f7f7;
     color:#20263d; font:inherit; font-size:13px; cursor:pointer; }
-#bkadm .bk-tab:hover { background:#f0f4ff; }
-#bkadm .bk-tab.on { background:#0254a8; border-color:#0254a8; color:#fff; font-weight:600; }
+#bkadm .bk-tab:hover, #bkadm .bk-cat-tab:hover { background:#f0f4ff; }
+#bkadm .bk-tab.on, #bkadm .bk-cat-tab.on { background:#0254a8; border-color:#0254a8; color:#fff; font-weight:600; }
 #bkadm .bk-tab-n, #bkadm .bk-tab-w { display:inline-block; margin-left:6px; padding:0 6px; border-radius:8px; font-size:11px; font-weight:700; }
 #bkadm .bk-tab-n { background:#e57b10; color:#fff; }
 #bkadm .bk-tab-w { background:#c0392b; color:#fff; }
 
 /* Categories open to online registration: a grid painted with the mouse. */
-#bkadm .bk-cat-bar { display:flex; align-items:center; gap:8px; margin:4px 0 8px; }
+#bkadm .bk-cat-bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:4px 0 8px; }
+/* One grid per departure: its tabs (the look of the level tabs), the copy bar of the field page. */
+#bkadm .bk-cat-tabs { display:flex; flex-wrap:wrap; gap:2px; margin:8px 0 6px; border-bottom:2px solid #0254a8; }
+#bkadm .bk-cat-sep { width:1px; align-self:stretch; background:#d2d4d6; margin:0 2px; }
+#bkadm .bk-cat-bar label { white-space:nowrap; }
+#bkadm .bk-cat-msg { color:#035c07; font-weight:600; }
+#bkadm .bk-cat-msg.ko { color:#a80000; }
 #bkadm .bk-cat-n { margin-right:6px; }
 #bkadm .bk-cat-scroll { overflow-x:auto; }
 #bkadm .bk-cats { border-collapse:separate; border-spacing:2px; user-select:none; font-size:11px; }
@@ -692,42 +699,69 @@ $out .= $panel('3', 'period', '<div class="bk-sec"><div class="bk-row">'
     . bk_adm_session_rules($TOUR, $cfg, $sessions) . '</div>');
 
 /**
- * Categories open to online registration (user's choice, 2026-10-14): divisions in rows, classes
- * in columns, one cell per pair the class takes (empty otherwise); coloured = open, greyed =
- * closed. Painted with the mouse, a header switches its row or column (assets/competition.js);
- * the closed ones go in a hidden field, saved with the form.
+ * Categories open to online registration (user's choice, 2026-10-14), one grid per departure
+ * (2026-10-15): divisions in rows, classes in columns, one cell per pair the class takes (empty
+ * otherwise); coloured = open, greyed = closed. Painted with the mouse, a header switches its row
+ * or column (assets/competition.js); a tab per departure, and the copy bar of the field page
+ * (take from / copy to) working in the page. The closed ones go in a hidden field per departure,
+ * saved with the form. $raw: the value of BcCategories shown (the settings level 2 put aside).
  */
-function bk_adm_cats_grid($tourId, $forbidden)
+function bk_adm_cats_grid($tourId, $raw, $sessions)
 {
-    $g = bk_cat_grid($tourId, $forbidden);
-    if (!$g['divs'] || !$g['classes']) return '';
+    $g = bk_cat_grid($tourId, array());
+    $map = bk_cat_decode($tourId, $raw);
+    if (!$g['divs'] || !$g['classes'] || !$map) return '';
     $head = '<tr><th class="bk-cat-corner"></th>';
     foreach ($g['classes'] as $c) {
         $head .= '<th><button type="button" class="bk-cat-h" data-col="' . bk_e($c[0]) . '" title="' . bk_e($c[1]) . '">' . bk_e($c[0]) . '</button></th>';
     }
-    $rows = '';
-    $closed = array();
-    $on = $all = 0;
-    foreach ($g['divs'] as $d) {
-        $rows .= '<tr><th><button type="button" class="bk-cat-h" data-row="' . bk_e($d[0]) . '" title="' . bk_e($d[1]) . '">'
-            . bk_e($d[0]) . ' <small>' . bk_e($d[1]) . '</small></button></th>';
-        foreach ($g['classes'] as $c) {
-            if (!isset($g['cells'][$d[0]][$c[0]])) { $rows .= '<td class="bk-cat-na"></td>'; continue; }
-            $open = $g['cells'][$d[0]][$c[0]];
-            $all++;
-            if ($open) $on++; else $closed[] = $d[0] . '|' . $c[0];
-            $rows .= '<td class="bk-cat' . ($open ? ' on' : '') . '" data-c="' . bk_e($d[0] . '|' . $c[0]) . '" data-row="' . bk_e($d[0])
-                . '" data-col="' . bk_e($c[0]) . '" title="' . bk_e($d[1] . ' — ' . $c[1]) . '">' . bk_e($d[0]) . '<br>' . bk_e($c[0]) . '</td>';
+    $names = array();
+    foreach ($sessions as $s) $names[intval($s->SesOrder)] = (string) $s->SesName;
+    $many = count($map) > 1;
+    $tabs = $panes = '';
+    $first = true;
+    foreach ($map as $o => $forbid) {
+        $rows = '';
+        $closed = array();
+        $on = $all = 0;
+        foreach ($g['divs'] as $d) {
+            $rows .= '<tr><th><button type="button" class="bk-cat-h" data-row="' . bk_e($d[0]) . '" title="' . bk_e($d[1]) . '">'
+                . bk_e($d[0]) . ' <small>' . bk_e($d[1]) . '</small></button></th>';
+            foreach ($g['classes'] as $c) {
+                if (!isset($g['cells'][$d[0]][$c[0]])) { $rows .= '<td class="bk-cat-na"></td>'; continue; }
+                $open = !isset($forbid[$d[0] . '|' . $c[0]]);
+                $all++;
+                if ($open) $on++; else $closed[] = $d[0] . '|' . $c[0];
+                $rows .= '<td class="bk-cat' . ($open ? ' on' : '') . '" data-c="' . bk_e($d[0] . '|' . $c[0]) . '" data-row="' . bk_e($d[0])
+                    . '" data-col="' . bk_e($c[0]) . '" title="' . bk_e($d[1] . ' — ' . $c[1]) . '">' . bk_e($d[0]) . '<br>' . bk_e($c[0]) . '</td>';
+            }
+            $rows .= '</tr>';
         }
-        $rows .= '</tr>';
+        $copy = '';
+        if ($many) {
+            $tabs .= '<button type="button" class="bk-cat-tab' . ($first ? ' on' : '') . '" data-ses="' . $o . '" role="tab" aria-selected="'
+                . ($first ? 'true' : 'false') . '">' . bk_e(bk_t('DepCap', $o) . (($names[$o] ?? '') !== '' ? ' — ' . $names[$o] : '')) . '</button>';
+            $opts = '<option value="">' . bk_e(bk_t('FldDepPh')) . '</option>';
+            foreach (array_keys($map) as $x) if ($x !== $o) $opts .= '<option value="' . $x . '">' . bk_e(bk_t('DepCap', $x)) . '</option>';
+            $copy = '<span class="bk-cat-sep"></span>'
+                . '<label>' . bk_e(bk_t('FldCopyFrom')) . ' <select data-copy-sel="from">' . $opts . '</select></label>'
+                . '<button type="button" class="sa-btn" data-copy="from" title="' . bk_e(bk_t('FldCopyFromTip')) . '">' . bk_e(bk_t('FldCopyFromBtn')) . '</button>'
+                . '<span class="bk-cat-sep"></span>'
+                . '<label>' . bk_e(bk_t('FldCopyTo')) . ' <select data-copy-sel="to">' . $opts . '</select></label>'
+                . '<button type="button" class="sa-btn" data-copy="to" title="' . bk_e(bk_t('FldCopyToTip')) . '">' . bk_e(bk_t('FldCopyToBtn')) . '</button>'
+                . '<span class="bk-cat-msg" aria-live="polite"></span>';
+        }
+        $panes .= '<div class="bk-cat-pane" data-ses="' . $o . '"' . ($first ? '' : ' hidden') . '>'
+            . '<div class="bk-cat-bar"><span class="bk-cat-n"><b class="bk-cat-on">' . $on . '</b> / ' . $all . ' ' . bk_e(bk_t('AcCatsCount')) . '</span>'
+            . '<button type="button" class="sa-btn" data-cats="1">' . bk_e(bk_t('AcCatsAll')) . '</button>'
+            . '<button type="button" class="sa-btn" data-cats="0">' . bk_e(bk_t('AcCatsNone')) . '</button>' . $copy . '</div>'
+            . '<div class="bk-cat-scroll"><table class="bk-cats"><thead>' . $head . '</tr></thead><tbody>' . $rows . '</tbody></table></div>'
+            . '<input type="hidden" name="cat_forbid[' . $o . ']" data-forbid value="' . bk_e(implode(',', $closed)) . '"></div>';
+        $first = false;
     }
     return '<div class="bk-sec" id="bk-cats">' . bk_title('h2', bk_t('AcCats'), bk_e(bk_t('AcCatsHint')))
-        . '<div class="bk-cat-bar"><span class="bk-cat-n"><b class="bk-cat-on">' . $on . '</b> / ' . $all . ' ' . bk_e(bk_t('AcCatsCount')) . '</span>'
-        . '<button type="button" class="sa-btn" data-cats="1">' . bk_e(bk_t('AcCatsAll')) . '</button>'
-        . '<button type="button" class="sa-btn" data-cats="0">' . bk_e(bk_t('AcCatsNone')) . '</button></div>'
-        . '<div class="bk-cat-scroll"><table class="bk-cats"><thead>' . $head . '</tr></thead><tbody>' . $rows . '</tbody></table></div>'
-        . '<input type="hidden" name="cats_present" value="1"><input type="hidden" name="cat_forbid" value="' . bk_e(implode(',', $closed)) . '">'
-        . '</div>';
+        . ($many ? '<div class="bk-cat-tabs" role="tablist">' . $tabs . '</div>' : '')
+        . $panes . '<input type="hidden" name="cats_present" value="1"></div>';
 }
 
 // ---- Level 3, restrictions: geographic, placement and validation, then the categories allowed.
@@ -749,7 +783,7 @@ $out .= $panel('3', 'restrict', '<div class="bk-sec">' . bk_title('h2', bk_t('Ac
     . '<input type="hidden" name="single_reg_present" value="1">'
     . bk_chk('single_reg', !empty($cfg3->BcSingleReg), bk_e(bk_t('AcSingleReg')), '', bk_e(bk_t('AcSingleRegHint')))
     . '</div>'
-    . bk_adm_cats_grid($TOUR, (string) ($cfg3->BcCategories ?? '')));
+    . bk_adm_cats_grid($TOUR, (string) ($cfg3->BcCategories ?? ''), $sessions));
 
 // ---- Level 3, what the archers see. Documents: the ianseo.net address is no longer asked, it
 //      is rebuilt from the online id given with the publication codes — only whether to show it.
@@ -963,6 +997,7 @@ $jsT = array(
     'lang' => aut_lang_code(), 'dec' => $seps['dec'], 'th' => $seps['thousands'], 'cur' => $CUR,
     'base' => bk_t('PriceBase'), 'cat' => bk_t('PriceCat'), 'catNamed' => bk_t('PriceCatNamed'), 'dep' => bk_t('DepCap'),
     'dept' => bk_t('PriceDept'), 'region' => bk_t('PriceRegion'), 'rank' => bk_t('PriceRank'),
+    'catsFrom' => bk_t('AcCatsFrom'), 'catsTo' => bk_t('AcCatsTo'), 'pickSrc' => bk_t('FjPickSrc'), 'pickDest' => bk_t('FjPickDest'),
 );
 echo '<script>var BK_T = ' . json_encode($jsT, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . ', BK_CATN = ' . count($pricing['categories']) . ', BK_TOUR = ' . $TOUR . ';</script>';
 $assets = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/assets/';

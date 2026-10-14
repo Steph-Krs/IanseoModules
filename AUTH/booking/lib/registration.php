@@ -65,7 +65,7 @@ function bk_with_tournament($tourId, $fn)
 
 /**
  * Bows (divisions) open to athletes on this competition — without those whose every category
- * is closed to online registration (bk_cat_forbidden).
+ * is closed to online registration on every departure (bk_cat_forbidden).
  */
 function bk_reg_divisions($tourId)
 {
@@ -107,6 +107,7 @@ function bk_reg_classes($tourId, $dob, $sex, $division, $all = false)
         ORDER BY (ClAgeTo - ClAgeFrom) ASC, ClId");   // the most specific first
     $out = array();
     while ($r = safe_fetch($rs)) {
+        // Open on one departure at least: the departures closed to it are greyed further on.
         if (!$all && !bk_cat_allowed($tourId, $division, $r->ClId)) continue;
         $out[$r->ClId] = $r->ClDescription;
     }
@@ -268,8 +269,10 @@ function bk_reg_blocked($tourId, $cfg, $licence, $clubCode, $division, $class, $
     $geo = bk_comp_archer_blocked($cfg, $clubCode);
     if ($geo !== '') return $geo;
 
-    // A category closed to online registration by the organiser (Restrictions, level 3).
+    // A category closed to online registration by the organiser (Restrictions, level 3), on
+    // every departure or on this one.
     if ($class !== '' && !bk_cat_allowed($tourId, $division, $class)) return bk_t('RgCatClosed');
+    if ($class !== '' && $sessionOrder && !bk_cat_allowed($tourId, $division, $class, $sessionOrder)) return bk_t('RgCatClosedDep');
 
     if (!array_key_exists($division, bk_reg_divisions($tourId))) {
         return bk_t('RgBadBow');

@@ -47,8 +47,8 @@ online spaces (the module is ready to switch the day it comes).
 - 🎯 Licensee space: calendar of the open competitions, registration in a few clicks
 - 🧩 Automatic session/target allocation following the federation rules (including the sharing
   of target faces)
-- 🎟️ **Categories allowed**: the organiser picks, in a division × class grid, the categories open to
-  online registration; the field constraints page shows live the events possible on each session,
+- 🎟️ **Categories allowed**: the organiser picks, in a division × class grid per session, the
+  categories open to online registration; the field constraints page shows live the events possible on each session,
   with their distances, target faces and maximum places
 - ⏳ Waiting list when a session is full, from the usual registration form: as soon as a place
   is freed, the first matching archer is registered automatically and told in their space
@@ -234,12 +234,12 @@ See the [general README](../README.md) for the common principle.
 | `INSERT INTO` | `LookUpEntries` | `booking/lib/other.php:237` | — |
 | `DELETE FROM` | `LookUpEntries` | `booking/lib/other.php:405` | review scope by hand |
 | `DELETE FROM` | `LookUpEntries` | `booking/lib/other.php:439` | review scope by hand |
-| `INSERT INTO` | `Countries` | `booking/lib/registration.php:333` | — |
-| `UPDATE` | `Countries` | `booking/lib/registration.php:337` | review scope by hand |
-| `UPDATE` | `Entries` | `booking/lib/registration.php:394` | review scope by hand |
-| `INSERT INTO` | `Entries` | `booking/lib/registration.php:595` | — |
-| `UPDATE` | `Entries` | `booking/lib/registration.php:605` | review scope by hand |
-| `INSERT INTO` | `Qualifications` | `booking/lib/registration.php:610` | — |
+| `INSERT INTO` | `Countries` | `booking/lib/registration.php:336` | — |
+| `UPDATE` | `Countries` | `booking/lib/registration.php:340` | review scope by hand |
+| `UPDATE` | `Entries` | `booking/lib/registration.php:397` | review scope by hand |
+| `INSERT INTO` | `Entries` | `booking/lib/registration.php:598` | — |
+| `UPDATE` | `Entries` | `booking/lib/registration.php:608` | review scope by hand |
+| `INSERT INTO` | `Qualifications` | `booking/lib/registration.php:613` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:295` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:431` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:522` | — |
@@ -306,7 +306,7 @@ See the [general README](../README.md) for the common principle.
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:407` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:97` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:119` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:186` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:187` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/admin/mandate.php:44` | — |
 | `INSERT INTO` | `BookingReimportConflicts` | `booking/lib/adopt.php:105` | — |
 | `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:173` | — |
@@ -353,17 +353,17 @@ See the [general README](../README.md) for the common principle.
 | `DELETE FROM` | `BookingTargetCaps` | `booking/lib/competition.php:334` | — |
 | `INSERT INTO` | `BookingTargetCaps` | `booking/lib/competition.php:342` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:448` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:558` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:581` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:584` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:589` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:628` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:647` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:656` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:660` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:664` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:669` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:671` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:611` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:634` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:637` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:642` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:681` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:700` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:709` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:713` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:717` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:722` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:724` | — |
 | `DELETE FROM` | `BookingFedLicences` | `booking/lib/fedlic.php:188` | — |
 | `INSERT IGNORE INTO` | `BookingFedLicences` | `booking/lib/fedlic.php:189` | — |
 | `INSERT INTO` | `BookingFedSources` | `booking/lib/fedlic.php:241` | — |
@@ -391,9 +391,9 @@ See the [general README](../README.md) for the common principle.
 | `UPDATE` | `BookingLedger` | `booking/lib/payment.php:668` | — |
 | `INSERT INTO` | `BookingRefunds` | `booking/lib/payment.php:748` | — |
 | `UPDATE` | `BookingRefunds` | `booking/lib/payment.php:776` | — |
-| `UPDATE` | `BookingWaitlist` | `booking/lib/registration.php:510` | — |
-| `INSERT INTO` | `BookingRegistrations` | `booking/lib/registration.php:651` | — |
-| `DELETE FROM` | `BookingRegistrations` | `booking/lib/registration.php:739` | — |
+| `UPDATE` | `BookingWaitlist` | `booking/lib/registration.php:513` | — |
+| `INSERT INTO` | `BookingRegistrations` | `booking/lib/registration.php:654` | — |
+| `DELETE FROM` | `BookingRegistrations` | `booking/lib/registration.php:742` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/schema.php:211` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/schema.php:222` | — |
 | `ALTER TABLE` | `BookingCompetitions` | `booking/lib/schema.php:226` | — |

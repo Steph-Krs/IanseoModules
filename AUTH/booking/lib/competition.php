@@ -447,7 +447,7 @@ function bk_comp_save($tourId, $in)
 
     safe_w_sql("INSERT INTO BookingCompetitions SET BcTournament = $tourId, $set
         ON DUPLICATE KEY UPDATE $set");
-    bk_cat_forbidden($tourId, true);
+    bk_cat_map($tourId, true);
 }
 
 /* ------------------------------------------------------------------ */
@@ -455,21 +455,63 @@ function bk_comp_save($tourId, $in)
 /* ------------------------------------------------------------------ */
 
 /**
- * Categories closed to online registration on a competition (user's choice, 2026-10-14): a
- * championship for some categories only, even when others share their distances and faces.
- * Returns ['DIV|CLS' => true] of the FORBIDDEN ones; empty: every category is open.
+ * Categories closed to online registration (user's choice, 2026-10-14), departure by departure
+ * (2026-10-15): a championship for some categories only, even when others share their distances
+ * and faces, or the youth on one departure only.
+ * BcCategories holds {"<SesOrder>": "DIV|CLS,…"} of the FORBIDDEN ones; a departure absent from it
+ * (one added later) is open to all, NULL: everything open. A plain "DIV|CLS,…" list (first
+ * version, one grid for the competition) stands for every departure.
+ * Returns [SesOrder => ['DIV|CLS' => true]] for every departure of the competition.
  * Applied where the categories offered to an archer are computed (bk_reg_divisions,
  * bk_reg_classes, bk_reg_blocked): registration, club mate, waiting list. Never to what the
  * organiser enters in ianseo, nor to a re-import.
  */
-function bk_cat_forbidden($tourId, $fresh = false)
+function bk_cat_map($tourId, $fresh = false)
 {
     static $cache = array();
     $tourId = intval($tourId);
     if (!$fresh && isset($cache[$tourId])) return $cache[$tourId];
     $rs = safe_r_sql("SELECT BcCategories FROM BookingCompetitions WHERE BcTournament = $tourId", false, true);
     $r = $rs ? safe_fetch($rs) : null;
-    return $cache[$tourId] = bk_cat_parse($r->BcCategories ?? '');
+    return $cache[$tourId] = bk_cat_decode($tourId, $r->BcCategories ?? '');
+}
+
+/** Departures (SesOrder) of a competition, those the grid is set for. */
+function bk_cat_sessions($tourId)
+{
+    $out = array();
+    $rs = safe_r_sql("SELECT SesOrder FROM Session WHERE SesTournament = " . intval($tourId) . " AND SesType = 'Q' ORDER BY SesOrder");
+    while ($r = safe_fetch($rs)) $out[] = intval($r->SesOrder);
+    return $out;
+}
+
+/** A value of BcCategories → [SesOrder => ['DIV|CLS' => true]] for every departure of the competition. */
+function bk_cat_decode($tourId, $raw)
+{
+    $raw = trim((string) $raw);
+    $per = null;
+    if (strpos($raw, '{') === 0) {
+        $per = json_decode($raw, true);
+        if (!is_array($per)) $per = array();   // unreadable: everything open rather than a wrong grid
+    }
+    $out = array();
+    foreach (bk_cat_sessions($tourId) as $o) $out[$o] = bk_cat_parse($per === null ? $raw : ($per[$o] ?? ''));
+    return $out;
+}
+
+/**
+ * Categories closed on a departure — ['DIV|CLS' => true]. $session 0, before a departure is
+ * chosen: those closed on EVERY departure (a bow or a category open on one departure at least is
+ * still offered; the departures closed to it are then greyed).
+ */
+function bk_cat_forbidden($tourId, $session = 0)
+{
+    $map = bk_cat_map($tourId);
+    $session = intval($session);
+    if ($session) return $map[$session] ?? array();
+    $out = null;
+    foreach ($map as $set) $out = $out === null ? $set : array_intersect_key($out, $set);
+    return $out ?? array();
 }
 
 /** "DIV|CLS,…" → ['DIV|CLS' => true]. */
@@ -483,10 +525,10 @@ function bk_cat_parse($list)
     return $out;
 }
 
-/** Is this category (bow, class) open to online registration? */
-function bk_cat_allowed($tourId, $division, $class)
+/** Is this category (bow, class) open to online registration — on this departure, or ($session 0) on one at least? */
+function bk_cat_allowed($tourId, $division, $class, $session = 0)
 {
-    return !isset(bk_cat_forbidden($tourId)[(string) $division . '|' . (string) $class]);
+    return !isset(bk_cat_forbidden($tourId, $session)[(string) $division . '|' . (string) $class]);
 }
 
 /**
@@ -507,8 +549,10 @@ function bk_cat_grid($tourId, $forbidden = null)
         $a = trim((string) $r->ClDivisionsAllowed);
         $allowedDivs[(string) $r->ClId] = $a === '' ? null : array_map('trim', explode(',', $a));
     }
-    // $forbidden: a list to show instead of the effective one (the settings level 2 put aside).
-    $forbidden = $forbidden === null ? bk_cat_forbidden($tourId) : bk_cat_parse($forbidden);
+    // $forbidden: the set of a departure, or a list to show instead of the effective one; null:
+    // the categories closed on every departure.
+    if ($forbidden === null) $forbidden = bk_cat_forbidden($tourId);
+    elseif (!is_array($forbidden)) $forbidden = bk_cat_parse($forbidden);
     foreach ($divs as $d) {
         foreach ($classes as $c) {
             $ok = $allowedDivs[$c[0]] === null || in_array($d[0], $allowedDivs[$c[0]], true);
@@ -518,16 +562,25 @@ function bk_cat_grid($tourId, $forbidden = null)
     return array('divs' => $divs, 'classes' => $classes, 'cells' => $cells);
 }
 
-/** Forbidden categories sent by the page → "DIV|CLS,…" of the valid pairs of the competition only. */
-function bk_cat_clean($tourId, $list)
+/**
+ * Forbidden categories sent by the page — [SesOrder => "DIV|CLS,…"], or one list for every
+ * departure — → the value of BcCategories: the valid pairs and departures of the competition
+ * only, the departures left open omitted; '' when everything is open.
+ */
+function bk_cat_clean($tourId, $in)
 {
-    $grid = bk_cat_grid($tourId);
+    $grid = bk_cat_grid($tourId, array());
     $out = array();
-    foreach (explode(',', (string) $list) as $k) {
-        $p = explode('|', trim($k));
-        if (count($p) === 2 && isset($grid['cells'][$p[0]][$p[1]])) $out[$p[0] . '|' . $p[1]] = true;
+    foreach (bk_cat_sessions($tourId) as $o) {
+        $list = is_array($in) ? (string) ($in[$o] ?? '') : (string) $in;
+        $set = array();
+        foreach (explode(',', $list) as $k) {
+            $p = explode('|', trim($k));
+            if (count($p) === 2 && isset($grid['cells'][$p[0]][$p[1]])) $set[$p[0] . '|' . $p[1]] = true;
+        }
+        if ($set) $out[$o] = implode(',', array_keys($set));
     }
-    return implode(',', array_keys($out));
+    return $out ? json_encode($out, JSON_FORCE_OBJECT) : '';
 }
 
 /* ------------------------------------------------------------------ */
