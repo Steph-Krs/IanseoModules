@@ -53,7 +53,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1
         if (!$lue) {
             $err = bk_t('ClubUnknownLicence');
         } elseif ($class === '') {
-            $err = bk_t('ClubNoCategory');
+            $err = bk_t(bk_reg_classes($tourId, $lue->LueCtrlCode, $lue->LueSex, $division, true) ? 'RgCatClosed' : 'ClubNoCategory');
         } elseif (!bk_scope_covers($scopes, $lue->LueCountry)) {
             // Deciding check: out of scope, refused whatever happens.
             bk_log('CLUB_OUT_OF_SCOPE', $archer->BaLicence);

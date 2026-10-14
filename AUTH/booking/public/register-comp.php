@@ -347,7 +347,9 @@ echo '<label for="division">' . bk_e(bk_t('Weapon')) . '</label>'
 foreach ($divisions as $k => $lab) echo '<option value="' . bk_e($k) . '"' . $sel($division === (string) $k) . '>' . bk_e($lab) . '</option>';
 echo '</select><label for="class">' . bk_e(bk_t('Category')) . '</label>';
 if (!$classes) {
-    echo '<p class="bk-blocked">' . bk_e(bk_t('NoCatForAge')) . '</p>';
+    // Closed by the organiser, or none for this age: not the same answer.
+    $closed = $division !== '' && bk_reg_classes($tourId, $lue->LueCtrlCode, $lue->LueSex, $division, true);
+    echo '<p class="bk-blocked">' . bk_e(bk_t($closed ? 'RgCatClosed' : 'NoCatForAge')) . '</p>';
 } else {
     echo '<select id="class" name="class" onchange="this.form.go.value=\'0\';this.form.submit()">';
     foreach ($classes as $k => $lab) echo '<option value="' . bk_e($k) . '"' . $sel($class === (string) $k) . '>' . bk_e($lab) . '</option>';

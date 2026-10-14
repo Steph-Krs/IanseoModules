@@ -322,10 +322,12 @@ function bk_caps_label($c, $faces)
  */
 function bk_caps_faces_for($tourId, $division, $class, $faces = null)
 {
+    static $allOf = array();
     if (!function_exists('getTargets')) require_once('Partecipants/Fun_Targets.php');
     if ($faces === null) $faces = bk_caps_faces($tourId);
 
-    $all = getTargets(true);
+    if (!isset($allOf[intval($tourId)])) $allOf[intval($tourId)] = getTargets(true);
+    $all = $allOf[intval($tourId)];
     $out = array();
     foreach (array_keys($all[$division][$class] ?? array()) as $id) {
         $id = intval($id);

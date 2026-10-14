@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 35);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 36);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -698,6 +698,11 @@ function bk_schema()
         KEY KlAccountIdx (KlTournament, KlAccount),
         UNIQUE KEY KlIdemIdx (KlTournament, KlIdem)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // v36 — categories closed to online registration (level 3, Restrictions): "DIV|CLS" of the
+    // FORBIDDEN ones, comma separated; NULL = every category allowed — a division or class added
+    // later in ianseo is allowed until the organiser says otherwise.
+    bk_colonne('BookingCompetitions', 'BcCategories', "TEXT NULL AFTER BcRestrictTo");
 
     $_SESSION[$flag] = true;
 }

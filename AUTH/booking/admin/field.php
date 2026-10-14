@@ -17,6 +17,7 @@ checkFullACL(AclParticipants, 'pTarget', AclReadWrite);
 require_once dirname(__DIR__) . '/lib/schema.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
 require_once dirname(__DIR__) . '/lib/caps.php';
+require_once dirname(__DIR__) . '/lib/field-events.php';
 require_once dirname(__DIR__) . '/lib/archer.php';   // bk_csrf_*
 require_once dirname(__DIR__) . '/lib/ui.php';       // bk_e
 
@@ -49,9 +50,20 @@ if ($sesRow) {
     for ($i = 0; $i < intval($sesRow->SesTar4Session); $i++) $targets[] = $first + $i;
 }
 
-// Axis scale: the distances REALLY used by the competition, evenly spaced. A setting to the
-// metre makes no sense — a target sits at one of the rules' distances, not between two.
-$steps = array_keys($dists);
+// Palette: the distances and faces of the categories open to online registration only
+// (Restrictions); everything when none gives any. The faces all stay known to the script: a
+// target already set with another one keeps showing it.
+$pal = bk_field_palette($TOUR);
+$palD = $pal['d'] ? array_values(array_intersect(array_keys($dists), $pal['d'])) : array_keys($dists);
+sort($palD);
+$palF = $pal['f'] ? array_flip($pal['f']) : $faces;
+
+// Axis scale: those distances, evenly spaced — plus any a target of the departure already uses,
+// so that a setting made before still shows. A setting to the metre makes no sense: a target
+// sits at one of the rules' distances, not between two.
+$used = array();
+foreach ($caps as $c) foreach (array('def', 'min', 'max') as $k) if (!empty($c[$k])) $used[intval($c[$k])] = true;
+$steps = array_values(array_unique(array_merge($palD, array_keys($used))));
 sort($steps);
 
 $boot = array(
@@ -66,12 +78,16 @@ $boot = array(
     'ajax'     => $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/ajax-field.php',
     'img'      => $CFG->ROOT_DIR . 'Common/Images/Targets/',
     'sessions' => array_map(function ($s) { return intval($s->SesOrder); }, $sessions),
+    // Events the departure can take, and those it cannot (lib/field-events.php), redrawn after
+    // every change.
+    'events'   => $ses ? bk_field_events($TOUR, $ses) : null,
 );
 
 $boot['t'] = bk_ts(array('FjClickRemove', 'FjMin', 'FjDef', 'FjMax', 'FjSel0', 'FjSel1', 'FjSelN', 'FjSaving',
     'FjSaveFail', 'FjServerDown', 'FjSaved1', 'FjSavedN', 'FjSelectFirst', 'FjPickValue', 'FjCleared',
     'FjClearAllConfirm', 'FjDepCleared', 'FjPickDest', 'FjCopyConfirm', 'FjCopied', 'FjPickSrc',
-    'FjCopyFromConfirm', 'FjCopiedFrom'));
+    'FjCopyFromConfirm', 'FjCopiedFrom', 'FjEvPlaces', 'FjEvNoneOk', 'FjEvNoneKo', 'FjEvWhyNone', 'FjEvWhyDist',
+    'FjEvWhyFace', 'FjEvEmpty'));
 
 $base = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/';
 $PAGE_TITLE = bk_t('MnuField');
@@ -100,15 +116,15 @@ if (!$sessions) {
     if (!$dists) {
         $out .= '<p class="bkf-none">' . bk_e(bk_t('FldNoDist')) . '</p>';
     } else {
-        $sel = function ($id, $key) use ($steps) {
+        $sel = function ($id, $key) use ($palD) {
             $o = '<option value="">—</option>';
-            foreach ($steps as $m) $o .= '<option value="' . $m . '">' . $m . ' m</option>';
+            foreach ($palD as $m) $o .= '<option value="' . $m . '">' . $m . ' m</option>';
             return '<label>' . bk_e(bk_t($key)) . ' <select id="' . $id . '">' . $o . '</select></label>';
         };
         $out .= '<div class="bkf-dform">' . $sel('bkf-min', 'FldMin') . $sel('bkf-def', 'FldDef') . $sel('bkf-max', 'FldMax')
             . '<button type="button" class="bkf-btn bkf-btn-go" data-act="applyd">' . bk_e(bk_t('FldApply')) . '</button></div>'
             . '<div class="bkf-quicks"><span class="bkf-quick">' . bk_e(bk_t('FldSetTo')) . '</span>';
-        foreach ($steps as $m) $out .= ' <button type="button" class="bkf-chip bkf-chip-d" data-quick="' . $m . '">' . $m . ' m</button>';
+        foreach ($palD as $m) $out .= ' <button type="button" class="bkf-chip bkf-chip-d" data-quick="' . $m . '">' . $m . ' m</button>';
         $out .= '</div>';
     }
     $out .= '</div>';
@@ -121,6 +137,7 @@ if (!$sessions) {
         . (!$faces ? '<p class="bkf-none">' . bk_e(bk_t($hasPegs ? 'FldNoPeg' : 'FldNoFace')) . '</p>' : '')
         . '<div class="bkf-chips">';
     foreach ($faces as $f) {
+        if (!isset($palF[$f['id']])) continue;   // no category open to online registration shoots on it
         $out .= '<div class="bkf-chip bkf-chip-f" draggable="true" data-kind="f" data-val="' . intval($f['id']) . '"'
             . ' style="--fc:' . bk_e($f['fg']) . ';--fb:' . bk_e($f['bg']) . ';--fd:' . bk_e($f['bd']) . '">';
         if (!empty($f['peg'])) {
@@ -165,6 +182,19 @@ if (!$sessions) {
         . ' <input type="range" id="bkf-size" min="34" max="110" value="56" step="2"></label>' . $qSize . $hSize . '</div>'
         . '<div class="bkf-plot"><div id="bkf-axis" class="bkf-axis"></div><div id="bkf-grid" class="bkf-grid"></div></div>'
         . '</section></div>';
+
+    // Events of the departure, live: those it can take and those it cannot, individual and team
+    // events in two tabs (individual first: user's choice).
+    list($qEv, $hEv) = aut_adm_help(bk_e(bk_t('FldEvHint')));
+    $col = function ($key, $list) {
+        return '<div class="bkf-ev-col bkf-ev-' . $list . '"><h3>' . bk_e(bk_t($key)) . ' <span class="bkf-ev-n" data-n="' . $list . '"></span></h3>'
+            . '<div class="bkf-ev-list" data-list="' . $list . '"></div></div>';
+    };
+    $out .= '<section class="bkf-events" id="bkf-events"><div class="bkf-ev-head"><h2>' . bk_e(bk_t('FldEvTitle')) . $qEv . '</h2>'
+        . '<div class="bkf-ev-tabs" role="tablist">'
+        . '<button type="button" class="bkf-ev-tab bkf-ev-tab-on" data-kind="ind" role="tab">' . bk_e(bk_t('FldEvInd')) . '</button>'
+        . '<button type="button" class="bkf-ev-tab" data-kind="team" role="tab">' . bk_e(bk_t('FldEvTeam')) . '</button></div></div>'
+        . $hEv . '<div class="bkf-ev-cols">' . $col('FldEvOk', 'ok') . $col('FldEvKo', 'ko') . '</div></section>';
 }
 $out .= '</div>' . aut_adm_close()
     . '<script>window.BKF = ' . json_encode($boot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . ';</script>'

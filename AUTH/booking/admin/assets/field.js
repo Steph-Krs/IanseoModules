@@ -202,6 +202,7 @@
           .then(function (j) {
               if (!j || j.error !== 0) { flash((j && j.msg) || T('FjSaveFail'), true); return; }
               if (j.caps) caps = j.caps;
+              if (j.events) { events = j.events; renderEvents(); }
               done && done(j);
               render();
           })
@@ -438,6 +439,61 @@
         maj();
     }
 
+    /* ---------- events of the departure (lib/field-events.php) ----------
+       Those it can take, with their places on the empty departure, and those it cannot, with
+       why; individual events and team events in two tabs. Sent by the page, then by every save. */
+
+    var events = B.events || null;
+    var evKind = 'ind';
+    var evBox = document.getElementById('bkf-events');
+
+    function esc(s) {
+        return String(s === undefined || s === null ? '' : s).replace(/[&<>"]/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+    }
+    function why(e) {
+        if (e.why === 'none') return T('FjEvWhyNone');
+        if (e.why === 'dist') return T('FjEvWhyDist', e.dist);
+        return T('FjEvWhyFace');
+    }
+    function renderEvents() {
+        if (!evBox || !events) return;
+        var team = events.team.ok.length + events.team.ko.length;
+        var teamTab = evBox.querySelector('[data-kind="team"]');
+        teamTab.hidden = !team;
+        if (!team && evKind === 'team') evKind = 'ind';
+        evBox.querySelectorAll('.bkf-ev-tab').forEach(function (b) { b.classList.toggle('bkf-ev-tab-on', b.getAttribute('data-kind') === evKind); });
+        var cur = events[evKind];
+        ['ok', 'ko'].forEach(function (k) {
+            var box = evBox.querySelector('[data-list="' + k + '"]');
+            evBox.querySelector('[data-n="' + k + '"]').textContent = '(' + cur[k].length + ')';
+            if (!cur[k].length) {
+                box.innerHTML = '<p class="bkf-ev-empty">' + esc(T(cur.ok.length + cur.ko.length ? (k === 'ok' ? 'FjEvNoneOk' : 'FjEvNoneKo') : 'FjEvEmpty')) + '</p>';
+                return;
+            }
+            // One table, two rows per event (user's choice): code | distance | the places, or why
+            // the distance fails; name | faces | why the face fails.
+            box.innerHTML = '<table class="bkf-ev-table">' + cur[k].map(function (e) {
+                var m1 = k === 'ok' ? '<span class="bkf-ev-places">' + esc(T('FjEvPlaces', e.places)) + '</span>'
+                    : (e.why !== 'face' ? '<span class="bkf-ev-why">' + esc(why(e)) + '</span>' : '');
+                var m2 = k === 'ko' && e.why === 'face' ? '<span class="bkf-ev-why">' + esc(why(e)) + '</span>' : '';
+                return '<tbody class="bkf-ev-item"><tr><td class="bkf-ev-code">' + esc(e.code) + '</td><td class="bkf-ev-dist">' + esc(e.dist)
+                    + '</td><td class="bkf-ev-msg">' + m1 + '</td></tr><tr><td class="bkf-ev-name">' + esc(e.name)
+                    + '</td><td class="bkf-ev-faces">' + esc(e.faces) + '</td><td class="bkf-ev-msg">' + m2 + '</td></tr></tbody>';
+            }).join('') + '</table>';
+        });
+    }
+    if (evBox) {
+        evBox.addEventListener('click', function (e) {
+            var b = e.target.closest('.bkf-ev-tab');
+            if (!b) return;
+            evKind = b.getAttribute('data-kind');
+            renderEvents();
+        });
+    }
+
     renderAxis();
     render();
+    renderEvents();
 })();

@@ -83,3 +83,49 @@
 
   show();
 })();
+
+/* Categories open to online registration (Restrictions, level 3). The mouse paints: the first
+   cell pressed decides (open or closed), every cell passed over while the button is down takes
+   the same; a header switches its whole row or column, the two buttons every cell. The closed
+   ones go in the hidden field, saved with the form (a change event: the save button lights up). */
+(function () {
+  'use strict';
+  var box = document.getElementById('bk-cats');
+  if (!box) return;
+  var input = box.querySelector('input[name="cat_forbid"]');
+  var count = box.querySelector('.bk-cat-on');
+  var cells = Array.prototype.slice.call(box.querySelectorAll('td.bk-cat'));
+  var paint = null;
+
+  function sync() {
+    var closed = [], on = 0;
+    cells.forEach(function (c) { if (c.classList.contains('on')) on++; else closed.push(c.getAttribute('data-c')); });
+    input.value = closed.join(',');
+    count.textContent = on;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  function set(list, open) { list.forEach(function (c) { c.classList.toggle('on', open); }); sync(); }
+
+  box.addEventListener('mousedown', function (e) {
+    var c = e.target.closest('td.bk-cat');
+    if (!c || e.button !== 0) return;
+    e.preventDefault();
+    paint = !c.classList.contains('on');
+    set([c], paint);
+  });
+  box.addEventListener('mouseover', function (e) {
+    if (paint === null) return;
+    var c = e.target.closest('td.bk-cat');
+    if (c && c.classList.contains('on') !== paint) set([c], paint);
+  });
+  document.addEventListener('mouseup', function () { paint = null; });
+
+  box.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-cats], .bk-cat-h');
+    if (!b) return;
+    if (b.hasAttribute('data-cats')) { set(cells, b.getAttribute('data-cats') === '1'); return; }
+    var row = b.getAttribute('data-row'), col = b.getAttribute('data-col');
+    var list = cells.filter(function (c) { return row ? c.getAttribute('data-row') === row : c.getAttribute('data-col') === col; });
+    set(list, !list.every(function (c) { return c.classList.contains('on'); }));
+  });
+})();

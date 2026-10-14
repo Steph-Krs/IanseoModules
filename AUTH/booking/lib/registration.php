@@ -63,7 +63,10 @@ function bk_with_tournament($tourId, $fn)
 /* Categories offered                                                  */
 /* ------------------------------------------------------------------ */
 
-/** Bows (divisions) open to athletes on this competition. */
+/**
+ * Bows (divisions) open to athletes on this competition — without those whose every category
+ * is closed to online registration (bk_cat_forbidden).
+ */
 function bk_reg_divisions($tourId)
 {
     $rs = safe_r_sql("SELECT DivId, DivDescription FROM Divisions
@@ -71,6 +74,12 @@ function bk_reg_divisions($tourId)
         ORDER BY DivViewOrder, DivId");
     $out = array();
     while ($r = safe_fetch($rs)) $out[$r->DivId] = $r->DivDescription;
+    if (bk_cat_forbidden($tourId)) {
+        $grid = bk_cat_grid($tourId);
+        foreach (array_keys($out) as $d) {
+            if (!in_array(true, $grid['cells'][$d] ?? array(), true)) unset($out[$d]);
+        }
+    }
     return $out;
 }
 
@@ -79,8 +88,10 @@ function bk_reg_divisions($tourId)
  *
  * Rule of the ianseo core (Partecipants/Get-Classes.php, Participants/lib.php): the age is the
  * YEAR the competition ends minus the YEAR of birth — never the age reached on today's date.
+ * The categories closed to online registration are left out, unless $all (to tell "your
+ * category is not open here" from "no category for your age").
  */
-function bk_reg_classes($tourId, $dob, $sex, $division)
+function bk_reg_classes($tourId, $dob, $sex, $division, $all = false)
 {
     $tourId = intval($tourId);
     $sex    = intval($sex) ? 1 : 0;
@@ -95,7 +106,10 @@ function bk_reg_classes($tourId, $dob, $sex, $division)
           AND (ClDivisionsAllowed = '' OR FIND_IN_SET(" . StrSafe_DB($division) . ", ClDivisionsAllowed))
         ORDER BY (ClAgeTo - ClAgeFrom) ASC, ClId");   // the most specific first
     $out = array();
-    while ($r = safe_fetch($rs)) $out[$r->ClId] = $r->ClDescription;
+    while ($r = safe_fetch($rs)) {
+        if (!$all && !bk_cat_allowed($tourId, $division, $r->ClId)) continue;
+        $out[$r->ClId] = $r->ClDescription;
+    }
     return $out;
 }
 
@@ -253,6 +267,9 @@ function bk_reg_blocked($tourId, $cfg, $licence, $clubCode, $division, $class, $
 
     $geo = bk_comp_archer_blocked($cfg, $clubCode);
     if ($geo !== '') return $geo;
+
+    // A category closed to online registration by the organiser (Restrictions, level 3).
+    if ($class !== '' && !bk_cat_allowed($tourId, $division, $class)) return bk_t('RgCatClosed');
 
     if (!array_key_exists($division, bk_reg_divisions($tourId))) {
         return bk_t('RgBadBow');

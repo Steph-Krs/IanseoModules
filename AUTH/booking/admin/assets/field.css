@@ -166,3 +166,33 @@
 @media (max-width: 780px) {
     #bkfield .bkf-palette { position: static; flex-basis: 100%; }
 }
+
+/* Events of the departure: those it can take, those it cannot (individual / team tabs). */
+#bkfield .bkf-events { margin-top: 12px; background: #fff; border: 1px solid #d2d4d6; border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 8px 10px; }
+#bkfield .bkf-ev-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+#bkfield .bkf-ev-head h2 { font-size: 12px; color: #0254a8; margin: 0; text-transform: uppercase; letter-spacing: .04em; }
+#bkfield .bkf-ev-tabs { display: flex; gap: 4px; }
+#bkfield .bkf-ev-tab { padding: 3px 10px; border: 1px solid #d2d4d6; border-radius: 5px; background: #f7f7f7; color: #4c4e50;
+    font: inherit; font-size: 12.5px; cursor: pointer; }
+#bkfield .bkf-ev-tab-on { background: #0254a8; border-color: #0254a8; color: #fff; font-weight: 600; }
+#bkfield .bkf-ev-tab[hidden] { display: none; }
+#bkfield .bkf-ev-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 0 18px; margin-top: 6px; }
+#bkfield .bkf-ev-col h3 { font-size: 13px; margin: 6px 0 4px; color: #035c07; }
+#bkfield .bkf-ev-ko h3 { color: #a80000; }
+#bkfield .bkf-ev-n { font-weight: 400; color: #7d8183; }
+#bkfield .bkf-ev-list { margin: 0; }
+/* Two rows per event: code | distance | places or why; name | faces | why. */
+#bkfield .bkf-ev-table { width: 100%; border-collapse: collapse; }
+#bkfield .bkf-ev-item + .bkf-ev-item { border-top: 1px solid #eef0f2; }
+#bkfield .bkf-ev-table td { padding: 1px 6px; text-align: left; vertical-align: baseline; }
+#bkfield .bkf-ev-table td:first-child { padding-left: 0; }
+#bkfield .bkf-ev-item tr:first-child td { padding-top: 4px; }
+#bkfield .bkf-ev-item tr:last-child td { padding-bottom: 4px; }
+#bkfield .bkf-ev-code, #bkfield .bkf-ev-name { white-space: nowrap; }
+#bkfield .bkf-ev-code { font-weight: 700; color: #01367c; }
+#bkfield .bkf-ev-dist, #bkfield .bkf-ev-faces { color: #5b6470; }
+#bkfield .bkf-ev-dist { white-space: nowrap; }
+#bkfield .bkf-ev-places { font-weight: 700; color: #035c07; white-space: nowrap; }
+#bkfield .bkf-ev-why { color: #a80000; }
+#bkfield .bkf-ev-empty { color: #7d8183; font-style: italic; margin: 0; }

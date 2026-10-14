@@ -14,6 +14,7 @@ checkFullACL(AclParticipants, 'pTarget', AclReadWrite);
 require_once dirname(__DIR__) . '/lib/schema.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
 require_once dirname(__DIR__) . '/lib/caps.php';
+require_once dirname(__DIR__) . '/lib/field-events.php';
 require_once dirname(__DIR__) . '/lib/archer.php';
 
 bk_schema();
@@ -57,12 +58,13 @@ if ($act === 'set') {
         bk_caps_set($TOUR, $ses, $t, $def, $dmin, $dmax, $f);
         $n++;
     }
-    JsonOut(array('error' => 0, 'msg' => '', 'n' => $n, 'caps' => (object) bk_caps_get($TOUR, $ses)));
+    JsonOut(array('error' => 0, 'msg' => '', 'n' => $n, 'caps' => (object) bk_caps_get($TOUR, $ses),
+        'events' => bk_field_events($TOUR, $ses)));
 }
 
 if ($act === 'clear') {
     bk_caps_clear($TOUR, $ses);
-    JsonOut(array('error' => 0, 'msg' => '', 'caps' => (object) array()));
+    JsonOut(array('error' => 0, 'msg' => '', 'caps' => (object) array(), 'events' => bk_field_events($TOUR, $ses)));
 }
 
 if ($act === 'copy') {
@@ -83,7 +85,7 @@ if ($act === 'copyfrom') {
     bk_caps_copy($TOUR, $from, $ses);
     // capabilities of the current departure sent back → the grid refreshes at once
     JsonOut(array('error' => 0, 'msg' => bk_t('AdmCapsCopiedFrom', $from),
-        'caps' => (object) bk_caps_get($TOUR, $ses)));
+        'caps' => (object) bk_caps_get($TOUR, $ses), 'events' => bk_field_events($TOUR, $ses)));
 }
 
 JsonOut(array('error' => 1, 'msg' => bk_t('AdmUnknownAction')));

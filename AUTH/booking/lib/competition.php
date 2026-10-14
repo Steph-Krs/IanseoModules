@@ -110,7 +110,7 @@ function bk_comp_defaults($tourId)
     return (object) array(
         'BcTournament' => intval($tourId),
         'BcOpen' => 0, 'BcOpenFrom' => null, 'BcOpenTo' => null,
-        'BcRestrictKind' => '', 'BcRestrictCode' => '', 'BcRestrictTo' => null,
+        'BcRestrictKind' => '', 'BcRestrictCode' => '', 'BcRestrictTo' => null, 'BcCategories' => null,
         'BcMaxPerClubPerTarget' => 2, 'BcMinClubsPerSession' => 3,
         'BcShowAssignment' => 0, 'BcShowGauges' => 1, 'BcAllowScoresheet' => 0,
         'BcWishLetter' => 1, 'BcWishWith' => 0, 'BcWishFree' => 0,
@@ -133,7 +133,7 @@ function bk_comp_advanced_cols()
     // BcFee (base fee) is left out ON PURPOSE: a stable effective setting, also typed at level 2
     // ("To finish"), which the snapshot must not put back to its former value when going back
     // to level 3. Only the DETAILED tariff (BcPricing) is set aside by level 2, then restored.
-    return array('BcOpen', 'BcOpenFrom', 'BcOpenTo', 'BcRestrictKind', 'BcRestrictCode', 'BcRestrictTo',
+    return array('BcOpen', 'BcOpenFrom', 'BcOpenTo', 'BcRestrictKind', 'BcRestrictCode', 'BcRestrictTo', 'BcCategories',
         'BcMaxPerClubPerTarget', 'BcMinClubsPerSession', 'BcShowAssignment', 'BcShowGauges', 'BcAllowScoresheet',
         'BcWishLetter', 'BcWishWith', 'BcWishFree', 'BcPricing', 'BcManualValidation',
         'BcShowMandate', 'BcMandate', 'BcIanseoUrl', 'BcShowProgram', 'BcShowParticipants', 'BcShowResults',
@@ -278,7 +278,7 @@ function bk_comp_copy_from($destTour, $srcTour, $staff = false)
         d.BcShowMandate = s.BcShowMandate, d.BcShowProgram = s.BcShowProgram,
         d.BcShowParticipants = s.BcShowParticipants, d.BcShowResults = s.BcShowResults,
         d.BcShowDossard = s.BcShowDossard, d.BcSurvey = s.BcSurvey, d.BcWaitlist = s.BcWaitlist,
-        d.BcSingleReg = s.BcSingleReg, d.BcPayments = s.BcPayments
+        d.BcSingleReg = s.BcSingleReg, d.BcPayments = s.BcPayments, d.BcCategories = s.BcCategories
         WHERE d.BcTournament = $destTour");
 
     // Opening of each departure, its own dates moved by the same offset.
@@ -439,9 +439,95 @@ function bk_comp_save($tourId, $in)
         $json = trim((string) $in['payinfo']);
         $set .= ", BcPayInfo = " . ($json === '' ? 'NULL' : StrSafe_DB($json));
     }
+    // Categories closed to online registration: written only when the grid was there (level 3).
+    if (array_key_exists('cat_forbid', $in)) {
+        $list = bk_cat_clean($tourId, $in['cat_forbid']);
+        $set .= ", BcCategories = " . ($list === '' ? 'NULL' : StrSafe_DB($list));
+    }
 
     safe_w_sql("INSERT INTO BookingCompetitions SET BcTournament = $tourId, $set
         ON DUPLICATE KEY UPDATE $set");
+    bk_cat_forbidden($tourId, true);
+}
+
+/* ------------------------------------------------------------------ */
+/* Categories open to online registration (level 3, Restrictions)      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Categories closed to online registration on a competition (user's choice, 2026-10-14): a
+ * championship for some categories only, even when others share their distances and faces.
+ * Returns ['DIV|CLS' => true] of the FORBIDDEN ones; empty: every category is open.
+ * Applied where the categories offered to an archer are computed (bk_reg_divisions,
+ * bk_reg_classes, bk_reg_blocked): registration, club mate, waiting list. Never to what the
+ * organiser enters in ianseo, nor to a re-import.
+ */
+function bk_cat_forbidden($tourId, $fresh = false)
+{
+    static $cache = array();
+    $tourId = intval($tourId);
+    if (!$fresh && isset($cache[$tourId])) return $cache[$tourId];
+    $rs = safe_r_sql("SELECT BcCategories FROM BookingCompetitions WHERE BcTournament = $tourId", false, true);
+    $r = $rs ? safe_fetch($rs) : null;
+    return $cache[$tourId] = bk_cat_parse($r->BcCategories ?? '');
+}
+
+/** "DIV|CLS,…" → ['DIV|CLS' => true]. */
+function bk_cat_parse($list)
+{
+    $out = array();
+    foreach (explode(',', (string) $list) as $k) {
+        $k = trim($k);
+        if ($k !== '' && strpos($k, '|') !== false) $out[$k] = true;
+    }
+    return $out;
+}
+
+/** Is this category (bow, class) open to online registration? */
+function bk_cat_allowed($tourId, $division, $class)
+{
+    return !isset(bk_cat_forbidden($tourId)[(string) $division . '|' . (string) $class]);
+}
+
+/**
+ * The grid of the categories of a competition: the divisions of athletes (rows), their classes
+ * (columns), each pair valid when the class takes this division (ClDivisionsAllowed, as the core),
+ * and allowed or not. ['divs' => [[id, label]], 'classes' => [[id, label]], 'cells' => [DIV => [CLS => allowed]]]
+ */
+function bk_cat_grid($tourId, $forbidden = null)
+{
+    $tourId = intval($tourId);
+    $divs = $classes = $cells = array();
+    $rs = safe_r_sql("SELECT DivId, DivDescription FROM Divisions WHERE DivTournament = $tourId AND DivAthlete = 1 ORDER BY DivViewOrder, DivId");
+    while ($r = safe_fetch($rs)) $divs[] = array((string) $r->DivId, (string) $r->DivDescription);
+    $allowedDivs = array();
+    $rs = safe_r_sql("SELECT ClId, ClDescription, ClDivisionsAllowed FROM Classes WHERE ClTournament = $tourId AND ClAthlete = 1 ORDER BY ClViewOrder, ClId");
+    while ($r = safe_fetch($rs)) {
+        $classes[] = array((string) $r->ClId, (string) $r->ClDescription);
+        $a = trim((string) $r->ClDivisionsAllowed);
+        $allowedDivs[(string) $r->ClId] = $a === '' ? null : array_map('trim', explode(',', $a));
+    }
+    // $forbidden: a list to show instead of the effective one (the settings level 2 put aside).
+    $forbidden = $forbidden === null ? bk_cat_forbidden($tourId) : bk_cat_parse($forbidden);
+    foreach ($divs as $d) {
+        foreach ($classes as $c) {
+            $ok = $allowedDivs[$c[0]] === null || in_array($d[0], $allowedDivs[$c[0]], true);
+            if ($ok) $cells[$d[0]][$c[0]] = !isset($forbidden[$d[0] . '|' . $c[0]]);
+        }
+    }
+    return array('divs' => $divs, 'classes' => $classes, 'cells' => $cells);
+}
+
+/** Forbidden categories sent by the page → "DIV|CLS,…" of the valid pairs of the competition only. */
+function bk_cat_clean($tourId, $list)
+{
+    $grid = bk_cat_grid($tourId);
+    $out = array();
+    foreach (explode(',', (string) $list) as $k) {
+        $p = explode('|', trim($k));
+        if (count($p) === 2 && isset($grid['cells'][$p[0]][$p[1]])) $out[$p[0] . '|' . $p[1]] = true;
+    }
+    return implode(',', array_keys($out));
 }
 
 /* ------------------------------------------------------------------ */
@@ -526,7 +612,7 @@ function bk_comp_apply_auto($tourId)
     $set = "BcOpen = 1"
         . ", BcOpenFrom = " . StrSafe_DB($now)
         . ", BcOpenTo = " . ($end === '' ? 'NULL' : StrSafe_DB($end))
-        . ", BcRestrictKind = '', BcRestrictCode = '', BcRestrictTo = NULL"
+        . ", BcRestrictKind = '', BcRestrictCode = '', BcRestrictTo = NULL, BcCategories = NULL"
         . ", BcManualValidation = 0"
         . ", BcMaxPerClubPerTarget = 2, BcMinClubsPerSession = 3"
         . ", BcShowGauges = 1, BcShowAssignment = 1, BcAllowScoresheet = 1"

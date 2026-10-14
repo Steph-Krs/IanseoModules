@@ -399,13 +399,13 @@ function bk_waitlist_register_now($tourId, $id, $session)
     if (!$lue) return array('ok' => false, 'msg' => bk_t('WlUnknownLic'));
     $session = intval($session);
     $cfg = bk_comp_config($tourId);
-    // The organiser may register outside the registration window and the geographic
-    // restriction, as in ianseo's own screens: only the rules about the archer and the
-    // departure stand (bk_register refuses a finished competition by itself).
+    // The organiser may register outside the registration window, the geographic restriction
+    // and the categories closed online, as in ianseo's own screens: only the rules about the
+    // archer and the departure stand (bk_register refuses a finished competition by itself).
     if (bk_reg_session_left($tourId, $session) < 0) {
         return array('ok' => false, 'msg' => bk_t('WlNoDep'));
     }
-    if (!array_key_exists($w->BwClass, bk_reg_classes($tourId, $lue->LueCtrlCode, $lue->LueSex, $w->BwDivision))) {
+    if (!array_key_exists($w->BwClass, bk_reg_classes($tourId, $lue->LueCtrlCode, $lue->LueSex, $w->BwDivision, true))) {
         return array('ok' => false, 'msg' => bk_t('WlCatGone'));
     }
     foreach (bk_reg_existing($tourId, $w->BwLicence) as $e) {
