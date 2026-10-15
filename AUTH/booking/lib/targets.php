@@ -27,27 +27,34 @@ function bk_target_no($session, $target, $letter)
     return intval($session) . str_pad(intval($target), 3, '0', STR_PAD_LEFT) . strtoupper($letter);
 }
 
-/** Free slots of a departure, ordered by target then letter. */
+/**
+ * Free slots of a departure, ordered by target then letter. The slots are those
+ * createAvailableTargetSQL() of the core defines (targets of the Session row × its letters),
+ * built here from that row rather than filtered in SQL: a filter on that derived table turns
+ * quadratic under MySQL 8 (derived_condition_pushdown), and its query cost 60 to 650 ms per
+ * departure even under MariaDB.
+ */
 function bk_free_slots($tourId, $sessionOrder)
 {
     $tourId = intval($tourId);
-    $sql = bk_with_tournament($tourId, function () use ($sessionOrder, $tourId) {
-        return createAvailableTargetSQL(intval($sessionOrder), $tourId);
-    });
-
-    $rs = safe_r_sql("SELECT f.FullTgtTarget AS t, f.FullTgtLetter AS l
-        FROM ($sql) f
-        LEFT JOIN (
-            SELECT QuTarget, QuLetter, QuSession
-              FROM Qualifications
-              INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
-        ) o ON o.QuSession = f.FullTgtSession
-           AND o.QuTarget  = f.FullTgtTarget
-           AND o.QuLetter  = f.FullTgtLetter
-        WHERE o.QuTarget IS NULL
-        ORDER BY f.FullTgtTarget, f.FullTgtLetter");
+    $sessionOrder = intval($sessionOrder);
+    $ses = safe_fetch(safe_r_sql("SELECT SesFirstTarget, SesTar4Session, SesAth4Target FROM Session
+        WHERE SesTournament = $tourId AND SesOrder = $sessionOrder AND SesType = 'Q'"));
+    if (!$ses) return array();
+    $taken = array();
+    $rs = safe_r_sql("SELECT QuTarget, QuLetter FROM Qualifications
+        INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
+        WHERE QuSession = $sessionOrder");
+    // bytes: target letters are ASCII (the SQL join compared them without case)
+    while ($r = safe_fetch($rs)) $taken[intval($r->QuTarget) . '|' . strtoupper((string) $r->QuLetter)] = true;
     $out = array();
-    while ($r = safe_fetch($rs)) $out[] = array('t' => intval($r->t), 'l' => $r->l);
+    $first = intval($ses->SesFirstTarget);
+    for ($t = $first; $t < $first + intval($ses->SesTar4Session); $t++) {
+        for ($i = 0; $i < intval($ses->SesAth4Target); $i++) {
+            $l = chr(65 + $i);
+            if (!isset($taken[$t . '|' . $l])) $out[] = array('t' => $t, 'l' => $l);
+        }
+    }
     return $out;
 }
 
@@ -357,6 +364,16 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
  */
 function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId)
 {
+    $ctx = bk_profile_ctx($tourId, $sessionOrder);
+    return $ctx === null ? null : bk_profile_left($ctx, $division, $class, $faceId);
+}
+
+/**
+ * What bk_profile_remaining needs of a departure, read once: several profiles can then be
+ * measured against it (the table of the places left per category). null: no such departure.
+ */
+function bk_profile_ctx($tourId, $sessionOrder)
+{
     $tourId = intval($tourId);
     $sessionOrder = intval($sessionOrder);
 
@@ -364,40 +381,49 @@ function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId
     if (!$tr) return null;
     $type = $tr->ToType;
     $dd   = bk_comp_discipline($type, $tr->ToTypeSubRule, $tr->ToTypeName);
-    $disc = $dd['key'];
 
     $ses = safe_fetch(safe_r_sql("SELECT SesAth4Target FROM Session
         WHERE SesTournament = $tourId AND SesOrder = $sessionOrder AND SesType = 'Q'"));
     if (!$ses) return null;
-    $rhythm = max(1, intval($ses->SesAth4Target));
 
-    $caps      = bk_caps_get($tourId, $sessionOrder);
-    $needCache = array();
-    $needOf = function ($div, $cls, $fid) use (&$needCache, $tourId, $type) {
-        $k = $div . '|' . $cls . '|' . intval($fid);
-        if (!isset($needCache[$k])) $needCache[$k] = bk_caps_needs($tourId, $type, $div, $cls, $fid);
-        return $needCache[$k];
-    };
-    $needs     = $needOf($division, $class, $faceId);
-    $distKey   = bk_caps_dist_key($needs);
-    $faceClass = bk_face_class_by_id($tourId, intval($faceId));
-
-    $slots = bk_free_slots($tourId, $sessionOrder);
-    $targets = array();
-    foreach ($slots as $s) $targets[intval($s['t'])] = true;
-    if (!$targets) return 0;
+    $ctx = array('tour' => $tourId, 'type' => $type, 'disc' => $dd['key'], 'rhythm' => max(1, intval($ses->SesAth4Target)),
+                 'caps' => bk_caps_get($tourId, $sessionOrder), 'targets' => array(), 'faces' => array(), 'dist' => array());
+    foreach (bk_free_slots($tourId, $sessionOrder) as $s) $ctx['targets'][intval($s['t'])] = true;
 
     // Current occupation: faces and distance imposed by the archers already placed.
-    $facesCible = array(); $distCible = array();
     foreach (bk_session_archers_full($tourId, $sessionOrder) as $a) {
         if (intval($a->QuTarget) <= 0) continue;
         $t = intval($a->QuTarget);
-        $facesCible[$t][] = bk_face_class_by_id($tourId, $a->EnTargetFace);
-        $distCible[$t] = bk_caps_dist_key($needOf($a->EnDivision, $a->EnClass, $a->EnTargetFace));
+        $ctx['faces'][$t][] = bk_face_class_by_id($tourId, $a->EnTargetFace);
+        $ctx['dist'][$t] = bk_caps_dist_key(bk_profile_needs($tourId, $type, $a->EnDivision, $a->EnClass, $a->EnTargetFace));
     }
+    return $ctx;
+}
+
+/** bk_caps_needs, kept for the request: the same categories come back for every departure. */
+function bk_profile_needs($tourId, $type, $div, $cls, $fid)
+{
+    static $cache = array();
+    $k = intval($tourId) . '|' . $type . '|' . $div . '|' . $cls . '|' . intval($fid);
+    if (!isset($cache[$k])) $cache[$k] = bk_caps_needs($tourId, $type, $div, $cls, $fid);
+    return $cache[$k];
+}
+
+/** Places of a departure (bk_profile_ctx) still open to one profile — see bk_profile_remaining. */
+function bk_profile_left($ctx, $division, $class, $faceId)
+{
+    $tourId    = $ctx['tour'];
+    $disc      = $ctx['disc'];
+    $rhythm    = $ctx['rhythm'];
+    $caps      = $ctx['caps'];
+    $needs     = bk_profile_needs($tourId, $ctx['type'], $division, $class, $faceId);
+    $distKey   = bk_caps_dist_key($needs);
+    $faceClass = bk_face_class_by_id($tourId, intval($faceId));
+    $facesCible = $ctx['faces'];
+    $distCible  = $ctx['dist'];
 
     $remaining = 0;
-    foreach (array_keys($targets) as $t) {
+    foreach (array_keys($ctx['targets']) as $t) {
         if (!bk_caps_target_ok($caps, $t, $needs)) continue;
         if (isset($distCible[$t]) && $distCible[$t] !== $distKey) continue;
         // ⚠️ bk_cohabit_max_add() answers "how many more NOW", not "how many in all". On an

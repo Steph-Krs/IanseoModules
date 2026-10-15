@@ -48,7 +48,8 @@ online spaces (the module is ready to switch the day it comes).
 - 🧩 Automatic session/target allocation following the federation rules (including the sharing
   of target faces)
 - 🎟️ **Categories allowed**: the organiser picks, in a division × class grid per session, the
-  categories open to online registration; the field constraints page shows live the events possible on each session,
+  categories open to online registration, and sees in the registration state the places left for each of them on every
+  session; the field constraints page shows live the events possible on each session,
   with their distances, target faces and maximum places
 - ⏳ Waiting list when a session is full, from the usual registration form: as soon as a place
   is freed, the first matching archer is registered automatically and told in their space
@@ -240,9 +241,9 @@ See the [general README](../README.md) for the common principle.
 | `INSERT INTO` | `Entries` | `booking/lib/registration.php:598` | — |
 | `UPDATE` | `Entries` | `booking/lib/registration.php:608` | review scope by hand |
 | `INSERT INTO` | `Qualifications` | `booking/lib/registration.php:613` | — |
-| `UPDATE` | `Qualifications` | `booking/lib/targets.php:295` | — |
-| `UPDATE` | `Qualifications` | `booking/lib/targets.php:431` | — |
-| `UPDATE` | `Qualifications` | `booking/lib/targets.php:522` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/targets.php:302` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/targets.php:457` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/targets.php:548` | — |
 | `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:166` | review scope by hand |
 | `INSERT INTO` | `LookUpEntries` | `cron/sync-licences.php:183` | — |
 | `UPDATE` | `LookUpPaths` | `cron/sync-licences.php:187` | review scope by hand |
@@ -304,9 +305,9 @@ See the [general README](../README.md) for the common principle.
 | `DELETE FROM` | `BookingArchers` | `anonymise-lib.php:401` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:406` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:407` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:97` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:119` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:187` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:98` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:120` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:188` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/admin/mandate.php:44` | — |
 | `INSERT INTO` | `BookingReimportConflicts` | `booking/lib/adopt.php:105` | — |
 | `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:173` | — |
@@ -410,8 +411,8 @@ See the [general README](../README.md) for the common principle.
 | `INSERT INTO` | `BookingSurveys` | `booking/lib/survey.php:193` | — |
 | `INSERT IGNORE INTO` | `BookingSurveyVoters` | `booking/lib/survey.php:196` | — |
 | `UPDATE` | `BookingSurveys` | `booking/lib/survey.php:275` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:498` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:513` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:524` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:539` | — |
 | `INSERT INTO` | `BookingWaitlist` | `booking/lib/waitlist.php:107` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:129` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:220` | — |

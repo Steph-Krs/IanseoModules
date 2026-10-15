@@ -84,6 +84,24 @@
   show();
 })();
 
+/* Places left per category (registration state): a tab per departure, display only. */
+(function () {
+  'use strict';
+  var box = document.getElementById('bk-places');
+  if (!box) return;
+  box.addEventListener('click', function (e) {
+    var t = e.target.closest('.bk-cat-tab');
+    if (!t) return;
+    var ses = t.getAttribute('data-ses');
+    Array.prototype.forEach.call(box.querySelectorAll('.bk-cat-pane'), function (p) { p.hidden = p.getAttribute('data-ses') !== ses; });
+    Array.prototype.forEach.call(box.querySelectorAll('.bk-cat-tab'), function (b) {
+      var on = b === t;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  });
+})();
+
 /* Categories open to online registration (Restrictions, level 3), one grid per departure. The
    mouse paints: the first cell pressed decides (open or closed), every cell passed over while the
    button is down takes the same; a header switches its whole row or column, the two buttons every

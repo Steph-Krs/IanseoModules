@@ -49,7 +49,8 @@ des espaces en ligne (le module est prêt à basculer le jour venu).
 - 🎯 Espace licencié : calendrier des compétitions ouvertes, inscription en quelques clics
 - 🧩 Attribution automatique départ/cible selon les règles fédérales (dont cohabitation des blasons)
 - 🎟️ **Catégories admises** : l'organisateur choisit dans une grille arme × classe, départ par
-  départ, les catégories ouvertes à l'inscription en ligne ; la page des contraintes du terrain montre en direct les épreuves
+  départ, les catégories ouvertes à l'inscription en ligne, et voit dans l'état des inscriptions les
+  places restantes de chacune sur chaque départ ; la page des contraintes du terrain montre en direct les épreuves
   possibles sur chaque départ, avec leurs distances, leurs blasons et leurs places maximum
 - ⏳ Liste d'attente quand un départ est complet, depuis le formulaire d'inscription habituel :
   dès qu'une place se libère, le premier archer compatible est inscrit automatiquement et prévenu
@@ -249,9 +250,9 @@ Voir le [README général](../README.md) pour le principe commun.
 | `INSERT INTO` | `Entries` | `booking/lib/registration.php:598` | — |
 | `UPDATE` | `Entries` | `booking/lib/registration.php:608` | review scope by hand |
 | `INSERT INTO` | `Qualifications` | `booking/lib/registration.php:613` | — |
-| `UPDATE` | `Qualifications` | `booking/lib/targets.php:295` | — |
-| `UPDATE` | `Qualifications` | `booking/lib/targets.php:431` | — |
-| `UPDATE` | `Qualifications` | `booking/lib/targets.php:522` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/targets.php:302` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/targets.php:457` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/targets.php:548` | — |
 | `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:166` | review scope by hand |
 | `INSERT INTO` | `LookUpEntries` | `cron/sync-licences.php:183` | — |
 | `UPDATE` | `LookUpPaths` | `cron/sync-licences.php:187` | review scope by hand |
@@ -313,9 +314,9 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `BookingArchers` | `anonymise-lib.php:401` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:406` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:407` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:97` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:119` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:187` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:98` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:120` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:188` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/admin/mandate.php:44` | — |
 | `INSERT INTO` | `BookingReimportConflicts` | `booking/lib/adopt.php:105` | — |
 | `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:173` | — |
@@ -419,8 +420,8 @@ Voir le [README général](../README.md) pour le principe commun.
 | `INSERT INTO` | `BookingSurveys` | `booking/lib/survey.php:193` | — |
 | `INSERT IGNORE INTO` | `BookingSurveyVoters` | `booking/lib/survey.php:196` | — |
 | `UPDATE` | `BookingSurveys` | `booking/lib/survey.php:275` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:498` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:513` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:524` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:539` | — |
 | `INSERT INTO` | `BookingWaitlist` | `booking/lib/waitlist.php:107` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:129` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:220` | — |

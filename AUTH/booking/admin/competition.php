@@ -22,6 +22,7 @@ require_once dirname(__DIR__) . '/lib/pricing.php';  // advanced tariff
 require_once dirname(__DIR__) . '/lib/payment.php';  // means of payment
 require_once dirname(__DIR__) . '/lib/mandate.php';  // bk_mandate_visible
 require_once dirname(__DIR__) . '/lib/targets.php';  // bk_rules_check
+require_once dirname(__DIR__) . '/lib/places.php';   // places left per category
 require_once dirname(__DIR__) . '/lib/archer.php';   // bk_csrf_*
 require_once dirname(__DIR__) . '/lib/adopt.php';    // bk_adopt_check (kept across a re-import)
 require_once dirname(__DIR__) . '/lib/ui.php';       // bk_e
@@ -513,6 +514,14 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 #bkadm .bk-cat.on { background:#0254a8; color:#fff; border-color:#0254a8; font-weight:600; }
 #bkadm .bk-cat:hover { box-shadow:0 0 0 2px #a7d6ff; }
 #bkadm .bk-cat-na { background:transparent; }
+/* Places left per category (registration state): the grid of the Restrictions, read only. */
+#bkadm .bk-pl { min-width:40px; padding:4px 6px; text-align:center; border-radius:4px; border:1px solid #c9daf0;
+    background:#eaf1fb; color:#01367c; font-size:13px; font-weight:700; }
+#bkadm .bk-pl.zero { background:#eceeef; border-color:#d2d4d6; color:#7d8183; font-weight:400; }
+#bkadm .bk-places th { cursor:default; }
+#bkadm .bk-places tbody th { text-align:center; }
+#bkadm .bk-places tbody th small { display:block; font-weight:400; color:#5b6470; }
+#bkadm .bk-pl-at { margin:6px 0 0; color:#5b6470; font-size:12px; }
 </style>
 <?php
 // "Copy from…": at the right of the title, its own form.
@@ -911,6 +920,54 @@ if (!$sessions) {
     $state .= '</table>';
 }
 $state .= '<p class="bk-shortcuts"><a class="bk-btn" href="' . $ADMIN . 'field.php">' . bk_e(bk_t('MnuField')) . ' →</a>' . $qFld . '</p>' . $hFld . '</div>';
+
+/**
+ * Places left per category on each departure (lib/places.php, user's choice, 2026-10-15): the
+ * grid of the Restrictions, read only — a tab per departure, a grey 0 when the category has no
+ * room left, the categories not allowed on the departure left out (a division or a class without
+ * any: its whole row or column), and when it was computed.
+ */
+function bk_adm_places_grid($tourId)
+{
+    $p = bk_places_grid($tourId);
+    if (!$p['sessions']) return '';
+    $many = count($p['sessions']) > 1;
+    $tabs = $panes = '';
+    $first = true;
+    foreach ($p['sessions'] as $o => $s) {
+        $cols = array();
+        foreach ($s['cells'] as $row) foreach (array_keys($row) as $c) $cols[$c] = true;
+        $head = '<tr><th class="bk-cat-corner"></th>';
+        foreach ($p['classes'] as $c => $cl) if (isset($cols[$c])) $head .= '<th title="' . bk_e($cl) . '">' . bk_e($c) . '</th>';
+        $rows = '';
+        foreach ($p['divs'] as $d => $dl) {
+            if (empty($s['cells'][$d])) continue;
+            $rows .= '<tr><th title="' . bk_e($dl) . '">' . bk_e($d) . ' <small>' . bk_e($dl) . '</small></th>';
+            foreach ($p['classes'] as $c => $cl) {
+                if (!isset($cols[$c])) continue;
+                if (!isset($s['cells'][$d][$c])) { $rows .= '<td class="bk-cat-na"></td>'; continue; }
+                $n = intval($s['cells'][$d][$c]);
+                $rows .= '<td class="bk-pl' . ($n ? '' : ' zero') . '" title="' . bk_e($dl . ' — ' . $cl) . '">' . $n . '</td>';
+            }
+            $rows .= '</tr>';
+        }
+        $label = bk_t('DepCap', $o) . ($s['name'] !== '' ? ' — ' . $s['name'] : '');
+        if ($many) {
+            $tabs .= '<button type="button" class="bk-cat-tab' . ($first ? ' on' : '') . '" data-ses="' . $o . '" role="tab" aria-selected="'
+                . ($first ? 'true' : 'false') . '">' . bk_e($label) . '</button>';
+        }
+        $panes .= '<div class="bk-cat-pane" data-ses="' . $o . '"' . ($first ? '' : ' hidden') . '>'
+            . ($rows === '' ? '<p class="bk-hint">' . bk_e(bk_t('AcPlacesNone')) . '</p>'
+                : '<div class="bk-cat-scroll"><table class="bk-cats bk-places"><thead>' . $head . '</tr></thead><tbody>' . $rows . '</tbody></table></div>')
+            . '</div>';
+        $first = false;
+    }
+    return '<div class="bk-sec" id="bk-places">' . bk_title('h2', bk_t('AcPlacesTitle'), bk_e(bk_t('AcPlacesHint')))
+        . ($many ? '<div class="bk-cat-tabs" role="tablist">' . $tabs . '</div>' : '') . $panes
+        . ($p['at'] !== '' ? '<p class="bk-pl-at">' . bk_e(bk_t('AcPlacesAt', bk_date_time($p['at']))) . '</p>' : '')
+        . '</div>';
+}
+if ($sessions) $state .= bk_adm_places_grid($TOUR);
 
 // Waiting list (lib/waitlist.php): order of arrival; register by hand (even on a full departure:
 // the organiser's call) or remove.
