@@ -265,8 +265,22 @@ function bk_live_banner($archer)
   </script>' . "\n";
 }
 
+/** Whether the page shows a folding discipline filter (bk_disc_fold_btn): bk_foot adds its script. */
+function bk_disc_fold_used($set = false)
+{
+    static $used = false;
+    if ($set) $used = true;
+    return $used;
+}
+
 function bk_foot()
 {
+    if (bk_disc_fold_used()) {
+        // Phone: the discipline chips fold behind their button (CSS in bk.css, class "open").
+        echo '<script>[].forEach.call(document.querySelectorAll(".bk-disc-btn"), function (b) {'
+            . ' b.addEventListener("click", function () { var open = b.closest(".bk-fold").classList.toggle("open");'
+            . ' b.setAttribute("aria-expanded", open ? "true" : "false"); }); });</script>' . "\n";
+    }
     echo "  </main>\n</div>\n</body>\n</html>\n";
 }
 

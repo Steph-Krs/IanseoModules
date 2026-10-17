@@ -1054,6 +1054,24 @@ function bk_disc_icon_para($size = 16)
 }
 
 /**
+ * Button that unfolds the discipline filter on a phone (map.php, calendar.php). The page puts
+ * it in the same container as the chips (.bk-cal-disc, id $chipsId) and gives that container
+ * the class bk-fold; style in assets/bk.css, script added by bk_foot(). It carries the picture
+ * of the chosen discipline, its tooltip names it.
+ */
+function bk_disc_fold_btn($disc, $chipsId)
+{
+    $labels = bk_disc_labels();
+    $name = $disc === '' ? bk_t('All') : ($disc === 'para' ? bk_t('Para') : ($labels[$disc] ?? $disc));
+    $icon = $disc === '' ? '' : ($disc === 'para' ? bk_disc_icon_para(16) : bk_disc_icon($disc, 16));
+    bk_disc_fold_used(true);
+    return '<button type="button" class="bk-dchip bk-disc-btn' . ($disc !== '' ? ' on' : '') . '" aria-expanded="false"'
+        . ' aria-controls="' . htmlspecialchars($chipsId, ENT_QUOTES) . '" title="' . htmlspecialchars($name, ENT_QUOTES) . '">'
+        . $icon . '<span class="bk-disc-lb">' . htmlspecialchars(bk_t('Discipline'), ENT_QUOTES) . '</span>'
+        . '<span class="bk-caret" aria-hidden="true">▾</span></button>';
+}
+
+/**
  * Places per departure above which the organiser is warned (admin/competition.php). To
  * check a target number, the core builds one UNION branch per place of the departure
  * (createAvailableTargetSQL): 9 999 targets × 8 = 80 000 branches, up to 10 minutes per

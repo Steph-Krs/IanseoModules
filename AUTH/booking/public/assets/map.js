@@ -4,13 +4,6 @@
  * Texts come from the page (C.t), never from this file.
  */
 (function () {
-  // Phone: the discipline chips fold behind a button next to the dates (CSS of map.php).
-  var dbtn = document.querySelector('.bk-map-disc-btn');
-  if (dbtn) dbtn.addEventListener('click', function () {
-    var open = dbtn.closest('.bk-map-filters').classList.toggle('open');
-    dbtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
-
   // Phone: the date field is transparent over its short text (map.php). Some browsers open their
   // picker only from the field's own calendar icon: a click asks for the picker explicitly.
   [].forEach.call(document.querySelectorAll('.bk-date input'), function (inp) {

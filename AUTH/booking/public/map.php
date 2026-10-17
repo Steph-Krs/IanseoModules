@@ -116,32 +116,23 @@ bk_head(bk_t('MapTitle'));
 /* Short date (2-digit year), shown on a phone only (below). */
 #bk .bk-date { position:relative; display:inline-flex; }
 #bk .bk-date-txt { display:none; }
-/* Button that unfolds the disciplines: phone only (below). */
-#bk .bk-map-disc-btn { display:none; font:inherit; font-size:13px; cursor:pointer; white-space:nowrap; }
-#bk .bk-map-disc-btn .bk-caret { font-size:10px; }
-/* Phone: the disciplines fold behind the button next to the dates, "From" / "To" sit on the line
-   of their date, so that the map comes up the page. Pure CSS: no fold flashing at load time.
+/* Phone: the disciplines fold behind their button next to the dates (bk-fold, in bk.css),
+   "From" / "To" sit on the line of their date, so that the map comes up the page.
    A date field cannot shorten its own year: its short text is shown and the real field lies
    over it, transparent, so that a touch reaches it (map.js then asks for its picker). */
 @media (max-width:640px){
   #bk .bk-map-filters { gap:8px; }
-  #bk .bk-map-filters .bk-cal-disc { display:none; order:2; width:100%; }
-  #bk .bk-map-filters.open .bk-cal-disc { display:flex; }
   #bk .bk-map-dates { order:1; width:100%; flex-wrap:nowrap; align-items:center; gap:8px; }
   #bk .bk-map-dates label { flex-direction:row; align-items:center; gap:4px; font-size:12px; }
   #bk .bk-date-txt { display:block; padding:5px 7px; border:1px solid #d2d4d6; border-radius:6px; background:#fff;
       color:#20263d; font-size:14px; font-weight:400; line-height:16px; white-space:nowrap; }
   #bk .bk-date input { position:absolute; inset:0; width:100%; height:100%; margin:0; padding:0; border:0;
       opacity:0; cursor:pointer; }
-  #bk .bk-map-disc-btn { display:inline-flex; flex:0 0 auto; margin-left:auto; padding:5px 9px; font-size:13px; line-height:16px; }
 }
-/* Narrowest phones: a chosen discipline is told by its picture alone (the tooltip names it). */
 @media (max-width:340px){
   #bk .bk-map-dates { gap:6px; }
   #bk .bk-map-dates label { gap:3px; }
   #bk .bk-date-txt { padding:5px 5px; font-size:13px; }
-  #bk .bk-map-disc-btn { padding:5px 7px; }
-  #bk .bk-map-disc-btn.on .bk-disc-lb { display:none; }
 }
 /* Colour dot of the discipline in the filter (stands for the legend). */
 #bk .bk-dc-dot { width:12px; height:12px; border-radius:50%; border:1.5px solid #fff;
@@ -186,7 +177,7 @@ bk_head(bk_t('MapTitle'));
 $chip = function ($on, $url, $inner) {
     return '<a class="bk-dchip' . ($on ? ' on' : '') . '" href="' . bk_e($url) . '">' . $inner . '</a>';
 };
-$out = '<div class="bk-map-filters"><div class="bk-cal-disc" id="bk-map-disc">' . $chip($disc === '', bk_map_url(array('disc' => '')), bk_e(bk_t('All')));
+$out = '<div class="bk-map-filters bk-fold"><div class="bk-cal-disc" id="bk-map-disc">' . $chip($disc === '', bk_map_url(array('disc' => '')), bk_e(bk_t('All')));
 foreach ($labels as $k => $lab) {
     if (empty($facets['disc'][$k])) continue;
     $out .= $chip($disc === $k, bk_map_url(array('disc' => $k)), bk_disc_icon($k, 18) . '<span>' . bk_e($lab) . '</span>'
@@ -205,14 +196,8 @@ $dateField = function ($name, $label, $value) {
 };
 $out .= '</div><form class="bk-map-dates" method="get" action="' . bk_e(bk_public_url('map.php')) . '">'
     . '<input type="hidden" name="disc" value="' . bk_e($disc) . '">'
-    . $dateField('from', bk_t('MapFrom'), $from) . $dateField('to', bk_t('MapTo'), $to);
-// Phone: the button carries the picture of the chosen discipline and its tooltip names it.
-$discName = $disc === '' ? bk_t('All') : ($disc === 'para' ? 'Para' : ($labels[$disc] ?? $disc));
-$discIcon = $disc === '' ? '' : ($disc === 'para' ? bk_disc_icon_para(16) : bk_disc_icon($disc, 16));
-$out .= '<button type="button" class="bk-dchip bk-map-disc-btn' . ($disc !== '' ? ' on' : '') . '" aria-expanded="false"'
-    . ' aria-controls="bk-map-disc" title="' . bk_e($discName) . '">' . $discIcon
-    . '<span class="bk-disc-lb">' . bk_e(bk_t('Discipline')) . '</span><span class="bk-caret" aria-hidden="true">▾</span></button>'
-    . '</form></div>';
+    . $dateField('from', bk_t('MapFrom'), $from) . $dateField('to', bk_t('MapTo'), $to)
+    . bk_disc_fold_btn($disc, 'bk-map-disc') . '</form></div>';
 
 if ($pending) $out .= '<p class="bk-hint">' . bk_e(bk_t('MapPending', intval($pending))) . '</p>';
 if (!$located && !$pending) $out .= '<p class="bk-hint">' . bk_e(bk_t('MapNothing')) . '</p>';

@@ -118,8 +118,9 @@ $nextYm = date('Y-m', strtotime($ym . '-01 +1 month'));
 
 bk_head(bk_t('CalTitle'));
 
-// Filters: discipline chips, region list.
-echo '<div class="bk-cal-filters"><div class="bk-cal-disc">'
+// Filters: discipline chips, region list. On a phone the chips fold behind a button next to the
+// region (bk_disc_fold_btn), so that the grid comes up the page.
+echo '<div class="bk-cal-filters bk-fold"><div class="bk-cal-disc" id="bk-cal-disc">'
     . '<a class="bk-dchip' . ($disc === '' ? ' on' : '') . '" href="' . bk_e(bk_cal_url(array('disc' => ''))) . '">' . bk_e(bk_t('All')) . '</a>';
 foreach ($labels as $k => $lab) {
     if (empty($facets['disc'][$k])) continue;
@@ -140,13 +141,32 @@ foreach ($facets['regions'] as $code => $n) {
     echo '<option value="' . bk_e(bk_cal_url(array('region' => $code))) . '"' . ($region === $code ? ' selected' : '') . '>'
         . bk_e($code . ' — ' . bk_region_name($code)) . ' (' . $n . ')</option>';
 }
-echo '</select></label></div>';
+echo '</select></label>' . bk_disc_fold_btn($disc, 'bk-cal-disc') . '</div>';
 
-// Month navigation.
+// Month navigation. The month shown opens a month / year picker for quick moves (script below);
+// its links are real ones, rebuilt by the script when the year changes.
+$pickYear = substr($ym, 0, 4);   // bytes: a Y-m date is ASCII
+$pick = '<div class="bk-cal-pick" id="bk-cal-pick" role="dialog" aria-label="' . bk_e(bk_t('CalPickMonth')) . '" hidden'
+    . ' data-url="' . bk_e(bk_cal_url(array('month' => '__YM__'))) . '" data-ym="' . bk_e($ym) . '"'
+    // bytes: a Y-m-d date is ASCII
+    . ' data-now="' . bk_e(substr($today, 0, 7)) . '">'
+    . '<div class="bk-cal-pick-head">'
+    . '<button type="button" data-y="-1" title="' . bk_e(bk_t('CalPrevYear')) . '" aria-label="' . bk_e(bk_t('CalPrevYear')) . '">‹</button>'
+    . '<b class="bk-cal-pick-y">' . bk_e($pickYear) . '</b>'
+    . '<button type="button" data-y="1" title="' . bk_e(bk_t('CalNextYear')) . '" aria-label="' . bk_e(bk_t('CalNextYear')) . '">›</button>'
+    . '</div><div class="bk-cal-pick-grid">';
+for ($mo = 1; $mo <= 12; $mo++) {
+    $mm = sprintf('%02d', $mo);
+    $pick .= '<a data-m="' . $mm . '" class="' . ($pickYear . '-' . $mm === $ym ? 'on' : '') . '"'
+        . ' href="' . bk_e(bk_cal_url(array('month' => $pickYear . '-' . $mm))) . '">' . bk_e(bk_t('Month' . $mo)) . '</a>';
+}
+$pick .= '</div></div>';
 echo '<div class="bk-cal-nav">'
     . '<a class="bk-btn" href="' . bk_e(bk_cal_url(array('month' => $prevYm))) . '">← ' . bk_e($monthName(strtotime($prevYm . '-01'))) . '</a>'
-    // bytes: a Y-m date is ASCII
-    . '<b class="bk-cal-title"><span class="bk-cal-year">' . bk_e(substr($ym, 0, 4)) . '</span>' . bk_e($monthName($firstTs)) . '</b>'
+    . '<div class="bk-cal-titlebox"><button type="button" class="bk-cal-title" id="bk-cal-pick-btn" aria-haspopup="dialog"'
+    . ' aria-expanded="false" aria-controls="bk-cal-pick" title="' . bk_e(bk_t('CalPickMonth')) . '">'
+    . '<span class="bk-cal-year">' . bk_e($pickYear) . '</span>' . bk_e($monthName($firstTs))
+    . ' <span class="bk-caret" aria-hidden="true">▾</span></button>' . $pick . '</div>'
     . '<a class="bk-btn" href="' . bk_e(bk_cal_url(array('month' => $nextYm))) . '">' . bk_e($monthName(strtotime($nextYm . '-01'))) . ' →</a>'
     . '</div>';
 
@@ -232,6 +252,34 @@ echo '<div id="bk-preview" class="bk-modal" hidden><div class="bk-modal-backdrop
     . '<div class="bk-modal-hint" aria-hidden="true"><span>' . bk_e(bk_t('ScrollMore')) . '</span></div></div></div>';
 ?>
 <script>
+// Month / year picker under the month shown: a year chosen with the arrows, then a month.
+(function () {
+  var btn = document.getElementById('bk-cal-pick-btn'), pick = document.getElementById('bk-cal-pick');
+  if (!btn || !pick) return;
+  var url = pick.getAttribute('data-url'), cur = pick.getAttribute('data-ym'), now = pick.getAttribute('data-now');
+  var yEl = pick.querySelector('.bk-cal-pick-y'), year = parseInt(cur.slice(0, 4), 10);
+  function draw() {
+    yEl.textContent = year;
+    Array.prototype.forEach.call(pick.querySelectorAll('[data-m]'), function (a) {
+      var ym = year + '-' + a.getAttribute('data-m');
+      a.href = url.replace('__YM__', ym);
+      a.classList.toggle('on', ym === cur);
+      a.classList.toggle('now', ym === now);
+    });
+  }
+  function open(yes) {
+    if (yes) { year = parseInt(cur.slice(0, 4), 10); draw(); }
+    pick.hidden = !yes;
+    btn.setAttribute('aria-expanded', yes ? 'true' : 'false');
+  }
+  btn.addEventListener('click', function (e) { e.stopPropagation(); open(pick.hidden); });
+  pick.addEventListener('click', function (e) {
+    var y = e.target.closest('[data-y]');
+    if (y) { year += parseInt(y.getAttribute('data-y'), 10); draw(); }
+  });
+  document.addEventListener('click', function (e) { if (!pick.hidden && !pick.contains(e.target)) open(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pick.hidden) { open(false); btn.focus(); } });
+})();
 (function () {
   var modal = document.getElementById('bk-preview');
   if (!modal || !window.fetch) return;                 // fallback: the tiles stay links

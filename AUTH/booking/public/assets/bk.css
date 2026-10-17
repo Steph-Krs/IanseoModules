@@ -364,7 +364,7 @@ body {
 
 /* ==== Grid calendar (calendar.php) ==== */
 #bk .bk-cal-filters { display:flex; flex-wrap:wrap; gap:14px 20px; align-items:center;
-    margin:0 0 14px; padding:12px 14px; background:#fff; border:1px solid #d2d4d6; border-radius:8px; }
+    margin:0; padding:12px 14px; background:#fff; border:1px solid #d2d4d6; border-radius:8px; }
 #bk .bk-cal-disc { display:flex; flex-wrap:wrap; gap:8px; }
 #bk .bk-dchip { display:inline-flex; align-items:center; gap:6px; text-decoration:none;
     padding:6px 11px; border:1px solid #d2d4d6; border-radius:20px; background:#f0f4ff;
@@ -375,9 +375,49 @@ body {
 #bk .bk-cal-region { margin:0; font-weight:600; font-size:13px; display:flex; align-items:center; gap:8px; }
 #bk .bk-cal-region select { padding:7px 9px; border:1px solid #d2d4d6; border-radius:6px;
     background:#fff; color:#20263d; font-size:14px; max-width:260px; }
-#bk .bk-cal-nav { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 10px; }
-#bk .bk-cal-title { font-size:17px; color:#01367c; text-align:center; flex:1; line-height:1.05; }
+/* Discipline filter folded on a phone (map.php, calendar.php; bk_disc_fold_btn): the container
+   carries bk-fold, the chips .bk-cal-disc, "open" unfolds them below the line of the button.
+   Pure CSS fold: nothing jumps while the page loads. */
+#bk .bk-disc-btn { display:none; font:inherit; font-size:13px; line-height:16px; cursor:pointer; white-space:nowrap; }
+#bk .bk-disc-btn .bk-caret { font-size:10px; }
+@media (max-width:640px){
+  #bk .bk-fold .bk-cal-disc { display:none; order:2; width:100%; }
+  #bk .bk-fold.open .bk-cal-disc { display:flex; }
+  #bk .bk-disc-btn { display:inline-flex; order:1; flex:0 0 auto; margin-left:auto; padding:5px 9px; }
+  /* Calendar: "Region [list] [Discipline]" on one line, the list takes what is left. */
+  #bk .bk-cal-filters { gap:8px; padding:10px; }
+  #bk .bk-cal-region { order:1; flex:1 1 0; min-width:0; gap:6px; font-size:12px; }
+  #bk .bk-cal-region select { flex:1 1 auto; width:100%; min-width:0; max-width:none;
+      height:28px; padding:0 6px; font-size:14px; line-height:16px; }
+}
+/* Narrowest phones: a chosen discipline is told by its picture alone (the tooltip names it). */
+@media (max-width:340px){
+  #bk .bk-disc-btn { padding:5px 7px; }
+  #bk .bk-disc-btn.on .bk-disc-lb { display:none; }
+}
+#bk .bk-cal-nav { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0; }
+#bk .bk-cal-nav .bk-btn { margin-top:10px; }
+/* The month shown is a button: it opens the month / year picker (.bk-cal-pick) below it. */
+#bk .bk-cal-titlebox { position:relative; flex:1; text-align:center; }
+#bk .bk-cal-title { font:inherit; font-size:18px; font-weight:700; color:#01367c; line-height:1.05;
+    background:none; border:0; border-radius:6px; padding:3px 10px; cursor:pointer; }
+#bk .bk-cal-title:hover, #bk .bk-cal-title[aria-expanded="true"] { background:#eaf2ff; }
+#bk .bk-cal-title .bk-caret { font-size:10px; vertical-align:middle; }
 #bk .bk-cal-year { display:block; font-size:11px; font-weight:400; color:#7d8183; }
+#bk .bk-cal-pick { position:absolute; top:100%; left:50%; transform:translateX(-50%); z-index:50;
+    width:264px; margin-top:4px; padding:8px; background:#fff; border:1px solid #c9d4df; border-radius:8px;
+    box-shadow:0 4px 16px rgba(0,0,0,.18); text-align:left; }
+#bk .bk-cal-pick[hidden] { display:none; }
+#bk .bk-cal-pick-head { display:flex; align-items:center; justify-content:space-between; margin:0 0 6px; }
+#bk .bk-cal-pick-head b { font-size:15px; color:#01367c; }
+#bk .bk-cal-pick-head button { width:34px; height:30px; border:1px solid #d2d4d6; border-radius:6px; background:#f7f7f7;
+    color:#01367c; font-size:18px; line-height:1; cursor:pointer; }
+#bk .bk-cal-pick-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:4px; }
+#bk .bk-cal-pick-grid a { display:block; padding:8px 2px; border-radius:6px; background:#f0f4ff; color:#20263d;
+    font-size:13px; text-align:center; text-decoration:none; }
+#bk .bk-cal-pick-grid a:hover { background:#dce8ff; }
+#bk .bk-cal-pick-grid a.now { box-shadow:inset 0 0 0 1.5px #0254a8; }   /* this month */
+#bk .bk-cal-pick-grid a.on { background:#0254a8; color:#fff; }         /* month shown */
 
 /* Grid of CELLS (date top right) + a layer of BARS on top (Z axis): a multi-day competition =
    one bar spanning from its first to its last cell. Each row is complete (Monday→Sunday); the
@@ -452,7 +492,6 @@ body {
   #bk .bk-cal-comp.bk-cal-in::after { margin-left:2px; font-size:11px; }
   #bk .bk-cal-dow { font-size:10px; }
   #bk .bk-cal-nav .bk-btn { padding:8px 10px; font-size:12px; }
-  #bk .bk-cal-title { font-size:14px; }
   #bk .bk-cal-region select { max-width:100%; }
 }
 
