@@ -34,7 +34,9 @@ in a few clicks. Designed for ianseo servers reachable online.
 - 📅 **Calendar** of the competitions open for registration: filters (name, place, dates,
   type) and places left per session.
 - 🗺️ **Map** of the competitions and **directions** to the venue (Google Maps, Waze, Apple Maps);
-  with the SYNCHRO_FFTA module, the exact venue read on the FFTA extranet.
+  with the SYNCHRO_FFTA module, the exact venue read on the FFTA extranet. Base map and aerial
+  photos from IGN, loaded by the archer's browser straight from IGN (no key, no cookie, nothing
+  through the server), displayed with Leaflet (shipped with the module, BSD-2 licence).
 - 📝 **Registration in a few clicks**: name, club and date of birth taken from the licence
   file; bows, categories, target faces and sessions offered from the configuration of the
   competition.

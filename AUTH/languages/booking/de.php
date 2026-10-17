@@ -714,7 +714,6 @@ $lang['ShFileName'] = 'meine-teilnahme';
 $lang['MapTitle']        = 'Turnierkarte';
 $lang['MapFrom']         = 'Vom';
 $lang['MapTo']           = 'Bis';
-$lang['MapNoBackground'] = 'Die Hintergrundkarte ist nicht verfügbar (Datei der Departements fehlt).';
 $lang['MapPending']      = '{$a} Turnier(e) werden gerade lokalisiert — laden Sie in einem Moment neu.';
 $lang['MapNothing']      = 'Kein Turnier für diesen Zeitraum / diese Filter anzuzeigen (oder ohne angegebenen Ort).';
 $lang['MapZoomIn']       = 'Vergrößern';
@@ -722,6 +721,10 @@ $lang['MapZoomOut']      = 'Verkleinern';
 $lang['MapReset']        = 'Zurücksetzen';
 $lang['MapNComps']       = '{$a} Turniere';
 $lang['MapOneComp']      = 'Turnier';
+$lang['MapMetro']        = 'Frankreich (Festland)';
+$lang['MapPlan']         = 'Karte';
+$lang['MapPhoto']        = 'Luftbilder';
+$lang['MapDateFmt']      = 'd.m.y';   // PHP date() format, 2-digit year
 
 /* Waiting list, long dates */
 $lang['WlNone']       = 'Dieses Turnier bietet keine Warteliste an.';
@@ -1412,16 +1415,14 @@ $lang['AcJsAuto']            = 'Ihre Änderungen werden automatisch gespeichert.
 /* Two-factor authentication app label (lib/totp.php) */
 $lang['TotpIssuer'] = 'ianseo Lizenzinhaber';
 
-/* Map: overseas insets */
+/* Map: overseas territories (quick-access buttons) */
 $lang['MapInset971'] = 'Guadeloupe';
 $lang['MapInset972'] = 'Martinique';
 $lang['MapInset973'] = 'Französisch-Guayana';
 $lang['MapInset974'] = 'La Réunion';
 $lang['MapInset976'] = 'Mayotte';
 $lang['MapInset988'] = 'Neukaledonien';
-$lang['MapInset987'] = 'Franz.-Polynesien';
-$lang['MapName988']  = 'Neukaledonien';
-$lang['MapName987']  = 'Französisch-Polynesien';
+$lang['MapInset987'] = 'Französisch-Polynesien';
 $lang['AcCats']        = 'Zugelassene Kategorien';
 $lang['AcCatsHint']    = 'Farbige Kategorien können sich online anmelden, graue nicht. Klicken oder mit gedrückter Maustaste ziehen, um mehrere Felder zu ändern; ein Klick auf eine Bogenart oder eine Klasse ändert die ganze Zeile oder Spalte. Vom Veranstalter in ianseo erfasste Anmeldungen sind nicht betroffen. Bei mehreren Durchgängen hat jeder Reiter sein eigenes Raster; „Übernehmen“ und „Kopieren“ übertragen das Raster eines Durchgangs auf einen anderen, gespeichert mit der Seite.';
 $lang['AcCatsCount']   = 'Kategorien für die Online-Anmeldung offen';

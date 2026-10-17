@@ -714,7 +714,6 @@ $lang['ShFileName'] = 'mi-participacion';
 $lang['MapTitle']        = 'Mapa de las competiciones';
 $lang['MapFrom']         = 'Del';
 $lang['MapTo']           = 'Al';
-$lang['MapNoBackground'] = 'El mapa de fondo no está disponible (falta el archivo de los departamentos).';
 $lang['MapPending']      = '{$a} competición(es) en proceso de localización — recargue dentro de un momento.';
 $lang['MapNothing']      = 'Ninguna competición que mostrar en este período / con estos filtros (o sin ciudad indicada).';
 $lang['MapZoomIn']       = 'Acercar';
@@ -722,6 +721,10 @@ $lang['MapZoomOut']      = 'Alejar';
 $lang['MapReset']        = 'Restablecer';
 $lang['MapNComps']       = '{$a} competiciones';
 $lang['MapOneComp']      = 'Competición';
+$lang['MapMetro']        = 'Francia metropolitana';
+$lang['MapPlan']         = 'Plano';
+$lang['MapPhoto']        = 'Fotos aéreas';
+$lang['MapDateFmt']      = 'd/m/y';   // PHP date() format, 2-digit year
 
 /* Waiting list, long dates */
 $lang['WlNone']       = 'Esta competición no ofrece lista de espera.';
@@ -1412,7 +1415,7 @@ $lang['AcJsAuto']            = 'Sus modificaciones se guardan automáticamente.'
 /* Two-factor authentication app label (lib/totp.php) */
 $lang['TotpIssuer'] = 'ianseo licenciado';
 
-/* Map: overseas insets */
+/* Map: overseas territories (quick-access buttons) */
 $lang['MapInset971'] = 'Guadalupe';
 $lang['MapInset972'] = 'Martinica';
 $lang['MapInset973'] = 'Guayana Francesa';
@@ -1420,8 +1423,6 @@ $lang['MapInset974'] = 'La Reunión';
 $lang['MapInset976'] = 'Mayotte';
 $lang['MapInset988'] = 'Nueva Caledonia';
 $lang['MapInset987'] = 'Polinesia Francesa';
-$lang['MapName988']  = 'Nueva Caledonia';
-$lang['MapName987']  = 'Polinesia Francesa';
 $lang['AcCats']        = 'Categorías admitidas';
 $lang['AcCatsHint']    = 'Las categorías en color pueden inscribirse en línea, las grises no. Haga clic, o mantenga pulsado el botón y arrastre para cambiar varias casillas; un clic en un arco o una clase cambia toda su fila o columna. Las inscripciones introducidas por el organizador en ianseo no se ven afectadas. Con varios turnos, cada pestaña tiene su cuadrícula; «Tomar» y «Copiar» copian la cuadrícula de un turno en otro, a guardar con la página.';
 $lang['AcCatsCount']   = 'categorías abiertas a la inscripción en línea';

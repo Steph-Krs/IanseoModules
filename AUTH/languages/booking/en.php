@@ -715,7 +715,6 @@ $lang['ShFileName'] = 'my-participation';
 $lang['MapTitle']        = 'Map of the competitions';
 $lang['MapFrom']         = 'From';
 $lang['MapTo']           = 'To';
-$lang['MapNoBackground'] = 'The map background is not available (departments file missing).';
 $lang['MapPending']      = '{$a} competition(s) being located — reload in a moment.';
 $lang['MapNothing']      = 'No competition to show for this period / these filters (or without a town).';
 $lang['MapZoomIn']       = 'Zoom in';
@@ -723,6 +722,10 @@ $lang['MapZoomOut']      = 'Zoom out';
 $lang['MapReset']        = 'Reset';
 $lang['MapNComps']       = '{$a} competitions';
 $lang['MapOneComp']      = 'Competition';
+$lang['MapMetro']        = 'Mainland France';
+$lang['MapPlan']         = 'Map';
+$lang['MapPhoto']        = 'Aerial photos';
+$lang['MapDateFmt']      = 'd/m/y';   // PHP date() format, 2-digit year
 
 /* Waiting list, long dates */
 $lang['WlNone']       = 'This competition offers no waiting list.';
@@ -1413,7 +1416,7 @@ $lang['AcJsAuto']            = 'Your changes are saved automatically.';
 /* Two-factor authentication app label (lib/totp.php) */
 $lang['TotpIssuer'] = 'ianseo licensee';
 
-/* Map: overseas insets */
+/* Map: overseas territories (quick-access buttons) */
 $lang['MapInset971'] = 'Guadeloupe';
 $lang['MapInset972'] = 'Martinique';
 $lang['MapInset973'] = 'French Guiana';
@@ -1421,8 +1424,6 @@ $lang['MapInset974'] = 'Réunion';
 $lang['MapInset976'] = 'Mayotte';
 $lang['MapInset988'] = 'New Caledonia';
 $lang['MapInset987'] = 'French Polynesia';
-$lang['MapName988']  = 'New Caledonia';
-$lang['MapName987']  = 'French Polynesia';
 $lang['AcCats']        = 'Categories allowed';
 $lang['AcCatsHint']    = 'Coloured categories may register online, grey ones may not. Click, or hold the button down and drag to change several cells; a click on a division or a class changes its whole row or column. Entries typed by the organiser in ianseo are not concerned. With several sessions, each tab has its own grid; "Take" and "Copy" copy the grid of a session onto another, to be saved with the page.';
 $lang['AcCatsCount']   = 'categories open to online registration';

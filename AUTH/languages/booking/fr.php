@@ -713,7 +713,6 @@ $lang['ShFileName'] = 'ma-participation';
 $lang['MapTitle']        = 'Carte des compétitions';
 $lang['MapFrom']         = 'Du';
 $lang['MapTo']           = 'Au';
-$lang['MapNoBackground'] = 'Le fond de carte n\'est pas disponible (fichier des départements manquant).';
 $lang['MapPending']      = '{$a} compétition(s) en cours de localisation — rechargez dans un instant.';
 $lang['MapNothing']      = 'Aucune compétition à afficher sur cette période / ces filtres (ou sans ville renseignée).';
 $lang['MapZoomIn']       = 'Zoomer';
@@ -721,6 +720,10 @@ $lang['MapZoomOut']      = 'Dézoomer';
 $lang['MapReset']        = 'Réinitialiser';
 $lang['MapNComps']       = '{$a} compétitions';
 $lang['MapOneComp']      = 'Compétition';
+$lang['MapMetro']        = 'Métropole';
+$lang['MapPlan']         = 'Plan';
+$lang['MapPhoto']        = 'Photos aériennes';
+$lang['MapDateFmt']      = 'd/m/y';   // PHP date() format, 2-digit year
 
 /* Waiting list, long dates */
 $lang['WlNone']       = 'Cette compétition ne propose pas de liste d\'attente.';
@@ -1411,16 +1414,14 @@ $lang['AcJsAuto']            = 'Vos modifications sont enregistrées automatique
 /* Two-factor authentication app label (lib/totp.php) */
 $lang['TotpIssuer'] = 'ianseo licencié';
 
-/* Map: overseas insets */
+/* Map: overseas territories (quick-access buttons) */
 $lang['MapInset971'] = 'Guadeloupe';
 $lang['MapInset972'] = 'Martinique';
 $lang['MapInset973'] = 'Guyane';
 $lang['MapInset974'] = 'La Réunion';
 $lang['MapInset976'] = 'Mayotte';
 $lang['MapInset988'] = 'Nouvelle-Calédonie';
-$lang['MapInset987'] = 'Polynésie fr.';
-$lang['MapName988']  = 'Nouvelle-Calédonie';
-$lang['MapName987']  = 'Polynésie française';
+$lang['MapInset987'] = 'Polynésie française';
 $lang['AcCats']        = 'Catégories admises';
 $lang['AcCatsHint']    = 'Les catégories en couleur peuvent s\'inscrire en ligne, celles en gris non. Cliquez, ou maintenez le clic en glissant pour changer plusieurs cases ; un clic sur une arme ou une classe change toute sa ligne ou sa colonne. Les inscriptions saisies par l\'organisateur dans ianseo ne sont pas concernées. Avec plusieurs départs, chaque onglet a sa grille ; « Reprendre » et « Copier » recopient une grille d\'un départ sur un autre, à enregistrer avec la page.';
 $lang['AcCatsCount']   = 'catégories ouvertes à l\'inscription en ligne';

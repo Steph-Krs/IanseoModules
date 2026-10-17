@@ -37,7 +37,9 @@ quelques clics. Pensé pour les serveurs ianseo accessibles en ligne.
 - 📅 **Calendrier** des compétitions ouvertes aux inscriptions : filtres (nom, lieu, dates,
   type) et places restantes par départ.
 - 🗺️ **Carte** des compétitions et **itinéraire** vers le lieu (Google Maps, Waze, Plans) ; avec le
-  module SYNCHRO_FFTA, le lieu exact lu sur l'extranet FFTA.
+  module SYNCHRO_FFTA, le lieu exact lu sur l'extranet FFTA. Plan et photos aériennes de l'IGN,
+  chargés par le navigateur de l'archer directement chez l'IGN (sans clé, sans cookie, rien ne
+  passe par le serveur), affichés avec Leaflet (livré avec le module, licence BSD-2).
 - 📝 **Inscription en quelques clics** : nom, club et date de naissance repris du fichier des
   licences ; armes, catégories, blasons et départs proposés d'après la configuration de la
   compétition.

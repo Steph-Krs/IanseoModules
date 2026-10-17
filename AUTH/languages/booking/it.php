@@ -714,7 +714,6 @@ $lang['ShFileName'] = 'la-mia-partecipazione';
 $lang['MapTitle']        = 'Mappa delle competizioni';
 $lang['MapFrom']         = 'Dal';
 $lang['MapTo']           = 'Al';
-$lang['MapNoBackground'] = 'La mappa di sfondo non è disponibile (file dei dipartimenti mancante).';
 $lang['MapPending']      = '{$a} competizione/i in corso di localizzazione — ricarichi tra un istante.';
 $lang['MapNothing']      = 'Nessuna competizione da mostrare in questo periodo / con questi filtri (o senza città indicata).';
 $lang['MapZoomIn']       = 'Ingrandisci';
@@ -722,6 +721,10 @@ $lang['MapZoomOut']      = 'Riduci';
 $lang['MapReset']        = 'Reimposta';
 $lang['MapNComps']       = '{$a} competizioni';
 $lang['MapOneComp']      = 'Competizione';
+$lang['MapMetro']        = 'Francia metropolitana';
+$lang['MapPlan']         = 'Mappa';
+$lang['MapPhoto']        = 'Foto aeree';
+$lang['MapDateFmt']      = 'd/m/y';   // PHP date() format, 2-digit year
 
 /* Waiting list, long dates */
 $lang['WlNone']       = 'Questa competizione non propone una lista d\'attesa.';
@@ -1412,7 +1415,7 @@ $lang['AcJsAuto']            = 'Le sue modifiche vengono salvate automaticamente
 /* Two-factor authentication app label (lib/totp.php) */
 $lang['TotpIssuer'] = 'ianseo tesserato';
 
-/* Map: overseas insets */
+/* Map: overseas territories (quick-access buttons) */
 $lang['MapInset971'] = 'Guadalupa';
 $lang['MapInset972'] = 'Martinica';
 $lang['MapInset973'] = 'Guyana francese';
@@ -1420,8 +1423,6 @@ $lang['MapInset974'] = 'Riunione';
 $lang['MapInset976'] = 'Mayotte';
 $lang['MapInset988'] = 'Nuova Caledonia';
 $lang['MapInset987'] = 'Polinesia francese';
-$lang['MapName988']  = 'Nuova Caledonia';
-$lang['MapName987']  = 'Polinesia francese';
 $lang['AcCats']        = 'Categorie ammesse';
 $lang['AcCatsHint']    = 'Le categorie colorate possono iscriversi online, quelle grigie no. Faccia clic, o tenga premuto il pulsante trascinando per cambiare più caselle; un clic su una divisione o una classe cambia tutta la riga o la colonna. Le iscrizioni inserite dall\'organizzatore in ianseo non sono interessate. Con più turni, ogni scheda ha la sua griglia; «Riprendi» e «Copia» copiano la griglia di un turno su un altro, da salvare con la pagina.';
 $lang['AcCatsCount']   = 'categorie aperte all\'iscrizione online';

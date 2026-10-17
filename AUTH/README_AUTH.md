@@ -370,8 +370,8 @@ See the [general README](../README.md) for the common principle.
 | `INSERT INTO` | `BookingFedSources` | `booking/lib/fedlic.php:241` | — |
 | `UPDATE` | `BookingArchers` | `booking/lib/fedlic.php:337` | — |
 | `UPDATE` | `BookingArchers` | `booking/lib/ffta.php:116` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:91` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:95` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:99` | — |
 | `UPDATE` | `BookingRegistrations` | `booking/lib/licences.php:75` | — |
 | `INSERT INTO` | `BookingWaitlist` | `booking/lib/licences.php:89` | — |
 | `UPDATE` | `BookingRegistrations` | `booking/lib/licences.php:122` | — |
@@ -435,9 +435,9 @@ See the [general README](../README.md) for the common principle.
 | `DELETE FROM` | `AuthShareClub` | `index.php:53` | — |
 | `INSERT IGNORE INTO` | `AuthShareClub` | `index.php:55` | — |
 | `UPDATE` | `AuthShare` | `index.php:64` | — |
-| `ALTER TABLE` | `AuthUsers` | `legal-lib.php:303` | — |
-| `UPDATE` | `AuthUsers` | `legal-lib.php:321` | — |
-| `UPDATE` | `BookingArchers` | `legal-lib.php:337` | — |
+| `ALTER TABLE` | `AuthUsers` | `legal-lib.php:305` | — |
+| `UPDATE` | `AuthUsers` | `legal-lib.php:323` | — |
+| `UPDATE` | `BookingArchers` | `legal-lib.php:339` | — |
 | `ALTER TABLE` | `AuthUsers` | `lib.php:181` | — |
 | `ALTER TABLE` | `AuthUsers` | `lib.php:189` | — |
 | `ALTER TABLE` | `AuthShare` | `lib.php:210` | — |

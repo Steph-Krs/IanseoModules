@@ -4,6 +4,3 @@ ffta-debug.log
 
 # Local configuration of the server (SSO base, activation)
 config.local.json
-
-# Cache of the base map (rebuilt from departements.geojson)
-public/assets/france-map.cache
