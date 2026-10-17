@@ -13,4 +13,4 @@ require_once dirname(__DIR__) . '/lib/news.php';
 // Replaces the "no-store" of JsonOut(): the feed itself is cached for an hour.
 $cache = array('Cache-Control: private, max-age=300');
 if (!bk_current_archer()) JsonOut(array('error' => 1, 'msg' => '', 'items' => array()), false, $cache);
-JsonOut(array('error' => 0, 'msg' => '', 'items' => bk_news_items(6)), false, $cache);
+JsonOut(array('error' => 0, 'msg' => '', 'items' => bk_news_items(8)), false, $cache);

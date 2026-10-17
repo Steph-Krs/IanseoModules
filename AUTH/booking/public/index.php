@@ -1,28 +1,28 @@
 <?php
 /**
  * public/index.php — home of the signed-in licensee: survey invitations, waiting-list news,
- * sums still owed, licence, latest registrations, open competitions, federation news.
+ * sums still owed, then licence, history, next registrations, competitions suggested to the
+ * archer (lib/suggest.php), and the federation news below.
  */
 require_once __DIR__ . '/boot.php';
+require_once dirname(__DIR__) . '/lib/registration.php';
 
 $archer = bk_require_archer();
 
-// Current club: read again from the licence file rather than copied from the account — an
-// archer may change club between two seasons.
+// Current club, date of birth and sex: read again from the licence file rather than copied from
+// the account — an archer may change club between two seasons.
 $club = $archer->BaClubCode;
 $clubName = '';
-$q = safe_r_sql("SELECT LueCountry, LueCoDescr FROM LookUpEntries
-    WHERE LueCode = " . StrSafe_DB($archer->BaLicence) . "
-    ORDER BY LueDefault DESC LIMIT 1");
-if ($r = safe_fetch($q)) {
-    $club     = $r->LueCountry;
-    $clubName = $r->LueCoDescr;
+$lue = bk_lookup_licence($archer->BaLicence);
+if ($lue) {
+    $club     = $lue->LueCountry;
+    $clubName = $lue->LueCoDescr;
 }
 
 // The volunteer space has its link under the archer's name here: no banner for it on this page.
 define('BK_VOL_BOX', true);
 bk_head(bk_t('NavHome'));
-echo '<h1>' . bk_t('HomeHello', bk_e($archer->BaName)) . '</h1>';
+echo '<h1>' . bk_t('HomeHello', bk_e(bk_name_title($archer->BaName))) . '</h1>';
 
 // Volunteer of a team with a post open now: the way in, kept here once the banner is closed.
 $vol = bk_vol_competitions($archer);
@@ -79,71 +79,132 @@ if ($owed) {
     echo '</ul></div>';
 }
 
-echo '<div class="bk-grid">';
+// The four blocks are built first, then shown in this order: licence, history, registrations,
+// competitions — four side by side when there is room, two otherwise, one on a phone; the news
+// below, on the same columns.
 
-// Licence. An archer without an FFTA licence signs in with an identifier ("COUNTRY-licence", or
-// "WA-id" when picked from World Archery: then a link to their WA page).
+// Licence: three lines without labels — licence and age class, civility and name, club. An
+// archer without an FFTA licence signs in with an identifier ("COUNTRY-licence", or "WA-id" when
+// picked from World Archery: then a link to their WA page).
 $isOther = ($archer->BaKind ?? 'FFTA') === 'OTHER';
 $fromWa = $isOther && ($archer->BaSource ?? '') === 'wa' && intval($archer->BaWaId ?? 0) > 0;
 if ($fromWa) require_once dirname(__DIR__) . '/lib/other.php';
-echo '<section class="bk-block"><h2>' . bk_e(bk_t('MyLicence')) . '</h2><dl class="bk-dl">'
-    . '<dt>' . bk_e(bk_t($isOther ? 'OtIdLabel' : 'Licence')) . '</dt><dd>' . bk_e($archer->BaLicence)
+$ageClass = $lue ? bk_age_class($lue->LueCtrlCode) : '';
+$civility = !$lue ? '' : (intval($lue->LueSex) === 1 ? bk_t('CivF') : (intval($lue->LueSex) === 0 ? bk_t('CivM') : ''));
+$clubLine = array_filter(array(trim((string) $clubName), trim((string) $club)), function ($v) { return $v !== ''; });
+// The FFTA certificate exists for FFTA licensees only; the others keep their profile up to date.
+$titleBtn = $isOther
+    ? '<a class="bk-btn bk-btn-sm" href="' . bk_e(bk_public_url('profile.php')) . '">' . bk_e(bk_t('OtProfileTitle')) . '</a>'
+    : '<a class="bk-btn bk-btn-sm" href="' . bk_e(bk_public_url('licence.php')) . '" target="_blank" rel="noopener">' . bk_e(bk_t('LicenceCertBtn')) . '</a>';
+$blkLicence = '<section class="bk-block"><div class="bk-block-h"><h2>' . bk_e(bk_t('MyLicence')) . '</h2>' . $titleBtn . '</div>'
+    . '<div class="bk-idcard"><p>' . bk_e($archer->BaLicence . ($ageClass !== '' ? ' - ' . $ageClass : ''))
     . ($fromWa ? ' <a class="bk-hint" href="' . bk_e(bk_wa_profile_url($archer->BaWaId, $archer->BaName, $archer->BaFamilyName))
-        . '" target="_blank" rel="noopener noreferrer">' . bk_e(bk_t('OtWaPage')) . ' ↗</a>' : '') . '</dd>'
-    . '<dt>' . bk_e(bk_t('FamilyName')) . '</dt><dd>' . bk_e($archer->BaFamilyName) . '</dd>'
-    . '<dt>' . bk_e(bk_t('GivenName')) . '</dt><dd>' . bk_e($archer->BaName) . '</dd>'
-    . '<dt>' . bk_e(bk_t('Club')) . '</dt><dd>' . bk_e($clubName ?: '—') . ($club ? ' <span class="bk-code">' . bk_e($club) . '</span>' : '') . '</dd>'
-    . '</dl><p class="bk-actions">'
-    // The FFTA certificate exists for FFTA licensees only; the others keep their profile up to date.
-    . ($isOther
-        ? '<a class="bk-btn" href="' . bk_e(bk_public_url('profile.php')) . '">' . bk_e(bk_t('OtProfileTitle')) . '</a> '
-        : '<a class="bk-btn" href="' . bk_e(bk_public_url('licence.php')) . '" target="_blank" rel="noopener">' . bk_e(bk_t('LicenceCertBtn')) . '</a> ')
+        . '" target="_blank" rel="noopener noreferrer">' . bk_e(bk_t('OtWaPage')) . ' ↗</a>' : '') . '</p>'
+    . '<p><b>' . bk_e(trim($civility . ' ' . mb_strtoupper((string) $archer->BaFamilyName, 'UTF-8') . ' ' . bk_name_title($archer->BaName))) . '</b></p>'
+    . '<p>' . bk_e($clubLine ? implode(' - ', $clubLine) : '—') . '</p></div>'
+    // Always on one line, sharing the width: deletion on the left, security on the right.
+    . '<p class="bk-actions bk-actions-split">'
+    . '<a class="bk-btn bk-btn-danger" href="' . bk_e(bk_public_url('delete-account.php')) . '">' . bk_e(bk_t('DelTitle')) . '</a>'
     . '<a class="bk-btn" href="' . bk_e(bk_public_url('security.php')) . '">'
-    . bk_e(bk_t(!empty($archer->BaTotpEnabled) ? 'SecurityBtn2fa' : 'SecurityBtn')) . '</a> '
-    . '<a class="bk-btn bk-btn-danger" href="' . bk_e(bk_public_url('delete-account.php')) . '">' . bk_e(bk_t('DelTitle')) . '</a></p></section>';
+    . bk_e(bk_t(!empty($archer->BaTotpEnabled) ? 'SecurityBtn2fa' : 'SecurityBtn')) . '</a></p></section>';
 
-// Latest registrations.
-require_once dirname(__DIR__) . '/lib/registration.php';
-$mine = bk_my_registrations($archer->BaLicence);
-echo '<section class="bk-block"><h2>' . bk_e(bk_t('NavMyRegs')) . '</h2>';
-if ($mine) {
-    echo '<ul class="bk-mini">';
-    foreach (array_slice($mine, 0, 4) as $r) {
-        echo '<li><b>' . bk_e($r->ToName) . '</b><br><span class="bk-hint">' . bk_e(bk_date_range($r->ToWhenFrom, $r->ToWhenTo))
-            . ' — ' . bk_e(bk_t('DepLower', intval($r->QuSession))) . '</span></li>';
+// Registrations: the next three competitions not over (the one under way included), one line
+// per departure with its day and time. bk_my_registrations() lists one row per registration.
+$next = array();
+foreach (bk_my_registrations($archer->BaLicence) as $r) {
+    if (bk_is_finished($r->ToWhenTo)) continue;
+    $t = intval($r->BrTournament);
+    if (!isset($next[$t])) $next[$t] = array('c' => $r, 'ses' => array());
+    // A registration suspended by the licence check keeps its departure aside (BrHoldSession).
+    $ses = intval(!empty($r->BrLicHold) ? $r->BrHoldSession : $r->QuSession);
+    if ($ses > 0) $next[$t]['ses'][$ses] = true;
+}
+uasort($next, function ($a, $b) { return strcmp($a['c']->ToWhenFrom, $b['c']->ToWhenFrom); });
+$next = array_slice($next, 0, 3, true);
+$blkRegs = '<section class="bk-block"><div class="bk-block-h"><h2>' . bk_e(bk_t('HomeRegsTitle')) . '</h2>'
+    . '<a class="bk-btn bk-btn-sm" href="' . bk_e(bk_public_url('registrations.php')) . '">' . bk_e(bk_t('AllMyRegs')) . '</a></div>';
+if ($next) {
+    $blkRegs .= '<ul class="bk-mini">';
+    foreach ($next as $t => $g) {
+        $c = $g['c'];
+        // The town, as in the calendar; the name of the competition in the tooltip.
+        $place = trim((string) $c->ToVenue) ?: (trim((string) $c->ToWhere) ?: $c->ToName);
+        $starts = array();
+        foreach (bk_comp_sessions($t) as $s) $starts[intval($s->SesOrder)] = bk_session_start($s);
+        $deps = array_keys($g['ses']);
+        usort($deps, function ($a, $b) use ($starts) {   // by start, departures without one last
+            return strcmp((($starts[$a] ?? '') ?: '9999') . sprintf('|%04d', $a), (($starts[$b] ?? '') ?: '9999') . sprintf('|%04d', $b));
+        });
+        // The place leads to the archer's registrations there, "Infos" to the competition's page.
+        $blkRegs .= '<li><div class="bk-mini-head"><a href="' . bk_e(bk_public_url('registrations.php?t=' . $t)) . '" title="' . bk_e($c->ToName) . '"><b>'
+            . bk_e($place) . '</b></a><a class="bk-btn bk-btn-xs" href="' . bk_e(bk_public_url('competition.php?t=' . $t)) . '">'
+            . bk_e(bk_t('InfoBtn')) . '</a></div>';
+        foreach ($deps as $n) {
+            $when = '';
+            if (($starts[$n] ?? '') !== '') {
+                $ts = strtotime($starts[$n]);
+                $when = date(bk_t('HomeDepDateFmt'), $ts);
+                if (date('H:i', $ts) !== '00:00') $when .= ' ' . date(bk_t('TimeFormat'), $ts);   // 00:00 = no time typed
+            }
+            $blkRegs .= '<span class="bk-hint bk-mini-line">' . bk_e(bk_t('DepCap', $n) . ($when !== '' ? ' - ' . $when : '')) . '</span>';
+        }
+        $blkRegs .= '</li>';
     }
-    echo '</ul><p><a class="bk-btn" href="' . bk_e(bk_public_url('registrations.php')) . '">' . bk_e(bk_t('AllMyRegs')) . '</a></p>';
+    $blkRegs .= '</ul>';
 } else {
-    echo '<p class="bk-empty">' . bk_e(bk_t('NoRegYet')) . '</p>';
+    $blkRegs .= '<p class="bk-empty">' . bk_e(bk_t('NoRegYet')) . '</p>';
 }
-echo '</section>';
+$blkRegs .= '</section>';
 
-// Competitions open for registration.
-require_once dirname(__DIR__) . '/lib/competition.php';
-$n = count(bk_comp_calendar());
-echo '<section class="bk-block"><h2>' . bk_e(bk_t('OpenComps')) . '</h2>';
-if ($n) {
-    echo '<p>' . bk_e(bk_t($n > 1 ? 'OpenCountMany' : 'OpenCountOne', $n)) . '</p>'
-        . '<p><a class="bk-btn bk-btn-primary" href="' . bk_e(bk_public_url('calendar.php')) . '">' . bk_e(bk_t('SeeCalendar')) . '</a></p>';
+// Competitions: the three most likely to interest the archer (lib/suggest.php), on three lines —
+// place and dates; discipline and form with or without duels; departures and how full they are
+// (the gauge only where the organiser shows them). On a computer only: on a phone the calendar
+// is one tap away in the bottom bar.
+require_once dirname(__DIR__) . '/lib/suggest.php';
+$labels = bk_disc_labels();
+$blkComps = '<section class="bk-block bk-hide-phone"><div class="bk-block-h"><h2>' . bk_e(bk_t('HomeCompsTitle')) . '</h2>'
+    . '<a class="bk-btn bk-btn-sm" href="' . bk_e(bk_public_url('calendar.php')) . '">' . bk_e(bk_t('NavCalendar')) . '</a></div>';
+$sugg = bk_comp_suggest($archer, $lue, 3);
+if ($sugg) {
+    $blkComps .= '<ul class="bk-mini">';
+    foreach ($sugg as $x) {
+        $c = $x['c']; $t = intval($c->ToId);
+        $place = trim((string) $c->ToVenue) ?: (trim((string) $c->ToWhere) ?: $c->ToName);
+        $what = array_filter(array(($labels[$x['disc']['key']] ?? '') . ($x['disc']['para'] ? ' · ' . bk_t('Para') : ''),
+            $x['format'], $x['duels'] ? bk_t('MnWithDuels') : ''));   // duels told, their absence not
+        $left = max(0, $x['places'] - $x['taken']);
+        $pc = $x['places'] > 0 ? min(100, round($x['taken'] * 100 / $x['places'])) : 0;
+        $blkComps .= '<li><a href="' . bk_e(bk_public_url('competition.php?t=' . $t)) . '" title="' . bk_e($c->ToName) . '"><b>'
+            . bk_e($place) . '</b></a> <span class="bk-hint">' . bk_e(bk_date_range($c->ToWhenFrom, $c->ToWhenTo)) . '</span>'
+            . '<br><span class="bk-hint">' . bk_e(implode(' · ', $what)) . '</span>'
+            . '<span class="bk-sugg-dep"><span class="bk-hint">' . bk_e(bk_t($x['sessions'] > 1 ? 'DepCountMany' : 'DepCountOne', $x['sessions'])) . '</span>'
+            . ((!empty($c->BcShowGauges) && $x['places'] > 0)
+                ? '<span class="bk-dep-gauge"><span class="bk-gauge' . ($x['full'] ? ' bk-gauge-full' : '') . '"><i style="width:' . $pc . '%"></i></span>'
+                    . '<span class="bk-dep-num">' . bk_e(bk_t($left > 1 ? 'PlacesMany' : 'PlacesOne', $left)) . '</span></span>'
+                : '')
+            . '</span></li>';
+    }
+    $blkComps .= '</ul>';
 } else {
-    echo '<p class="bk-empty">' . bk_e(bk_t('NoOpenComp')) . '</p>';
+    $blkComps .= '<p class="bk-empty">' . bk_e(bk_t('NoOpenComp')) . '</p>';
 }
-echo '</section>';
+$blkComps .= '</section>';
 
-// Follow-up.
-echo '<section class="bk-block"><h2>' . bk_e(bk_t('MyFollowUp')) . '</h2>'
-    . '<p class="bk-hint">' . bk_e(bk_t(bk_is_manager() ? 'FollowHintClub' : 'FollowHint')) . '</p><p class="bk-actions">'
-    . '<a class="bk-btn" href="' . bk_e(bk_public_url('stats.php')) . '">' . bk_e(bk_t('StatsBtn')) . '</a> '
-    . '<a class="bk-btn" href="' . bk_e(bk_public_url('registrations.php')) . '">' . bk_e(bk_t('RegsBtn')) . '</a>'
-    . (bk_is_manager() ? ' <a class="bk-btn" href="' . bk_e(bk_public_url('club.php')) . '">' . bk_e(bk_t('ClubBtn')) . '</a>' : '')
-    . '</p></section>';
+// History: its contents will come with the new statistics page; for now the way to it.
+$blkHistory = '<section class="bk-block"><div class="bk-block-h"><h2>' . bk_e(bk_t('HomeHistory')) . '</h2>'
+    . '<a class="bk-btn bk-btn-sm" href="' . bk_e(bk_public_url('stats.php')) . '">' . bk_e(bk_t('MyFollowUp')) . '</a></div>'
+    . '<p class="bk-hint">' . bk_e(bk_t(bk_is_manager() ? 'FollowHintClub' : 'FollowHint')) . '</p>'
+    . (bk_is_manager() ? '<p class="bk-actions"><a class="bk-btn" href="' . bk_e(bk_public_url('club.php')) . '">' . bk_e(bk_t('ClubBtn')) . '</a></p>' : '')
+    . '</section>';
 
-// Federation news, loaded by the script below.
-echo '<section class="bk-block" id="bk-news" style="display:none"><h2>' . bk_e(bk_t('News')) . '</h2>'
-    . '<p class="bk-hint" style="margin-top:0">' . bk_e(bk_t('NewsHint')) . '</p>'
-    . '<ul class="bk-news-list" id="bk-news-list"></ul>'
-    . '<p><a class="bk-btn" href="https://www.ffta.fr/actualites" target="_blank" rel="noopener">' . bk_e(bk_t('NewsAll')) . '</a></p>'
-    . '</section></div>';
+echo '<div class="bk-home-grid">' . $blkLicence . $blkHistory . $blkRegs . $blkComps . '</div>';
+
+// Federation news, loaded by the script below: title and hint, the button beside them, then
+// the news on the columns of the blocks above.
+echo '<section class="bk-block bk-home-news" id="bk-news" style="display:none"><div class="bk-block-h"><div>'
+    . '<h2>' . bk_e(bk_t('News')) . '</h2><p class="bk-hint">' . bk_e(bk_t('NewsHint')) . '</p></div>'
+    . '<a class="bk-btn bk-btn-sm" href="https://www.ffta.fr/actualites" target="_blank" rel="noopener">' . bk_e(bk_t('NewsAll')) . '</a></div>'
+    . '<ul class="bk-news-list" id="bk-news-list"></ul></section>';
 ?>
 <script>
 /* Federation news, loaded asynchronously (no network call while the page is built). Titles

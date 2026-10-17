@@ -116,7 +116,8 @@ function rg_one_competition($tourId, $archer, $regs, $authored, $waits)
 
     if ($c) {
         $dd = bk_comp_discipline($c->ToType, $c->ToTypeSubRule, $c->ToTypeName);
-        echo '<p class="bk-back"><a href="' . bk_e(bk_public_url('competition.php?t=' . $tourId)) . '">← ' . bk_e($c->ToName) . '</a></p>'
+        echo '<p class="bk-back"><a href="' . bk_e(bk_public_url('competition.php?t=' . $tourId)) . '">← '
+            . bk_e($c->ToName . ' - ' . bk_t('CompInfoSuffix')) . '</a></p>'
             . '<div class="bk-detail"><div class="bk-detail-head"><span class="bk-detail-ic">' . bk_disc_icon($dd['key'], 34) . '</span><div>'
             . '<h1>' . bk_e(bk_t('NavMyRegs')) . '</h1><p class="bk-detail-sub"><span>' . bk_e($c->ToName) . '</span>'
             . '<span>' . bk_e(bk_date_range($c->ToWhenFrom, $c->ToWhenTo)) . '</span>'
@@ -285,6 +286,15 @@ if ($regs) {
         if (!isset($groups[$t])) $groups[$t] = array('c' => $r, 'regs' => array());
         $groups[$t]['regs'][] = $r;
     }
+    // From the nearest date to the furthest, whatever the filter shown: upcoming ones (the one
+    // under way included, it is not over) from the soonest, past ones from the latest.
+    $upG = array(); $pastGroups = array();
+    foreach ($groups as $t => $g) {
+        if (bk_is_finished($g['c']->ToWhenTo)) $pastGroups[$t] = $g; else $upG[$t] = $g;
+    }
+    uasort($upG, function ($a, $b) { return strcmp($a['c']->ToWhenFrom, $b['c']->ToWhenFrom); });
+    uasort($pastGroups, function ($a, $b) { return strcmp($b['c']->ToWhenFrom, $a['c']->ToWhenFrom); });
+    $groups = $upG + $pastGroups;
     // Disciplines present, for the filter.
     $labels = bk_disc_labels();
     $discList = array();
@@ -294,9 +304,9 @@ if ($regs) {
     }
     asort($discList);
 
+    // Upcoming by default; past ones are a click away.
     echo '<div class="bk-reg-filters" id="bk-regfilters"><div class="bk-rf-status">'
-        . '<button type="button" class="bk-rf-btn on" data-past="all">' . bk_e(bk_t('All')) . '</button>'
-        . '<button type="button" class="bk-rf-btn" data-past="0">' . bk_e(bk_t('Upcoming')) . '</button>'
+        . '<button type="button" class="bk-rf-btn on" data-past="0">' . bk_e(bk_t('Upcoming')) . '</button>'
         . '<button type="button" class="bk-rf-btn" data-past="1">' . bk_e(bk_t('Past')) . '</button></div>';
     if (count($discList) > 1) {
         echo '<label class="bk-rf-disc">' . bk_e(bk_t('Discipline')) . ' <select id="bk-rf-discsel"><option value="all">' . bk_e(bk_t('All')) . '</option>';
@@ -317,7 +327,8 @@ if ($regs) {
         $ddG  = bk_comp_discipline($c->ToType, $c->ToTypeSubRule, $c->ToTypeName);
         $declRow = (!$free && !$paid) ? bk_payment_get($t, $archer->BaLicence) : null;
 
-        echo '<article class="bk-item" data-past="' . $pastG . '" data-disc="' . bk_e($ddG['key']) . '"><div class="bk-item-main">'
+        echo '<article class="bk-item" data-past="' . $pastG . '" data-disc="' . bk_e($ddG['key']) . '"'
+            . ($pastG ? ' style="display:none"' : '') . '><div class="bk-item-main">'
             . '<h2 class="bk-item-h"><span class="bk-item-ic">' . bk_disc_icon($ddG['key'], 24) . '</span>' . bk_e($c->ToName) . '</h2>'
             . '<p class="bk-meta"><span>' . bk_e(bk_date_range($c->ToWhenFrom, $c->ToWhenTo)) . '</span>'
             . ($c->ToWhere ? '<span>' . bk_e($c->ToWhere) . '</span>' : '')
@@ -355,18 +366,18 @@ if ($regs) {
                 : '<p class="bk-hint">' . bk_e(bk_t('RegsClosed')) . '</p>')
             . '</div></article>';
     }
-    echo '</div><p class="bk-empty" id="bk-reg-none" hidden>' . bk_e(bk_t('NoRegMatch')) . '</p>';
+    echo '</div><p class="bk-empty" id="bk-reg-none"' . ($upG ? ' hidden' : '') . '>' . bk_e(bk_t('NoRegMatch')) . '</p>';
     ?>
   <script>
   (function () {
     var f = document.getElementById('bk-regfilters'); if (!f) return;
     var items = document.querySelectorAll('#bk .bk-list .bk-item');
     var none = document.getElementById('bk-reg-none');
-    var status = 'all', disc = 'all';
+    var status = '0', disc = 'all';   // upcoming at first, as rendered by the server
     function apply() {
       var shown = 0;
       Array.prototype.forEach.call(items, function (a) {
-        var ok = (status === 'all' || a.getAttribute('data-past') === status)
+        var ok = a.getAttribute('data-past') === status
               && (disc === 'all' || a.getAttribute('data-disc') === disc);
         a.style.display = ok ? '' : 'none'; if (ok) shown++;
       });

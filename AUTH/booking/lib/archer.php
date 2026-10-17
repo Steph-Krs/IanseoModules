@@ -110,6 +110,38 @@ function bk_lookup_licence($licence)
     return $r;
 }
 
+/**
+ * FFTA age class of a date of birth for the current season (U11 … S3), '' when unknown. Same
+ * bounds as the classes of the French Set (Modules/Sets/FR/lib.php, CreateStandardClasses):
+ * age = year of the season − year of birth, the season taking the next year's name on
+ * 1 September (bk_ffta_season), as the Set does for a competition from September on.
+ */
+function bk_age_class($dob)
+{
+    $y = intval(substr((string) $dob, 0, 4));   // bytes: an ASCII date
+    if ($y < 1900) return '';
+    require_once __DIR__ . '/ffta.php';
+    $age = bk_ffta_season() - $y;
+    if ($age < 1) return '';
+    foreach (array(10 => 'U11', 12 => 'U13', 14 => 'U15', 17 => 'U18', 20 => 'U21', 39 => 'S1', 59 => 'S2') as $max => $cls) {
+        if ($age <= $max) return $cls;
+    }
+    return 'S3';
+}
+
+/**
+ * A given name with its initials only in capitals, whatever the case it was typed in:
+ * "JEAN-MARC  PIERRE" → "Jean-Marc Pierre", "MARIE-ÈVE" → "Marie-Ève", "N'GOLO" → "N'Golo". Each
+ * part of a compound (hyphen) or multiple (space) name keeps its capital; spaces are collapsed.
+ */
+function bk_name_title($name)
+{
+    $name = preg_replace('/\s+/u', ' ', trim((string) $name));
+    $name = mb_convert_case(mb_strtolower($name, 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
+    // mb_convert_case leaves the letter after an apostrophe in lower case.
+    return preg_replace_callback("/(['’])(\\p{Ll})/u", function ($m) { return $m[1] . mb_strtoupper($m[2], 'UTF-8'); }, $name);
+}
+
 /** The row only, without the repair of bk_lookup_licence(). */
 function bk_lookup_licence_row($licence)
 {

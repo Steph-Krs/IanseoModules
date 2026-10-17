@@ -290,6 +290,46 @@ body {
 #bk .bk-mini { list-style: none; margin: 0 0 10px; padding: 0; font-size: 13px; }
 #bk .bk-mini li { padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
 #bk .bk-mini li:last-child { border-bottom: 0; }
+/* Home page: title of a block with its button on the right. */
+#bk .bk-block-h { display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin: 0 0 12px; }
+#bk .bk-block-h h2 { margin: 0; flex: 0 0 auto; }
+/* A long label (German on a narrow phone) wraps inside its button, never below the title. */
+#bk .bk-block-h .bk-btn { flex: 0 1 auto; min-width: 0; text-align: center; }
+#bk .bk-btn-sm { margin-top: 0; padding: 6px 12px; font-size: 13px; }
+#bk .bk-btn-xs { margin-top: 0; padding: 3px 10px; font-size: 12px; flex: 0 0 auto; }
+/* An item of a short list: its title and a small button on its first line. */
+#bk .bk-mini-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+#bk .bk-mini-line { display: block; }
+/* Identity of the licence block: three lines, no labels. */
+#bk .bk-idcard p { margin: 0 0 4px; font-size: 13px; }
+#bk .bk-idcard p:last-child { margin-bottom: 0; }
+/* Two buttons on one line whatever the screen, sharing the whole width. */
+#bk .bk-actions-split { flex-wrap: nowrap; }
+#bk .bk-actions-split .bk-btn { flex: 1 1 0; min-width: 0; padding: 10px 8px; font-size: 14px;
+    display: flex; align-items: center; justify-content: center; }
+@media (max-width:640px) { #bk .bk-hide-phone { display: none; } }
+/* Home page: four blocks side by side when there is room, two otherwise, one on a phone (never
+   three: the news below follow the same columns). */
+#bk .bk-home-grid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#bk .bk-home-news { margin-top: 16px; }
+#bk .bk-home-news .bk-block-h { align-items: flex-start; }
+#bk .bk-home-news .bk-block-h .bk-hint { margin-top: 2px; }
+/* The news line up with the text of the blocks above: their gap is the blocks' gap plus the
+   two side paddings of a block (16 + 2 × 18 px). */
+#bk .bk-home-news .bk-news-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 52px; row-gap: 12px; }
+#bk .bk-home-news .bk-news-list li { padding: 0; border-bottom: 0; }
+@media (min-width:1200px) {
+  #bk .bk-home-grid, #bk .bk-home-news .bk-news-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width:640px) {
+  #bk .bk-home-grid, #bk .bk-home-news .bk-news-list { grid-template-columns: minmax(0, 1fr); }
+}
+/* Suggested competitions: number of departures and the overall gauge on one line. */
+#bk .bk-sugg-dep { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    gap: 4px 10px; margin-top: 2px; }
+#bk .bk-sugg-dep .bk-dep-num { min-width: 0; }
 #bk a.bk-btn { text-decoration: none; display: inline-block; }
 
 #bk .bk-wishes {

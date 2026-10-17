@@ -335,15 +335,15 @@ See the [general README](../README.md) for the common principle.
 | `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:508` | — |
 | `INSERT INTO` | `BookingRegistrations` | `booking/lib/adopt.php:560` | — |
 | `INSERT INTO` | `BookingLog` | `booking/lib/archer.php:36` | — |
-| `UPDATE` | `BookingArchers` | `booking/lib/archer.php:166` | — |
-| `INSERT INTO` | `BookingArchers` | `booking/lib/archer.php:170` | — |
-| `INSERT INTO` | `BookingSessions` | `booking/lib/archer.php:183` | — |
-| `DELETE FROM` | `BookingSessions` | `booking/lib/archer.php:187` | — |
-| `UPDATE` | `BookingArchers` | `booking/lib/archer.php:189` | — |
-| `DELETE FROM` | `BookingSessions` | `booking/lib/archer.php:203` | — |
-| `DELETE FROM` | `BookingSessions` | `booking/lib/archer.php:263` | — |
-| `UPDATE` | `BookingSessions` | `booking/lib/archer.php:268` | — |
-| `DELETE FROM` | `BookingSessions` | `booking/lib/archer.php:280` | — |
+| `UPDATE` | `BookingArchers` | `booking/lib/archer.php:198` | — |
+| `INSERT INTO` | `BookingArchers` | `booking/lib/archer.php:202` | — |
+| `INSERT INTO` | `BookingSessions` | `booking/lib/archer.php:215` | — |
+| `DELETE FROM` | `BookingSessions` | `booking/lib/archer.php:219` | — |
+| `UPDATE` | `BookingArchers` | `booking/lib/archer.php:221` | — |
+| `DELETE FROM` | `BookingSessions` | `booking/lib/archer.php:235` | — |
+| `DELETE FROM` | `BookingSessions` | `booking/lib/archer.php:295` | — |
+| `UPDATE` | `BookingSessions` | `booking/lib/archer.php:300` | — |
+| `DELETE FROM` | `BookingSessions` | `booking/lib/archer.php:312` | — |
 | `DELETE FROM` | `BookingTargetCaps` | `booking/lib/caps.php:218` | — |
 | `INSERT INTO` | `BookingTargetCaps` | `booking/lib/caps.php:223` | — |
 | `DELETE FROM` | `BookingTargetCaps` | `booking/lib/caps.php:231` | — |
