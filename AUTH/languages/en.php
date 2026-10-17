@@ -1008,3 +1008,19 @@ $lang['TrOrgUnaccept']           = 'Withdraw';
 $lang['TrOrgUnaccepted']         = 'Acceptance withdrawn.';
 $lang['TrLgH']                   = 'Payer trust index';
 $lang['TrLg']                    = 'When an organiser records the payments of a competition on this service, the amounts still owed {$a[grace]} days after its end (unpaid), the accounts settled more than {$a[late]} days after its end (late payments) and the rejected payments (cheque refused, card payment disputed) are recorded against the licence of the archer, or against the club when the registration was made by the club. Purpose: to let the organisers of the competitions of this service secure the payments made later (registration, purchases on account), by warning them or by refusing such credit to an archer or a club with unpaid debts; a payment made on the spot is never refused. Legal basis: the legitimate interest of the organisers in being paid. The organisers of other competitions only see a level (green, orange, red) and a generic reason, never the amount nor the club. Retention: {$a[months]} months after the competition, a debt settled late being kept as a late payment. Every archer sees their level and its reasons in their space ("My registrations") and may ask the operator of the service for a correction; the administrator can correct a level, and an organiser can accept an archer or a club for their competition.';
+
+// admin/distinctions.php — gallery of the national distinction badges
+$lang['MenuDistinctions'] = 'National distinctions';
+$lang['DsLead'] = 'The federation badges, drawn from the files of the folder {$a}, with the score to reach for each one. They will be used by the archers\' statistics.';
+$lang['DsErr'] = 'File in error: {$a}';
+$lang['DsHowTitle'] = 'Changing a picture';
+$lang['DsColFile'] = 'File';
+$lang['DsColWhat'] = 'What it changes';
+$lang['DsFileLevel'] = 'The shape of the colour badges (green to yellow)';
+$lang['DsFileStar'] = 'The shape of the star badges';
+$lang['DsFileLogo'] = 'The archer pictogram, shared by every badge, compound cam included';
+$lang['DsFileLooks'] = 'Colours, texts, details shown or hidden (cam, stars), position of a part';
+$lang['DsFileRules'] = 'Scores to reach, bow types, distance written on each badge';
+$lang['DsHowTools'] = 'The .svg files open in a text editor or in Inkscape (free): keep the identifiers (id) of the elements, looks.json finds them through these. The .json files open in a text editor. Reload this page after a change: the pictures are redrawn straight away.';
+$lang['DsHowUpdate'] = 'A module update replaces these files: a correction made on a server must be carried into the module to be kept.';
+$lang['DsOpen'] = 'Open the picture alone';

@@ -1006,3 +1006,19 @@ $lang['TrOrgUnaccept']            = 'Ritira';
 $lang['TrOrgUnaccepted']          = 'Accettazione ritirata.';
 $lang['TrLgH']                    = 'Indice di affidabilità dei pagatori';
 $lang['TrLg']                     = 'Quando un organizzatore registra i pagamenti di una gara su questo servizio, gli importi ancora dovuti {$a[grace]} giorni dopo la sua fine (mancati pagamenti), i conti saldati più di {$a[late]} giorni dopo la sua fine (ritardi) e i pagamenti respinti (assegno respinto, pagamento con carta contestato) vengono registrati a nome della tessera dell\'arciere, o della società quando l\'iscrizione è stata fatta dalla società. Finalità: permettere agli organizzatori delle gare di questo servizio di proteggere i pagamenti differiti (iscrizione, acquisti sul conto), avvisandoli o rifiutando tale credito a un arciere o una società con mancati pagamenti; un pagamento fatto sul momento non viene mai rifiutato. Base giuridica: il legittimo interesse degli organizzatori a essere pagati. Gli organizzatori delle altre gare vedono solo un livello (verde, arancione, rosso) e un motivo generico, mai l\'importo né la società. Conservazione: {$a[months]} mesi dopo la gara, un debito saldato in ritardo essendo conservato come ritardo. Ogni arciere vede il proprio livello e i relativi motivi nel suo spazio («Le mie iscrizioni») e può chiedere una rettifica al gestore del servizio; l\'amministratore può correggere un livello, e un organizzatore può accettare un arciere o una società per la sua gara.';
+
+// admin/distinctions.php — gallery of the national distinction badges
+$lang['MenuDistinctions'] = 'Distintivi nazionali';
+$lang['DsLead'] = 'I distintivi federali, disegnati a partire dai file della cartella {$a}, con il punteggio da raggiungere per ciascuno. Serviranno per le statistiche degli arcieri.';
+$lang['DsErr'] = 'File con errore: {$a}';
+$lang['DsHowTitle'] = 'Modificare un\'immagine';
+$lang['DsColFile'] = 'File';
+$lang['DsColWhat'] = 'Cosa vi si modifica';
+$lang['DsFileLevel'] = 'La forma dei distintivi a colori (dal verde al giallo)';
+$lang['DsFileStar'] = 'La forma dei distintivi con stelle';
+$lang['DsFileLogo'] = 'Il pittogramma dell\'arciere, comune a tutti i distintivi, compresa la camma dell\'arco compound';
+$lang['DsFileLooks'] = 'I colori, i testi, i dettagli mostrati o nascosti (camma, stelle), la posizione di una parte';
+$lang['DsFileRules'] = 'I punteggi da raggiungere, le divisioni, la distanza scritta su ogni distintivo';
+$lang['DsHowTools'] = 'I file .svg si aprono con un editor di testo o con Inkscape (gratuito): conservi gli identificatori (id) degli elementi, looks.json li ritrova grazie a essi. I file .json si aprono con un editor di testo. Ricarichi questa pagina dopo una modifica: le immagini vengono ridisegnate subito.';
+$lang['DsHowUpdate'] = 'Un aggiornamento del modulo sostituisce questi file: una correzione fatta su un server va riportata nel modulo per essere conservata.';
+$lang['DsOpen'] = 'Aprire solo l\'immagine';

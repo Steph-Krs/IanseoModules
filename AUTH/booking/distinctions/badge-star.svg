@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Star badge (one, two or three gold stars).
+
+  A metal frame, a field (blue indoors, silver outdoors), the gold stars on top,
+  the archer pictogram (logo.svg), the distance, and the French flag at the bottom.
+
+  ids changed by looks.json:
+    field                 the background (fill)
+    star-l star-c star-r  the three star places (left, centre, right);
+                          looks.json hides those a level does not use
+    distance              the distance text ("text" = what is written)
+    flag-blue flag-white flag-red   the three stripes
+    logo                  where the pictogram goes; its parts are ink, bow and cam
+
+  Shapes: edit them here (any text editor, or Inkscape: keep the ids).
+  Colours and texts: edit looks.json, not this file.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 172 250" width="172" height="250">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbfbfc"/>
+      <stop offset="0.35" stop-color="#c3c7cb"/>
+      <stop offset="0.5" stop-color="#8b9096"/>
+      <stop offset="0.65" stop-color="#dfe1e4"/>
+      <stop offset="1" stop-color="#9aa0a6"/>
+    </linearGradient>
+    <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.45" stop-color="#c3c7cb"/>
+      <stop offset="0.55" stop-color="#7f858b"/>
+      <stop offset="1" stop-color="#e3e5e8"/>
+    </linearGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7f8f9"/>
+      <stop offset="0.55" stop-color="#e3e6ea"/>
+      <stop offset="1" stop-color="#c9ced5"/>
+    </linearGradient>
+    <linearGradient id="navy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f5c9c"/>
+      <stop offset="1" stop-color="#173a7a"/>
+    </linearGradient>
+    <linearGradient id="gold-light" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff2a8"/>
+      <stop offset="1" stop-color="#f0c22c"/>
+    </linearGradient>
+    <linearGradient id="gold-dark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9a51e"/>
+      <stop offset="1" stop-color="#9c6d0b"/>
+    </linearGradient>
+    <linearGradient id="enamel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.08"/>
+    </linearGradient>
+    <clipPath id="inside">
+      <rect x="6.5" y="6.5" width="159" height="237" rx="6.5"/>
+    </clipPath>
+    <clipPath id="flag-area">
+      <path d="M0,191 Q86,209 172,189 V250 H0 Z"/>
+    </clipPath>
+    <!-- one gold star, centred on 0,0: light and dark halves of each point -->
+    <g id="star-shape" stroke-linejoin="round">
+      <path d="M0,-21 L4.94,-6.79 L19.98,-6.5 L7.99,2.59 L12.35,17 L0,8.4 L-12.35,17 L-7.99,2.59 L-19.98,-6.5 L-4.94,-6.79 Z"
+            fill="#7a5608" stroke="#6b4a06" stroke-width="2"/>
+      <path fill="url(#gold-light)" d="M0,0 L0,-21 L-4.94,-6.79 Z M0,0 L19.98,-6.5 L4.94,-6.79 Z M0,0 L12.35,17 L7.99,2.59 Z M0,0 L-12.35,17 L0,8.4 Z M0,0 L-19.98,-6.5 L-7.99,2.59 Z"/>
+      <path fill="url(#gold-dark)" d="M0,0 L0,-21 L4.94,-6.79 Z M0,0 L19.98,-6.5 L7.99,2.59 Z M0,0 L12.35,17 L0,8.4 Z M0,0 L-12.35,17 L-7.99,2.59 Z M0,0 L-19.98,-6.5 L-4.94,-6.79 Z"/>
+    </g>
+  </defs>
+
+  <rect id="frame" x="1.5" y="1.5" width="169" height="247" rx="11" fill="url(#metal)" stroke="#5c6167" stroke-width="1.2"/>
+
+  <g clip-path="url(#inside)">
+    <rect id="field" x="0" y="0" width="172" height="250" fill="url(#silver)"/>
+    <rect id="sheen" x="0" y="0" width="172" height="201" fill="url(#enamel)"/>
+    <g clip-path="url(#flag-area)">
+      <rect id="flag-blue" x="0" y="180" width="57" height="70" fill="#1d3f86"/>
+      <rect id="flag-white" x="57" y="180" width="55.5" height="70" fill="#efefef"/>
+      <rect id="flag-red" x="112.5" y="180" width="59.5" height="70" fill="#c8282f"/>
+      <rect x="55.5" y="180" width="3" height="70" fill="url(#chrome)"/>
+      <rect x="111" y="180" width="3" height="70" fill="url(#chrome)"/>
+    </g>
+    <path id="flag-edge" d="M0,191 Q86,209 172,189" fill="none" stroke="url(#chrome)" stroke-width="3.5"/>
+    <path d="M0,189.2 Q86,207.2 172,187.2" fill="none" stroke="#6b7076" stroke-width="0.7"/>
+  </g>
+  <rect x="6.5" y="6.5" width="159" height="237" rx="6.5" fill="none" stroke="#6b7076" stroke-width="1"/>
+
+  <use id="star-l" href="#star-shape" x="31.8" y="32"/>
+  <use id="star-c" href="#star-shape" x="86" y="32"/>
+  <use id="star-r" href="#star-shape" x="140.2" y="32"/>
+
+  <g id="logo" transform="translate(32.7,51.2) scale(1.066,1.145)"/>
+
+  <!-- serif with lining figures: Georgia draws old-style figures (a short "1") -->
+  <text id="distance" x="29.5" y="181" font-family="'Times New Roman', Times, 'Noto Serif', 'Liberation Serif', serif"
+        font-weight="bold" font-size="35" fill="url(#chrome)" stroke="#62676d" stroke-width="0.8">50m</text>
+</svg>

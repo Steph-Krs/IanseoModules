@@ -48,6 +48,12 @@ in a few clicks. Designed for ianseo servers reachable online.
   the events, the next ones are extra shoots; a different bow opens its own event.
 - 📋 **My registrations**: viewing, cancelling while the registrations are open, target
   assigned when the organiser allowed it — for all competitions, or for one from its page.
+- 📈 **Statistics**: every round shot on this server, by discipline and by combination of bow,
+  distance and target face (or peg) — scores only compare within one. For each: a chart of every
+  score with the thresholds of the national distinctions, the personal record, the distinctions
+  earned and the next one with how far it is (worked out from the federation rules, as a guide),
+  the season's figures and the history. The badges are drawn from editable templates
+  (`booking/distinctions/`).
 - 💶 **Account on each competition**, on its page: due, paid, means of payment (an online
   payment address given by the organiser is a link), receipt.
 - 🖨️ **Individual scorecard**: the official sheet produced by ianseo (PDF), for that archer

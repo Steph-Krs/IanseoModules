@@ -877,8 +877,8 @@ function bk_disc_types($key)
 {
     $m = array(
         'ext'       => array(1, 2, 3, 4, 5),      // outdoor / FITA / 70 m
-        'salle'     => array(6),                  // indoor 18/25
-        'campagne'  => array(7, 9),               // field — ToType 9 = "Type_HF 12+12" (Hunter-Field = field)
+        'salle'     => array(6, 7, 8),            // indoor 18 m, 25 m, 25 m + 18 m
+        'campagne'  => array(9),                  // field — ToType 9 = "Type_HF 12+12" (Hunter-Field = field)
         'nature'    => array(),                   // (by label, see bk_comp_discipline)
         '3d'        => array(11),
         'run'       => array(48),                 // Run Archery (TourType 48 in ianseo)
@@ -900,7 +900,9 @@ function bk_comp_discipline($type, $subrule = '', $typeName = '')
     // has no face but peg colours).
     $byType = array(
         1 => 'ext', 2 => 'ext', 3 => 'ext', 4 => 'ext', 5 => 'ext',
-        6 => 'salle', 7 => 'campagne', 9 => 'campagne', 11 => '3d', 48 => 'run', 50 => 'beursault',
+        // ToType 7 is "Type_Indoor 25" and 8 "Type_Indoor 25+18" (Modules/Sets/FR/Setup_7_FR.php):
+        // indoor, not field — 7 was once taken for field, and 25 m competitions showed as such.
+        6 => 'salle', 7 => 'salle', 8 => 'salle', 9 => 'campagne', 11 => '3d', 48 => 'run', 50 => 'beursault',
     );
     $key = $byType[$type] ?? '';
     if ($key === '') {

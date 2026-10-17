@@ -53,6 +53,12 @@ quelques clics. Pensé pour les serveurs ianseo accessibles en ligne.
 - 📋 **Mes inscriptions** : consultation, annulation tant que les inscriptions sont ouvertes,
   cible attribuée si l'organisateur l'a autorisé — pour toutes les compétitions, ou pour une
   seule depuis sa page.
+- 📈 **Statistiques** : tous les tirs réalisés sur ce serveur, par discipline et par combinaison
+  arme, distance et blason (ou piquet) — les scores ne se comparent qu'à l'intérieur d'une même
+  combinaison. Pour chacune : graphique de tous les scores avec les paliers des distinctions
+  nationales, record personnel, distinctions obtenues et prochaine à atteindre avec l'écart
+  (calculées d'après le règlement fédéral, à titre indicatif), chiffres de la saison et historique.
+  Les badges sont dessinés à partir de gabarits modifiables (`booking/distinctions/`).
 - 💶 **Compte sur chaque compétition**, sur sa page : dû, payé, moyens de paiement (une adresse
   de paiement en ligne donnée par l'organisateur est un lien), reçu.
 - 🖨️ **Feuille de marque individuelle** : la feuille officielle produite par ianseo (PDF), pour

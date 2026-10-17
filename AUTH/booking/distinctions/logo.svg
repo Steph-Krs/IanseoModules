@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Archer pictogram shared by every distinction badge.
+
+  The archer and the bow are the federation logo, traced from its vector version.
+  The cam (compound badges only) is drawn from the badge pictures.
+
+  Drawn in a box about 107 x 126; each badge template places it with a transform
+  on its <g id="logo"> slot. Only the shapes live here: their colours come from
+  the badge (looks.json sets fill, stroke and display on the ids below).
+
+  ids read by the badge renderer:
+    pictogram  the whole drawing (copied into the template)
+    ink        the archer: arm, hook, body
+    bow        the bow
+    cam        the cam, shown on compound badges only
+
+  The fills below only make this file readable on its own (open it in a browser
+  or in Inkscape); the badge overrides them.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -2 112 130" width="336" height="390">
+  <g id="pictogram" stroke-linejoin="round">
+    <g id="ink" fill="#2b2f7e" stroke="#9aa0a7" stroke-width="0.9">
+      <path id="hook" d="M25.3,42.14 C25.3,42.14 25.24,46.63 28.73,46.81 C47.62,47.73 40.07,65.36 40.07,65.36 C40.07,65.36 59.6,42.14 25.3,42.14 Z"/>
+      <path id="arm" d="M35.01,65.36 C35.01,65.36 6.94,62.58 6.94,69.01 C6.94,73.71 15.59,83.92 15.59,83.92 C15.59,83.92 -3.84,74.54 -3.84,63.78 C-3.84,56.08 35.01,65.36 35.01,65.36 Z"/>
+      <path id="body" d="M102.95,70 C102.95,70 102.95,65.39 68.96,65.39 C39.87,65.39 35.03,72.76 44.71,82.02 C44.71,82.02 45.68,68.15 102.95,70 Z"/>
+    </g>
+    <g id="bow" fill="#d8352a" stroke="#9aa0a7" stroke-width="0.9">
+      <path d="M78.55,125.6 L80.69,125.6 C89.33,111.19 99.07,88.86 99.07,70.02 C99.07,42.09 77.68,6.49 70.18,0.41 L68.97,0.41 C72.71,5.3 93.24,29.81 93.24,70.02 C93.24,94.83 85.42,113.66 78.55,125.6 Z"/>
+    </g>
+    <g id="cam" fill="#e9ecef" stroke="#7d838a" stroke-width="0.8">
+      <!-- one shape: the ring, the cable towards the archer (leaving the ring
+           tangentially) and the D along the bow (an arc and the straight line
+           joining its ends); evenodd leaves the ring and the D hollow -->
+      <path fill-rule="evenodd" d="M60.70,20.76 L60.08,20.49 L59.50,20.32 L58.89,20.22 L58.15,20.21 L57.55,20.27 L56.83,20.45 L56.26,20.68 L55.73,20.98 L55.04,21.50 L46.56,29.14 L46.41,29.31 L46.30,29.52 L46.25,29.75 L46.26,29.98 L46.32,30.20 L46.43,30.40 L46.59,30.57 L46.79,30.70 L47.01,30.77 L47.24,30.79 L47.47,30.75 L47.68,30.65 L53.44,25.84 L53.62,26.65 L53.88,27.34 L54.24,27.98 L54.70,28.56 L55.32,29.14 L55.94,29.55 L56.60,29.86 L57.30,30.08 L58.15,30.19 L58.89,30.18 L59.61,30.05 L60.31,29.82 L60.97,29.49 L61.57,29.07 L62.10,28.56 L62.61,27.89 L63.95,45.64 L64.01,45.83 L64.16,45.98 L64.25,46.15 L64.38,46.23 L64.55,46.25 L64.66,46.21 L64.76,46.14 L65.26,45.43 L66.13,44.03 L66.53,43.27 L67.22,41.76 L67.53,40.98 L67.81,40.18 L68.27,38.60 L68.46,37.78 L68.76,36.17 L68.87,35.34 L69.01,33.73 L69.05,32.10 L68.99,31.29 L68.82,29.77 L68.69,29.01 L68.37,27.59 L68.15,26.84 L67.69,25.55 L67.14,24.36 L66.79,23.74 L66.08,22.70 L65.66,22.19 L65.24,21.76 L64.81,21.37 L64.27,20.96 L63.74,20.63 L63.24,20.38 L62.62,20.14 L61.91,19.96 L61.69,19.96 L61.47,20.00 L61.26,20.09 L61.03,20.25 L60.84,20.46 Z M63.39,24.83 L63.30,24.22 L63.18,23.75 L62.97,23.17 L62.69,22.63 L63.37,23.08 L63.71,23.36 L64.35,24.05 L64.95,24.88 L65.23,25.35 L65.73,26.37 L66.17,27.52 L66.36,28.13 L66.67,29.41 L66.91,30.79 L67.12,32.98 L67.17,34.47 L67.13,36.00 L66.99,37.54 L66.74,39.08 L66.38,40.62 L65.91,42.13 L65.32,43.60 L64.82,44.62 L64.25,26.96 L64.17,26.64 L64.06,26.46 L63.94,26.34 L63.65,26.19 L63.31,26.16 L63.39,25.45 Z M61.09,25.40 L61.00,25.92 L60.81,26.41 L60.53,26.86 L60.16,27.24 L59.73,27.55 L59.25,27.76 L58.73,27.88 L58.20,27.89 L57.68,27.80 L57.19,27.61 L56.74,27.33 L56.36,26.96 L56.05,26.53 L55.84,26.05 L55.72,25.53 L55.71,25.00 L55.80,24.48 L55.99,23.99 L56.27,23.54 L56.64,23.16 L57.07,22.85 L57.55,22.64 L58.07,22.52 L58.60,22.51 L59.12,22.60 L59.61,22.79 L60.06,23.07 L60.44,23.44 L60.75,23.87 L60.96,24.35 L61.08,24.87 Z"/>
+    </g>
+  </g>
+</svg>

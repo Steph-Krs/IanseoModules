@@ -118,6 +118,7 @@ function aut_adm_sections($can, $tour, $admin, $logged)
         $p[] = array('admin/trust.php', aut_t('MenuTrust'));
         $p[] = array('admin/tickets.php', aut_t('MenuTickets'));
         $p[] = array('admin/anonymise.php', aut_t('MenuAnonymise'));
+        $p[] = array('admin/distinctions.php', aut_t('MenuDistinctions'));
         $p[] = array('admin/stats.php', aut_t('MenuStats'));
         $p[] = array('admin/update.php', aut_t('MenuUpdate'));
     }

@@ -1,0 +1,88 @@
+{
+    "_about": [
+        "How each distinction badge looks. A badge = a template (families) + layers applied in order.",
+        "A layer lists element ids of the template and the attributes to set on them:",
+        "  fill / stroke = a colour (#rrggbb) or a gradient of the template (url(#chrome), url(#silver), url(#navy))",
+        "  display = none (hide) or inline (show)",
+        "  transform = move or resize a part, e.g. translate(-5,-10) or scale(1.1)",
+        "  text = what is written in a text element",
+        "The pictogram parts (logo.svg) are ink (the archer), bow and cam (compound only).",
+        "Thresholds, and which layers make which badge: rules.json.",
+        "tiles: the levels not drawn yet show as a text tile, bg = background, fg = text; its border",
+        "  comes from tile_borders (the column's tile in rules.json, default otherwise).",
+        "chart: colour of a level's line on the archer's chart; without it, the plate colour of its",
+        "  layer, else the tile colour."
+    ],
+    "tiles": {
+        "archer1":        {"bg": "#ffffff", "fg": "#20263d"},
+        "archer2":        {"bg": "#ffffff", "fg": "#20263d"},
+        "archer3":        {"bg": "#ffffff", "fg": "#20263d"},
+        "archer4":        {"bg": "#ffffff", "fg": "#20263d"},
+        "archergold":     {"bg": "#ffffff", "fg": "#b8860b"},
+        "greenonwhite":   {"bg": "#ffffff", "fg": "#05a44f"},
+        "silverongreen":  {"bg": "#05a44f", "fg": "#eef0f2"},
+        "goldonwhite":    {"bg": "#ffffff", "fg": "#b8860b"},
+        "goldonblack":    {"bg": "#0b0c0d", "fg": "#f0c22c"},
+        "goldonblue":     {"bg": "#0377a9", "fg": "#f6d35a"},
+        "goldonred":      {"bg": "#d14139", "fg": "#f6d35a"},
+        "blackonorange":  {"bg": "#f08a1c", "fg": "#0b0c0d"},
+        "silveronorange": {"bg": "#f08a1c", "fg": "#f2f4f6"},
+        "goldonorange":   {"bg": "#f08a1c", "fg": "#fff1a6"},
+        "marmot1":        {"bg": "#ffffff", "fg": "#20263d"},
+        "marmot2":        {"bg": "#ffffff", "fg": "#20263d"},
+        "marmot3":        {"bg": "#ffffff", "fg": "#20263d"},
+        "marmot4":        {"bg": "#ffffff", "fg": "#20263d"}
+    },
+    "tile_borders": {"gold": "#c99a12", "silver": "#9aa0a6", "default": "#9aa0a6"},
+    "chart": {
+        "white":  "#9aa0a6",
+        "yellow": "#c9b400",
+        "star1":  "#d9a51e",
+        "star2":  "#d9a51e",
+        "star3":  "#d9a51e",
+        "archer1": "#5b6b8c",
+        "archer2": "#5b6b8c",
+        "archer3": "#5b6b8c",
+        "archer4": "#5b6b8c",
+        "marmot1": "#5b6b8c",
+        "marmot2": "#5b6b8c",
+        "marmot3": "#5b6b8c",
+        "marmot4": "#5b6b8c"
+    },
+    "families": {
+        "level": {
+            "template": "badge-level.svg",
+            "base": {
+                "ink": {"fill": "url(#chrome)", "stroke": "#464b50", "stroke-width": "0.9"},
+                "bow": {"fill": "url(#chrome)", "stroke": "#464b50", "stroke-width": "0.9"},
+                "cam": {"fill": "url(#chrome)", "stroke": "#464b50", "stroke-width": "0.8", "display": "none",
+                        "transform": "translate(-5.5,-9.8)"}
+            }
+        },
+        "star": {
+            "template": "badge-star.svg",
+            "base": {
+                "ink": {"stroke": "#a3a8ae", "stroke-width": "1"},
+                "bow": {"fill": "#d42f2a", "stroke": "#b5babf", "stroke-width": "1"},
+                "cam": {"fill": "url(#chrome)", "stroke": "#6b7076", "stroke-width": "0.7", "display": "none"}
+            }
+        }
+    },
+    "layers": {
+        "green":  {"panel": {"fill": "#05a44f"}},
+        "white":  {"panel": {"fill": "#e9ebee"}},
+        "black":  {"panel": {"fill": "#0b0c0d"}},
+        "blue":   {"panel": {"fill": "#0377a9"}},
+        "red":    {"panel": {"fill": "#d14139"}},
+        "yellow": {"panel": {"fill": "#f8e80b"}},
+
+        "star1": {"star-l": {"display": "none"}, "star-r": {"display": "none"}},
+        "star2": {"star-c": {"display": "none"}},
+        "star3": {},
+
+        "indoor":  {"field": {"fill": "url(#navy)"}, "ink": {"fill": "#f2f4f6"}},
+        "outdoor": {"field": {"fill": "url(#silver)"}, "ink": {"fill": "#2b2f7e"}},
+
+        "compound": {"cam": {"display": "inline"}}
+    }
+}

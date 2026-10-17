@@ -22,7 +22,9 @@ if ($lue) {
 // The volunteer space has its link under the archer's name here: no banner for it on this page.
 define('BK_VOL_BOX', true);
 bk_head(bk_t('NavHome'));
-echo '<h1>' . bk_t('HomeHello', bk_e(bk_name_title($archer->BaName))) . '</h1>';
+// The History block reuses the statistics' styles (next distinction, its picture and bar).
+echo '<link rel="stylesheet" href="' . bk_e(bk_public_url('assets/stats.css')) . '?v=' . bk_e(bk_version()) . '">'
+    . '<h1>' . bk_t('HomeHello', bk_e(bk_name_title($archer->BaName))) . '</h1>';
 
 // Volunteer of a team with a post open now: the way in, kept here once the banner is closed.
 $vol = bk_vol_competitions($archer);
@@ -190,11 +192,48 @@ if ($sugg) {
 }
 $blkComps .= '</section>';
 
-// History: its contents will come with the new statistics page; for now the way to it.
+// History (lib/stats.php): competitions shot on this server, arrows, the year of the first one,
+// and the next national distinction to reach — in the discipline of the next competition the
+// archer is registered in, else in the last one they shot. Before any competition, what will
+// show here.
+require_once dirname(__DIR__) . '/lib/stats.php';
+$hist = bk_stats_rounds($archer->BaLicence);
 $blkHistory = '<section class="bk-block"><div class="bk-block-h"><h2>' . bk_e(bk_t('HomeHistory')) . '</h2>'
-    . '<a class="bk-btn bk-btn-sm" href="' . bk_e(bk_public_url('stats.php')) . '">' . bk_e(bk_t('MyFollowUp')) . '</a></div>'
-    . '<p class="bk-hint">' . bk_e(bk_t(bk_is_manager() ? 'FollowHintClub' : 'FollowHint')) . '</p>'
-    . (bk_is_manager() ? '<p class="bk-actions"><a class="bk-btn" href="' . bk_e(bk_public_url('club.php')) . '">' . bk_e(bk_t('ClubBtn')) . '</a></p>' : '')
+    . '<a class="bk-btn bk-btn-sm" href="' . bk_e(bk_public_url('stats.php')) . '">' . bk_e(bk_t('MyFollowUp')) . '</a></div>';
+if (!$hist) {
+    $blkHistory .= '<p class="bk-hint">' . bk_e(bk_t('HomeHistNone')) . '</p>';
+} else {
+    $tot = bk_stats_totals($hist);
+    $seps = bk_number_seps();
+    $fig = function ($v, $l) { return '<div><span class="v">' . $v . '</span><span class="l">' . bk_e($l) . '</span></div>'; };
+    $blkHistory .= '<div class="bk-hh-figs">'
+        . $fig(number_format($tot['tours'], 0, $seps['dec'], $seps['thousands']), bk_t($tot['tours'] > 1 ? 'StatComps' : 'StatComp'))
+        . $fig(number_format($tot['arrows'], 0, $seps['dec'], $seps['thousands']), bk_t('StatArrows'))
+        . $fig(bk_e(substr($hist[0]['date'], 0, 4)), bk_t('HomeHistSince')) . '</div>';   // bytes: ASCII date
+
+    $up = bk_stats_upcoming_ctx($archer->BaLicence);
+    $ctx = $up['ctx'] ?? null;
+    $ref = $up['round'] ?? null;
+    if (!$ctx) {
+        foreach (array_reverse($hist) as $r) {
+            if ($c = bk_stats_round_ctx($r)) { $ctx = $c; $ref = $r; break; }
+        }
+    }
+    if ($ctx) {
+        $b = bk_stats_ctx_badges($ctx, bk_stats_badges($hist));
+        $shot = false;
+        foreach ($hist as $r) if ($r['combo'] === $ref['combo']) $shot = true;
+        $blkHistory .= '<div class="bk-hh-next"><h3>' . bk_e(bk_t('StatNext')) . '</h3><p class="bk-hint">'
+            . bk_e($up ? bk_t('HomeHistForNext', $ref['name']) : bk_t('HomeHistForLast')) . '<br>'
+            . bk_e(bk_t('DistDisc' . $ref['disc']) . ' · ' . $ref['bowName'] . ($ref['dist'] > 0 ? ' · ' . $ref['dist'] . ' m' : '')) . '</p>'
+            . bk_stats_next_html($b, bk_public_url(), 56)
+            // The page of that combination, once the archer has shot it.
+            . ($shot ? '<p class="bk-hh-more"><a href="' . bk_e(bk_public_url('stats-detail.php?k=' . rawurlencode($ref['combo']))) . '">'
+                . bk_e(bk_t('HomeHistDetail')) . ' →</a></p>' : '')
+            . '</div>';
+    }
+}
+$blkHistory .= (bk_is_manager() ? '<p class="bk-actions"><a class="bk-btn" href="' . bk_e(bk_public_url('club.php')) . '">' . bk_e(bk_t('ClubBtn')) . '</a></p>' : '')
     . '</section>';
 
 echo '<div class="bk-home-grid">' . $blkLicence . $blkHistory . $blkRegs . $blkComps . '</div>';

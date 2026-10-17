@@ -1006,3 +1006,19 @@ $lang['TrOrgUnaccept']            = 'Retirar';
 $lang['TrOrgUnaccepted']          = 'Aceptación retirada.';
 $lang['TrLgH']                    = 'Índice de confianza de los pagadores';
 $lang['TrLg']                     = 'Cuando un organizador registra los pagos de una competición en este servicio, los importes todavía debidos {$a[grace]} días después de su final (impagos), las cuentas saldadas más de {$a[late]} días después de su final (retrasos) y los pagos rechazados (cheque rechazado, pago con tarjeta impugnado) se registran a nombre de la licencia del arquero, o del club cuando la inscripción la hizo el club. Finalidad: permitir a los organizadores de las competiciones de este servicio asegurar los pagos diferidos (inscripción, compras a cuenta), avisándoles o negando ese crédito a un arquero o un club que tiene impagos; un pago hecho en el momento nunca se rechaza. Base jurídica: el interés legítimo de los organizadores en cobrar. Los organizadores de las demás competiciones solo ven un nivel (verde, naranja, rojo) y un motivo genérico, nunca el importe ni el club. Conservación: {$a[months]} meses después de la competición, conservándose como retraso una deuda saldada tarde. Cada arquero ve su nivel y sus motivos en su espacio («Mis inscripciones») y puede pedir una rectificación al responsable del servicio; el administrador puede corregir un nivel, y un organizador puede aceptar a un arquero o un club para su competición.';
+
+// admin/distinctions.php — gallery of the national distinction badges
+$lang['MenuDistinctions'] = 'Distinciones nacionales';
+$lang['DsLead'] = 'Las insignias federales, dibujadas a partir de los archivos de la carpeta {$a}, con la puntuación que hay que alcanzar para cada una. Servirán para las estadísticas de los arqueros.';
+$lang['DsErr'] = 'Archivo con error: {$a}';
+$lang['DsHowTitle'] = 'Modificar una imagen';
+$lang['DsColFile'] = 'Archivo';
+$lang['DsColWhat'] = 'Lo que se cambia en él';
+$lang['DsFileLevel'] = 'La forma de las insignias de color (de verde a amarillo)';
+$lang['DsFileStar'] = 'La forma de las insignias con estrellas';
+$lang['DsFileLogo'] = 'El pictograma del arquero, común a todas las insignias, incluida la polea del arco compuesto';
+$lang['DsFileLooks'] = 'Los colores, los textos, los detalles visibles u ocultos (polea, estrellas), la posición de una parte';
+$lang['DsFileRules'] = 'Las puntuaciones que hay que alcanzar, los tipos de arco, la distancia escrita en cada insignia';
+$lang['DsHowTools'] = 'Los archivos .svg se abren con un editor de texto o con Inkscape (gratuito): conserve los identificadores (id) de los elementos, looks.json los encuentra gracias a ellos. Los archivos .json se abren con un editor de texto. Vuelva a cargar esta página después de un cambio: las imágenes se redibujan al instante.';
+$lang['DsHowUpdate'] = 'Una actualización del módulo sustituye estos archivos: una corrección hecha en un servidor debe trasladarse al módulo para conservarse.';
+$lang['DsOpen'] = 'Abrir solo la imagen';

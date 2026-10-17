@@ -1006,3 +1006,19 @@ $lang['TrOrgUnaccept']            = 'Zurückziehen';
 $lang['TrOrgUnaccepted']          = 'Zulassung zurückgezogen.';
 $lang['TrLgH']                    = 'Zahlungsvertrauensindex';
 $lang['TrLg']                     = 'Wenn ein Veranstalter die Zahlungen eines Wettkampfs in diesem Dienst erfasst, werden die {$a[grace]} Tage nach dessen Ende noch geschuldeten Beträge (unbezahlt), die mehr als {$a[late]} Tage nach dessen Ende beglichenen Konten (verspätete Zahlungen) und die abgelehnten Zahlungen (Scheck abgelehnt, Kartenzahlung angefochten) unter der Lizenz des Schützen erfasst, oder unter dem Verein, wenn die Anmeldung vom Verein vorgenommen wurde. Zweck: den Veranstaltern der Wettkämpfe dieses Dienstes zu ermöglichen, später geleistete Zahlungen (Anmeldung, Einkäufe auf Rechnung) abzusichern, indem sie gewarnt werden oder einem Schützen oder Verein mit offenen Zahlungen dieser Kredit verweigert wird; eine sofort geleistete Zahlung wird nie abgelehnt. Rechtsgrundlage: das berechtigte Interesse der Veranstalter, bezahlt zu werden. Die Veranstalter anderer Wettkämpfe sehen nur eine Stufe (grün, orange, rot) und einen allgemeinen Grund, nie den Betrag oder den Verein. Speicherdauer: {$a[months]} Monate nach dem Wettkampf, wobei eine spät beglichene Schuld als verspätete Zahlung gespeichert bleibt. Jeder Schütze sieht seine Stufe und deren Gründe in seinem Bereich („Meine Anmeldungen“) und kann beim Betreiber des Dienstes eine Berichtigung verlangen; der Administrator kann eine Stufe korrigieren, und ein Veranstalter kann einen Schützen oder Verein für seinen Wettkampf akzeptieren.';
+
+// admin/distinctions.php — gallery of the national distinction badges
+$lang['MenuDistinctions'] = 'Nationale Abzeichen';
+$lang['DsLead'] = 'Die Verbandsabzeichen, gezeichnet aus den Dateien des Ordners {$a}, mit dem jeweils zu erreichenden Ergebnis. Sie werden für die Statistiken der Schützen verwendet.';
+$lang['DsErr'] = 'Fehlerhafte Datei: {$a}';
+$lang['DsHowTitle'] = 'Ein Bild ändern';
+$lang['DsColFile'] = 'Datei';
+$lang['DsColWhat'] = 'Was man darin ändert';
+$lang['DsFileLevel'] = 'Die Form der Farbabzeichen (Grün bis Gelb)';
+$lang['DsFileStar'] = 'Die Form der Sternabzeichen';
+$lang['DsFileLogo'] = 'Das Schützen-Piktogramm, allen Abzeichen gemeinsam, einschließlich der Rolle des Compoundbogens';
+$lang['DsFileLooks'] = 'Farben, Texte, ein- oder ausgeblendete Details (Rolle, Sterne), Position eines Teils';
+$lang['DsFileRules'] = 'Zu erreichende Ergebnisse, Bogenklassen, auf jedem Abzeichen stehende Distanz';
+$lang['DsHowTools'] = 'Die .svg-Dateien öffnen sich in einem Texteditor oder in Inkscape (kostenlos): Behalten Sie die Kennungen (id) der Elemente bei, über sie findet looks.json sie wieder. Die .json-Dateien öffnen sich in einem Texteditor. Laden Sie diese Seite nach einer Änderung neu: Die Bilder werden sofort neu gezeichnet.';
+$lang['DsHowUpdate'] = 'Ein Update des Moduls ersetzt diese Dateien: Eine auf einem Server vorgenommene Korrektur muss in das Modul übernommen werden, um erhalten zu bleiben.';
+$lang['DsOpen'] = 'Nur das Bild öffnen';

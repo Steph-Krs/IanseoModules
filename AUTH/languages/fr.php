@@ -1006,3 +1006,19 @@ $lang['TrOrgUnaccept']           = 'Retirer';
 $lang['TrOrgUnaccepted']         = 'Acceptation retirée.';
 $lang['TrLgH']                   = 'Indice de confiance des payeurs';
 $lang['TrLg']                    = 'Lorsqu\'un organisateur enregistre les paiements d\'une compétition sur ce service, les sommes encore dues {$a[grace]} jours après sa fin (impayés), les comptes soldés plus de {$a[late]} jours après sa fin (retards) et les paiements rejetés (chèque refusé, paiement par carte contesté) sont relevés au nom de la licence de l\'archer, ou du club lorsque l\'inscription a été faite par le club. Finalité : permettre aux organisateurs des compétitions de ce service de sécuriser les paiements différés (inscription, achats sur compte), en les avertissant ou en refusant ce crédit à un archer ou un club qui a des impayés ; un paiement fait sur place n\'est jamais refusé. Base légale : l\'intérêt légitime des organisateurs à être payés. Les organisateurs des autres compétitions ne voient qu\'un niveau (vert, orange, rouge) et une raison générique, jamais le montant ni le club. Conservation : {$a[months]} mois après la compétition, une dette soldée tard étant conservée comme retard. Chaque archer voit son niveau et ses raisons dans son espace (« Mes inscriptions ») et peut demander une rectification à l\'exploitant du service ; l\'administrateur peut corriger un niveau, et un organisateur peut accepter un archer ou un club pour sa compétition.';
+
+// admin/distinctions.php — gallery of the national distinction badges
+$lang['MenuDistinctions'] = 'Distinctions nationales';
+$lang['DsLead'] = 'Les badges fédéraux, dessinés à partir des fichiers du dossier {$a}, avec le score à réaliser pour chacun. Ils serviront aux statistiques des archers.';
+$lang['DsErr'] = 'Fichier en erreur : {$a}';
+$lang['DsHowTitle'] = 'Modifier un visuel';
+$lang['DsColFile'] = 'Fichier';
+$lang['DsColWhat'] = 'Ce qu\'on y change';
+$lang['DsFileLevel'] = 'La forme des badges de couleur (vert à jaune)';
+$lang['DsFileStar'] = 'La forme des badges à étoiles';
+$lang['DsFileLogo'] = 'Le pictogramme de l\'archer, commun à tous les badges, poulie de l\'arc à poulies comprise';
+$lang['DsFileLooks'] = 'Les couleurs, les textes, les détails affichés ou masqués (poulie, étoiles), la position d\'une partie';
+$lang['DsFileRules'] = 'Les scores à réaliser, les armes, la distance écrite sur chaque badge';
+$lang['DsHowTools'] = 'Les fichiers .svg s\'ouvrent dans un éditeur de texte ou dans Inkscape (gratuit) : gardez les identifiants (id) des éléments, c\'est par eux que looks.json les retrouve. Les fichiers .json s\'ouvrent dans un éditeur de texte. Rechargez cette page après une modification : les images sont redessinées aussitôt.';
+$lang['DsHowUpdate'] = 'Une mise à jour du module remplace ces fichiers : une correction faite sur un serveur doit être reportée dans le module pour être conservée.';
+$lang['DsOpen'] = 'Ouvrir l\'image seule';

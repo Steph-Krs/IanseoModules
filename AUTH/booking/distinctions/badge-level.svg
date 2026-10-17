@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Colour badge (green, white, black, blue, red, yellow levels).
+
+  A metal frame, a white band carrying the distance on the left, an enamel plate
+  of the level colour on the right, and the archer pictogram (logo.svg) on it.
+
+  ids changed by looks.json:
+    panel      the coloured plate (fill = colour of the level)
+    band       the white band
+    distance   the distance text ("text" = what is written)
+    logo       where the pictogram goes; its parts are ink, bow and cam
+
+  Shapes: edit them here (any text editor, or Inkscape: keep the ids).
+  Colours and texts: edit looks.json, not this file.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 254 200" width="254" height="200">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbfbfc"/>
+      <stop offset="0.38" stop-color="#c9ccd0"/>
+      <stop offset="0.52" stop-color="#8e9399"/>
+      <stop offset="0.7" stop-color="#d7dadd"/>
+      <stop offset="1" stop-color="#9da2a8"/>
+    </linearGradient>
+    <linearGradient id="metal-side" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a7abb0"/>
+      <stop offset="0.5" stop-color="#f1f2f3"/>
+      <stop offset="1" stop-color="#9ea3a9"/>
+    </linearGradient>
+    <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.45" stop-color="#c3c7cb"/>
+      <stop offset="0.55" stop-color="#7f858b"/>
+      <stop offset="1" stop-color="#e3e5e8"/>
+    </linearGradient>
+    <linearGradient id="enamel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.12"/>
+    </linearGradient>
+    <clipPath id="inside">
+      <path d="M18,10 H210 C229,10 241,41 245,86 L245,114 C241,159 229,190 210,190 H18 Q10,190 10,182 V18 Q10,10 18,10 Z"/>
+    </clipPath>
+  </defs>
+
+  <path id="frame" d="M17,4 H211 C233,4 247,38 251,86 L251,114 C247,162 233,196 211,196 H17 Q4,196 4,183 V17 Q4,4 17,4 Z"
+        fill="url(#metal)" stroke="#5c6167" stroke-width="1.2"/>
+
+  <g clip-path="url(#inside)">
+    <rect id="panel" x="0" y="0" width="254" height="200" fill="#05a44f"/>
+    <rect id="band" x="0" y="0" width="74" height="200" fill="#f4f4f2"/>
+    <rect id="divider" x="73" y="0" width="5" height="200" fill="url(#metal-side)" stroke="#6b7076" stroke-width="0.8"/>
+    <rect id="sheen" x="0" y="0" width="254" height="200" fill="url(#enamel)"/>
+  </g>
+  <path d="M18,10 H210 C229,10 241,41 245,86 L245,114 C241,159 229,190 210,190 H18 Q10,190 10,182 V18 Q10,10 18,10 Z"
+        fill="none" stroke="#6b7076" stroke-width="1"/>
+
+  <!-- serif with lining figures: Georgia draws old-style figures (a short "1") -->
+  <text id="distance" transform="translate(43,100) rotate(-90)" text-anchor="middle" dy="0.34em"
+        font-family="'Times New Roman', Times, 'Noto Serif', 'Liberation Serif', serif" font-weight="bold" font-size="46"
+        fill="url(#chrome)" stroke="#62676d" stroke-width="0.9">18m</text>
+
+  <g id="logo" transform="translate(86.7,10.9) scale(1.455,1.414)"/>
+</svg>
