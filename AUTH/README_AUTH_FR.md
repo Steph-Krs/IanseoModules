@@ -444,9 +444,9 @@ Voir le [README général](../README.md) pour le principe commun.
 | `DELETE FROM` | `AuthShareClub` | `index.php:53` | — |
 | `INSERT IGNORE INTO` | `AuthShareClub` | `index.php:55` | — |
 | `UPDATE` | `AuthShare` | `index.php:64` | — |
-| `ALTER TABLE` | `AuthUsers` | `legal-lib.php:305` | — |
-| `UPDATE` | `AuthUsers` | `legal-lib.php:323` | — |
-| `UPDATE` | `BookingArchers` | `legal-lib.php:339` | — |
+| `ALTER TABLE` | `AuthUsers` | `legal-lib.php:316` | — |
+| `UPDATE` | `AuthUsers` | `legal-lib.php:334` | — |
+| `UPDATE` | `BookingArchers` | `legal-lib.php:350` | — |
 | `ALTER TABLE` | `AuthUsers` | `lib.php:181` | — |
 | `ALTER TABLE` | `AuthUsers` | `lib.php:189` | — |
 | `ALTER TABLE` | `AuthShare` | `lib.php:210` | — |

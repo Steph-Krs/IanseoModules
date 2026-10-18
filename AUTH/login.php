@@ -132,7 +132,9 @@ if ($method === 'POST' && ($_POST['role'] ?? '') === 'comp' && $hasCompetitor
             $lue = bk_lookup_licence($licence);
             if (!$lue) {
                 bk_log('LICENCE_UNKNOWN', $licence);
-                $errC = aut_t('LoginCompUnknown');
+                // Not in the licence file: no active licence (or one too recent for the nightly
+                // update). The organiser can do nothing about it — the operator is named.
+                $errC = aut_t('LoginCompUnknown', aut_legal_contact());
             } elseif (!bk_ffta_name_matches($res['displayName'] ?? '', $lue)) {
                 bk_log('NAME_MISMATCH', $licence);
                 $errC = aut_t('LoginCompMismatch');

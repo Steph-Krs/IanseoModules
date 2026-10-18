@@ -48,7 +48,11 @@ bk_waitlist_process($tourId);
 // Federal identity of the SIGNED-IN archer: source of their club (which limits the group
 // registration) and of their age (only an adult registers someone else).
 $selfLue = bk_lookup_licence($archer->BaLicence);
-if (!$selfLue) bk_reg_stop(bk_t('LicenceUnknown'), false);
+if (!$selfLue) {
+    // Gone from the licence file since the sign-in: the operator is named, not the organiser.
+    require_once dirname(__DIR__, 2) . '/legal-lib.php';
+    bk_reg_stop(bk_t('LicenceUnknown', aut_legal_contact()), false);
+}
 
 // Group registration: an ADULT licensee may register a clubmate of THEIR club by typing
 // their licence number. The SUBJECT of the registration is the signed-in archer by default

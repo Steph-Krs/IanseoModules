@@ -99,6 +99,17 @@ function aut_legal_operator()
     return $out;
 }
 
+/**
+ * Who a visitor contacts about the server itself (a licence it does not know, for instance): the
+ * operator's name from the legal notice — never the organiser of a competition, who has no hand
+ * on it — or "the administrator of this server" while the legal notice is not filled in.
+ */
+function aut_legal_contact()
+{
+    $name = aut_legal_operator()['name'];
+    return $name !== '' ? $name : aut_t('LgContactAdmin');
+}
+
 /** Has the operator filled in the bare minimum (name + e-mail)? */
 function aut_legal_configured()
 {
