@@ -2,15 +2,17 @@
 /**
  * booking/lib/stats.php — the archer's statistics.
  *
- * Every shot of the archer's licence on THIS server, sorted by discipline and by combination —
- * bow, distance, target face or peg — since scores shot at different distances or on different
- * faces do not compare; and the national distinctions they earn (lib/distinctions.php).
+ * Every shot of the archer's licence on THIS server, and those of the federation record they
+ * imported (lib/palmares.php), sorted by discipline and by combination — bow, distance, target
+ * face or peg — since scores shot at different distances or on different faces do not compare;
+ * and the national distinctions they earn (lib/distinctions.php).
  *
  * Read only. Left out: competitions with "No publication" (level 1, private to the organiser)
  * and those not started yet. A "shot" is one round: a 25 m + 18 m competition gives two.
  */
 require_once __DIR__ . '/distinctions.php';
 require_once __DIR__ . '/competition.php';
+require_once __DIR__ . '/palmares.php';
 
 /** Disciplines of the statistics, in display order. */
 function bk_stats_disc_keys()
@@ -219,20 +221,48 @@ function bk_stats_entry_rounds($r, array $info, $all = false)
             'complete' => $complete, 'rank' => count($groups) === 1 ? intval($r->QuClRank) : 0,
             'arrows' => $arrows, 'walk' => $planned > 0 ? intval(round($walkFull * $arrows / $planned)) : 0,
             'honours' => $honours,
+            // Shot on this server (lib/palmares.php gives 'pal' rounds the same keys).
+            'src' => 'local', 'conf' => 'exact', 'official' => true, 'badge' => true,
         );
     }
     return $out;
 }
 
-/** Every round of a licence, oldest first (competitions started and published). */
-function bk_stats_rounds($licence)
+/** Every round of a licence shot on this server, oldest first (competitions started and published). */
+function bk_stats_local_rounds($licence)
 {
-    static $cache = array();
-    if (isset($cache[$licence])) return $cache[$licence];
     $rows = bk_stats_entries($licence);
     $info = bk_stats_distinfo(array_map(function ($r) { return $r->ToId; }, $rows));
     $out = array();
     foreach ($rows as $r) $out = array_merge($out, bk_stats_entry_rounds($r, $info));
+    return $out;
+}
+
+/**
+ * Every round of a licence, oldest first: those shot on this server, and those of the
+ * federation record the archer imported (lib/palmares.php) — but for a day and a score already
+ * here: a competition of this server is never counted twice, and its own figures (distance,
+ * face, arrows) are the precise ones.
+ */
+function bk_stats_rounds($licence)
+{
+    static $cache = array();
+    if (isset($cache[$licence])) return $cache[$licence];
+    $out = bk_stats_local_rounds($licence);
+    $known = bk_pal_local_keys($out);
+    $pal = array_values(array_filter(bk_pal_rounds($licence), function ($r) use ($known) {
+        return !isset($known[$r['date'] . '|' . $r['score']]);
+    }));
+    if ($pal) {
+        $out = array_merge($out, $pal);
+        // Stable: rounds of one day keep their order.
+        $i = 0;
+        foreach ($out as &$r) $r['_i'] = $i++;
+        unset($r);
+        usort($out, function ($a, $b) { return strcmp($a['date'], $b['date']) ?: $a['_i'] - $b['_i']; });
+        foreach ($out as &$r) unset($r['_i']);
+        unset($r);
+    }
     return $cache[$licence] = $out;
 }
 
@@ -313,7 +343,8 @@ function bk_stats_badges(array $rounds)
 {
     $out = array();
     foreach ($rounds as $r) {
-        if (!$r['complete'] || !($ctx = bk_stats_round_ctx($r))) continue;
+        // An imported round counts only when official and placed for sure (lib/palmares.php).
+        if (!$r['complete'] || empty($r['badge']) || !($ctx = bk_stats_round_ctx($r))) continue;
         $k = bk_stats_ctx_key($ctx);
         if (!isset($out[$k])) {
             $out[$k] = array('ctx' => $ctx, 'measure' => bk_dist_measure($ctx), 'ladder' => bk_dist_ladder($ctx),
@@ -514,13 +545,15 @@ function bk_stats_chart_svg(array $rounds, $b, $W, $H)
         $px = $x($p['t']); $py = $y($p['v']);
         $path .= ($i ? ' L' : 'M') . $f($px) . ',' . $f($py);
         $rec = $i + 1 === $best;
-        $dots .= '<circle class="pt' . ($rec ? ' rec' : '') . '" data-i="' . $i . '" cx="' . $f($px) . '" cy="' . $f($py) . '" r="' . ($rec ? 6.5 : 4.5) . '"/>';
+        $pal = ($p['r']['src'] ?? '') === 'pal';
+        $dots .= '<circle class="pt' . ($rec ? ' rec' : '') . ($pal ? ' pal' : '') . '" data-i="' . $i . '" cx="' . $f($px) . '" cy="' . $f($py) . '" r="' . ($rec ? 6.5 : 4.5) . '"/>';
         $hits .= '<circle class="hit" tabindex="0" data-i="' . $i . '" cx="' . $f($px) . '" cy="' . $f($py) . '" r="13"'
             . ' aria-label="' . bk_e($p['v'] . ' — ' . $p['r']['name'] . ', ' . bk_date_fr($p['r']['date'])) . '"/>';
         $r = $p['r'];
         $data[] = array('x' => round($px, 1), 'y' => round($py, 1), 'v' => $p['v'], 'n' => $r['name'], 'w' => $r['where'],
                         'd' => bk_date_range($r['date'], $r['dateTo']),
-                        'k' => $r['rank'] > 0 ? strip_tags(bk_t('StatRanked', $r['rank'])) : '');
+                        'k' => $r['rank'] > 0 ? strip_tags(bk_t('StatRanked', $r['rank'])) : '',
+                        'o' => $pal ? bk_t('StatFromPal') : '');
     }
     $bp = $pts[$best - 1];
     $label = bk_t('StatRecordShort', $bp['v']);
@@ -534,15 +567,15 @@ function bk_stats_chart_svg(array $rounds, $b, $W, $H)
         . '<div class="bk-chart-tip" hidden></div></figure>';
 }
 
-/** Ring gauge of a score out of its maximum (the record). */
+/** Ring gauge of a score out of its maximum (the record); the score alone when the maximum is unknown. */
 function bk_stats_gauge($score, $max)
 {
     $r = 58; $c = 2 * M_PI * $r;
     $frac = $max > 0 ? max(0, min(1, $score / $max)) : 0;
-    return '<svg class="bk-ring" viewBox="0 0 150 150" role="img" aria-label="' . bk_e($score . ' / ' . $max) . '">'
+    return '<svg class="bk-ring" viewBox="0 0 150 150" role="img" aria-label="' . bk_e($max > 0 ? $score . ' / ' . $max : $score) . '">'
         . '<circle cx="75" cy="75" r="' . $r . '" class="gt"/>'
         . '<circle cx="75" cy="75" r="' . $r . '" class="gv" stroke-dasharray="' . number_format($frac * $c, 1, '.', '') . ' '
         . number_format($c, 1, '.', '') . '" transform="rotate(-90 75 75)"/>'
         . '<text x="75" y="80" text-anchor="middle" class="gs">' . intval($score) . '</text>'
-        . '<text x="75" y="104" text-anchor="middle" class="gm">/ ' . intval($max) . '</text></svg>';
+        . ($max > 0 ? '<text x="75" y="104" text-anchor="middle" class="gm">/ ' . intval($max) . '</text>' : '') . '</svg>';
 }

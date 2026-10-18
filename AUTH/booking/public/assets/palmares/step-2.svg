@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270" width="480" height="270">
+  <!-- Step 2 of stats-import.php: "Choix de la saison" → "Toutes", then "Consulter".
+       A simplified drawing with a made-up archer, not a capture. -->
+  <style>text { font-family: Arial, Helvetica, sans-serif; } .hl { fill: none; stroke: #e8710a; stroke-width: 3; } .no { font-size: 13px; font-weight: bold; fill: #fff; }</style>
+  <rect x="1" y="1" width="478" height="268" rx="10" fill="#fff" stroke="#c8ccd2"/>
+  <path d="M1 11a10 10 0 0 1 10-10h458a10 10 0 0 1 10 10v24H1z" fill="#eef0f3"/>
+  <circle cx="18" cy="18" r="5" fill="#e86a5f"/><circle cx="34" cy="18" r="5" fill="#f4bf4f"/><circle cx="50" cy="18" r="5" fill="#61c554"/>
+  <rect x="68" y="8" width="398" height="20" rx="10" fill="#fff" stroke="#d2d4d6"/>
+  <text x="82" y="23" font-size="13" fill="#5b6064">extranet.ffta.fr/mon_palmares.html</text>
+
+  <rect x="14" y="48" width="246" height="208" rx="6" fill="#fff" stroke="#d2d4d6"/>
+  <rect x="14" y="48" width="246" height="28" rx="6" fill="#4778a2"/>
+  <text x="24" y="67" font-size="13" fill="#fff">Palmarès de M DUPONT CAMILLE</text>
+  <g fill="#e3e6ea"><rect x="26" y="90" width="222" height="14" rx="3"/><rect x="26" y="114" width="180" height="10" rx="3"/>
+    <rect x="26" y="134" width="200" height="10" rx="3"/><rect x="26" y="154" width="160" height="10" rx="3"/>
+    <rect x="26" y="182" width="222" height="14" rx="3"/><rect x="26" y="206" width="190" height="10" rx="3"/>
+    <rect x="26" y="226" width="170" height="10" rx="3"/></g>
+
+  <rect x="272" y="48" width="194" height="208" rx="6" fill="#fff" stroke="#d2d4d6"/>
+  <rect x="272" y="48" width="194" height="28" rx="6" fill="#4778a2"/>
+  <text x="284" y="67" font-size="14" font-weight="bold" fill="#fff">Choix de la saison</text>
+  <text x="284" y="102" font-size="14" fill="#4c575a">Saison :</text>
+  <rect x="344" y="87" width="110" height="24" rx="3" fill="#fff" stroke="#aab1b8"/>
+  <text x="352" y="104" font-size="14" font-weight="bold" fill="#20263d">Toutes</text>
+  <path d="M438 96l6 6 6-6" fill="none" stroke="#5b6064" stroke-width="2"/>
+  <rect x="344" y="111" width="110" height="88" fill="#fff" stroke="#aab1b8"/>
+  <rect x="345" y="112" width="108" height="22" fill="#dbe7f7"/>
+  <text x="352" y="128" font-size="14" font-weight="bold" fill="#01367c">Toutes</text>
+  <text x="352" y="150" font-size="14" fill="#4c575a">2026</text>
+  <text x="352" y="171" font-size="14" fill="#4c575a">2025</text>
+  <text x="352" y="192" font-size="14" fill="#4c575a">2024</text>
+  <rect x="339" y="106" width="120" height="32" rx="6" class="hl"/>
+  <circle cx="331" cy="122" r="10" fill="#e8710a"/><text x="331" y="127" class="no" text-anchor="middle">1</text>
+
+  <rect x="344" y="212" width="96" height="28" rx="4" fill="#e9eef5" stroke="#9fb6dc"/>
+  <text x="392" y="231" font-size="14" fill="#20263d" text-anchor="middle">Consulter</text>
+  <rect x="338" y="206" width="108" height="40" rx="7" class="hl"/>
+  <circle cx="331" cy="226" r="10" fill="#e8710a"/><text x="331" y="231" class="no" text-anchor="middle">2</text>
+</svg>

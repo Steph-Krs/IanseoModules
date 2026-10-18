@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270" width="480" height="270">
+  <!-- Step 3 of stats-import.php: under the table, "Export Excel (.xlsx)" — not the .xls one.
+       A simplified drawing with a made-up archer and places, not a capture. -->
+  <style>text { font-family: Arial, Helvetica, sans-serif; } .hl { fill: none; stroke: #e8710a; stroke-width: 3; } .r { font-size: 12px; fill: #4c575a; }</style>
+  <rect x="1" y="1" width="478" height="268" rx="10" fill="#fff" stroke="#c8ccd2"/>
+  <path d="M1 11a10 10 0 0 1 10-10h458a10 10 0 0 1 10 10v24H1z" fill="#eef0f3"/>
+  <circle cx="18" cy="18" r="5" fill="#e86a5f"/><circle cx="34" cy="18" r="5" fill="#f4bf4f"/><circle cx="50" cy="18" r="5" fill="#61c554"/>
+  <rect x="68" y="8" width="398" height="20" rx="10" fill="#fff" stroke="#d2d4d6"/>
+  <text x="82" y="23" font-size="13" fill="#5b6064">extranet.ffta.fr/mon_palmares.html</text>
+
+  <rect x="14" y="46" width="452" height="148" rx="4" fill="#fff" stroke="#d2d4d6"/>
+  <rect x="15" y="47" width="450" height="26" fill="#e3e3e3"/>
+  <text x="24" y="65" font-size="14" font-weight="bold" fill="#4778a2">Individuel Tir Salle 2026</text>
+  <rect x="15" y="73" width="450" height="26" fill="#f1f1f1"/>
+  <text x="24" y="91" font-size="13" font-weight="bold" fill="#20263d">U18 Femme Arc Classique 2026</text>
+  <text x="386" y="91" font-size="13" fill="#20263d">12e</text><text x="424" y="91" font-size="13" font-weight="bold" fill="#20263d">548</text>
+  <text x="24" y="119" class="r">12/10/2025 - VILLE-SUR-ARC</text><text x="386" y="119" class="r">1er</text><text x="424" y="119" class="r">548 pts</text>
+  <text x="24" y="143" class="r">23/11/2025 - BOURG-LES-CIBLES</text><text x="386" y="143" class="r">3e</text><text x="424" y="143" class="r">541 pts</text>
+  <text x="24" y="167" class="r">18/01/2026 - SAINT-EMPENNE</text><text x="386" y="167" class="r">2e</text><text x="424" y="167" class="r">536 pts</text>
+  <path d="M15 128h450M15 152h450M15 176h450" stroke="#eef0f3"/>
+
+  <g opacity=".45"><rect x="128" y="214" width="150" height="30" rx="4" fill="#e9eef5" stroke="#9fb6dc"/>
+    <text x="203" y="234" font-size="13" fill="#20263d" text-anchor="middle">Export Excel (.xls)</text></g>
+  <rect x="292" y="214" width="160" height="30" rx="4" fill="#e9eef5" stroke="#9fb6dc"/>
+  <text x="372" y="234" font-size="13" font-weight="bold" fill="#20263d" text-anchor="middle">Export Excel (.xlsx)</text>
+  <rect x="286" y="208" width="172" height="42" rx="7" class="hl"/>
+  <path d="M446 238l0 26 6-6 5 11 5-2-5-11 8 0z" fill="#20263d" stroke="#fff" stroke-width="1.5"/>
+</svg>

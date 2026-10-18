@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 36);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 37);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -703,6 +703,27 @@ function bk_schema()
     // FORBIDDEN ones, comma separated; NULL = every category allowed — a division or class added
     // later in ianseo is allowed until the organiser says otherwise.
     bk_colonne('BookingCompetitions', 'BcCategories', "TEXT NULL AFTER BcRestrictTo");
+
+    // v37 — the archer's federation record, imported by the archer (lib/palmares.php): one row
+    // per round, the extranet's labels as they are (the placement — distance, face — is worked
+    // out when read, so a better table places old imports again). BpSeason = the heading's year;
+    // BpScratch = the round counts in a scratch ranking (shot at the adult distance).
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BookingPalmares (
+        BpId         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        BpLicence    VARCHAR(25)  NOT NULL,
+        BpSeason     SMALLINT UNSIGNED NOT NULL,
+        BpDiscipline VARCHAR(100) NOT NULL DEFAULT '',
+        BpCategory   VARCHAR(160) NOT NULL DEFAULT '',
+        BpDate       DATE         NOT NULL,
+        BpEvent      VARCHAR(200) NOT NULL DEFAULT '',
+        BpRank       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+        BpScore      INT UNSIGNED NOT NULL DEFAULT 0,
+        BpOfficial   TINYINT      NOT NULL DEFAULT 0,
+        BpCounted    TINYINT      NOT NULL DEFAULT 1,
+        BpScratch    TINYINT      NOT NULL DEFAULT 0,
+        BpImported   DATETIME     NOT NULL,
+        KEY BpLicenceIdx (BpLicence, BpSeason)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     $_SESSION[$flag] = true;
 }

@@ -54,6 +54,17 @@ in a few clicks. Designed for ianseo servers reachable online.
   earned and the next one with how far it is (worked out from the federation rules, as a guide),
   the season's figures and the history. The badges are drawn from editable templates
   (`booking/distinctions/`).
+- 📥 **Federation record import**: the archer adds every official result since their first
+  licence to their statistics. A page walks them through 4 illustrated steps: open « Mon
+  Palmarès » on the FFTA extranet in a new tab, with their own session, choose every season,
+  export to Excel (.xlsx) and pick the file. The file is read by their browser: only the results
+  are sent to the server, which never connects to the extranet and asks for no credentials. The
+  record gives neither the distance nor the target face: they are worked out season by season
+  from the national results (`booking/lib/palmares-map.json`, no personal data); before 2017, from
+  rules written by hand (`booking/lib/palmares-rules.json`), sure once verified. An official
+  result placed for sure also counts towards the distinctions. A competition already on the server
+  is not counted twice. The archer can delete everything; the imported results also go with
+  their account.
 - 💶 **Account on each competition**, on its page: due, paid, means of payment (an online
   payment address given by the organiser is a link), receipt.
 - 🖨️ **Individual scorecard**: the official sheet produced by ianseo (PDF), for that archer
@@ -95,7 +106,8 @@ Everything is in the **Modules › Online registration** menu, with the competit
 Tables created automatically, all prefixed `BK_`: `BookingArchers` (licensee accounts),
 `BookingSessions`, `BookingLog` (log and rate limiting), `BookingCompetitions` (opening of the
 registrations), `BookingRegistrations` (traceability), `BookingSessionRules` (opening of each session), `BookingClubManagers`, `BookingFedLicences`
-(licensee files of the foreign federations that publish one, refreshed each night).
+(licensee files of the foreign federations that publish one, refreshed each night),
+`BookingPalmares` (federation record imported by the archer, one row per round).
 
 The registrations themselves are written into the **ianseo** tables (participants and targets),
 exactly like a manual entry: they show normally in every screen and export of the software.

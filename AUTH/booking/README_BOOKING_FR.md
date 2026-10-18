@@ -59,6 +59,17 @@ quelques clics. Pensé pour les serveurs ianseo accessibles en ligne.
   nationales, record personnel, distinctions obtenues et prochaine à atteindre avec l'écart
   (calculées d'après le règlement fédéral, à titre indicatif), chiffres de la saison et historique.
   Les badges sont dessinés à partir de gabarits modifiables (`booking/distinctions/`).
+- 📥 **Import du palmarès fédéral** : l'archer ajoute à ses statistiques tous ses résultats
+  officiels depuis sa première licence. Une page le guide en 4 étapes illustrées : il ouvre
+  « Mon Palmarès » sur l'extranet de la FFTA dans un nouvel onglet, avec sa propre session, choisit
+  toutes les saisons, exporte en Excel (.xlsx) et choisit le fichier. Le fichier est lu par son
+  navigateur : seuls les résultats sont envoyés au serveur, qui ne se connecte jamais à l'extranet
+  et ne demande aucun identifiant. Le palmarès ne donne ni la distance ni le blason : ils sont
+  déduits saison par saison des résultats nationaux (`booking/lib/palmares-map.json`, sans donnée
+  personnelle) ; avant 2017, de règles écrites à la main (`booking/lib/palmares-rules.json`),
+  sûres une fois vérifiées. Un résultat officiel au placement certain compte aussi pour les distinctions.
+  Une compétition déjà présente sur le serveur n'est pas comptée deux fois. L'archer peut tout
+  supprimer ; les résultats importés partent aussi avec son compte.
 - 💶 **Compte sur chaque compétition**, sur sa page : dû, payé, moyens de paiement (une adresse
   de paiement en ligne donnée par l'organisateur est un lien), reçu.
 - 🖨️ **Feuille de marque individuelle** : la feuille officielle produite par ianseo (PDF), pour
@@ -100,7 +111,8 @@ Tout se trouve dans le menu **Modules › Inscriptions en ligne**, compétition 
 Tables créées automatiquement, toutes préfixées `BK_` : `BookingArchers` (comptes licenciés),
 `BookingSessions`, `BookingLog` (journal et limitation des tentatives), `BookingCompetitions` (ouverture des
 inscriptions), `BookingRegistrations` (traçabilité), `BookingSessionRules` (ouverture de chaque départ), `BookingClubManagers`, `BookingFedLicences`
-(fichiers des licenciés des fédérations étrangères qui en publient un, mis à jour chaque nuit).
+(fichiers des licenciés des fédérations étrangères qui en publient un, mis à jour chaque nuit),
+`BookingPalmares` (palmarès fédéral importé par l'archer, une ligne par tir).
 
 Les inscriptions elles-mêmes sont écrites dans les tables **de ianseo** (participants et cibles),
 exactement comme une saisie manuelle : elles apparaissent normalement dans tous les écrans et

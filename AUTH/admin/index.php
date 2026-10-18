@@ -223,6 +223,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $msgOk = aut_t('UsArcNewPwd', array('lic' => $lic, 'pwd' => $pwd));
                 } elseif ($action == 'archer_delete') {
                     safe_w_sql("DELETE FROM BookingSessions WHERE BkArcher=$id");
+                    // The federation record the archer imported (booking/lib/palmares.php); 1146
+                    // tolerated: the table comes with the archer space's schema.
+                    safe_w_sql("DELETE FROM BookingPalmares WHERE BpLicence=" . StrSafe_DB($r->BaLicence), false, array(1146));
                     if (($r->BaKind ?? '') === 'OTHER') {
                         // Its identity for the online registration (booking/lib/other.php).
                         safe_w_sql("DELETE FROM LookUpEntries WHERE LueCode=" . StrSafe_DB($r->BaLicence)

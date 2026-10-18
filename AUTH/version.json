@@ -1,7 +1,7 @@
 {
-    "version": "1.4.13",
+    "version": "1.4.14",
     "date": "2026-10-18",
-    "notes": "Connexion a l espace licencie : une licence absente du fichier des licences (pas de licence active, ou trop recente pour la mise a jour de la nuit) n envoie plus vers l organisateur, qui n y peut rien ; le message demande d avoir une licence active depuis au moins 24 h et, si le probleme persiste, de contacter l exploitant du serveur nomme dans les mentions legales (a defaut : l administrateur de ce serveur). Meme correction sur la page d inscription quand la licence d un archer deja connecte a disparu du fichier. Precedemment (1.4.12) : Inscriptions en ligne, Statistiques refaites : en tete quelques chiffres (competitions, tirs, fleches tirees, kilometres parcourus pour chercher ses fleches, disciplines, premiere competition), puis un bloc depliant par discipline (tir a 18 m avec le 25 m, TAE distances internationales, TAE distances nationales, campagne, 3D, nature, beursault, autres epreuves) qui liste les combinaisons arme, distance et blason ou piquet, avec record, dernier score et plus haute distinction obtenue ; les 5 dernieres competitions. Une page par combinaison : graphique de tous les tirs (survol, toucher ou clavier : score, competition, lieu, date, classement ; paliers des distinctions en pointilles de leur couleur), record personnel et meilleure serie, prochaine distinction avec la barre de progression, distinctions obtenues avec leur date, chiffres de la saison, historique complet. Un tir ne compte que complet (abandon, saisie inachevee ou essai ecartes). Distinctions nationales : les badges du tir a 18 m et du TAE distances internationales (vert a jaune puis 1 a 3 etoiles, poulie pour l arc a poulies, distance de la categorie) sont dessines par le serveur a partir de gabarits modifiables (booking/distinctions : formes en SVG, couleurs et textes dans looks.json, scores dans rules.json) ; les paliers du TAE distances nationales, de la campagne, de la nature, de la 3D et du beursault s affichent en pastilles en attendant leurs visuels. Nouvelle page Multi-comptes, Distinctions nationales (administrateur). Correction : les competitions de salle a 25 m etaient classees en campagne au calendrier et sur la carte. Mon espace, bloc Historique : nombre de competitions, fleches tirees (estimees selon la discipline pour un tir termine quand la saisie ne les compte pas), annee de la premiere competition, et la prochaine distinction a atteindre dans la discipline de la prochaine competition ou l archer est inscrit, a defaut dans la derniere qu il a tiree ; avant toute competition, ce qui s y affichera. Beursault : honneurs lus dans la saisie du coeur (meme sans le detail des fleches). Precedemment (1.4.11) : Mon espace en 4 blocs (Licence, Historique, Inscriptions, Competitions) et les actualites dessous ; Mes inscriptions : les competitions a venir par defaut.",
+    "notes": "Statistiques : import du palmares federal. Un bouton dans l encadre des statistiques ouvre une page qui guide l archer en 4 etapes illustrees : ouvrir Mon Palmares sur l extranet de la FFTA (dans un nouvel onglet, avec sa propre session dans son navigateur : ce serveur ne s y connecte jamais et ne demande aucun identifiant), choisir Toutes les saisons, exporter en Excel (.xlsx), choisir le fichier ici. Le fichier est lu par le navigateur : seuls les resultats sont envoyes au serveur, avec un apercu avant de confirmer. Distance et blason sont deduits saison par saison des resultats nationaux (table de correspondance 2017-2027, sans aucune donnee personnelle) ; un resultat officiel au placement certain compte aussi pour les distinctions, les autres dans les statistiques seulement. Avant 2017, que ces resultats ne couvrent pas, le placement vient de regles ecrites a la main (booking/lib/palmares-rules.json), certaines une fois verifiees. Une competition deja sur ce serveur n est jamais comptee deux fois. Un nouvel import remplace les saisons du fichier ; l archer peut tout supprimer, et les resultats importes partent avec son compte et a l anonymisation. Nouvelle table BookingPalmares. Precedemment (1.4.13) : Connexion a l espace licencie : une licence absente du fichier des licences (pas de licence active, ou trop recente pour la mise a jour de la nuit) n envoie plus vers l organisateur, qui n y peut rien ; le message demande d avoir une licence active depuis au moins 24 h et, si le probleme persiste, de contacter l exploitant du serveur nomme dans les mentions legales (a defaut : l administrateur de ce serveur). Meme correction sur la page d inscription quand la licence d un archer deja connecte a disparu du fichier. Precedemment (1.4.12) : Inscriptions en ligne, Statistiques refaites : en tete quelques chiffres (competitions, tirs, fleches tirees, kilometres parcourus pour chercher ses fleches, disciplines, premiere competition), puis un bloc depliant par discipline (tir a 18 m avec le 25 m, TAE distances internationales, TAE distances nationales, campagne, 3D, nature, beursault, autres epreuves) qui liste les combinaisons arme, distance et blason ou piquet, avec record, dernier score et plus haute distinction obtenue ; les 5 dernieres competitions. Une page par combinaison : graphique de tous les tirs (survol, toucher ou clavier : score, competition, lieu, date, classement ; paliers des distinctions en pointilles de leur couleur), record personnel et meilleure serie, prochaine distinction avec la barre de progression, distinctions obtenues avec leur date, chiffres de la saison, historique complet. Un tir ne compte que complet (abandon, saisie inachevee ou essai ecartes). Distinctions nationales : les badges du tir a 18 m et du TAE distances internationales (vert a jaune puis 1 a 3 etoiles, poulie pour l arc a poulies, distance de la categorie) sont dessines par le serveur a partir de gabarits modifiables (booking/distinctions : formes en SVG, couleurs et textes dans looks.json, scores dans rules.json) ; les paliers du TAE distances nationales, de la campagne, de la nature, de la 3D et du beursault s affichent en pastilles en attendant leurs visuels. Nouvelle page Multi-comptes, Distinctions nationales (administrateur). Correction : les competitions de salle a 25 m etaient classees en campagne au calendrier et sur la carte. Mon espace, bloc Historique : nombre de competitions, fleches tirees (estimees selon la discipline pour un tir termine quand la saisie ne les compte pas), annee de la premiere competition, et la prochaine distinction a atteindre dans la discipline de la prochaine competition ou l archer est inscrit, a defaut dans la derniere qu il a tiree ; avant toute competition, ce qui s y affichera. Beursault : honneurs lus dans la saisie du coeur (meme sans le detail des fleches). Precedemment (1.4.11) : Mon espace en 4 blocs (Licence, Historique, Inscriptions, Competitions) et les actualites dessous ; Mes inscriptions : les competitions a venir par defaut.",
     "files": [
         "menu.php",
         "lib.php",
@@ -114,6 +114,9 @@
         "booking/lib/documents.php",
         "booking/lib/distinctions.php",
         "booking/lib/stats.php",
+        "booking/lib/palmares.php",
+        "booking/lib/palmares-map.json",
+        "booking/lib/palmares-rules.json",
         "booking/distinctions/logo.svg",
         "booking/distinctions/badge-level.svg",
         "booking/distinctions/badge-star.svg",
@@ -143,6 +146,11 @@
         "booking/public/assets/map.js",
         "booking/public/assets/stats.css",
         "booking/public/assets/stats.js",
+        "booking/public/assets/palmares.js",
+        "booking/public/assets/palmares/step-1.svg",
+        "booking/public/assets/palmares/step-2.svg",
+        "booking/public/assets/palmares/step-3.svg",
+        "booking/public/assets/palmares/step-4.svg",
         "booking/public/assets/vendor/leaflet/leaflet.js",
         "booking/public/assets/vendor/leaflet/leaflet.css",
         "booking/public/assets/vendor/leaflet/LICENSE",
@@ -164,6 +172,7 @@
         "booking/public/tickets.php",
         "booking/public/stats.php",
         "booking/public/stats-detail.php",
+        "booking/public/stats-import.php",
         "booking/public/survey.php",
         "booking/public/assets/bk.css",
         "booking/public/assets/logo-wa.png",
@@ -373,7 +382,8 @@
         "BK_Ledger",
         "BookingChecks",
         "BookingCheckEntries",
-        "BookingCheckLog"
+        "BookingCheckLog",
+        "BookingPalmares"
     ],
     "uninstall_backup": true,
     "uninstall_warning": "Ce module porte l'authentification du serveur. Les fichiers déployés dans Modules/Authentication/ chargent Modules/Custom/AUTH/lib.php : supprimer ce dossier pendant que USERAUTH est actif provoque une erreur fatale sur TOUTES les pages du site (comportement fail-closed), sans possibilité de se reconnecter pour réparer.\n\nAvant de désinstaller : ouvrez admin/deploy.php, désactivez USERAUTH et retirez les fichiers déployés. Voir SERVEUR.md pour la procédure de secours en cas de blocage.\n\nSupprimer les tables Auth* efface tous les comptes, partages et sessions : les organisateurs perdront l'accès à leurs compétitions.\n\nCe module inclut désormais les inscriptions en ligne (booking/) et la buvette et boutique (shop/) : supprimer les tables Booking* et Shop* efface la traçabilité des inscriptions, les comptes licenciés, le journal des paiements et les commandes de la buvette et de la boutique ; supprimer AuthTrust* efface l'indice de confiance des payeurs. Les inscriptions déjà créées dans ianseo (participants et cibles) NE sont PAS supprimées : elles appartiennent aux compétitions."

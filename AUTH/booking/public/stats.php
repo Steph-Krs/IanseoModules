@@ -6,7 +6,8 @@
  * discipline listing its combinations (bow, distance, target face or peg): scores shot at another
  * distance or on another face do not compare, each combination has its own page
  * (stats-detail.php). Competitions with "No publication" (level 1, private to the organiser) and
- * those not started are left out (lib/stats.php). Unofficial data: warning at the top.
+ * those not started are left out (lib/stats.php). Unofficial data: warning at the top, with the
+ * button that adds the archer's federation record (stats-import.php).
  */
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/stats.php';
@@ -18,8 +19,16 @@ $badges = bk_stats_badges($rounds);
 $base = bk_public_url();
 
 bk_head(bk_t('NavStatsTitle'));
+// The note says where the figures come from, and offers to add the federation record.
+$pal = bk_pal_status($archer->BaLicence);
+$done = intval($_GET['pal'] ?? -1);
 $out = '<link rel="stylesheet" href="' . bk_e(bk_public_url('assets/stats.css')) . '?v=' . bk_e(bk_version()) . '">'
-    . '<div class="bk-stat-note">' . bk_t('StatNote') . '</div>';
+    . ($done >= 0 ? bk_msg('ok', bk_t('PalDone', $done)) : '')
+    . '<div class="bk-stat-note"><div>' . bk_t('StatNote') . '</div>'
+    . '<div class="bk-stat-note-pal"><span>' . bk_e($pal ? bk_t('PalStatusShort', array('n' => $pal['n'], 'first' => $pal['first'], 'last' => $pal['last']))
+        : bk_t('PalInvite')) . '</span>'
+    . '<a class="bk-btn bk-btn-sm" href="' . bk_e(bk_public_url('stats-import.php')) . '">'
+    . bk_e(bk_t($pal ? 'PalUpdateBtn' : 'PalImportBtn')) . '</a></div></div>';
 if (!$rounds) {
     echo $out . '<p class="bk-empty">' . bk_e(bk_t('StatNone')) . ' <a href="' . bk_e(bk_public_url('calendar.php')) . '">'
         . bk_e(bk_t('SeeOpenComps')) . '</a>.</p>';
@@ -39,7 +48,8 @@ $out .= '<div class="bk-stat-sum">'
     . $card($num($tot['arrows']), bk_t('StatArrows'))
     . ($tot['walk'] > 0 ? $card(bk_e(bk_t('StatKm', $num($tot['walk'] / 1000, 1))), bk_t('StatWalk')) : '')
     . $card($num(count($byDisc)), bk_t(count($byDisc) > 1 ? 'StatDiscs' : 'StatDisc'))
-    . $card(bk_e(substr($rounds[0]['date'], 0, 4)), bk_t('StatSince'))   // bytes: ASCII date
+    // "on this server" no longer holds once the federation record is in.
+    . $card(bk_e(substr($rounds[0]['date'], 0, 4)), bk_t($pal ? 'StatSinceAll' : 'StatSince'))   // bytes: ASCII date
     . '</div>';
 
 $caret = '<svg class="bk-sd-caret" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"'

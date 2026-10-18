@@ -164,3 +164,61 @@
     #bk .bk-sd-combo .bk-sd-last { display: none; }
     #bk .bk-sd > summary { gap: 10px; padding: 10px 12px; }
 }
+
+/* ---- The federation record, imported (public/stats-import.php, assets/palmares.js) ---- */
+#bk .bk-stat-note-pal { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 10px;
+    padding-top: 10px; border-top: 1px solid #e6c39d; }
+#bk .bk-stat-note-pal span { flex: 1 1 260px; }
+#bk .bk-stat-note-pal .bk-btn { margin-top: 0; }
+#bk .bk-chart .pt.pal { fill: #fff; stroke: #0254a8; stroke-width: 2; }
+#bk .bk-chart .pt.pal.rec { stroke: #01367c; stroke-width: 2.5; }
+#bk .bk-chart-tip .o { color: #cb8137; font-size: 12px; }
+#bk .bk-sx-hist small.pal { color: #cb8137; }
+
+#bk .bk-pal-h1 { font-size: 22px; color: #01367c; margin: 6px 0 8px; }
+#bk .bk-pal-intro { margin: 0 0 16px; color: #20263d; }
+#bk .bk-pal-have { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 16px; padding: 11px 14px;
+    background: #f0f4ff; border: 1px solid #c9d6f2; border-radius: 8px; font-size: 13px; }
+#bk .bk-pal-have span { flex: 1 1 280px; }
+#bk .bk-pal-have form { margin: 0; }
+#bk .bk-pal-have .bk-btn { margin-top: 0; }
+#bk .bk-pal-steps { list-style: none; margin: 0; padding: 0; }
+#bk .bk-pal-step { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 16px 24px; align-items: start;
+    background: #fff; border: 1px solid #d2d4d6; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+    padding: 16px; margin: 0 0 14px; }
+#bk .bk-pal-step h2 { display: flex; align-items: center; gap: 10px; font-size: 16px; color: #01367c; margin: 0 0 8px; }
+#bk .bk-pal-step h2 .n { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+    border-radius: 50%; background: #0254a8; color: #fff; font-size: 15px; }
+#bk .bk-pal-step p { margin: 0 0 10px; }
+#bk .bk-pal-step .bk-btn { margin-top: 0; }
+#bk .bk-pal-img { display: block; width: 100%; height: auto; border: 1px solid #e3e6ea; border-radius: 6px; }
+#bk .bk-pal-drop { display: flex; flex-direction: column; gap: 6px; padding: 14px; border: 2px dashed #9fb6dc; border-radius: 8px;
+    background: #f7f9ff; cursor: pointer; }
+#bk .bk-pal-drop span { font-weight: 600; color: #0254a8; }
+#bk .bk-pal-drop input { max-width: 100%; }
+#bk .bk-pal-msg { margin: 10px 0 0; padding: 9px 12px; border-radius: 6px; background: #f0f4ff; font-size: 13px; }
+#bk .bk-pal-msg.err { background: #ffd6db; border: 1px solid #bb7575; color: #a80000; }
+#bk .bk-pal-preview { margin-top: 12px; }
+#bk .bk-pal-sum { font-weight: 600; color: #20263d; }
+#bk .bk-pal-scroll { overflow-x: auto; max-height: 420px; overflow-y: auto; border: 1px solid #e3e6ea; border-radius: 6px; }
+#bk .bk-pal-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+#bk .bk-pal-table th { position: sticky; top: 0; background: #f7f7f7; text-align: left; font-size: 12px; color: #7d8183;
+    padding: 6px 8px; border-bottom: 1px solid #d2d4d6; }
+#bk .bk-pal-table td { padding: 6px 8px; border-bottom: 1px solid #eef0f3; vertical-align: top; }
+#bk .bk-pal-table td.y, #bk .bk-pal-table td.num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+#bk .bk-pal-table td.num small { display: block; color: #7d8183; }
+#bk .bk-pal-table .cat { margin: 0 0 4px; }
+#bk .bk-pal-table .cat b { font-weight: 600; color: #20263d; margin-right: 6px; }
+#bk .bk-pal-table .cat .w { color: #0254a8; margin-right: 6px; }
+#bk .bk-pal-conf { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 4px; }
+#bk .bk-pal-conf.ok { background: #d2f4cd; color: #1b6e1f; }
+#bk .bk-pal-conf.maybe { background: #fdf0e6; color: #8a5a26; }
+#bk .bk-pal-conf.no { background: #eef0f3; color: #5b6064; }
+#bk .bk-pal-about { margin: 18px 0 0; padding: 14px 16px; background: #fff; border: 1px solid #d2d4d6; border-radius: 8px; font-size: 13px; }
+#bk .bk-pal-about h2 { font-size: 15px; color: #0254a8; margin: 0 0 6px; }
+#bk .bk-pal-about h2 + p, #bk .bk-pal-about ul { margin: 0 0 12px; }
+#bk .bk-pal-about ul { padding-left: 20px; }
+@media (max-width: 760px) {
+    #bk .bk-pal-step { grid-template-columns: minmax(0, 1fr); }
+}
+#bk .bk-pal-wide { grid-column: 1 / -1; min-width: 0; }

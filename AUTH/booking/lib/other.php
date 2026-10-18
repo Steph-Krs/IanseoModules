@@ -372,7 +372,8 @@ function bk_wa_profile_url($id, $given, $family)
 /**
  * The archer deletes their account (any account, FFTA or not). What is to come is erased for good:
  * their own online registrations for the competitions not started (unless the organiser locked
- * the participants) and their waiting requests. What is done or under way stays as it is: the
+ * the participants), their waiting requests and the federation record they imported
+ * (lib/palmares.php). What is done or under way stays as it is: the
  * competitions started, the past results, the accounts and payments. Returns ['deleted' => n,
  * 'kept' => [competition names whose registration could not be removed]].
  */
@@ -405,6 +406,8 @@ function bk_other_self_delete($archer)
         safe_w_sql("DELETE FROM LookUpEntries WHERE LueCode = " . StrSafe_DB($archer->BaLicence)
             . " AND LueIocCode = " . StrSafe_DB($archer->BaCountry) . " AND LueIocCode <> 'FRA'");
     }
+    require_once __DIR__ . '/palmares.php';
+    bk_pal_forget($lic);
     safe_w_sql("DELETE FROM BookingArchers WHERE BaId = $id");
     bk_log('ACCOUNT_SELF_DELETE', $lic);
     return $out;
@@ -436,6 +439,7 @@ function bk_other_purge()
         $id = intval($a->BaId);
         safe_w_sql("DELETE FROM BookingSessions WHERE BkArcher = $id");
         safe_w_sql("DELETE FROM BookingWaitlist WHERE BwLicence = " . StrSafe_DB($a->BaLicence) . " AND BwStatus = 0");
+        safe_w_sql("DELETE FROM BookingPalmares WHERE BpLicence = " . StrSafe_DB($a->BaLicence), false, array(1146));
         safe_w_sql("DELETE FROM LookUpEntries WHERE LueCode = " . StrSafe_DB($a->BaLicence)
             . " AND LueIocCode = " . StrSafe_DB($a->BaCountry) . " AND LueIocCode <> 'FRA'");
         safe_w_sql("DELETE FROM BookingArchers WHERE BaId = $id AND BaKind = 'OTHER'");

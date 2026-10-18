@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270" width="480" height="270">
+  <!-- Step 4 of stats-import.php: the downloaded file (named with a number) goes into the box of
+       this page. No words: the same picture in every language. -->
+  <style>text { font-family: Arial, Helvetica, sans-serif; }</style>
+  <rect x="1" y="1" width="478" height="268" rx="10" fill="#fff" stroke="#c8ccd2"/>
+
+  <rect x="24" y="52" width="170" height="166" rx="8" fill="#f7f7f7" stroke="#d2d4d6"/>
+  <path d="M109 74v34m-14-14l14 14 14-14" fill="none" stroke="#0254a8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M86 116h46" stroke="#0254a8" stroke-width="4" stroke-linecap="round"/>
+  <rect x="44" y="136" width="130" height="64" rx="6" fill="#fff" stroke="#9fb6dc"/>
+  <path d="M58 148h22l8 8v32H58z" fill="#1d7044"/><path d="M80 148v8h8" fill="#a8d5b9"/>
+  <text x="73" y="180" font-size="11" font-weight="bold" fill="#fff" text-anchor="middle">X</text>
+  <text x="96" y="166" font-size="11" fill="#20263d">1792328727</text>
+  <text x="96" y="182" font-size="11" font-weight="bold" fill="#20263d">.xlsx</text>
+
+  <path d="M204 168c40 0 50-30 92-30" fill="none" stroke="#e8710a" stroke-width="3" stroke-dasharray="7 5"/>
+  <path d="M292 129l14 9-14 9z" fill="#e8710a"/>
+
+  <rect x="316" y="52" width="140" height="166" rx="10" fill="#f7f9ff" stroke="#9fb6dc" stroke-width="2.5" stroke-dasharray="9 6"/>
+  <path d="M386 156v-46m-16 16l16-16 16 16" fill="none" stroke="#0254a8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M352 170v14h68v-14" fill="none" stroke="#0254a8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

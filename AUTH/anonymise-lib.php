@@ -291,6 +291,8 @@ function aut_anon_bk_tables($lic)
     // Payments journal: the money did come in (and, for a competition to come, is to be given
     // back): the lines stay, under the anonymous code. No unique key there.
     if (aut_anon_table('BookingLedger')) safe_w_sql("UPDATE BookingLedger SET BlgAccount = $a WHERE BlgAccount = $l");
+    // The federation record the person imported into their statistics: theirs alone, erased.
+    if (aut_anon_table('BookingPalmares')) safe_w_sql("DELETE FROM BookingPalmares WHERE BpLicence = $l");
     if (aut_anon_table('BookingPayments')) {
         safe_w_sql("UPDATE IGNORE BookingPayments SET PyLicence = $a WHERE PyLicence = $l");
         safe_w_sql("DELETE FROM BookingPayments WHERE PyLicence = $l");

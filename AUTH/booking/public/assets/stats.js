@@ -29,6 +29,7 @@
             line('m', p.w);
             line('m', p.d);
             line('m', p.k);
+            line('o', p.o);
             [].forEach.call(dots, function (d) { d.classList.toggle('on', +d.getAttribute('data-i') === i); });
             cross.setAttribute('x1', p.x);
             cross.setAttribute('x2', p.x);
