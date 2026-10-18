@@ -1652,3 +1652,14 @@ $lang['PalPeg1'] = 'Red peg';
 $lang['PalPeg2'] = 'Blue peg';
 $lang['PalPeg3'] = 'White peg';
 $lang['PalPeg4'] = 'Pink peg';
+
+// Statistics: chart zoom, distinctions open to some age classes or faces only
+$lang['DistFaceOrTri'] = 'on a {$a} cm face or a triple face';
+$lang['StatNextClosed'] = 'The next distinction, {$a[name]}, can only be earned in the age classes {$a[ages]}.';
+$lang['StatZoomPrev'] = 'Earlier period';
+$lang['StatZoomOut'] = 'Zoom out';
+$lang['StatZoomIn'] = 'Zoom in';
+$lang['StatZoomNext'] = 'Later period';
+$lang['StatZoomAll'] = 'See all';
+$lang['StatZoomHint'] = 'To zoom, drag along the dates (or pinch on a touch screen); double-click or "See all" to go back.';
+$lang['StatChartNoJs'] = 'The chart needs JavaScript; every score is in the history below.';

@@ -220,7 +220,8 @@ if (!$hist) {
         }
     }
     if ($ctx) {
-        $b = bk_stats_ctx_badges($ctx, bk_stats_badges($hist));
+        // The age class of that competition: a new season may open (or close) a level.
+        $b = bk_stats_ctx_badges($ctx, bk_stats_badges($hist), $ref['age']);
         $shot = false;
         foreach ($hist as $r) if ($r['combo'] === $ref['combo']) $shot = true;
         $blkHistory .= '<div class="bk-hh-next"><h3>' . bk_e(bk_t('StatNext')) . '</h3><p class="bk-hint">'

@@ -176,8 +176,9 @@ function bk_dist_context($disc, $bow, $age, $dist)
 }
 
 /**
- * The levels of a context, in order: ['id', 'score', 'face', 'drawn'] — score = what to reach in
- * the context's column (levels without a score there are skipped), drawn = has a picture.
+ * The levels of a context, in order: ['id', 'score', 'face', 'trispot', 'ages', 'drawn'] — score =
+ * what to reach in the context's column (levels without a score there are skipped); face, trispot
+ * and ages = what the level requires besides the score (bk_dist_level_open); drawn = has a picture.
  */
 function bk_dist_ladder(array $ctx)
 {
@@ -187,9 +188,23 @@ function bk_dist_ladder(array $ctx)
         $score = intval($lv[$ctx['col']] ?? 0);
         if (!is_array($lv) || ($lv['id'] ?? '') === '' || $score <= 0) continue;
         $out[] = array('id' => (string) $lv['id'], 'score' => $score, 'face' => intval($lv['face'] ?? 0),
+                       'trispot' => !empty($lv['trispot']), 'ages' => array_values((array) ($lv['ages'] ?? array())),
                        'drawn' => !empty($lv['badge']));
     }
     return $out;
+}
+
+/** Whether a level (bk_dist_ladder) can be earned at this age class, on this face. */
+function bk_dist_level_open(array $lv, $age, $faceW, $trispot)
+{
+    if ($lv['ages'] && !in_array((string) $age, $lv['ages'], true)) return false;
+    return !$lv['face'] || intval($faceW) === $lv['face'] || ($lv['trispot'] && $trispot);
+}
+
+/** Whether a level is open to this age class (what the face will be is not known in advance). */
+function bk_dist_level_for_age(array $lv, $age)
+{
+    return !$lv['ages'] || in_array((string) $age, $lv['ages'], true);
 }
 
 /** What the set compares to the thresholds: 'score' or 'honours'. */

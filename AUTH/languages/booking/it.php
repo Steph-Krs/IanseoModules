@@ -1651,3 +1651,14 @@ $lang['PalPeg1'] = 'Picchetto rosso';
 $lang['PalPeg2'] = 'Picchetto blu';
 $lang['PalPeg3'] = 'Picchetto bianco';
 $lang['PalPeg4'] = 'Picchetto rosa';
+
+// Statistics: chart zoom, distinctions open to some age classes or faces only
+$lang['DistFaceOrTri'] = 'su visuale da {$a} cm o trispot';
+$lang['StatNextClosed'] = 'Il distintivo successivo, {$a[name]}, si ottiene solo nelle classi {$a[ages]}.';
+$lang['StatZoomPrev'] = 'Periodo precedente';
+$lang['StatZoomOut'] = 'Riduci';
+$lang['StatZoomIn'] = 'Ingrandisci';
+$lang['StatZoomNext'] = 'Periodo successivo';
+$lang['StatZoomAll'] = 'Vedi tutto';
+$lang['StatZoomHint'] = 'Per ingrandire, trascini lungo le date (o allarghi due dita su uno schermo tattile); doppio clic o «Vedi tutto» per tornare.';
+$lang['StatChartNoJs'] = 'Il grafico richiede JavaScript; tutti i punteggi sono nello storico qui sotto.';

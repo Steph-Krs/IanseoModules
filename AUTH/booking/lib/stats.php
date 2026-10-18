@@ -216,6 +216,8 @@ function bk_stats_entry_rounds($r, array $info, $all = false)
             'age' => $cls['age'] ?? '', 'sex' => $cls['sex'] ?? '',
             'dist' => $dist, 'distText' => $dist > 0 ? $dist . 'm' : '',
             'faceW' => $faceW, 'faceKey' => $faceKey, 'faceLabel' => $faceLabel,
+            // A triple face (TrgIndSmall / TrgCOIndSmall): what the 18 m stars accept besides the 40 cm face.
+            'trispot' => in_array(intval($r->{'TfT' . $first}), array(2, 4), true),
             'combo' => $disc . '|' . $bow . '|' . $dist . '|' . $faceKey,
             'score' => $score, 'max' => $max, 'best1' => count($g) > 1 ? $best1 : 0,
             'complete' => $complete, 'rank' => count($groups) === 1 ? intval($r->QuClRank) : 0,
@@ -335,9 +337,10 @@ function bk_stats_round_ctx(array $r)
 
 /**
  * Distinctions earned, per context, from complete rounds in date order. A level is earned by the
- * first round reaching its threshold (on the face it requires); reaching a level directly earns
- * the ones below it too. Returns [ctxKey => ['ctx', 'measure', 'ladder', 'earned' => [level =>
- * round], 'next' => level or null, 'bestFor' => [level => best value meeting its face]]].
+ * first round reaching its threshold where the level is open (age class, target face:
+ * bk_dist_level_open); reaching a level directly earns the ones below it too. Returns
+ * [ctxKey => ['ctx', 'measure', 'ladder', 'earned' => [level => round], 'bestFor' => [level =>
+ * best value where the level is open], 'age' => age class of the latest round, 'next']].
  */
 function bk_stats_badges(array $rounds)
 {
@@ -350,21 +353,38 @@ function bk_stats_badges(array $rounds)
             $out[$k] = array('ctx' => $ctx, 'measure' => bk_dist_measure($ctx), 'ladder' => bk_dist_ladder($ctx),
                              'earned' => array(), 'bestFor' => array());
         }
+        $out[$k]['age'] = $r['age'];
         $v = $out[$k]['measure'] === 'honours' ? $r['honours'] : $r['score'];
         if ($v === null) continue;
         foreach ($out[$k]['ladder'] as $lv) {
-            if ($lv['face'] && $r['faceW'] !== $lv['face']) continue;
+            if (!bk_dist_level_open($lv, $r['age'], $r['faceW'], !empty($r['trispot']))) continue;
             $out[$k]['bestFor'][$lv['id']] = max($out[$k]['bestFor'][$lv['id']] ?? 0, $v);
             if (!isset($out[$k]['earned'][$lv['id']]) && $v >= $lv['score']) $out[$k]['earned'][$lv['id']] = $r;
         }
     }
-    foreach ($out as $k => $b) {
-        $out[$k]['next'] = null;
-        foreach ($b['ladder'] as $lv) {
-            if (!isset($b['earned'][$lv['id']])) { $out[$k]['next'] = $lv; break; }
-        }
-    }
+    foreach ($out as $k => $b) $out[$k]['next'] = bk_stats_next_of($b, $b['age']);
     return $out;
+}
+
+/**
+ * Next level to reach in a context entry for an archer of this age class: the first not earned
+ * and open to the class, or null (all earned, or the next ones closed to the class).
+ */
+function bk_stats_next_of(array $b, $age)
+{
+    foreach ($b['ladder'] as $lv) {
+        if (!isset($b['earned'][$lv['id']]) && bk_dist_level_for_age($lv, $age)) return $lv;
+    }
+    return null;
+}
+
+/** First level of a context entry not earned and closed to this age class, or null. */
+function bk_stats_closed_of(array $b, $age)
+{
+    foreach ($b['ladder'] as $lv) {
+        if (!isset($b['earned'][$lv['id']]) && !bk_dist_level_for_age($lv, $age)) return $lv;
+    }
+    return null;
 }
 
 /** Highest level earned in a context entry of bk_stats_badges(), or null. */
@@ -375,29 +395,42 @@ function bk_stats_top(array $b)
     return $top;
 }
 
-/** Entry of bk_stats_badges() for a context; one with nothing earned when none was reached yet. */
-function bk_stats_ctx_badges(array $ctx, array $badges)
+/**
+ * Entry of bk_stats_badges() for a context, one with nothing earned when none was reached yet;
+ * $age = the archer's age class now (the next competition's), when it may differ from that of
+ * the latest round (a new season).
+ */
+function bk_stats_ctx_badges(array $ctx, array $badges, $age = null)
 {
-    return $badges[bk_stats_ctx_key($ctx)] ?? array('ctx' => $ctx, 'measure' => bk_dist_measure($ctx),
-        'ladder' => bk_dist_ladder($ctx), 'earned' => array(), 'bestFor' => array(),
-        'next' => bk_dist_ladder($ctx)[0] ?? null);
+    $b = $badges[bk_stats_ctx_key($ctx)] ?? array('ctx' => $ctx, 'measure' => bk_dist_measure($ctx),
+        'ladder' => bk_dist_ladder($ctx), 'earned' => array(), 'bestFor' => array(), 'age' => '');
+    if ($age !== null) $b['age'] = $age;
+    $b['next'] = bk_stats_next_of($b, $b['age']);
+    return $b;
 }
 
 /** Context entry of a combination: that of its latest round, or null. */
 function bk_stats_combo_badges(array $combo, array $badges)
 {
-    $ctx = bk_stats_round_ctx(end($combo['rounds']));
-    return $ctx ? bk_stats_ctx_badges($ctx, $badges) : null;
+    $last = end($combo['rounds']);
+    $ctx = bk_stats_round_ctx($last);
+    return $ctx ? bk_stats_ctx_badges($ctx, $badges, $last['age']) : null;
 }
 
 /**
- * The next distinction of a context entry: its picture, name, score to reach, the bar of the best
- * score so far, how much is missing — or that every one is earned. $base = address of
- * booking/public/, $h = height of the picture.
+ * The next distinction of a context entry: its picture, name, score to reach and what else it
+ * requires, the bar of the best score so far, how much is missing — or that every one is earned,
+ * or that the next ones open to other age classes only. $base = address of booking/public/,
+ * $h = height of the picture.
  */
 function bk_stats_next_html(array $b, $base, $h = 80)
 {
-    if (!$b['next']) return '<p class="bk-sx-msg">' . bk_e(bk_t('StatAllEarned')) . '</p>';
+    if (!$b['next']) {
+        $closed = bk_stats_closed_of($b, $b['age']);
+        return '<p class="bk-sx-msg">' . bk_e($closed
+            ? bk_t('StatNextClosed', array('name' => bk_t('DistLvl' . $closed['id']), 'ages' => implode(', ', $closed['ages']), 'age' => $b['age']))
+            : bk_t('StatAllEarned')) . '</p>';
+    }
     $nx = $b['next'];
     $honours = $b['measure'] === 'honours';
     $have = intval($b['bestFor'][$nx['id']] ?? 0);
@@ -406,7 +439,7 @@ function bk_stats_next_html(array $b, $base, $h = 80)
     $seps = bk_number_seps();
     return '<div class="bk-sx-next"><span class="bk-sx-next-pic">' . bk_dist_visual($b['ctx'], $nx['id'], $name, $base, $h) . '</span>'
         . '<div class="bk-sx-next-t"><b>' . bk_e($name) . '</b><span class="o">' . bk_e(bk_t($honours ? 'DistHonours' : 'DistPts', $nx['score']))
-        . ($nx['face'] ? ' · ' . bk_e(bk_t('DistFace', $nx['face'])) : '') . '</span>'
+        . ($nx['face'] ? ' · ' . bk_e(bk_t($nx['trispot'] ? 'DistFaceOrTri' : 'DistFace', $nx['face'])) : '') . '</span>'
         . '<div class="bk-sx-bar" style="--c:' . bk_e(bk_dist_level_color($nx['id'])) . '"><span style="width:' . number_format($pct, 1, '.', '') . '%"></span></div>'
         . '<div class="bk-sx-pct">' . bk_e($have > 0
             ? bk_t('StatProgress', array('have' => $have, 'pct' => number_format($pct, 1, $seps['dec'], $seps['thousands']), 'left' => $nx['score'] - $have))
@@ -431,140 +464,72 @@ function bk_stats_combo_where(array $c)
     return implode(' · ', $p);
 }
 
-/** A round step giving about $n intervals over $span. */
-function bk_stats_step($span, $n = 5)
-{
-    foreach (array(1, 2, 5, 10, 20, 25, 50, 100, 200, 500) as $s) if ($span / $s <= $n) return $s;
-    return 1000;
-}
-
 /**
  * Chart of a combination: one point per complete round (date → value), the distinction
- * thresholds as dashed lines in the colour of the badge, the record labelled. Drawn here in SVG;
- * assets/stats.js adds the tooltips (pointer, touch, keyboard). Every value is also in the
- * history table under it.
+ * thresholds in the colour of the badge, the record labelled. The data only: assets/stats.js
+ * draws it at the width of the screen and lets the archer zoom on a period (drag across it,
+ * pinch, the buttons), the scale of the scores following what is shown. Every value is also in
+ * the history table under it.
  *   $rounds  complete rounds of the combination, oldest first
  *   $b       its distinction context (bk_stats_combo_badges), or null
  */
 function bk_stats_chart(array $rounds, $b)
 {
-    // Two drawings, one for a wide screen and one for a phone (CSS shows one): a single SVG
-    // scaled down to a phone would shrink its texts to 5 px.
-    $wide = bk_stats_chart_svg($rounds, $b, 760, 300);
-    return $wide === '' ? '' : '<div class="bk-chart-w">' . $wide . '</div><div class="bk-chart-n">' . bk_stats_chart_svg($rounds, $b, 380, 300) . '</div>';
-}
-
-/** One drawing of bk_stats_chart(), $W × $H in SVG units (≈ pixels on the screen it suits). */
-function bk_stats_chart_svg(array $rounds, $b, $W, $H)
-{
     $honours = $b && $b['measure'] === 'honours';
-    $pts = array();
+    $pts = array(); $perDay = array();
     foreach ($rounds as $r) {
         $v = $honours ? $r['honours'] : $r['score'];
-        if ($v !== null) $pts[] = array('t' => strtotime($r['date'] . ' 12:00:00 UTC'), 'v' => $v, 'r' => $r);
+        if ($v === null) continue;
+        $pts[] = array('r' => $r, 'v' => $v);
+        $perDay[$r['date']] = ($perDay[$r['date']] ?? 0) + 1;
     }
     if (!$pts) return '';
-    $L = 40; $R = $W > 500 ? 70 : 44; $T = 18; $B = 30;
-    $pw = $W - $L - $R; $ph = $H - $T - $B;
-    $f = function ($n) { return number_format($n, 1, '.', ''); };
 
-    // Thresholds kept in view: the highest earned and the next one to reach.
+    // Rounds of one day share it out (milliseconds since 1970): zooming in separates them.
+    $data = array(); $seen = array(); $best = 0;
+    foreach ($pts as $i => $p) {
+        $r = $p['r'];
+        $k = $seen[$r['date']] = ($seen[$r['date']] ?? -1) + 1;
+        $t = (strtotime($r['date'] . ' 00:00:00 UTC') + ($k + 0.5) / $perDay[$r['date']] * 86400) * 1000;
+        if ($p['v'] > $pts[$best]['v']) $best = $i;
+        $pal = ($r['src'] ?? '') === 'pal';
+        $data[] = array('t' => $t, 'v' => $p['v'], 'n' => $r['name'], 'w' => $r['where'],
+                        'd' => bk_date_range($r['date'], $r['dateTo']),
+                        'k' => $r['rank'] > 0 ? strip_tags(bk_t('StatRanked', $r['rank'])) : '',
+                        'o' => $pal ? bk_t('StatFromPal') : '', 'p' => $pal ? 1 : 0);
+    }
+    $data[$best]['rec'] = 1;
+
+    // Thresholds: those earned and those open to the archer's age class (an 18 m star is no
+    // target for a U15). key = label priority: the next level, then the highest earned.
     $lines = array();
-    $vals = array_column($pts, 'v');
-    $lo = min($vals); $hi = max($vals);
     if ($b) {
         $top = bk_stats_top($b);
         foreach ($b['ladder'] as $lv) {
-            $state = isset($b['earned'][$lv['id']]) ? 'done' : (($b['next']['id'] ?? '') === $lv['id'] ? 'next' : 'todo');
-            // Label priority: the next level, then the highest earned, then the others.
-            $key = $state === 'next' ? 2 : (($top && $top['id'] === $lv['id']) ? 1 : 0);
-            $lines[] = array('lv' => $lv, 'state' => $state, 'key' => $key);
-            if ($key) { $lo = min($lo, $lv['score']); $hi = max($hi, $lv['score']); }
+            $done = isset($b['earned'][$lv['id']]);
+            if (!$done && !bk_dist_level_for_age($lv, $b['age'])) continue;
+            $next = ($b['next']['id'] ?? '') === $lv['id'];
+            $lines[] = array('v' => $lv['score'], 'c' => bk_dist_level_color($lv['id']), 'n' => bk_t('DistLvl' . $lv['id']),
+                             's' => $done ? 'done' : ($next ? 'next' : 'todo'),
+                             'key' => $next ? 2 : (($top && $top['id'] === $lv['id']) ? 1 : 0));
         }
     }
-    $span = max(10, $hi - $lo);
-    $lo = max(0, $lo - $span * 0.08); $hi += $span * 0.1;
-    $step = bk_stats_step($hi - $lo);
-    $lo = floor($lo / $step) * $step; $hi = ceil($hi / $step) * $step;
-    $y = function ($v) use ($lo, $hi, $T, $ph) { return $T + $ph - ($v - $lo) / ($hi - $lo) * $ph; };
+    $cfg = array('pts' => $data, 'lines' => $lines, 'tx' => array(
+        'rec' => bk_t('StatRecordShort', '{v}'), 'aria' => bk_t('StatChartAria', count($data)),
+        'day' => bk_t('HomeDepDateFmt')));
 
-    $t0 = min(array_column($pts, 't')); $t1 = max(array_column($pts, 't'));
-    $pad = max(20 * 86400, ($t1 - $t0) * 0.04);
-    $t0 -= $pad; $t1 += $pad;
-    $x = function ($t) use ($t0, $t1, $L, $pw) { return $L + ($t - $t0) / ($t1 - $t0) * $pw; };
-
-    $svg = '';
-    for ($v = $lo; $v <= $hi + 0.001; $v += $step) {
-        $svg .= '<line class="g" x1="' . $L . '" x2="' . ($L + $pw) . '" y1="' . $f($y($v)) . '" y2="' . $f($y($v)) . '"/>'
-            . '<text class="ax" x="' . ($L - 7) . '" y="' . $f($y($v) + 4) . '" text-anchor="end">' . intval($v) . '</text>';
-    }
-
-    // Dates: a tick every 1, 2, 3, 6, 12 or 24 months, as many as the width holds (one per 64 units).
-    $months = ($t1 - $t0) / (30.44 * 86400);
-    $room = max(2, floor($pw / 64));
-    $every = 24;
-    foreach (array(1, 2, 3, 6, 12, 24) as $e) if ($months / $e <= $room) { $every = $e; break; }
-    $m = intval(gmdate('n', $t0)); $yr = intval(gmdate('Y', $t0));
-    for ($i = 0; $i < 400; $i++) {
-        $m++; if ($m > 12) { $m = 1; $yr++; }
-        $tt = gmmktime(0, 0, 0, $m, 1, $yr);
-        if ($tt > $t1) break;
-        if ($every >= 12 ? ($m !== 1 || ($every === 24 && $yr % 2)) : ($m - 1) % $every !== 0) continue;
-        $svg .= '<line class="tk" x1="' . $f($x($tt)) . '" x2="' . $f($x($tt)) . '" y1="' . ($T + $ph) . '" y2="' . ($T + $ph + 4) . '"/>'
-            . '<text class="ax" x="' . $f($x($tt)) . '" y="' . ($T + $ph + 18) . '" text-anchor="middle">'
-            . ($every >= 12 ? $yr : sprintf('%02d/%02d', $m, $yr % 100)) . '</text>';
-    }
-    $svg .= '<line class="base" x1="' . $L . '" x2="' . ($L + $pw) . '" y1="' . ($T + $ph) . '" y2="' . ($T + $ph) . '"/>';
-
-    // Threshold lines; labels in the right margin, the key ones placed first, never overlapping.
-    $placed = array();
-    usort($lines, function ($p, $q) { return intval($q['key']) - intval($p['key']); });
-    foreach ($lines as $ln) {
-        $s = $ln['lv']['score'];
-        if ($s < $lo || $s > $hi) continue;
-        $yy = $y($s);
-        $col = bk_e(bk_dist_level_color($ln['lv']['id']));
-        $name = bk_t('DistLvl' . $ln['lv']['id']);
-        $svg .= '<g class="th th-' . $ln['state'] . '"><title>' . bk_e($name . ' — ' . $s) . '</title>'
-            . '<line x1="' . $L . '" x2="' . ($L + $pw) . '" y1="' . $f($yy) . '" y2="' . $f($yy) . '" stroke="' . $col . '"/>';
-        $free = true;
-        foreach ($placed as $py) if (abs($py - $yy) < 13) $free = false;
-        if ($free) {
-            $placed[] = $yy;
-            $svg .= '<rect x="' . ($L + $pw + 6) . '" y="' . $f($yy - 4.5) . '" width="9" height="9" rx="2" fill="' . $col . '"/>'
-                . '<text class="tl" x="' . ($L + $pw + 19) . '" y="' . $f($yy + 4) . '">' . $s . '</text>';
-        }
-        $svg .= '</g>';
-    }
-
-    // The line, then the points (a 2 px ring in the surface colour), the record larger.
-    $best = null;
-    foreach ($pts as $i => $p) if (!$best || $p['v'] > $pts[$best - 1]['v']) $best = $i + 1;
-    $path = ''; $dots = ''; $hits = ''; $data = array();
-    foreach ($pts as $i => $p) {
-        $px = $x($p['t']); $py = $y($p['v']);
-        $path .= ($i ? ' L' : 'M') . $f($px) . ',' . $f($py);
-        $rec = $i + 1 === $best;
-        $pal = ($p['r']['src'] ?? '') === 'pal';
-        $dots .= '<circle class="pt' . ($rec ? ' rec' : '') . ($pal ? ' pal' : '') . '" data-i="' . $i . '" cx="' . $f($px) . '" cy="' . $f($py) . '" r="' . ($rec ? 6.5 : 4.5) . '"/>';
-        $hits .= '<circle class="hit" tabindex="0" data-i="' . $i . '" cx="' . $f($px) . '" cy="' . $f($py) . '" r="13"'
-            . ' aria-label="' . bk_e($p['v'] . ' — ' . $p['r']['name'] . ', ' . bk_date_fr($p['r']['date'])) . '"/>';
-        $r = $p['r'];
-        $data[] = array('x' => round($px, 1), 'y' => round($py, 1), 'v' => $p['v'], 'n' => $r['name'], 'w' => $r['where'],
-                        'd' => bk_date_range($r['date'], $r['dateTo']),
-                        'k' => $r['rank'] > 0 ? strip_tags(bk_t('StatRanked', $r['rank'])) : '',
-                        'o' => $pal ? bk_t('StatFromPal') : '');
-    }
-    $bp = $pts[$best - 1];
-    $label = bk_t('StatRecordShort', $bp['v']);
-    $lx = min(max($x($bp['t']), $L + 30), $L + $pw - 30);
-    $svg .= '<path class="ln" d="' . $path . '"/>' . $dots
-        . '<text class="rl" x="' . $f($lx) . '" y="' . $f(max($T + 2, $y($bp['v']) - 12)) . '" text-anchor="middle">' . bk_e($label) . '</text>'
-        . '<line class="cross" x1="0" x2="0" y1="' . $T . '" y2="' . ($T + $ph) . '"/>' . $hits;
-
-    return '<figure class="bk-chart" data-pts="' . bk_e(json_encode($data, JSON_UNESCAPED_UNICODE)) . '">'
-        . '<svg viewBox="0 0 ' . $W . ' ' . $H . '" role="img" aria-label="' . bk_e(bk_t('StatChartAria', count($pts))) . '">' . $svg . '</svg>'
-        . '<div class="bk-chart-tip" hidden></div></figure>';
+    $btn = function ($act, $label, $title) {
+        return '<button type="button" class="bk-chart-b" data-act="' . $act . '" title="' . bk_e($title) . '" aria-label="' . bk_e($title) . '" disabled>'
+            . bk_e($label) . '</button>';
+    };
+    return '<figure class="bk-chart" data-chart="' . bk_e(json_encode($cfg, JSON_UNESCAPED_UNICODE)) . '">'
+        . '<div class="bk-chart-bar">' . $btn('prev', '‹', bk_t('StatZoomPrev')) . $btn('out', '−', bk_t('StatZoomOut'))
+        . $btn('in', '+', bk_t('StatZoomIn')) . $btn('next', '›', bk_t('StatZoomNext'))
+        . '<button type="button" class="bk-chart-b bk-chart-all" data-act="all" disabled>' . bk_e(bk_t('StatZoomAll')) . '</button>'
+        . '<span class="bk-chart-period"></span></div>'
+        . '<div class="bk-chart-plot"></div><div class="bk-chart-tip" hidden></div>'
+        . '<figcaption class="bk-chart-hint">' . bk_e(bk_t('StatZoomHint')) . '</figcaption>'
+        . '<noscript><p class="bk-sx-msg">' . bk_e(bk_t('StatChartNoJs')) . '</p></noscript></figure>';
 }
 
 /** Ring gauge of a score out of its maximum (the record); the score alone when the maximum is unknown. */

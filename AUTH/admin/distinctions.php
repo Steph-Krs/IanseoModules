@@ -99,7 +99,8 @@ foreach ((array) ($rules['disciplines'] ?? array()) as $disc => $d) {
                     }
                     $out .= '<div class="tile">' . $pic . '<b>' . $e($name) . '</b><span>'
                         . $e($bt(bk_dist_measure($ctx) === 'honours' ? 'DistHonours' : 'DistPts', $lv['score'])) . '</span>'
-                        . ($lv['face'] ? '<small>' . $e($bt('DistFace', $lv['face'])) . '</small>' : '')
+                        . ($lv['face'] ? '<small>' . $e($bt($lv['trispot'] ? 'DistFaceOrTri' : 'DistFace', $lv['face'])) . '</small>' : '')
+                        . ($lv['ages'] ? '<small>' . $e($bt('DistAges', implode(', ', $lv['ages']))) . '</small>' : '')
                         . '</div>';
                 }
                 $out .= '</div>';

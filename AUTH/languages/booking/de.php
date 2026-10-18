@@ -1651,3 +1651,14 @@ $lang['PalPeg1'] = 'Roter Pflock';
 $lang['PalPeg2'] = 'Blauer Pflock';
 $lang['PalPeg3'] = 'Weißer Pflock';
 $lang['PalPeg4'] = 'Rosa Pflock';
+
+// Statistics: chart zoom, distinctions open to some age classes or faces only
+$lang['DistFaceOrTri'] = 'auf {$a}-cm-Auflage oder Dreifachauflage';
+$lang['StatNextClosed'] = 'Das nächste Abzeichen, {$a[name]}, gibt es nur in den Altersklassen {$a[ages]}.';
+$lang['StatZoomPrev'] = 'Früherer Zeitraum';
+$lang['StatZoomOut'] = 'Verkleinern';
+$lang['StatZoomIn'] = 'Vergrößern';
+$lang['StatZoomNext'] = 'Späterer Zeitraum';
+$lang['StatZoomAll'] = 'Alles anzeigen';
+$lang['StatZoomHint'] = 'Zum Vergrößern entlang der Daten ziehen (oder auf einem Touchscreen mit zwei Fingern spreizen); Doppelklick oder „Alles anzeigen“ zum Zurückkehren.';
+$lang['StatChartNoJs'] = 'Das Diagramm benötigt JavaScript; alle Ergebnisse stehen im Verlauf darunter.';

@@ -1651,3 +1651,14 @@ $lang['PalPeg1'] = 'Piquete rojo';
 $lang['PalPeg2'] = 'Piquete azul';
 $lang['PalPeg3'] = 'Piquete blanco';
 $lang['PalPeg4'] = 'Piquete rosa';
+
+// Statistics: chart zoom, distinctions open to some age classes or faces only
+$lang['DistFaceOrTri'] = 'sobre blasón de {$a} cm o triple';
+$lang['StatNextClosed'] = 'La distinción siguiente, {$a[name]}, solo se obtiene en las categorías {$a[ages]}.';
+$lang['StatZoomPrev'] = 'Periodo anterior';
+$lang['StatZoomOut'] = 'Alejar';
+$lang['StatZoomIn'] = 'Acercar';
+$lang['StatZoomNext'] = 'Periodo siguiente';
+$lang['StatZoomAll'] = 'Ver todo';
+$lang['StatZoomHint'] = 'Para ampliar, arrastre a lo largo de las fechas (o pellizque en una pantalla táctil); haga doble clic o pulse «Ver todo» para volver.';
+$lang['StatChartNoJs'] = 'El gráfico necesita JavaScript; todas las puntuaciones están en el historial de abajo.';

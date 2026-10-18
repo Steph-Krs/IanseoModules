@@ -125,7 +125,7 @@
 
 /* ---- Chart (lib/stats.php, bk_stats_chart; tooltips assets/stats.js) ---- */
 #bk .bk-chart { position: relative; margin: 0; }
-#bk .bk-chart svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+#bk .bk-chart svg { display: block; width: 100%; height: auto; }
 #bk .bk-chart .g { stroke: #eceff3; stroke-width: 1; }
 #bk .bk-chart .base, #bk .bk-chart .tk { stroke: #b8bdc4; stroke-width: 1; }
 #bk .bk-chart .ax { font-size: 11px; fill: #7d8183; font-variant-numeric: tabular-nums; }
@@ -151,13 +151,20 @@
 #bk .bk-chart-tip .n { font-weight: 600; color: #20263d; }
 #bk .bk-chart-tip .m { color: #7d8183; }
 
-#bk .bk-chart-n { display: none; }
+/* Zoom: the buttons above the chart, the period shown, the band of a drag across the dates. */
+#bk .bk-chart-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 8px; }
+#bk .bk-chart-b { min-width: 30px; height: 28px; padding: 0 8px; border: 1px solid #d2d4d6; border-radius: 6px;
+    background: #f7f7f7; color: #01367c; font: inherit; font-size: 15px; font-weight: 700; line-height: 1; cursor: pointer; }
+#bk .bk-chart-b:hover:not(:disabled) { background: #f0f4ff; border-color: #a7d6ff; }
+#bk .bk-chart-b:disabled { color: #b8bdc4; cursor: default; }
+#bk .bk-chart-all { font-size: 13px; font-weight: 600; }
+#bk .bk-chart-period { margin-left: auto; font-size: 12px; color: #7d8183; font-variant-numeric: tabular-nums; }
+#bk .bk-chart-plot { touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+#bk .bk-chart .brush { fill: rgba(2, 84, 168, .12); stroke: #0254a8; stroke-width: 1; display: none; pointer-events: none; }
+#bk .bk-chart .brush.on { display: inline; }
+#bk .bk-chart-hint { margin: 6px 0 0; font-size: 12px; color: #7d8183; }
 @media (max-width: 760px) {
     #bk .bk-sx-grid { grid-template-columns: minmax(0, 1fr); }
-}
-@media (max-width: 560px) {
-    #bk .bk-chart-w { display: none; }
-    #bk .bk-chart-n { display: block; }
 }
 @media (max-width: 640px) {
     #bk a.bk-sd-combo { grid-template-columns: minmax(0, 1fr) 70px 64px 12px; }

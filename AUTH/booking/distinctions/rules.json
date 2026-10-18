@@ -9,7 +9,9 @@
         "  layers = looks.json layers the column adds (compound: the cam); tile = border of the text tiles.",
         "levels: in order, from the first badge to the last; each column name gives the score to reach.",
         "  badge = family of looks.json (a drawn picture); without it the level shows as a text tile.",
-        "  face = diameter of the target face (cm) required for that level, when the rules require one.",
+        "  face = diameter of the target face (cm) required for that level, when the rules require one;",
+        "  trispot = true: a triple face (trispot) of any size is accepted too;",
+        "  ages = the only age classes that can earn that level (all the classes of the column when absent).",
         "measure: what is compared to the threshold, score (default) or honours (beursault: arrows that hit)."
     ],
     "disciplines": {
@@ -28,9 +30,9 @@
                         {"id": "blue",   "badge": "level", "layers": ["blue"],   "CLBB": 515, "CO": 560},
                         {"id": "red",    "badge": "level", "layers": ["red"],    "CLBB": 530, "CO": 565},
                         {"id": "yellow", "badge": "level", "layers": ["yellow"], "CLBB": 545, "CO": 570},
-                        {"id": "star1",  "badge": "star", "layers": ["indoor", "star1"], "CLBB": 555, "CO": 575, "face": 40},
-                        {"id": "star2",  "badge": "star", "layers": ["indoor", "star2"], "CLBB": 565, "CO": 580, "face": 40},
-                        {"id": "star3",  "badge": "star", "layers": ["indoor", "star3"], "CLBB": 575, "CO": 585, "face": 40}
+                        {"id": "star1",  "badge": "star", "layers": ["indoor", "star1"], "CLBB": 555, "CO": 575, "face": 40, "trispot": true, "ages": ["U18", "U21", "S1", "S2", "S3"]},
+                        {"id": "star2",  "badge": "star", "layers": ["indoor", "star2"], "CLBB": 565, "CO": 580, "face": 40, "trispot": true, "ages": ["U18", "U21", "S1", "S2", "S3"]},
+                        {"id": "star3",  "badge": "star", "layers": ["indoor", "star3"], "CLBB": 575, "CO": 585, "face": 40, "trispot": true, "ages": ["U18", "U21", "S1", "S2", "S3"]}
                     ]
                 }
             ]
@@ -43,7 +45,7 @@
                         "CL": {"bows": ["CL"],
                                "text": {"U13": "30m", "U15": "40m", "U18": "60m", "U21": "70m", "S1": "70m", "S2": "70m", "S3": "60m"}},
                         "CO": {"bows": ["CO"], "layers": ["compound"],
-                               "text": {"U18": "50m", "U21": "50m", "S1": "50m", "S2": "50m", "S3": "50m"}}
+                               "text": {"U15": "50m", "U18": "50m", "U21": "50m", "S1": "50m", "S2": "50m", "S3": "50m"}}
                     },
                     "levels": [
                         {"id": "green",  "badge": "level", "layers": ["green"],  "CL": 480, "CO": 620},
