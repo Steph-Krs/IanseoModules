@@ -205,6 +205,10 @@ the site.
 
 See the [general README](../README.md) for the common principle.
 
+When a new version is published, the ianseo home page tells the administrator, with a link to the
+update page. The check reads nothing but the version number, once the page has loaded, at most
+every 12 hours. It is switched off on the update page ("Notice on the home page").
+
 > **Sensitive module**: it carries the authentication of the server. Installing, updating and
 > removing it must be done by the administrator.
 > A removal done without care can make the site unreachable.

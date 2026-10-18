@@ -377,4 +377,13 @@ if ($_aut_on && $_aut_admin) {
     }
     unset($_aut_st, $_aut_w, $_aut_a);
 }
+
+/* ---- New version of the module: a line on the ianseo home page for the administrator, with a
+       link to the update page (_shared/notice-lib.php). Reads one row of Parameters; the network
+       is only reached by the browser, once the page has loaded. Switched off on the update page.
+       An older _shared without it shows nothing. ---- */
+if (is_file(dirname(__DIR__) . '/_shared/notice-lib.php')) {
+    require_once dirname(__DIR__) . '/_shared/notice-lib.php';
+    if (function_exists('upd_notice_menu')) upd_notice_menu(__DIR__, isset($acl) ? $acl : array());
+}
 unset($_aut_on, $_aut_logged, $_aut_root, $_aut_admin, $_aut_close);

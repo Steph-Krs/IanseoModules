@@ -214,6 +214,11 @@ renommage, et la migre avant de rouvrir le site.
 
 Voir le [README général](../README.md) pour le principe commun.
 
+Quand une nouvelle version est publiée, la page d'accueil d'ianseo le signale à l'administrateur,
+avec un lien vers la page de mise à jour. La vérification ne lit que le numéro de version, une fois
+la page chargée, au plus toutes les 12 heures. Elle se désactive sur la page de mise à jour
+(« Avis sur la page d'accueil »).
+
 > **Module sensible** : il porte l'authentification du serveur. Son installation, sa mise à jour
 > et son retrait doivent être réalisés par l'administrateur.
 > Un retrait effectué sans précaution peut rendre le site inaccessible.

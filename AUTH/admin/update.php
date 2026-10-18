@@ -18,6 +18,7 @@ upd_render_common_page(dirname(__DIR__), [
     'h1'    => aut_t('UpdH1'),
     'title' => aut_t('UpdTitle'),
     'back'  => ['url' => $CFG->ROOT_DIR . 'Modules/Custom/AUTH/admin/', 'label' => aut_t('UpdBack')],
+    'notice' => true,   // switch of the home page notice, which menu.php shows
     'after_update' => function () use ($deployUrl) {
         return aut_t('UpdAfter', htmlspecialchars($deployUrl));
     },
