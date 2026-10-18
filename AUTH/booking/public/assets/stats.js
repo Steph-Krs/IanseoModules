@@ -254,7 +254,12 @@
         function tAt(x) { return view[0] + (Math.min(Math.max(x, g.L), g.L + g.pw) - g.L) / g.pw * (view[1] - view[0]); }
 
         // Pointers: a drag selects a period, two fingers pinch, a tap shows the round under it.
+        // The plot captures each pointer: the drawing is replaced while pinching, and a touch is
+        // otherwise tied to the element it started on — gone, the end of the gesture reached
+        // whatever lay under the fingers, often outside the chart, and the chart believed them
+        // still down (two stale pointers: neither pinch nor drag worked any more).
         var down = {}, drag = null, pinch = null;
+        function reset() { down = {}; drag = null; pinch = null; if (svg) brush(null); }
         function brush(a, b) {
             var r = svg.querySelector('.brush');
             if (a === null) { r.classList.remove('on'); return; }
@@ -265,23 +270,29 @@
         }
         plot.addEventListener('pointerdown', function (ev) {
             if (!svg || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+            // The first finger (or the mouse) starts afresh: whatever was left is stale.
+            if (ev.isPrimary) reset();
+            try { plot.setPointerCapture(ev.pointerId); } catch (e) { /* pointer already gone */ }
             down[ev.pointerId] = at(ev);
             var ids = Object.keys(down);
             if (ids.length === 2) {
                 var a = down[ids[0]], b = down[ids[1]];
-                pinch = { d: Math.abs(a.x - b.x) || 1, c: tAt((a.x + b.x) / 2), v: view.slice() };
+                pinch = { ids: ids, d: Math.abs(a.x - b.x) || 1, c: tAt((a.x + b.x) / 2), v: view.slice() };
                 drag = null;
+                hide();
                 brush(null);
             } else if (ids.length === 1) {
                 drag = { x: down[ev.pointerId].x, moved: false, id: ev.pointerId, type: ev.pointerType };
             }
+            // A third finger changes nothing: the pinch goes on with the first two.
         });
         plot.addEventListener('pointermove', function (ev) {
             if (!svg) return;
             var p = at(ev);
             if (down[ev.pointerId]) down[ev.pointerId] = p;
-            if (pinch && Object.keys(down).length === 2) {
-                var ids = Object.keys(down), a = down[ids[0]], b = down[ids[1]];
+            if (pinch) {
+                var a = down[pinch.ids[0]], b = down[pinch.ids[1]];
+                if (!a || !b) return;
                 var f = pinch.d / (Math.abs(a.x - b.x) || 1), span = (pinch.v[1] - pinch.v[0]) * f;
                 var k = (pinch.c - pinch.v[0]) / (pinch.v[1] - pinch.v[0]);
                 view = clampView(pinch.c - k * span, pinch.c - k * span + span);
@@ -298,9 +309,10 @@
             }
         });
         function up(ev) {
-            if (!svg) return;
+            if (!svg || !down[ev.pointerId]) return;
             var p = at(ev);
             delete down[ev.pointerId];
+            // A pinch ends with its last finger; a finger left down after it starts nothing.
             if (pinch) { if (!Object.keys(down).length) pinch = null; return; }
             if (!drag || drag.id !== ev.pointerId) return;
             var d = drag;
@@ -316,6 +328,8 @@
         }
         plot.addEventListener('pointerup', up);
         plot.addEventListener('pointercancel', up);
+        // A capture lost (the browser took the gesture over: a scroll, a system gesture) ends it too.
+        plot.addEventListener('lostpointercapture', up);
         plot.addEventListener('pointerleave', function (ev) { if (ev.pointerType === 'mouse' && !drag) hide(); });
         plot.addEventListener('dblclick', function () { setView(full[0], full[1]); });
         // Ctrl + wheel, and a touchpad pinch (which the browser sends as one): zoom around the pointer.
