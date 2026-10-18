@@ -108,7 +108,20 @@ $lang['FinalConfirm']        = 'Last confirmation: uninstall {$a}?';
 $lang['UninstallForever']    = 'Uninstall permanently';
 $lang['Cancel']              = 'Cancel';
 
+/* Notice of a new version on the ianseo home page */
+$lang['NoticeNewVersion']    = 'A new version of the module {$a[name]} is available: {$a[remote]} (installed: {$a[local]}).';
+$lang['NoticeOpenUpdate']    = 'Open the update page';
+$lang['NoticeHeading']       = 'Notice on the home page';
+$lang['NoticeStateOn']       = 'On';
+$lang['NoticeStateOff']      = 'Off';
+$lang['NoticeTurnOn']        = 'Turn on';
+$lang['NoticeTurnOff']       = 'Turn off';
+$lang['NoticeHint']          = 'When a new version of this module is published, the ianseo home page tells the administrator, with a link to this page. The check only starts once the home page has loaded, reads nothing but the version number, and is repeated at most every {$a} hours. Without an Internet connection it stays silent.';
+$lang['MsgNoticeOn']         = 'The home page will tell when a new version of this module is available.';
+$lang['MsgNoticeOff']        = 'The home page will no longer check for new versions of this module.';
+
 /* Errors raised by the library itself */
+$lang['ErrNotAllowed']              = 'Reserved to the administrator';
 $lang['ErrGitHubUnreachable']       = 'Could not reach GitHub (check the connection)';
 $lang['ErrBadJson']                 = 'Invalid JSON response';
 $lang['ErrBadGitHubUrl']            = 'Invalid GitHub URL in module.json';

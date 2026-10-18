@@ -21,6 +21,9 @@
  */
 
 require_once __DIR__ . '/update-lib.php';
+// Conditional: an update whose download of this one file failed must cost the
+// home page notice, not every update screen — the way to repair it.
+if (is_file(__DIR__ . '/notice-lib.php')) require_once __DIR__ . '/notice-lib.php';
 
 /**
  * The stylesheet shared by every update screen.
@@ -324,12 +327,52 @@ function upd_ui_shared_status($sharedCheck) {
 }
 
 /**
+ * POST handler: turn the home page notice on or off (notice-lib.php).
+ *
+ * @param string $module_dir Module root.
+ * @param array $messages Message list, appended to.
+ */
+function upd_notice_handle($module_dir, &$messages) {
+    $action = $_POST['action'] ?? '';
+    if ($action !== 'notice-on' && $action !== 'notice-off') return;
+
+    upd_notice_set_on(basename($module_dir), $action === 'notice-on');
+    $messages[] = ['ok', upd_esc(upd_text($action === 'notice-on' ? 'MsgNoticeOn' : 'MsgNoticeOff'))];
+}
+
+/**
+ * The "notice on the home page" block: what it does, whether it is on, a switch.
+ *
+ * @param string $module_dir Module root.
+ * @return string HTML, empty when no repository is configured.
+ */
+function upd_ui_notice_block($module_dir) {
+    if (!upd_parse_repo(upd_load_config($module_dir)['github_url'] ?? '')) return '';
+
+    $on = upd_notice_is_on(basename($module_dir));
+    $badge = $on
+        ? '<span class="upd-badge upd-ok">&#10003; ' . upd_esc(upd_text('NoticeStateOn')) . '</span>'
+        : '<span class="upd-badge upd-update">' . upd_esc(upd_text('NoticeStateOff')) . '</span>';
+
+    return '<div class="upd-section"><h2>' . upd_esc(upd_text('NoticeHeading')) . '</h2>'
+         . '<p style="font-size:13px;margin:0 0 10px">' . $badge . '</p>'
+         . '<form method="post" style="display:inline">'
+         . '<input type="hidden" name="action" value="' . ($on ? 'notice-off' : 'notice-on') . '">'
+         . '<button type="submit" class="upd-btn upd-btn-check">'
+         . upd_esc(upd_text($on ? 'NoticeTurnOff' : 'NoticeTurnOn')) . '</button></form>'
+         . '<p class="upd-hint">' . upd_esc(upd_text('NoticeHint', (int)round(UPD_NOTICE_TTL_OK / 3600))) . '</p>'
+         . '</div>';
+}
+
+/**
  * POST handler shared by every module: check, and update the module itself.
  *
  * @param array $cfg Module configuration.
  * @param string $module_dir Module root.
  * @param array $messages Message list, appended to.
- * @param array $opts after_update => callable():string, for a per-module reminder.
+ * @param array $opts after_update => callable():string, for a per-module reminder;
+ *              notice => true when the module shows the home page notice, whose
+ *              cache then takes the version read here.
  * @return array ['checkResult' => ?array, 'sharedCheck' => ?array].
  */
 function upd_module_handle($cfg, $module_dir, &$messages, $opts = []) {
@@ -338,6 +381,14 @@ function upd_module_handle($cfg, $module_dir, &$messages, $opts = []) {
 
     $localVer    = upd_local_version($module_dir);
     $localModVer = $localVer['version'] ?? null;
+
+    // A version just read here is the freshest answer there is: the home page
+    // notice takes it, so it never contradicts what this screen has just said.
+    $remember = function ($remoteVer) use ($module_dir, $opts) {
+        if (empty($opts['notice']) || !function_exists('upd_notice_store')) return;
+        $v = upd_notice_clean($remoteVer['version'] ?? null);
+        if ($v !== null) upd_notice_store([basename($module_dir) => $v]);
+    };
 
     if ($action === 'check' || $action === 'update-module') {
         $rs = upd_remote_shared_version($cfg);
@@ -357,6 +408,7 @@ function upd_module_handle($cfg, $module_dir, &$messages, $opts = []) {
         if (isset($remoteVer['_error'])) {
             $messages[] = ['err', 'GitHub: ' . htmlspecialchars($remoteVer['_error'])];
         } else {
+            $remember($remoteVer);
             $out['checkResult'] = [
                 'local'  => $localModVer,
                 'remote' => $remoteVer['version'],
@@ -375,6 +427,7 @@ function upd_module_handle($cfg, $module_dir, &$messages, $opts = []) {
         } elseif (empty($remoteVer['files'])) {
             $messages[] = ['err', upd_text('MsgNoFilesList')];
         } else {
+            $remember($remoteVer);
             $result = upd_sync_files($cfg, $module_dir, $remoteVer['files']);
             if (empty($result['fail'])) {
                 $messages[] = ['ok', upd_text('MsgModuleUpdated',
@@ -507,7 +560,9 @@ function upd_ui_messages($messages) {
  *
  * @param string $module_dir Module root.
  * @param array $opts h1 (page heading), title (browser title, defaults to h1),
- *              back => ['url', 'label'], after_update => callable():string.
+ *              back => ['url', 'label'], after_update => callable():string,
+ *              notice => true for a module whose menu.php calls upd_notice_menu():
+ *              adds the switch of the home page notice.
  */
 function upd_render_common_page($module_dir, $opts = []) {
     global $CFG;
@@ -520,8 +575,11 @@ function upd_render_common_page($module_dir, $opts = []) {
     $localVer    = upd_local_version($module_dir);
     $localModVer = $localVer['version'] ?? null;
 
+    $opts['notice'] = !empty($opts['notice']) && function_exists('upd_notice_menu');
+
     $messages = [];
     upd_install_handle($cfg, $messages);
+    if ($opts['notice']) upd_notice_handle($module_dir, $messages);
     $mod = upd_module_handle($cfg, $module_dir, $messages, $opts);
 
     // Re-read after the handler: an update replaces version.json.
@@ -544,6 +602,7 @@ function upd_render_common_page($module_dir, $opts = []) {
     echo upd_ui_messages($messages);
     echo upd_ui_source($cfg, $localVer, $localModVer);
     echo upd_ui_module_block($cfg, $mod['checkResult'], $mod['sharedCheck']);
+    if ($opts['notice']) echo upd_ui_notice_block($module_dir);
     echo upd_ui_others_block($cfg, $othersState, $name);
     echo upd_ui_danger_zone($module_dir);
 
