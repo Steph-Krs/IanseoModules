@@ -2,9 +2,10 @@
 /**
  * booking/lib/distinctions.php — national distinction badges: rules and pictures.
  *
- * What may need changing lives in booking/distinctions/, never here: the two SVG templates
- * (shapes), logo.svg (the archer pictogram shared by every badge), looks.json (colours and
- * texts, layer by layer) and rules.json (score to reach, by discipline and bow).
+ * What may need changing lives in booking/distinctions/, never here: the SVG templates
+ * (shapes), logo.svg (the archer pictogram of the metal badges), figures.svg (the drawings of
+ * the embroidered badges), looks.json (colours and texts, layer by layer) and rules.json
+ * (score to reach, by discipline and bow).
  *
  * No database, no session, no ianseo function: the picture endpoint (public/badge.php) runs
  * without loading ianseo at all.
@@ -93,6 +94,40 @@ function bk_dist_svg($family, array $layers, array $set = array(), &$err = null)
         $steps[] = $looks['layers'][$name];
     }
     $steps[] = $set;
+    bk_dist_apply($xp, $steps);
+
+    // Drawings of figures.svg asked for by the template or by a layer (data-figure), then the
+    // layers once more: they also colour the parts of those drawings.
+    $figures = null;
+    $drawn = false;
+    foreach (iterator_to_array($xp->query('//*[@data-figure]')) as $slot) {
+        $name = $slot->getAttribute('data-figure');
+        $slot->removeAttribute('data-figure');
+        if ($name === '') continue;
+        if (!preg_match('/^[A-Za-z][\w-]*$/', $name)) { $err = 'looks.json: invalid drawing name ' . $name; return ''; }
+        if (!$figures) {
+            $figures = bk_dist_load('figures.svg', $err);
+            if (!$figures) return '';
+            $figXp = new DOMXPath($figures);
+        }
+        $fig = $figXp->query('//*[@id="' . $name . '"]')->item(0);
+        if (!$fig) { $err = 'figures.svg: no drawing ' . $name; return ''; }
+        $slot->appendChild($doc->importNode($fig, true));
+        $drawn = true;
+    }
+    if ($drawn) bk_dist_apply($xp, $steps);
+    foreach (iterator_to_array($xp->query('//*[@data-figure]')) as $slot) $slot->removeAttribute('data-figure');
+
+    foreach (iterator_to_array($xp->query('//comment()')) as $c) $c->parentNode->removeChild($c);
+    return $doc->saveXML($doc->documentElement);
+}
+
+/**
+ * Sets the attributes of the layers on the elements of a badge, in order ([id => [attribute =>
+ * value]] each; "text" = the content of the element).
+ */
+function bk_dist_apply(DOMXPath $xp, array $steps)
+{
     foreach ($steps as $step) {
         if (!is_array($step)) continue;
         foreach ($step as $id => $attrs) {
@@ -102,15 +137,12 @@ function bk_dist_svg($family, array $layers, array $set = array(), &$err = null)
             foreach ($attrs as $attr => $value) {
                 $value = (string) $value;
                 if ($attr === 'text') { $el->textContent = $value; continue; }
-                // Presentation attributes only: no event handler, no link.
-                if (!preg_match('/^[a-z][a-z-]*$/', $attr) || strpos($attr, 'on') === 0 || $attr === 'href') continue;
+                // Presentation attributes only (viewBox included): no event handler, no link.
+                if (!preg_match('/^[a-zA-Z][a-zA-Z-]*$/', $attr) || stripos($attr, 'on') === 0 || strcasecmp($attr, 'href') === 0) continue;
                 $el->setAttribute($attr, $value);
             }
         }
     }
-
-    foreach (iterator_to_array($xp->query('//comment()')) as $c) $c->parentNode->removeChild($c);
-    return $doc->saveXML($doc->documentElement);
 }
 
 /** An SVG file of the folder as a DOM document (null + $err when unreadable). */

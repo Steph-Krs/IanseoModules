@@ -26,9 +26,9 @@ $base = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/public/';
 $errors = array();
 $rules = bk_dist_rules($err);
 if ($err !== '') $errors[] = $err;
-bk_dist_looks($err);
+$looks = bk_dist_looks($err);
 if ($err !== '') $errors[] = $err;
-foreach (array('level', 'star') as $fam) {
+foreach (array_keys((array) ($looks['families'] ?? array())) as $fam) {
     if (!$errors && bk_dist_svg($fam, array(), array(), $err) === '') $errors[] = $err;
 }
 
@@ -51,9 +51,9 @@ echo '<style>
 #aut-dist h3 { font-size:14px; margin:12px 0 6px; }
 #aut-dist h3 span { font-weight:normal; color:var(--text-muted, #868e96); font-size:12px; }
 #aut-dist .row { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
-#aut-dist .tile { width:104px; text-align:center; font-size:12px; }
+#aut-dist .tile { min-width:104px; width:min-content; text-align:center; font-size:12px; }
 #aut-dist .tile a { display:flex; align-items:flex-end; justify-content:center; height:112px; }
-#aut-dist .tile img { max-width:100px; max-height:110px; }
+#aut-dist .tile img { max-width:200px; max-height:110px; object-fit:contain; }
 #aut-dist .tile b { display:block; margin-top:3px; }
 #aut-dist .tile small { display:block; color:var(--text-muted, #868e96); }
 #aut-dist .bk-dist-tile { display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;
@@ -66,11 +66,15 @@ $out = '<div id="aut-dist"><h1>' . $e(aut_t('MenuDistinctions')) . '</h1>'
 foreach ($errors as $m) $out .= '<div class="err">' . $e(aut_t('DsErr', $m)) . '</div>';
 
 $files = array(
-    'badge-level.svg' => 'DsFileLevel',
-    'badge-star.svg'  => 'DsFileStar',
-    'logo.svg'        => 'DsFileLogo',
-    'looks.json'      => 'DsFileLooks',
-    'rules.json'      => 'DsFileRules',
+    'badge-level.svg'  => 'DsFileLevel',
+    'badge-star.svg'   => 'DsFileStar',
+    'badge-round.svg'  => 'DsFileRound',
+    'badge-frame.svg'  => 'DsFileFrame',
+    'badge-marmot.svg' => 'DsFileMarmot',
+    'figures.svg'      => 'DsFileFigures',
+    'logo.svg'         => 'DsFileLogo',
+    'looks.json'       => 'DsFileLooks',
+    'rules.json'       => 'DsFileRules',
 );
 $out .= '<table class="Tabella"><tr><th class="Title" colspan="2">' . $e(aut_t('DsHowTitle')) . '</th></tr>'
     . '<tr><th>' . $e(aut_t('DsColFile')) . '</th><th>' . $e(aut_t('DsColWhat')) . '</th></tr>';

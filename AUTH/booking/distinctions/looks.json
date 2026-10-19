@@ -6,7 +6,18 @@
         "  display = none (hide) or inline (show)",
         "  transform = move or resize a part, e.g. translate(-5,-10) or scale(1.1)",
         "  text = what is written in a text element",
+        "  viewBox, width, height (id badge) = the size of the picture, for badges that grow (archers, cards)",
+        "  data-figure = which drawing of figures.svg goes in a slot (the animal of a set)",
         "The pictogram parts (logo.svg) are ink (the archer), bow and cam (compound only).",
+        "Embroidered badges (round, frame, archers, marmot): felt = the cloth, thread-1 to thread-4 = the four",
+        "  tones of the thread (the same colour four times for a plain thread, light and dark tones for gold",
+        "  and silver), ring / frame stroke-width = twice the thickness of the ring or frame seen.",
+        "Drawings: figures.svg holds the drawings in use, each under its id. Another version of a drawing can be",
+        "  added there under an id of its own (squirrel-b...); to use it, change the name in the layer of the",
+        "  animal (\"squirrel\": {\"figure\": {\"data-figure\": \"squirrel-b\"}}), or for the archers in the base of",
+        "  the family archers (\"archer-shape\": {\"data-figure\": \"archer-b\"}).",
+        "The archers badge is the frame badge (badge-frame.svg) with its archers shown: the family archers sets",
+        "  its sizes, so the frame keeps the thickness of the 3D badges.",
         "Thresholds, and which layers make which badge: rules.json.",
         "tiles: the levels not drawn yet show as a text tile, bg = background, fg = text; its border",
         "  comes from tile_borders (the column's tile in rules.json, default otherwise).",
@@ -66,7 +77,22 @@
                 "bow": {"fill": "#d42f2a", "stroke": "#b5babf", "stroke-width": "1"},
                 "cam": {"fill": "url(#chrome)", "stroke": "#6b7076", "stroke-width": "0.7", "display": "none"}
             }
-        }
+        },
+        "round":   {"template": "badge-round.svg", "base": {}},
+        "frame":   {"template": "badge-frame.svg", "base": {}},
+        "archers": {
+            "template": "badge-frame.svg",
+            "base": {
+                "badge": {"viewBox": "0 0 202 200", "width": "202", "height": "200"},
+                "felt": {"x": "1", "y": "1", "width": "200", "height": "198"},
+                "felt-sheen": {"x": "1", "y": "1", "width": "200", "height": "198"},
+                "frame": {"x": "9", "y": "9", "width": "184", "height": "182"},
+                "frame-edge-box": {"x": "9", "y": "9", "width": "184", "height": "182"},
+                "archers": {"display": "inline"},
+                "archer-shape": {"data-figure": "archer-b"}
+            }
+        },
+        "marmot":  {"template": "badge-marmot.svg", "base": {}}
     },
     "layers": {
         "green":  {"panel": {"fill": "#05a44f"}},
@@ -83,6 +109,125 @@
         "indoor":  {"field": {"fill": "url(#navy)"}, "ink": {"fill": "#f2f4f6"}},
         "outdoor": {"field": {"fill": "url(#silver)"}, "ink": {"fill": "#2b2f7e"}},
 
-        "compound": {"cam": {"display": "inline"}}
+        "compound": {"cam": {"display": "inline"}},
+
+        "squirrel": {"figure": {"data-figure": "squirrel"}},
+        "piglet":   {"figure": {"data-figure": "piglet"}},
+        "boar":     {"figure": {"data-figure": "boar"}},
+        "roedeer":  {"figure": {"data-figure": "roedeer"}},
+        "lynx": {
+            "figure": {"data-figure": "lynx"},
+            "badge": {"viewBox": "0 0 174.3 194", "width": "174.3"},
+            "felt": {"width": "170.3"}, "felt-sheen": {"width": "170.3"},
+            "frame": {"width": "146.3"}, "frame-edge-box": {"width": "146.3"}
+        },
+
+        "greenonwhite": {
+            "felt": {"fill": "#f4f4f1"},
+            "thread-1": {"stop-color": "#22a256"}, "thread-2": {"stop-color": "#168a44"},
+            "thread-3": {"stop-color": "#0f7537"}, "thread-4": {"stop-color": "#1c934b"}
+        },
+        "silverongreen": {
+            "felt": {"fill": "#0e6c3a"},
+            "thread-1": {"stop-color": "#ffffff"}, "thread-2": {"stop-color": "#c6cbd0"},
+            "thread-3": {"stop-color": "#8e959c"}, "thread-4": {"stop-color": "#e2e5e8"}
+        },
+        "goldonwhite": {
+            "felt": {"fill": "#f4f4f1"},
+            "thread-1": {"stop-color": "#f6e7a6"}, "thread-2": {"stop-color": "#d6ab3c"},
+            "thread-3": {"stop-color": "#a77b1d"}, "thread-4": {"stop-color": "#e2c063"}
+        },
+        "goldonblack": {
+            "felt": {"fill": "#171717"},
+            "thread-1": {"stop-color": "#f6e7a6"}, "thread-2": {"stop-color": "#d6ab3c"},
+            "thread-3": {"stop-color": "#a77b1d"}, "thread-4": {"stop-color": "#e2c063"}
+        },
+        "goldonblue": {
+            "felt": {"fill": "#1f2e8c"},
+            "thread-1": {"stop-color": "#f6e7a6"}, "thread-2": {"stop-color": "#d6ab3c"},
+            "thread-3": {"stop-color": "#a77b1d"}, "thread-4": {"stop-color": "#e2c063"}
+        },
+        "goldonred": {
+            "felt": {"fill": "#d9302f"},
+            "thread-1": {"stop-color": "#f6e7a6"}, "thread-2": {"stop-color": "#d6ab3c"},
+            "thread-3": {"stop-color": "#a77b1d"}, "thread-4": {"stop-color": "#e2c063"}
+        },
+        "blackonorange": {
+            "felt": {"fill": "#f2792b"},
+            "thread-1": {"stop-color": "#2c2c2c"}, "thread-2": {"stop-color": "#161616"},
+            "thread-3": {"stop-color": "#0b0b0b"}, "thread-4": {"stop-color": "#232323"}
+        },
+        "silveronorange": {
+            "felt": {"fill": "#f2792b"},
+            "thread-1": {"stop-color": "#ffffff"}, "thread-2": {"stop-color": "#c6cbd0"},
+            "thread-3": {"stop-color": "#8e959c"}, "thread-4": {"stop-color": "#e2e5e8"}
+        },
+        "goldonorange": {
+            "felt": {"fill": "#f2792b"},
+            "thread-1": {"stop-color": "#f6e7a6"}, "thread-2": {"stop-color": "#d6ab3c"},
+            "thread-3": {"stop-color": "#a77b1d"}, "thread-4": {"stop-color": "#e2c063"}
+        },
+
+        "archers1": {},
+        "archers2": {
+            "badge": {"viewBox": "0 0 250.5 200", "width": "250.5"},
+            "felt": {"width": "248.5"}, "felt-sheen": {"width": "248.5"},
+            "frame": {"width": "232.5"}, "frame-edge-box": {"width": "232.5"},
+            "archer-1": {"color": "#1f3594"},
+            "archer-2": {"display": "inline"}
+        },
+        "archers3": {
+            "badge": {"viewBox": "0 0 299 200", "width": "299"},
+            "felt": {"width": "297"}, "felt-sheen": {"width": "297"},
+            "frame": {"width": "281"}, "frame-edge-box": {"width": "281"},
+            "archer-1": {"color": "#1f3594"},
+            "archer-2": {"display": "inline", "color": "#e0302b"},
+            "archer-3": {"display": "inline"}
+        },
+        "archers4": {
+            "badge": {"viewBox": "0 0 347.5 200", "width": "347.5"},
+            "felt": {"width": "345.5"}, "felt-sheen": {"width": "345.5"},
+            "frame": {"width": "329.5"}, "frame-edge-box": {"width": "329.5"},
+            "archer-1": {"color": "#1f3594"},
+            "archer-2": {"display": "inline", "color": "#e0302b"},
+            "archer-3": {"display": "inline", "color": "#f4dd2e"},
+            "archer-4": {"display": "inline", "color": "#161616"}
+        },
+        "archergold": {
+            "badge": {"viewBox": "0 0 204.6 200", "width": "204.6"},
+            "felt": {"width": "202.6", "fill": "#171717"}, "felt-sheen": {"width": "202.6"},
+            "frame": {"width": "186.6"}, "frame-edge-box": {"width": "186.6"},
+            "archer-1": {"fill": "url(#thread)", "color": "#3a3a3a", "x": "1.2"}
+        },
+        "gold": {
+            "thread-1": {"stop-color": "#f6e7a6"}, "thread-2": {"stop-color": "#d6ab3c"},
+            "thread-3": {"stop-color": "#a77b1d"}, "thread-4": {"stop-color": "#e2c063"},
+            "archers": {"color": "#d9b44a"}
+        },
+        "silver": {
+            "thread-1": {"stop-color": "#ffffff"}, "thread-2": {"stop-color": "#c6cbd0"},
+            "thread-3": {"stop-color": "#8e959c"}, "thread-4": {"stop-color": "#e2e5e8"},
+            "archers": {"color": "#cfd3d7"}
+        },
+
+        "marmot1": {},
+        "marmot2": {
+            "badge": {"viewBox": "-9 -24 183 183", "width": "183", "height": "183"},
+            "felt": {"points": "0,150 0,0 15,-15 165,-15 165,135 150,150"},
+            "felt-edge": {"points": "0,150 0,0 15,-15 165,-15 165,135 150,150"},
+            "card-2": {"display": "inline"}
+        },
+        "marmot3": {
+            "badge": {"viewBox": "-9 -39 198 198", "width": "198", "height": "198"},
+            "felt": {"points": "0,150 0,0 30,-30 180,-30 180,120 150,150"},
+            "felt-edge": {"points": "0,150 0,0 30,-30 180,-30 180,120 150,150"},
+            "card-2": {"display": "inline"}, "card-3": {"display": "inline"}
+        },
+        "marmot4": {
+            "badge": {"viewBox": "-9 -54 213 213", "width": "213", "height": "213"},
+            "felt": {"points": "0,150 0,0 45,-45 195,-45 195,105 150,150"},
+            "felt-edge": {"points": "0,150 0,0 45,-45 195,-45 195,105 150,150"},
+            "card-2": {"display": "inline"}, "card-3": {"display": "inline"}, "card-4": {"display": "inline"}
+        }
     }
 }

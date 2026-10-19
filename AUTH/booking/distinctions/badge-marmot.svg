@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Beursault badge: one to four target cards ("marmots") stacked, the front one at the
+  bottom left, each card behind 15 higher and 15 to the right.
+
+  The front card is 150 x 150 at 0,0. The cards behind are whole cards (edges and
+  diagonals, filled with the felt colour) drawn before it: only their top and right
+  strips show, with the start of their diagonals, as on the embroidered badge. Their
+  target circles stay hidden: the badge does not show them.
+
+  ids changed by looks.json:
+    badge                  the picture itself (viewBox, width, height): one card more =
+                           15 larger and 15 higher
+    felt felt-edge         the felt and its edge: the outline of the stack (points), widened
+                           by a round stroke of the felt colour
+    card-2 card-3 card-4   the cards behind the front one (display)
+    cards                  the thread of every card (stroke) and their cloth (fill = the
+                           felt colour)
+
+  Shapes: edit them here (any text editor, or Inkscape: keep the ids).
+  Number of cards: edit looks.json, not this file.
+-->
+<svg id="badge" xmlns="http://www.w3.org/2000/svg" viewBox="-9 -9 168 168" width="168" height="168">
+  <defs>
+    <g id="card-back">
+      <rect x="0" y="0" width="150" height="150"/>
+      <path d="M0,0 L150,150 M150,0 L0,150" fill="none" stroke-width="5"/>
+    </g>
+  </defs>
+
+  <polygon id="felt-edge" points="0,150 0,0 150,0 150,150" fill="#c9c9c4" stroke="#c9c9c4" stroke-width="17.6" stroke-linejoin="round"/>
+  <polygon id="felt" points="0,150 0,0 150,0 150,150" fill="#f4f4f1" stroke="#f4f4f1" stroke-width="15.2" stroke-linejoin="round"/>
+
+  <g id="cards" fill="#f4f4f1" stroke="#161616" stroke-width="6">
+    <use id="card-4" href="#card-back" x="45" y="-45" display="none"/>
+    <use id="card-3" href="#card-back" x="30" y="-30" display="none"/>
+    <use id="card-2" href="#card-back" x="15" y="-15" display="none"/>
+    <g id="card-1">
+      <rect x="0" y="0" width="150" height="150"/>
+      <g fill="none">
+        <path d="M0,0 L150,150 M150,0 L0,150" stroke-width="5"/>
+        <circle cx="75" cy="75" r="61" stroke-width="10"/>
+        <circle cx="75" cy="75" r="18" stroke-width="12"/>      </g>
+    </g>
+  </g>
+</svg>

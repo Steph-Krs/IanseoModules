@@ -66,15 +66,15 @@
                 {
                     "id": "archers",
                     "columns": {
-                        "CL": {"bows": ["CL"], "tile": "gold"},
-                        "CO": {"bows": ["CO"], "tile": "silver"}
+                        "CL": {"bows": ["CL"], "tile": "gold", "layers": ["gold"]},
+                        "CO": {"bows": ["CO"], "tile": "silver", "layers": ["silver"]}
                     },
                     "levels": [
-                        {"id": "archer1",    "CL": 500, "CO": 550},
-                        {"id": "archer2",    "CL": 550, "CO": 600},
-                        {"id": "archer3",    "CL": 600, "CO": 640},
-                        {"id": "archer4",    "CL": 640, "CO": 670},
-                        {"id": "archergold", "CL": 670, "CO": 690}
+                        {"id": "archer1", "badge": "archers", "layers": ["archers1"],      "CL": 500, "CO": 550},
+                        {"id": "archer2", "badge": "archers", "layers": ["archers2"],      "CL": 550, "CO": 600},
+                        {"id": "archer3", "badge": "archers", "layers": ["archers3"],      "CL": 600, "CO": 640},
+                        {"id": "archer4", "badge": "archers", "layers": ["archers4"],      "CL": 640, "CO": 670},
+                        {"id": "archergold", "badge": "archers", "layers": ["archergold"], "CL": 670, "CO": 690}
                     ]
                 }
             ]
@@ -87,10 +87,10 @@
                         "CL": {"bows": ["CL"], "ages": ["U13", "U15", "U18"]}
                     },
                     "levels": [
-                        {"id": "greenonwhite",  "CL": 160},
-                        {"id": "silverongreen", "CL": 210},
-                        {"id": "goldonwhite",   "CL": 270},
-                        {"id": "goldonblack",   "CL": 320}
+                        {"id": "greenonwhite", "badge": "round", "layers": ["piglet", "greenonwhite"],   "CL": 160},
+                        {"id": "silverongreen", "badge": "round", "layers": ["piglet", "silverongreen"], "CL": 210},
+                        {"id": "goldonwhite", "badge": "round", "layers": ["piglet", "goldonwhite"],     "CL": 270},
+                        {"id": "goldonblack", "badge": "round", "layers": ["piglet", "goldonblack"],     "CL": 320}
                     ]
                 },
                 {
@@ -102,12 +102,12 @@
                         "BB":  {"bows": ["BB"], "ages": ["U21", "S1", "S2", "S3"]}
                     },
                     "levels": [
-                        {"id": "greenonwhite",  "CL": 200, "CO": 220, "BBY": 160, "BB": 180},
-                        {"id": "silverongreen", "CL": 240, "CO": 260, "BBY": 200, "BB": 220},
-                        {"id": "goldonwhite",   "CL": 260, "CO": 280, "BBY": 220, "BB": 240},
-                        {"id": "goldonblack",   "CL": 300, "CO": 320, "BBY": 260, "BB": 280},
-                        {"id": "goldonblue",    "CL": 340, "CO": 360, "BBY": 300, "BB": 320},
-                        {"id": "goldonred",     "CL": 380, "CO": 400, "BBY": 340, "BB": 360}
+                        {"id": "greenonwhite", "badge": "round", "layers": ["squirrel", "greenonwhite"],   "CL": 200, "CO": 220, "BBY": 160, "BB": 180},
+                        {"id": "silverongreen", "badge": "round", "layers": ["squirrel", "silverongreen"], "CL": 240, "CO": 260, "BBY": 200, "BB": 220},
+                        {"id": "goldonwhite", "badge": "round", "layers": ["squirrel", "goldonwhite"],     "CL": 260, "CO": 280, "BBY": 220, "BB": 240},
+                        {"id": "goldonblack", "badge": "round", "layers": ["squirrel", "goldonblack"],     "CL": 300, "CO": 320, "BBY": 260, "BB": 280},
+                        {"id": "goldonblue", "badge": "round", "layers": ["squirrel", "goldonblue"],       "CL": 340, "CO": 360, "BBY": 300, "BB": 320},
+                        {"id": "goldonred", "badge": "round", "layers": ["squirrel", "goldonred"],         "CL": 380, "CO": 400, "BBY": 340, "BB": 360}
                     ]
                 }
             ]
@@ -120,9 +120,9 @@
                         "BB": {"bows": ["CL"], "ages": ["U13", "U15", "U18"]}
                     },
                     "levels": [
-                        {"id": "blackonorange",  "BB": 165},
-                        {"id": "silveronorange", "BB": 275},
-                        {"id": "goldonorange",   "BB": 390}
+                        {"id": "blackonorange", "badge": "round", "layers": ["piglet", "blackonorange"],   "BB": 165},
+                        {"id": "silveronorange", "badge": "round", "layers": ["piglet", "silveronorange"], "BB": 275},
+                        {"id": "goldonorange", "badge": "round", "layers": ["piglet", "goldonorange"],     "BB": 390}
                     ]
                 },
                 {
@@ -135,12 +135,12 @@
                         "TL":  {"bows": ["TL"], "ages": ["U18", "U21", "S1", "S2", "S3"]}
                     },
                     "levels": [
-                        {"id": "greenonwhite",  "AD": 125, "AC": 175, "BB": 200, "CON": 250, "TL": 300},
-                        {"id": "silverongreen", "AD": 240, "AC": 290, "BB": 315, "CON": 340, "TL": 415},
-                        {"id": "goldonwhite",   "AD": 350, "AC": 400, "BB": 425, "CON": 450, "TL": 525},
-                        {"id": "goldonblack",   "AD": 425, "AC": 475, "BB": 500, "CON": 525, "TL": 600},
-                        {"id": "goldonblue",    "AD": 500, "AC": 550, "BB": 575, "CON": 600, "TL": 675},
-                        {"id": "goldonred",     "AD": 540, "AC": 590, "BB": 615, "CON": 640, "TL": 715}
+                        {"id": "greenonwhite", "badge": "round", "layers": ["boar", "greenonwhite"],   "AD": 125, "AC": 175, "BB": 200, "CON": 250, "TL": 300},
+                        {"id": "silverongreen", "badge": "round", "layers": ["boar", "silverongreen"], "AD": 240, "AC": 290, "BB": 315, "CON": 340, "TL": 415},
+                        {"id": "goldonwhite", "badge": "round", "layers": ["boar", "goldonwhite"],     "AD": 350, "AC": 400, "BB": 425, "CON": 450, "TL": 525},
+                        {"id": "goldonblack", "badge": "round", "layers": ["boar", "goldonblack"],     "AD": 425, "AC": 475, "BB": 500, "CON": 525, "TL": 600},
+                        {"id": "goldonblue", "badge": "round", "layers": ["boar", "goldonblue"],       "AD": 500, "AC": 550, "BB": 575, "CON": 600, "TL": 675},
+                        {"id": "goldonred", "badge": "round", "layers": ["boar", "goldonred"],         "AD": 540, "AC": 590, "BB": 615, "CON": 640, "TL": 715}
                     ]
                 }
             ]
@@ -153,9 +153,9 @@
                         "BB": {"bows": ["CL"], "ages": ["U13", "U15", "U18"]}
                     },
                     "levels": [
-                        {"id": "blackonorange",  "BB": 150},
-                        {"id": "silveronorange", "BB": 175},
-                        {"id": "goldonorange",   "BB": 210}
+                        {"id": "blackonorange", "badge": "frame", "layers": ["lynx", "blackonorange"],   "BB": 150},
+                        {"id": "silveronorange", "badge": "frame", "layers": ["lynx", "silveronorange"], "BB": 175},
+                        {"id": "goldonorange", "badge": "frame", "layers": ["lynx", "goldonorange"],     "BB": 210}
                     ]
                 },
                 {
@@ -168,12 +168,12 @@
                         "TL":  {"bows": ["TL"], "ages": ["U18", "U21", "S1", "S2", "S3"]}
                     },
                     "levels": [
-                        {"id": "greenonwhite",  "AD": 70,  "AC": 85,  "BB": 110, "CON": 140, "TL": 185},
-                        {"id": "silverongreen", "AD": 125, "AC": 140, "BB": 160, "CON": 210, "TL": 260},
-                        {"id": "goldonwhite",   "AD": 185, "AC": 195, "BB": 220, "CON": 280, "TL": 330},
-                        {"id": "goldonblack",   "AD": 235, "AC": 260, "BB": 270, "CON": 330, "TL": 380},
-                        {"id": "goldonblue",    "AD": 270, "AC": 300, "BB": 315, "CON": 385, "TL": 435},
-                        {"id": "goldonred",     "AD": 335, "AC": 360, "BB": 375, "CON": 435, "TL": 460}
+                        {"id": "greenonwhite", "badge": "frame", "layers": ["roedeer", "greenonwhite"],   "AD": 70,  "AC": 85,  "BB": 110, "CON": 140, "TL": 185},
+                        {"id": "silverongreen", "badge": "frame", "layers": ["roedeer", "silverongreen"], "AD": 125, "AC": 140, "BB": 160, "CON": 210, "TL": 260},
+                        {"id": "goldonwhite", "badge": "frame", "layers": ["roedeer", "goldonwhite"],     "AD": 185, "AC": 195, "BB": 220, "CON": 280, "TL": 330},
+                        {"id": "goldonblack", "badge": "frame", "layers": ["roedeer", "goldonblack"],     "AD": 235, "AC": 260, "BB": 270, "CON": 330, "TL": 380},
+                        {"id": "goldonblue", "badge": "frame", "layers": ["roedeer", "goldonblue"],       "AD": 270, "AC": 300, "BB": 315, "CON": 385, "TL": 435},
+                        {"id": "goldonred", "badge": "frame", "layers": ["roedeer", "goldonred"],         "AD": 335, "AC": 360, "BB": 375, "CON": 435, "TL": 460}
                     ]
                 }
             ]
@@ -187,10 +187,10 @@
                         "CLCO": {"bows": ["CL", "CO"]}
                     },
                     "levels": [
-                        {"id": "marmot1", "CLCO": 32},
-                        {"id": "marmot2", "CLCO": 35},
-                        {"id": "marmot3", "CLCO": 38},
-                        {"id": "marmot4", "CLCO": 40}
+                        {"id": "marmot1", "badge": "marmot", "layers": ["marmot1"], "CLCO": 32},
+                        {"id": "marmot2", "badge": "marmot", "layers": ["marmot2"], "CLCO": 35},
+                        {"id": "marmot3", "badge": "marmot", "layers": ["marmot3"], "CLCO": 38},
+                        {"id": "marmot4", "badge": "marmot", "layers": ["marmot4"], "CLCO": 40}
                     ]
                 }
             ]

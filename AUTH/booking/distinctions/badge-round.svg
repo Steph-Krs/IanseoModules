@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Round embroidered badge (field: squirrels and piglets; nature: boars and piglets).
+
+  A felt disc, a ring of thread, and a drawing of figures.svg in the middle.
+
+  ids changed by looks.json:
+    felt                  the felt disc (fill = felt colour)
+    ring                  the thread ring. Only its inner half shows (the outer half is
+                          cut at the ring's edge): stroke-width = twice the thickness seen,
+                          and a thicker ring grows inwards
+    thread-1 to thread-4  the four tones of the thread (gradient "thread"): four times the
+                          same colour for a plain thread, light and dark tones for gold or
+                          silver. The ring and the drawing are painted with it
+    figure                data-figure = the drawing of figures.svg put in the middle
+
+  Shapes: edit them here (any text editor, or Inkscape: keep the ids).
+  Colours, thickness and drawing: edit looks.json, not this file.
+-->
+<svg id="badge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="thread" gradientUnits="userSpaceOnUse" x1="25" y1="10" x2="175" y2="190">
+      <stop id="thread-1" offset="0" stop-color="#f6e7a6"/>
+      <stop id="thread-2" offset="0.35" stop-color="#d6ab3c"/>
+      <stop id="thread-3" offset="0.65" stop-color="#a77b1d"/>
+      <stop id="thread-4" offset="1" stop-color="#e2c063"/>
+    </linearGradient>
+    <radialGradient id="sheen" cx="0.38" cy="0.32" r="0.8">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.16"/>
+    </radialGradient>
+    <clipPath id="ring-edge">
+      <circle cx="100" cy="100" r="87"/>
+    </clipPath>
+  </defs>
+
+  <circle id="felt" cx="100" cy="100" r="97" fill="#f4f4f1" stroke="#000000" stroke-opacity="0.25" stroke-width="1.2"/>
+  <circle id="felt-sheen" cx="100" cy="100" r="97" fill="url(#sheen)"/>
+  <circle id="ring" cx="100" cy="100" r="87" fill="none" stroke="url(#thread)" stroke-width="8" clip-path="url(#ring-edge)"/>
+  <g id="figure" data-figure=""/>
+</svg>

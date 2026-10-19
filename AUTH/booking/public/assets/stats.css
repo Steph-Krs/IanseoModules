@@ -11,7 +11,7 @@
 #bk .bk-stat-h { font-size: 15px; color: #0254a8; margin: 22px 0 10px; }
 
 /* ---- Distinction pictures and text tiles (lib/distinctions.php, bk_dist_visual) ---- */
-#bk .bk-dist-img { display: block; }
+#bk .bk-dist-img { display: block; max-width: 100%; object-fit: contain; }
 #bk .bk-dist-tile { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
     height: calc(var(--dt-h) * .7); min-width: calc(var(--dt-h) * 1.1); max-width: 132px; padding: 4px 8px;
     border: 3px solid var(--dt-bd); border-radius: 10px; background: var(--dt-bg); color: var(--dt-fg);

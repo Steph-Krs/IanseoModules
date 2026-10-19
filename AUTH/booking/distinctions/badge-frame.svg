@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Rectangular embroidered badge with a frame: 3D (roe deer and lynx) and outdoor archery
+  at national distances (one to four archers, or the golden archer).
+
+  A felt rectangle, a frame of thread, and inside either a drawing of figures.svg (3D)
+  or the archers. The sizes below are those of the 3D badges; the archers family of
+  looks.json gives the archers badge its own (larger felt, frame at 9,9).
+
+  The archers: the drawing of figures.svg named in "archer-shape" is copied once into
+  the definitions, then shown four times by <use>, each archer 48.5 to the right of the
+  previous one and in front of it. A <use> gives its archer two colours: fill = the
+  archer, color = the belt. An archer without a color of its own takes the one of the
+  group "archers": the gold or silver of the badge, which is the belt of the archer in
+  front (looks.json gives the archers behind the belt of the next colour: black, blue,
+  red, yellow, black). The group is hidden on the 3D badges.
+
+  ids changed by looks.json:
+    badge                  the picture itself (viewBox, width): wider for the lynx and for
+                           each archer (48.5 more per archer)
+    felt felt-sheen        the felt (fill = felt colour) and its shading; same size
+    frame frame-edge-box   the thread frame and its outer edge (same x, y, width, height).
+                           Only the inner half of the frame shows: stroke-width = twice the
+                           thickness seen, and a thicker frame grows inwards
+    thread-1 to thread-4   the four tones of the thread (gradient "thread"), as on the
+                           round badge
+    figure                 data-figure = the drawing of figures.svg put in the frame (3D)
+    archer-shape           data-figure = the drawing of the archer
+    archers                display (shown on the archers badges), color = the belt of the
+                           archer in front (gold or silver)
+    archer-1 to archer-4   the four archers, from the back (left) to the front (right):
+                           display, fill (archer), color (belt), x (place)
+
+  Shapes: edit them here (any text editor, or Inkscape: keep the ids).
+  Colours, thickness, sizes, number of archers and drawings: edit looks.json, not this file.
+-->
+<svg id="badge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 194" width="168" height="194">
+  <defs>
+    <linearGradient id="thread" gradientUnits="userSpaceOnUse" x1="20" y1="10" x2="150" y2="185">
+      <stop id="thread-1" offset="0" stop-color="#f6e7a6"/>
+      <stop id="thread-2" offset="0.35" stop-color="#d6ab3c"/>
+      <stop id="thread-3" offset="0.65" stop-color="#a77b1d"/>
+      <stop id="thread-4" offset="1" stop-color="#e2c063"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.15"/>
+    </linearGradient>
+    <clipPath id="frame-edge">
+      <rect id="frame-edge-box" x="14" y="14" width="140" height="166"/>
+    </clipPath>
+    <g id="archer-shape" data-figure=""/>
+  </defs>
+
+  <rect id="felt" x="2" y="2" width="164" height="190" rx="5" fill="#f4f4f1" stroke="#000000" stroke-opacity="0.25" stroke-width="1.2"/>
+  <rect id="felt-sheen" x="2" y="2" width="164" height="190" rx="5" fill="url(#sheen)"/>
+
+  <g id="archers" color="#d9b44a" display="none">
+    <use id="archer-1" href="#archer-shape" x="0" fill="#161616"/>
+    <use id="archer-2" href="#archer-shape" x="48.5" fill="#1f3594" display="none"/>
+    <use id="archer-3" href="#archer-shape" x="97" fill="#e0302b" display="none"/>
+    <use id="archer-4" href="#archer-shape" x="145.5" fill="#f4dd2e" display="none"/>
+  </g>
+
+  <rect id="frame" x="14" y="14" width="140" height="166" fill="none" stroke="url(#thread)" stroke-width="10" clip-path="url(#frame-edge)"/>
+  <g id="figure" data-figure=""/>
+</svg>
