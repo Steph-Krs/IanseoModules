@@ -175,8 +175,24 @@
    under its last block. admin.js moves it to the left of the GUIDE module's panel when there. */
 #shpadm .sa-save { position: fixed; right: 20px; bottom: 20px; z-index: 900; padding: 8px 20px; font-size: 14px;
     border-radius: 8px; box-shadow: 0 4px 16px rgba(2, 84, 168, .35); }
-#shpadm .sa-save.sa-dirty { box-shadow: 0 0 0 3px #ffb347, 0 4px 16px rgba(2, 84, 168, .35); }
 #shpadm.sa-has-save { padding-bottom: 60px; }
+
+/* A change not saved (.sa-dirty, admin.js), both frames: an orange ring runs round the button.
+   Drawn by ::before, outside the button: its size, text and hover stay as they are. When the
+   visitor's system asks for less motion, the ring stays, still. */
+@property --sa-spin { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+#shpadm .sa-save.sa-dirty::before, #autadm .sa-save.sa-dirty::before {
+    --sa-spin: 0deg;
+    content: ''; position: absolute; inset: -4px; padding: 3px; border-radius: 11px; pointer-events: none;
+    background: conic-gradient(from var(--sa-spin), #ff2b10, #e57b10 25%, #ffb347 50%, #e57b10 75%, #ff2b10);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: sa-spin 2.4s linear infinite; }
+@keyframes sa-spin { to { --sa-spin: 360deg; } }
+@media (prefers-reduced-motion: reduce) {
+    #shpadm .sa-save.sa-dirty::before, #autadm .sa-save.sa-dirty::before { animation: none; }
+}
 
 /* Message floating at the top right: the page does not move under the reader's eyes */
 #shpadm .sa-toast { position: fixed; top: 16px; right: 20px; z-index: 950; max-width: 420px; margin: 0;
@@ -225,6 +241,5 @@
     border: 1px solid #0254a8; border-radius: 8px; background: #0254a8; color: #fff; cursor: pointer;
     box-shadow: 0 4px 16px rgba(2, 84, 168, .35); }
 #autadm .sa-save:hover { background: #01367c; border-color: #01367c; }
-#autadm .sa-save.sa-dirty { box-shadow: 0 0 0 3px #ffb347, 0 4px 16px rgba(2, 84, 168, .35); }
 #autadm.sa-has-save { padding-bottom: 60px; }
 #autadm .sa-default-submit { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
