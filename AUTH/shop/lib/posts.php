@@ -1,7 +1,8 @@
 <?php
 /**
  * lib/posts.php — the posts of a volunteer on their phone: the stands of the till they have
- * rights on, the registry (documents, payments) and the judges' equipment check. One selector at
+ * rights on, the registry (documents, payments), the judges' equipment check, and ianseo's own
+ * screens (AUTH/vol-lib.php: the way in, on a computer rather). One selector at
  * the top of every volunteer page switches between them, and the name of the volunteer opens a
  * small menu (their archer space, sign out) — user's choice, 2026-10-12.
  *
@@ -33,6 +34,10 @@ function shp_staff_posts($staff)
     }
     if (shp_desk_can($s, 'equip')) {
         $out[] = array('key' => 'equip', 'label' => shp_t('DkPostJudges'), 'url' => shp_url('desk/index.php?v=equip'));
+    }
+    // ianseo's own screens (AUTH/vol-lib.php): staff/ianseo.php opens them in this browser.
+    if (shp_ianseo_rights($s)) {
+        $out[] = array('key' => 'ianseo', 'label' => shp_t('IanPost'), 'url' => shp_url('staff/ianseo.php'));
     }
     return $out;
 }

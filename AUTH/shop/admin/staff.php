@@ -1,8 +1,8 @@
 <?php
 /**
- * admin/staff.php — the volunteers of the points of sale and of the check-in desk of the open
- * competition (organiser). Open as soon as the stands, the registry or the equipment check are
- * open to the volunteers.
+ * admin/staff.php — the volunteers of the points of sale, of the check-in desk and of ianseo's own
+ * screens of the open competition (organiser). Open as soon as the stands, the registry, the
+ * equipment check or ianseo's screens (AUTH/vol-lib.php, admin/ianseo.php) are open to the volunteers.
  *
  * One team for the stands and the check-in desk, managed here (menu "Volunteers"). For a
  * computer, in the frame shared by AUTH's organiser pages (adm-lib.php). What the page does:
@@ -53,7 +53,8 @@ $settings = shp_settings($TOUR);
 $shopOn = $settings && intval($settings->SgEnabled) === 1;
 $deskOn = shp_desk_on($TOUR);       // registry opened to the volunteers
 $judgesOn = shp_judges_on($TOUR);   // equipment check opened to the volunteers
-$enabled = $shopOn || $deskOn || $judgesOn;
+$ianseoOn = shp_ianseo_on($TOUR);   // ianseo's own screens opened to the volunteers (AUTH/vol-lib.php)
+$enabled = $shopOn || $deskOn || $judgesOn || $ianseoOn;
 $window = shp_window($TOUR);
 $over = !$window || $window['purge_due'];
 // The functions are ianseo's field crew: changed with the right the core asks on its own page.
@@ -115,6 +116,7 @@ if ((string) ($_SERVER['HTTP_X_SHP'] ?? '') === '1') {
     $id = intval($in['id'] ?? 0);
     $rights = is_array($in['rights'] ?? null) ? $in['rights'] : array();
     $access = (string) ($in['access'] ?? '');
+    $ianseo = (string) ($in['ianseo'] ?? '');
     switch ((string) ($in['act'] ?? '')) {
         case 'invite':
             $r = ss_qr(shp_invite_create($TOUR, 'enrol', $BY));
@@ -125,13 +127,13 @@ if ((string) ($_SERVER['HTTP_X_SHP'] ?? '') === '1') {
             break;
         case 'approve':
             $r = shp_staff_approve($TOUR, $id, $rights, ss_amount($in['refund_max'] ?? ''), ss_amount($in['refund_total'] ?? ''), $BY,
-                (string) ($in['desk'] ?? ''), $access);
+                (string) ($in['desk'] ?? ''), $access, $ianseo);
             if (!$r['error']) ss_function($TOUR, $id, $in, $BY);
             break;
         case 'add':
             if ($over) shp_json_error('over', shp_t('ShStfErrOver'));
             $r = shp_staff_add_licensee($TOUR, (string) ($in['licence'] ?? ''), $rights, ss_amount($in['refund_max'] ?? ''),
-                ss_amount($in['refund_total'] ?? ''), $BY, (string) ($in['desk'] ?? ''), $access);
+                ss_amount($in['refund_total'] ?? ''), $BY, (string) ($in['desk'] ?? ''), $access, $ianseo);
             if (!$r['error']) ss_function($TOUR, intval($r['id']), $in, $BY);
             break;
         case 'refuse':
@@ -139,7 +141,7 @@ if ((string) ($_SERVER['HTTP_X_SHP'] ?? '') === '1') {
             break;
         case 'update':
             $r = shp_staff_update($TOUR, $id, $rights, ss_amount($in['refund_max'] ?? ''), ss_amount($in['refund_total'] ?? ''), $BY,
-                (string) ($in['desk'] ?? ''), $access);
+                (string) ($in['desk'] ?? ''), $access, $ianseo);
             if (!$r['error']) ss_function($TOUR, $id, $in, $BY);
             break;
         case 'revoke':
@@ -188,7 +190,7 @@ function ss_journal($tour)
     // The connection of an organiser page runs in the competition's zone: NOW() - UTC gives its offset.
     $rs = safe_r_sql("SELECT SjStaff, SjEvent, SjBy,
             DATE_ADD(SjWhen, INTERVAL TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), NOW()) SECOND) AS SjLocal
-        FROM ShopStaffLog WHERE SjTournament = " . intval($tour) . " ORDER BY SjId DESC LIMIT 100");
+        FROM ShopStaffLog WHERE SjTournament = " . intval($tour) . " AND SjEvent <> 'blocked' ORDER BY SjId DESC LIMIT 100");
     $rows = '';
     while ($r = safe_fetch($rs)) {
         $who = $r->SjBy === 'system' ? shp_t('ShStfBySystem') : ($r->SjBy === 'volunteer' ? shp_t('ShStfByVolunteer') : $r->SjBy);
@@ -207,14 +209,18 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
 
 // Frame of the organiser pages (#shpadm, assets/admin.css); the body keeps its own scope (#shpstf,
 // staff-admin.css) for the cards drawn by its script.
+// The title says what the team works at: one post alone, the stands and the desk, or "Volunteers".
 $deskVol = $deskOn || $judgesOn;
-echo aut_adm_open('shop/admin/staff.php', shp_t($deskVol ? ($shopOn ? 'DkStaffTitleBoth' : 'DkStaffTitleDesk') : ($shopOn ? 'ShStfPageTitle' : 'MnuStaff')));
+$title = $ianseoOn ? ($shopOn || $deskVol ? 'MnuStaff' : 'IanPageTitle')
+    : ($deskVol ? ($shopOn ? 'DkStaffTitleBoth' : 'DkStaffTitleDesk') : ($shopOn ? 'ShStfPageTitle' : 'MnuStaff'));
+echo aut_adm_open('shop/admin/staff.php', shp_t($title));
 echo '<div id="shpstf">';
 
 if (!$enabled) {
     echo '<div class="ss-msg ss-warn">' . shp_e(shp_t('DkStaffOff')) . ' <a href="' . shp_e(shp_url('admin/index.php')) . '">'
         . shp_e(shp_t('MnuSettings')) . '</a> · <a href="' . shp_e(shp_url('desk/list.php')) . '">'
-        . shp_e(shp_t('DkMenu')) . '</a></div></div>' . aut_adm_close();
+        . shp_e(shp_t('DkMenu')) . '</a> · <a href="' . shp_e(shp_url('admin/ianseo.php')) . '">'
+        . shp_e(shp_t('IanMenu')) . '</a></div></div>' . aut_adm_close();
     include($CFG->DOCUMENT_PATH . 'Common/Templates/tail.php');
     exit;
 }
@@ -282,6 +288,9 @@ foreach (shp_perms_all() as $p) $perms[] = array('key' => $p, 'label' => shp_per
 // Rights at the desk, in two posts opened apart: registry (documents, payments), judges (equipment).
 $deskPerms = array();
 foreach (shp_desk_perms_all() as $p) $deskPerms[] = array('key' => $p, 'label' => shp_desk_perm_label($p), 'post' => $p === 'equip' ? 'judges' : 'desk');
+// Groups of ianseo's own screens (AUTH/vol-lib.php), for the whole competition.
+$ianseoGroups = array();
+foreach (aut_vol_group_keys() as $g) $ianseoGroups[] = array('key' => $g, 'label' => shp_ianseo_label($g));
 
 echo shp_json_script('shp-texts', shp_ts(array(
         'ShStfPendingNone', 'ShStfTeamNone', 'ShStfCode', 'ShStfCodeCheck', 'ShStfAgo', 'ShStfAgoNow', 'ShStfSeenAgo',
@@ -292,7 +301,7 @@ echo shp_json_script('shp-texts', shp_ts(array(
         'ShStfInviteTitle', 'ShStfInviteLeft', 'ShStfInviteOver', 'ShStfInviteRunning', 'ShStfInviteNew', 'ShStfInviteStop',
         'ShStfPendingWaiting', 'ShStfResetTitle2', 'ShStfResetLeft', 'ShStfHide', 'ShStfClose', 'ShStfDone',
         'ShStfNoStandSet', 'ShStfErrNoStand', 'ShStfStandInactive', 'ShStfQrMissing', 'DkRightsTitle', 'DkErrNoRight',
-        'DkRightsShort', 'DkJudgesRightsTitle', 'DkJudges', 'ShStfRestore', 'ShStfRestoreDone',
+        'DkRightsShort', 'DkJudgesRightsTitle', 'DkJudges', 'ShStfRestore', 'ShStfRestoreDone', 'IanRightsTitle', 'IanRightsShort',
         'ShStfFunction', 'ShStfAccessIs', 'ShStfFunctionIs', 'ShStfRevokeKeepFn', 'ShStfOfficialsNone', 'ShStfOfficialsAdd', 'ShStfFnKept',
         'ShStfFamilyName', 'ShStfGivenName',
         'ShStfFindTitle', 'ShStfFindNone', 'ShStfFindMore', 'ShStfFindLicence', 'ShStfFindName', 'ShStfFindClub',
@@ -302,7 +311,9 @@ echo shp_json_script('shp-texts', shp_ts(array(
     . shp_json_script('shp-cfg', shp_page_cfg($TOUR, 'staffadm', array(
         'self' => $SELF, 'csrf' => bk_csrf_token(), 'stands' => $stands, 'presets' => $presets, 'perms' => $perms,
         'desk_perms' => $deskPerms, 'desk_on' => $deskOn, 'judges_on' => $judgesOn, 'shop_on' => $shopOn,
-        'default_preset' => $shopOn ? 'shop' : ($deskOn ? 'registry' : ($judgesOn ? 'judge' : '')), 'state' => ss_state($TOUR), 'over' => $over,
+        'ianseo_groups' => $ianseoGroups, 'ianseo_on' => $ianseoOn,
+        'default_preset' => $shopOn ? 'shop' : ($deskOn ? 'registry' : ($judgesOn ? 'judge' : ($ianseoOn ? 'results' : ''))),
+        'state' => ss_state($TOUR), 'over' => $over,
         'functions' => $functions, 'fn_access' => shp_staff_fn_access(), 'fn_edit' => $canFn,
     )));
 echo '<script src="' . shp_e(shp_asset_url('shp.js')) . '"></script>'

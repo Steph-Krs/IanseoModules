@@ -6,7 +6,8 @@
  * Copied: the settings (not the public key; the pre-order deadline keeps the same distance from
  * the first day), the points of sale (closed, order counter back to 0), the products and variants
  * with their INITIAL stock. Never copied: the openings — volunteers, pre-orders, sales on the day,
- * registry, judges: each is opened by hand on every competition (user's choice, 2026-10-12) —,
+ * registry, judges, ianseo's screens: each is opened by hand on every competition (user's choice,
+ * 2026-10-12) —,
  * customers, orders, payments. On request only (shp_copy_staff): the licensed volunteers with
  * their rights; a volunteer without a licence never (their account is erased after the
  * competition). The destination's catalogue is REPLACED, which is refused once it has orders.
@@ -83,7 +84,7 @@ function shp_copy_staff($destTour, $srcTour, $by)
     $srcName = array();
     foreach (shp_stands($srcTour, false) as $sd => $s) $srcName[intval($sd)] = mb_strtolower(trim((string) $s->SdName));
     $n = 0;
-    $rs = safe_r_sql("SELECT SfId, SfLicence, SfDesk, SfAccess, SfRefundMax, SfRefundTotal FROM ShopStaff
+    $rs = safe_r_sql("SELECT SfId, SfLicence, SfDesk, SfIanseo, SfAccess, SfRefundMax, SfRefundTotal FROM ShopStaff
         WHERE SfTournament = $srcTour AND SfKind = 'LICENSEE' AND SfStatus IN ('active', 'locked') AND SfLicence <> ''
         ORDER BY SfId");
     $rows = array();
@@ -95,7 +96,7 @@ function shp_copy_staff($destTour, $srcTour, $by)
             if ($k !== '' && isset($byName[$k])) $rights[$byName[$k]] = implode(',', $perms);
         }
         $res = shp_staff_add_licensee($destTour, $r->SfLicence, $rights, $r->SfRefundMax, $r->SfRefundTotal, $by, (string) $r->SfDesk,
-            (string) $r->SfAccess);
+            (string) $r->SfAccess, (string) $r->SfIanseo);
         if (empty($res['error'])) $n++;
     }
     return $n;

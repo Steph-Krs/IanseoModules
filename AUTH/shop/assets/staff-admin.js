@@ -16,14 +16,17 @@
     var presetByKey = {};
     C.presets.forEach(function (p) { presetByKey[p.key] = p; });
     var deskPerms = C.desk_perms || [];
+    var ianGroups = C.ianseo_groups || [];
     // Presets offered: those of the stands while there are stands; those of the registry and of the
-    // judges while that post is open to the volunteers (two posts opened apart).
+    // judges while that post is open to the volunteers (two posts opened apart); those of ianseo's
+    // screens while they are open to the volunteers.
     var presets = C.presets.filter(function (p) {
         if (p.key === 'dos') return true;
+        if (p.ianseo) return !!C.ianseo_on;
         if (p.perms !== '') return C.shop_on || C.stands.length > 0;
         return p.desk.indexOf('equip') >= 0 ? !!C.judges_on : !!C.desk_on;
     });
-    function noRightText() { return T(C.desk_on || C.judges_on ? 'DkErrNoRight' : 'ShStfErrNoStand'); }
+    function noRightText() { return T(C.desk_on || C.judges_on || C.ianseo_on ? 'DkErrNoRight' : 'ShStfErrNoStand'); }
     function presetOffered(k) { return presets.some(function (p) { return p.key === k; }); }
     function presetLabel(k) {
         if (k === 'custom') return T('ShStfPresetCustom');
@@ -88,8 +91,9 @@
     }
 
     /* ---- Rights editor: an access and a function ----
-       The access gives the rights: a preset × the stands ticked, or rights stand by stand, and the
-       desk. The function is the one of ianseo's field crew (licensed volunteers only). They propose
+       The access gives the rights: a preset × the stands ticked, or rights stand by stand, the desk
+       and the groups of ianseo's own screens. The function is the one of ianseo's field crew
+       (licensed volunteers only). They propose
        each other (user's choice, 2026-10-13): an access chosen while no function is set proposes
        its function; a function chosen while no access is set proposes its access; a field already
        set is never changed by the other one. Rights changed by hand turn the access into the
@@ -170,6 +174,28 @@
             return deskPerms.filter(function (p) { return deskChk[p.key] && deskChk[p.key].checked; }).map(function (p) { return p.key; });
         }
 
+        // ianseo's own screens: groups for the whole competition, shown while ianseo is open to the
+        // volunteers, or while the volunteer holds one of them.
+        var ianChk = {};
+        var ianHad = !!initial && (initial.ianseo || []).length > 0;
+        if (ianGroups.length && (C.ianseo_on || ianHad)) {
+            var fi = el('fieldset', 'ss-stands ss-desk ss-ianseo');
+            fi.appendChild(el('legend', '', esc(T('IanRightsTitle'))));
+            ianGroups.forEach(function (g) {
+                var l = el('label', 'ss-chk');
+                var c = el('input'); c.type = 'checkbox'; c.value = g.key;
+                c.addEventListener('change', function () { fromGrid(); });
+                ianChk[g.key] = c;
+                l.appendChild(c);
+                l.appendChild(el('span', '', esc(g.label)));
+                fi.appendChild(l);
+            });
+            box.appendChild(fi);
+        }
+        function ianList() {
+            return ianGroups.filter(function (g) { return ianChk[g.key] && ianChk[g.key].checked; }).map(function (g) { return g.key; });
+        }
+
         var refRow = el('div', 'ss-refund');
         var rMax = el('input'); rMax.type = 'text'; rMax.inputMode = 'decimal'; rMax.size = 6;
         var rTot = el('input'); rTot.type = 'text'; rTot.inputMode = 'decimal'; rTot.size = 6;
@@ -222,6 +248,8 @@
             });
             var dk = presetByKey[presetSel.value].desk.split(',');
             Object.keys(deskChk).forEach(function (k) { deskChk[k].checked = dk.indexOf(k) >= 0; });
+            var ia = (presetByKey[presetSel.value].ianseo || '').split(',');
+            Object.keys(ianChk).forEach(function (k) { ianChk[k].checked = ia.indexOf(k) >= 0; });
             if (!refundTouched) {
                 var pr = presetByKey[presetSel.value];
                 rMax.value = amountIn(pr.refund_max); rTot.value = amountIn(pr.refund_total);
@@ -241,10 +269,12 @@
                 if (common === null) common = list; else if (common !== list) uniform = false;
             });
             syncShown();
-            var dk = deskList().join(','), cur = presetSel.value, matches = [];
-            if (uniform) presets.forEach(function (p) { if (p.key !== 'dos' && p.perms === (common || '') && p.desk === dk) matches.push(p.key); });
+            var dk = deskList().join(','), ia = ianList().join(','), cur = presetSel.value, matches = [];
+            if (uniform) presets.forEach(function (p) {
+                if (p.key !== 'dos' && p.perms === (common || '') && p.desk === dk && (p.ianseo || '') === ia) matches.push(p.key);
+            });
             if (matches.indexOf(cur) >= 0) return;
-            var any = common !== null || dk !== '';
+            var any = common !== null || dk !== '' || ia !== '';
             presetSel.value = matches.length ? matches[0] : (any ? 'custom' : (cur === 'dos' ? 'dos' : ''));
         }
         function proposeFn() {
@@ -286,6 +316,7 @@
                 r.perms.forEach(function (p) { if (grid[r.stand][p]) grid[r.stand][p].checked = true; });
             });
             (initial.desk || []).forEach(function (k) { if (deskChk[k]) deskChk[k].checked = true; });
+            (initial.ianseo || []).forEach(function (k) { if (ianChk[k]) ianChk[k].checked = true; });
             touched = true;
             presetSel.value = initial.access && (initial.access === 'custom' || presetOffered(initial.access)) ? initial.access : '';
             fromGrid();
@@ -305,8 +336,9 @@
                 var list = C.perms.filter(function (p) { return grid[s.id][p.key].checked; }).map(function (p) { return p.key; });
                 if (list.length) { rights[s.id] = list.join(','); any = true; }
             });
-            var dk = deskList();
-            return { rights: rights, desk: dk.join(','), access: presetSel.value, any: any || dk.length > 0 || presetSel.value === 'dos',
+            var dk = deskList(), ia = ianList();
+            return { rights: rights, desk: dk.join(','), ianseo: ia.join(','), access: presetSel.value,
+                any: any || dk.length > 0 || ia.length > 0 || presetSel.value === 'dos',
                 fn: fnSel && !fnSel.disabled ? fnSel.value : null, fn_was: opt.fnId || 0,
                 refund_max: rMax.value, refund_total: rTot.value };
         };
@@ -330,7 +362,7 @@
             var v = ed.value();
             if (!v.any) { flash(noRightText(), 'err'); return; }
             ok.disabled = true;
-            post({ act: 'approve', id: p.id, rights: v.rights, desk: v.desk, access: v.access, fn: v.fn, fn_was: v.fn_was,
+            post({ act: 'approve', id: p.id, rights: v.rights, desk: v.desk, ianseo: v.ianseo, access: v.access, fn: v.fn, fn_was: v.fn_was,
                 refund_max: v.refund_max, refund_total: v.refund_total })
                 .then(function (res) { ok.disabled = false; if (res && !res.error) flash(T('ShStfDone'), 'ok'); });
         });
@@ -380,9 +412,12 @@
             if (common === null) common = l; else if (common !== l) uniform = false;
         });
         var dk = deskPerms.filter(function (p) { return (m.desk || []).indexOf(p.key) >= 0; }).map(function (p) { return p.key; }).join(',');
-        if (common === null && dk === '') return '';
+        var ia = ianGroups.filter(function (g) { return (m.ianseo || []).indexOf(g.key) >= 0; }).map(function (g) { return g.key; }).join(',');
+        if (common === null && dk === '' && ia === '') return '';
         var k = '';
-        if (uniform) C.presets.forEach(function (p) { if (!k && p.key !== 'dos' && p.perms === (common || '') && p.desk === dk) k = p.key; });
+        if (uniform) C.presets.forEach(function (p) {
+            if (!k && p.key !== 'dos' && p.perms === (common || '') && p.desk === dk && (p.ianseo || '') === ia) k = p.key;
+        });
         return k || 'custom';
     }
     function rightsSummary(m) {
@@ -400,6 +435,8 @@
                 if (dl.length) html += '<li><b>' + esc(T(post[1])) + '</b> : ' + esc(dl.join(', ')) + '</li>';
             });
         }
+        var il = ianGroups.filter(function (g) { return (m.ianseo || []).indexOf(g.key) >= 0; }).map(function (g) { return g.label; });
+        if (il.length) html += '<li><b>' + esc(T('IanRightsShort')) + '</b> : ' + esc(il.join(', ')) + '</li>';
         html += '</ul>';
         if (!m.rights.length) return html;
         if (m.refund_max > 0 && m.refund_total > 0) {
@@ -452,7 +489,7 @@
                     var v = ed.value();
                     if (!v.any) { flash(noRightText(), 'err'); return; }
                     if (entry) entry.editing = false;
-                    post({ act: 'update', id: m.id, rights: v.rights, desk: v.desk, access: v.access, fn: v.fn, fn_was: v.fn_was,
+                    post({ act: 'update', id: m.id, rights: v.rights, desk: v.desk, ianseo: v.ianseo, access: v.access, fn: v.fn, fn_was: v.fn_was,
                         refund_max: v.refund_max, refund_total: v.refund_total })
                         .then(function (res) { if (res && !res.error) flash(T('ShStfDone'), 'ok'); redrawMember(m.id); });
                 }));
@@ -702,7 +739,7 @@
             var v = ed.value();
             if (!v.any) { flash(noRightText(), 'err'); return; }
             ok.disabled = true;
-            post({ act: 'add', licence: r.licence, rights: v.rights, desk: v.desk, access: v.access, fn: v.fn, fn_was: v.fn_was,
+            post({ act: 'add', licence: r.licence, rights: v.rights, desk: v.desk, ianseo: v.ianseo, access: v.access, fn: v.fn, fn_was: v.fn_was,
                 refund_max: v.refund_max, refund_total: v.refund_total })
                 .then(function (res) {
                     ok.disabled = false;

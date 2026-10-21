@@ -122,6 +122,88 @@ function shp_staff_session_state($reset = false)
     return $state;
 }
 
+/* ------------------------------------------------------------------ */
+/* The same volunteer in ianseo's own screens (AUTH/vol-lib.php)       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Opens a session of this volunteer for ianseo's screens. Held by the PHP session (AUTH_Pwd), not
+ * by the phone's cookie: the core keeps only AUTH_User and AUTH_Pwd when it opens a competition,
+ * and the cookie only travels to this folder. Same table and same ends as the phones' sessions.
+ * Returns the token.
+ */
+function shp_staff_core_open($staffId)
+{
+    shp_schema();
+    $staffId = intval($staffId);
+    list($token, $hash) = shp_token_new();
+    safe_w_sql("INSERT INTO ShopStaffSessions SET SkStaff = $staffId, SkTokenHash = '$hash',
+        SkCreated = UTC_TIMESTAMP(), SkLastSeen = UTC_TIMESTAMP(),
+        SkIP = " . StrSafe_DB(bk_ip()) . ",
+        SkUA = " . StrSafe_DB(mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 160)));
+    safe_w_sql("DELETE FROM ShopStaffSessions WHERE SkStaff = $staffId AND SkId NOT IN (
+        SELECT SkId FROM (SELECT SkId FROM ShopStaffSessions WHERE SkStaff = $staffId
+            ORDER BY SkId DESC LIMIT " . SHP_STAFF_MAX_SESSIONS . ") AS Kept)");
+    safe_w_sql("UPDATE ShopStaff SET SfLastSeen = UTC_TIMESTAMP() WHERE SfId = $staffId");
+    return $token;
+}
+
+/** Closes a volunteer's session of ianseo's screens. */
+function shp_staff_core_close($token)
+{
+    $hash = shp_token_hash($token);
+    if ($hash !== '') safe_w_sql("DELETE FROM ShopStaffSessions WHERE SkTokenHash = '$hash'");
+}
+
+/**
+ * State of a volunteer's session of ianseo's screens, checked at every request of those screens:
+ * ['staff' => row|null, 'reason', 'groups' => the groups usable now, 'code' => competition code].
+ * Reasons: those of shp_staff_session_state(), and ianseo_off (ianseo closed to the volunteers on
+ * this competition) and forbidden (no group left, or an organiser's row).
+ */
+function shp_staff_core_state($staffId, $token)
+{
+    $out = array('staff' => null, 'reason' => 'signed_out', 'groups' => array(), 'code' => '');
+    $hash = shp_token_hash($token);
+    $staffId = intval($staffId);
+    if ($hash === '' || $staffId <= 0) return $out;
+    shp_schema();
+    $r = safe_fetch(safe_r_sql("SELECT ShopStaff.*, SkId, ToCode,
+            (SkLastSeen < DATE_SUB(UTC_TIMESTAMP(), INTERVAL " . SHP_STAFF_IDLE_H . " HOUR)) AS SkIdle,
+            (SkLastSeen < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE)) AS SkStale
+        FROM ShopStaffSessions
+        INNER JOIN ShopStaff ON SfId = SkStaff
+        INNER JOIN Tournament ON ToId = SfTournament
+        WHERE SkTokenHash = '$hash' AND SkStaff = $staffId"));
+    if (!$r) return $out;
+    $tour = intval($r->SfTournament);
+    $w = shp_window($tour);
+    if (!$w || $w['purge_due'] || $r->SkIdle || in_array($r->SfStatus, array('ended', 'purged'), true)) {
+        safe_w_sql("DELETE FROM ShopStaffSessions WHERE SkId = " . intval($r->SkId));
+        $out['reason'] = 'expired';
+        return $out;
+    }
+    if ($r->SfStatus === 'revoked') {
+        $out['reason'] = $r->SfApprovedAt === null ? 'refused' : 'revoked';
+    } elseif (!shp_staff_working($r)) {
+        $out['reason'] = 'expired';
+    } elseif ($r->SfKind === 'ORGANISER') {
+        $out['reason'] = 'forbidden';
+    } elseif (!shp_ianseo_on($tour)) {
+        $out['reason'] = 'ianseo_off';
+    } elseif (!($g = shp_ianseo_rights($r))) {
+        $out['reason'] = 'forbidden';
+    } else {
+        $out = array('staff' => $r, 'reason' => 'ok', 'groups' => $g, 'code' => (string) $r->ToCode);
+    }
+    if ($r->SkStale && $out['reason'] === 'ok') {
+        safe_w_sql("UPDATE ShopStaffSessions SET SkLastSeen = UTC_TIMESTAMP(), SkIP = " . StrSafe_DB(bk_ip())
+            . " WHERE SkId = " . intval($r->SkId));
+        safe_w_sql("UPDATE ShopStaff SET SfLastSeen = UTC_TIMESTAMP() WHERE SfId = " . intval($r->SfId));
+    }
+    return $out;
+}
+
 /** The active volunteer holding this phone, or null. */
 function shp_current_staff()
 {
@@ -134,7 +216,7 @@ function shp_staff_reason_msg($reason)
 {
     $k = array('signed_out' => 'ShStfErrSignedOut', 'pending' => 'ShStfErrPending', 'refused' => 'ShStfErrRefused',
         'revoked' => 'ShStfErrRevoked', 'locked' => 'ShStfErrLocked', 'expired' => 'ShStfErrExpired',
-        'shop_off' => 'ShErrShopOff', 'forbidden' => 'ShStfErrForbidden');
+        'shop_off' => 'ShErrShopOff', 'forbidden' => 'ShStfErrForbidden', 'ianseo_off' => 'IanErrOff');
     return shp_t($k[$reason] ?? 'ShStfErrSignedOut');
 }
 

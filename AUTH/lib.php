@@ -24,6 +24,7 @@ define('AUT_LIB_LOADED', true);
 
 require_once __DIR__ . '/lang-lib.php';
 require_once __DIR__ . '/names-lib.php';
+require_once __DIR__ . '/vol-lib.php';   // volunteers in ianseo's screens (functions only)
 
 define('AUT_ROLE_CLUB',  'CLUB');
 define('AUT_ROLE_CD',    'CD');
@@ -1485,6 +1486,98 @@ function aut_imp_apply_org($u) {
     $_SESSION['AUTH_VIEWS'] = array();               // hides the view selector during the observation
 }
 
+/* ------------------------------------------------------------------ */
+/* Rights given to the core (ACL interface)                            */
+/*                                                                      */
+/* The deployed dist/BlockFunction.php only forwards to these functions */
+/* (since 1.4.20): a change of the rules arrives with an update of the  */
+/* module, without deploying again. AUT_ACL_HOOKS, defined by that      */
+/* file, says the server runs it.                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Returns array($authEnabled, $checkCompAcl).
+ * $checkCompAcl=0: the ACLs per IP (AclDetails) do not apply — on an online server, only the
+ * user accounts count.
+ */
+function aut_acl_enabled($ToCode = '') {
+    if (aut_is_localhost()) return array(0, 1);
+    return array(1, 0);
+}
+
+function aut_acl_actual($authEnabled, &$acl) {
+    if (!$authEnabled) return;
+    if (aut_vol_session()) {   // a volunteer: their groups only (vol-lib.php)
+        aut_vol_acl_actual($acl);
+        return;
+    }
+    if (!empty($_SESSION['AUTH_User']) && !empty($_SESSION['AUTH_ENABLE'])) {
+        // "From another account" view (AUTH_RO): READ-ONLY ceiling.
+        $grant = empty($_SESSION['AUTH_RO']) ? AclReadWrite : AclReadOnly;
+        foreach ($acl as $k => $v) $acl[$k] = $grant;
+    }
+}
+
+/**
+ * Grant → level (int), refusal → false (triggers noAccess in checkFullACL).
+ * NEVER return AclNoAccess (0) for a refusal: checkFullACL would take it for a grant and would
+ * not block the page.
+ */
+function aut_acl_check($authEnabled, $checkCompAcl, $feature, $subFeature, $level, $toCode) {
+    if (!$authEnabled) return null;
+    if (empty($_SESSION['AUTH_User']) || empty($_SESSION['AUTH_ENABLE'])) return false;
+    if (aut_vol_session()) return aut_vol_acl_check($feature, $subFeature, $level, $toCode);
+    if (!empty($_SESSION['AUTH_ROOT'])) return AclReadWrite;
+    // "From another account" view (AUTH_RO): every grant is capped at READ ONLY → the core
+    // itself refuses any write (single defence).
+    $grant = empty($_SESSION['AUTH_RO']) ? AclReadWrite : AclReadOnly;
+    // Server operations (AclRoot feature WITHOUT a competition = database updates, global
+    // settings): reserved to the administrator, never granted to a mere organiser, even when
+    // the core page does not check it itself.
+    if (empty($toCode) && in_array(AclRoot, (array)$feature, true)) return false;
+    if (empty($toCode)) return $grant;   // pages outside a competition (choice, language…)
+    if (aut_code_allowed($toCode)) return $grant;
+    if (stripos(aut_script_rel(), '/Tournament/TournamentImport.php') === 0) {
+        // import of a backup whose code belongs to a competition of another club: explain the
+        // refusal (shown by menu.php)
+        aut_flash_set(aut_t('ImportRefusedCode', htmlspecialchars($toCode)));
+    }
+    return false;
+}
+
+/** Level of a feature in the core's table ($acl, from actualACL); a volunteer's per sub-feature. */
+function aut_acl_sub($acl, $feature, $subfeature = '') {
+    if (aut_vol_session()) return aut_vol_level($feature, $subfeature);
+    if (array_key_exists($feature, $acl)) {
+        return $acl[$feature];
+    }
+    return AclNoAccess;
+}
+
+/**
+ * Could the user get $level on a competition coded $toCode?
+ * Used by the core to allow the CREATION and the IMPORT. Naming is free, but a code already
+ * used is refused (anti-overwrite) — only re-importing one's own competition is allowed. See
+ * aut_can_use_code().
+ */
+function aut_acl_possible($feature, $level, $toCode = null) {
+    if (empty($_SESSION['AUTH_User']) || empty($_SESSION['AUTH_ENABLE'])) return false;
+    if (aut_vol_session()) return false;   // a volunteer never creates nor imports
+    if (!empty($_SESSION['AUTH_ROOT'])) return true;
+    if (!empty($_SESSION['AUTH_RO'])) return false;   // read-only observation: no creation, no import
+    $role = $_SESSION['AUTH_ROLE'] ?? '';
+    if (!in_array($role, array('CLUB', 'CD', 'CR', 'FED'))) return false;
+    if (is_null($toCode)) return true;
+    $isImport = stripos(aut_script_rel(), '/Tournament/TournamentImport.php') === 0;
+    $reason = '';
+    $ok = aut_can_use_code($toCode, $role, $_SESSION['AUTH_SCOPE'] ?? '', $_SESSION['AUTH_User'], $isImport, $reason);
+    if (!$ok && $isImport && $reason !== '') {
+        // the core redirects to the home page: the message is shown there (menu.php)
+        aut_flash_set(aut_t('ImportRefused', $reason));
+    }
+    return $ok;
+}
+
 /** Does a competition code match the session's rights? */
 function aut_code_allowed($code, $list = null) {
     if (is_null($list)) $list = $_SESSION['AUTH_COMP'] ?? array();
@@ -1881,6 +1974,13 @@ function aut_request_bootstrap() {
 
     aut_ensure_schema();
     aut_log_purge_daily();   // log retention (at most once a day, see the marker)
+
+    // A volunteer in ianseo's screens (vol-lib.php): their own checks, never an organiser's.
+    // Returns only when the request may go on.
+    if (aut_vol_session()) {
+        aut_vol_bootstrap();
+        return;
+    }
 
     if (!empty($_SESSION['AUTH_User'])) {
         $u = aut_get_user($_SESSION['AUTH_User']);

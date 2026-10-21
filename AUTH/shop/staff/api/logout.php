@@ -9,9 +9,16 @@
 require_once dirname(__DIR__) . '/boot.php';
 require_once dirname(__DIR__, 3) . '/booking/lib/ffta.php';
 
-shp_api_guard(true);
+shp_api_guard(true, true);
 
 shp_staff_session_close();
+// The same volunteer's session of ianseo's screens in this browser (AUTH/vol-lib.php) ends too.
+require_once dirname(__DIR__, 3) . '/vol-lib.php';
+if (aut_vol_session()) {
+    shp_staff_core_close((string) ($_SESSION['AUTH_Pwd'] ?? ''));
+    aut_vol_forget();
+    unset($_SESSION['TourId'], $_SESSION['TourCode']);
+}
 $archer = bk_current_archer();
 if ($archer && empty($archer->BK_IMP)) {
     // As the licensee space's own sign-out (booking/public/logout.php).

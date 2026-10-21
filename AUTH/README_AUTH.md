@@ -153,6 +153,35 @@ judges or on the organiser's computer.
   (accepted, refused, not seen yet), filters and totals; refused archers appear among the
   anomalies of the competition's home page; the nightly licence check never undoes a refusal
 
+### Volunteers in ianseo — results, printouts, speaker
+Volunteers without organiser rights work in ianseo itself, with its usual screens, to help run the
+competition — without being able to change its essential settings.
+
+- 🧩 **Five groups of screens**, ticked for each volunteer on the Volunteers page (same invitations
+  as the food stands and the check-in, licensed or not):
+  - **Printouts**: participant lists, scorecards (qualification, individual and team finals, round
+    robin), rankings, final rounds, awards, signs;
+  - **Speaker**: the speaker's screens (participants, qualification, finals, round robin);
+  - **Participants**: the simple list, with adding, changing and deleting an archer;
+  - **Score entry and checks**: standard qualification table, match entry (bracket and table;
+    individual, team, round robin), scorecard checks by barcode;
+  - **Sending the results** to ianseo.net, once the organiser has set the on-line codes.
+
+  The competition's home page and the schedule always stay visible, read only.
+- 🎭 **Ready-made accesses**: "Commentator" (printouts and speaker) and "Results" (every group),
+  proposed from the person's function in ianseo's field crew
+- 🔒 **Everything else is refused**: the menus only show the screens given; a page asked for
+  outside them, even by its address, is refused — including what the same ianseo right would usually
+  open — and the volunteer cannot switch to another competition. The competition locks
+  (Competition › Security) apply to the volunteers too
+- 🚪 **Way in** from the volunteer space, choice "ianseo (results)", preferably on a computer; **way
+  out** through the bar at the top right. An access withdrawn, a group removed or ianseo closed again
+  stop the volunteer at the next page; it ends by itself the day after the competition
+- 📋 **Volunteers in ianseo** page (organiser, "Results" menu): opening to the volunteers, what each
+  group opens, the volunteers concerned, and the pages refused (what a group would be missing)
+- ⏳ The screens of the ISK-NG app (score checks on the field) will follow, once the app works on an
+  online server
+
 ### Server administrator side
 - 🌙 Automatic nightly maintenance: update of ianseo and of the modules, synchronisations
 - 💾 Nightly backup of the database and files, plus a copy of the database every 6 hours without
@@ -194,6 +223,8 @@ the site.
 - Account management and administration: **server administrator**.
 - Each organiser: only their own competitions (and those shared with them).
 - Each licensee: their own registration space (sign-in with their federation account).
+- Each volunteer in ianseo: only the screens of the groups the organiser gave them, on that
+  competition only.
 - Each volunteer: on their phone, only the posts the organiser gave them (till, check-in, judges),
   for the time of the competition.
 - With the SYNCHRO_FFTA module, the administrator can keep the creation of competitions to the
@@ -208,6 +239,10 @@ See the [general README](../README.md) for the common principle.
 When a new version is published, the ianseo home page tells the administrator, with a link to the
 update page. The check reads nothing but the version number, once the page has loaded, at most
 every 12 hours. It is switched off on the update page ("Notice on the home page").
+
+After the update to version 1.4.20, the administrator deploys the module's files once more
+(Multi-account hosting › Deployment): until then, the volunteers' access to ianseo stays closed and
+nothing else changes. Later versions will no longer need it for the access rules.
 
 > **Sensitive module**: it carries the authentication of the server. Installing, updating and
 > removing it must be done by the administrator.
@@ -448,45 +483,45 @@ every 12 hours. It is switched off on the update page ("Notice on the home page"
 | `ALTER TABLE` | `AuthUsers` | `legal-lib.php:316` | — |
 | `UPDATE` | `AuthUsers` | `legal-lib.php:334` | — |
 | `UPDATE` | `BookingArchers` | `legal-lib.php:350` | — |
-| `ALTER TABLE` | `AuthUsers` | `lib.php:181` | — |
-| `ALTER TABLE` | `AuthUsers` | `lib.php:189` | — |
-| `ALTER TABLE` | `AuthShare` | `lib.php:210` | — |
-| `ALTER TABLE` | `AuthShare` | `lib.php:217` | — |
-| `UPDATE` | `AuthShare` | `lib.php:219` | — |
-| `ALTER TABLE` | `AuthClaim` | `lib.php:244` | — |
-| `ALTER TABLE` | `AuthSessions` | `lib.php:275` | — |
-| `ALTER TABLE` | `AuthSessions` | `lib.php:284` | — |
-| `ALTER TABLE` | `AuthTickets` | `lib.php:315` | — |
-| `ALTER TABLE` | `AuthTickets` | `lib.php:325` | — |
-| `INSERT INTO` | `AuthJobs` | `lib.php:399` | — |
-| `INSERT INTO` | `AuthLog` | `lib.php:456` | — |
-| `DELETE FROM` | `AuthLog` | `lib.php:489` | — |
-| `DELETE FROM` | `AuthJobs` | `lib.php:490` | — |
-| `DELETE FROM` | `BookingLog` | `lib.php:493` | — |
-| `INSERT INTO` | `AuthTickets` | `lib.php:578` | — |
-| `UPDATE` | `AuthTickets` | `lib.php:619` | — |
-| `UPDATE` | `AuthTickets` | `lib.php:641` | — |
-| `UPDATE` | `AuthTickets` | `lib.php:656` | — |
-| `DELETE FROM` | `AuthTickets` | `lib.php:662` | — |
-| `INSERT INTO` | `AuthSessions` | `lib.php:897` | — |
-| `DELETE FROM` | `AuthSessions` | `lib.php:902` | — |
-| `DELETE FROM` | `AuthSessions` | `lib.php:928` | — |
-| `UPDATE` | `AuthSessions` | `lib.php:932` | — |
-| `DELETE FROM` | `AuthSessions` | `lib.php:941` | — |
-| `DELETE FROM` | `AuthShare` | `lib.php:1025` | — |
-| `DELETE FROM` | `AuthShareClub` | `lib.php:1026` | — |
-| `INSERT INTO` | `AuthClaim` | `lib.php:1071` | — |
-| `INSERT INTO` | `AuthShare` | `lib.php:1237` | — |
-| `INSERT INTO` | `AuthShare` | `lib.php:1377` | — |
-| `DELETE FROM` | `AuthClaim` | `lib.php:1383` | — |
-| `DELETE FROM` | `AuthClaim` | `lib.php:1387` | — |
-| `UPDATE` | `AuthSessions` | `lib.php:1448` | — |
-| `UPDATE` | `AuthSessions` | `lib.php:1457` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:1571` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:1687` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:2596` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:2637` | — |
-| `INSERT INTO` | `AuthUsers` | `lib.php:2643` | — |
+| `ALTER TABLE` | `AuthUsers` | `lib.php:182` | — |
+| `ALTER TABLE` | `AuthUsers` | `lib.php:190` | — |
+| `ALTER TABLE` | `AuthShare` | `lib.php:211` | — |
+| `ALTER TABLE` | `AuthShare` | `lib.php:218` | — |
+| `UPDATE` | `AuthShare` | `lib.php:220` | — |
+| `ALTER TABLE` | `AuthClaim` | `lib.php:245` | — |
+| `ALTER TABLE` | `AuthSessions` | `lib.php:276` | — |
+| `ALTER TABLE` | `AuthSessions` | `lib.php:285` | — |
+| `ALTER TABLE` | `AuthTickets` | `lib.php:316` | — |
+| `ALTER TABLE` | `AuthTickets` | `lib.php:326` | — |
+| `INSERT INTO` | `AuthJobs` | `lib.php:400` | — |
+| `INSERT INTO` | `AuthLog` | `lib.php:457` | — |
+| `DELETE FROM` | `AuthLog` | `lib.php:490` | — |
+| `DELETE FROM` | `AuthJobs` | `lib.php:491` | — |
+| `DELETE FROM` | `BookingLog` | `lib.php:494` | — |
+| `INSERT INTO` | `AuthTickets` | `lib.php:579` | — |
+| `UPDATE` | `AuthTickets` | `lib.php:620` | — |
+| `UPDATE` | `AuthTickets` | `lib.php:642` | — |
+| `UPDATE` | `AuthTickets` | `lib.php:657` | — |
+| `DELETE FROM` | `AuthTickets` | `lib.php:663` | — |
+| `INSERT INTO` | `AuthSessions` | `lib.php:898` | — |
+| `DELETE FROM` | `AuthSessions` | `lib.php:903` | — |
+| `DELETE FROM` | `AuthSessions` | `lib.php:929` | — |
+| `UPDATE` | `AuthSessions` | `lib.php:933` | — |
+| `DELETE FROM` | `AuthSessions` | `lib.php:942` | — |
+| `DELETE FROM` | `AuthShare` | `lib.php:1026` | — |
+| `DELETE FROM` | `AuthShareClub` | `lib.php:1027` | — |
+| `INSERT INTO` | `AuthClaim` | `lib.php:1072` | — |
+| `INSERT INTO` | `AuthShare` | `lib.php:1238` | — |
+| `INSERT INTO` | `AuthShare` | `lib.php:1378` | — |
+| `DELETE FROM` | `AuthClaim` | `lib.php:1384` | — |
+| `DELETE FROM` | `AuthClaim` | `lib.php:1388` | — |
+| `UPDATE` | `AuthSessions` | `lib.php:1449` | — |
+| `UPDATE` | `AuthSessions` | `lib.php:1458` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:1664` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:1780` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:2696` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:2737` | — |
+| `INSERT INTO` | `AuthUsers` | `lib.php:2743` | — |
 | `UPDATE` | `BookingArchers` | `login.php:92` | — |
 | `INSERT INTO` | `AuthClubLogos` | `logos-lib.php:158` | — |
 | `UPDATE` | `AuthClubLogos` | `logos-lib.php:166` | — |
@@ -507,14 +542,14 @@ every 12 hours. It is switched off on the update page ("Notice on the home page"
 | `DELETE FROM` | `ShopStockMoves` | `shop/lib/catalog-admin.php:411` | — |
 | `DELETE FROM` | `ShopVariants` | `shop/lib/catalog-admin.php:412` | — |
 | `INSERT IGNORE INTO` | `ShopSettings` | `shop/lib/common.php:110` | — |
-| `UPDATE` | `ShopSettings` | `shop/lib/common.php:148` | — |
-| `UPDATE IGNORE` | `ShopSettings` | `shop/lib/common.php:160` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/copy.php:161` | — |
-| `DELETE FROM` | `ShopStands` | `shop/lib/copy.php:162` | — |
-| `UPDATE` | `ShopSettings` | `shop/lib/copy.php:166` | — |
-| `INSERT INTO` | `ShopStands` | `shop/lib/copy.php:174` | — |
-| `INSERT INTO` | `ShopProducts` | `shop/lib/copy.php:186` | — |
-| `INSERT INTO` | `ShopVariants` | `shop/lib/copy.php:199` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/common.php:149` | — |
+| `UPDATE IGNORE` | `ShopSettings` | `shop/lib/common.php:161` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/copy.php:162` | — |
+| `DELETE FROM` | `ShopStands` | `shop/lib/copy.php:163` | — |
+| `UPDATE` | `ShopSettings` | `shop/lib/copy.php:167` | — |
+| `INSERT INTO` | `ShopStands` | `shop/lib/copy.php:175` | — |
+| `INSERT INTO` | `ShopProducts` | `shop/lib/copy.php:187` | — |
+| `INSERT INTO` | `ShopVariants` | `shop/lib/copy.php:200` | — |
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:46` | — |
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:79` | — |
 | `INSERT INTO` | `ShopGuests` | `shop/lib/customer.php:85` | — |
@@ -581,29 +616,36 @@ every 12 hours. It is switched off on the update page ("Notice on the home page"
 | `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff-session.php:99` | — |
 | `UPDATE` | `ShopStaffSessions` | `shop/lib/staff-session.php:118` | — |
 | `UPDATE` | `ShopStaff` | `shop/lib/staff-session.php:120` | — |
-| `INSERT INTO` | `ShopStaffLog` | `shop/lib/staff.php:351` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:398` | — |
-| `INSERT INTO` | `ShopStaffStands` | `shop/lib/staff.php:400` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:428` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:453` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:456` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:477` | — |
+| `INSERT INTO` | `ShopStaffSessions` | `shop/lib/staff-session.php:140` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff-session.php:144` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff-session.php:147` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff-session.php:155` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff-session.php:182` | — |
+| `UPDATE` | `ShopStaffSessions` | `shop/lib/staff-session.php:200` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff-session.php:202` | — |
+| `INSERT INTO` | `ShopStaffLog` | `shop/lib/staff.php:388` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:435` | — |
+| `INSERT INTO` | `ShopStaffStands` | `shop/lib/staff.php:437` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:467` | — |
 | `UPDATE` | `ShopStaff` | `shop/lib/staff.php:493` | — |
-| `UPDATE` | `ShopInvites` | `shop/lib/staff.php:496` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:506` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:523` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:548` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:554` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:604` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:634` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:635` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:638` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:770` | — |
-| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:771` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:773` | — |
-| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:842` | — |
-| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:866` | — |
-| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff.php:870` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:496` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:518` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:534` | — |
+| `UPDATE` | `ShopInvites` | `shop/lib/staff.php:537` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:547` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:564` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:589` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:595` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:645` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:675` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:676` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:679` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:812` | — |
+| `DELETE FROM` | `ShopStaffStands` | `shop/lib/staff.php:813` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:815` | — |
+| `INSERT INTO` | `ShopStaff` | `shop/lib/staff.php:884` | — |
+| `UPDATE` | `ShopStaff` | `shop/lib/staff.php:908` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `shop/lib/staff.php:912` | — |
 | `INSERT INTO` | `ShopStockMoves` | `shop/lib/stock.php:28` | — |
 | `UPDATE` | `ShopVariants` | `shop/lib/stock.php:56` | — |
 | `UPDATE` | `ShopProducts` | `shop/lib/stock.php:59` | — |

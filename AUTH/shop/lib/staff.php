@@ -23,6 +23,7 @@ if (defined('SHP_STAFF_LOADED')) return;
 define('SHP_STAFF_LOADED', true);
 
 require_once __DIR__ . '/catalog.php';   // common, stands
+require_once dirname(__DIR__, 2) . '/vol-lib.php';   // groups of ianseo's screens (functions only)
 
 define('SHP_PENDING_MIN', 30);        // minutes a join request waits for the organiser
 define('SHP_PWD_MIN', 6);             // password of a volunteer without a licence (D13)
@@ -81,32 +82,67 @@ function shp_desk_perms_clean($perms)
 
 /**
  * Accesses (user's choice, 2026-10-13): the organiser picks one, applied to the stands ticked
- * (perms) and to the check-in desk (desk), with the refund ceilings offered (editable). 'fn': the
- * ianseo function proposed with it (lib/officials.php), 0 none. Chairman of judges and judge give
- * the same rights for now (the chairman's pages will come); the director of shooting none yet.
+ * (perms), to the check-in desk (desk) and to ianseo's screens (ianseo, AUTH/vol-lib.php), with the
+ * refund ceilings offered (editable). 'fn': the ianseo function proposed with it
+ * (lib/officials.php), 0 none. Chairman of judges and judge give the same rights for now (the
+ * chairman's pages will come); the director of shooting none yet. Speaker: the printouts and the
+ * speaker's screens; results: every group of ianseo's screens (1.4.20).
  */
 function shp_staff_presets()
 {
     return array(
-        'chief'    => array('perms' => '', 'desk' => 'equip', 'refund_max' => 0, 'refund_total' => 0, 'fn' => 5),
-        'judge'    => array('perms' => '', 'desk' => 'equip', 'refund_max' => 0, 'refund_total' => 0, 'fn' => 1),
-        'dos'      => array('perms' => '', 'desk' => '', 'refund_max' => 0, 'refund_total' => 0, 'fn' => 2),
-        'shop'     => array('perms' => implode(',', shp_perms_all()), 'desk' => '', 'refund_max' => 999, 'refund_total' => 999, 'fn' => 0),
-        'registry' => array('perms' => '', 'desk' => 'reg,pay', 'refund_max' => 999, 'refund_total' => 999, 'fn' => 0),
+        'chief'    => array('perms' => '', 'desk' => 'equip', 'ianseo' => '', 'refund_max' => 0, 'refund_total' => 0, 'fn' => 5),
+        'judge'    => array('perms' => '', 'desk' => 'equip', 'ianseo' => '', 'refund_max' => 0, 'refund_total' => 0, 'fn' => 1),
+        'dos'      => array('perms' => '', 'desk' => '', 'ianseo' => '', 'refund_max' => 0, 'refund_total' => 0, 'fn' => 2),
+        'shop'     => array('perms' => implode(',', shp_perms_all()), 'desk' => '', 'ianseo' => '', 'refund_max' => 999, 'refund_total' => 999, 'fn' => 0),
+        'registry' => array('perms' => '', 'desk' => 'reg,pay', 'ianseo' => '', 'refund_max' => 999, 'refund_total' => 999, 'fn' => 0),
+        'speaker'  => array('perms' => '', 'desk' => '', 'ianseo' => aut_vol_groups_clean('print,speaker'), 'refund_max' => 0, 'refund_total' => 0, 'fn' => 15),
+        'results'  => array('perms' => '', 'desk' => '', 'ianseo' => aut_vol_groups_clean(aut_vol_group_keys()), 'refund_max' => 0, 'refund_total' => 0, 'fn' => 19),
     );
 }
 
 /** The access proposed for an ianseo function (InvolvedType), '' none. */
 function shp_staff_fn_access()
 {
-    return array(5 => 'chief', 20 => 'judge', 1 => 'judge', 25 => 'judge', 21 => 'judge', 22 => 'judge', 2 => 'dos', 6 => 'dos');
+    return array(5 => 'chief', 20 => 'judge', 1 => 'judge', 25 => 'judge', 21 => 'judge', 22 => 'judge', 2 => 'dos', 6 => 'dos',
+        15 => 'speaker', 19 => 'results', 10 => 'results');
 }
 
 function shp_staff_preset_label($preset)
 {
     $k = array('chief' => 'ShStfPresetChief', 'judge' => 'ShStfPresetJudge', 'dos' => 'ShStfPresetDos',
-        'shop' => 'ShStfPresetShop', 'registry' => 'ShStfPresetRegistry', 'custom' => 'ShStfPresetCustom');
+        'shop' => 'ShStfPresetShop', 'registry' => 'ShStfPresetRegistry', 'speaker' => 'IanPresetSpeaker',
+        'results' => 'IanPresetResults', 'custom' => 'ShStfPresetCustom');
     return isset($k[$preset]) ? shp_t($k[$preset]) : '';
+}
+
+/** Label of a group of ianseo's screens (AUTH/vol-lib.php). */
+function shp_ianseo_label($group)
+{
+    $k = array('print' => 'IanGrpPrint', 'speaker' => 'IanGrpSpeaker', 'entries' => 'IanGrpEntries',
+        'scores' => 'IanGrpScores', 'publish' => 'IanGrpPublish');
+    return isset($k[$group]) ? shp_t($k[$group]) : (string) $group;
+}
+
+/** Groups of ianseo's screens a volunteer was given (ShopStaff.SfIanseo), whether ianseo is open or not. */
+function shp_ianseo_given($staff)
+{
+    $s = shp_staff_row($staff);
+    if (!$s) return array();
+    $c = aut_vol_groups_clean($s->SfIanseo ?? '');
+    return $c === '' ? array() : explode(',', $c);
+}
+
+/**
+ * Groups of ianseo's screens a volunteer may USE now: given, ianseo opened to the volunteers on
+ * their competition, access working. Never for an ORGANISER volunteer: an organiser already has
+ * ianseo, with their own account.
+ */
+function shp_ianseo_rights($staff)
+{
+    $s = shp_staff_row($staff);
+    if (!$s || !shp_staff_working($s) || $s->SfKind === 'ORGANISER') return array();
+    return shp_ianseo_on(intval($s->SfTournament)) ? shp_ianseo_given($s) : array();
 }
 
 /** An access as stored: a preset, 'custom', or ''. */
@@ -117,9 +153,9 @@ function shp_staff_access_clean($access)
 }
 
 /** No right given: refused, except for an access that has none yet (director of shooting). */
-function shp_staff_rights_missing($rights, $desk, $access)
+function shp_staff_rights_missing($rights, $desk, $access, $ianseo = '')
 {
-    return !$rights && $desk === '' && $access !== 'dos';
+    return !$rights && $desk === '' && $ianseo === '' && $access !== 'dos';
 }
 
 /* ------------------------------------------------------------------ */
@@ -325,6 +361,7 @@ function shp_staff_team($tourId)
             'name' => shp_staff_label(intval($r->SfId)), 'licence' => (string) $r->SfLicence,
             'status' => $r->SfStatus, 'rights' => $perms,
             'desk' => shp_desk_perms_clean($r->SfDesk ?? '') === '' ? array() : explode(',', shp_desk_perms_clean($r->SfDesk ?? '')),
+            'ianseo' => shp_ianseo_given($r),
             'access' => shp_staff_access_clean($r->SfAccess ?? ''),
             'refund_max' => round((float) $r->SfRefundMax, 2), 'refund_total' => round((float) $r->SfRefundTotal, 2),
             'refunded' => $r->SfKind === 'ORGANISER' ? 0.0 : shp_staff_refunded($r),
@@ -406,7 +443,8 @@ function shp_staff_rights_write($staffId, array $rights)
 function shp_staff_no_right($tourId)
 {
     return array('error' => 1, 'code' => 'no_stand',
-        'msg' => shp_t(function_exists('shp_desk_on') && (shp_desk_on($tourId) || shp_judges_on($tourId)) ? 'DkErrNoRight' : 'ShStfErrNoStand'));
+        'msg' => shp_t(function_exists('shp_desk_on') && (shp_desk_on($tourId) || shp_judges_on($tourId) || shp_ianseo_on($tourId))
+            ? 'DkErrNoRight' : 'ShStfErrNoStand'));
 }
 
 /**
@@ -415,24 +453,26 @@ function shp_staff_no_right($tourId)
  * request older than SHP_PENDING_MIN is refused: the code on the volunteer's phone was meant
  * to be checked face to face). Returns ['error', 'msg'].
  */
-function shp_staff_approve($tourId, $staffId, $rights, $refundMax, $refundTotal, $by, $desk = '', $access = '')
+function shp_staff_approve($tourId, $staffId, $rights, $refundMax, $refundTotal, $by, $desk = '', $access = '', $ianseo = '')
 {
     $tourId = intval($tourId);
     $staffId = intval($staffId);
     $rights = shp_staff_rights_clean($tourId, $rights);
     $desk = shp_desk_perms_clean($desk);
+    $ianseo = aut_vol_groups_clean($ianseo);
     $access = shp_staff_access_clean($access);
-    if (shp_staff_rights_missing($rights, $desk, $access)) return shp_staff_no_right($tourId);
+    if (shp_staff_rights_missing($rights, $desk, $access, $ianseo)) return shp_staff_no_right($tourId);
     $max = shp_staff_ceiling($refundMax);
     $total = shp_staff_ceiling($refundTotal);
     safe_w_sql("UPDATE ShopStaff SET SfStatus = 'active', SfCode = '', SfFails = 0,
-            SfRefundMax = $max, SfRefundTotal = $total, SfDesk = " . StrSafe_DB($desk) . ", SfAccess = " . StrSafe_DB($access) . ",
+            SfRefundMax = $max, SfRefundTotal = $total, SfDesk = " . StrSafe_DB($desk) . ", SfIanseo = " . StrSafe_DB($ianseo)
+            . ", SfAccess = " . StrSafe_DB($access) . ",
             SfApprovedBy = " . StrSafe_DB(mb_substr((string) $by, 0, 64)) . ", SfApprovedAt = UTC_TIMESTAMP()
         WHERE SfId = $staffId AND SfTournament = $tourId AND SfStatus = 'pending'
           AND SfCreated > DATE_SUB(UTC_TIMESTAMP(), INTERVAL " . SHP_PENDING_MIN . " MINUTE)");
     if (safe_w_affected_rows() < 1) return array('error' => 1, 'code' => 'gone', 'msg' => shp_t('ShStfErrGone'));
     shp_staff_rights_write($staffId, $rights);
-    shp_staff_log($tourId, $staffId, 'approve', $by, shp_staff_rights_text($rights) . " desk:$desk refund $max/$total");
+    shp_staff_log($tourId, $staffId, 'approve', $by, shp_staff_rights_text($rights) . " desk:$desk ianseo:$ianseo refund $max/$total");
     return array('error' => 0, 'msg' => '');
 }
 
@@ -459,7 +499,7 @@ function shp_staff_refuse($tourId, $staffId, $by)
 }
 
 /** Changes the rights (stands, desk) and ceilings of an approved volunteer (not of an organiser). */
-function shp_staff_update($tourId, $staffId, $rights, $refundMax, $refundTotal, $by, $desk = '', $access = '')
+function shp_staff_update($tourId, $staffId, $rights, $refundMax, $refundTotal, $by, $desk = '', $access = '', $ianseo = '')
 {
     $tourId = intval($tourId);
     $staffId = intval($staffId);
@@ -470,14 +510,15 @@ function shp_staff_update($tourId, $staffId, $rights, $refundMax, $refundTotal, 
     }
     $rights = shp_staff_rights_clean($tourId, $rights);
     $desk = shp_desk_perms_clean($desk);
+    $ianseo = aut_vol_groups_clean($ianseo);
     $access = shp_staff_access_clean($access);
-    if (shp_staff_rights_missing($rights, $desk, $access)) return shp_staff_no_right($tourId);
+    if (shp_staff_rights_missing($rights, $desk, $access, $ianseo)) return shp_staff_no_right($tourId);
     $max = shp_staff_ceiling($refundMax);
     $total = shp_staff_ceiling($refundTotal);
     safe_w_sql("UPDATE ShopStaff SET SfRefundMax = $max, SfRefundTotal = $total, SfDesk = " . StrSafe_DB($desk)
-        . ", SfAccess = " . StrSafe_DB($access) . " WHERE SfId = $staffId");
+        . ", SfIanseo = " . StrSafe_DB($ianseo) . ", SfAccess = " . StrSafe_DB($access) . " WHERE SfId = $staffId");
     shp_staff_rights_write($staffId, $rights);
-    shp_staff_log($tourId, $staffId, 'rights', $by, shp_staff_rights_text($rights) . " desk:$desk refund $max/$total");
+    shp_staff_log($tourId, $staffId, 'rights', $by, shp_staff_rights_text($rights) . " desk:$desk ianseo:$ianseo refund $max/$total");
     return array('error' => 0, 'msg' => '');
 }
 
@@ -744,7 +785,7 @@ function shp_staff_licensee_lookup($tourId, $licence)
  * this licensee already there is reused: still working → refused (already in the team); waiting
  * or withdrawn → this new decision. Returns ['error', 'msg', 'id'].
  */
-function shp_staff_add_licensee($tourId, $licence, $rights, $refundMax, $refundTotal, $by, $desk = '', $access = '')
+function shp_staff_add_licensee($tourId, $licence, $rights, $refundMax, $refundTotal, $by, $desk = '', $access = '', $ianseo = '')
 {
     shp_schema();
     $tourId = intval($tourId);
@@ -752,8 +793,9 @@ function shp_staff_add_licensee($tourId, $licence, $rights, $refundMax, $refundT
     if (!$who) return array('error' => 1, 'code' => 'unknown', 'msg' => shp_t('ShStfErrUnknownLic'));
     $rights = shp_staff_rights_clean($tourId, $rights);
     $desk = shp_desk_perms_clean($desk);
+    $ianseo = aut_vol_groups_clean($ianseo);
     $access = shp_staff_access_clean($access);
-    if (shp_staff_rights_missing($rights, $desk, $access)) return shp_staff_no_right($tourId);
+    if (shp_staff_rights_missing($rights, $desk, $access, $ianseo)) return shp_staff_no_right($tourId);
     $lic = StrSafe_DB($who['licence']);
     $match = "SfLicence = $lic" . ($who['archer'] > 0 ? " OR SfArcher = " . $who['archer'] : '');
     $s = safe_fetch(safe_r_sql("SELECT * FROM ShopStaff WHERE SfTournament = $tourId AND SfKind = 'LICENSEE' AND ($match)
@@ -763,7 +805,7 @@ function shp_staff_add_licensee($tourId, $licence, $rights, $refundMax, $refundT
          . ", SfGivenName = " . StrSafe_DB(mb_substr($who['given'], 0, 60))
          . ", SfStatus = 'active', SfCode = '', SfFails = 0"
          . ", SfRefundMax = " . shp_staff_ceiling($refundMax) . ", SfRefundTotal = " . shp_staff_ceiling($refundTotal)
-         . ", SfDesk = " . StrSafe_DB($desk) . ", SfAccess = " . StrSafe_DB($access)
+         . ", SfDesk = " . StrSafe_DB($desk) . ", SfIanseo = " . StrSafe_DB($ianseo) . ", SfAccess = " . StrSafe_DB($access)
          . ", SfApprovedBy = " . StrSafe_DB(mb_substr((string) $by, 0, 64)) . ", SfApprovedAt = UTC_TIMESTAMP()";
     if ($s) {
         $id = intval($s->SfId);
@@ -776,7 +818,7 @@ function shp_staff_add_licensee($tourId, $licence, $rights, $refundMax, $refundT
     }
     shp_staff_rights_write($id, $rights);
     shp_staff_perms($id, true);
-    shp_staff_log($tourId, $id, 'add', $by, shp_staff_rights_text($rights) . " desk:$desk");
+    shp_staff_log($tourId, $id, 'add', $by, shp_staff_rights_text($rights) . " desk:$desk ianseo:$ianseo");
     return array('error' => 0, 'msg' => '', 'id' => $id);
 }
 

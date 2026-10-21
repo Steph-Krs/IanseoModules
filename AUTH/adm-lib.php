@@ -98,7 +98,10 @@ function aut_adm_sections($can, $tour, $admin, $logged)
         if ($ro) $p[] = array('shop/admin/reports.php', shp_t('MnuReports'));
         $out['shop'] = array('title' => shp_t('MnuTitle'), 'pages' => $p);
 
-        // Volunteers: one team for the stands and the check-in.
+        // ianseo's own screens opened to the volunteers (vol-lib.php): the switch and what each group opens.
+        $out['ianseo'] = array('title' => shp_t('IanMenu'), 'pages' => $ro ? array(array('shop/admin/ianseo.php', shp_t('IanMnuPage'))) : array());
+
+        // Volunteers: one team for the stands, the check-in and ianseo's screens.
         $out['staff'] = array('title' => shp_t('MnuStaff'), 'pages' => $rw ? array(array('shop/admin/staff.php', shp_t('MnuStaffPage'))) : array());
     }
 
@@ -136,7 +139,7 @@ function aut_adm_sections($can, $tour, $admin, $logged)
 function aut_adm_menu($can, $tour, $admin, $logged, $othersFollow)
 {
     $sections = aut_adm_sections($can, $tour, $admin, $logged);
-    $groups = array(array('booking'), array('desk', 'judges', 'shop', 'staff'), array('auth'));
+    $groups = array(array('booking'), array('desk', 'judges', 'shop', 'ianseo', 'staff'), array('auth'));
     $out = array();
     $sep = defined('MENU_DIVIDER') ? MENU_DIVIDER : '---';
     foreach ($groups as $g) {

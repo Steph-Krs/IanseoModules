@@ -120,7 +120,8 @@ function shp_settings_ensure($tourId)
 /**
  * Saves settings of a competition. Keys of $d (all optional): enabled (stands open to the
  * volunteers), preorders, clients (customers' phone orders), desk (registry opened to the
- * volunteers), judges (equipment check opened to the volunteers), guests, tab, trust_gate (booleans), preorder_until ('' = none, 'YYYY-MM-DD HH:MM', the 'T' of a datetime-local input
+ * volunteers), judges (equipment check opened to the volunteers), ianseo (ianseo's screens opened to
+ * the volunteers), guests, tab, trust_gate (booleans), preorder_until ('' = none, 'YYYY-MM-DD HH:MM', the 'T' of a datetime-local input
  * accepted), guest_max_open (0-20), notice. Returns the fresh settings.
  */
 function shp_settings_save($tourId, array $d)
@@ -129,7 +130,7 @@ function shp_settings_save($tourId, array $d)
     if (!shp_settings_ensure($tourId)) return null;
     $set = array();
     foreach (array('enabled' => 'SgEnabled', 'preorders' => 'SgPreorders', 'clients' => 'SgClients', 'desk' => 'SgDesk',
-        'judges' => 'SgJudges', 'guests' => 'SgGuests', 'tab' => 'SgTab', 'trust_gate' => 'SgTrustGate') as $k => $col) {
+        'judges' => 'SgJudges', 'ianseo' => 'SgIanseo', 'guests' => 'SgGuests', 'tab' => 'SgTab', 'trust_gate' => 'SgTrustGate') as $k => $col) {
         if (array_key_exists($k, $d)) $set[] = "$col = " . (empty($d[$k]) ? 0 : 1);
     }
     if (array_key_exists('preorder_until', $d)) {
@@ -228,10 +229,20 @@ function shp_judges_on($tourId)
     return $s && intval($s->SgJudges ?? 0) === 1;
 }
 
-/** Volunteers may join and sign in: the stands, the registry or the equipment check are open to them. */
+/**
+ * ianseo's own screens opened to the volunteers given groups of them (AUTH/vol-lib.php) — only
+ * where the server can do it (account system on, ACL hooks deployed: aut_vol_available).
+ */
+function shp_ianseo_on($tourId)
+{
+    $s = shp_settings($tourId);
+    return $s && intval($s->SgIanseo ?? 0) === 1 && function_exists('aut_vol_available') && aut_vol_available();
+}
+
+/** Volunteers may join and sign in: the stands, the registry, the equipment check or ianseo are open to them. */
 function shp_staff_on($tourId)
 {
-    return shp_enabled($tourId) || shp_desk_on($tourId) || shp_judges_on($tourId);
+    return shp_enabled($tourId) || shp_desk_on($tourId) || shp_judges_on($tourId) || shp_ianseo_on($tourId);
 }
 
 /** Competition of a public key, or 0. Says nothing about whether the shop is switched on. */

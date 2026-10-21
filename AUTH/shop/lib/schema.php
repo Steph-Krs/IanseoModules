@@ -20,7 +20,7 @@
 if (defined('SHP_SCHEMA_LOADED')) return;
 define('SHP_SCHEMA_LOADED', true);
 
-if (!defined('SHP_SCHEMA_VERSION')) define('SHP_SCHEMA_VERSION', 9);
+if (!defined('SHP_SCHEMA_VERSION')) define('SHP_SCHEMA_VERSION', 10);
 
 // The shop shares the payment journal and the licensee accounts of the online registration
 // (same module): booking's schema, clock and texts come first.
@@ -369,6 +369,12 @@ function shp_schema()
     // '' (from before: read from the rights). Kept because two accesses may give the same rights
     // (chairman of judges, judge) and one gives none yet (director of shooting).
     shp_colonne('ShopStaff', 'SfAccess', "VARCHAR(16) NOT NULL DEFAULT '' AFTER SfDesk");
+
+    // v10 — volunteers in ianseo's own screens (1.4.20, AUTH/vol-lib.php): opened per competition
+    // (SgIanseo), and the groups of screens given to each volunteer (SfIanseo: print, speaker,
+    // entries, scores, publish).
+    shp_colonne('ShopSettings', 'SgIanseo', "TINYINT NOT NULL DEFAULT 0 AFTER SgJudges");
+    shp_colonne('ShopStaff', 'SfIanseo', "VARCHAR(64) NOT NULL DEFAULT '' AFTER SfDesk");
 
     $_SESSION[$flag] = true;
     $busy = false;

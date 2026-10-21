@@ -9,7 +9,10 @@ require_once(__DIR__ . '/lib.php');
 require_once(__DIR__ . '/adm-lib.php');   // sections of the organiser side (functions only)
 
 $_aut_on     = !empty($CFG->USERAUTH);
-$_aut_logged = $_aut_on && !empty($_SESSION['AUTH_User']);
+// A volunteer in ianseo's own screens (vol-lib.php): ianseo's menus cut to their groups, their own
+// bar, nothing of the organiser's side.
+$_aut_vol    = $_aut_on && aut_vol_session();
+$_aut_logged = $_aut_on && !empty($_SESSION['AUTH_User']) && !$_aut_vol;
 $_aut_root   = !empty($_SESSION['AUTH_ROOT']);
 // Module admin: ADMIN account signed in, or a context without authentication (local console / dev)
 $_aut_admin  = $_aut_root
@@ -19,14 +22,20 @@ $_aut_admin  = $_aut_root
        used — online registration | check-in, judges, food & shop, volunteers | accounts of the
        server —, separated from each other and from the other modules. The pages show the same
        sections in their navigation. ---- */
-$_aut_can = function ($f, $sub, $lvl) use ($acl) {
-    return isset($acl) && function_exists('subFeatureAcl') && subFeatureAcl($acl, $f, $sub) >= $lvl;
-};
-$_aut_others = count(glob(dirname(__DIR__) . '/*/menu.php') ?: array()) > 1;
-foreach (aut_adm_menu($_aut_can, !empty($on) ? intval($_SESSION['TourId'] ?? 0) : 0, $_aut_admin, $_aut_logged, $_aut_others) as $_aut_k => $_aut_v) {
-    if (is_int($_aut_k)) $ret['MODS'][] = $_aut_v; else $ret['MODS'][$_aut_k] = $_aut_v;
+if ($_aut_vol) {
+    // What the menus hold so far (the core's, its modules', the sets'); the modules after this one
+    // are cut in the browser by the bar's script.
+    $ret = aut_vol_menu($ret);
+} else {
+    $_aut_can = function ($f, $sub, $lvl) use ($acl) {
+        return isset($acl) && function_exists('subFeatureAcl') && subFeatureAcl($acl, $f, $sub) >= $lvl;
+    };
+    $_aut_others = count(glob(dirname(__DIR__) . '/*/menu.php') ?: array()) > 1;
+    foreach (aut_adm_menu($_aut_can, !empty($on) ? intval($_SESSION['TourId'] ?? 0) : 0, $_aut_admin, $_aut_logged, $_aut_others) as $_aut_k => $_aut_v) {
+        if (is_int($_aut_k)) $ret['MODS'][] = $_aut_v; else $ret['MODS'][$_aut_k] = $_aut_v;
+    }
+    unset($_aut_can, $_aut_others, $_aut_k, $_aut_v);
 }
-unset($_aut_can, $_aut_others, $_aut_k, $_aut_v);
 
 /* ---- Competitions created only through SYNCHRO_FFTA (option, lib.php): the core's "New" is
        hidden for everyone but the administrator (the guard of lib.php refuses it anyway).
@@ -67,7 +76,9 @@ if ($_aut_on && ($_aut_imp = aut_imp_get())) {
     unset($_aut_imp, $_aut_impx);
 }
 
-if ($_aut_logged) {
+if ($_aut_vol) {
+    echo aut_vol_bar();
+} elseif ($_aut_logged) {
     $_aut_r = $CFG->ROOT_DIR;
     $_aut_views = $_SESSION['AUTH_VIEWS'] ?? array();
     $_aut_curRole  = $_SESSION['AUTH_ROLE'] ?? '';
@@ -289,7 +300,7 @@ JS;
        - archers without an active licence today;
        - archers without an FFTA licence registered online: nobody checked their identity;
        - archers refused at the check-in desk (documents or equipment). ---- */
-if (strcasecmp(aut_script_rel(), '/Main.php') === 0 && intval($_SESSION['TourId'] ?? 0) > 0 && empty($_REQUEST['New'])) {
+if (!$_aut_vol && strcasecmp(aut_script_rel(), '/Main.php') === 0 && intval($_SESSION['TourId'] ?? 0) > 0 && empty($_REQUEST['New'])) {
     require_once(__DIR__ . '/licence-lib.php');
     $_aut_t = intval($_SESSION['TourId']);
     $_aut_rs = safe_r_sql("SELECT ToId FROM Tournament WHERE ToId = $_aut_t AND ToWhenTo >= CURDATE()", false, true);
@@ -386,4 +397,4 @@ if (is_file(dirname(__DIR__) . '/_shared/notice-lib.php')) {
     require_once dirname(__DIR__) . '/_shared/notice-lib.php';
     if (function_exists('upd_notice_menu')) upd_notice_menu(__DIR__, isset($acl) ? $acl : array());
 }
-unset($_aut_on, $_aut_logged, $_aut_root, $_aut_admin, $_aut_close);
+unset($_aut_on, $_aut_vol, $_aut_logged, $_aut_root, $_aut_admin, $_aut_close);
