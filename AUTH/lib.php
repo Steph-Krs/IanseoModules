@@ -1841,6 +1841,12 @@ function aut_admin_only_paths() {
         // Athletes sync: replaces all the LookUpEntries rows of a country with any file, an
         // empty one included — the licence checks and accounts of the whole server rest on them.
         '/Partecipants/LookupTableLoad.php',
+        // Language packs, files of the whole server, written without any right checked by the core:
+        // their update (the page itself, which also chooses one's language, is guarded in
+        // aut_is_admin_only_script) and the translation editor — which writes PHP files from the
+        // keys it receives as they are: code run on every page for whoever posts it.
+        '/Language/UpdateLanguage.php',
+        '/Language/Translation.php',
     );
     foreach ((aut_local_config()['admin_only_paths'] ?? array()) as $p) {
         if (is_string($p) && $p !== '') $paths[] = $p;
@@ -1850,6 +1856,12 @@ function aut_admin_only_paths() {
 
 function aut_is_admin_only_script() {
     $s = aut_script_rel();
+    // The language page: choosing one's language for everyone; installing, updating or looking for
+    // language packs (downloaded and written on the server) for the administrator.
+    if (strcasecmp($s, '/Language/index.php') === 0
+            && (isset($_REQUEST['UpdateLanguage']) || isset($_REQUEST['UpdateAll']) || isset($_REQUEST['FindLanguage']))) {
+        return true;
+    }
     foreach (aut_admin_only_paths() as $p) {
         // bytes: a path or a file name, compared as the file system does
         if (substr($p, -1) === '/') {

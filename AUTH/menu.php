@@ -273,6 +273,24 @@ document.addEventListener('DOMContentLoaded', function () {
 JS;
 }
 
+/* ---- Language page (ianseo core, not editable): everyone chooses their language there; the
+       update of the language packs is the administrator's (refused by aut_is_admin_only_script),
+       its buttons are taken out for the others. ---- */
+if ($_aut_on && !$_aut_admin && strcasecmp(aut_script_rel(), '/Language/index.php') === 0) {
+    echo <<<'JS'
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('input[onclick*="updateAllLanguages"], input[id^="lang="]').forEach(function (b) { b.remove(); });
+    document.querySelectorAll('a[href*="FindLanguage"], select[name="UpdateLanguage"]').forEach(function (a) {
+        var tr = a.closest('tr');
+        if (tr) tr.remove();
+    });
+});
+</script>
+
+JS;
+}
+
 /* ---- Import page of a competition (ianseo core, not editable): warns that a competition set
        up outside this server is not guaranteed to work. The ISK Pro/Live case is reported AFTER
        the import (flash of aut_isk_enforce, "when detected"). ---- */

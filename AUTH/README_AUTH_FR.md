@@ -165,17 +165,19 @@ essentielles.
 
 - 🧩 **Cinq groupes d'écrans**, cochés pour chaque bénévole sur la page Bénévoles (mêmes invitations
   que la buvette et le greffe, licencié ou non) :
-  - **Impressions** : listes des participants, feuilles de marque (qualifications, finales
-    individuelles et par équipes, poules), classements, tours finaux, récompenses, écriteaux ;
+  - **Impressions** : listes des participants, statistiques, feuilles de marque (qualifications,
+    finales individuelles et par équipes, poules), classements, impression des autres tirs
+    (règlement français), tours finaux, récompenses, écriteaux ;
   - **Présentateur (speaker)** : les écrans du présentateur (participants, qualifications, finales,
     poules) ;
   - **Participants** : la liste simple, avec ajout, modification et suppression d'un archer ;
   - **Saisie et vérification des scores** : tableau standard des qualifications, saisie des duels
     (grille et tableau ; individuels, équipes, poules), vérification des feuilles de marque par
-    code-barres ;
+    code-barres (qualifications, duels, poules) ;
   - **Envoi des résultats** sur ianseo.net, une fois les codes en ligne réglés par l'organisateur.
 
-  La page d'accueil de la compétition et le programme restent toujours visibles, en lecture seule.
+  La page d'accueil de la compétition et le programme restent toujours visibles, en lecture seule,
+  et chacun choisit la langue de ses écrans.
 - 🎭 **Accès tout faits** : « Commentateur » (impressions et présentateur) et « Résultats » (tous
   les groupes), proposés d'après la fonction de la personne dans l'équipe de terrain d'ianseo
 - 🔒 **Tout le reste est refusé** : les menus ne montrent que les écrans donnés ; une page demandée
@@ -207,6 +209,8 @@ essentielles.
 - 🔒 Avec le système de connexion, la **synchronisation des données des athlètes** de ianseo
   (Participants) est réservée à l'administrateur : un fichier vide ou fabriqué remplacerait les
   licences de tout le serveur
+- 🌐 De même pour l'**installation et la mise à jour des langues** de ianseo et son éditeur de
+  traductions, qui écrivent des fichiers pour tout le serveur ; chacun garde le choix de sa langue
 - 🕶️ **Anonymiser un licencié** sur toutes les compétitions du serveur (demande d'effacement) :
   inscriptions à venir supprimées (l'organisateur est prévenu d'un remboursement à faire si un
   paiement avait été enregistré) ; ailleurs, licence remplacée par « ANON », nom, prénom, date de naissance
@@ -252,8 +256,8 @@ avec un lien vers la page de mise à jour. La vérification ne lit que le numér
 la page chargée, au plus toutes les 12 heures. Elle se désactive sur la page de mise à jour
 (« Avis sur la page d'accueil »).
 
-Après la mise à jour vers la version 1.4.20, l'administrateur déploie une fois de plus les fichiers
-du module (Multi-comptes › Déploiement) : tant que ce n'est pas fait, l'accès des bénévoles à
+Après la mise à jour d'une version antérieure vers la 1.4.20 ou une suivante, l'administrateur
+déploie une fois de plus les fichiers du module (Multi-comptes › Déploiement) : tant que ce n'est pas fait, l'accès des bénévoles à
 ianseo reste fermé, et rien d'autre ne change. Les versions suivantes n'en auront plus besoin pour
 les règles d'accès.
 
@@ -532,9 +536,9 @@ les règles d'accès.
 | `UPDATE` | `AuthSessions` | `lib.php:1458` | — |
 | `UPDATE` | `AuthUsers` | `lib.php:1664` | — |
 | `UPDATE` | `AuthUsers` | `lib.php:1780` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:2696` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:2737` | — |
-| `INSERT INTO` | `AuthUsers` | `lib.php:2743` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:2708` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:2749` | — |
+| `INSERT INTO` | `AuthUsers` | `lib.php:2755` | — |
 | `UPDATE` | `BookingArchers` | `login.php:92` | — |
 | `INSERT INTO` | `AuthClubLogos` | `logos-lib.php:158` | — |
 | `UPDATE` | `AuthClubLogos` | `logos-lib.php:166` | — |

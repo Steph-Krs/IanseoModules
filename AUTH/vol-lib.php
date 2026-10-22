@@ -68,11 +68,14 @@ function aut_vol_catalogue()
     return $c = array(
         'base' => array(
             'acl' => array(AclCompetition => array('' => $ro, 'cSchedule' => $ro)),
-            'paths' => array('/Main.php', '/noAccess.php', '/credits.php',
+            // The language of the screens, chosen by each volunteer; installing or updating the
+            // language packs stays the administrator's (aut_is_admin_only_script, checked first).
+            'paths' => array('/Main.php', '/noAccess.php', '/credits.php', '/Language/index.php',
                 '/Scheduler/index.php', '/Scheduler/PrnScheduler.php', '/Scheduler/OrisSchedule.php'),
             'screens' => array(
                 array($comp, array('MenuLM_View Competition Info', 'Common'), '/Main.php'),
                 array($comp, array('MenuLM_Scheduling', 'Common'), '/Scheduler/index.php'),
+                array($comp, array('MenuLM_Select Language', 'Common'), '/Language/index.php'),
             ),
         ),
         'print' => array(
@@ -81,13 +84,17 @@ function aut_vol_catalogue()
                 AclQualification => $ro, AclIndividuals => $ro, AclTeams => $ro, AclRobin => $ro,
                 // Final/ChangeEvent.php (events of a scorecard page) also asks for the TV output.
                 AclOutput => array('outTv' => $ro),
-                AclCompetition => array('cAward' => $ro, 'cPrintouts' => $rw),
+                // cData: the French set adds its menu (other shoots, beursault scorecards) only with it.
+                AclCompetition => array('cAward' => $ro, 'cPrintouts' => $rw, 'cData' => $ro),
             ),
             'paths' => array(
                 '/Partecipants/PrintOut.php', '/Partecipants/OrisAlphabetical.php', '/Partecipants/OrisCountry.php',
                 '/Partecipants/OrisListCountry.php', '/Partecipants/OrisStartList.php', '/Partecipants/OrisTeamList.php',
                 '/Partecipants/PrnAlphabetical.php', '/Partecipants/PrnCategory.php', '/Partecipants/PrnCountry.php',
                 '/Partecipants/PrnCountryDetails.php', '/Partecipants/PrnErrors.php', '/Partecipants/PrnSession.php',
+                '/Partecipants/PrintOutStat.php', '/Partecipants/OrisStatCountry.php', '/Partecipants/OrisStatEvents.php',
+                '/Partecipants/OrisStatRecBroken.php', '/Partecipants/OrisStatRecStanding.php', '/Partecipants/PrnBirthday.php',
+                '/Partecipants/PrnStatClasses.php', '/Partecipants/PrnStatCountry.php', '/Partecipants/PrnStatEvents.php',
                 '/Qualification/PrintScore.php', '/Qualification/PDFBigNames.php', '/Qualification/PDFScore.php',
                 '/Qualification/PDFScoreCollect.php', '/Qualification/PrnGetScore.php', '/Qualification/PrnLabels.php',
                 '/Qualification/SelectSession.php',
@@ -119,6 +126,7 @@ function aut_vol_catalogue()
             ),
             'screens' => array(
                 array($part, array('MenuLM_Printout', 'Common'), '/Partecipants/PrintOut.php'),
+                array($part, array('MenuLM_Statistics', 'Common'), '/Partecipants/PrintOutStat.php'),
                 array($qual, array('MenuLM_Scorecard Printout', 'Common'), '/Qualification/PrintScore.php'),
                 array($qual, array('MenuLM_Category Result List', 'Common'), '/Qualification/PrintOut.php'),
                 array($qual, array('MenuLM_Qualification Round', 'Common'), '/Qualification/PrintOutAbs.php'),
@@ -171,11 +179,13 @@ function aut_vol_catalogue()
                 '/Final/Team/InsertPoint1.php', '/Final/Team/InsertPoint2.php',
                 '/Final/ChangeEvent.php', '/Final/ChangeEventPhase.php', '/Final/Move2NextPhase.php', '/Final/PrintScore-action.php',
                 '/Modules/RoundRobin/InsertPoint.php', '/Modules/RoundRobin/InsertPoint-action.php',
-                '/Modules/Barcodes/GetFinScoreBarCode.php', '/Modules/Barcodes/GetRobinScoreBarCode.php',
-                '/Modules/Barcodes/GetScoreBarCodeMissing.php',
+                '/Modules/Barcodes/GetScoreBarCode.php', '/Modules/Barcodes/GetFinScoreBarCode.php',
+                '/Modules/Barcodes/GetRobinScoreBarCode.php', '/Modules/Barcodes/GetScoreBarCodeMissing.php',
+                '/Modules/Barcodes/GetScoreBarCodeReport.php',
             ),
             'screens' => array(
                 array($qual, array('MenuLM_Standard Table', 'Common'), '/Qualification/index.php'),
+                array($qual, array('MenuLM_GetScoreBarcode', 'Common'), '/Modules/Barcodes/GetScoreBarCode.php'),
                 array($finI, array('MenuLM_Data insert (Bracket view)', 'Common'), '/Final/Individual/InsertPoint_Bra.php'),
                 array($finI, array('MenuLM_Data insert (Table view)', 'Common'), '/Final/Individual/InsertPoint1.php'),
                 array($finT, array('MenuLM_Data insert (Bracket view)', 'Common'), '/Final/Team/InsertPoint_Bra.php'),
@@ -329,7 +339,7 @@ function aut_vol_bootstrap()
         CD_redirect($CFG->ROOT_DIR . 'Main.php');
         die();
     }
-    if (aut_vol_path_allowed($script, $st['groups'])) return;
+    if (!aut_is_admin_only_script() && aut_vol_path_allowed($script, $st['groups'])) return;
 
     // Refused: written once per script and session in the competition's journal of the team, so
     // that the organiser sees what was missing (shop/admin/ianseo.php). Sending the results without
@@ -464,19 +474,38 @@ function aut_vol_bar()
         'folders' => array_values(array_unique($folders)));
     $out = aut_vol_page_url('out=' . aut_vol_out_token());
     // id ending in -bar: the shared convention of the floating bars (the next ones move below it).
+    // Folded like the organiser's bar (menu.php): the name only, the rest when pointed at.
     return '<style>#aut-vol-bar { position:fixed; top:4px; right:8px; z-index:99990; background:#1a4f8b; color:#fff;'
         . ' font:11px Verdana,Arial,sans-serif; border-radius:14px; padding:4px 12px; opacity:.92;'
         . ' box-shadow:0 1px 4px rgba(0,0,0,.3); }'
         . ' #aut-vol-bar a { color:#cfe0f5; text-decoration:none; margin-left:10px; }'
         . ' #aut-vol-bar a:hover { color:#fff; text-decoration:underline; }'
+        . ' #aut-vol-bar.aut-folded { cursor:pointer; opacity:.8; }'
+        . ' #aut-vol-bar.aut-folded .aut-bar-more { display:none; }'
         . ' .WhatIanseoDoes { display:none !important; }</style>'
-        . '<div id="aut-vol-bar">' . $e(shp_t('IanBarWho', $v['name'])) . ' — ' . $e(shp_t('IanBarRole'))
+        . '<div id="aut-vol-bar">' . $e(shp_t('IanBarWho', $v['name'])) . '<span class="aut-bar-more"> — ' . $e(shp_t('IanBarRole'))
         . '<a href="' . $e($CFG->ROOT_DIR . 'Modules/Custom/AUTH/shop/staff/index.php') . '">' . $e(shp_t('ShStfSpaceTitle')) . '</a>'
         . '<a href="' . $e($out) . '" data-confirm="' . $e(shp_t('IanBarOutConfirm')) . '"'
-        . ' onclick="return confirm(this.dataset.confirm);">' . $e(shp_t('ShPosQuit')) . '</a></div>'
+        . ' onclick="return confirm(this.dataset.confirm);">' . $e(shp_t('ShPosQuit')) . '</a></span></div>'
         . '<script>var AUT_VOL=' . json_encode($cfg, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';</script>'
         . <<<'JS'
 <script>
+(function () {
+    // Folds 2 seconds after the pointer left it (and after the page opened); unfolds when pointed
+    // at, focused or touched — as the organiser's bar.
+    var b = document.getElementById('aut-vol-bar');
+    if (!b) return;
+    var t = null;
+    function fold() { if (b.matches(':hover') || b.contains(document.activeElement)) { later(); return; } b.classList.add('aut-folded'); }
+    function later() { clearTimeout(t); t = setTimeout(fold, 2000); }
+    function open() { clearTimeout(t); b.classList.remove('aut-folded'); }
+    b.addEventListener('mouseenter', open);
+    b.addEventListener('mouseleave', later);
+    b.addEventListener('focusin', open);
+    b.addEventListener('focusout', later);
+    b.addEventListener('click', function () { if (b.classList.contains('aut-folded')) { open(); later(); } });
+    later();
+})();
 document.addEventListener('DOMContentLoaded', function () {
     var nav = document.getElementById('navigation'), c = window.AUT_VOL;
     if (!nav || !c) return;

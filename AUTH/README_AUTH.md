@@ -159,15 +159,17 @@ competition — without being able to change its essential settings.
 
 - 🧩 **Five groups of screens**, ticked for each volunteer on the Volunteers page (same invitations
   as the food stands and the check-in, licensed or not):
-  - **Printouts**: participant lists, scorecards (qualification, individual and team finals, round
-    robin), rankings, final rounds, awards, signs;
+  - **Printouts**: participant lists, statistics, scorecards (qualification, individual and team
+    finals, round robin), rankings, other shoots printout (French rules), final rounds, awards, signs;
   - **Speaker**: the speaker's screens (participants, qualification, finals, round robin);
   - **Participants**: the simple list, with adding, changing and deleting an archer;
   - **Score entry and checks**: standard qualification table, match entry (bracket and table;
-    individual, team, round robin), scorecard checks by barcode;
+    individual, team, round robin), scorecard checks by barcode (qualification, matches, round
+    robin);
   - **Sending the results** to ianseo.net, once the organiser has set the on-line codes.
 
-  The competition's home page and the schedule always stay visible, read only.
+  The competition's home page and the schedule always stay visible, read only, and everyone
+  chooses the language of their screens.
 - 🎭 **Ready-made accesses**: "Commentator" (printouts and speaker) and "Results" (every group),
   proposed from the person's function in ianseo's field crew
 - 🔒 **Everything else is refused**: the menus only show the screens given; a page asked for
@@ -198,6 +200,8 @@ competition — without being able to change its essential settings.
   each error — the server is followed without a command line
 - 🔒 With the sign-in system on, the ianseo **athletes sync** (Participants) is kept to the
   administrator: an empty or forged file would replace the licences of the whole server
+- 🌐 So are the **installation and update of ianseo's languages** and its translation editor, which
+  write files for the whole server; everyone keeps choosing their own language
 - 🕶️ **Anonymise a licensee** across every competition of the server (erasure request):
   registrations to come deleted (the organiser is told of a refund to make when a payment was
   recorded); elsewhere, licence replaced by "ANON", surname, first name, date of birth and photo
@@ -240,8 +244,8 @@ When a new version is published, the ianseo home page tells the administrator, w
 update page. The check reads nothing but the version number, once the page has loaded, at most
 every 12 hours. It is switched off on the update page ("Notice on the home page").
 
-After the update to version 1.4.20, the administrator deploys the module's files once more
-(Multi-account hosting › Deployment): until then, the volunteers' access to ianseo stays closed and
+After updating from an earlier version to 1.4.20 or a later one, the administrator deploys the
+module's files once more (Multi-account hosting › Deployment): until then, the volunteers' access to ianseo stays closed and
 nothing else changes. Later versions will no longer need it for the access rules.
 
 > **Sensitive module**: it carries the authentication of the server. Installing, updating and
@@ -519,9 +523,9 @@ nothing else changes. Later versions will no longer need it for the access rules
 | `UPDATE` | `AuthSessions` | `lib.php:1458` | — |
 | `UPDATE` | `AuthUsers` | `lib.php:1664` | — |
 | `UPDATE` | `AuthUsers` | `lib.php:1780` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:2696` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:2737` | — |
-| `INSERT INTO` | `AuthUsers` | `lib.php:2743` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:2708` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:2749` | — |
+| `INSERT INTO` | `AuthUsers` | `lib.php:2755` | — |
 | `UPDATE` | `BookingArchers` | `login.php:92` | — |
 | `INSERT INTO` | `AuthClubLogos` | `logos-lib.php:158` | — |
 | `UPDATE` | `AuthClubLogos` | `logos-lib.php:166` | — |
