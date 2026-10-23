@@ -835,9 +835,14 @@ sed -i 's/$CFG->USERAUTH = true;/$CFG->USERAUTH = false;/' /var/www/ianseo/Commo
 Copy-Item C:\ianseo\htdocs\Modules\Custom\AUTH\dist\* C:\ianseo\htdocs\Modules\Authentication\ -Force
 ```
 
-Reminder: from `localhost` (server console or tunnel
-`ssh -L 8080:localhost:80 server`), ianseo remains accessible without an account —
-native back door of the core. That is also why SSH access must be
+Reminder: from `localhost` (server console or SSH tunnel), ianseo remains accessible without
+an account — native back door of the core. The tunnel goes through port **443**:
+`ssh -L 8443:localhost:443 server`, then `https://localhost:8443/` (certificate warning
+expected: it is issued for the domain). Not through port 80: its vhost only redirects to
+`https://YOUR-DOMAIN/`, so the browser leaves the tunnel, the request no longer comes from
+`localhost` and the back door does not apply. This is how the 2FA of the only administrator is
+reset (`/Modules/Custom/AUTH/admin/`, 2FA column, "Reset").
+That is also why SSH access must be
 locked down (keys + restricted IPs): **whoever has SSH has ianseo**.
 The point to know: the web server (www-data) must own the files for the AUTH self-repair and the local writes (config.local.json, sessions, logs) to work — the chown www-data is currently a manual step (displayed at the end of the installation script)
 

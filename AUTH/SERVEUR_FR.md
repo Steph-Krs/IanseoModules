@@ -836,9 +836,14 @@ sed -i 's/$CFG->USERAUTH = true;/$CFG->USERAUTH = false;/' /var/www/ianseo/Commo
 Copy-Item C:\ianseo\htdocs\Modules\Custom\AUTH\dist\* C:\ianseo\htdocs\Modules\Authentication\ -Force
 ```
 
-Rappel : depuis `localhost` (console serveur ou tunnel
-`ssh -L 8080:localhost:80 serveur`), ianseo reste accessible sans compte —
-porte de secours native du cœur. C'est aussi pour ça que l'accès SSH doit être
+Rappel : depuis `localhost` (console serveur ou tunnel SSH), ianseo reste accessible sans
+compte — porte de secours native du cœur. Le tunnel passe par le port **443** :
+`ssh -L 8443:localhost:443 serveur`, puis `https://localhost:8443/` (avertissement de
+certificat attendu : il est au nom du domaine). Pas par le port 80 : son vhost ne fait que
+rediriger vers `https://YOUR-DOMAIN/`, le navigateur sort alors du tunnel, la requête n'arrive
+plus de `localhost` et la porte de secours ne s'applique pas. C'est par là qu'on réinitialise la
+2FA du seul administrateur (`/Modules/Custom/AUTH/admin/`, colonne 2FA, « RàZ »).
+C'est aussi pour ça que l'accès SSH doit être
 verrouillé (clés + IP restreintes) : **qui a le SSH a ianseo**.
 Le point à connaître : le serveur web (www-data) doit posséder les fichiers pour que l'auto-réparation AUTH et les écritures locales (config.local.json, sessions, logs) fonctionnent — le chown www-data est aujourd'hui une étape manuelle (affichée en fin de script d'installation)
 
