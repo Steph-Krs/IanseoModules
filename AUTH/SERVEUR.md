@@ -111,13 +111,30 @@ old, with a history of vulnerabilities fixed as they came
   if possible restricted to the FFTA IPs or behind a VPN.
 - `unattended-upgrades` enabled (automatic security updates) — **but at a fixed time, at night, and
   outside the maintenance window**. By default, Debian/Ubuntu install around 6 am with
-  a random delay of one hour, and the installation restarts the database and Apache on the way: on
+  a random delay of one hour, and a new version of MariaDB or Apache restarts it on the way: on
   another ianseo server, it happened **three times in the middle of a competition** in six months
   (Saturday mornings). Templates `serveur/apt/`: download at 04:00, installation at **04:30**,
   automatic reboot at 04:45 **only** if an update requires it (optional) — after the
   03:15 maintenance (§ 12), never during it: a database restart in the middle of a backup would
   make it fail, and the core update would be skipped that night. Check:
   `systemctl list-timers 'apt-daily*'`. If you move one of the times, move the other.
+  The installation template also forbids **catching up in the daytime** (`Persistent=false`):
+  by default, an installation missed during an outage is done as soon as the server starts
+  again — on 2026-10-22, a test server switched on again at 13:52 after an outage of its
+  internet box installed 13 packages at 13:53, PHP among them. No effect on a server running day
+  and night; a machine switched off every night, though, would no longer update by itself.
+- **An update only takes effect once its service restarts.** Installing replaces the files on
+  disk, not the copy a running service keeps in memory: after a PHP update, Apache serves the
+  previous PHP until it restarts — and **Debian restarts nothing**. In October 2026, PHP 8.2.35
+  (two critical flaws) sat on a test server's disk for 34 hours while Apache served the
+  vulnerable 8.2.34. The automatic reboot above does not cover it: `reboot-required` is only
+  written for a kernel or a system library. Templates: `needrestart` set to **list only**
+  (`serveur/needrestart/ianseo.conf`: nothing restarts in the daytime, when competitions run)
+  and `ianseo-restart-services` at **04:40** (`serveur/cron/ianseo-restart`), which restarts what
+  needrestart found — or leaves it to the 04:45 reboot when one is scheduled: **one restart,
+  never two**. An update installed in the daytime (by hand) is only loaded the next night,
+  unless `sudo ianseo-restart-services --now`. Check: `sudo ianseo-restart-services --check`; the "Server state" page flags a
+  web server still running an outdated PHP.
 - Dedicated application user (www-data), ianseo files as `root:www-data`,
   write access limited to the folders that need it (`TourData/`, `Common/` for
   config.inc.php at activation, `Modules/`).
@@ -450,6 +467,9 @@ sudo install -D -m 0644 apt/apt-daily.timer.conf         /etc/systemd/system/apt
 sudo install -D -m 0644 apt/apt-daily-upgrade.timer.conf /etc/systemd/system/apt-daily-upgrade.timer.d/ianseo.conf
 sudo install -m 0644 -o root -g root apt/51ianseo-auto-reboot /etc/apt/apt.conf.d/   # optional
 sudo systemctl daemon-reload
+# services still running an old copy after an update: listed only, restarted at night (§ 4.1)
+sudo install -D -m 0644 needrestart/ianseo.conf /etc/needrestart/conf.d/ianseo.conf   # setting first:
+sudo apt install -y needrestart                                                      # it then asks nothing
 # database (§ 6.3) — MySQL 8: /etc/mysql/mysql.conf.d/ and the SET PERSIST setting
 sudo install -m 0644 -o root -g root mysql/ianseo.cnf /etc/mysql/mariadb.conf.d/99-ianseo.cnf
 sudo systemctl restart mariadb
@@ -493,8 +513,8 @@ sudo -u www-data test -w /var/www/ianseo/TV/Photos && echo "TV OK"
 
 # ── 9. Dry run of the maintenance, THEN activation of the cron ────────
 sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php --dry-run
-sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php --only=none
-# (the site must answer 503 during the run, then come back)
+sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php --only=none --close
+# (--close forces the closure: the site must answer 503 during the run, then come back)
 sudo install -m 0644 -o root -g root \
      /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-nightly /etc/cron.d/
 # hot copies of the database, every 6 hours (§ 9 bis)
@@ -506,6 +526,10 @@ sudo install -m 0644 -o root -g root \
 # payer trust index, once a night at 05:15 (after the maintenance window)
 sudo install -m 0644 -o root -g root \
      /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-trust /etc/cron.d/
+# services restarted at night after an update, 04:40 (§ 4.1)
+sudo install -m 0644 -o root -g root \
+     /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-restart /etc/cron.d/
+sudo ianseo-restart-services --check
 ```
 
 **The next day**, check: `tail -n 40 /var/log/ianseo-maintenance.log`, then
@@ -560,8 +584,12 @@ the admin can assign/correct it via the "Competitions & sharing" page.
 - **Server state** (Multi-account › Server configuration): read-only checks of the
   pitfalls lived through on a production server — MySQL 8 setting (§ 6.3), database connections and
   memory, slow query log, session length and import size (§ 6.1), ModSecurity
-  limit (§ 4.3), OPcache, time of the system updates (§ 4.1), oversized sessions,
-  age of the backups — each with its fix command.
+  limit (§ 4.3), OPcache, time of the system updates and no catching up in the daytime (§ 4.1),
+  PHP updated but not loaded yet by the web server and night restart in place (§ 4.1), **server
+  templates** (each file of `serveur/`: installed, missing or different from the template of the
+  module's version, with the `install` commands to run and a `diff` for those that differ),
+  oversized sessions, age of the backups, how long the site was closed last night — each with
+  its fix command.
 - **Anonymise a licensee** (Multi-account › Anonymise a licensee, server administrator): for
   an erasure request. Search by licence, surname or first name, preview of everything that changes,
   confirmation by retyping the licence.
@@ -612,8 +640,10 @@ the admin can assign/correct it via the "Competitions & sharing" page.
 
 ## 9 bis. Backups (night + hot copies)
 
-Every night, in the maintenance window (site closed, hence a consistent copy) and **just before
-the core update**, `cron/backup.php` produces:
+Every night, `cron/backup.php` produces the two files below: **site closed, just before the
+update**, on a night when the core or a module is to be updated; **site open** the other nights.
+The copy is consistent either way: `mysqldump --single-transaction` on InnoDB tables takes a
+snapshot without locking any table, the method of the hot copies.
 
 - `ianseo-db-YYYYMMDD-HHMMSS.sql.gz` — database dump (`mysqldump`);
 - `ianseo-files-YYYYMMDD-HHMMSS.tar.gz` — archive of the site (without `TV/Photos`): going back
@@ -978,9 +1008,48 @@ and **alone replaces** the crontab lines of the syncs:
 15 3 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php >> /var/log/ianseo-maintenance.log 2>&1
 ```
 
-Sequence: maintenance ON → unlock → **ianseo core update** → **Custom modules
-update** → AUTH redeployment → **licence sync** → **logo sync** →
-lock → maintenance OFF.
+Sequence — **the site is closed only to put new code in place**:
+
+1. **What is to be installed tonight? — site open.** The core asks ianseo.net
+   (`cron/check-core.php`, the same question as the update, which installs nothing); each module
+   reads its `version.json` in the repository, and the files of a module to update are
+   **downloaded in advance** (about 100 s for AUTH's 300 files).
+2. **Only if something is to be installed**: maintenance ON → backup → unlock → **core
+   update** → **modules put in place** (2 s: the files are already there) → AUTH redeployment →
+   lock → maintenance OFF. **Otherwise the site stays open all night** and the backup is taken
+   site open (§ 9 bis).
+3. **Site open**: **licence sync** (the list is replaced in a single transaction: until the end,
+   a search sees the former list, complete), **logo sync** (each file replaced in one go),
+   points of sale, accounts, files of the foreign federations.
+4. Off-site copy of the backups, in the background.
+
+The whole script runs with a **lower priority than the pages** (`nice` 10, `ionice` best-effort
+7): the users still on the site come first. What MariaDB does itself (writing the 70 000
+licences) is not lowered by this.
+
+Measured on the test server (17 nights, October 2026) **before this order**: site closed **5 min
+45 s on an ordinary night, about 8 min on a night with a module update**, of which 263 s to
+download the 1 607 club logos again, 110 s to download a module file by file, 40 s of licences
+during which a search found nobody (the list was emptied outside the transaction). Now: **0 s
+on a night without update**, a few seconds to a minute on a night with one. The log ends with
+`site closed N s` or `site open all night`, and the "Server state" page shows the last night.
+
+A module whose download fails (one missing file is enough) is **left as it is** and tried again
+the next night: a half-updated module would run two versions at once.
+
+#### The night, hour by hour
+
+| Time | What | Unavailability |
+|---|---|---|
+| 03:15 | `ianseo-nightly`: update checks, backup, syncs (see above) | none, except a few s to 1 min on a night with an update |
+| ~03:25 | off-site copy of the backups (12 min for 78 MB on the test server) | none, low priority |
+| 04:00 | `apt-daily`: download of the system updates | none |
+| 04:30 | `apt-daily-upgrade`: installation (§ 4.1) | a new MariaDB or Apache restarts itself: 4 to 14 s measured |
+| 04:40 | `ianseo-restart`: services still running an old copy (§ 4.1) | a few s, only after an update that needs it |
+| 04:45 | reboot, only when a kernel or system library requires it (`51ianseo-auto-reboot`) | ~25 s measured |
+| 05:15 | `ianseo-trust`: payer trust index | none |
+| 09:05, 15:05, 21:05 | `ianseo-backup-live`: hot copies of the database | none (2.6 s, low priority) |
+| every 10 min | `ianseo-waitlist`: waiting lists | none |
 
 - **The maintenance is always switched off**, even if a step fails, if the script is
   interrupted or if it dies on a fatal error (end-of-script handler put in place
@@ -1007,9 +1076,10 @@ lock → maintenance OFF.
 - **`notice` — advance warning to the users.** During the
   `lead_minutes` that precede the time `at`, a permanent banner is shown on
   **all** the pages (organiser space *and* licensee space): "Maintenance
-  scheduled at 03:15 (in N minutes) — the server will be unavailable for a few
-  minutes. Finish and save your entry." The countdown is updated at
-  each page. Nobody ends up in front of a 503 without warning.
+  scheduled at 03:15 (in N minutes) — if an update is to be installed, the server will be
+  unavailable for a few minutes. Finish and save your entry." The countdown is updated at
+  each page. Nobody ends up in front of a 503 without warning. ("If": the banner comes before
+  the update checks, so it cannot know yet whether the site will close.)
   Without the `at` key, **no message** is shown (silent by default).
   ⚠️ `at` must match the real time of the cron: the two cannot be deduced
   from each other. Local time (`timezone`, default `Europe/Paris`) — ianseo
@@ -1027,8 +1097,12 @@ lock → maintenance OFF.
   *(Real incident of 2026-09-27: `unlock` filled in without `sudo` nor a path → "not found",
   files stayed locked, core update refused. Since then, a failed unlock makes
   the core update skip instead of attempting it for nothing.)*
-- Options: `--dry-run` (shows the plan without doing anything — run it first),
-  `--core` / `--no-core`, `--only=modules,licences,logos`.
+- Options: `--dry-run` (shows the plan without installing anything — the update checks do run,
+  they only read; run it first), `--core` / `--no-core`, `--only=modules,licences,logos`,
+  `--close` (closes the site even with nothing to install: to check maintenance on/off).
+- A step stopped by an SQL error is **reported as failed**: the core's `safe_error()` prints an
+  error page and ends with code 0, which the log used to read as a success (the files of the
+  foreign federations failed that way every night from 12 to 23 October 2026, unseen).
 
 #### ianseo core update, without a browser
 

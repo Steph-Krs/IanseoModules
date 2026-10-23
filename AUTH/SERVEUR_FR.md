@@ -111,13 +111,31 @@ ancien, avec un historique de vulnérabilités corrigées au fil de l'eau
   si possible restreint aux IP FFTA ou derrière VPN.
 - `unattended-upgrades` activé (MaJ sécurité automatiques) — **mais à heure fixe, la nuit, et
   en dehors de la fenêtre de maintenance**. Par défaut, Debian/Ubuntu installent vers 6 h avec
-  un délai aléatoire d'une heure, et l'installation redémarre la base et Apache au passage : sur
+  un délai aléatoire d'une heure, et une nouvelle version de MariaDB ou d'Apache le redémarre au passage : sur
   un autre serveur ianseo, c'est tombé **trois fois en pleine compétition** en un semestre
   (samedis matin). Gabarits `serveur/apt/` : téléchargement à 04:00, installation à **04:30**,
   redémarrage automatique à 04:45 **seulement** si une mise à jour l'exige (facultatif) — après la
   maintenance de 03:15 (§ 12), jamais pendant : un redémarrage de la base en pleine sauvegarde la
   ferait échouer, et la mise à jour du cœur serait sautée cette nuit-là. Vérifier :
   `systemctl list-timers 'apt-daily*'`. Si vous déplacez l'un des horaires, déplacez l'autre.
+  Le gabarit d'installation interdit aussi le **rattrapage en journée** (`Persistent=false`) :
+  par défaut, une installation manquée pendant une coupure est faite dès le redémarrage du
+  serveur — le 22/10/2026, un serveur de test rallumé à 13:52 après une panne de sa box a
+  installé 13 paquets à 13:53, PHP compris. Sans effet sur un serveur allumé jour et nuit ; une
+  machine éteinte chaque nuit, elle, ne se mettrait plus à jour toute seule.
+- **Une mise à jour ne prend effet qu'au redémarrage de son service.** L'installation remplace les
+  fichiers sur le disque, pas la copie qu'un service en marche garde en mémoire : après une mise à
+  jour de PHP, Apache sert l'ancien PHP jusqu'à son redémarrage — et **Debian ne redémarre rien**.
+  En octobre 2026, PHP 8.2.35 (deux failles critiques) est resté 34 heures sur le disque d'un
+  serveur de test pendant qu'Apache servait le 8.2.34 vulnérable. Le redémarrage automatique
+  ci-dessus ne couvre pas ce cas : `reboot-required` n'est écrit que pour un noyau ou une
+  bibliothèque système. Gabarits : `needrestart` réglé pour **lister seulement**
+  (`serveur/needrestart/ianseo.conf` : rien ne redémarre en journée, pendant les compétitions) et
+  `ianseo-restart-services` à **04:40** (`serveur/cron/ianseo-restart`), qui redémarre ce que
+  needrestart a trouvé — ou le laisse au redémarrage de 04:45 quand il y en a un de prévu : **un
+  seul redémarrage, jamais deux**. Une mise à jour installée en journée (à la main) n'est
+  chargée que la nuit suivante, sauf `sudo ianseo-restart-services --now`. Vérifier : `sudo ianseo-restart-services --check` ; la page
+  « État du serveur » signale un serveur web qui tourne encore avec un PHP périmé.
 - Utilisateur applicatif dédié (www-data), fichiers ianseo en `root:www-data`,
   écriture limitée aux dossiers qui en ont besoin (`TourData/`, `Common/` pour
   config.inc.php lors de l'activation, `Modules/`).
@@ -451,6 +469,10 @@ sudo install -D -m 0644 apt/apt-daily.timer.conf         /etc/systemd/system/apt
 sudo install -D -m 0644 apt/apt-daily-upgrade.timer.conf /etc/systemd/system/apt-daily-upgrade.timer.d/ianseo.conf
 sudo install -m 0644 -o root -g root apt/51ianseo-auto-reboot /etc/apt/apt.conf.d/   # facultatif
 sudo systemctl daemon-reload
+# services qui tournent encore avec une ancienne copie après une mise à jour : listés seulement,
+# redémarrés la nuit (§ 4.1)
+sudo install -D -m 0644 needrestart/ianseo.conf /etc/needrestart/conf.d/ianseo.conf   # réglage d'abord :
+sudo apt install -y needrestart                                                      # il ne demande alors rien
 # base de données (§ 6.3) — MySQL 8 : /etc/mysql/mysql.conf.d/ et le réglage SET PERSIST
 sudo install -m 0644 -o root -g root mysql/ianseo.cnf /etc/mysql/mariadb.conf.d/99-ianseo.cnf
 sudo systemctl restart mariadb
@@ -494,8 +516,8 @@ sudo -u www-data test -w /var/www/ianseo/TV/Photos && echo "TV OK"
 
 # ── 9. Essai à blanc de la maintenance, PUIS activation du cron ───────
 sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php --dry-run
-sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php --only=none
-# (le site doit répondre 503 pendant l'exécution, puis revenir)
+sudo -u www-data php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php --only=none --close
+# (--close force la fermeture : le site doit répondre 503 pendant l'exécution, puis revenir)
 sudo install -m 0644 -o root -g root \
      /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-nightly /etc/cron.d/
 # copies à chaud de la base, toutes les 6 heures (§ 9 bis)
@@ -507,6 +529,10 @@ sudo install -m 0644 -o root -g root \
 # indice de confiance des payeurs, une fois par nuit à 05:15 (après la fenêtre de maintenance)
 sudo install -m 0644 -o root -g root \
      /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-trust /etc/cron.d/
+# services redémarrés la nuit après une mise à jour, 04:40 (§ 4.1)
+sudo install -m 0644 -o root -g root \
+     /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-restart /etc/cron.d/
+sudo ianseo-restart-services --check
 ```
 
 **Le lendemain**, vérifier : `tail -n 40 /var/log/ianseo-maintenance.log`, puis
@@ -561,8 +587,12 @@ l'admin peut l'attribuer/corriger via la page « Compétitions & partage ».
 - **État du serveur** (Multi-comptes › Configuration du serveur) : contrôles en lecture seule des
   pièges vécus sur un serveur en production — réglage MySQL 8 (§ 6.3), connexions et mémoire de la
   base, journal des requêtes lentes, durée des sessions et taille des imports (§ 6.1), limite
-  ModSecurity (§ 4.3), OPcache, heure des mises à jour du système (§ 4.1), départs surdimensionnés,
-  âge des sauvegardes — chacun avec la commande de correction.
+  ModSecurity (§ 4.3), OPcache, heure des mises à jour du système et absence de rattrapage en
+  journée (§ 4.1), PHP mis à jour mais pas encore chargé par le serveur web et redémarrage de nuit
+  en place (§ 4.1), **gabarits du serveur** (chaque fichier de `serveur/` : installé, manquant ou
+  différent du gabarit de la version du module, avec les commandes `install` à lancer et un
+  `diff` pour ceux qui diffèrent), départs surdimensionnés, âge des sauvegardes, durée de
+  fermeture du site la dernière nuit — chacun avec la commande de correction.
 - **Anonymiser un licencié** (Multi-comptes › Anonymiser un licencié, administrateur serveur) : pour
   une demande d'effacement. Recherche par licence, nom ou prénom, aperçu de tout ce qui change,
   confirmation en retapant la licence.
@@ -613,8 +643,10 @@ l'admin peut l'attribuer/corriger via la page « Compétitions & partage ».
 
 ## 9 bis. Sauvegardes (nuit + copies à chaud)
 
-Chaque nuit, dans la fenêtre de maintenance (site fermé, donc copie cohérente) et **juste avant
-la mise à jour du cœur**, `cron/backup.php` produit :
+Chaque nuit, `cron/backup.php` produit les deux fichiers ci-dessous : **site fermé, juste avant la
+mise à jour**, une nuit où le cœur ou un module doit être mis à jour ; **site ouvert** les autres
+nuits. La copie est cohérente dans les deux cas : `mysqldump --single-transaction` sur des tables
+InnoDB prend un instantané sans verrouiller de table, la méthode des copies à chaud.
 
 - `ianseo-db-AAAAMMJJ-HHMMSS.sql.gz` — dump de la base (`mysqldump`) ;
 - `ianseo-files-AAAAMMJJ-HHMMSS.tar.gz` — archive du site (sans `TV/Photos`) : revenir en
@@ -979,9 +1011,50 @@ et **remplace à lui seul** les lignes crontab des synchros :
 15 3 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/maintenance.php >> /var/log/ianseo-maintenance.log 2>&1
 ```
 
-Déroulé : maintenance ON → déverrouillage → **MàJ du cœur ianseo** → **MàJ des modules
-Custom** → redéploiement AUTH → **synchro licences** → **synchro logos** →
-verrouillage → maintenance OFF.
+Déroulé — **le site ne ferme que pour mettre du code neuf en place** :
+
+1. **Qu'y a-t-il à installer cette nuit ? — site ouvert.** Le cœur pose la question à ianseo.net
+   (`cron/check-core.php`, la même question que la mise à jour, qui n'installe rien) ; chaque
+   module lit son `version.json` sur le dépôt, et les fichiers d'un module à mettre à jour sont
+   **téléchargés à l'avance** (une centaine de secondes pour les 300 fichiers d'AUTH).
+2. **Seulement s'il y a quelque chose à installer** : maintenance ON → sauvegarde →
+   déverrouillage → **MàJ du cœur** → **modules mis en place** (2 s : les fichiers sont déjà là)
+   → redéploiement AUTH → verrouillage → maintenance OFF. **Sinon le site reste ouvert toute la
+   nuit**, et la sauvegarde est prise site ouvert (§ 9 bis).
+3. **Site ouvert** : **synchro licences** (la liste est remplacée en une seule transaction :
+   jusqu'au bout, une recherche voit l'ancienne liste, complète), **synchro logos** (chaque
+   fichier remplacé d'un coup), points de vente, comptes, fichiers des fédérations étrangères.
+4. Copie en ligne des sauvegardes, en arrière-plan.
+
+Tout le script tourne avec une **priorité plus basse que les pages** (`nice` 10, `ionice`
+best-effort 7) : les utilisateurs encore sur le site passent d'abord. Le travail que fait
+MariaDB lui-même (écrire les 70 000 licences) n'en profite pas.
+
+Mesuré sur le serveur de test (17 nuits, octobre 2026) **avant ce déroulé** : site fermé
+**5 min 45 s une nuit ordinaire, environ 8 min une nuit de mise à jour d'un module**, dont 263 s
+pour retélécharger les 1 607 logos de clubs, 110 s pour télécharger un module fichier par
+fichier, 40 s de licences pendant lesquelles une recherche ne trouvait personne (la liste était
+vidée hors de la transaction). Désormais : **0 s une nuit sans mise à jour**, de quelques
+secondes à une minute une nuit avec. Le journal se termine par `site closed N s` ou
+`site open all night`, et la page « État du serveur » affiche la dernière nuit.
+
+Un module dont le téléchargement échoue (un seul fichier manquant suffit) est **laissé tel
+quel** et retenté la nuit suivante : un module à moitié mis à jour ferait tourner deux versions
+à la fois.
+
+#### La nuit, heure par heure
+
+| Heure | Quoi | Indisponibilité |
+|---|---|---|
+| 03:15 | `ianseo-nightly` : vérification des mises à jour, sauvegarde, synchros (ci-dessus) | aucune, sauf quelques s à 1 min une nuit de mise à jour |
+| ~03:25 | copie en ligne des sauvegardes (12 min pour 78 Mo sur le serveur de test) | aucune, priorité basse |
+| 04:00 | `apt-daily` : téléchargement des mises à jour du système | aucune |
+| 04:30 | `apt-daily-upgrade` : installation (§ 4.1) | une nouvelle version de MariaDB ou d'Apache le redémarre : 4 à 14 s mesurées |
+| 04:40 | `ianseo-restart` : services qui tournent encore avec une ancienne copie (§ 4.1) | quelques s, seulement après une mise à jour qui l'exige |
+| 04:45 | redémarrage de la machine, seulement si un noyau ou une bibliothèque système l'exige (`51ianseo-auto-reboot`) | ~25 s mesurées |
+| 05:15 | `ianseo-trust` : indice de confiance des payeurs | aucune |
+| 09:05, 15:05, 21:05 | `ianseo-backup-live` : copies à chaud de la base | aucune (2,6 s, priorité basse) |
+| toutes les 10 min | `ianseo-waitlist` : listes d'attente | aucune |
 
 - **La maintenance est toujours coupée**, même si une étape échoue, si le script est
   interrompu ou s'il meurt sur une erreur fatale (gestionnaire de fin de script posé
@@ -1008,9 +1081,11 @@ verrouillage → maintenance OFF.
 - **`notice` — avertissement préalable aux utilisateurs.** Pendant les
   `lead_minutes` qui précèdent l'heure `at`, un bandeau permanent s'affiche sur
   **toutes** les pages (espace organisateur *et* espace licencié) : « Maintenance
-  programmée à 03:15 (dans N minutes) — le serveur sera indisponible quelques
-  minutes. Terminez et enregistrez votre saisie. » Le décompte se met à jour à
-  chaque page. Personne ne se retrouve devant une 503 sans prévenir.
+  programmée à 03:15 (dans N minutes) — si une mise à jour doit être installée, le serveur
+  sera indisponible quelques minutes. Terminez et enregistrez votre saisie. » Le décompte se met
+  à jour à chaque page. Personne ne se retrouve devant une 503 sans prévenir. (« Si » : le
+  bandeau précède la vérification des mises à jour, il ne peut pas encore savoir si le site
+  fermera.)
   Sans la clé `at`, **aucun message** n'est affiché (silencieux par défaut).
   ⚠️ `at` doit correspondre à l'heure réelle du cron : les deux ne se déduisent
   pas l'un de l'autre. Heure locale (`timezone`, défaut `Europe/Paris`) — ianseo
@@ -1028,8 +1103,14 @@ verrouillage → maintenance OFF.
   *(Incident réel du 2026-09-27 : `unlock` renseigné sans `sudo` ni chemin → « not found »,
   fichiers restés verrouillés, MàJ du cœur refusée. Depuis, un déverrouillage en échec fait
   sauter la MàJ du cœur au lieu de la tenter pour rien.)*
-- Options : `--dry-run` (affiche le plan sans rien faire — à lancer en premier),
-  `--core` / `--no-core`, `--only=modules,licences,logos`.
+- Options : `--dry-run` (affiche le plan sans rien installer — les vérifications de mise à jour
+  tournent, elles ne font que lire ; à lancer en premier), `--core` / `--no-core`,
+  `--only=modules,licences,logos`, `--close` (ferme le site même sans rien à installer : pour
+  vérifier la mise en maintenance et sa sortie).
+- Une étape arrêtée par une erreur SQL est **signalée en échec** : le `safe_error()` du cœur
+  affiche une page d'erreur et se termine avec le code 0, ce que le journal lisait comme un
+  succès (les fichiers des fédérations étrangères ont échoué ainsi toutes les nuits du 12 au
+  23 octobre 2026, sans que rien ne le montre).
 
 #### Mise à jour du cœur ianseo, sans navigateur
 

@@ -7,9 +7,12 @@
 #   - unlike "crontab -e", a USER field is needed (7 fields);
 #   - the file must be neither executable nor writable by the group.
 #
-# This single call replaces the separate sync crons: maintenance.php runs
-# maintenance ON → backup → core update → module updates → licences → logos →
-# maintenance OFF, and guarantees the exit from maintenance even on failure.
+# This single call replaces the separate sync crons. maintenance.php first asks whether an
+# update of the core or of a module is to be installed (and downloads it), site open; ONLY then
+# maintenance ON → backup → core update → modules → maintenance OFF, a few seconds to a minute;
+# otherwise the backup is taken site open. Licences, logos and the other syncs follow, site open.
+# It guarantees the exit from maintenance even on failure, and runs with a lower priority than
+# the pages (nice, ionice) since the site stays open.
 #
 # Started by ROOT, only to unlock the core files before, and lock them again after: the
 # script itself runs as www-data (su). The web account thus never has the right to make the

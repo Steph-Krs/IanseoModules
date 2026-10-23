@@ -163,8 +163,11 @@ exit(0);
 
 function lic_import_json($archers) {
     $ioc = 'FRA';
-    safe_w_sql("DELETE FROM LookUpEntries WHERE LueIocCode='$ioc'");
+    // DELETE inside the transaction: until the COMMIT, a search sees the former list, complete
+    // (InnoDB). Run before it, it left the list empty for the ~40 s of the import, which is why
+    // the nightly maintenance used to close the site for it.
     safe_w_BeginTransaction();
+    safe_w_sql("DELETE FROM LookUpEntries WHERE LueIocCode='$ioc'");
     $n = 0;
     foreach ($archers as $r) {
         $d = "LueCode="         . StrSafe_DB(isset($r->WaId) ? $r->WaId : $r->Id)
@@ -212,8 +215,9 @@ function lic_import_tabulated($data) {
     $buf = fgets($fp);
     if (!preg_match('/CLUBS/', $buf)) { fclose($fp); @unlink($work); lic_fail('CLUBS section missing.'); }
 
-    safe_w_sql("DELETE FROM LookUpEntries WHERE LueIocCode='$ioc'");
+    // Inside the transaction, as in lic_import_json().
     safe_w_BeginTransaction();
+    safe_w_sql("DELETE FROM LookUpEntries WHERE LueIocCode='$ioc'");
 
     $clubs = array();
     while (($buf = fgets($fp)) !== false) {

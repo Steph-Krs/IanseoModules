@@ -443,7 +443,8 @@ function aut_backup_latest_set($dir)
 /**
  * Backup run. $say is called with each log line. $mode:
  *   'all'    — local backup, then off-site copy (manual run);
- *   'local'  — local backup only (inside the maintenance window, site closed);
+ *   'local'  — local backup only (nightly: site closed just before an update, site open on a
+ *              night without one — the same consistent snapshot either way);
  *   'upload' — off-site copy of the newest local set only (after the site reopened:
  *              a slow uplink took 17 min for 125 MB on the first real server, and the
  *              site does not need to stay closed for that);

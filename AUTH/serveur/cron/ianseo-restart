@@ -1,0 +1,14 @@
+# /etc/cron.d/ianseo-restart — services still running an old copy after an update, restarted at night.
+#
+# root:root, chmod 0644. Same traps as ianseo-nightly: file name WITHOUT a dot, final LINE
+# FEED mandatory, USER field (7 fields).
+#
+# 04:40: after the system updates of 04:30 (waits for them if they are still running), before the
+# reboot of 04:45 when one is scheduled — the services are then left to it: one restart, never two.
+# Never in the daytime: an update installed in the afternoon waits for this run.
+# Requires needrestart and /etc/needrestart/conf.d/ianseo.conf (see bin/ianseo-restart-services).
+
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+40 4 * * * root /usr/local/bin/ianseo-restart-services >> /var/log/ianseo-maintenance.log 2>&1

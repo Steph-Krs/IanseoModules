@@ -72,6 +72,139 @@ function aut_health_php_workers()
     return null;
 }
 
+/**
+ * Program files replaced on disk since this web process started (full paths): an update is
+ * installed but this process still runs the old copy — Apache keeping the previous PHP in
+ * memory. Read from the process's own memory map, which needs no right. null when it cannot be
+ * read (not Linux, open_basedir). $maps: the content to parse instead (tests).
+ */
+function aut_health_stale_files($maps = null)
+{
+    if ($maps === null) {
+        if (PHP_OS_FAMILY !== 'Linux') return null;
+        $maps = aut_health_read('/proc/self/maps');
+        if ($maps === '') return null;
+    }
+    $files = array();
+    // Only program files: "/dev/zero (deleted)" is shared memory, not an update.
+    if (preg_match_all('#\s(/(?:usr|lib|lib64|opt)/\S+) \(deleted\)$#m', $maps, $m)) {
+        foreach ($m[1] as $f) $files[$f] = true;
+    }
+    return array_keys($files);
+}
+
+/**
+ * The system files of the module's templates (serveur/README.md): where each one goes, how it is
+ * installed, whether the server cannot do without it, and whether it is copied as it is — then
+ * its content can be compared with this version of the template. Files adapted by hand (vhost,
+ * MySQL settings, jail) are only looked for. Not listed: sudoers.d, unreadable by the web server.
+ */
+function aut_health_template_list()
+{
+    $bin = function ($n, $need = true) {
+        return array('src' => "bin/$n", 'dest' => "/usr/local/bin/$n", 'need' => $need, 'same' => false, 'mode' => '0750');
+    };
+    $file = function ($src, $dest, $need, $same = true) {
+        return array('src' => $src, 'dest' => $dest, 'need' => $need, 'same' => $same, 'mode' => '0644');
+    };
+    return array(
+        $bin('ianseo-lock'), $bin('ianseo-unlock'), $bin('ianseo-maintenance-on'), $bin('ianseo-maintenance-off'),
+        $bin('ianseo-restart-services'), $bin('ianseo-restore', false),
+        $file('apache/maintenance.html', '/var/www/maintenance/index.html', true),
+        $file('cron/ianseo-nightly', '/etc/cron.d/ianseo-nightly', true),
+        $file('cron/ianseo-restart', '/etc/cron.d/ianseo-restart', true),
+        $file('cron/ianseo-backup-live', '/etc/cron.d/ianseo-backup-live', false),
+        $file('cron/ianseo-waitlist', '/etc/cron.d/ianseo-waitlist', false),
+        $file('cron/ianseo-trust', '/etc/cron.d/ianseo-trust', false),
+        $file('logrotate/ianseo', '/etc/logrotate.d/ianseo', true),
+        $file('apt/apt-daily.timer.conf', '/etc/systemd/system/apt-daily.timer.d/ianseo.conf', true),
+        $file('apt/apt-daily-upgrade.timer.conf', '/etc/systemd/system/apt-daily-upgrade.timer.d/ianseo.conf', true),
+        $file('apt/51ianseo-auto-reboot', '/etc/apt/apt.conf.d/51ianseo-auto-reboot', false),
+        $file('needrestart/ianseo.conf', '/etc/needrestart/conf.d/ianseo.conf', true),
+        $file('fail2ban/filter-ianseo-auth.conf', '/etc/fail2ban/filter.d/ianseo-auth.conf', false),
+        $file('fail2ban/jail-ianseo.conf', '/etc/fail2ban/jail.d/ianseo.conf', false, false),
+        $file('mysql/ianseo.cnf', '/etc/mysql/mariadb.conf.d/99-ianseo.cnf|/etc/mysql/mysql.conf.d/99-ianseo.cnf', false, false),
+    );
+}
+
+/**
+ * State of each template on this server: [entry + 'state' => ok|missing|differs, 'found' => path].
+ * $root: a folder standing for "/" (tests). null when not on Linux.
+ */
+function aut_health_templates($root = '')
+{
+    if (PHP_OS_FAMILY !== 'Linux' && $root === '') return null;
+    $tpl = __DIR__ . '/serveur/';
+    $out = array();
+    foreach (aut_health_template_list() as $t) {
+        $t['found'] = '';
+        $t['old'] = array();
+        $t['unrotated'] = array();
+        foreach (explode('|', $t['dest']) as $d) {
+            if (is_file($root . $d)) { $t['found'] = $d; break; }
+        }
+        if ($t['found'] === '' && $t['src'] === 'logrotate/ianseo') {
+            // Installations older than the single template have one file per log
+            // (ianseo-maintenance, ianseo-auth) and forget the backup log. Never install the
+            // template beside them: two rules for one log make logrotate fail altogether.
+            preg_match_all('#^(/var/log/\S+)\s*\{#m', (string) @file_get_contents($tpl . $t['src']), $m);
+            $covered = array();
+            $g = @glob($root . '/etc/logrotate.d/*');
+            foreach (is_array($g) ? $g : array() as $f) {
+                $c = (string) @file_get_contents($f);
+                foreach ($m[1] as $log) {
+                    if (strpos($c, $log) !== false) { $covered[$log] = true; $t['old'][$f] = mb_substr($f, mb_strlen($root)); }
+                }
+            }
+            $t['unrotated'] = array_values(array_diff($m[1], array_keys($covered)));
+            $t['old'] = array_values($t['old']);
+            if ($t['old']) {
+                $t['state'] = $t['unrotated'] ? 'old' : 'ok';
+                $t['found'] = implode(', ', $t['old']);
+                $out[] = $t;
+                continue;
+            }
+        }
+        if ($t['found'] === '') {
+            $t['state'] = 'missing';
+        } elseif ($t['same'] && is_readable($root . $t['found']) && is_readable($tpl . $t['src'])
+            && md5_file($root . $t['found']) !== md5_file($tpl . $t['src'])) {
+            $t['state'] = 'differs';
+        } else {
+            $t['state'] = 'ok';
+        }
+        $out[] = $t;
+    }
+    return $out;
+}
+
+/** The commands that install the missing templates and show how the differing ones differ. */
+function aut_health_template_fix($states)
+{
+    $tpl = __DIR__ . '/serveur/';
+    $cmd = array();
+    $reload = false;
+    foreach ($states as $t) {
+        $dest = explode('|', $t['dest'])[0];
+        if ($t['state'] === 'missing') {
+            $cmd[] = $t['mode'] === '0750'
+                ? 'sudo install -m 0750 -o root -g root ' . $tpl . $t['src'] . ' /usr/local/bin/'
+                : 'sudo install -D -m 0644 -o root -g root ' . $tpl . $t['src'] . ' ' . $dest;
+            if ($t['src'] === 'needrestart/ianseo.conf' && !is_file('/usr/sbin/needrestart')) $cmd[] = 'sudo apt install -y needrestart';
+        } elseif ($t['state'] === 'differs') {
+            $cmd[] = 'diff -u ' . $t['found'] . ' ' . $tpl . $t['src'] . '   # ' . aut_t('HlTplDiffCmd');
+        } elseif ($t['state'] === 'old') {
+            $cmd[] = 'sudo rm ' . implode(' ', $t['old']) . '   # ' . aut_t('HlTplOldCmd');
+            $cmd[] = 'sudo install -D -m 0644 -o root -g root ' . $tpl . $t['src'] . ' ' . $dest;
+        } else {
+            continue;
+        }
+        if (strpos($dest, '/etc/systemd/') === 0) $reload = true;
+    }
+    if ($reload) $cmd[] = 'sudo systemctl daemon-reload';
+    return implode("\n", $cmd);
+}
+
 /** Every check, in display order. */
 function aut_health_checks()
 {
@@ -206,9 +339,74 @@ function aut_health_checks()
     $g = @glob('/etc/systemd/system/apt-daily-upgrade.timer.d/*.conf');
     foreach (is_array($g) ? $g : array() as $f) $over .= aut_health_read($f) . "\n";
     if (preg_match_all('/^\s*OnCalendar\s*=\s*(\S.*)$/mi', $over, $m)) {
-        $out[] = aut_health_item('ok', aut_t('HlAptT'), aut_t('HlAptOk', trim(end($m[1]))));
+        // Persistent: an installation missed while the server was off is caught up as soon as it
+        // starts again — in the daytime too (2026-10-22: 13 packages at 13:53, after an outage).
+        $catchUp = !preg_match('/^\s*Persistent\s*=\s*(false|no|0)\s*$/mi', $over);
+        $out[] = $catchUp
+            ? aut_health_item('info', aut_t('HlAptT'), aut_t('HlAptCatchUp', trim(end($m[1]))), aut_t('HlAptFix'))
+            : aut_health_item('ok', aut_t('HlAptT'), aut_t('HlAptOk', trim(end($m[1]))));
     } elseif (aut_health_read('/lib/systemd/system/apt-daily-upgrade.timer') !== '') {
         $out[] = aut_health_item('warn', aut_t('HlAptT'), aut_t('HlAptDefault'), aut_t('HlAptFix'));
+    }
+
+    // Updates installed but not loaded — in October 2026, PHP 8.2.35 (two critical flaws) sat on
+    // a test server's disk for 34 hours while Apache served the vulnerable 8.2.34: Debian restarts
+    // nothing after a PHP update.
+    $stale = aut_health_stale_files();
+    if ($stale !== null) {
+        $night    = is_file('/etc/cron.d/ianseo-restart') && is_file('/usr/local/bin/ianseo-restart-services');
+        $nr       = is_file('/usr/sbin/needrestart');
+        $listOnly = is_file('/etc/needrestart/conf.d/ianseo.conf');
+        if ($stale) {
+            $php = (bool) preg_grep('#/(libphp[^/]*|php-fpm[^/]*)$|/lib/php/#', $stale);
+            $cmd = php_sapi_name() === 'fpm-fcgi'
+                ? 'sudo systemctl restart php' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION . '-fpm'
+                : 'sudo systemctl restart apache2';
+            $out[] = aut_health_item('warn', aut_t($php ? 'HlStalePhpT' : 'HlStaleT'),
+                aut_t($php ? 'HlStalePhp' : 'HlStale') . ' ' . aut_t($night ? 'HlStaleNight' : 'HlStaleNoNight'),
+                $cmd . ($night ? '' : "\n" . aut_t('HlRestartFix')), array_map('basename', $stale));
+        } elseif ($night) {
+            $out[] = aut_health_item('ok', aut_t('HlRestartT'), aut_t('HlRestartOk'));
+        } elseif (!$nr) {
+            $out[] = aut_health_item('info', aut_t('HlRestartT'), aut_t('HlRestartNone'), aut_t('HlRestartFix'));
+        } elseif ($listOnly) {
+            $out[] = aut_health_item('warn', aut_t('HlRestartT'), aut_t('HlRestartListOnly'), aut_t('HlRestartFix'));
+        } else {
+            $out[] = aut_health_item('info', aut_t('HlRestartT'), aut_t('HlRestartAuto'), aut_t('HlRestartFix'));
+        }
+    }
+
+    // System files of the templates — what is installed, what is missing, what has changed.
+    $tpls = aut_health_templates();
+    if ($tpls !== null) {
+        $list = array();
+        $needMissing = false;
+        foreach ($tpls as $t) {
+            if ($t['state'] === 'ok') continue;
+            if (($t['state'] === 'missing' || $t['state'] === 'old') && $t['need']) $needMissing = true;
+            $list[] = explode('|', $t['dest'])[0] . ' — ' . ($t['state'] === 'old'
+                ? aut_t('HlTplOld', array('files' => $t['found'], 'logs' => implode(', ', $t['unrotated'])))
+                : aut_t($t['state'] === 'differs' ? 'HlTplDiff' : ($t['need'] ? 'HlTplMiss' : 'HlTplOpt')));
+        }
+        if (!$list) {
+            $out[] = aut_health_item('ok', aut_t('HlTplT'), aut_t('HlTplOk', count($tpls)));
+        } else {
+            $out[] = aut_health_item($needMissing ? 'warn' : 'info', aut_t('HlTplT'),
+                aut_t($needMissing ? 'HlTplWarn' : 'HlTplInfo'), aut_health_template_fix($tpls), $list);
+        }
+    }
+
+    // Last nightly maintenance: how long the site stayed closed (recorded since 1.4.22).
+    $rs = safe_r_sql("SELECT AjWhen, AjMessage FROM AuthJobs WHERE AjJob = 'maintenance'
+        ORDER BY AjId DESC LIMIT 1", false, true);
+    $r = $rs ? safe_fetch($rs) : null;
+    $a = $r ? (json_decode((string) $r->AjMessage, true)['a'] ?? null) : null;
+    if (is_array($a) && isset($a['closed'])) {
+        $when = function_exists('aut_job_when') ? aut_job_when($r->AjWhen) : $r->AjWhen;
+        $s = (int) $a['closed'];
+        $out[] = aut_health_item($s > 120 ? 'info' : 'ok', aut_t('HlNightT'), $s === 0
+            ? aut_t('HlNightOpen', $when)
+            : aut_t('HlNightClosed', array('when' => $when, 's' => $s)));
     }
 
     // Backups — age of the last nightly set and of the last live copy.

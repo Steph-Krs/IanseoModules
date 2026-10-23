@@ -19,6 +19,7 @@ et ne peut pas les modifier. Vous les copiez une fois, à la main.
 | `bin/ianseo-maintenance-on` | `/usr/local/bin/ianseo-maintenance-on` | `root:root 0750` |
 | `bin/ianseo-maintenance-off` | `/usr/local/bin/ianseo-maintenance-off` | `root:root 0750` |
 | `bin/ianseo-restore` | `/usr/local/bin/ianseo-restore` | `root:root 0750` |
+| `bin/ianseo-restart-services` | `/usr/local/bin/ianseo-restart-services` | `root:root 0750` |
 | `apache/ianseo.conf` | `/etc/apache2/sites-available/ianseo.conf` | `root:root 0644` |
 | `apache/ianseo-ssl.conf` | `/etc/apache2/sites-available/ianseo-ssl.conf` | `root:root 0644` |
 | `apache/maintenance.html` | `/var/www/maintenance/index.html` | `root:root 0644` |
@@ -26,6 +27,7 @@ et ne peut pas les modifier. Vous les copiez une fois, à la main.
 | `cron/ianseo-backup-live` | `/etc/cron.d/ianseo-backup-live` | `root:root 0644` |
 | `cron/ianseo-waitlist` | `/etc/cron.d/ianseo-waitlist` | `root:root 0644` |
 | `cron/ianseo-trust` | `/etc/cron.d/ianseo-trust` | `root:root 0644` |
+| `cron/ianseo-restart` | `/etc/cron.d/ianseo-restart` | `root:root 0644` |
 | `sudoers/ianseo-maintenance` | `/etc/sudoers.d/ianseo-maintenance` | `root:root 0440` |
 | `logrotate/ianseo` | `/etc/logrotate.d/ianseo` | `root:root 0644` |
 | `fail2ban/filter-ianseo-auth.conf` | `/etc/fail2ban/filter.d/ianseo-auth.conf` | `root:root 0644` |
@@ -33,6 +35,7 @@ et ne peut pas les modifier. Vous les copiez une fois, à la main.
 | `apt/apt-daily.timer.conf` | `/etc/systemd/system/apt-daily.timer.d/ianseo.conf` | `root:root 0644` |
 | `apt/apt-daily-upgrade.timer.conf` | `/etc/systemd/system/apt-daily-upgrade.timer.d/ianseo.conf` | `root:root 0644` |
 | `apt/51ianseo-auto-reboot` | `/etc/apt/apt.conf.d/51ianseo-auto-reboot` (facultatif) | `root:root 0644` |
+| `needrestart/ianseo.conf` | `/etc/needrestart/conf.d/ianseo.conf` | `root:root 0644` |
 | `mysql/ianseo.cnf` | `/etc/mysql/mariadb.conf.d/99-ianseo.cnf` (MySQL 8 : `/etc/mysql/mysql.conf.d/`) | `root:root 0644` |
 
 La page de maintenance (`apache/maintenance.html`) s'affiche dans la langue du navigateur du visiteur
@@ -52,6 +55,7 @@ sudo install -m 0750 -o root -g root bin/ianseo-unlock          /usr/local/bin/
 sudo install -m 0750 -o root -g root bin/ianseo-maintenance-on  /usr/local/bin/
 sudo install -m 0750 -o root -g root bin/ianseo-maintenance-off /usr/local/bin/
 sudo install -m 0750 -o root -g root bin/ianseo-restore         /usr/local/bin/
+sudo install -m 0750 -o root -g root bin/ianseo-restart-services /usr/local/bin/
 
 # Page de maintenance
 sudo mkdir -p /var/www/maintenance
@@ -71,6 +75,9 @@ sudo visudo -c
 sudo touch /var/log/ianseo-maintenance.log /var/log/ianseo-auth.log /var/log/ianseo-backup.log
 sudo chown www-data:adm /var/log/ianseo-maintenance.log /var/log/ianseo-auth.log /var/log/ianseo-backup.log
 sudo chmod 0640        /var/log/ianseo-maintenance.log /var/log/ianseo-auth.log /var/log/ianseo-backup.log
+# Les installations plus anciennes ont un fichier par journal (/etc/logrotate.d/ianseo-maintenance,
+# ianseo-auth), qui oublient ianseo-backup.log : les supprimer d'abord — deux règles pour le même
+# journal font échouer logrotate.
 sudo install -m 0644 -o root -g root logrotate/ianseo /etc/logrotate.d/
 
 # Mises à jour du système à heure fixe, après la maintenance de 03:15 (SERVEUR.md § 4.1)
@@ -78,6 +85,10 @@ sudo install -D -m 0644 apt/apt-daily.timer.conf         /etc/systemd/system/apt
 sudo install -D -m 0644 apt/apt-daily-upgrade.timer.conf /etc/systemd/system/apt-daily-upgrade.timer.d/ianseo.conf
 sudo systemctl daemon-reload
 sudo install -m 0644 -o root -g root apt/51ianseo-auto-reboot /etc/apt/apt.conf.d/   # facultatif
+# Services qui tournent encore avec une ancienne copie après une mise à jour : listés seulement,
+# redémarrés la nuit (SERVEUR.md § 4.1)
+sudo install -D -m 0644 needrestart/ianseo.conf /etc/needrestart/conf.d/ianseo.conf   # réglage d'abord :
+sudo apt install -y needrestart                                                      # il ne demande alors rien
 
 # Base de données (SERVEUR.md § 6.3) — MySQL 8 : /etc/mysql/mysql.conf.d/ à la place
 sudo install -m 0644 -o root -g root mysql/ianseo.cnf /etc/mysql/mariadb.conf.d/99-ianseo.cnf
@@ -96,6 +107,9 @@ sudo install -m 0644 -o root -g root cron/ianseo-backup-live /etc/cron.d/ianseo-
 sudo install -m 0644 -o root -g root cron/ianseo-waitlist /etc/cron.d/ianseo-waitlist
 # Indice de confiance des payeurs, une fois par nuit à 05:15 (après la fenêtre de maintenance)
 sudo install -m 0644 -o root -g root cron/ianseo-trust /etc/cron.d/ianseo-trust
+# Services redémarrés la nuit après une mise à jour, 04:40 (SERVEUR.md § 4.1)
+sudo install -m 0644 -o root -g root cron/ianseo-restart /etc/cron.d/ianseo-restart
+sudo ianseo-restart-services --check
 ```
 
 ## Vérifications

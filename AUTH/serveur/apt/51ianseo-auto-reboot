@@ -9,6 +9,10 @@
 //
 // To never restart by itself: do not install this file, and watch /var/run/reboot-required
 // (present when a restart is pending).
+//
+// Not covered here: a SERVICE that keeps an old copy in memory (Apache after a PHP update) —
+// reboot-required is only written for a kernel or a system library. ianseo-restart-services
+// (04:40) restarts those services, or leaves them to this reboot when one is scheduled.
 
 Unattended-Upgrade::Automatic-Reboot "true";
 Unattended-Upgrade::Automatic-Reboot-WithUsers "true";

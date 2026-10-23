@@ -271,10 +271,23 @@ function aut_logos_sync_tournament($tourId)
         // A write failure must SHOW: on a hardened server, TV/Photos may be read-only for the
         // web server, and the logos would then never be set — without any message if they
         // were merely not counted.
-        if (@file_put_contents($file, $jpg) !== false) $res['written']++;
+        if (aut_logos_write($file, $jpg)) $res['written']++;
         else $res['failed']++;
     }
     return $res;
+}
+
+/**
+ * Writes a logo file in one go: beside its target, then renamed over it. The nightly sync runs
+ * with the site open, and a page reading the file while it is written would show half an image.
+ */
+function aut_logos_write($file, $jpg)
+{
+    $tmp = $file . '.tmp-' . getmypid();
+    if (@file_put_contents($tmp, $jpg) === false) return false;
+    if (@rename($tmp, $file)) return true;
+    @unlink($tmp);
+    return false;
 }
 
 /** Competitions to feed: those not over yet (like the licence sync). */
@@ -317,7 +330,7 @@ function aut_logos_ensure_club($tourId, $clubCode)
         if (!is_dir($dir)) @mkdir($dir, 0775, true);
         $file = $dir . $safe . '-Fl-' . $code . '.jpg';
         if (!is_file($file) || md5_file($file) !== md5($r->LgJpg)) {
-            @file_put_contents($file, $r->LgJpg);
+            aut_logos_write($file, $r->LgJpg);
         }
         return true;
     } catch (\Throwable $e) {

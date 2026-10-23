@@ -50,7 +50,7 @@ list() {
         printf '  %6s  %s\n' "$(du -h "$DIR/$f" | cut -f1)" "$f"
     done
     echo
-    echo "  ianseo-db-…     database, taken every night with the site closed"
+    echo "  ianseo-db-…     database, taken every night (site closed on a night with an update)"
     echo "  ianseo-live-…   database, live copy (site open)"
     echo "  ianseo-files-…  files of the site (code + modules), same night as the ianseo-db-… of the same time stamp"
     echo

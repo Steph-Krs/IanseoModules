@@ -345,11 +345,14 @@ function bk_fed_refresh_accounts()
         }
         bk_other_lue_sync($a);
     }
-    // Clubmates registered without an account: their rows follow the file too.
+    // Clubmates registered without an account: their rows follow the file too. COLLATE on the
+    // module's column: LookUpEntries may have another collation (general_ci on a Debian server),
+    // and the comparison then stops the script with error 1267 — every night from 12 to 23
+    // October 2026 on the test server, unseen until the maintenance learnt to read it.
     $in = implode(', ', array_map('StrSafe_DB', array_keys(bk_fed_countries())));
     $rs = safe_r_sql("SELECT DISTINCT LueCode FROM LookUpEntries
         WHERE LueIocCode IN ($in) AND LueCode LIKE CONCAT(LueIocCode, '-%')
-          AND NOT EXISTS (SELECT 1 FROM BookingArchers WHERE BaLicence = LueCode)");
+          AND NOT EXISTS (SELECT 1 FROM BookingArchers WHERE BaLicence COLLATE utf8mb4_unicode_ci = LueCode)");
     while ($r = safe_fetch($rs)) bk_fed_lue_ensure($r->LueCode);
     return $n;
 }

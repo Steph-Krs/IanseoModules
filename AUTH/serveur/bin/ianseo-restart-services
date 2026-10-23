@@ -1,0 +1,121 @@
+#!/bin/bash
+# ianseo-restart-services — restarts, AT NIGHT ONLY, the services that still run an old copy of
+# an updated program: typically Apache keeping the previous PHP in memory after a PHP update.
+#
+# To install as /usr/local/bin/ianseo-restart-services (root:root, chmod 750). Run every night
+# at 04:40 by /etc/cron.d/ianseo-restart, after the system updates of 04:30.
+#
+#   sudo ianseo-restart-services --check   shows what waits for a restart; changes nothing
+#   sudo ianseo-restart-services --now     restarts now, even in the daytime (your decision)
+#
+# Why: installing an update replaces the files on disk, not the copy that a running service has
+# in memory. In October 2026, PHP 8.2.35 (two critical flaws) was installed on a test server and
+# Apache went on serving the vulnerable 8.2.34 for 34 hours: Debian restarts nothing after a PHP
+# update. needrestart finds such services; needrestart/ianseo.conf makes it only LIST them, so
+# that nothing restarts in the daytime, when competitions run. An update caught up in the
+# afternoon (server switched on after 04:30) waits for the next night.
+#
+# One restart, never two: when a reboot is scheduled for tonight (reboot-required, reboot at
+# 04:45 by 51ianseo-auto-reboot), the reboot restarts everything and the services are left to it.
+#
+# Log: /var/log/ianseo-maintenance.log, lines "restart-services:".
+set -uo pipefail
+
+NIGHT_FROM=4            # night restarts allowed from 04:00...
+NIGHT_TO=6              # ...until 05:59, before the first users
+REBOOT_WITHIN=10800     # a reboot scheduled within 3 h takes over the restarts
+WAIT_APT=2400           # waits up to 40 min for the 04:30 installation to finish
+REBOOT_FLAG=/var/run/reboot-required
+SCHEDULED=/run/systemd/shutdown/scheduled
+
+say() { echo "$(date '+%F %T') restart-services: $*"; }
+
+case "${1:-}" in
+    '')      MODE=night ;;
+    --check) MODE=check ;;
+    --now)   MODE=now ;;
+    *)       echo "usage: ianseo-restart-services [--check | --now]" >&2; exit 2 ;;
+esac
+
+[ "$(id -u)" -eq 0 ] || { echo "To run as root (sudo)." >&2; exit 1; }
+if ! command -v needrestart >/dev/null 2>&1; then
+    say "needrestart is not installed (sudo apt install needrestart): nothing checked."
+    exit 0
+fi
+
+# Services running an outdated copy, on one line. Batch mode only reports, it restarts nothing.
+pending() {
+    needrestart -b -r l </dev/null 2>/dev/null | sed -n 's/^NEEDRESTART-SVC: *//p' | sort -u | tr '\n' ' ' | sed 's/ $//'
+}
+
+# Seconds left before the scheduled reboot; nothing when no reboot is scheduled.
+reboot_in() {
+    [ -r "$SCHEDULED" ] && grep -q '^MODE=reboot' "$SCHEDULED" || return 0
+    local usec
+    usec=$(sed -n 's/^USEC=\([0-9]*\).*/\1/p' "$SCHEDULED")
+    [ -n "$usec" ] && echo $(( usec / 1000000 - $(date +%s) ))
+}
+
+apt_busy() { [ "$(systemctl show -p ActiveState --value apt-daily-upgrade.service 2>/dev/null)" = activating ]; }
+
+if [ "$MODE" = check ]; then
+    svcs=$(pending)
+    echo "Waiting for a restart: ${svcs:-nothing}"
+    if [ "$(needrestart -b -r l </dev/null 2>/dev/null | sed -n 's/^NEEDRESTART-KSTA: *//p')" = 3 ]; then
+        echo "Kernel: a newer kernel is installed, only a reboot loads it."
+    fi
+    if [ -e "$REBOOT_FLAG" ]; then
+        echo "Reboot required by: $(tr '\n' ' ' < "$REBOOT_FLAG.pkgs" 2>/dev/null)"
+    fi
+    left=$(reboot_in)
+    [ -n "$left" ] && echo "Reboot scheduled in $(( left / 60 )) min."
+    apt_busy && echo "System updates are being installed right now."
+    if [ -n "$svcs" ]; then
+        echo "Restart now, outside a competition: sudo ianseo-restart-services --now"
+    fi
+    exit 0
+fi
+
+if [ "$MODE" = night ]; then
+    hour=$(date +%-H)
+    if [ "$hour" -lt "$NIGHT_FROM" ] || [ "$hour" -ge "$NIGHT_TO" ]; then
+        say "$(printf 'outside the night (%02d:00-%02d:00): nothing restarted' "$NIGHT_FROM" "$NIGHT_TO") (--now to force)."
+        exit 0
+    fi
+fi
+
+# The installation of 04:30 may still be running: restarting in the middle of it would be useless.
+waited=0
+while apt_busy; do
+    if [ "$waited" -ge "$WAIT_APT" ]; then
+        say "system updates still being installed after $(( WAIT_APT / 60 )) min: nothing restarted."
+        exit 0
+    fi
+    sleep 30
+    waited=$(( waited + 30 ))
+done
+
+svcs=$(pending)
+if [ -z "$svcs" ]; then
+    say "no service waiting for a restart."
+    exit 0
+fi
+
+left=$(reboot_in)
+if [ -n "$left" ] && [ "$left" -ge 0 ] && [ "$left" -le "$REBOOT_WITHIN" ]; then
+    say "reboot scheduled in $(( left / 60 )) min: it restarts everything ($svcs)."
+    exit 0
+fi
+
+say "restarting: $svcs"
+NEEDRESTART_MODE=a DEBIAN_FRONTEND=noninteractive needrestart -r a </dev/null 2>&1 | sed 's/^/    /'
+still=$(pending)
+if [ -n "$still" ]; then
+    say "still outdated, needrestart leaves them to a reboot: $still"
+else
+    say "done: every service runs the installed version."
+fi
+if [ -e "$REBOOT_FLAG" ] && [ -z "$left" ]; then
+    say "a reboot is still required (kernel or system library) and none is scheduled (51ianseo-auto-reboot not installed?)."
+fi
+exit 0

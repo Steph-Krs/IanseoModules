@@ -201,8 +201,13 @@ essentielles.
 - 🚨 Alerte à l'administrateur quand la nuit échoue ou ne tourne plus ; signal de vie facultatif
   vers un service de supervision
 - 🩺 Page **État du serveur** : signale les réglages qui ralentissent ou bloquent un serveur ianseo
-  en ligne (MySQL 8, connexions, mémoire, sessions, taille des imports, départs surdimensionnés…),
-  avec la correction à appliquer
+  en ligne (MySQL 8, connexions, mémoire, sessions, taille des imports, départs surdimensionnés,
+  PHP mis à jour mais pas encore chargé…), les fichiers système manquants ou périmés par rapport
+  aux gabarits du module, et la durée de fermeture du site la dernière nuit, avec la correction à
+  appliquer
+- 🌙 **Maintenance de nuit sans fermeture inutile** : le site ne ferme que le temps de mettre en
+  place une mise à jour du cœur ou d'un module (quelques secondes, téléchargée à l'avance) ;
+  sauvegarde, licences, logos et autres synchronisations se font site ouvert, en priorité basse
 - 📒 **Journal des tâches** sur la même page : résultat de chaque tâche planifiée des 14 derniers
   jours (maintenance de nuit étape par étape, licences FFTA, fichiers des licenciés étrangers),
   avec le détail de chaque erreur — le serveur se suit sans ligne de commande
@@ -300,17 +305,17 @@ les règles d'accès.
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:302` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:457` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:548` | — |
-| `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:166` | review scope by hand |
-| `INSERT INTO` | `LookUpEntries` | `cron/sync-licences.php:183` | — |
-| `UPDATE` | `LookUpPaths` | `cron/sync-licences.php:187` | review scope by hand |
-| `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:215` | review scope by hand |
-| `INSERT IGNORE INTO` | `LookUpEntries` | `cron/sync-licences.php:227` | — |
-| `INSERT INTO` | `LookUpPaths` | `cron/sync-licences.php:263` | — |
-| `UPDATE` | `Entries` | `cron/sync-licences.php:277` | — |
-| `UPDATE` | `Entries` | `cron/sync-licences.php:289` | — |
-| `UPDATE` | `Entries` | `cron/sync-licences.php:299` | — |
+| `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:170` | review scope by hand |
+| `INSERT INTO` | `LookUpEntries` | `cron/sync-licences.php:186` | — |
+| `UPDATE` | `LookUpPaths` | `cron/sync-licences.php:190` | review scope by hand |
+| `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:220` | review scope by hand |
+| `INSERT IGNORE INTO` | `LookUpEntries` | `cron/sync-licences.php:231` | — |
+| `INSERT INTO` | `LookUpPaths` | `cron/sync-licences.php:267` | — |
+| `UPDATE` | `Entries` | `cron/sync-licences.php:281` | — |
+| `UPDATE` | `Entries` | `cron/sync-licences.php:293` | — |
+| `UPDATE` | `Entries` | `cron/sync-licences.php:303` | — |
 | `INSERT INTO` | `Flags` | `logos-lib.php:267` | — |
-| `INSERT INTO` | `Flags` | `logos-lib.php:313` | — |
+| `INSERT INTO` | `Flags` | `logos-lib.php:326` | — |
 | `UPDATE` | `Entries` | `shop/lib/desk.php:259` | review scope by hand |
 | `INSERT INTO` | `Countries` | `shop/lib/officials.php:130` | — |
 | `DELETE FROM` | `TournamentInvolved` | `shop/lib/officials.php:165` | — |
