@@ -170,8 +170,12 @@ function aut_health_templates($root = '')
         } elseif ($t['same'] && is_readable($root . $t['found']) && is_readable($tpl . $t['src'])
             && md5_file($root . $t['found']) !== md5_file($tpl . $t['src'])) {
             $t['state'] = 'differs';
-            $t['comments'] = aut_health_meaningful_lines(file_get_contents($root . $t['found']))
-                === aut_health_meaningful_lines(file_get_contents($tpl . $t['src']));
+            $mine = aut_health_meaningful_lines(file_get_contents($root . $t['found']));
+            $new  = aut_health_meaningful_lines(file_get_contents($tpl . $t['src']));
+            $t['comments'] = $mine === $new;
+            // Every working line of the installed file is still in the template: an older version
+            // of it, which the template only completes — nothing set by hand can be lost.
+            $t['adds'] = (!$t['comments'] && !array_diff($mine, $new)) ? array_values(array_diff($new, $mine)) : array();
         } else {
             $t['state'] = 'ok';
         }
@@ -196,9 +200,10 @@ function aut_health_meaningful_lines($text)
  * The commands that install the missing templates and bring the differing ones in line. Every
  * command goes through sudo: the module's folder is readable by root and the web server only
  * (ianseo-lock), so a plain "diff" from the administrator's account is refused. A file whose
- * difference is only in its comments is installed again directly; for a real difference the
- * diff comes first and the installation is given commented out, so that pasting the whole block
- * never overwrites a setting made by hand (a time moved in a cron file, for instance).
+ * difference is only in its comments, or an older version that the template only completes (all
+ * its working lines are still in it), is installed again directly; any other difference may be a
+ * setting made by hand (a time moved in a cron file): the diff comes first and the installation
+ * is given commented out, so that pasting the whole block never overwrites it.
  */
 function aut_health_template_fix($states)
 {
@@ -221,8 +226,9 @@ function aut_health_template_fix($states)
             if ($then($dest) !== '') $after[$then($dest)] = true;
         } elseif ($t['state'] === 'differs') {
             $install = 'sudo install -D -m 0644 -o root -g root ' . $tpl . $t['src'] . ' ' . $t['found'];
-            if (!empty($t['comments'])) {
-                $cmd[] = $install . '   # ' . aut_t('HlTplCommentsCmd');
+            if (!empty($t['comments']) || !empty($t['adds'])) {
+                $what = !empty($t['comments']) ? aut_t('HlTplCommentsCmd') : aut_t('HlTplAddsCmd', implode(' ; ', $t['adds']));
+                $cmd[] = $install . '   # ' . (mb_strlen($what) > 110 ? mb_substr($what, 0, 109) . '…' : $what);
                 if ($then($dest) !== '') $after[$then($dest)] = true;
             } else {
                 $cmd[] = 'sudo diff -u ' . $t['found'] . ' ' . $tpl . $t['src'] . '   # ' . aut_t('HlTplDiffCmd');
@@ -417,7 +423,8 @@ function aut_health_checks()
             if (($t['state'] === 'missing' || $t['state'] === 'old') && $t['need']) $needMissing = true;
             $list[] = explode('|', $t['dest'])[0] . ' — ' . ($t['state'] === 'old'
                 ? aut_t('HlTplOld', array('files' => $t['found'], 'logs' => implode(', ', $t['unrotated'])))
-                : aut_t($t['state'] === 'differs' ? (empty($t['comments']) ? 'HlTplDiff' : 'HlTplDiffComments')
+                : aut_t($t['state'] === 'differs'
+                    ? (!empty($t['comments']) ? 'HlTplDiffComments' : (!empty($t['adds']) ? 'HlTplDiffAdds' : 'HlTplDiff'))
                     : ($t['need'] ? 'HlTplMiss' : 'HlTplOpt')));
         }
         if (!$list) {
