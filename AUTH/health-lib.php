@@ -170,6 +170,8 @@ function aut_health_templates($root = '')
         } elseif ($t['same'] && is_readable($root . $t['found']) && is_readable($tpl . $t['src'])
             && md5_file($root . $t['found']) !== md5_file($tpl . $t['src'])) {
             $t['state'] = 'differs';
+            $t['comments'] = aut_health_meaningful_lines(file_get_contents($root . $t['found']))
+                === aut_health_meaningful_lines(file_get_contents($tpl . $t['src']));
         } else {
             $t['state'] = 'ok';
         }
@@ -178,12 +180,37 @@ function aut_health_templates($root = '')
     return $out;
 }
 
-/** The commands that install the missing templates and show how the differing ones differ. */
+/** The lines of a system file that do something: comments and blank lines left out. */
+function aut_health_meaningful_lines($text)
+{
+    $out = array();
+    foreach (preg_split('/\R/', (string) $text) as $l) {
+        $l = trim($l);
+        if ($l === '' || $l[0] === '#' || strpos($l, '//') === 0) continue;
+        $out[] = $l;
+    }
+    return $out;
+}
+
+/**
+ * The commands that install the missing templates and bring the differing ones in line. Every
+ * command goes through sudo: the module's folder is readable by root and the web server only
+ * (ianseo-lock), so a plain "diff" from the administrator's account is refused. A file whose
+ * difference is only in its comments is installed again directly; for a real difference the
+ * diff comes first and the installation is given commented out, so that pasting the whole block
+ * never overwrites a setting made by hand (a time moved in a cron file, for instance).
+ */
 function aut_health_template_fix($states)
 {
     $tpl = __DIR__ . '/serveur/';
     $cmd = array();
-    $reload = false;
+    $after = array();   // what makes an installed file taken into account, run once at the end
+    // A timer drop-in is only read after daemon-reload, a fail2ban filter after a reload.
+    $then = function ($dest) {
+        if (strpos($dest, '/etc/systemd/') === 0) return 'sudo systemctl daemon-reload';
+        if (strpos($dest, '/etc/fail2ban/') === 0) return 'sudo systemctl reload fail2ban';
+        return '';
+    };
     foreach ($states as $t) {
         $dest = explode('|', $t['dest'])[0];
         if ($t['state'] === 'missing') {
@@ -191,18 +218,22 @@ function aut_health_template_fix($states)
                 ? 'sudo install -m 0750 -o root -g root ' . $tpl . $t['src'] . ' /usr/local/bin/'
                 : 'sudo install -D -m 0644 -o root -g root ' . $tpl . $t['src'] . ' ' . $dest;
             if ($t['src'] === 'needrestart/ianseo.conf' && !is_file('/usr/sbin/needrestart')) $cmd[] = 'sudo apt install -y needrestart';
+            if ($then($dest) !== '') $after[$then($dest)] = true;
         } elseif ($t['state'] === 'differs') {
-            $cmd[] = 'diff -u ' . $t['found'] . ' ' . $tpl . $t['src'] . '   # ' . aut_t('HlTplDiffCmd');
+            $install = 'sudo install -D -m 0644 -o root -g root ' . $tpl . $t['src'] . ' ' . $t['found'];
+            if (!empty($t['comments'])) {
+                $cmd[] = $install . '   # ' . aut_t('HlTplCommentsCmd');
+                if ($then($dest) !== '') $after[$then($dest)] = true;
+            } else {
+                $cmd[] = 'sudo diff -u ' . $t['found'] . ' ' . $tpl . $t['src'] . '   # ' . aut_t('HlTplDiffCmd');
+                $cmd[] = '# ' . $install . ($then($dest) !== '' ? ' && ' . $then($dest) : '') . '   # ' . aut_t('HlTplReinstall');
+            }
         } elseif ($t['state'] === 'old') {
             $cmd[] = 'sudo rm ' . implode(' ', $t['old']) . '   # ' . aut_t('HlTplOldCmd');
             $cmd[] = 'sudo install -D -m 0644 -o root -g root ' . $tpl . $t['src'] . ' ' . $dest;
-        } else {
-            continue;
         }
-        if (strpos($dest, '/etc/systemd/') === 0) $reload = true;
     }
-    if ($reload) $cmd[] = 'sudo systemctl daemon-reload';
-    return implode("\n", $cmd);
+    return implode("\n", array_merge($cmd, array_keys($after)));
 }
 
 /** Every check, in display order. */
@@ -386,7 +417,8 @@ function aut_health_checks()
             if (($t['state'] === 'missing' || $t['state'] === 'old') && $t['need']) $needMissing = true;
             $list[] = explode('|', $t['dest'])[0] . ' — ' . ($t['state'] === 'old'
                 ? aut_t('HlTplOld', array('files' => $t['found'], 'logs' => implode(', ', $t['unrotated'])))
-                : aut_t($t['state'] === 'differs' ? 'HlTplDiff' : ($t['need'] ? 'HlTplMiss' : 'HlTplOpt')));
+                : aut_t($t['state'] === 'differs' ? (empty($t['comments']) ? 'HlTplDiff' : 'HlTplDiffComments')
+                    : ($t['need'] ? 'HlTplMiss' : 'HlTplOpt')));
         }
         if (!$list) {
             $out[] = aut_health_item('ok', aut_t('HlTplT'), aut_t('HlTplOk', count($tpls)));
