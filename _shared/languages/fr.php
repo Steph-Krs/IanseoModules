@@ -117,6 +117,7 @@ $lang['ErrGitHubUnreachable']       = 'Impossible de joindre GitHub (vérifiez l
 $lang['ErrBadJson']                 = 'Réponse JSON invalide';
 $lang['ErrBadGitHubUrl']            = 'URL GitHub invalide dans module.json';
 $lang['ErrRemoteVersionUnreadable'] = 'Impossible de lire le version.json distant';
+$lang['ErrStagingDir']              = 'Impossible de créer un dossier temporaire pour le téléchargement dans {$a}';
 $lang['ErrRemoteVersionInvalid']    = 'version.json distant absent ou invalide';
 $lang['ErrSharedVersionUnreadable'] = 'Impossible de lire le _shared/version.json distant';
 $lang['ErrSharedVersionInvalid']    = '_shared/version.json distant invalide';

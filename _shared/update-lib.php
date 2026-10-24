@@ -239,7 +239,30 @@ function upd_gh_raw($url, $token = '') {
         'ignore_errors' => true,
     ]]);
 
-    return @file_get_contents($url, false, $ctx);
+    $body = @file_get_contents($url, false, $ctx);
+    // ignore_errors keeps the body of an HTTP error, and raw.githubusercontent.com answers a
+    // missing file with the text "404: Not Found": returned as content, it was written in place
+    // of the file. The status of the last response (after redirects) decides.
+    $hdr = function_exists('http_get_last_response_headers')
+        ? (array) http_get_last_response_headers()
+        : (isset($http_response_header) ? $http_response_header : []);
+    if ($body !== false && upd_http_status($hdr) >= 400) return false;
+    return $body;
+}
+
+/** HTTP status of the last response in a list of response headers (0 when none). */
+function upd_http_status($headers) {
+    $code = 0;
+    foreach ($headers as $h) {
+        if (preg_match('#^HTTP/\S+\s+(\d{3})#', (string)$h, $m)) $code = (int)$m[1];
+    }
+    return $code;
+}
+
+/** A manifest path that stays inside its folder: the manifest comes from the repository. */
+function upd_safe_rel($rel) {
+    return is_string($rel) && $rel !== '' && strpos($rel, '..') === false
+        && strpos($rel, "\0") === false && $rel[0] !== '/' && $rel[0] !== '\\';
 }
 
 /* =======================================================================
@@ -306,13 +329,20 @@ function upd_compare($local_ver, $remote_ver) {
  * @return array ['ok' => count, 'fail' => [paths]].
  */
 function upd_sync_files($cfg, $module_dir, $files) {
+    $staged = upd_fetch_files($cfg, $files);
+    if (!isset($staged['_error'])) {
+        $res = upd_apply_files($staged, $module_dir);
+        upd_discard_staged($staged);
+        return ['ok' => $res['ok'], 'fail' => array_merge($staged['fail'], $res['fail'])];
+    }
+
+    // No temporary folder (open_basedir…): straight into the module, as before staging existed.
     $base  = upd_raw_base($cfg);
     $token = $cfg['github_token'] ?? '';
     $ok    = 0;
     $fail  = [];
-
     foreach ($files as $rel) {
-        $content = upd_gh_raw("$base/$rel", $token);
+        $content = upd_safe_rel($rel) ? upd_gh_raw("$base/$rel", $token) : false;
         if ($content !== false && $content !== '') {
             $dest = $module_dir . '/' . $rel;
             $dir  = dirname($dest);
@@ -320,10 +350,88 @@ function upd_sync_files($cfg, $module_dir, $files) {
             file_put_contents($dest, $content);
             $ok++;
         } else {
-            $fail[] = $rel;
+            $fail[] = (string)$rel;
         }
     }
     return ['ok' => $ok, 'fail' => $fail];
+}
+
+/**
+ * Download the manifest's files into a temporary folder, without touching the module.
+ *
+ * This is the slow part of an update — one request per file, about two minutes for
+ * a module of 300 files — and it can run while the site stays open. Putting the
+ * files in place afterwards (upd_apply_files) takes well under a second, which is
+ * all the time the nightly maintenance keeps the site closed for.
+ *
+ * @param array $cfg Module configuration.
+ * @param array $files Paths relative to the module folder.
+ * @return array ['dir' => folder, 'files' => [paths fetched], 'fail' => [paths]],
+ *               or ['_error' => message] when no temporary folder can be created.
+ */
+function upd_fetch_files($cfg, $files) {
+    $base = upd_raw_base($cfg);
+    if (!$base) return ['_error' => upd_text('ErrBadGitHubUrl')];
+
+    $dir = rtrim(sys_get_temp_dir(), '/\\') . '/ianseo-upd-' . bin2hex(random_bytes(6));
+    if (!@mkdir($dir, 0700, true)) return ['_error' => upd_text('ErrStagingDir', sys_get_temp_dir())];
+
+    $token = $cfg['github_token'] ?? '';
+    $got   = [];
+    $fail  = [];
+    foreach ($files as $rel) {
+        if (!upd_safe_rel($rel)) { $fail[] = (string)$rel; continue; }
+        $content = upd_gh_raw("$base/$rel", $token);
+        // Empty = failure, not an empty file: far more often the network than a real empty file.
+        if ($content === false || $content === '') { $fail[] = $rel; continue; }
+        $dest = "$dir/$rel";
+        if (!is_dir(dirname($dest))) @mkdir(dirname($dest), 0700, true);
+        if (@file_put_contents($dest, $content) === false) { $fail[] = $rel; continue; }
+        $got[] = $rel;
+    }
+    return ['dir' => $dir, 'files' => $got, 'fail' => $fail];
+}
+
+/**
+ * Put the files of upd_fetch_files() in place.
+ *
+ * Each file is written beside its target and renamed over it, so a page never
+ * reads half a file. version.json goes last: an interrupted run keeps the former
+ * version number, and the update is simply played again.
+ *
+ * @param array $staged Result of upd_fetch_files().
+ * @param string $module_dir Module root.
+ * @return array ['ok' => count, 'fail' => [paths]].
+ */
+function upd_apply_files($staged, $module_dir) {
+    $files = $staged['files'] ?? [];
+    usort($files, function ($a, $b) { return (int)($a === 'version.json') - (int)($b === 'version.json'); });
+    $ok   = 0;
+    $fail = [];
+    foreach ($files as $rel) {
+        $dest = $module_dir . '/' . $rel;
+        if (!is_dir(dirname($dest))) @mkdir(dirname($dest), 0755, true);
+        $tmp = $dest . '.upd-' . getmypid();
+        if (@copy($staged['dir'] . '/' . $rel, $tmp) && @rename($tmp, $dest)) { $ok++; continue; }
+        @unlink($tmp);
+        $fail[] = $rel;
+    }
+    return ['ok' => $ok, 'fail' => $fail];
+}
+
+/** Remove the temporary folder of upd_fetch_files() (and nothing else). */
+function upd_discard_staged($staged) {
+    $dir = (string)($staged['dir'] ?? '');
+    if ($dir === '' || strpos(basename($dir), 'ianseo-upd-') !== 0 || !is_dir($dir)) return;
+    $it = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($it as $f) {
+        if ($f->isDir()) @rmdir($f->getPathname());
+        else @unlink($f->getPathname());
+    }
+    @rmdir($dir);
 }
 
 /* =======================================================================
