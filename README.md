@@ -61,6 +61,11 @@ Modules pour le projet I@nseo :
   pour distinguer ses installations d'un coup d'œil, chaque couleur en version claire et sombre.
   Réglage propre à chaque navigateur, impressions inchangées, aucune modification du cœur. Aucune
   table.
+- [Lecture des feuilles de marque](OCR/README_OCR_FR.md) — Photographier une feuille de marque
+  imprimée par ianseo (caméra de l'ordinateur ou téléphone) : grille retrouvée et redressée, archer
+  identifié par le code-barres ou la cible, chaque case découpée à côté des valeurs de ianseo ; et
+  capture en série, caméra allumée, une photo par feuille présentée. En développement : la lecture
+  des valeurs manuscrites vient ensuite. Aucune table.
 
 ## Installation automatique (Mac / Linux)
 
