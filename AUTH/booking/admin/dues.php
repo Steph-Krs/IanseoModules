@@ -302,7 +302,11 @@ if ($refunds) {
         . '<b>' . bk_e(bk_t($pending ? 'DuRefundToDo' : 'DuRefundsDone')) . '</b> — ' . bk_e(bk_t('DuRefundWhy'))
         . '<ul style="margin:6px 0 0 18px">';
     foreach ($refunds as $f) {
-        $what = bk_t('DuRefundLine', array('club' => bk_e(trim($f->BfClubCode . ' ' . $f->BfClubName)), 'amount' => bk_e(due_eur($f->BfAmount))))
+        $club = bk_e(trim($f->BfClubCode . ' ' . $f->BfClubName));
+        // Who it was, unless the archer has been anonymised since (lib/clubmoves.php, anonymise-lib.php).
+        $what = ($f->BfReason === 'CLUBMOVE' && $f->BfLabel !== ''
+                ? bk_t('DuRefundLineMove', array('club' => $club, 'who' => bk_e($f->BfLabel), 'amount' => bk_e(due_eur($f->BfAmount))))
+                : bk_t('DuRefundLine', array('club' => $club, 'amount' => bk_e(due_eur($f->BfAmount)))))
             . (isset($methods[$f->BfMethod]) ? ' (' . bk_e($methods[$f->BfMethod]) . ')' : '')
             . ' — ' . bk_e(bk_t('DuReportedOn', bk_date_fr($f->BfCreated)));
         if (intval($f->BfDone)) {

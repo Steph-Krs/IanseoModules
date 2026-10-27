@@ -68,11 +68,7 @@ function bk_licence_daily($tourId)
             if ($online && !$open) continue;   // registration closed: the organiser is told only
             if ($open && $r->BrId !== null) {
                 $ses = intval($r->QuSession);
-                safe_w_sql("UPDATE Qualifications INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
-                    SET QuSession = 0, QuTarget = 0, QuLetter = '', QuTargetNo = ''
-                    WHERE QuId = $enId");
-                safe_w_sql("UPDATE Entries SET EnStatus = 5 WHERE EnId = $enId AND EnTournament = $tourId");
-                safe_w_sql("UPDATE BookingRegistrations SET BrLicHold = NOW(), BrHoldSession = $ses WHERE BrEnId = $enId");
+                bk_reg_hold($tourId, $enId, $ses, '');
                 bk_log('LIC_HOLD', $r->EnCode);
                 if ($ses > 0) $replan[$ses] = true;
                 $out['suspended']++;
@@ -83,15 +79,7 @@ function bk_licence_daily($tourId)
         } elseif ($held && $open) {
             // Licence back: the registration waits for its departure, first among those who
             // registered after it (ordered by BwCreated).
-            $have = safe_fetch(safe_r_sql("SELECT BwId FROM BookingWaitlist
-                WHERE BwTournament = $tourId AND BwEnId = $enId AND BwReturn = 1 AND BwStatus = 0"));
-            if (!$have) {
-                safe_w_sql("INSERT INTO BookingWaitlist SET BwTournament = $tourId,
-                    BwLicence = " . StrSafe_DB($r->EnCode) . ", BwArcher = " . intval($r->BrArcher) . ",
-                    BwByRole = " . StrSafe_DB((string) $r->BrByRole) . ", BwBy = " . StrSafe_DB((string) $r->BrBy) . ",
-                    BwDivision = " . StrSafe_DB($r->EnDivision) . ", BwClass = " . StrSafe_DB($r->EnClass) . ",
-                    BwFace = " . intval($r->EnTargetFace) . ", BwSession = " . intval($r->BrHoldSession) . ",
-                    BwEnId = $enId, BwReturn = 1, BwCreated = " . StrSafe_DB($r->BrCreated));
+            if (bk_reg_return_row($tourId, $enId)) {
                 bk_log('LIC_BACK', $r->EnCode);
                 $out['back']++;
             }
@@ -101,6 +89,45 @@ function bk_licence_daily($tourId)
     foreach (array_keys($replan) as $ses) bk_replan_session($tourId, $ses, $cfg);
     if ($open) bk_waitlist_process($tourId);
     return $out;
+}
+
+/**
+ * Suspends a registration: out of its departure (kept in BrHoldSession), no target, status 5
+ * "unknown status at the date of the tournament". $reason: '' its licence is missing, 'club' its
+ * new club cannot be placed within the rule (lib/clubmoves.php).
+ */
+function bk_reg_hold($tourId, $enId, $ses, $reason)
+{
+    $tourId = intval($tourId); $enId = intval($enId);
+    safe_w_sql("UPDATE Qualifications INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
+        SET QuSession = 0, QuTarget = 0, QuLetter = '', QuTargetNo = ''
+        WHERE QuId = $enId");
+    safe_w_sql("UPDATE Entries SET EnStatus = 5 WHERE EnId = $enId AND EnTournament = $tourId");
+    safe_w_sql("UPDATE BookingRegistrations SET BrLicHold = NOW(), BrHoldSession = " . intval($ses) . ",
+        BrHoldReason = " . StrSafe_DB((string) $reason) . " WHERE BrEnId = $enId");
+}
+
+/**
+ * The waiting row that brings a suspended registration back (BwReturn), dated from the original
+ * registration so that it comes before the archers who registered later. False when there is
+ * one already.
+ */
+function bk_reg_return_row($tourId, $enId)
+{
+    $tourId = intval($tourId); $enId = intval($enId);
+    $have = safe_fetch(safe_r_sql("SELECT BwId FROM BookingWaitlist
+        WHERE BwTournament = $tourId AND BwEnId = $enId AND BwReturn = 1 AND BwStatus = 0"));
+    if ($have) return false;
+    $r = safe_fetch(safe_r_sql("SELECT EnCode, EnDivision, EnClass, EnTargetFace, BrArcher, BrByRole, BrBy, BrHoldSession, BrCreated
+        FROM BookingRegistrations INNER JOIN Entries ON EnId = BrEnId AND EnTournament = $tourId WHERE BrEnId = $enId"));
+    if (!$r) return false;
+    safe_w_sql("INSERT INTO BookingWaitlist SET BwTournament = $tourId,
+        BwLicence = " . StrSafe_DB($r->EnCode) . ", BwArcher = " . intval($r->BrArcher) . ",
+        BwByRole = " . StrSafe_DB((string) $r->BrByRole) . ", BwBy = " . StrSafe_DB((string) $r->BrBy) . ",
+        BwDivision = " . StrSafe_DB($r->EnDivision) . ", BwClass = " . StrSafe_DB($r->EnClass) . ",
+        BwFace = " . intval($r->EnTargetFace) . ", BwSession = " . intval($r->BrHoldSession) . ",
+        BwEnId = $enId, BwReturn = 1, BwCreated = " . StrSafe_DB($r->BrCreated));
+    return true;
 }
 
 /**
@@ -119,7 +146,8 @@ function bk_licence_restore($tourId, $enId, $session)
         INNER JOIN LookUpEntries ON LueCode = EnCode AND LueIocCode = 'FRA'
         SET EnStatus = IF(LueStatus = 0, 1, LueStatus)
         WHERE EnId = $enId AND EnTournament = $tourId AND EnStatus = 5");
-    safe_w_sql("UPDATE BookingRegistrations SET BrLicHold = NULL, BrHoldSession = 0 WHERE BrEnId = $enId");
+    safe_w_sql("UPDATE BookingRegistrations SET BrLicHold = NULL, BrHoldSession = 0, BrHoldReason = '' WHERE BrEnId = $enId");
+    safe_w_sql("UPDATE BookingClubMoves SET BmvResult = 'back' WHERE BmvEnId = $enId AND BmvResult = 'held'");
 }
 
 /**
@@ -136,9 +164,10 @@ function bk_licence_report($tourId)
         $out[$id] = array('name' => trim($r->EnFirstName . ' ' . $r->EnName), 'code' => $r->EnCode, 'state' => 'absent');
     }
     if (!aut_lic_file_ok()) return array();
+    // Suspended for their licence only: those suspended for their new club are in bk_club_report.
     $rs = safe_r_sql("SELECT EnId, EnCode, EnFirstName, EnName FROM BookingRegistrations
         INNER JOIN Entries ON EnId = BrEnId
-        WHERE BrTournament = $tourId AND BrLicHold IS NOT NULL", false, true);
+        WHERE BrTournament = $tourId AND BrLicHold IS NOT NULL AND BrHoldReason = ''", false, true);
     while ($rs && ($r = safe_fetch($rs))) {
         $id = intval($r->EnId);
         $out[$id] = array('name' => trim($r->EnFirstName . ' ' . $r->EnName), 'code' => $r->EnCode,

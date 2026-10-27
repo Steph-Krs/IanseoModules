@@ -34,7 +34,10 @@ function rg_tags($r, $withPerson = false)
         . '<span class="bk-tag">' . bk_e($r->ClDescription ?: $r->EnClass) . '</span>'
         . '<span class="bk-tag">' . bk_e(bk_t('DepCap', intval($held ? $r->BrHoldSession : $r->QuSession))) . '</span>';
     if ($held) {
-        return $h . '<span class="bk-tag bk-tag-wait" title="' . bk_e(bk_t('LicHeldTip')) . '">' . bk_e(bk_t('LicHeldTag')) . '</span></p>';
+        // Its licence is missing, or its new club cannot be placed within the rule (lib/clubmoves.php).
+        $club = (string) ($r->BrHoldReason ?? '') === 'club';
+        return $h . '<span class="bk-tag bk-tag-wait" title="' . bk_e(bk_t($club ? 'ClubHeldTip' : 'LicHeldTip')) . '">'
+            . bk_e(bk_t($club ? 'ClubHeldTag' : 'LicHeldTag')) . '</span></p>';
     }
     if (isset($r->EnIndClEvent) && intval($r->EnIndClEvent) === 0) {
         $h .= '<span class="bk-tag" title="' . bk_e(bk_t('OutOfEventsTip')) . '">' . bk_e(bk_t('OutOfEvents')) . '</span>';
@@ -247,6 +250,13 @@ if (!empty($_GET['ok']) && $okTour > 0) {
         . bk_e(bk_t('ShareBig')) . '</a></p>';
 }
 echo $err ? bk_msg('err', $err) : '';
+
+// Registrations cancelled since the last visit because the new club of the archer may not take
+// part (lib/clubmoves.php): told once.
+require_once dirname(__DIR__) . '/lib/clubmoves.php';
+foreach (bk_club_notices($archer->BaLicence, true) as $n) {
+    echo bk_msg('err', bk_t('ClubCancelNotice', array('tour' => $n['tour'], 'club' => $n['club'])));
+}
 
 if ($onlyTour > 0) {
     rg_one_competition($onlyTour, $archer, $regs, $authored, $waits);

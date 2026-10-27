@@ -192,7 +192,7 @@ function bk_authored_registrations($archerId, $selfLicence)
     $archerId = intval($archerId);
     if ($archerId <= 0) return array();
 
-    $rs = safe_r_sql("SELECT BrId, BrEnId, BrTournament, BrLicence, BrCreated, BrValidated, BrLicHold, BrHoldSession,
+    $rs = safe_r_sql("SELECT BrId, BrEnId, BrTournament, BrLicence, BrCreated, BrValidated, BrLicHold, BrHoldSession, BrHoldReason,
                 EnFirstName, EnName, EnCode, EnDivision, EnClass, EnIndClEvent,
                 QuSession, QuTarget, QuLetter,
                 DivDescription, ClDescription,
@@ -709,7 +709,22 @@ function bk_unregister($enId, $archerId, $licence, $force = false)
         return array('ok' => false, 'msg' => bk_t('RgClosed'));
     }
 
-    $res = bk_with_tournament($tourId, function () use ($enId, $tourId) {
+    if (!bk_reg_remove($tourId, $enId)) return array('ok' => false, 'msg' => bk_t('RgLocked'));
+
+    safe_w_sql("DELETE FROM BookingRegistrations WHERE BrEnId = $enId");
+    return array('ok' => true);
+}
+
+/**
+ * Removes a participant from the competition, as the core does (events taken over by the next
+ * shoot of the archer, ranks recalculated). False when the organiser locked the participants.
+ * The BookingRegistrations row is left to the caller.
+ */
+function bk_reg_remove($tourId, $enId)
+{
+    $tourId = intval($tourId);
+    $enId = intval($enId);
+    return (bool) bk_with_tournament($tourId, function () use ($enId, $tourId) {
         if (IsBlocked(BIT_BLOCK_PARTICIPANT)) return false;
 
         // Keep the bow and the event flags BEFORE deletion: when the registration carrying the
@@ -736,11 +751,6 @@ function bk_unregister($enId, $archerId, $licence, $force = false)
         }
         return true;
     });
-
-    if (!$res) return array('ok' => false, 'msg' => bk_t('RgLocked'));
-
-    safe_w_sql("DELETE FROM BookingRegistrations WHERE BrEnId = $enId");
-    return array('ok' => true);
 }
 
 /** Registrations of an archer (all competitions), the most recent first. */
@@ -748,7 +758,7 @@ function bk_my_registrations($licence)
 {
     bk_schema();
     $rs = safe_r_sql("SELECT BrId, BrEnId, BrTournament, BrRequest, BrCreated, BrByRole,
-                BrWantLetter, BrWantWith, BrValidated, BrLicHold, BrHoldSession,
+                BrWantLetter, BrWantWith, BrValidated, BrLicHold, BrHoldSession, BrHoldReason,
                 EnDivision, EnClass, EnIndClEvent, EnTargetFace,
                 QuSession, QuTarget, QuLetter,
                 DivDescription, ClDescription,

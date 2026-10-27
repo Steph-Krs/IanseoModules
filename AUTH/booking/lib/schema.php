@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 37);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 38);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -723,6 +723,43 @@ function bk_schema()
         BpScratch    TINYINT      NOT NULL DEFAULT 0,
         BpImported   DATETIME     NOT NULL,
         KEY BpLicenceIdx (BpLicence, BpSeason)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // v38 — the club of the registered archers follows the federation file (lib/clubmoves.php).
+    // BlgClub: the club that paid a journal line for the archer (club payments), so that what an
+    // old club paid can go back to it. The club payments already recorded were all made by the
+    // archer's club of today — nobody changed club before: given that club, and their counter-
+    // lines the club of the line they cancel (once, when the column is new). BrHoldReason: why a
+    // registration is suspended — '' its licence, 'club' too many archers of its new club per
+    // target. BfLabel: who a refund is about, when the person is still known. BookingClubMoves:
+    // every change and its result (moved, held, back, cancel, check), what goes back to the old
+    // club; BmvSeen: the archer saw that the registration was cancelled.
+    if (bk_colonne('BookingLedger', 'BlgClub', "VARCHAR(16) NOT NULL DEFAULT '' AFTER BlgGroup")) {
+        safe_w_sql("UPDATE BookingLedger
+            INNER JOIN Entries ON EnTournament = BlgTournament AND EnCode = BlgAccount COLLATE utf8mb4_unicode_ci
+            INNER JOIN Countries ON CoId = EnCountry
+            SET BlgClub = CoCode WHERE BlgGroup > 0 AND BlgClub = ''");
+        safe_w_sql("UPDATE BookingLedger cl INNER JOIN BookingLedger og ON og.BlgId = cl.BlgCancels
+            SET cl.BlgClub = og.BlgClub WHERE cl.BlgCancels > 0 AND cl.BlgClub = '' AND og.BlgClub <> ''");
+    }
+    bk_colonne('BookingRegistrations', 'BrHoldReason', "VARCHAR(8) NOT NULL DEFAULT '' AFTER BrHoldSession");
+    bk_colonne('BookingRefunds', 'BfLabel', "VARCHAR(160) NOT NULL DEFAULT '' AFTER BfReason");
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BookingClubMoves (
+        BmvId         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        BmvTournament INT UNSIGNED NOT NULL,
+        BmvEnId       INT UNSIGNED NOT NULL,
+        BmvLicence    VARCHAR(25)  NOT NULL DEFAULT '',
+        BmvName       VARCHAR(100) NOT NULL DEFAULT '',
+        BmvFrom       VARCHAR(16)  NOT NULL DEFAULT '',
+        BmvFromName   VARCHAR(80)  NOT NULL DEFAULT '',
+        BmvTo         VARCHAR(16)  NOT NULL DEFAULT '',
+        BmvToName     VARCHAR(80)  NOT NULL DEFAULT '',
+        BmvRefund     DECIMAL(9,2) NOT NULL DEFAULT 0,
+        BmvResult     VARCHAR(8)   NOT NULL DEFAULT 'moved',
+        BmvWhen       DATETIME     NOT NULL,
+        BmvSeen       TINYINT      NOT NULL DEFAULT 0,
+        KEY BmvTourIdx (BmvTournament),
+        KEY BmvLicIdx (BmvLicence)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     $_SESSION[$flag] = true;

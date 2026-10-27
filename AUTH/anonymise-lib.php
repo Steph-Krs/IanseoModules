@@ -316,6 +316,9 @@ function aut_anon_bk_tables($lic)
     if (aut_anon_table('BookingSurveys')) safe_w_sql("UPDATE BookingSurveys SET BqLicence = CONCAT('#', BqId) WHERE BqLicence = $l");
     if (aut_anon_table('BookingSurveyVoters')) safe_w_sql("DELETE FROM BookingSurveyVoters WHERE BvLicence = $l");
     if (aut_anon_table('BookingLog')) safe_w_sql("UPDATE BookingLog SET BlUser = $a WHERE BlUser = $l");
+    // Changes of club: the clubs and the amount stay (a refund may be due), not who it was.
+    if (aut_anon_table('BookingClubMoves')) safe_w_sql("UPDATE BookingClubMoves SET BmvLicence = $a, BmvName = '' WHERE BmvLicence = $l");
+    if (aut_anon_table('BookingRefunds')) safe_w_sql("UPDATE BookingRefunds SET BfLabel = '' WHERE BfLabel LIKE " . StrSafe_DB('%(' . $lic . ')'));
     if (aut_anon_table('BookingReimportConflicts')) {
         safe_w_sql("UPDATE BookingReimportConflicts SET RcLicence = $a, RcName = '' WHERE RcLicence = $l");
     }

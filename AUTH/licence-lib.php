@@ -83,6 +83,21 @@ function aut_lic_desk_refused($tourId)
 }
 
 /**
+ * Archers of a competition whose change of club needs a look (booking/lib/clubmoves.php):
+ * suspended for their new club, or to check by hand (registration closed, or entered by the
+ * organiser). How many. Guarded: 0 while the table is missing.
+ */
+function aut_lic_club_moves($tourId)
+{
+    $t = intval($tourId);
+    $rs = safe_r_sql("SELECT COUNT(DISTINCT BmvEnId) AS n FROM BookingClubMoves
+        WHERE BmvTournament = $t AND BmvResult IN ('held', 'check')
+          AND EXISTS (SELECT 1 FROM Entries WHERE EnId = BmvEnId AND EnTournament = $t)", false, true);
+    $r = $rs ? safe_fetch($rs) : null;
+    return $r ? intval($r->n) : 0;
+}
+
+/**
  * Archers of a competition whose FFTA licence is not in today's file: [EnId => row (EnId,
  * EnCode, EnFirstName, EnName, EnStatus)]. Empty while the file cannot be believed.
  */

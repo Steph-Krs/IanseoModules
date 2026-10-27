@@ -31,6 +31,7 @@ require_once dirname(__DIR__) . '/lib/waitlist.php'; // waiting list
 require_once dirname(__DIR__) . '/lib/sessionrules.php'; // opening of each departure
 require_once dirname(__DIR__) . '/lib/ffta-event.php';    // what the FFTA extranet announces
 require_once dirname(__DIR__) . '/lib/licences.php';      // licences missing from the federation file
+require_once dirname(__DIR__) . '/lib/clubmoves.php';     // changes of club in the federation file
 require_once dirname(__DIR__, 2) . '/adm-lib.php';         // frame of the organiser pages
 
 bk_schema();
@@ -585,6 +586,22 @@ if ($licIssues) {
         . '⚠ <b>' . bk_e(bk_t('LicIssuesTitle', count($licIssues))) . '</b><br>' . bk_e(bk_t('LicIssuesHint')) . '<ul style="margin:6px 0 0">';
     foreach ($licIssues as $li) {
         $out .= '<li>' . bk_e($li['name']) . ' (' . bk_e($li['code']) . ') — ' . bk_e($states[$li['state']]) . '</li>';
+    }
+    $out .= '</ul></div>';
+}
+
+// Changes of club in the federation file (lib/clubmoves.php, checked every night).
+$clubMoves = bk_club_report($TOUR);
+if ($clubMoves) {
+    $states = array('moved' => bk_t('CmStMoved'), 'held' => bk_t('CmStHeld'), 'back' => bk_t('CmStBack'),
+        'cancel' => bk_t('CmStCancel'), 'check' => bk_t('CmStCheck'));
+    $out .= '<div class="bk-msg" style="background:#fff8e1;border:1px solid #e0a800;color:#5b4300;text-align:left">'
+        . '⚠ <b>' . bk_e(bk_t('CmTitle', count($clubMoves))) . '</b><br>' . bk_e(bk_t('CmHint')) . '<ul style="margin:6px 0 0">';
+    foreach ($clubMoves as $m) {
+        $out .= '<li>' . bk_e(bk_t('CmLine', array('name' => $m['name'] !== '' ? $m['name'] : '—', 'lic' => $m['code'],
+                'from' => $m['from'] !== '' ? $m['from'] : '—', 'to' => $m['to'])))
+            . ' — ' . bk_e($states[$m['result']] ?? $m['result'])
+            . ($m['refund'] > 0 ? ' — ' . bk_e(bk_t('CmRefund', bk_eur($m['refund'], false, $TOUR))) : '') . '</li>';
     }
     $out .= '</ul></div>';
 }

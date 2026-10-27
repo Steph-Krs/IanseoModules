@@ -478,7 +478,7 @@ function aut_trust_tour_incidents($tourId, $end, $cfg, $today)
 
     // Journal lines, per account, in time order.
     $moves = array(); $byId = array();
-    $rs = safe_r_sql("SELECT BlgId, BlgAccount, BlgKind, BlgAmount, BlgWhen, BlgCreated, BlgGroup, BlgCancels
+    $rs = safe_r_sql("SELECT BlgId, BlgAccount, BlgKind, BlgAmount, BlgWhen, BlgCreated, BlgGroup, BlgCancels, BlgClub
         FROM BookingLedger WHERE BlgTournament = $tourId ORDER BY BlgWhen, BlgId");
     while ($r = safe_fetch($rs)) { $moves[$r->BlgAccount][] = $r; $byId[intval($r->BlgId)] = $r; }
 
@@ -510,6 +510,10 @@ function aut_trust_tour_incidents($tourId, $end, $cfg, $today)
     while ($r = safe_fetch($rs)) {
         if ($r->BrByRole === null || $r->BrByRole === 'MANAGER') $clubBorne[$r->EnCode] = true;
     }
+    // An archer who changed club since (booking/lib/clubmoves.php): their registration is their
+    // own — a club bears it again only by paying for it.
+    $rs = safe_r_sql("SELECT DISTINCT BmvLicence FROM BookingClubMoves WHERE BmvTournament = $tourId");
+    while ($r = safe_fetch($rs)) unset($clubBorne[$r->BmvLicence]);
 
     $graceEnd = date('Y-m-d', strtotime($end . ' +' . intval($cfg['grace_days']) . ' days'));
     $out = array();
@@ -529,7 +533,10 @@ function aut_trust_tour_incidents($tourId, $end, $cfg, $today)
     foreach ($accounts as $lic => $a) {
         $club = $a['club'];
         $hasGroup = false;
-        foreach ($moves[$lic] ?? array() as $m) if (intval($m->BlgGroup) > 0) $hasGroup = true;
+        // A payment of the archer's club of today: an old club's payments went back to it.
+        foreach ($moves[$lic] ?? array() as $m) {
+            if (intval($m->BlgGroup) > 0 && ((string) $m->BlgClub === '' || (string) $m->BlgClub === $club)) $hasGroup = true;
+        }
         $toClub = $club !== '' && $a['reg'] > 0 && (!empty($clubBorne[$lic]) || $hasGroup);
         $archer = aut_trust_subject($lic);
         $clubSubject = $toClub ? aut_trust_subject('', $club) : '';
@@ -579,7 +586,9 @@ function aut_trust_tour_incidents($tourId, $end, $cfg, $today)
             $byClub = $club !== '' && (($orig && intval($orig->BlgGroup) > 0)
                 || (!empty($clubBorne[$acc]) && isset($accounts[$acc]) && $accounts[$acc]['due'] <= $accounts[$acc]['reg'] + $min));
             $when = substr((string) ($m->BlgWhen ?: $m->BlgCreated), 0, 10);   // bytes: ASCII date
-            $add($byClub ? aut_trust_subject('', $club) : $archer, 'reject', abs((float) $m->BlgAmount), 0, $when, '');
+            // The club whose payment was rejected — an old club, if the archer changed since.
+            $payer = ($orig && (string) $orig->BlgClub !== '') ? (string) $orig->BlgClub : $club;
+            $add($byClub ? aut_trust_subject('', $payer) : $archer, 'reject', abs((float) $m->BlgAmount), 0, $when, '');
         }
     }
     return $out;

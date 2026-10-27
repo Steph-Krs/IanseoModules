@@ -602,6 +602,7 @@ function bk_ledger_add($tourId, $account, $kind, $amount, $method, $date, $label
         BlgMethod = "   . StrSafe_DB(array_key_exists($method, bk_payment_methods()) ? $method : '') . ",
         BlgLabel = "    . StrSafe_DB(mb_substr(trim((string) $label), 0, 160)) . ",
         BlgGroup = "    . intval($group) . ",
+        BlgClub = "     . StrSafe_DB(mb_substr(trim((string) ($extra['club'] ?? '')), 0, 16)) . ",
         BlgOrder = "    . intval($extra['order'] ?? 0) . ",
         BlgStand = "    . intval($extra['stand'] ?? 0) . ",
         BlgStaff = "    . intval($extra['staff'] ?? 0) . ",
@@ -656,6 +657,7 @@ function bk_ledger_counter($tourId, $id, $by, $kind, $note = '', $staffId = 0)
         BlgMethod = "   . StrSafe_DB($l->BlgMethod) . ",
         BlgLabel = "    . StrSafe_DB(mb_substr($label, 0, 160)) . ",
         BlgCancels = "  . intval($l->BlgId) . ",
+        BlgClub = "     . StrSafe_DB($l->BlgClub) . ",
         BlgOrder = "    . intval($l->BlgOrder) . ",
         BlgStand = "    . intval($l->BlgStand) . ",
         BlgStaff = "    . intval($staffId) . ",
@@ -731,17 +733,30 @@ function bk_ledger_pay_club($tourId, $clubCode, $amounts, $method, $date, $note,
     $label = bk_t('LedgerClub', $clubCode) . (trim((string) $note) !== '' ? ' — ' . trim((string) $note) : '');
     $total = 0.0; $count = 0;
     foreach ($todo as $k => $v) {
-        if (!bk_ledger_add($tourId, $k, 'payment', $v, $method, $date, $label, $by, $group)) continue;
+        if (!bk_ledger_add($tourId, $k, 'payment', $v, $method, $date, $label, $by, $group, array('club' => (string) $clubCode))) continue;
         $total += $v; $count++;
     }
     return array('count' => $count, 'total' => round($total, 2));
 }
 
 /**
- * Records a refund the organiser owes (BookingRefunds): a registration already paid was
- * removed by the server. No name and no licence: club and amount only.
+ * What a club paid for an archer on a competition, its own lines and their counter-lines
+ * (BlgClub) — what goes back to it when the archer changes club (lib/clubmoves.php).
  */
-function bk_refund_add($tourId, $clubCode, $clubName, $amount, $method, $reason = 'ANONYMISE')
+function bk_ledger_club_net($tourId, $account, $clubCode)
+{
+    $r = safe_fetch(safe_r_sql("SELECT COALESCE(SUM(BlgAmount), 0) AS n FROM BookingLedger
+        WHERE BlgTournament = " . intval($tourId) . " AND BlgAccount = " . StrSafe_DB((string) $account) . "
+          AND BlgClub = " . StrSafe_DB((string) $clubCode) . " AND BlgStatus = 'done'"));
+    return $r ? round((float) $r->n, 2) : 0.0;
+}
+
+/**
+ * Records a refund the organiser owes (BookingRefunds): money already paid was taken off by the
+ * server. A licensee anonymised (ANONYMISE): club and amount only. An archer who changed club
+ * (CLUBMOVE): their old club, and who it is about ($label).
+ */
+function bk_refund_add($tourId, $clubCode, $clubName, $amount, $method, $reason = 'ANONYMISE', $label = '')
 {
     bk_schema();
     $tourId = intval($tourId);
@@ -751,6 +766,7 @@ function bk_refund_add($tourId, $clubCode, $clubName, $amount, $method, $reason 
         BfAmount = "   . StrSafe_DB(number_format((float) $amount, 2, '.', '')) . ",
         BfMethod = "   . StrSafe_DB(array_key_exists($method, bk_payment_methods()) ? $method : '') . ",
         BfReason = "   . StrSafe_DB($reason) . ",
+        BfLabel = "    . StrSafe_DB(mb_substr((string) $label, 0, 160)) . ",
         BfCreated = "  . bk_local_now_sql("(SELECT ToTimeZone FROM Tournament WHERE ToId = $tourId)"));
 }
 

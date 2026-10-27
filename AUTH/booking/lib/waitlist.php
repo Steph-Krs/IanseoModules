@@ -243,12 +243,22 @@ function bk_waitlist_serve_return($tourId, $cfg, $w, &$rem)
     require_once __DIR__ . '/licences.php';
     $enId = intval($w->BwEnId);
     $o = intval($w->BwSession);
-    $reg = safe_fetch(safe_r_sql("SELECT BrLicHold, BrValidated FROM BookingRegistrations
+    $reg = safe_fetch(safe_r_sql("SELECT BrLicHold, BrValidated, BrHoldReason FROM BookingRegistrations
         INNER JOIN Entries ON EnId = BrEnId AND EnTournament = " . intval($tourId) . " WHERE BrEnId = $enId"));
     if (!$reg || $reg->BrLicHold === null) {
         // Registration cancelled, or already back by another way: nothing left to serve.
         safe_w_sql("UPDATE BookingWaitlist SET BwStatus = 2, BwSeen = 1 WHERE BwId = " . intval($w->BwId));
         return false;
+    }
+    if ((string) $reg->BrHoldReason === 'club') {
+        // Suspended for its new club: back only within the number of archers of a club per target.
+        require_once __DIR__ . '/clubmoves.php';
+        if (!bk_club_serve_return($tourId, $cfg, $w)) return false;
+        safe_w_sql("UPDATE BookingWaitlist SET BwStatus = 1, BwSeen = 0, BwDone = " . bk_waitlist_now_sql($tourId)
+            . " WHERE BwId = " . intval($w->BwId));
+        bk_log('CLUB_RESTORE', $w->BwLicence);
+        $rem = array();
+        return true;
     }
     if ($o <= 0 || bk_reg_session_left($tourId, $o) < 1) return false;
     $k = $o . '|' . $w->BwDivision . '|' . $w->BwClass . '|' . intval($w->BwFace);

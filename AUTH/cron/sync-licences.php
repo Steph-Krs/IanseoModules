@@ -130,11 +130,21 @@ if (!$fileOk) {
 /* ---- Update of the statuses for the competitions not over yet ---- */
 $_SESSION = array();   // the registration swaps the competition session (bk_with_tournament)
 require_once(dirname(__DIR__) . '/booking/lib/licences.php');
+require_once(dirname(__DIR__) . '/booking/lib/clubmoves.php');
 $q = safe_r_sql("SELECT ToId, ToCode, ToWhenTo >= CURDATE() AS NotOver FROM Tournament
     WHERE ToWhenTo >= DATE_SUB(CURDATE(), INTERVAL 2 DAY)");
 $nComp = 0; $nHeld = 0;
 while ($t = safe_fetch($q)) {
     $nComp++;
+    // First club of the file (competitions not started): before the statuses, so that the
+    // comparison with the file below finds the club up to date.
+    if ($fileOk && intval($t->NotOver)) {
+        $cm = bk_club_daily($t->ToId);
+        if ($cm['moved'] || $cm['held'] || $cm['cancelled'] || $cm['check']) {
+            lic_log("Clubs of {$t->ToCode}: {$cm['moved']} changed, {$cm['held']} suspended, {$cm['cancelled']} cancelled, "
+                . "{$cm['check']} to check, {$cm['refunds']} refund(s) to the old club.");
+        }
+    }
     lic_entries_check($t->ToId);
     lic_log("Statuses updated: {$t->ToCode}");
     // Licences missing from the file (competitions not started, FFTA numbers only).

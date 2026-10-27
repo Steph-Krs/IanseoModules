@@ -329,6 +329,8 @@ if (!$_aut_vol && strcasecmp(aut_script_rel(), '/Main.php') === 0 && intval($_SE
         if ($_aut_n > 0) $_aut_rows[] = array('msg' => aut_t('LicMainAnomaly'), 'count' => aut_t('LicMainCount', $_aut_n), 'link' => $_aut_link);
         $_aut_n = count(aut_lic_foreign($_aut_t));
         if ($_aut_n > 0) $_aut_rows[] = array('msg' => aut_t('ForMainAnomaly'), 'count' => aut_t('ForMainCount', $_aut_n), 'link' => $_aut_link);
+        $_aut_n = aut_lic_club_moves($_aut_t);
+        if ($_aut_n > 0) $_aut_rows[] = array('msg' => aut_t('ClubMainAnomaly'), 'count' => aut_t('ClubMainCount', $_aut_n), 'link' => $_aut_link);
         $_aut_n = aut_lic_desk_refused($_aut_t);
         if ($_aut_n > 0) $_aut_rows[] = array('msg' => aut_t('DeskMainAnomaly'), 'count' => aut_t('DeskMainCount', $_aut_n),
             'link' => $CFG->ROOT_DIR . 'Modules/Custom/AUTH/shop/desk/list.php?f=ko');
