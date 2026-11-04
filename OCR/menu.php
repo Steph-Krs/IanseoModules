@@ -14,12 +14,18 @@ require_once __DIR__ . '/lib/lang.php';
 // Guarded: an update that brought this menu but not yet its library must not stop ianseo.
 if (is_file(__DIR__ . '/lib/dev.php')) require_once __DIR__ . '/lib/dev.php';
 
+// The duels: for whoever may see a kind of match (brackets, individual or team; round robin).
+$_ocr_duels = isset($acl) && function_exists('subFeatureAcl')
+    && max(subFeatureAcl($acl, AclIndividuals, ''), subFeatureAcl($acl, AclTeams, ''), subFeatureAcl($acl, AclRobin, '')) >= AclReadOnly;
 if (!empty($on) && intval($_SESSION['TourId'] ?? 0) > 0 && isset($acl) && function_exists('subFeatureAcl')
-    && subFeatureAcl($acl, AclQualification, '') >= AclReadOnly) {
+    && (subFeatureAcl($acl, AclQualification, '') >= AclReadOnly || $_ocr_duels)) {
     $_ocr_url = $CFG->ROOT_DIR . 'Modules/Custom/' . basename(__DIR__) . '/';
 
     if (!isset($ret['MODS']['OCR'])) $ret['MODS']['OCR'][] = ocr_text('ModuleName');
-    $ret['MODS']['OCR'][] = ocr_text('MenuQualification') . '|' . $_ocr_url . 'qualification.php';
+    if (subFeatureAcl($acl, AclQualification, '') >= AclReadOnly) {
+        $ret['MODS']['OCR'][] = ocr_text('MenuQualification') . '|' . $_ocr_url . 'qualification.php';
+    }
+    if ($_ocr_duels) $ret['MODS']['OCR'][] = ocr_text('MenuDuels') . '|' . $_ocr_url . 'duels.php';
     // The development tools, when the administrator has shown them: the series capture
     // stores photos on the server, the cells to check are typed in, both need the right to
     // write scores.
@@ -38,3 +44,4 @@ if (!empty($on) && intval($_SESSION['TourId'] ?? 0) > 0 && isset($acl) && functi
     }
     unset($_ocr_url);
 }
+unset($_ocr_duels);

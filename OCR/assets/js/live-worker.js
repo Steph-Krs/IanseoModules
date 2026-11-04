@@ -11,7 +11,7 @@
  * read-worker.js without networks) when the computer has the cores: the same grids, sooner.
  */
 // With this worker's version (the newest of the module's scripts): never an older copy.
-importScripts.apply(self, ['vision.js', 'layout.js', 'nn.js', 'recognizer.js', 'text.js', 'solver.js', 'orb.js', 'live-tasks.js', 'pool.js']
+importScripts.apply(self, ['vision.js', 'layout.js', 'duel-layout.js', 'nn.js', 'recognizer.js', 'text.js', 'solver.js', 'orb.js', 'live-tasks.js', 'pool.js']
     .map(function (f) { return f + self.location.search; }));
 
 var HELPERS_MAX = 3;      // helpers at most; the page's thread and this one keep a core each
@@ -98,7 +98,7 @@ self.onmessage = function (e) {
         // Whatever fails in starting (a network not loaded, nor built): told, for the page to start afresh.
         Promise.all([get(m.arrow), get(m.digit), get(m.text), m.number ? get(m.number) : null]).then(function (d) {
             var R = self.OcrRecognizer, X = self.OcrText;
-            ctx = self.OcrLiveTasks.create({V: self.OcrVision, Lay: self.OcrLayout, R: R, X: X, S: self.OcrSolver, O: self.OcrOrb,
+            ctx = self.OcrLiveTasks.create({V: self.OcrVision, Lay: self.OcrLayout, DL: self.OcrDuelLayout, R: R, X: X, S: self.OcrSolver, O: self.OcrOrb,
                 nets: {arrow: R.load(d[0]), digit: R.load(d[1]), text: X.load(d[2]), number: d[3] ? X.load(d[3]) : null}});
             self.OcrLiveTasks.run(ctx, {id: 0, type: 'roster', roster: msg.init.roster || []});
             if (msg.init.lens !== undefined) self.OcrLiveTasks.run(ctx, {id: 0, type: 'setLens', lens: msg.init.lens});

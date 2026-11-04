@@ -63,9 +63,10 @@ Modules pour le projet I@nseo :
   table.
 - [Lecture des feuilles de marque](OCR/README_OCR_FR.md) — Photographier une feuille de marque
   imprimée par ianseo (caméra de l'ordinateur ou téléphone) : grille retrouvée et redressée, archer
-  identifié par le code-barres ou la cible, chaque case découpée à côté des valeurs de ianseo ; et
-  capture en série, caméra allumée, une photo par feuille présentée. En développement : la lecture
-  des valeurs manuscrites vient ensuite. Aucune table.
+  identifié par le code-barres ou la cible, chaque case lue et vérifiée, puis écrite dans ianseo ;
+  et les feuilles de duel (tableaux et poules) : match reconnu par le code-barres ou les noms, points
+  de set et vainqueur contrôlés sur les deux cartes, match confirmé comme par la vérification par
+  code-barres. En développement. Aucune table.
 
 ## Installation automatique (Mac / Linux)
 

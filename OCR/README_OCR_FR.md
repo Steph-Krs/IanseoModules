@@ -6,10 +6,9 @@ Module pour [I@nseo](https://www.ianseo.net/), le logiciel de gestion des compé
 téléphone — pour la comparer à ce que contient ianseo, et à terme la saisir quand les tablettes de
 marque n'ont pas servi.
 
-> **En développement (0.1).** Cette version retrouve la grille sur la photo, identifie l'archer,
-> découpe chaque case et lit les valeurs écrites à la main, en vérifiant les sommes et les cumuls.
-> La lecture est encore apprise sur des chiffres manuscrits génériques : elle s'affinera avec de
-> vraies feuilles. L'enregistrement dans ianseo vient ensuite.
+> **En développement (0.2).** Les feuilles de qualification et, depuis la 0.2, les feuilles de
+> duel (tableaux et poules) : la grille retrouvée sur la photo, l'archer ou le match identifié,
+> chaque case lue et vérifiée par les sommes et les cumuls, puis écrite dans ianseo et validée.
 
 ## Fonctionnalités
 
@@ -203,6 +202,38 @@ marque n'ont pas servi.
   photo du téléphone et « Envoyer des photos » envoie d'un coup celles de la galerie. Les photos
   sont gardées sur le serveur pour la compétition ouverte, téléchargeables en une archive ZIP.
 
+## Duels
+
+Page **Lire les feuilles - duels** : la feuille de match imprimée par ianseo (une feuille par match,
+ses deux cartes côte à côte), pour les tableaux individuels et par équipes comme pour les poules.
+
+- 🗓️ **Le tour en cours, choisi d'abord** : la liste des tours de la compétition, comme les
+  impressions des feuilles de ianseo la donnent (tableaux et poules), réduite par les deux cases
+  « Programme du jour » et « Masquer les tours terminés ». Ses matchs servent à reconnaître chaque
+  feuille ; un même tour peut mêler plusieurs formats (sets ou points, volées, flèches), tous tirés
+  du paramétrage des épreuves, et seuls ceux du tour sont cherchés.
+- 🔎 **Le match reconnu** par le code-barres de la feuille quand il se lit, sinon par les noms
+  imprimés au-dessus des deux cartes, l'épreuve écrite dessous et le tour écrit dans le titre du
+  tableau (« 1/8 », « Aller Groupe 1 Rencontre 4 »), comparés aux matchs du tour ; la carte de
+  gauche est le premier côté du match. Non reconnu, le match se choisit dans une liste.
+- ✏️ **Chaque case lue** : les flèches, le total de la volée ou du set, le cumul (en points), le
+  point de set marqué (2, 1 ou 0 entouré, ou repassé au stylo), le cumul des points, le total, le
+  barrage, les cases « Plus près du centre » et « Gagnant ». Une case sans encre est lue vide (les
+  volées dont un match n'a pas eu besoin).
+- ✅ **Contrôlé sur les deux cartes** : les flèches choisies par les sommes et cumuls de chaque
+  carte, puis le match recalculé — points de set, cumul, total, barrage, vainqueur — face à ce qui
+  est entouré, écrit et coché. Une volée que ianseo tient dans un autre ordre (une saisie qui trie
+  les flèches) compte comme la même.
+- 💾 **Écriture dans ianseo** : « Importer les données » écrit les flèches des deux côtés, le
+  barrage et le plus près du centre par les fonctions du cœur, qui recalculent le match ; une
+  lecture suivante de la même feuille propose « Valider les données », qui **confirme le match**
+  comme le bouton CONFIRM de la vérification par code-barres (le vainqueur passe au tour suivant ;
+  en poule, le groupe est reclassé). Les mêmes vérifications rapides et l'import automatique que
+  pour les qualifications.
+- 📷 **Modes** : automatique (la photo se prend dès que les deux cartes sont vues nettement), manuel,
+  ou une photo importée ; pas de mode vidéo pour les duels.
+- La feuille « par archer » (tous les tours d'un archer sur une page) n'est pas encore lue.
+
 ## Confidentialité
 
 Sur la page de lecture, la photo est analysée **dans le navigateur** et n'est jamais envoyée au
@@ -224,10 +255,18 @@ est sur la feuille et le plus grand nombre qu'elle peut contenir (seules les lec
 le blason de l'archer sont proposées, un nombre impossible saisi est signalé) : on corrige celles qui sont fausses, on
 signale d'un clic (ou par « * », sur le pavé numérique) une case mal cadrée (entre deux cases, hors de la grille), et on valide avec Entrée.
 Chaque case s'affiche en grand avec ses voisines, une douzaine à la fois, avec sa cible et sa
-distance pour retrouver la feuille. Ce qui y est saisi sert ensuite à l'apprentissage de la lecture.
+distance pour retrouver la feuille. La page montre les cases de toutes les compétitions, quelle que
+soit celle qui est ouverte, et celles du jeu d'entraînement des réseaux dont l'étiquette n'est pas
+sûre (X ou 10, volée tenue par ianseo dans un autre ordre que sur la feuille, valeur que la lecture
+ne voit pas), avec la feuille, la carte, la volée et la flèche d'où elles viennent : elles sont
+écartées de l'apprentissage tant qu'elles ne sont pas vérifiées. Ce qui y est saisi sert ensuite à
+l'apprentissage de la lecture.
 
 ## Accès
 
+- Duels : tout utilisateur qui a accès à une sorte de match (tableaux individuels, par équipes,
+  poules) ; écrire et confirmer, le droit de saisir cette sorte de match, comme la vérification par
+  code-barres du cœur, et pas quand ianseo la verrouille.
 - Lecture : tout utilisateur qui a accès aux qualifications de la compétition ouverte. Capture en
   série, cases à vérifier : le droit de saisir les qualifications. Les entrées de menu apparaissent dans l'onglet
   **Modules** quand une compétition est ouverte.
@@ -253,7 +292,11 @@ qui se touchent ou empiètent l'un sur l'autre. Ils ont été entraînés sur la
 lettres manuscrits **EMNIST** du NIST (*National Institute of Standards and Technology*), puis sur
 des photos de vraies feuilles de marque de compétitions passées, étiquetées par les flèches de leur
 base, et sur les cases vérifiées à la main sur la page Cases à vérifier (un X écrit « + » ou « 10+ »
-est lu comme un X) ; rien de ces photos n'est livré, seulement les poids des réseaux.
+est lu comme un X) ; rien de ces photos n'est livré, seulement les poids des réseaux. Les deux pages
+de lecture utilisent les mêmes réseaux, qui apprennent aussi sur des feuilles de match scannées, et
+seulement sur des étiquettes sûres : une flèche que la base ne donne pas avec certitude (X ou 10,
+volée saisie dans un autre ordre que sur la feuille, valeur que la lecture ne voit pas) n'est
+apprise qu'une fois vérifiée par une personne sur la page Cases à vérifier.
 
 Chaque case est découpée avec une **marge** : un trait qui déborde de sa case est lu avec elle, celui
 qui déborde de la case voisine est écarté, les lignes de la grille sont retirées. Les chiffres qui se
@@ -308,6 +351,12 @@ Chaque écriture passe par la compétition ouverte (jointure sur `Entries`). Les
 ensuite recalculés par les classes du cœur, comme après un import ISK : catégorie, équipes,
 épreuves et leurs barrages.
 
+Pour les **duels**, l'écriture passe par les fonctions du cœur qui écrivent un match
+(`UpdateArrowString`, `RobinUpdateArrowString` : flèches, barrage, plus près du centre, puis le match
+recalculé par le cœur), dans `Finals`, `TeamFinals` ou `RoundRobinMatches`, pour le match lu
+seulement ; la validation le confirme comme la vérification par code-barres du cœur (`…Confirmed`,
+`…Status`, puis le vainqueur passé au tour suivant, ou le groupe de poule reclassé).
+
 Un seul réglage, pour toute l'installation, dans la table `Parameters` du cœur : la ligne
 `OcrDevTools` (valeur `1`) quand l'administrateur a affiché les outils de développement ; supprimée
 quand il les masque.
@@ -326,6 +375,9 @@ compétition ouverte.
 
 | Statement | Table | Location | Notes |
 |---|---|---|---|
+| `UPDATE` | `RoundRobinMatches` | `lib/duel.php:379` | review scope by hand |
+| `UPDATE` | `TeamFinals` | `lib/duel.php:407` | review scope by hand |
+| `UPDATE` | `Finals` | `lib/duel.php:409` | review scope by hand |
 | `UPDATE` | `Qualifications` | `lib/score.php:143` | review scope by hand |
 | `UPDATE` | `Qualifications` | `lib/score.php:149` | review scope by hand |
 | `UPDATE` | `Qualifications` | `lib/score.php:160` | review scope by hand |

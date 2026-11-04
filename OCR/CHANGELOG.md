@@ -1,5 +1,34 @@
 # Changelog — Scorecard reader (OCR)
 
+## 0.2.0 — 2026-11-05
+
+The match sheets (duels.php, Read the scorecards - matches): one sheet a match, its two cards side by
+side, for individual and team brackets and round robins. The round being shot is chosen first (as the
+core's scorecard printouts list them, narrowed to today's and those not finished), its matches fetched
+with their formats from the events' settings (sets or points, ends, arrows, shoot-off). The cards are
+fitted with the match card's layout (duel-layout.js); the match is told by the sheet's barcode, else by
+the names above the cards, the event under them and the round in the table's title, against the round's
+matches. Every cell is read: arrows, end or set totals, running totals, the set point circled or written
+over, the running set points, the total, the shoot-off, the closest and winner boxes; a cell without ink
+reads blank. Each card's arrows are chosen by its sums, then the match is worked out from both cards and
+checked against what was circled, written and ticked; an end ianseo holds in another order counts as the
+same. Import the data writes both sides through the core's UpdateArrowString or RobinUpdateArrowString;
+Validate the data confirms the match as the barcode check's CONFIRM does (the winner moved on, a round
+robin's group ranked again). Automatic and manual camera modes, or a picture imported. The reading pages
+share their HTML (lib/page.php) and their script, the duel page's own part given as an adaptation
+(duel.js). The page Cells to check shows the cells of every competition, whichever is open, and the
+training set's arrows whose label is not sure, each with where it comes from and why. The reading
+networks are trained again, the same for both pages, on qualification and match sheets (those printed by
+older ianseo versions too, their running total in sets: duel-layout.js option direct), from sure labels
+only: an arrow the database does not tell for sure (X or 10, an end entered in another order than the
+sheet's, a value the reading does not see) is learnt as checked on that page, left out while it is not.
+On the qualification photos, arrows shown sure and wrong 17 to 14, cards read all right 663 to 691; no
+silent error on the synthetic sheets. On a competition left out of that training, 97.9 % of the match
+arrows right (96.7 % before the checks). Measured on 180 scanned match pages of five competitions: 96.5
+to 99.2 % of the arrows right, set points 95 to 99 %, winner boxes 97 to 100 %. The network reading a
+written number whole is trained again with the checked cells: on cells it never saw, 83.3 to 85.6 % of
+the numbers right.
+
 ## 0.1.0 — 2026-11-04
 
 First version, in development: photographing the qualification scorecards printed by ianseo (the

@@ -13,6 +13,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var SHOW_H = 120;   // height of a cell's picture on the page, in pixels, when its place in it is not known
     var CELL_H = 72;    // ...else the height the cell itself is shown at (its neighbours around it)
     var MISFRAMED = '*'; // typed (a key of the number pad) for a cell cut out badly (across two cells, off the grid): no value to tell
+    // Why a training set's cell is to check: X or 10 not told apart, its end held by the
+    // database in another order than the sheet's, a value the reading does not see, or a sheet of
+    // a competition the server does not hold read unsure.
+    var WHY = {x10: 'VerifyWhyX10', order: 'VerifyWhyOrder', held: 'VerifyWhyHeld', read: 'VerifyWhyRead'};
 
     function el(id) { return document.getElementById(id); }
 
@@ -85,10 +89,14 @@ document.addEventListener('DOMContentLoaded', function () {
         };
         img.src = 'data:image/png;base64,' + it.png;
         // Where it comes from (to find the sheet again), then what it is on the card.
-        if (it.target) {
+        // A training set's cell says where it is, and why its label is not sure.
+        var from = it.target ? t('VerifyWhere', {target: it.target, dist: it.dist || '-'})
+            : it.sheet ? t('VerifyTrainWhere', {sheet: it.sheet, card: it.card, end: it.end, arrow: +it.arrow + 1}) : '';
+        var why = WHY[it.why] ? t(WHY[it.why]) : '';
+        if (from || why) {
             var where = document.createElement('div');
             where.className = 'ocr-verify-where';
-            where.textContent = t('VerifyWhere', {target: it.target, dist: it.dist || '-'});
+            where.textContent = from && why ? from + ' · ' + why : from || why;
             box.appendChild(where);
         }
         var label = document.createElement('div');

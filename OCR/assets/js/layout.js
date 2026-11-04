@@ -677,5 +677,5 @@
     }
 
     return {printed: printed, closesEnd: closesEnd, columns: columns, fit: fit, cellAllowed: cellAllowed, canHold: canHold, shotEnds: shotEnds,
-        upOf: upOf, turnFacing: turnFacing, oneWay: oneWay, _evaluate: evaluate};
+        upOf: upOf, turnFacing: turnFacing, oneWay: oneWay, _evaluate: evaluate, _fit1D: fit1D, _sums: sums};
 });

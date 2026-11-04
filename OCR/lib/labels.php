@@ -7,7 +7,10 @@
  *
  * Kept in the server's temporary directory, never under the web root, one folder per
  * competition, removed on their own after OCR_LABEL_DAYS days. A cell's picture shows
- * handwritten figures, never a name.
+ * handwritten figures, never a name. The checking page shows the cells of every folder,
+ * whatever the competition open: those of folder "train" are put there by the tools that
+ * build the networks' training set (the arrows its labels are not sure of), kept until
+ * checked.
  *
  * Folder: items.jsonl (one cell a line: what was read, where it comes from), <uid>.png
  * (its picture), labels.jsonl (what was typed; a later line for the same cell wins).
@@ -27,9 +30,31 @@ define('OCR_LABEL_PNG', 262144);  // bytes of a cell's picture, at most
  */
 function ocr_label_dir($tour = 0, $create = false) {
     $tour = $tour ?: (int)$_SESSION['TourId'];
-    $dir = rtrim(sys_get_temp_dir(), '/\\') . '/ianseo-' . basename(dirname(__DIR__)) . '/labels/' . (int)$tour;
+    $dir = ocr_label_root() . '/' . (int)$tour;
     if ($create && !is_dir($dir)) @mkdir($dir, 0700, true);
     return $dir;
+}
+
+/** The folder holding every folder of cells to check. */
+function ocr_label_root() {
+    return rtrim(sys_get_temp_dir(), '/\\') . '/ianseo-' . basename(dirname(__DIR__)) . '/labels';
+}
+
+/** The folders of cells to check: a competition's (its number) or the training set's ("train"). */
+function ocr_label_folders() {
+    $out = [];
+    foreach (glob(ocr_label_root() . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
+        if (preg_match('/^(\d+|train)$/', basename($dir))) $out[] = $dir;
+    }
+    return $out;
+}
+
+/** The folder a cell is kept in, or ''. */
+function ocr_label_find($uid) {
+    foreach (ocr_label_folders() as $dir) {
+        if (is_file($dir . '/' . $uid . '.png')) return $dir;
+    }
+    return '';
 }
 
 /** A cell's name: 40 hexadecimal characters, nothing else. */
@@ -122,39 +147,48 @@ function ocr_label_add(array $items, $tour = 0) {
     return ['added' => $added, 'skipped' => $skipped];
 }
 
-/** What was typed for each cell so far. -> [uid => value] */
-function ocr_label_done($tour = 0) {
+/** What was typed for each cell of a folder so far. -> [uid => value] */
+function ocr_label_done($dir) {
     $done = [];
-    foreach (ocr_label_lines(ocr_label_dir($tour) . '/labels.jsonl') as $l) $done[$l['uid']] = (string)($l['value'] ?? '');
+    foreach (ocr_label_lines($dir . '/labels.jsonl') as $l) $done[$l['uid']] = (string)($l['value'] ?? '');
     return $done;
 }
 
 /**
- * The next cells to check: the least sure reading first, each with its picture.
+ * The next cells to check, of every folder: the least sure reading first, each with its
+ * picture.
  *
  * @return array ['pending' => n, 'done' => n, 'items' => [...]]
  */
-function ocr_label_next($tour = 0) {
-    $dir = ocr_label_dir($tour);
-    $done = ocr_label_done($tour);
+function ocr_label_next() {
     $todo = [];
-    foreach (ocr_label_lines($dir . '/items.jsonl') as $it) {
-        if (isset($done[$it['uid']]) || isset($todo[$it['uid']]) || !is_file($dir . '/' . $it['uid'] . '.png')) continue;
-        $todo[$it['uid']] = $it;
+    $done = 0;
+    foreach (ocr_label_folders() as $dir) {
+        $typed = ocr_label_done($dir);
+        $done += count($typed);
+        foreach (ocr_label_lines($dir . '/items.jsonl') as $it) {
+            if (isset($typed[$it['uid']]) || isset($todo[$it['uid']]) || !is_file($dir . '/' . $it['uid'] . '.png')) continue;
+            $it['dir'] = $dir;
+            $todo[$it['uid']] = $it;
+        }
     }
     $todo = array_values($todo);
     usort($todo, function ($a, $b) {
         return ($a['reading'][0][1] ?? 0) <=> ($b['reading'][0][1] ?? 0);
     });
-    $items = [];
+    $items = $byTour = [];
     foreach (array_slice($todo, 0, OCR_LABEL_BATCH) as $it) {
-        $it['png'] = base64_encode((string)@file_get_contents($dir . '/' . $it['uid'] . '.png'));
+        $it['png'] = base64_encode((string)@file_get_contents($it['dir'] . '/' . $it['uid'] . '.png'));
+        $it['tour'] = ctype_digit(basename($it['dir'])) ? (int)basename($it['dir']) : 0;
+        unset($it['dir']);
+        if ($it['tour']) $byTour[$it['tour']][] = (int)($it['enId'] ?? 0);
         $items[] = $it;
     }
-    // Each cell's target, for the sheet to be found again.
-    $where = ocr_label_targets(array_column($items, 'enId'), $tour);
-    foreach ($items as $k => $it) $items[$k]['target'] = $where[(int)$it['enId']] ?? '';
-    return ['pending' => count($todo), 'done' => count($done), 'items' => $items];
+    // Each cell's target, for the sheet to be found again (a training cell says where it is).
+    $where = [];
+    foreach ($byTour as $tour => $ids) $where[$tour] = ocr_label_targets($ids, $tour);
+    foreach ($items as $k => $it) $items[$k]['target'] = $where[$it['tour']][(int)($it['enId'] ?? 0)] ?? '';
+    return ['pending' => count($todo), 'done' => $done, 'items' => $items];
 }
 
 /**
@@ -181,28 +215,29 @@ function ocr_label_targets(array $enIds, $tour = 0) {
  *
  * @return int Cells saved.
  */
-function ocr_label_save(array $labels, $tour = 0) {
-    $dir = ocr_label_dir($tour);
-    $lines = '';
+function ocr_label_save(array $labels) {
+    $lines = [];
     $n = 0;
     foreach (array_slice($labels, 0, OCR_LABEL_MAX) as $l) {
         $uid = ocr_label_uid($l['uid'] ?? '');
         $value = ocr_label_value($l['value'] ?? '');
-        if ($uid === '' || $value === null || !is_file($dir . '/' . $uid . '.png')) continue;
-        $lines .= json_encode(['uid' => $uid, 'value' => $value, 'time' => time()]) . "\n";
+        $dir = $uid === '' ? '' : ocr_label_find($uid);
+        if ($dir === '' || $value === null) continue;
+        $lines[$dir] = ($lines[$dir] ?? '') . json_encode(['uid' => $uid, 'value' => $value, 'time' => time()]) . "\n";
         $n++;
     }
-    if ($lines !== '') @file_put_contents($dir . '/labels.jsonl', $lines, FILE_APPEND | LOCK_EX);
+    foreach ($lines as $dir => $text) @file_put_contents($dir . '/labels.jsonl', $text, FILE_APPEND | LOCK_EX);
     return $n;
 }
 
 /** Remove the cells kept longer than the retention period, of every competition. */
 function ocr_label_purge() {
-    $root = dirname(ocr_label_dir(1));
+    $root = ocr_label_root();
     if (!is_dir($root)) return;
     $limit = time() - OCR_LABEL_DAYS * 86400;
     foreach (glob($root . '/*', GLOB_ONLYDIR) ?: [] as $tour) {
-        if (filemtime($tour) >= $limit) continue;
+        // The training set's: what was typed there is what the networks learn from.
+        if (basename($tour) === 'train' || filemtime($tour) >= $limit) continue;
         foreach (glob($tour . '/*') ?: [] as $file) {
             if (is_file($file)) @unlink($file);
         }

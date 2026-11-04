@@ -818,7 +818,9 @@
     }
 
     /** The two outermost lines among the long, continuous and isolated ones of a family, in offset order. */
-    function outerLines(lines) {
+    var LONE = 3.2;   // an outer line this many times further from the next than the median gap (option lone)
+
+    function outerLines(lines, lone) {
         var maxSpan = 0;
         function clean(l) { return l.fill >= 0.7 && l.edge <= 0.5; }
         lines.forEach(function (l) { if (clean(l) && l.span > maxSpan) maxSpan = l.span; });
@@ -837,7 +839,18 @@
             }
         });
         longOnes.sort(function (a, b) { return a.c - b.c; });
-        return {first: longOnes[0], last: longOnes[longOnes.length - 1], count: longOnes.length};
+        // With lone: an outer line much further from the next than the lines are from one
+        // another is no border of the table (a match card's signature line, under its
+        // shoot-off, joined to it by a signature).
+        while (lone && longOnes.length >= 4) {
+            var gaps = [];
+            for (var i = 1; i < longOnes.length; i++) gaps.push(longOnes[i].c - longOnes[i - 1].c);
+            var med = gaps.slice().sort(function (a, b) { return a - b; })[gaps.length >> 1];
+            if (gaps[gaps.length - 1] > LONE * med) longOnes.pop();
+            else if (gaps[0] > LONE * med) longOnes.shift();
+            else break;
+        }
+        return {first: longOnes[0], last: longOnes[longOnes.length - 1], count: longOnes.length, span: maxSpan};
     }
 
     // ----------------------------------------------------------- homography
@@ -1188,7 +1201,7 @@
      */
     function analyseUnit(P, pass, c, found) {
         var q = P.passes[pass], cand = pass === 1 ? P.cands[c] : P.more[c], opts = P.opts, w = P.work.w;
-        var tryPart = function (part) { return tryGrid(P.work, q.ink, q.cc, part, P.scale, opts.trace); };
+        var tryPart = function (part) { return tryGrid(P.work, q.ink, q.cc, part, P.scale, opts.trace, opts.lone); };
         var u = {a: tryPart(cand), parts: null, grids: null};
         if (u.a || !opts.all) return u;
         u.parts = splitBlot(q.cc, w, cand);
@@ -1208,7 +1221,7 @@
     /** One table looked for (tryGrid): in candidate c of a pass, or (k >= 0) in the k-th part it cuts into. */
     function analyseJob(P, pass, c, k) {
         var q = P.passes[pass], cand = pass === 1 ? P.cands[c] : P.more[c];
-        return tryGrid(P.work, q.ink, q.cc, k >= 0 ? analyseCuts(P, pass)[c][k] : cand, P.scale, null);
+        return tryGrid(P.work, q.ink, q.cc, k >= 0 ? analyseCuts(P, pass)[c][k] : cand, P.scale, null, P.opts.lone);
     }
 
     /** The grids found with a candidate's: its table, or its parts' when they all make like tables. */
@@ -1386,7 +1399,7 @@
      * Lines, quad and frame of one candidate blot, or null when they do not make a
      * table: at least four long lines each way in the straightened frame.
      */
-    function tryGrid(work, ink, cc, grid, scale, trace) {
+    function tryGrid(work, ink, cc, grid, scale, trace, lone) {
         var w = work.w, h = work.h;
         function fail(stage, info) {
             if (trace) trace.push({stage: stage, box: [grid.x0, grid.y0, grid.x1, grid.y1], info: info});
@@ -1421,6 +1434,12 @@
         // Family whose normal is the most vertical holds the image's horizontal lines.
         var rowsFirst = Math.abs(Math.sin(angles[0])) >= Math.abs(Math.sin(angles[1]));
         var rows = outerLines(fam[rowsFirst ? 0 : 1]), cols = outerLines(fam[rowsFirst ? 1 : 0]);
+        // lone, across the longer lines only: a match card is wider than tall, its signature line
+        // runs along its rows; across its columns, a wide total column is no lone line.
+        if (lone && rows && cols) {
+            if (rows.span >= cols.span) rows = outerLines(fam[rowsFirst ? 0 : 1], true);
+            else cols = outerLines(fam[rowsFirst ? 1 : 0], true);
+        }
         if (!rows || !cols) {
             return fail('outer', fam.map(function (f) {
                 return f.map(function (l) { return Math.round(l.span) + '/' + l.fill.toFixed(2) + '/' + l.edge.toFixed(2); }).slice(0, 14).join(' ');

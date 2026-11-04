@@ -32,6 +32,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // 43 %, 0.9 % wrong).
     var SURE = 0.998;
     var READ_SLICE = 60;    // ms of reading at a time, the page going on between
+    // A page's own part of the reading (duels.php: duel.js), asked where its sheets differ:
+    // how the page is set up, the layouts, whose sheet it is, the checks, the cards shown and
+    // written. None on the qualification page.
+    var K = window.OcrKind && root.getAttribute('data-kind') === window.OcrKind.name ? window.OcrKind : null;
 
     function el(id) { return document.getElementById(id); }
 
@@ -53,6 +57,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // so that the work left over from the previous one stops.
     // qr: what the sheet's ISK code tells (session, distance, target), when there is one.
     var state = {full: null, source: null, sheet: [], view: null, stream: null, gen: 0, qr: null};
+    // A bench driving the page (work/ocr) sees what it reads; nothing set on a page otherwise.
+    if (window.OCR_BENCH) window.OCR_BENCH.state = state;
 
     // ----------------------------------------------------------------- options
 
@@ -470,7 +476,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var LIVE_FULL = 1920;   // longest side of the frame the live view works on (a phone's 4K: four times the work, no better read)
     var COLOURS = ['#0254a8', '#04ac0b', '#e57b10', '#a0129e', '#c0392b', '#0aa6b8'];
     var SETUP_KEY = 'ocrSetup:' + tourCode;
-    var SETUP = ['ocr-session', 'ocr-dist', 'ocr-expected'];
+    var SETUP = K ? K.setupIds : ['ocr-session', 'ocr-dist', 'ocr-expected'];
     var live = null;
 
     /** Grids per sheet, as the operator set it (0: not given). */
@@ -509,6 +515,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     window.localStorage.setItem(SETUP_KEY, JSON.stringify(now));
                 } catch (e) { /* kept for this page only */ }
                 if (live && id === 'ocr-expected') live.lv.expected = expectedGrids();
+                if (K && K.setupChanged) K.setupChanged(id);
                 setupReady();
             });
         });
@@ -557,6 +564,7 @@ document.addEventListener('DOMContentLoaded', function () {
     /** The scorecard layouts of the competition, fetched once. */
     var layouts = null;
     function loadLayouts() {
+        if (K) return K.layouts();
         if (layouts) return Promise.resolve(layouts);
         return fetch(api, {method: 'POST', credentials: 'same-origin',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'action=layouts'})
@@ -1562,7 +1570,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data.data.set(V.undistortRGBA(data.data, data.width, data.height, lens));
             g.putImageData(data, 0, 0);
         }
-        var t2 = performance.now(), gen = state.gen, found = analysis(state.full, {all: true, want: expectedGrids()});
+        var t2 = performance.now(), gen = state.gen, found = analysis(state.full, kindOpts({all: true, want: expectedGrids()}));
         tm.lens = Math.round(t2 - t1);
         // The sheet's codes read here meanwhile (the workers analyse it).
         var P = poolUp(), far = P && window.OcrPool.qr ? function (d, w, h) { return window.OcrPool.qr(P, d, w, h); } : null;
@@ -1592,6 +1600,8 @@ document.addEventListener('DOMContentLoaded', function () {
             renderSheet();
             codes.then(function (r) {
                 if (gen !== state.gen) return;
+                // Another page's sheets: whose they are, and their reading, its own.
+                if (K) return K.readSheet(gen, r[0]);
                 useQR(r[1]);
                 // Each card's barcode looked for by the workers, beside its header (identify()).
                 state.sheet.forEach(function (ctx) {
@@ -1613,13 +1623,23 @@ document.addEventListener('DOMContentLoaded', function () {
         var rated = grids.map(function (g) {
             var best = null, b = g.gridBox;
             lays.forEach(function (lay) {
-                var f = Lay.fit(V, g, lay, null);
+                var f = fitAny(g, lay, null);
                 if (f.ok && (!best || f.score > best.score)) best = f;
             });
             return {g: g, fits: best ? 1 : 0, score: best ? best.score : 0, area: (b.x1 - b.x0) * (b.y1 - b.y0)};
         });
         var keep = rated.slice().sort(function (p, q) { return q.fits - p.fits || q.score - p.score || q.area - p.area; }).slice(0, want);
         return grids.filter(function (g) { return keep.some(function (k) { return k.g === g; }); });
+    }
+
+    /** A photo's analysis options, with those of the page's sheets (OcrKind's: lone, for match cards). */
+    function kindOpts(o) {
+        return K && K.analyseOpts ? Object.assign(o, K.analyseOpts) : o;
+    }
+
+    /** A grid fitted with a layout of the page's sheets (a qualification card's, or OcrKind's). */
+    function fitAny(a, s, turn) {
+        return K ? K.fit(a, s, turn) : Lay.fit(V, a, s, turn);
     }
 
     /**
@@ -1746,6 +1766,7 @@ document.addEventListener('DOMContentLoaded', function () {
      * the sheet's other cards (none typed any more: a click gives one).
      */
     function offerArchers() {
+        if (K) return;
         var known = state.sheet.filter(function (c) { return c.card; });
         if (!known.length || !roster) return;
         var a = known[0].card.archer, target = parseInt(a.target, 10), used = known.map(function (c) { return c.card.archer.enId; });
@@ -2182,9 +2203,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 // The arrows that tell how many ends were shot first (the first two of each
                 // end, the card's last two): the ends not shot are not read. (A card from the
                 // live view is read whole: its views decide, not one frame.)
-                var o = recognizerOpts(m), busy = 0, told = !!ctx.seedCells, locked = ctx.liveLocked || {};
+                var o = recognizerOpts(m), busy = 0, told = !!ctx.seedCells || !!K, locked = ctx.liveLocked || {};
                 // The cells the live view read for sure are taken as it read them (lockLive): not read again.
-                var queue = fit.cells.filter(function (c) { return !locked[c.line + '.' + c.key]; });
+                // (A page's own cells, that no network reads, measured by its part: OcrKind.finish.)
+                var queue = fit.cells.filter(function (c) { return !locked[c.line + '.' + c.key] && (!K || K.readable(c)); });
                 var probes = Lay.shotEnds(p, function () { return 'written'; }).probes.concat([p.arrows * p.ends - 2, p.arrows * p.ends - 1]);
                 var first = function (c) { return c.kind === 'arrow' && probes.indexOf(c.arrow) >= 0; };
                 if (!told) queue = queue.filter(first).concat(queue.filter(function (c) { return !first(c); }));
@@ -2192,8 +2214,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 fit.cells.forEach(function (c) { (byLine[c.line] = byLine[c.line] || {})[c.key] = c; });
                 card.values.forEach(function (v) { values[v.p] = {n: v.n, g: v.g, x: v.x}; });
                 // A number read among the values its cell can hold, with this archer's face.
-                var bound = function (c) { return Object.assign({allowed: Lay.cellAllowed(c, p, card.values)}, c); };
+                var bound = function (c) { return Object.assign({allowed: K ? K.allowed(c, ctx) : Lay.cellAllowed(c, p, card.values)}, c); };
                 var finish = function () {
+                    if (K) {
+                        K.finish(ctx, reads, msgs, busy / 1000);
+                        done();
+                        return;
+                    }
                     // What the live view read of these cells, put together with the photo's
                     // reading (as large as the photo shows it). The photo's own is kept: the
                     // live view's later views join it again (liveRefresh).
@@ -2329,7 +2356,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var DOUBTS_LATER = 1000;   // ms after a card is read: its cells' pictures cut out once the sheet is shown
 
     function sendDoubts(ctx) {
-        if (!readOpts.doubts || !root.getAttribute('data-labels-api') || ctx.doubtsSent) return;
+        if (K || !readOpts.doubts || !root.getAttribute('data-labels-api') || ctx.doubtsSent) return;
         var gen = state.gen;
         setTimeout(function () { if (gen === state.gen) sendDoubtsNow(ctx); }, DOUBTS_LATER);
     }
@@ -2434,6 +2461,7 @@ document.addEventListener('DOMContentLoaded', function () {
      * certain: one correction may settle the doubt on the other arrows of the end.
      */
     function resolveReading(ctx) {
+        if (K) return K.resolve(ctx);
         var rd = ctx.reading, p = ctx.fit.printed;
         var lines = rd.lines.map(function (ln, i) {
             var copy = Object.assign({}, ln);
@@ -2576,6 +2604,7 @@ document.addEventListener('DOMContentLoaded', function () {
      * archer of the place, if any, in archer). Cards not identified take the places left.
      */
     function placesOf() {
+        if (K) return K.placesOf();
         var target = null, byLetter = {}, unknown = [], seq = readingOrder(), shift = null;
         seq.forEach(function (ctx, i) {
             var l = letterOf(ctx);
@@ -2725,6 +2754,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function cardState(ctx) {
         if (!ctx || ctx.step === 'busy' || !ctx.card) return {colour: ctx && ctx.step === 'wait' ? 'doubt' : 'busy', eye: 'none', totals: [], alerts: 0};
         if (!ctx.reading || !ctx.fit || !ctx.fit.ok) return {colour: 'doubt', eye: 'none', totals: [], alerts: 0};
+        if (K) return K.cardState(ctx);
         var rd = ctx.reading, card = ctx.card, arrows = rd.sol.arrows, sureArrows = true, readAll = true, red = false, alerts = 0;
         arrows.forEach(function (a) {
             var x = arrowOf(ctx, a.line, a.index);
@@ -2867,6 +2897,7 @@ document.addEventListener('DOMContentLoaded', function () {
      * sheet), validated once it does (by a later reading).
      */
     function writeState(ctx) {
+        if (K) return K.writeState(ctx);
         if (!ctx || !ctx.card || !ctx.reading || !ctx.fit || !ctx.fit.ok || ctx.step !== 'done') return null;
         if (ctx.written) return {done: ctx.written};
         var i = ctx.card.ianseo, kind = heldWhole(ctx.card) ? 'validate' : 'import', st = cardState(ctx);
@@ -2897,6 +2928,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /** The sheet's totals to set to what the arrows make, once every arrow is sure: [key]. */
     function totalsToSet(ctx) {
+        if (K) return [];
         if (!ctx || !ctx.card || !ctx.reading || ctx.step !== 'done') return [];
         var rd = ctx.reading;
         if (!rd.sol.arrows.length || !rd.sol.arrows.every(function (a) { return arrowOf(ctx, a.line, a.index).sure; })) return [];
@@ -2935,7 +2967,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function writeButton(ctx) {
         var w = writeState(ctx);
-        if (!w || !root.getAttribute('data-score-api')) return '';
+        if (!w || !root.getAttribute(K ? 'data-duel-write' : 'data-score-api')) return '';
         if (w.done) return '<span class="ocr-written">' + esc(t(w.done === 'imported' ? 'Imported' : 'Validated')) + '</span>';
         var label = t(w.kind === 'import' ? 'Import' : 'Validate');
         return '<button type="button" class="ocr-btn ocr-btn-primary" data-write="' + ctx.n + '"'
@@ -2945,6 +2977,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /** One card written into ianseo, as writeState() allows. -> a promise (true when written). */
     function writeCard(ctx) {
+        if (K) return K.writeCard(ctx);
         var w = writeState(ctx), url = root.getAttribute('data-score-api');
         if (!w || w.done || w.blocked || !url) return Promise.resolve(false);
         var rd = ctx.reading, p = ctx.fit.printed, zero = [], signed = [];
@@ -3154,9 +3187,9 @@ document.addEventListener('DOMContentLoaded', function () {
         ctx.reading = null;
         ctx.crops = null;
         if (ctx.analysis) {
-            var st = Object.assign({dist: ctx.card.dist}, ctx.card.structure), k = [0, 1, -1][ctx.regrid];
+            var st = Object.assign(K ? {} : {dist: ctx.card.dist}, ctx.card.structure), k = [0, 1, -1][ctx.regrid];
             if (k) st.shift = k;
-            var f = Lay.fit(V, ctx.analysis, st, ctx.fit ? ctx.fit.turn : null);
+            var f = fitAny(ctx.analysis, st, ctx.fit ? ctx.fit.turn : null);
             ctx.fit = f;
             ctx.step = 'busy';
             renderSheet();
@@ -3225,13 +3258,13 @@ document.addEventListener('DOMContentLoaded', function () {
         ctx.step = 'busy';
         show(ctx, [busyLine(t('RereadSearching'))]);
         renderSheet();
-        return analysis(part.img, {all: true}).then(function (a) {
+        return analysis(part.img, kindOpts({all: true})).then(function (a) {
             if (gen !== state.gen) return null;
             // The grid nearest the card's middle, one that fits its layout first.
-            var st = ctx.card ? Object.assign({dist: ctx.card.dist}, ctx.card.structure) : null, best = null;
+            var st = ctx.card ? (K ? ctx.card.structure : Object.assign({dist: ctx.card.dist}, ctx.card.structure)) : null, best = null;
             (a.ok ? a.grids : []).forEach(function (g) {
                 var c = centre(g), s = g.scale || 1, d = Math.hypot(c.x / s + part.x0 - mid.x, c.y / s + part.y0 - mid.y);
-                var fits = !st || Lay.fit(V, g, st, null).ok ? 1 : 0;
+                var fits = !st || fitAny(g, st, null).ok ? 1 : 0;
                 if (!best || fits > best.fits || fits === best.fits && d < best.d) best = {g: g, d: d, fits: fits};
             });
             if (!best) {
@@ -3250,6 +3283,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ctx.regrid = 0;
             ctx.fit = ctx.reading = ctx.crops = null;
             drawPhoto();
+            if (K) return K.reopen(ctx);
             if (ctx.card) return showCard(ctx, ctx.card);
             if (!ctx.barcode) ctx.barcodeP = barcodeOf(g, null);
             return openCards([ctx]);
@@ -3272,13 +3306,13 @@ document.addEventListener('DOMContentLoaded', function () {
         status([busyLine(t('RereadSearching'))]);
         renderSheet();
         var side = Math.min(RESEARCH_SIDE, Math.max(full.w, full.h));
-        Promise.all([analysis(full, {all: true, workSide: side}), loadLayouts().then(null, function () { return []; })]).then(function (r) {
+        Promise.all([analysis(full, kindOpts({all: true, workSide: side})), loadLayouts().then(null, function () { return []; })]).then(function (r) {
             if (gen !== state.gen) return null;
             var a = r[0], lays = r[1] || [], boxes = state.sheet.map(cardBox).filter(Boolean);
             var fresh = (a.ok ? a.grids : []).filter(function (g) {
                 var c = centre(g), s = g.scale || 1, x = c.x / s, y = c.y / s;
                 if (boxes.some(function (bx) { return x >= bx.x0 && x <= bx.x1 && y >= bx.y0 && y <= bx.y1; })) return false;
-                return !lays.length || lays.some(function (lay) { return Lay.fit(V, g, lay, null).ok; });
+                return !lays.length || lays.some(function (lay) { return fitAny(g, lay, null).ok; });
             });
             fresh = order(sheetGrids(fresh, lays, Math.max(1, expectedGrids() - state.sheet.length)));
             state.working = false;
@@ -3296,7 +3330,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!state.view) state.view = added[0];
             drawPhoto();
             renderSheet();
-            return openCards(added);
+            return K ? K.readSheet(gen, []) : openCards(added);
         }).then(function () {
             if (gen !== state.gen) return;
             state.working = false;
@@ -3675,6 +3709,7 @@ document.addEventListener('DOMContentLoaded', function () {
     /** A card's cells, as on the scorecard. */
     function cardCells(ctx) {
         if (!ctx || !ctx.fit || !ctx.fit.ok || !ctx.card || !ctx.reading) return null;
+        if (K) return K.cardCells(ctx);
         var f = ctx.fit, card = ctx.card, p = f.printed, byLine = {};
         f.cells.forEach(function (c) { (byLine[c.line] = byLine[c.line] || {})[c.key] = c; });
         var keys = [];
@@ -3737,6 +3772,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     window.addEventListener('resize', function () { if (state.source) drawPhoto(); });
+
+    // The page's own part handed what it reads and shows with.
+    if (K) {
+        K.init({V: V, B: B, X: X, S: S, state: state, root: root, api: api, el: el, t: t, esc: esc, SURE: SURE,
+            show: show, status: status, busyLine: busyLine, renderSheet: renderSheet, drawPhoto: drawPhoto, setupReady: setupReady,
+            readCells: readCells, loadModels: loadModels, arrowCell: arrowCell, numberCell: numberCell, arrowOf: arrowOf,
+            cropOf: cropOf, cropH: function () { return cropH; }, palette: palette, cardActions: cardActions, cardStateOf: cardState,
+            sheetWritten: sheetWritten, recLog: function (o) { if (rec) recLog(o); }});
+    }
 
     // The reading workers start once the live view's are in (liveResult), or a while after the
     // page without a camera: their networks are in before the first photo. Not while the live

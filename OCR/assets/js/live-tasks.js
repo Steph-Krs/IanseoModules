@@ -157,6 +157,8 @@
     function linesOf(cells, table) {
         var us = [table.u0], vs = [table.v0], closing = [];
         cells.forEach(function (c) {
+            // A match card's cells under its table (shoot-off, boxes) are no lines of it.
+            if (typeof c.line !== 'number' && c.line !== 'total') return;
             us.push(c.u0, c.u1);
             if (c.line === 'total') return;
             vs.push(c.v0, c.v1);
@@ -476,7 +478,8 @@
             var fitAt = function (g, i, turn) {
                 var best = null;
                 layouts.forEach(function (lay, k) {
-                    var fit = Lay.fit(V, g, lay, turn);
+                    // A match sheet's card (the duel page) by its own layout.
+                    var fit = (lay.duel && ctx.env.DL ? ctx.env.DL : Lay).fit(V, g, lay, turn);
                     if (fit.ok && (!best || fit.score > best.score)) {
                         best = fit;
                         bls[i] = k;

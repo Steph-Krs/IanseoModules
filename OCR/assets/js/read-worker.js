@@ -22,7 +22,7 @@
  * what comes after them, in order); the rest is done at once.
  */
 // With this worker's version (the newest of the module's scripts): never an older copy.
-importScripts.apply(self, ['vision.js', 'layout.js', 'nn.js', 'recognizer.js', 'text.js', 'barcode.js', 'live-tasks.js']
+importScripts.apply(self, ['vision.js', 'layout.js', 'duel-layout.js', 'nn.js', 'recognizer.js', 'text.js', 'barcode.js', 'live-tasks.js']
     .map(function (f) { return f + self.location.search; }));
 
 var nets = null, waiting = [], image = {id: null, img: null}, plan = {key: null, P: null}, roster = [];
@@ -82,7 +82,7 @@ function handle(msg) {
             (g.ok ? g.grids : []).forEach(function (a) {
                 var best = null;
                 (q.layouts || []).forEach(function (lay) {
-                    var f = self.OcrLayout.fit(V, a, lay, null);
+                    var f = (lay.duel && self.OcrDuelLayout ? self.OcrDuelLayout : self.OcrLayout).fit(V, a, lay, null);
                     if (f.ok && (!best || f.score > best.score)) best = f;
                 });
                 if (best) {

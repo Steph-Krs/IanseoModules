@@ -5,10 +5,9 @@ Module for [I@nseo](https://www.ianseo.net/), the archery competition management
 **Photograph a scorecard printed by ianseo** — with the computer's camera or a phone — to compare it
 with what ianseo holds, and in time to enter it when no scoring devices were used.
 
-> **In development (0.1).** This version finds the grid in the photo, identifies the archer, cuts out
-> every cell and reads the handwritten values, checking the sums and running totals. The reading is
-> still learnt from generic handwritten digits: it will improve with real scorecards. Saving into
-> ianseo comes next.
+> **In development (0.2).** The qualification scorecards and, since 0.2, the match sheets
+> (brackets and round robins): the grid found in the photo, the archer or the match told, every
+> cell read and checked by the sums and running totals, then written into ianseo and validated.
 
 ## Features
 
@@ -183,6 +182,36 @@ with what ianseo holds, and in time to enter it when no scoring devices were use
   sends those of the gallery all at once. The photos are kept on the server for the open
   competition, and can be downloaded as one ZIP archive.
 
+## Matches
+
+Page **Read the scorecards - matches**: the match sheet printed by ianseo (one sheet a match, its two
+cards side by side), for individual and team brackets as for round robins.
+
+- 🗓️ **The round being shot, chosen first**: the competition's rounds, as ianseo's scorecard
+  printouts list them (brackets and round robins), narrowed by the two boxes "Today's schedule" and
+  "Hide finished rounds". Its matches tell each sheet; one round may mix several formats (sets or
+  points, ends, arrows), all from the events' settings, and only the round's are looked for.
+- 🔎 **The match told** by the sheet's barcode when it reads, else by the names printed above the two
+  cards, the event under them and the round in the table's title ("1/8", "Aller Groupe 1
+  Rencontre 4"), against the round's matches; the left card is the match's first side. Not told, the
+  match is chosen from a list.
+- ✏️ **Every cell read**: the arrows, the end's or set's total, the running total (points), the set
+  point marked (2, 1 or 0 circled, or written over), the running set points, the total, the
+  shoot-off, the "Closest to the centre" and "Winner" boxes. A cell without ink reads blank (the
+  ends a match did not need).
+- ✅ **Checked on both cards**: the arrows chosen by each card's sums and running totals, then the
+  match worked out again — set points, running points, total, shoot-off, winner — against what is
+  circled, written and ticked. An end ianseo holds in another order (an entry that sorts the arrows)
+  counts as the same.
+- 💾 **Writing into ianseo**: "Import the data" writes both sides' arrows, the shoot-off and the
+  closest to the centre through the core's functions, which work the match out again; a later
+  reading of the same sheet offers "Validate the data", which **confirms the match** as the barcode
+  check's CONFIRM does (the winner moves on to the next round; in a round robin, the group is ranked
+  again). The same quick checks and automatic import as for the qualification.
+- 📷 **Modes**: automatic (the picture takes itself once both cards are seen sharply), manual, or a
+  picture imported; no video mode for matches.
+- The sheet "per archer" (all of an archer's rounds on a page) is not read yet.
+
 ## Privacy
 
 On the reading page, the photo is analysed **in the browser** and never sent to the server: the
@@ -203,11 +232,17 @@ each with what it is on the card and the highest number it can hold (only the re
 face can make are offered, a number it cannot make is flagged): the person checking corrects those that are wrong,
 marks with one click (or "*", on the number pad) a cell cut out badly (across two cells, off the grid), and validates with Enter.
 Each cell is shown large with its neighbours, a dozen at a time, with its target and distance to find
-the sheet again. What is typed there is
+the sheet again. The page shows the cells of every competition, whichever is open, and those of the
+networks' training set whose label is not sure (X or 10, an end ianseo holds in another order than
+the sheet, a value the reading does not see), with the sheet, card, end and arrow they come from:
+those are left out of the training until checked. What is typed there is
 what the reading networks learn from next.
 
 ## Access
 
+- Matches: any user with access to a kind of match (individual or team brackets, round robins);
+  writing and confirming, the right to enter that kind of match, as the core's barcode check asks,
+  and not while ianseo locks it.
 - Reading: any user with access to the qualification round of the open competition. Series
   capture, cells to check: the right to enter qualification scores. The menu entries appear in the **Modules** tab
   while a competition is open.
@@ -232,7 +267,10 @@ each other. They were trained on the **EMNIST** handwritten digits and letters o
 Institute of Standards and Technology*), then on photos of real scorecards of past competitions,
 labelled by the arrows their database holds, and on the cells a person checked on the page Cells
 to check (an X written "+" or "10+" is read as an X); nothing of those photos is shipped, only the
-networks' weights.
+networks' weights. Both reading pages use the same networks, which also learn from scanned match
+sheets, and only from sure labels: an arrow the database does not tell for sure (X or 10, an end
+entered in another order than the sheet's, a value the reading does not see) is learnt only once a
+person has checked it on the page Cells to check.
 
 Each cell is cut out with a **margin**: a stroke running over from it is read with it, one running
 over from the next cell is left out, the grid's lines are taken out. Touching digits are parted
@@ -280,6 +318,12 @@ distance of the card read:
 Every write goes through the open competition (a join on `Entries`). The ranks are then calculated
 again by the core's classes, as after an ISK import: category, teams, events and their shoot-offs.
 
+For **matches**, the writing goes through the core's functions that write a match
+(`UpdateArrowString`, `RobinUpdateArrowString`: arrows, shoot-off, closest to the centre, then the
+match worked out again by the core), into `Finals`, `TeamFinals` or `RoundRobinMatches`, for the match
+read only; validating confirms it as the core's barcode check does (`…Confirmed`, `…Status`, then the
+winner moved on to the next round, or the round robin's group ranked again).
+
 One setting, for the whole installation, in the core's `Parameters` table: the row `OcrDevTools`
 (value `1`) when the administrator has shown the development tools; removed when they hide them.
 
@@ -296,6 +340,9 @@ See the [main README](../README.md). In short: copy the `OCR/` and `_shared/` fo
 
 | Statement | Table | Location | Notes |
 |---|---|---|---|
+| `UPDATE` | `RoundRobinMatches` | `lib/duel.php:379` | review scope by hand |
+| `UPDATE` | `TeamFinals` | `lib/duel.php:407` | review scope by hand |
+| `UPDATE` | `Finals` | `lib/duel.php:409` | review scope by hand |
 | `UPDATE` | `Qualifications` | `lib/score.php:143` | review scope by hand |
 | `UPDATE` | `Qualifications` | `lib/score.php:149` | review scope by hand |
 | `UPDATE` | `Qualifications` | `lib/score.php:160` | review scope by hand |
