@@ -1,7 +1,7 @@
 {
-    "version": "1.4.25",
-    "date": "2026-10-27",
-    "notes": "1.4.25 : Inscriptions en ligne, verification de la nuit d apres le fichier des licences : le club suit aussi le fichier. Jusqu au debut de la competition, un archer qui a change de club passe sous son nouveau club (le premier club seulement, le second ne change pas) : le tarif suit le nouveau club ; une inscription faite par un camarade de club n est plus geree que par l archer ; ce que l ancien club avait paye pour lui est retire de son compte et signale en remboursement a faire a l ancien club (page Paiements) ; le nouveau club peut payer pour lui comme pour ses autres archers ; l indice de confiance compte un impaye a l archer. Inscriptions en ligne ouvertes : l inscription est annulee si le nouveau club n est pas admis (restriction geographique), et l archer en est prevenu dans Mes inscriptions ; un archer qui ne peut plus etre place sans depasser le nombre d archers d un meme club par cible est mis en attente comme pour une licence manquante (statut 5, en tete de la liste d attente, message propre) et retrouve sa place des qu une cible le permet. Inscriptions closes, ou archer saisi dans ianseo : rien n est annule ni deplace, l organisateur est prevenu (page des inscriptions en ligne, anomalies de l accueil de la competition). Base de donnees : nouvelle table BookingClubMoves, nouvelles colonnes BookingLedger.BlgClub, BookingRegistrations.BrHoldReason et BookingRefunds.BfLabel. L historique des versions est desormais dans CHANGELOG.md, sur le depot.",
+    "version": "1.4.27",
+    "date": "2026-11-11",
+    "notes": "1.4.27 : Greffe, nouvelle page Caisse du greffe : ce qui a ete encaisse au greffe (par un benevole, ou par l organisateur qui a ouvert le greffe sur son appareil), par moyen de paiement et par benevole, pour compter la caisse a la fin de chaque depart. A la fin d un depart, l organisateur cloture la caisse : tous les encaissements pas encore clotures sont rattaches au depart qui se termine (les horaires des departs sont rarement saisis dans ianseo : c est la cloture qui dit quand un depart se termine). Un depart peut etre cloture plusieurs fois, la derniere cloture peut etre annulee. Vue de la caisse en cours ou d un depart ; ce qui est saisi sur la page Paiements (cheques par courrier, virements), les paiements en ligne et la buvette n entrent pas dans la caisse ; l annulation d un encaissement du greffe y compte en negatif ; page imprimable. Un encaissement fait au greffe a desormais pour libelle Reglement au greffe (au lieu de Reglement du compte a un stand) ; les lignes deja enregistrees gardent leur libelle. Base de donnees : nouvelle table ShopDeskCloses, nouvelle colonne BookingLedger.BlgDeskClose.",
     "files": [
         "menu.php",
         "lib.php",
@@ -302,8 +302,10 @@
         "shop/staff/manifest.php",
         "trust-lib.php",
         "shop/lib/desk.php",
+        "shop/lib/desk-cash.php",
         "shop/desk/index.php",
         "shop/desk/list.php",
+        "shop/desk/cash.php",
         "shop/desk/api/search.php",
         "shop/desk/api/file.php",
         "shop/desk/api/act.php",
@@ -311,6 +313,7 @@
         "shop/assets/desk.js",
         "shop/assets/desk.css",
         "shop/assets/desk-list.css",
+        "shop/assets/desk-cash.css",
         "adm-lib.php",
         "assets/admin.css",
         "assets/admin.js",
@@ -395,7 +398,7 @@
         "BookingChecks",
         "BookingCheckEntries",
         "BookingCheckLog",
-        "BookingPalmares", "BookingClubMoves"
+        "BookingPalmares", "BookingClubMoves", "ShopDeskCloses"
     ],
     "uninstall_backup": true,
     "uninstall_warning": "Ce module porte l'authentification du serveur. Les fichiers déployés dans Modules/Authentication/ chargent Modules/Custom/AUTH/lib.php : supprimer ce dossier pendant que USERAUTH est actif provoque une erreur fatale sur TOUTES les pages du site (comportement fail-closed), sans possibilité de se reconnecter pour réparer.\n\nAvant de désinstaller : ouvrez admin/deploy.php, désactivez USERAUTH et retirez les fichiers déployés. Voir SERVEUR.md pour la procédure de secours en cas de blocage.\n\nSupprimer les tables Auth* efface tous les comptes, partages et sessions : les organisateurs perdront l'accès à leurs compétitions.\n\nCe module inclut désormais les inscriptions en ligne (booking/) et la buvette et boutique (shop/) : supprimer les tables Booking* et Shop* efface la traçabilité des inscriptions, les comptes licenciés, le journal des paiements et les commandes de la buvette et de la boutique ; supprimer AuthTrust* efface l'indice de confiance des payeurs. Les inscriptions déjà créées dans ianseo (participants et cibles) NE sont PAS supprimées : elles appartiennent aux compétitions."

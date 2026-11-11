@@ -441,7 +441,7 @@ function shp_pay_account($tourId, $account, $amount, $method, $staffId, $idem, $
         safe_w_Rollback();
         return shp_err('too_much', 'ShPayErrTooMuch', shp_money($st['remaining'], $tourId), array('remaining' => $st['remaining']));
     }
-    $line = bk_ledger_add($tourId, $account, 'payment', $amount, $method, '', shp_t('ShPayLblAccount'), shp_pay_by($staffId), 0,
+    $line = bk_ledger_add($tourId, $account, 'payment', $amount, $method, '', shp_t($standId > 0 ? 'ShPayLblAccount' : 'ShPayLblDesk'), shp_pay_by($staffId), 0,
         array('stand' => $standId, 'staff' => $staffId, 'idem' => $idem));
     if (!$line) {
         safe_w_Rollback();

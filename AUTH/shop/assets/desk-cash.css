@@ -1,0 +1,12 @@
+/* Till of the check-in desk (desk/cash.php), on top of admin.css (#shpadm). */
+
+#shpadm .dc-lines tr.dc-cancelled td { color: #7d8183; }
+#shpadm .dc-lines tr.dc-cancelled td.sa-num { text-decoration: line-through; }
+#shpadm .dc-printonly { display: none; }
+
+/* Printed: the sheet to count the till with — no forms, no navigation. */
+@media print {
+    #shpadm .dc-noprint, #shpadm .sa-nav, #shpadm .sa-help, #shpadm .sa-q, #shpadm .sa-msg { display: none !important; }
+    #shpadm .dc-printonly { display: block; }
+    #shpadm .sa-kpi { break-inside: avoid; }
+}
