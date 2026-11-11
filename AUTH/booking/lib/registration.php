@@ -753,28 +753,53 @@ function bk_reg_remove($tourId, $enId)
     });
 }
 
-/** Registrations of an archer (all competitions), the most recent first. */
+/**
+ * Registrations of an archer (all competitions), the most recent first.
+ *
+ * Besides the online registrations (BookingRegistrations), the participations the organiser
+ * entered in ianseo itself (participants list, import…) for this licence are listed too, as
+ * BrByRole='IMPORT' rows (shown "by the organiser", never cancellable by the archer — see
+ * bk_unregister). They are READ LIVE from Entries, never written into BookingRegistrations: a row
+ * there means "online registration handled by the module" for the placement, the licence check,
+ * the club moves and the trust index, which must keep leaving the organiser's entries alone.
+ * Reading live also follows a change of departure or a deletion made in ianseo at once. Only
+ * for competitions the archer can see in their space (same rule as bk_archer_accounts).
+ */
 function bk_my_registrations($licence)
 {
     bk_schema();
-    $rs = safe_r_sql("SELECT BrId, BrEnId, BrTournament, BrRequest, BrCreated, BrByRole,
-                BrWantLetter, BrWantWith, BrValidated, BrLicHold, BrHoldSession, BrHoldReason,
-                EnDivision, EnClass, EnIndClEvent, EnTargetFace,
+    $lic = StrSafe_DB(bk_clean_licence($licence));
+    $cols = "EnDivision, EnClass, EnIndClEvent, EnTargetFace,
                 QuSession, QuTarget, QuLetter,
                 DivDescription, ClDescription,
                 ToName, ToWhere, ToVenue, ToWhenFrom, ToWhenTo,
                 ToType, ToTypeName, ToTypeSubRule,
                 BcShowAssignment, BcAllowScoresheet, BcFee, BcMandate, BcShowMandate, BcIanseoUrl,
                 BcShowProgram, BcShowParticipants, BcShowResults, BcPublishLevel,
-                " . bk_comp_calc_sql() . "
+                " . bk_comp_calc_sql();
+    $joins = "INNER JOIN Qualifications ON QuId = EnId
+        LEFT  JOIN Divisions      ON DivTournament = ToId AND DivId = EnDivision
+        LEFT  JOIN Classes        ON ClTournament  = ToId AND ClId  = EnClass";
+    $rs = safe_r_sql("(SELECT BrId, BrEnId, BrTournament, BrRequest, BrCreated, BrByRole,
+                BrWantLetter, BrWantWith, BrValidated, BrLicHold, BrHoldSession, BrHoldReason,
+                $cols
         FROM BookingRegistrations
         INNER JOIN Entries        ON EnId = BrEnId
-        INNER JOIN Qualifications ON QuId = EnId
         INNER JOIN Tournament     ON ToId = BrTournament
-        LEFT  JOIN Divisions      ON DivTournament = ToId AND DivId = EnDivision
-        LEFT  JOIN Classes        ON ClTournament  = ToId AND ClId  = EnClass
+        $joins
         LEFT  JOIN BookingCompetitions ON BcTournament = ToId
-        WHERE BrLicence = " . StrSafe_DB(bk_clean_licence($licence)) . "
+        WHERE BrLicence = $lic)
+      UNION ALL
+        (SELECT NULL, EnId, EnTournament, NULL, EnTimestamp, 'IMPORT',
+                '', '', 1, NULL, 0, '',
+                $cols
+        FROM Entries
+        INNER JOIN Tournament     ON ToId = EnTournament
+        $joins
+        INNER JOIN BookingCompetitions ON BcTournament = ToId
+        LEFT  JOIN BookingRegistrations ON BrEnId = EnId
+        WHERE EnCode = $lic AND EnAthlete = 1 AND BrEnId IS NULL
+          AND (BcPublishLevel >= 2 OR BcPayments = 1))
         ORDER BY ToWhenFrom DESC");
     $out = array();
     while ($r = safe_fetch($rs)) $out[] = $r;
