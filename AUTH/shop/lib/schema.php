@@ -20,7 +20,7 @@
 if (defined('SHP_SCHEMA_LOADED')) return;
 define('SHP_SCHEMA_LOADED', true);
 
-if (!defined('SHP_SCHEMA_VERSION')) define('SHP_SCHEMA_VERSION', 10);
+if (!defined('SHP_SCHEMA_VERSION')) define('SHP_SCHEMA_VERSION', 11);
 
 // The shop shares the payment journal and the licensee accounts of the online registration
 // (same module): booking's schema, clock and texts come first.
@@ -375,6 +375,20 @@ function shp_schema()
     // entries, scores, publish).
     shp_colonne('ShopSettings', 'SgIanseo', "TINYINT NOT NULL DEFAULT 0 AFTER SgJudges");
     shp_colonne('ShopStaff', 'SfIanseo', "VARCHAR(64) NOT NULL DEFAULT '' AFTER SfDesk");
+
+    // v11 — till of the check-in desk counted at the end of each departure (desk/cash.php,
+    // lib/desk-cash.php): a closing takes every payment of the desk not closed yet and ties it to
+    // the departure that just ended (BlgDeskClose = DcId). The departures' times are rarely filled
+    // in ianseo, so the closing says when a departure ends, not the clock.
+    safe_w_sql("CREATE TABLE IF NOT EXISTS ShopDeskCloses (
+        DcId         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        DcTournament INT UNSIGNED NOT NULL,
+        DcSession    TINYINT UNSIGNED NOT NULL DEFAULT 0,
+        DcWhen       DATETIME NOT NULL,
+        DcBy         VARCHAR(64) NOT NULL DEFAULT '',
+        KEY DcTourIdx (DcTournament)
+    )$opt");
+    shp_colonne('BookingLedger', 'BlgDeskClose', "INT UNSIGNED NOT NULL DEFAULT 0");
 
     $_SESSION[$flag] = true;
     $busy = false;

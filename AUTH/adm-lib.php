@@ -85,8 +85,9 @@ function aut_adm_sections($can, $tour, $admin, $logged)
         if ($ro && $showSurvey) $p[] = array('booking/admin/survey.php', bk_t('MnuSurvey'));
         $out['booking'] = array('title' => bk_t('Brand'), 'pages' => $p);
 
-        // Check-in and judges: one page for now, two views of it.
-        $out['desk'] = array('title' => shp_t('DkMenu'), 'pages' => $ro ? array(array('shop/desk/list.php', shp_t('DkMnuList'))) : array());
+        // Check-in: the participants' checks and the till of the desk; judges: a view of the checks.
+        $out['desk'] = array('title' => shp_t('DkMenu'), 'pages' => $ro ? array(array('shop/desk/list.php', shp_t('DkMnuList')),
+            array('shop/desk/cash.php', shp_t('DkMnuCash'))) : array());
         $out['judges'] = array('title' => shp_t('DkJudges'), 'pages' => $ro ? array(array('shop/desk/list.php?v=equip', shp_t('DkJudgesList'))) : array());
 
         // Food & shop: settings and points of sale, catalogue, live orders, reports.

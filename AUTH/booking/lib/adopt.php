@@ -425,6 +425,10 @@ function bk_adopt($newId)
     // Payments journal: accounts are licences, they follow as they are. An account "#<EnId>"
     // (participant without a licence) keeps the old EnId and shows apart, with its payments.
     safe_w_sql("UPDATE BookingLedger         SET BlgTournament = $newId WHERE BlgTournament = $old");
+    // Closings of the desk's till: the journal lines point to them (BlgDeskClose), they go with
+    // the journal — left behind, closed lines would vanish from the open till AND from every
+    // departure. 1146: the table comes with the shop's schema v11, which may not have run yet.
+    safe_w_sql("UPDATE ShopDeskCloses        SET DcTournament = $newId WHERE DcTournament = $old", false, array(1146));
     // Check-in desk: decisions and journal are per account (licence), they follow as they are.
     // The statuses found by the desk were those of the old entries: they go.
     safe_w_sql("UPDATE BookingChecks         SET CkTournament = $newId WHERE CkTournament = $old");

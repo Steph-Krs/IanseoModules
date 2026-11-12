@@ -1,0 +1,4 @@
+/* Till of the check-in desk (desk/cash.php), on top of admin.css (#shpadm). Paper = the PDF. */
+
+#shpadm .dc-lines tr.dc-cancelled td { color: #7d8183; }
+#shpadm .dc-lines tr.dc-cancelled td.sa-num { text-decoration: line-through; }

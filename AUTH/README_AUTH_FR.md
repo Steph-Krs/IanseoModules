@@ -151,6 +151,9 @@ arbitres ou sur l'ordinateur de l'organisateur.
   (une décision peut être annulée)
 - 💰 **Paiements** : ce que doit l'archer (inscriptions, buvette et boutique), encaissé comme à la
   caisse des bénévoles
+- 🧾 **Caisse du greffe** : ce qui a été encaissé au greffe, par moyen de paiement et par bénévole ;
+  à la fin d'un départ, l'organisateur compte le tiroir et **clôture la caisse** sur ce départ (la
+  dernière clôture s'annule) ; feuille de caisse en PDF pour la caisse en cours ou un départ
 - 🔓 **Toujours disponible pour l'organisateur**, depuis son ordinateur ou son téléphone ; le greffe
   et le contrôle du matériel s'ouvrent **séparément aux bénévoles** (« Ouvrir la modification aux
   bénévoles ») — sans cette option, seuls les organisateurs interviennent
@@ -321,7 +324,7 @@ les règles d'accès.
 | `UPDATE` | `Entries` | `cron/sync-licences.php:313` | — |
 | `INSERT INTO` | `Flags` | `logos-lib.php:267` | — |
 | `INSERT INTO` | `Flags` | `logos-lib.php:326` | — |
-| `UPDATE` | `Entries` | `shop/lib/desk.php:259` | review scope by hand |
+| `UPDATE` | `Entries` | `shop/lib/desk.php:261` | review scope by hand |
 | `INSERT INTO` | `Countries` | `shop/lib/officials.php:130` | — |
 | `DELETE FROM` | `TournamentInvolved` | `shop/lib/officials.php:165` | — |
 | `UPDATE` | `TournamentInvolved` | `shop/lib/officials.php:167` | review scope by hand |
@@ -398,12 +401,13 @@ les règles d'accès.
 | `UPDATE` | `BookingWaitlist` | `booking/lib/adopt.php:423` | — |
 | `UPDATE` | `BookingRefunds` | `booking/lib/adopt.php:424` | — |
 | `UPDATE` | `BookingLedger` | `booking/lib/adopt.php:427` | — |
-| `UPDATE` | `BookingChecks` | `booking/lib/adopt.php:430` | — |
-| `UPDATE` | `BookingCheckLog` | `booking/lib/adopt.php:431` | — |
-| `DELETE FROM` | `BookingCheckEntries` | `booking/lib/adopt.php:432` | — |
-| `DELETE FROM` | `ShopSettings` | `booking/lib/adopt.php:436` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:508` | — |
-| `INSERT INTO` | `BookingRegistrations` | `booking/lib/adopt.php:560` | — |
+| `UPDATE` | `ShopDeskCloses` | `booking/lib/adopt.php:431` | — |
+| `UPDATE` | `BookingChecks` | `booking/lib/adopt.php:434` | — |
+| `UPDATE` | `BookingCheckLog` | `booking/lib/adopt.php:435` | — |
+| `DELETE FROM` | `BookingCheckEntries` | `booking/lib/adopt.php:436` | — |
+| `DELETE FROM` | `ShopSettings` | `booking/lib/adopt.php:440` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:512` | — |
+| `INSERT INTO` | `BookingRegistrations` | `booking/lib/adopt.php:564` | — |
 | `INSERT INTO` | `BookingLog` | `booking/lib/archer.php:36` | — |
 | `UPDATE` | `BookingArchers` | `booking/lib/archer.php:198` | — |
 | `INSERT INTO` | `BookingArchers` | `booking/lib/archer.php:202` | — |
@@ -594,10 +598,14 @@ les règles d'accès.
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:79` | — |
 | `INSERT INTO` | `ShopGuests` | `shop/lib/customer.php:85` | — |
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:98` | — |
-| `INSERT IGNORE INTO` | `BookingCheckEntries` | `shop/lib/desk.php:257` | — |
-| `INSERT INTO` | `BookingCheckLog` | `shop/lib/desk.php:492` | — |
-| `DELETE FROM` | `BookingChecks` | `shop/lib/desk.php:543` | — |
-| `REPLACE INTO` | `BookingChecks` | `shop/lib/desk.php:546` | — |
+| `INSERT INTO` | `ShopDeskCloses` | `shop/lib/desk-cash.php:137` | — |
+| `UPDATE` | `BookingLedger` | `shop/lib/desk-cash.php:140` | — |
+| `UPDATE` | `BookingLedger` | `shop/lib/desk-cash.php:157` | — |
+| `DELETE FROM` | `ShopDeskCloses` | `shop/lib/desk-cash.php:158` | — |
+| `INSERT IGNORE INTO` | `BookingCheckEntries` | `shop/lib/desk.php:259` | — |
+| `INSERT INTO` | `BookingCheckLog` | `shop/lib/desk.php:494` | — |
+| `DELETE FROM` | `BookingChecks` | `shop/lib/desk.php:545` | — |
+| `REPLACE INTO` | `BookingChecks` | `shop/lib/desk.php:548` | — |
 | `UPDATE` | `ShopInvites` | `shop/lib/invite.php:46` | — |
 | `UPDATE` | `ShopInvites` | `shop/lib/invite.php:51` | — |
 | `INSERT INTO` | `ShopInvites` | `shop/lib/invite.php:57` | — |

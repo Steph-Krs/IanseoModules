@@ -147,6 +147,9 @@ judges or on the organiser's computer.
   (a decision can be undone)
 - 💰 **Payments**: what the archer owes (registrations, food and shop), collected as at the
   volunteers' till
+- 🧾 **Check-in desk till**: what was taken at the desk, by means of payment and by volunteer; at
+  the end of a session the organiser counts the drawer and **closes the till** on that session (the
+  last closing can be undone); till sheet as a PDF for the current till or a session
 - 🔓 **Always there for the organiser**, from their computer or phone; the check-in and the
   equipment check are **opened to the volunteers separately** ("Open the changes to the
   volunteers") — without it, only the organisers act
@@ -307,7 +310,7 @@ nothing else changes. Later versions will no longer need it for the access rules
 | `UPDATE` | `Entries` | `cron/sync-licences.php:313` | — |
 | `INSERT INTO` | `Flags` | `logos-lib.php:267` | — |
 | `INSERT INTO` | `Flags` | `logos-lib.php:326` | — |
-| `UPDATE` | `Entries` | `shop/lib/desk.php:259` | review scope by hand |
+| `UPDATE` | `Entries` | `shop/lib/desk.php:261` | review scope by hand |
 | `INSERT INTO` | `Countries` | `shop/lib/officials.php:130` | — |
 | `DELETE FROM` | `TournamentInvolved` | `shop/lib/officials.php:165` | — |
 | `UPDATE` | `TournamentInvolved` | `shop/lib/officials.php:167` | review scope by hand |
@@ -384,12 +387,13 @@ nothing else changes. Later versions will no longer need it for the access rules
 | `UPDATE` | `BookingWaitlist` | `booking/lib/adopt.php:423` | — |
 | `UPDATE` | `BookingRefunds` | `booking/lib/adopt.php:424` | — |
 | `UPDATE` | `BookingLedger` | `booking/lib/adopt.php:427` | — |
-| `UPDATE` | `BookingChecks` | `booking/lib/adopt.php:430` | — |
-| `UPDATE` | `BookingCheckLog` | `booking/lib/adopt.php:431` | — |
-| `DELETE FROM` | `BookingCheckEntries` | `booking/lib/adopt.php:432` | — |
-| `DELETE FROM` | `ShopSettings` | `booking/lib/adopt.php:436` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:508` | — |
-| `INSERT INTO` | `BookingRegistrations` | `booking/lib/adopt.php:560` | — |
+| `UPDATE` | `ShopDeskCloses` | `booking/lib/adopt.php:431` | — |
+| `UPDATE` | `BookingChecks` | `booking/lib/adopt.php:434` | — |
+| `UPDATE` | `BookingCheckLog` | `booking/lib/adopt.php:435` | — |
+| `DELETE FROM` | `BookingCheckEntries` | `booking/lib/adopt.php:436` | — |
+| `DELETE FROM` | `ShopSettings` | `booking/lib/adopt.php:440` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/adopt.php:512` | — |
+| `INSERT INTO` | `BookingRegistrations` | `booking/lib/adopt.php:564` | — |
 | `INSERT INTO` | `BookingLog` | `booking/lib/archer.php:36` | — |
 | `UPDATE` | `BookingArchers` | `booking/lib/archer.php:198` | — |
 | `INSERT INTO` | `BookingArchers` | `booking/lib/archer.php:202` | — |
@@ -580,10 +584,14 @@ nothing else changes. Later versions will no longer need it for the access rules
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:79` | — |
 | `INSERT INTO` | `ShopGuests` | `shop/lib/customer.php:85` | — |
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:98` | — |
-| `INSERT IGNORE INTO` | `BookingCheckEntries` | `shop/lib/desk.php:257` | — |
-| `INSERT INTO` | `BookingCheckLog` | `shop/lib/desk.php:492` | — |
-| `DELETE FROM` | `BookingChecks` | `shop/lib/desk.php:543` | — |
-| `REPLACE INTO` | `BookingChecks` | `shop/lib/desk.php:546` | — |
+| `INSERT INTO` | `ShopDeskCloses` | `shop/lib/desk-cash.php:137` | — |
+| `UPDATE` | `BookingLedger` | `shop/lib/desk-cash.php:140` | — |
+| `UPDATE` | `BookingLedger` | `shop/lib/desk-cash.php:157` | — |
+| `DELETE FROM` | `ShopDeskCloses` | `shop/lib/desk-cash.php:158` | — |
+| `INSERT IGNORE INTO` | `BookingCheckEntries` | `shop/lib/desk.php:259` | — |
+| `INSERT INTO` | `BookingCheckLog` | `shop/lib/desk.php:494` | — |
+| `DELETE FROM` | `BookingChecks` | `shop/lib/desk.php:545` | — |
+| `REPLACE INTO` | `BookingChecks` | `shop/lib/desk.php:548` | — |
 | `UPDATE` | `ShopInvites` | `shop/lib/invite.php:46` | — |
 | `UPDATE` | `ShopInvites` | `shop/lib/invite.php:51` | — |
 | `INSERT INTO` | `ShopInvites` | `shop/lib/invite.php:57` | — |
