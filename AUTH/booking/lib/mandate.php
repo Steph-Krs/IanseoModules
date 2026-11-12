@@ -626,24 +626,45 @@ function bk_dossard_available($cfg, $tourId)
 }
 
 /**
- * Registrations whose bib the archer may print on THIS competition: their own (BrLicence = their
- * licence) OR those they made (BrArcher = them, a club mate's registration). One row per
- * registration (departure).
+ * Joins + condition of the archer's OWN participations entered by the organiser in ianseo itself
+ * (participants list, import), read live from Entries: same rule as the 'IMPORT' rows of
+ * bk_my_registrations, so a participation listed in "My registrations" also has its documents.
+ * Requires Entries in the FROM clause.
+ */
+function bk_dossard_organiser_sql($lic)
+{
+    return "INNER JOIN BookingCompetitions ON BcTournament = EnTournament
+        LEFT  JOIN BookingRegistrations ON BrEnId = EnId
+        WHERE EnCode = $lic AND EnAthlete = 1 AND BrEnId IS NULL
+          AND (BcPublishLevel >= 2 OR BcPayments = 1)";
+}
+
+/**
+ * Registrations whose bib (and official score sheet) the archer may print on THIS competition:
+ * their own (BrLicence = their licence), those they made (BrArcher = them, a club mate's
+ * registration), and their own participations entered by the organiser (bk_dossard_organiser_sql).
+ * One row per registration (departure).
  */
 function bk_dossard_entries($tourId, $archer)
 {
     $tourId = intval($tourId);
     $lic  = StrSafe_DB($archer->BaLicence);
     $baid = intval($archer->BaId);
-    $rs = safe_r_sql("SELECT BrEnId, BrLicence, EnFirstName, EnName,
-            QuSession, QuTarget, QuLetter, DivDescription, ClDescription
+    $cols = "EnFirstName, EnName, QuSession, QuTarget, QuLetter, DivDescription, ClDescription";
+    $joins = "INNER JOIN Qualifications ON QuId = EnId
+        LEFT  JOIN Divisions      ON DivTournament = $tourId AND DivId = EnDivision
+        LEFT  JOIN Classes        ON ClTournament = $tourId AND ClId = EnClass";
+    $rs = safe_r_sql("(SELECT BrEnId, BrLicence, (BrLicence = $lic) AS BkOwn, $cols
         FROM BookingRegistrations
         INNER JOIN Entries        ON EnId = BrEnId
-        INNER JOIN Qualifications ON QuId = EnId
-        LEFT  JOIN Divisions      ON DivTournament = $tourId AND DivId = EnDivision
-        LEFT  JOIN Classes       ON ClTournament = $tourId AND ClId = EnClass
-        WHERE BrTournament = $tourId AND (BrLicence = $lic OR BrArcher = $baid)
-        ORDER BY (BrLicence = $lic) DESC, EnFirstName, EnName, QuSession");
+        $joins
+        WHERE BrTournament = $tourId AND (BrLicence = $lic OR BrArcher = $baid))
+      UNION ALL
+        (SELECT EnId, EnCode, 1, $cols
+        FROM Entries
+        $joins
+        " . bk_dossard_organiser_sql($lic) . " AND EnTournament = $tourId)
+        ORDER BY BkOwn DESC, EnFirstName, EnName, QuSession");
     $out = array();
     while ($r = safe_fetch($rs)) $out[] = $r;
     return $out;
@@ -658,8 +679,12 @@ function bk_dossard_can($enId, $archer)
     $enId = intval($enId);
     $lic  = StrSafe_DB($archer->BaLicence);
     $baid = intval($archer->BaId);
-    return safe_fetch(safe_r_sql("SELECT BrTournament, BrLicence FROM BookingRegistrations
-        WHERE BrEnId = $enId AND (BrLicence = $lic OR BrArcher = $baid)")) ?: null;
+    $row = safe_fetch(safe_r_sql("SELECT BrTournament, BrLicence FROM BookingRegistrations
+        WHERE BrEnId = $enId AND (BrLicence = $lic OR BrArcher = $baid)"));
+    if ($row) return $row;
+    return safe_fetch(safe_r_sql("SELECT EnTournament AS BrTournament, EnCode AS BrLicence
+        FROM Entries
+        " . bk_dossard_organiser_sql($lic) . " AND EnId = $enId")) ?: null;
 }
 
 /**

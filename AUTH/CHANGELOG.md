@@ -2,6 +2,10 @@
 
 Une entrée par version publiée, la plus récente en haut. Les notes de `version.json` ne gardent que la série en cours.
 
+## 1.5.1 — 2026-11-12
+
+Espace licencie, page Documents : un archer inscrit par l organisateur dans ianseo y trouve aussi son dossard (si la competition le propose) et sa feuille de marque officielle (si l organisateur l autorise), comme pour une inscription en ligne. Suite de #3.
+
 ## 1.5.0 — 2026-11-12
 
 Contribution de Matthieu Bouquet (@matthieu-bouquet) : issues #3, #5, #7, pull requests #4, #6, #8.

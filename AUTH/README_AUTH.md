@@ -285,7 +285,7 @@ nothing else changes. Later versions will no longer need it for the access rules
 | `UPDATE` | `Entries` | `booking/lib/licences.php:105` | review scope by hand |
 | `UPDATE` | `Qualifications` | `booking/lib/licences.php:142` | — |
 | `UPDATE` | `Entries` | `booking/lib/licences.php:145` | review scope by hand |
-| `UPDATE` | `IdCards` | `booking/lib/mandate.php:716` | review scope by hand |
+| `UPDATE` | `IdCards` | `booking/lib/mandate.php:741` | review scope by hand |
 | `DELETE FROM` | `LookUpEntries` | `booking/lib/other.php:215` | review scope by hand |
 | `INSERT INTO` | `LookUpEntries` | `booking/lib/other.php:237` | — |
 | `DELETE FROM` | `LookUpEntries` | `booking/lib/other.php:406` | review scope by hand |

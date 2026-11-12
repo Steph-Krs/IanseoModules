@@ -7,8 +7,9 @@
  *
  * Strict guard BEFORE any elevation:
  *  1. connected archer (bk_require_archer);
- *  2. each registration is theirs (BrLicence = their licence OR BrArcher = them) —
- *     bk_dossard_can / bk_dossard_entries (defence against a forged ?enid / ?t);
+ *  2. each registration is theirs (BrLicence = their licence OR BrArcher = them, or their own
+ *     participation entered by the organiser) — bk_dossard_can / bk_dossard_entries (defence
+ *     against a forged ?enid / ?t);
  *  3. the competition offers the bib (bk_dossard_visible) AND a Q template exists.
  * Only then does bk_doc_relay_bib generate the PDF in an elevated context LIMITED to this
  * competition (never AUTH_ROOT) — same mechanism as public/document.php.
