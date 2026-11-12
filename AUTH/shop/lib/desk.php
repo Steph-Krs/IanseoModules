@@ -169,14 +169,15 @@ function shp_desk_sessions($tourId)
     return $cache[$tourId] = $out;
 }
 
-/** Target of a QuTargetNo ("1004A" → "4A"), '' when none. */
-function shp_desk_target($targetNo)
+/**
+ * Target of a participant from QuTarget + QuLetter (4, "A" → "4A"), '' when none.
+ * Not QuTargetNo: ianseo's own screens (manual/automatic assignment, drag and drop) only
+ * write QuTarget and QuLetter, so QuTargetNo keeps the booking module's first placement.
+ */
+function shp_desk_target($target, $letter)
 {
-    $t = (string) $targetNo;
-    // bytes: target numbers and letters are ASCII
-    if (strlen($t) < 4) return '';
-    $n = intval(substr($t, 1, -1));
-    return $n > 0 ? $n . substr($t, -1) : '';
+    $n = intval($target);
+    return $n > 0 ? $n . strtoupper(trim((string) $letter)) : '';
 }
 
 /** Label of a participant's status (Entries.EnStatus). */
@@ -196,7 +197,7 @@ function shp_desk_entries($tourId, $account)
     $out = array();
     if (!shp_desk_account_ok($account)) return $out;
     $rs = safe_r_sql("SELECT EnId, EnCode, EnFirstName, EnName, EnDob, EnStatus, EnDivision, EnClass, EnIocCode,
-            CoCode, CoName, QuSession, QuTargetNo, DivDescription, ClDescription
+            CoCode, CoName, QuSession, QuTarget, QuLetter, DivDescription, ClDescription
         FROM Entries
         INNER JOIN Qualifications ON QuId = EnId
         LEFT JOIN Countries ON CoId = EnCountry
@@ -327,7 +328,7 @@ function shp_desk_search($tourId, $q, $limit = 50)
         }
         if (!$where) return $out;
     }
-    $rs = safe_r_sql("SELECT EnId, EnCode, EnFirstName, EnName, EnDivision, CoCode, CoName, QuSession, QuTargetNo
+    $rs = safe_r_sql("SELECT EnId, EnCode, EnFirstName, EnName, EnDivision, CoCode, CoName, QuSession, QuTarget, QuLetter
         FROM Entries
         INNER JOIN Qualifications ON QuId = EnId
         LEFT JOIN Countries ON CoId = EnCountry
@@ -344,7 +345,7 @@ function shp_desk_search($tourId, $q, $limit = 50)
             $byAcc[$k] = array('account' => $k, 'family' => (string) $r->EnFirstName, 'given' => (string) $r->EnName,
                 'licence' => (string) $r->EnCode, 'club' => trim($r->CoCode . ' ' . $r->CoName), 'places' => array());
         }
-        $byAcc[$k]['places'][] = array('session' => intval($r->QuSession), 'target' => shp_desk_target($r->QuTargetNo));
+        $byAcc[$k]['places'][] = array('session' => intval($r->QuSession), 'target' => shp_desk_target($r->QuTarget, $r->QuLetter));
     }
     if ($n > intval($limit) * 4) $out['more'] = true;
     // Where each one stands at the desk (one query for the page of results).
@@ -431,7 +432,7 @@ function shp_desk_file($me, $account)
         $list[] = array('id' => intval($e->EnId), 'session' => $o,
             'session_label' => $o > 0 ? ($sessions[$o]['label'] ?? bk_t('DepCap', $o)) : shp_t('DkNoSession'),
             'start' => $o > 0 ? ($sessions[$o]['start'] ?? '') : '',
-            'target' => shp_desk_target($e->QuTargetNo), 'division' => (string) $e->EnDivision,
+            'target' => shp_desk_target($e->QuTarget, $e->QuLetter), 'division' => (string) $e->EnDivision,
             'division_label' => (string) ($e->DivDescription ?: $e->EnDivision), 'class_label' => (string) ($e->ClDescription ?: $e->EnClass),
             'events' => $evs, 'status' => intval($e->EnStatus), 'status_label' => shp_desk_status_label($e->EnStatus));
         $d = (string) $e->EnDivision;
@@ -612,14 +613,14 @@ function shp_desk_rows($tourId)
 {
     $tourId = intval($tourId);
     $rs = safe_r_sql("SELECT EnId, EnCode, EnFirstName, EnName, EnStatus, EnDivision, EnClass, CoCode, CoName,
-            QuSession, QuTargetNo, DivDescription, ClDescription
+            QuSession, QuTarget, QuLetter, DivDescription, ClDescription
         FROM Entries
         INNER JOIN Qualifications ON QuId = EnId
         LEFT JOIN Countries ON CoId = EnCountry
         LEFT JOIN Divisions ON DivTournament = EnTournament AND DivId = EnDivision
         LEFT JOIN Classes ON ClTournament = EnTournament AND ClId = EnClass
         WHERE EnTournament = $tourId AND EnAthlete = 1
-        ORDER BY QuSession = 0, QuSession, QuTargetNo = '', QuTargetNo, EnFirstName, EnName");
+        ORDER BY QuSession = 0, QuSession, QuTarget = 0, QuTarget, QuLetter, EnFirstName, EnName");
     $rows = array();
     while ($r = safe_fetch($rs)) $rows[intval($r->EnId)] = $r;
     $ev = array();
@@ -642,7 +643,7 @@ function shp_desk_rows($tourId)
         $d = (string) $r->EnDivision;
         $out[] = array('account' => $k, 'entry' => $id, 'family' => (string) $r->EnFirstName, 'given' => (string) $r->EnName,
             'licence' => (string) $r->EnCode, 'club' => (string) $r->CoCode, 'club_name' => (string) $r->CoName,
-            'session' => intval($r->QuSession), 'target' => shp_desk_target($r->QuTargetNo),
+            'session' => intval($r->QuSession), 'target' => shp_desk_target($r->QuTarget, $r->QuLetter),
             'division' => $d, 'division_label' => (string) ($r->DivDescription ?: $d),
             'class' => (string) $r->EnClass, 'class_label' => (string) ($r->ClDescription ?: $r->EnClass),
             'events' => $ev[$id] ?? array(), 'status' => intval($r->EnStatus),
