@@ -20,8 +20,11 @@ module dialogue réellement avec les services de la FFTA.)
   le programme de la compétition), **parcours repiqueté ou identique**
   (Campagne, 3D, Nature, à partir du 2ᵉ départ) et **temps de tir international** (TAE), reportés
   dans le commentaire du départ
-- 🔐 Réutilise une session extranet déjà ouverte quand elle existe (sinon, formulaire de connexion
-  en repli) — un minimum de saisies d'identifiants, pour le dépôt comme pour la création
+- 🔐 Réutilise une session extranet déjà ouverte quand elle existe ; l'extranet n'ayant plus de
+  formulaire de connexion, il s'ouvre depuis l'Espace Dirigeant (session ouverte par la connexion à
+  ianseo, ou formulaire de connexion en repli, double authentification comprise), et se rouvre de
+  lui-même tant que la session de l'Espace Dirigeant est valide — un minimum de saisies
+  d'identifiants, pour le dépôt comme pour la création
 - 🐢 Ménage les sites FFTA : requêtes espacées, réponses récentes réutilisées, pause affichée avec un
   compte à rebours quand le site demande de ralentir, message explicite quand il refuse l'accès
 

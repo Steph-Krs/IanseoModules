@@ -140,10 +140,12 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
   <div class="card login" id="auth" style="display:none">
     <h3>Connexion à l'extranet FFTA</h3>
     <div>
-      <p class="muted" style="margin-top:0">Identifiants de l'Espace Dirigeant, sans MFA.
-        Ni stockés, ni journalisés.</p>
+      <p class="muted" style="margin-top:0">Identifiants de l'Espace Dirigeant : l'extranet s'ouvre
+        depuis celui-ci. Ni stockés, ni journalisés.</p>
       <p><label for="u">Identifiant</label><br><input type="text" id="u" class="full" autocomplete="off"></p>
       <p><label for="p">Mot de passe</label><br><input type="password" id="p" class="full" autocomplete="new-password"></p>
+      <p><label for="o">Code de double authentification <small class="muted">— laisser vide si non activée</small></label><br>
+        <input type="text" id="o" class="full" autocomplete="off" maxlength="8" inputmode="numeric" placeholder="6 chiffres"></p>
       <p><button type="button" class="primary" id="btn-login">Se connecter</button>
          <span id="m1" class="muted"></span></p>
     </div>
@@ -340,12 +342,12 @@ include($CFG->DOCUMENT_PATH . 'Common/Templates/head.php');
     }
 
     $('btn-login').addEventListener('click', function () {
-        var u = $('u').value.trim(), p = $('p').value;
+        var u = $('u').value.trim(), p = $('p').value, o = $('o').value.trim();
         if (!u || !p) { msg('m1', 'Identifiant et mot de passe requis.', true); return; }
 
         msgLoad('m1', 'Connexion');
-        post('login', {itxt_user: u, itxt_pass: p}, true).then(function (r) {
-            $('p').value = '';
+        post('login', {itxt_user: u, itxt_pass: p, itxt_otp: o}, true).then(function (r) {
+            $('p').value = ''; $('o').value = '';
             if (r.wait) { msg('m1', waitText(r), true); return; }
             if (!r.ok) { msg('m1', r.msg, true); return; }
             connected(r.roles, false);

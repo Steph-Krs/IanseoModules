@@ -3,15 +3,19 @@
  * SYNCHRO_FFTA — gestion des sessions FFTA (extranet + Espace Dirigeant), commune
  * à tous les flux du module.
  *
- * Deux espaces DISTINCTS, mêmes identifiants :
- *   - extranet   (extranet.ffta.fr / pprod)  → dépôt résultats, création : ExtranetClient
- *   - dirigeant  (dirigeant.ffta.fr)          → synchro licenciés : DirigeantClient
+ * Two DISTINCT spaces:
+ *   - extranet   (extranet.ffta.fr)    → results deposit, creation: ExtranetClient
+ *   - dirigeant  (dirigeant.ffta.fr)   → licence holders sync: DirigeantClient
  *
- * Priorité pour chaque espace : cookie publié par AUTH (convention FFTA_*_COOKIE, si
- * même serveur) → cookie propre déjà ouvert par le module → sinon login. Les cookies
- * propres sont aussi PUBLIÉS sous la convention pour que d'autres modules les réutilisent.
- * Objectif : demander les identifiants un minimum de fois. Rien n'est stocké côté client ;
- * seuls des cookies de session en fichiers 0600 vivent, détruits à la déconnexion.
+ * Since November 2026 the extranet has no sign-in form: it is entered from an Espace Dirigeant
+ * session (ExtranetClient::openFrom()). Signing in therefore always opens the Espace Dirigeant
+ * first, and an expired extranet session is reopened silently while the Espace Dirigeant one
+ * lives (sfa_ext_session()) — credentials are asked only when both are over.
+ *
+ * Priority for each space: our own cookie → cookie published by AUTH (FFTA_*_COOKIE convention,
+ * same server) → sign-in. Our own cookies are also PUBLISHED under the convention for the other
+ * modules. Nothing is stored client side; only session cookies live, in 0600 files destroyed at
+ * sign-out.
  */
 require_once(__DIR__ . '/ExtranetClient.php');
 require_once(__DIR__ . '/DirigeantClient.php');
@@ -116,39 +120,101 @@ function sfa_is_shared(string $space): bool
 // ── Login unifié : ouvre les deux espaces, stocke les deux cookies ───────────
 
 /**
- * Ouvre les espaces demandés avec les identifiants fournis. Les identifiants sont
- * effacés ici. Retourne l'état par espace : ['ext'=>['ok'=>,'msg'=>], 'dir'=>[...]].
+ * Opens the extranet from an Espace Dirigeant session, in our own extranet cookie.
+ * Returns ExtranetClient::openFrom()'s answer, plus 'client' when it succeeded.
+ */
+function sfa_ext_open(string $dirCookie): array
+{
+    $client = new ExtranetClient(sfa_own_cookie('ext', true), sfa_base('ext'));
+    $r = $client->openFrom($dirCookie, sfa_base('dir'));
+    if (!$r['ok']) {
+        sfa_own_cookie_destroy('ext');
+
+        return $r;
+    }
+
+    return $r + ['client' => $client];
+}
+
+/**
+ * Signs in to the Espace Dirigeant (MFA included) and, when asked, opens the extranet from it.
+ * The credentials are wiped here. Returns the state per requested space:
+ * ['ext'=>['ok'=>,'msg'=>,'roles'=>], 'dir'=>['ok'=>,'msg'=>]].
  *
- * @param array $spaces sous-ensemble de ['ext','dir'] (défaut : les deux)
+ * @param array $spaces subset of ['ext','dir'] (default: both). The Espace Dirigeant is signed in
+ *                      to in every case: it is the only way into the extranet.
  */
 function sfa_login(string $user, string $pass, string $otp = '', array $spaces = ['ext', 'dir']): array
 {
     $res = [];
 
-    if (in_array('ext', $spaces, true)) {
-        $client = new ExtranetClient(sfa_own_cookie('ext', true), sfa_base('ext'));
-        $r = $client->login($user, $pass);   // extranet : pas de MFA
-        if (!$r['ok']) {
-            sfa_own_cookie_destroy('ext');
-        }
-        $res['ext'] = $r;
+    $dir = new DirigeantClient(sfa_own_cookie('dir', true), sfa_base('dir'));
+    $d = $dir->login($user, $pass, $otp);   // Fortify MFA handled
+    if (!$d['ok']) {
+        sfa_own_cookie_destroy('dir');
     }
 
-    if (in_array('dir', $spaces, true)) {
-        $client = new DirigeantClient(sfa_own_cookie('dir', true), sfa_base('dir'));
-        $r = $client->login($user, $pass, $otp);   // dirigeant : MFA Fortify gérée
-        if (!$r['ok']) {
-            sfa_own_cookie_destroy('dir');
-        }
-        $res['dir'] = $r;
-    }
-
+    // bytes: every byte of the secrets is overwritten
     $user = str_repeat("\0", max(1, strlen($user)));
     $pass = str_repeat("\0", max(1, strlen($pass)));
     $otp  = str_repeat("\0", max(1, strlen($otp)));
     unset($user, $pass, $otp);
 
+    if (in_array('dir', $spaces, true)) {
+        $res['dir'] = $d;
+    }
+    if (in_array('ext', $spaces, true)) {
+        if ($d['ok']) {
+            $e = sfa_ext_open(sfa_own_cookie('dir'));
+            unset($e['client']);
+            $res['ext'] = $e;
+        } else {
+            $res['ext'] = $d;   // the Espace Dirigeant refusal says why
+        }
+    }
+
     return $res;
+}
+
+/**
+ * Extranet session for a page, opened again through the Espace Dirigeant if needed:
+ * [$res, $client, $shared]. $res = ExtranetClient::session($page) when a session lives, or the
+ * reason it does not ('wait', 'offline', 'blocked' are passed on as they are: the session is not
+ * dead then). $client is null when no session could be had.
+ */
+function sfa_ext_session(string $page = ExtranetClient::LIST_PAGE): array
+{
+    $f = sfa_any_cookie('ext');
+    if ($f) {
+        $shared = sfa_is_shared('ext');
+        $client = new ExtranetClient($f, sfa_base('ext'));
+        $res    = $client->session($page);
+        if ($res['ok'] || !empty($res['wait']) || !empty($res['offline']) || !empty($res['blocked'])) {
+            return [$res, $client, $shared];
+        }
+        if (!$shared) {
+            sfa_own_cookie_destroy('ext');   // AUTH's cookie is not ours: never touched
+        }
+    }
+
+    // No live extranet session: through the gateway, while an Espace Dirigeant session lives.
+    $dir = sfa_any_cookie('dir');
+    if (!$dir) {
+        return [['ok' => false], null, false];
+    }
+    $r = sfa_ext_open($dir);
+    if (!$r['ok']) {
+        if (!empty($r['wait']) || !empty($r['offline']) || !empty($r['blocked'])) {
+            return [$r, null, false];
+        }
+
+        return [['ok' => false], null, false];
+    }
+    $client = $r['client'];
+    // The gateway lands on the home page: the page asked for gives its own context.
+    $res = ($page === '/') ? ['ok' => true, 'roles' => $r['roles']] : $client->session($page);
+
+    return [$res, $res['ok'] ? $client : null, false];
 }
 
 /** Détruit uniquement nos cookies (jamais ceux d'AUTH). */

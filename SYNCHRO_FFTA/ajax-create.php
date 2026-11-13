@@ -61,15 +61,10 @@ function sfa_ymd(?string $isoDate): array
 switch ($action) {
 
     case 'status':
-        $f = sfa_any_cookie('ext');
-        if (!$f) {
-            sfa_json(['ok' => true, 'logged' => false]);
-        }
-        $shared = sfa_is_shared('ext');
-        $client = new ExtranetClient($f, sfa_base('ext'));
         // The calendar page itself: it checks the session AND gives the search form, which the
-        // first search then does not have to read again.
-        $res    = $client->session(ExtranetClient::CAL_PAGE);
+        // first search then does not have to read again. A dead extranet session is reopened
+        // through the Espace Dirigeant when that one still lives.
+        [$res, $client, $shared] = sfa_ext_session(ExtranetClient::CAL_PAGE);
         if (!$res['ok']) {
             if (!empty($res['wait'])) {
                 sfa_json($res);   // the page waits and asks again
@@ -78,9 +73,6 @@ switch ($action) {
             if (!empty($res['offline']) || !empty($res['blocked'])) {
                 sfa_json(['ok' => true, 'logged' => false, 'offline' => !empty($res['offline']),
                           'blocked' => !empty($res['blocked']), 'msg' => $res['msg'] ?? '']);
-            }
-            if (!$shared) {
-                sfa_own_cookie_destroy('ext');
             }
             sfa_json(['ok' => true, 'logged' => false]);
         }

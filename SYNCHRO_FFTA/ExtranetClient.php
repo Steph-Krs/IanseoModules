@@ -2,8 +2,10 @@
 /**
  * HTTP client of the FFTA extranet (calendar and TXT results deposit).
  *
- * The client never keeps credentials: they only serve the login() call, and only the extranet
- * session cookie survives, in a 0600 temporary file whose path is kept in the ianseo session.
+ * Since November 2026 the extranet has no sign-in form: its session is opened from an Espace
+ * Dirigeant session (openFrom()), whose /v3/acces page leads through a one-time gateway URL. The
+ * client never sees credentials; only the session cookies survive, in a 0600 temporary file whose
+ * path is kept in the ianseo session.
  *
  * Every request goes through FftaHttp (pacing, pauses, anti-bot detection). To send as few
  * requests as possible, what the extranet pages tell us about the session (roles, search level,
@@ -99,10 +101,14 @@ class ExtranetClient
         return $opts->item(0)->getAttribute('value');
     }
 
-    /** Is the rendered page the login page? */
+    /**
+     * Is the rendered page the one served without a session? Since November 2026 it is a page
+     * pointing to the officers' and licensee spaces (no form); before, a sign-in form.
+     */
     private static function isLoginPage(string $html): bool
     {
-        return strpos($html, 'name="login[identifiant]"') !== false;
+        return strpos($html, 'class="l2-espaces"') !== false
+            || strpos($html, 'name="login[identifiant]"') !== false;
     }
 
     /** Message for an unexpected login page: an embedded captcha explains it, if there is one. */
@@ -192,36 +198,40 @@ class ExtranetClient
         return $this->ctx()['calDisciplines'] ?? [];
     }
 
-    // ── Step 1: login ────────────────────────────────────────────────────────
+    // ── Step 1: session opened from the Espace Dirigeant ───────────────────────
 
-    public function login(string $user, string $pass): array
+    /**
+     * Opens the extranet session through the gateway of a signed-in space ($spaceCookie: its
+     * cookie jar, $spaceBase: its address): GET /v3/acces redirects to a one-time extranet URL
+     * that sets the session, then to the extranet home page — the page the former sign-in
+     * returned. The space's cookies are copied into this client's jar (curl sends each cookie to
+     * its own site only); the space's own file is never written.
+     */
+    public function openFrom(string $spaceCookie, string $spaceBase): array
     {
-        // Session cookie fetched before posting (browser behaviour)
-        $home = $this->request('/');
-        if ($f = $this->fail($home)) {
-            return $f;
+        if (!is_file($spaceCookie) || !@copy($spaceCookie, $this->cookieFile)) {
+            return ['ok' => false, 'msg' => 'Session Espace Dirigeant introuvable — reconnecte-toi.', 'relogin' => true];
         }
+        @chmod($this->cookieFile, 0600);
 
-        $r = $this->request('/', [
-            'login[identifiant]' => $user,
-            'login[idpassword]'  => $pass,
-        ]);
-
+        $r = $this->request(rtrim($spaceBase, '/') . '/v3/acces');
         if ($f = $this->fail($r)) {
             return $f;
         }
-        if (self::isLoginPage($r['body'])) {
-            if ($r['captcha']) {
-                return ['ok' => false, 'blocked' => true, 'msg' => FftaHttp::blockMessage('captcha', $this->base)];
-            }
-
-            return ['ok' => false, 'msg' => 'Identifiants refusés par l\'extranet.'];
+        // bytes: host names are ASCII
+        if (strtolower((string) parse_url($r['url'], PHP_URL_HOST)) !== strtolower((string) parse_url($this->base, PHP_URL_HOST))) {
+            // Still on the space: its sign-in page, its session is over.
+            return ['ok' => false, 'msg' => 'Session Espace Dirigeant expirée — reconnecte-toi.', 'relogin' => true];
+        }
+        $roles = $this->parseRoles($r['body']);
+        if (self::isLoginPage($r['body']) || !$roles) {
+            return $this->expiredMessage($r);
         }
 
         $this->forgetAnswers();
         $this->remember($r['body']);
 
-        return ['ok' => true, 'roles' => $this->parseRoles($r['body'])];
+        return ['ok' => true, 'roles' => $roles];
     }
 
     /** Role selector (form modDrx): available roles. */

@@ -3,7 +3,8 @@
  * HTTP client of the FFTA Espace Dirigeant (dirigeant.ffta.fr).
  *
  * A space DISTINCT from the extranet. Used by the licence holders sync (download of
- * parametres_ianseo.ffta). Laravel Fortify login with a two-step MFA.
+ * parametres_ianseo.ffta) and, since November 2026, as the way into the extranet, which no
+ * longer has a sign-in form (ExtranetClient::openFrom()). Laravel Fortify login with a two-step MFA.
  *
  * MFA: when the AUTH module is present (federal server), ITS proven login is reused
  * (aut_ffta_curl_login + aut_ffta_mfa_second_step) — it follows the changes of the FFTA page and
@@ -61,6 +62,8 @@ class DirigeantClient
             if (!$ch) {
                 return ['ok' => false, 'msg' => self::msg($error)];
             }
+            // Since PHP 8 curl_close() frees nothing: the jar file stays empty until FLUSH.
+            curl_setopt($ch, CURLOPT_COOKIELIST, 'FLUSH');
             if ($ckOut && file_exists($ckOut)) {
                 @copy($ckOut, $this->cookieFile);   // the authenticated cookie is taken over
                 @chmod($this->cookieFile, 0600);

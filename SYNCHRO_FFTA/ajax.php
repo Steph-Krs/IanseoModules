@@ -238,14 +238,8 @@ switch ($action) {
     // Session extranet déjà ouverte pour cette session ianseo ? Le mot de passe
     // n'est demandé qu'une fois : tant que le cookie vit, on reprend la main.
     case 'status':
-        $f = sfa_any_cookie('ext');
-        if (!$f) {
-            itxt_json(['ok' => true, 'logged' => false]);
-        }
-
-        $shared = sfa_is_shared('ext');
-        $client = new ExtranetClient($f, sfa_base('ext'));
-        $res    = $client->session();
+        // A dead extranet session is reopened through the Espace Dirigeant when that one lives.
+        [$res, $client, $shared] = sfa_ext_session();
         if (!$res['ok']) {
             if (!empty($res['wait'])) {
                 itxt_json($res);   // the page waits and asks again
@@ -254,9 +248,6 @@ switch ($action) {
             if (!empty($res['offline']) || !empty($res['blocked'])) {
                 itxt_json(['ok' => true, 'logged' => false, 'offline' => !empty($res['offline']),
                            'blocked' => !empty($res['blocked']), 'msg' => $res['msg'] ?? '']);
-            }
-            if (!$shared) {
-                sfa_own_cookie_destroy('ext');   // AUTH's cookie is not ours: never touched
             }
             itxt_json(['ok' => true, 'logged' => false]);
         }
@@ -274,14 +265,17 @@ switch ($action) {
     case 'login':
         $user = $_POST['itxt_user'] ?? '';
         $pass = $_POST['itxt_pass'] ?? '';
-        unset($_POST['itxt_user'], $_POST['itxt_pass']);
+        $otp  = $_POST['itxt_otp']  ?? '';
+        unset($_POST['itxt_user'], $_POST['itxt_pass'], $_POST['itxt_otp']);
 
-        // Extranet only: the deposit needs nothing from the Espace Dirigeant.
-        $res = sfa_login($user, $pass, '', ['ext'])['ext'];
+        // The extranet is entered through the Espace Dirigeant (its sign-in, MFA included).
+        $res = sfa_login($user, $pass, $otp, ['ext'])['ext'];
 
+        // bytes: every byte of the secrets is overwritten
         $user = str_repeat("\0", max(1, strlen($user)));
         $pass = str_repeat("\0", max(1, strlen($pass)));
-        unset($user, $pass);
+        $otp  = str_repeat("\0", max(1, strlen($otp)));
+        unset($user, $pass, $otp);
 
         if (empty($res['ok'])) {
             itxt_json($res);
