@@ -147,6 +147,6 @@ Réglages facultatifs dans `config.local.json` (non versionné) :
 
 ## Installation, mise à jour, désinstallation
 
-Voir le [README général](../README.md). En résumé : copier le dossier `BOOKING/` et `_shared/`
+Voir le [README général](../../README_FR.md). En résumé : copier le dossier `BOOKING/` et `_shared/`
 dans `Modules/Custom/` (ou `install.sh` / `install.ps1`). Mises à jour et désinstallation depuis
 ianseo : menu **Modules › Inscriptions en ligne › Mise à jour**.

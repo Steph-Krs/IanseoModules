@@ -141,7 +141,7 @@ Optional settings in `config.local.json` (not versioned):
 
 ## Installation, update, uninstallation
 
-See the [general README](../README.md). In short: copy the `BOOKING/` and `_shared/` folders into
+See the [general README](../../README.md). In short: copy the `BOOKING/` and `_shared/` folders into
 `Modules/Custom/` (or `install.sh` / `install.ps1`). Updates and uninstallation from ianseo:
 **Modules › Online registration › Update** menu.
 

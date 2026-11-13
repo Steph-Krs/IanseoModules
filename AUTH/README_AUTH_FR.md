@@ -261,7 +261,7 @@ renommage, et la migre avant de rouvrir le site.
 
 ## Installation, mise à jour, désinstallation
 
-Voir le [README général](../README.md) pour le principe commun.
+Voir le [README général](../README_FR.md) pour le principe commun.
 
 Quand une nouvelle version est publiée, la page d'accueil d'ianseo le signale à l'administrateur,
 avec un lien vers la page de mise à jour. La vérification ne lit que le numéro de version, une fois
