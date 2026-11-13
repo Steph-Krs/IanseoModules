@@ -803,7 +803,8 @@ $out .= $panel('3', 'restrict', '<div class="bk-sec">' . bk_title('h2', bk_t('Ac
     . ($isDrom
         ? '<div class="bk-row">'
           . bk_fld(bk_t('AcMaxClub'), '<input type="number" name="max_club" min="1" max="20" value="' . intval($cfg3->BcMaxPerClubPerTarget) . '">')
-          . bk_fld(bk_t('AcMinClubs'), '<input type="number" name="min_clubs" min="1" max="50" value="' . intval($cfg3->BcMinClubsPerSession) . '">') . '</div>'
+          . bk_fld(bk_t('AcMinClubs'), '<input type="number" name="min_clubs" min="1" max="50" value="' . intval($cfg3->BcMinClubsPerSession) . '">')
+          . bk_fld(bk_t('AcMinTargets'), '<input type="number" name="min_targets" min="0" max="50" value="' . intval($cfg3->BcMinTargetsPerSession ?? 6) . '">') . '</div>'
         : '')
     . bk_chk('manual_validation', !empty($cfg3->BcManualValidation), bk_t('AcManualBox'), '', bk_t('AcManualHint'))
     . '<input type="hidden" name="single_reg_present" value="1">'

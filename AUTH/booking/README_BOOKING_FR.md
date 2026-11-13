@@ -100,7 +100,9 @@ Tout se trouve dans le menu **Modules › Inscriptions en ligne**, compétition 
   coup, copie d'un départ à l'autre, et curseur de taille pour afficher 50 à 70 cibles d'un
   seul coup d'œil. Une cible sans réglage accepte tout. (« Plan du terrain » désigne le plan de
   cibles visuel du module DragDropTarget.)
-- 🎯 **Attribution des cibles** : placement automatique respectant les contraintes d'affectation du terrain, avec
+- 🎯 **Attribution des cibles** : placement automatique **par blason** (des catégories différentes partagent une
+  cible quand elles tirent à la même distance sur des blasons compatibles, règles dans
+  [REGLES_PLACEMENT_FR.md](REGLES_PLACEMENT_FR.md)), respectant les contraintes d'affectation du terrain, avec
   brassage des clubs, plan des cibles, et **contrôle du règlement** — archers d'un même club par
   cible, clubs différents par départ, doublons sur un même départ, archers non placés.
 - 🏛️ **Gestionnaires de club** : un licencié désigné peut inscrire les archers de son club (ou

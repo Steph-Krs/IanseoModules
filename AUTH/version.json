@@ -318,7 +318,10 @@
         "adm-lib.php",
         "assets/admin.css",
         "assets/admin.js",
-        "booking/admin/assets/competition.js"
+        "booking/admin/assets/competition.js",
+        "booking/lib/placement.php",
+        "booking/REGLES_PLACEMENT.md",
+        "booking/REGLES_PLACEMENT_FR.md"
     ],
     "tables": [
         "AuthUsers",

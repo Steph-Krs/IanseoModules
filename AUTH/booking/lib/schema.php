@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 38);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 39);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -761,6 +761,11 @@ function bk_schema()
         KEY BmvTourIdx (BmvTournament),
         KEY BmvLicIdx (BmvLicence)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // v39 — targets FILLED (2 archers or more), at least, per departure: rule of the regulations
+    // (6 targets, with BcMinClubsPerSession clubs). Used by the placement (lib/placement.php) and
+    // the rules check (bk_rules_check).
+    bk_colonne('BookingCompetitions', 'BcMinTargetsPerSession', "TINYINT NOT NULL DEFAULT 6 AFTER BcMinClubsPerSession");
 
     $_SESSION[$flag] = true;
 }

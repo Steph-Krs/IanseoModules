@@ -7,6 +7,10 @@ Specification provided (source: FFTA). Basis of the cohabitation implementation 
 invent nothing, keep the safe fallback (no forced cohabitation).
 
 ## General principle (all disciplines)
+
+> Placement is now **by face**, no longer by category: see
+> [REGLES_PLACEMENT.md](REGLES_PLACEMENT.md), which replaces this paragraph indoors.
+
 - Archers of the **same categories are placed together** to group them (an organisational
   convenience, not an explicit rule of the regulations).
 - Target face cohabitations happen **on the transition targets** from one category to the

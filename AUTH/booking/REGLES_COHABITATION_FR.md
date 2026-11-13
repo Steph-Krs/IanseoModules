@@ -7,6 +7,10 @@ dans `bk_assign_session()` (lib/targets.php). Les cas marqués **à affiner** ne
 tranchés — ne rien inventer, laisser le repli sûr (pas de cohabitation forcée).
 
 ## Principe général (toutes disciplines)
+
+> Le placement se fait désormais **par blason** et non plus par catégorie : voir
+> [REGLES_PLACEMENT_FR.md](REGLES_PLACEMENT_FR.md), qui remplace ce paragraphe pour la salle.
+
 - On place les archers de **mêmes catégories ensemble** pour les regrouper (facilité
   d'organisation, pas une règle explicite du règlement).
 - Les cohabitations de blasons se font **sur les cibles de transition** d'une catégorie à

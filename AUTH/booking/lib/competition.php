@@ -111,7 +111,7 @@ function bk_comp_defaults($tourId)
         'BcTournament' => intval($tourId),
         'BcOpen' => 0, 'BcOpenFrom' => null, 'BcOpenTo' => null,
         'BcRestrictKind' => '', 'BcRestrictCode' => '', 'BcRestrictTo' => null, 'BcCategories' => null,
-        'BcMaxPerClubPerTarget' => 2, 'BcMinClubsPerSession' => 3,
+        'BcMaxPerClubPerTarget' => 2, 'BcMinClubsPerSession' => 3, 'BcMinTargetsPerSession' => 6,
         'BcShowAssignment' => 0, 'BcShowGauges' => 1, 'BcAllowScoresheet' => 0,
         'BcWishLetter' => 1, 'BcWishWith' => 0, 'BcWishFree' => 0,
         'BcFee' => '0.00', 'BcPricing' => null, 'BcShopUntil' => null, 'BcExcludeStats' => 0,
@@ -134,7 +134,7 @@ function bk_comp_advanced_cols()
     // ("To finish"), which the snapshot must not put back to its former value when going back
     // to level 3. Only the DETAILED tariff (BcPricing) is set aside by level 2, then restored.
     return array('BcOpen', 'BcOpenFrom', 'BcOpenTo', 'BcRestrictKind', 'BcRestrictCode', 'BcRestrictTo', 'BcCategories',
-        'BcMaxPerClubPerTarget', 'BcMinClubsPerSession', 'BcShowAssignment', 'BcShowGauges', 'BcAllowScoresheet',
+        'BcMaxPerClubPerTarget', 'BcMinClubsPerSession', 'BcMinTargetsPerSession', 'BcShowAssignment', 'BcShowGauges', 'BcAllowScoresheet',
         'BcWishLetter', 'BcWishWith', 'BcWishFree', 'BcPricing', 'BcManualValidation',
         'BcShowMandate', 'BcMandate', 'BcIanseoUrl', 'BcShowProgram', 'BcShowParticipants', 'BcShowResults',
         'BcShowDossard', 'BcSurvey', 'BcWaitlist', 'BcPayInfo', 'BcShopUntil', 'BcSingleReg');
@@ -271,6 +271,7 @@ function bk_comp_copy_from($destTour, $srcTour, $staff = false)
         d.BcRestrictKind = s.BcRestrictKind, d.BcRestrictCode = s.BcRestrictCode,
         d.BcRestrictTo = " . $remap('BcRestrictTo') . ",
         d.BcMaxPerClubPerTarget = s.BcMaxPerClubPerTarget, d.BcMinClubsPerSession = s.BcMinClubsPerSession,
+        d.BcMinTargetsPerSession = s.BcMinTargetsPerSession,
         d.BcShowAssignment = s.BcShowAssignment, d.BcShowGauges = s.BcShowGauges, d.BcAllowScoresheet = s.BcAllowScoresheet,
         d.BcFee = s.BcFee, d.BcWishLetter = s.BcWishLetter, d.BcWishWith = s.BcWishWith, d.BcWishFree = s.BcWishFree,
         d.BcPricing = s.BcPricing, d.BcShopUntil = " . $remap('BcShopUntil') . ", d.BcExcludeStats = s.BcExcludeStats,
@@ -386,6 +387,7 @@ function bk_comp_save($tourId, $in)
         . ", BcRestrictTo = " . $dt($in['restrict_to'] ?? '')
         . ", BcMaxPerClubPerTarget = " . max(1, min(20, intval($in['max_club'] ?? 2)))
         . ", BcMinClubsPerSession = "  . max(1, min(50, intval($in['min_clubs'] ?? 3)))
+        . ", BcMinTargetsPerSession = " . max(0, min(50, intval($in['min_targets'] ?? 6)))
         . ", BcShowAssignment = "  . (empty($in['show_assign']) ? 0 : 1)
         . ", BcShowGauges = "      . (empty($in['show_gauges']) ? 0 : 1)
         . ", BcAllowScoresheet = " . (empty($in['scoresheet']) ? 0 : 1)
@@ -667,7 +669,7 @@ function bk_comp_apply_auto($tourId)
         . ", BcOpenTo = " . ($end === '' ? 'NULL' : StrSafe_DB($end))
         . ", BcRestrictKind = '', BcRestrictCode = '', BcRestrictTo = NULL, BcCategories = NULL"
         . ", BcManualValidation = 0"
-        . ", BcMaxPerClubPerTarget = 2, BcMinClubsPerSession = 3"
+        . ", BcMaxPerClubPerTarget = 2, BcMinClubsPerSession = 3, BcMinTargetsPerSession = 6"
         . ", BcShowGauges = 1, BcShowAssignment = 1, BcAllowScoresheet = 1"
         . ", BcShowMandate = 1, BcShowProgram = 1, BcShowParticipants = 1, BcShowResults = 1, BcShowDossard = 1"
         . ", BcSurvey = 1"   // survey always offered at level 2: only level 3 can switch it off

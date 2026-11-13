@@ -33,6 +33,8 @@ function bk_assign_msg($prefix, $r)
     if ($free > 0)               $m .= ', ' . bk_t('TgNoPlace', $free);
     if ($r['incompatibles'] > 0) $m .= ', ' . bk_t('TgIncompatible', $r['incompatibles']);
     if ($r['compromis'] > 0)     $m .= ', ' . bk_t('TgOverQuota', $r['compromis']);
+    if (!empty($r['melanges']))  $m .= ', ' . bk_t('TgMixed', $r['melanges']);
+    if (!empty($r['fauteuil']))  $m .= ', ' . bk_t('TgWheelFull', $r['fauteuil']);
     $m .= '.';
     if (!empty($r['voeux'])) {
         $m .= ' ' . bk_t('TgWishes', array('ok' => intval($r['voeuxOk']), 'all' => intval($r['voeux'])));
@@ -190,7 +192,7 @@ if (!$sessions) {
 $out .= '</div>';
 
 $out .= '<div class="bk-sec">' . aut_adm_title('h2', bk_t('TgRulesTitle'), $controle ? bk_t('TgRulesHint', array('max' => intval($cfg->BcMaxPerClubPerTarget),
-    'clubs' => intval($cfg->BcMinClubsPerSession))) : '');
+    'clubs' => intval($cfg->BcMinClubsPerSession), 'targets' => intval($cfg->BcMinTargetsPerSession ?? 6))) : '');
 if (!$controle) {
     $out .= '<p class="bk-hint">' . bk_e(bk_t('TgNobody')) . '</p>';
 } else {
@@ -198,7 +200,8 @@ if (!$controle) {
     foreach ($controle as $c) {
         $out .= '<tr><td>' . $c['depart'] . '</td><td>' . $c['archers'] . '</td>'
             . '<td>' . $c['clubs'] . ' <span class="bk-pill ' . ($c['clubsOk'] ? 'bk-pill-ok' : 'bk-pill-ko') . '">'
-            . bk_e(bk_t('TgMinClubs', $c['minClubs'])) . '</span></td>'
+            . bk_e(bk_t('TgMinClubs', $c['minClubs'])) . '</span> <span class="bk-pill ' . ($c['targetsOk'] ? 'bk-pill-ok' : 'bk-pill-ko') . '">'
+            . bk_e(bk_t('TgMinTargets', array('n' => $c['remplies'], 'min' => $c['minTargets']))) . '</span></td>'
             . '<td>' . bk_e($c['nonPlaces'] ? bk_t('TgUnplaced', $c['nonPlaces']) : bk_t('TgComplete')) . '</td><td>'
             . '<span class="bk-pill ' . ($c['ok'] ? 'bk-pill-ok' : 'bk-pill-ko') . '">' . bk_e(bk_t($c['ok'] ? 'TgCompliant' : 'TgToFix')) . '</span>';
         if ($c['exces']) {
@@ -207,6 +210,12 @@ if (!$controle) {
                 $out .= '<li>' . bk_e(bk_t('TgTooMany', array('target' => intval($e['cible']), 'n' => intval($e['n']),
                     'club' => $e['club'], 'max' => $c['max']))) . '</li>';
             }
+            $out .= '</ul>';
+        }
+        if (!empty($c['seuls']) || !empty($c['paires'])) {
+            $out .= '<ul class="bk-viol">';
+            foreach ($c['seuls'] as $t) $out .= '<li>' . bk_e(bk_t('TgAlone', intval($t))) . '</li>';
+            foreach ($c['paires'] as $pr) $out .= '<li>' . bk_e(bk_t('TgSameClubPair', array('target' => intval($pr['cible']), 'club' => $pr['club']))) . '</li>';
             $out .= '</ul>';
         }
         if ($c['doublons']) {
