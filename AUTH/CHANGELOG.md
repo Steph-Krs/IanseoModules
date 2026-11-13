@@ -2,6 +2,10 @@
 
 Une entrée par version publiée, la plus récente en haut. Les notes de `version.json` ne gardent que la série en cours.
 
+## 1.6.1 — 2026-11-13
+
+L extranet FFTA n a plus de formulaire de connexion (on y entre desormais depuis l Espace Dirigeant ou l Espace Licencie). A la connexion d un organisateur, la session extranet reutilisee par SYNCHRO_FFTA s ouvre maintenant par la passerelle de l Espace Dirigeant, sans renvoyer le mot de passe : elle echouait depuis ce changement. Import du palmares : le bouton ouvre l extranet en passant par l Espace Licencie (connexion demandee si besoin), texte de l etape 1 corrige dans les 5 langues.
+
 ## 1.6.0 — 2026-11-13
 
 Caisse du greffe : a la cloture d un depart, le fond de caisse et les especes comptees se saisissent (ou plus tard sur la cloture, et se corrigent) ; l ecart (especes comptees - fond de caisse - especes attendues) est calcule pour chaque cloture et chaque depart, affiche sur la page et sur la feuille de caisse PDF. Numero de cheque a l encaissement (page Paiements, reglement d un club, greffe). Page Paiements : bordereau de remise de cheques en PDF (un cheque de club compte une fois ; cheques annules, refuses et remboursements exclus) et export du journal des paiements en CSV pour la tresorerie (origine de chaque ligne, cloture du greffe, annulations). Base de donnees : nouvelles colonnes ShopDeskCloses.DcFloat et DcCounted. Suite de #5.

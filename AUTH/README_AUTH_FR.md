@@ -467,9 +467,9 @@ les règles d'accès.
 | `DELETE FROM` | `BookingWaitlist` | `booking/lib/other.php:441` | — |
 | `DELETE FROM` | `BookingPalmares` | `booking/lib/other.php:442` | — |
 | `DELETE FROM` | `BookingArchers` | `booking/lib/other.php:445` | — |
-| `DELETE FROM` | `BookingPalmares` | `booking/lib/palmares.php:416` | — |
-| `INSERT INTO` | `BookingPalmares` | `booking/lib/palmares.php:425` | — |
-| `DELETE FROM` | `BookingPalmares` | `booking/lib/palmares.php:438` | — |
+| `DELETE FROM` | `BookingPalmares` | `booking/lib/palmares.php:419` | — |
+| `INSERT INTO` | `BookingPalmares` | `booking/lib/palmares.php:428` | — |
+| `DELETE FROM` | `BookingPalmares` | `booking/lib/palmares.php:441` | — |
 | `INSERT INTO` | `BookingPayments` | `booking/lib/payment.php:187` | — |
 | `UPDATE` | `BookingPayments` | `booking/lib/payment.php:322` | — |
 | `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/payment.php:604` | — |
@@ -563,9 +563,9 @@ les règles d'accès.
 | `UPDATE` | `AuthSessions` | `lib.php:1458` | — |
 | `UPDATE` | `AuthUsers` | `lib.php:1664` | — |
 | `UPDATE` | `AuthUsers` | `lib.php:1780` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:2708` | — |
-| `UPDATE` | `AuthUsers` | `lib.php:2749` | — |
-| `INSERT INTO` | `AuthUsers` | `lib.php:2755` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:2711` | — |
+| `UPDATE` | `AuthUsers` | `lib.php:2752` | — |
+| `INSERT INTO` | `AuthUsers` | `lib.php:2758` | — |
 | `UPDATE` | `BookingArchers` | `login.php:92` | — |
 | `INSERT INTO` | `AuthClubLogos` | `logos-lib.php:158` | — |
 | `UPDATE` | `AuthClubLogos` | `logos-lib.php:166` | — |

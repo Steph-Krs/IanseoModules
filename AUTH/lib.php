@@ -1719,7 +1719,7 @@ function aut_handle_org_login(&$err, &$stage) {
         if (aut_ffta_verify($username, $password, $otp, $structures, $ssoErr, $dirCookie, $ssoCode)) {
             aut_ffta_outage_clear('dirigeant');   // the space answers: the banner is no longer needed
             aut_dirigeant_stash($dirCookie);      // reusable officers' session cookie (sync)
-            aut_extranet_open($username, $password); // 2nd extranet sign-in, silent on failure
+            aut_extranet_open($dirCookie, $username); // extranet through the SSO gateway, silent on failure
             $syncErr = '';
             $u = aut_sso_sync($username, $structures, $syncErr);
             if (!$u) {
@@ -2575,6 +2575,9 @@ function aut_ffta_verify($username, $password, $otp, &$structures, &$error, &$co
         $raw = aut_ffta_parse_structures($home);
         if (!$person) $person = aut_ffta_parse_person($home);
     }
+    // Since PHP 8 curl_close() frees nothing: without FLUSH the cookie jar is written only when
+    // $ch is destroyed, and aut_dirigeant_stash() / aut_extranet_open() would read an empty file.
+    curl_setopt($ch, CURLOPT_COOKIELIST, 'FLUSH');
     curl_close($ch);
     aut_ffta_person($person);
 
@@ -2769,9 +2772,12 @@ function aut_sso_sync($username, $structures, &$error) {
 /* Session extranet FFTA (extranet.ffta.fr) — convention inter-modules  */
 /*                                                                      */
 /* The extranet is an application DISTINCT from the officers' space     */
-/* (Kareline/PHPSESSID, no MFA): the cookie of one opens nothing on the */
-/* other. The credentials being synchronised, AUTH opens at sign-in     */
-/* a SECOND session, on the extranet, and only keeps its cookie.        */
+/* (Kareline/PHPSESSID): the cookie of one opens nothing on the other.  */
+/* Since November 2026 the extranet has NO sign-in form any more: it is */
+/* entered from the officers' or licensee space, whose /v3/acces page   */
+/* redirects to a one-time gateway URL of the extranet that opens its   */
+/* session. AUTH follows that gateway right after the SSO sign-in, with */
+/* the officers' space cookie, and only keeps the extranet cookie.      */
 /*                                                                      */
 /* Session convention published for the other modules:                 */
 /*   $_SESSION['FFTA_EXTRANET_COOKIE'] = path of the cookie jar (0600)  */
@@ -2803,56 +2809,81 @@ function aut_extranet_cookie_path() {
     return sys_get_temp_dir() . '/ffta_ext_' . hash('sha256', 'extranet|' . $token) . '.ck';
 }
 
+/** Is this extranet page signed in? Every signed-in page carries the role selector. */
+function aut_extranet_signed_in($html) {
+    return strpos((string)$html, 'name="chxMxDrx"') !== false;
+}
+
 /**
- * Opens the extranet session with the officers' space credentials.
+ * Keeps, from curl's cookie list (Netscape lines), the cookies of $host only. The officers'
+ * space session must not travel with the extranet cookie: the consuming modules receive it.
+ */
+function aut_extranet_cookie_lines(array $lines, $host) {
+    $keep = array();
+    foreach ($lines as $line) {
+        // bytes: cookie domains are ASCII host names
+        $domain = strtolower(explode("\t", $line, 2)[0]);
+        if (strpos($domain, '#httponly_') === 0) $domain = substr($domain, 10);   // bytes: ASCII prefix
+        $domain = ltrim($domain, '.');
+        if ($domain === $host || substr($host, -strlen($domain) - 1) === '.' . $domain) {   // bytes: ASCII host names
+            $keep[] = $line;
+        }
+    }
+    return $keep;
+}
+
+/**
+ * Opens the extranet session through the SSO gateway, with the officers' space session just
+ * opened by the sign-in ($dirCookie). No credentials are sent again.
  * Called during sign-in, BEFORE the ianseo session exists: the cookie lands in a temporary file
  * that aut_extranet_bind() will move.
  * Silent failure: the extranet must never block the sign-in to ianseo.
  */
-function aut_extranet_open($username, $password) {
-    if (!aut_extranet_enabled()) return false;
+function aut_extranet_open($dirCookie, $username) {
+    if (!aut_extranet_enabled() || !$dirCookie || !is_file($dirCookie)) return false;
 
-    $base = aut_extranet_base();
-    $tmp  = tempnam(sys_get_temp_dir(), 'aut_ex_');
-    @chmod($tmp, 0600);
+    $host = strtolower((string)parse_url(aut_extranet_base(), PHP_URL_HOST));   // bytes: ASCII host name
 
     $ch = curl_init();
     curl_setopt_array($ch, array(
+        CURLOPT_URL            => AUT_FFTA_BASE . '/v3/acces',
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_COOKIEJAR      => $tmp,
-        CURLOPT_COOKIEFILE     => $tmp,
+        CURLOPT_COOKIEFILE     => $dirCookie,   // read only: the officers' space file is not rewritten
         CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS      => 5,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
         CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; ianseo-ffta/auth)',
         CURLOPT_TIMEOUT        => 20,
         CURLOPT_CONNECTTIMEOUT => 8,
     ));
-
-    // GET: sets the PHPSESSID, then POST of the identification form
-    curl_setopt($ch, CURLOPT_URL, $base . '/');
-    curl_setopt($ch, CURLOPT_HTTPGET, true);
-    curl_exec($ch);
-
-    curl_setopt_array($ch, array(
-        CURLOPT_URL        => $base . '/',
-        CURLOPT_POST       => true,
-        CURLOPT_POSTFIELDS => http_build_query(array(
-            'login[identifiant]' => $username,
-            'login[idpassword]'  => $password,
-        )),
-    ));
-    $body = curl_exec($ch);
-    $fail = curl_errno($ch) || $body === false
-        || strpos((string)$body, 'name="login[identifiant]"') !== false;   // sign-in page served again
+    $body  = curl_exec($ch);
+    $errno = curl_errno($ch);
+    $code  = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $final = (string)curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+    $lines = $body === false ? array() : (curl_getinfo($ch, CURLINFO_COOKIELIST) ?: array());
     curl_close($ch);
+    unset($ch);
 
-    if ($fail) {
-        @unlink($tmp);
+    // Only the host and path of the landing page are traced: the gateway URL in between is a
+    // single-use key to the user's extranet session.
+    aut_ffta_debug('GET /v3/acces -> ' . parse_url($final, PHP_URL_HOST) . parse_url($final, PHP_URL_PATH)
+        . ' http=' . $code . ' errno=' . $errno . ' ' . aut_ffta_debug_page((string)$body));
+
+    $keep = aut_extranet_cookie_lines($lines, $host);
+    // bytes: ASCII host names
+    $ok = !$errno && $body !== false
+        && strtolower((string)parse_url($final, PHP_URL_HOST)) === $host
+        && aut_extranet_signed_in($body)
+        && count($keep);
+    if (!$ok) {
         aut_log('EXTRANET_FAIL', $username);
         return false;
     }
 
+    $tmp = tempnam(sys_get_temp_dir(), 'aut_ex_');
+    @chmod($tmp, 0600);
+    file_put_contents($tmp, "# Netscape HTTP Cookie File\n" . implode("\n", $keep) . "\n");
     $_SESSION['FFTA_EXTRANET_TMP'] = $tmp;
     aut_log('EXTRANET_OK', $username);
     return true;

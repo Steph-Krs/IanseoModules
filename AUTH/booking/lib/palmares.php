@@ -33,15 +33,18 @@ require_once __DIR__ . '/archer.php';
 require_once __DIR__ . '/distinctions.php';
 
 /**
- * The record page of the extranet (the archer's own session, in their own browser). The season
- * cannot be chosen from here: it is a form sent by POST, which another site's page sends without
- * the extranet's session cookie (SameSite=Lax), and the address ignores it (the form's field in
- * the query string, with or without its operation field: tried 2026-10-18). The archer picks
- * every season by hand (step 2).
+ * Where the archer opens the extranet (their own session, in their own browser). Since November
+ * 2026 the extranet has no sign-in form: a direct link to the record page lands, without an
+ * extranet session, on a page that only points to the licensee space. Its /v3/acces page asks
+ * for the sign-in if needed, then always leads to the extranet home page (tried 2026-11-13), where
+ * the archer clicks « Mon Palmarès ». The season cannot be chosen from here: it is a form sent by
+ * POST, which another site's page sends without the extranet's session cookie (SameSite=Lax), and
+ * the address ignores it (tried 2026-10-18). The archer picks every season by hand (step 2).
  */
 function bk_pal_extranet_url()
 {
-    return 'https://extranet.ffta.fr/mon_palmares.html';
+    $base = function_exists('bk_ffta_base') ? bk_ffta_base() : 'https://monespace.ffta.fr';
+    return $base . '/v3/acces';
 }
 
 /** Most rows accepted in one import: a whole career listed under two rankings each. */
