@@ -389,9 +389,10 @@ function shp_accounts_open($tourId)
  * check-in desk (lib/desk.php, $standId 0). $amount: null = what is left (shp_account_state).
  * $standId: where the money was taken, for the cash report of that stand; a volunteer needs the
  * right 'cash' there, or, without a stand, the desk right 'pay'. Not earmarked to orders.
+ * $ref: the cheque number, kept for a cheque only (bk_cheque_ref), for the deposit slip.
  * Returns ['error' => 0, 'line', 'existing', 'account', 'remaining'] or an error.
  */
-function shp_pay_account($tourId, $account, $amount, $method, $staffId, $idem, $standId = 0)
+function shp_pay_account($tourId, $account, $amount, $method, $staffId, $idem, $standId = 0, $ref = '')
 {
     shp_schema();
     $tourId = intval($tourId);
@@ -442,7 +443,7 @@ function shp_pay_account($tourId, $account, $amount, $method, $staffId, $idem, $
         return shp_err('too_much', 'ShPayErrTooMuch', shp_money($st['remaining'], $tourId), array('remaining' => $st['remaining']));
     }
     $line = bk_ledger_add($tourId, $account, 'payment', $amount, $method, '', shp_t($standId > 0 ? 'ShPayLblAccount' : 'ShPayLblDesk'), shp_pay_by($staffId), 0,
-        array('stand' => $standId, 'staff' => $staffId, 'idem' => $idem));
+        array('stand' => $standId, 'staff' => $staffId, 'idem' => $idem, 'ref' => bk_cheque_ref($method, $ref)));
     if (!$line) {
         safe_w_Rollback();
         return shp_err('internal', 'ShErrInternal');

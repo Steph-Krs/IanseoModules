@@ -472,12 +472,12 @@ les règles d'accès.
 | `DELETE FROM` | `BookingPalmares` | `booking/lib/palmares.php:438` | — |
 | `INSERT INTO` | `BookingPayments` | `booking/lib/payment.php:187` | — |
 | `UPDATE` | `BookingPayments` | `booking/lib/payment.php:322` | — |
-| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/payment.php:594` | — |
-| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:598` | — |
-| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:654` | — |
-| `UPDATE` | `BookingLedger` | `booking/lib/payment.php:670` | — |
-| `INSERT INTO` | `BookingRefunds` | `booking/lib/payment.php:763` | — |
-| `UPDATE` | `BookingRefunds` | `booking/lib/payment.php:792` | — |
+| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/payment.php:604` | — |
+| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:608` | — |
+| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:664` | — |
+| `UPDATE` | `BookingLedger` | `booking/lib/payment.php:680` | — |
+| `INSERT INTO` | `BookingRefunds` | `booking/lib/payment.php:775` | — |
+| `UPDATE` | `BookingRefunds` | `booking/lib/payment.php:804` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/registration.php:513` | — |
 | `INSERT INTO` | `BookingRegistrations` | `booking/lib/registration.php:654` | — |
 | `DELETE FROM` | `BookingRegistrations` | `booking/lib/registration.php:714` | — |
@@ -598,10 +598,11 @@ les règles d'accès.
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:79` | — |
 | `INSERT INTO` | `ShopGuests` | `shop/lib/customer.php:85` | — |
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:98` | — |
-| `INSERT INTO` | `ShopDeskCloses` | `shop/lib/desk-cash.php:137` | — |
-| `UPDATE` | `BookingLedger` | `shop/lib/desk-cash.php:140` | — |
-| `UPDATE` | `BookingLedger` | `shop/lib/desk-cash.php:157` | — |
-| `DELETE FROM` | `ShopDeskCloses` | `shop/lib/desk-cash.php:158` | — |
+| `UPDATE` | `ShopDeskCloses` | `shop/lib/desk-cash.php:123` | — |
+| `INSERT INTO` | `ShopDeskCloses` | `shop/lib/desk-cash.php:211` | — |
+| `UPDATE` | `BookingLedger` | `shop/lib/desk-cash.php:214` | — |
+| `UPDATE` | `BookingLedger` | `shop/lib/desk-cash.php:232` | — |
+| `DELETE FROM` | `ShopDeskCloses` | `shop/lib/desk-cash.php:233` | — |
 | `INSERT IGNORE INTO` | `BookingCheckEntries` | `shop/lib/desk.php:259` | — |
 | `INSERT INTO` | `BookingCheckLog` | `shop/lib/desk.php:494` | — |
 | `DELETE FROM` | `BookingChecks` | `shop/lib/desk.php:545` | — |

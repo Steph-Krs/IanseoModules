@@ -517,6 +517,16 @@ function bk_account_state_label($state)
 /* Journal                                                             */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Number of a cheque as typed (spaces and dashes allowed), kept for a cheque only: a number
+ * typed before choosing another means would otherwise sit on a cash line. ASCII, 30 characters.
+ */
+function bk_cheque_ref($method, $ref)
+{
+    if ((string) $method !== 'cheque') return '';
+    return mb_substr((string) preg_replace('/[^0-9A-Za-z]/', '', (string) $ref), 0, 30);
+}
+
 /** Amount typed by a person ("12,50", "12.5") → float, 0 when unreadable. */
 function bk_money_in($v)
 {
@@ -716,9 +726,10 @@ function bk_account_left_parts($a)
  * One payment for a club, of the amount the club pays: $amounts = [account => amount], each
  * account of that club getting a line of its amount (the whole remaining, the registrations
  * only, or anything the organiser typed), all tied by one group number. Accounts of another
- * club and amounts that are not positive are left out. Returns ['count', 'total'].
+ * club and amounts that are not positive are left out. $ref: the cheque number, on every line
+ * of the group (one cheque: the deposit slip counts the group once). Returns ['count', 'total'].
  */
-function bk_ledger_pay_club($tourId, $clubCode, $amounts, $method, $date, $note, $by)
+function bk_ledger_pay_club($tourId, $clubCode, $amounts, $method, $date, $note, $by, $ref = '')
 {
     $tourId = intval($tourId);
     $accounts = bk_accounts($tourId);
@@ -733,7 +744,8 @@ function bk_ledger_pay_club($tourId, $clubCode, $amounts, $method, $date, $note,
     $label = bk_t('LedgerClub', $clubCode) . (trim((string) $note) !== '' ? ' — ' . trim((string) $note) : '');
     $total = 0.0; $count = 0;
     foreach ($todo as $k => $v) {
-        if (!bk_ledger_add($tourId, $k, 'payment', $v, $method, $date, $label, $by, $group, array('club' => (string) $clubCode))) continue;
+        if (!bk_ledger_add($tourId, $k, 'payment', $v, $method, $date, $label, $by, $group,
+            array('club' => (string) $clubCode, 'ref' => bk_cheque_ref($method, $ref)))) continue;
         $total += $v; $count++;
     }
     return array('count' => $count, 'total' => round($total, 2));

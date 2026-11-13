@@ -27,17 +27,26 @@ $RW = hasFullACL(AclParticipants, 'pEntries', AclReadWrite) && !shp_impersonatin
 $SELF = shp_url('desk/cash.php');
 $sessions = shp_desk_sessions($TOUR);
 
-/* ---- Actions: close the open till, undo the last closing ---- */
+/* ---- Actions: close the open till, count a closing, undo the last closing ---- */
 if ($RW && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $act = (string) ($_POST['act'] ?? '');
     $back = $SELF;
     if (!bk_csrf_check()) {
         shp_adm_flash_set('err', shp_t('ShStfErrSession'));
-    } elseif ($act === 'close') {
+    } elseif ($act === 'close' || $act === 'count') {
+        // The count of the drawer, typed at the closing or later on a closing.
+        $float = shp_cash_amount_in($_POST['float'] ?? '');
+        $counted = shp_cash_amount_in($_POST['counted'] ?? '');
         $ses = intval($_POST['s'] ?? 0);
-        if (!isset($sessions[$ses])) {
+        if ($float === false || $counted === false) {
+            shp_adm_flash_set('err', shp_t('DkCashErrCount'));
+        } elseif ($act === 'count') {
+            $ok = shp_cash_count($TOUR, intval($_POST['id'] ?? 0), $float, $counted);
+            shp_adm_flash_set($ok ? 'ok' : 'err', shp_t($ok ? 'DkCashCountSaved' : 'DkCashErrCount'));
+            if (isset($sessions[$ses])) $back = $SELF . '?v=' . $ses;
+        } elseif (!isset($sessions[$ses])) {
             shp_adm_flash_set('err', shp_t('DkCashErrSession'));
-        } elseif (shp_cash_close($TOUR, $ses, shp_staff_by())) {
+        } elseif (shp_cash_close($TOUR, $ses, shp_staff_by(), $float, $counted)) {
             shp_adm_flash_set('ok', shp_t('DkCashClosed', $sessions[$ses]['label']));
             $back = $SELF . '?v=' . $ses;
         } else {
@@ -89,6 +98,14 @@ if (!$next && $sessions) $next = max(array_keys($sessions));
 $names = array();
 foreach (bk_accounts($TOUR) as $k => $a) $names[(string) $k] = $a;
 
+// Fields of the count of the drawer (float, cash counted), prefilled with what is known.
+$inAmount = function ($v) { return $v === null ? '' : number_format((float) $v, 2, bk_number_seps()['dec'], ''); };
+$countFields = function ($float, $counted) use ($inAmount) {
+    return shp_adm_field(shp_t('DkCashFloat'), '<input type="text" name="float" inputmode="decimal" size="8" value="' . shp_e($inAmount($float)) . '">')
+        . shp_adm_field(shp_t('DkCashCounted'), '<input type="text" name="counted" inputmode="decimal" size="8" value="' . shp_e($inAmount($counted)) . '">');
+};
+$count = $view === 'open' ? null : shp_cash_session_count($closes, $view);
+
 /* ---- Page ---- */
 $JS_SCRIPT = aut_adm_assets(array('<link rel="stylesheet" href="' . shp_e(shp_asset_url('desk-cash.css')) . '">'));
 $PAGE_TITLE = shp_t('DkCashTitle');
@@ -120,7 +137,9 @@ if ($view === 'open' && $RW) {
             . '<form method="post" action="' . shp_e($SELF) . '" class="sa-row" onsubmit="return confirm(this.dataset.sure)" data-sure="' . shp_e(shp_t('DkCashCloseSure')) . '">'
             . bk_csrf_field() . '<input type="hidden" name="act" value="close">'
             . shp_adm_field(shp_t('DkCashCloseOn'), '<select name="s">' . shp_adm_options($sOpts, (string) $next) . '</select>')
-            . '<button type="submit" class="sa-btn sa-primary">' . shp_e(shp_t('DkCashCloseBtn')) . '</button></form>';
+            . $countFields(shp_cash_last_float($TOUR), null)
+            . '<button type="submit" class="sa-btn sa-primary">' . shp_e(shp_t('DkCashCloseBtn')) . '</button></form>'
+            . '<p class="sa-muted">' . shp_e(shp_t('DkCashCountHint')) . '</p>';
     }
     $html .= '</div>';
 }
@@ -131,6 +150,11 @@ $html .= '<div class="sa-kpis"><div class="sa-kpi"><span>' . shp_e(shp_t('DkCash
 foreach ($tot['methods'] as $m => $x) {
     $html .= '<div class="sa-kpi"><span>' . shp_e($mLabel($m)) . '</span><b>' . $money($x['amount']) . '</b>'
         . '<small>' . shp_e(shp_t('DkCashCount', $x['n'])) . '</small></div>';
+}
+if ($count) {
+    $html .= '<div class="sa-kpi"><span>' . shp_e(shp_t('DkCashGap')) . '</span><b>' . $money($count['gap']) . '</b>'
+        . '<small>' . shp_e(shp_t('DkCashCounted') . ' ' . shp_money($count['counted'], $TOUR)
+            . ($count['all'] ? '' : ' — ' . shp_t('DkCashPartCounted'))) . '</small></div>';
 }
 $html .= '</div>';
 
@@ -156,16 +180,29 @@ if ($shown) {
     $lastId = max(array_keys($closes));
     $html .= aut_adm_title('h2', shp_t('DkCashClosesTitle')) . '<div class="sa-scroll"><table class="sa-table"><thead><tr>'
         . '<th>' . shp_e(shp_t('DkCashWhen')) . '</th><th>' . shp_e(shp_t('DkSession')) . '</th><th>' . shp_e(shp_t('DkCashClosedBy')) . '</th>'
-        . '<th class="sa-num">' . shp_e(shp_t('DkCashLinesN')) . '</th><th class="sa-num">' . shp_e(shp_t('DkCashTotal')) . '</th><th></th></tr></thead><tbody>';
+        . '<th class="sa-num">' . shp_e(shp_t('DkCashLinesN')) . '</th><th class="sa-num">' . shp_e(shp_t('DkCashTotal')) . '</th>'
+        . '<th class="sa-num">' . shp_e(shp_t('DkCashExpected')) . '</th><th class="sa-num">' . shp_e(shp_t('DkCashCounted')) . '</th>'
+        . '<th class="sa-num">' . shp_e(shp_t('DkCashGap')) . '</th><th></th></tr></thead><tbody>';
     foreach ($shown as $c) {
         $undo = '';
+        if ($RW) {
+            $undo .= '<details class="dc-count"><summary class="sa-btn sa-btn-small">' . shp_e(shp_t('DkCashCountEdit')) . '</summary>'
+                . '<form method="post" action="' . shp_e($SELF) . '" class="sa-row">' . bk_csrf_field()
+                . '<input type="hidden" name="act" value="count"><input type="hidden" name="id" value="' . $c['id'] . '">'
+                . '<input type="hidden" name="s" value="' . $c['session'] . '">'
+                . $countFields($c['float'], $c['counted'])
+                . '<button type="submit" class="sa-btn sa-primary">' . shp_e(shp_t('DkCashCountBtn')) . '</button></form></details>';
+        }
         if ($RW && $c['id'] === $lastId) {
-            $undo = '<form method="post" action="' . shp_e($SELF) . '" onsubmit="return confirm(this.dataset.sure)" data-sure="' . shp_e(shp_t('DkCashReopenSure')) . '">'
+            $undo .= '<form method="post" action="' . shp_e($SELF) . '" onsubmit="return confirm(this.dataset.sure)" data-sure="' . shp_e(shp_t('DkCashReopenSure')) . '">'
                 . bk_csrf_field() . '<input type="hidden" name="act" value="reopen"><input type="hidden" name="id" value="' . $c['id'] . '">'
                 . '<button type="submit" class="sa-btn sa-btn-small">' . shp_e(shp_t('DkCashReopen')) . '</button></form>';
         }
         $html .= '<tr><td>' . shp_e(bk_date_time($c['when'])) . '</td><td>' . shp_e($sessions[$c['session']]['label'] ?? bk_t('DepCap', $c['session'])) . '</td>'
             . '<td>' . shp_e($c['by']) . '</td><td class="sa-num">' . $c['n'] . '</td><td class="sa-num">' . $money($c['total']) . '</td>'
+            . '<td class="sa-num">' . $money($c['cash']) . '</td>'
+            . '<td class="sa-num">' . ($c['counted'] === null ? '<span class="sa-muted">' . shp_e(shp_t('DkCashNotCounted')) . '</span>' : $money($c['counted'])) . '</td>'
+            . '<td class="sa-num">' . ($c['gap'] === null ? '' : '<span class="sa-badge ' . (abs($c['gap']) < 0.005 ? 'sa-b-ok' : 'sa-b-warn') . '">' . $money($c['gap']) . '</span>') . '</td>'
             . '<td class="sa-acts">' . $undo . '</td></tr>';
     }
     $html .= '</tbody></table></div>';

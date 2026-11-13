@@ -4,7 +4,7 @@
  *   decide  division ('' = documents), decision ok|ko|undo, note   right reg or equip
  *   power   division, power (pounds)                               right equip
  *   note    post reg|equip, text                                   right reg or equip
- *   pay     method, amount (empty = what is left)                  right pay
+ *   pay     method, amount (empty = what is left), ref (cheque no.) right pay
  * The same key sent again writes once. Answers the archer's fresh file.
  */
 
@@ -28,7 +28,7 @@ switch ((string) ($in['act'] ?? '')) {
         break;
     case 'pay':
         $amount = isset($in['amount']) && $in['amount'] !== '' ? (string) $in['amount'] : null;
-        $r = shp_desk_pay($me, $account, (string) ($in['method'] ?? ''), $amount, $idem);
+        $r = shp_desk_pay($me, $account, (string) ($in['method'] ?? ''), $amount, $idem, (string) ($in['ref'] ?? ''));
         break;
     default:
         shp_json_error('bad_request', shp_t('ShErrBadRequest'), 400);

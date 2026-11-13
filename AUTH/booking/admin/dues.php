@@ -88,8 +88,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $done = 'amount';
         } else {
             $note = trim((string) ($_POST['note'] ?? ''));
-            $id = bk_ledger_add($TOUR, $acc, $act === 'pay' ? 'payment' : 'refund', $amount, (string) ($_POST['method'] ?? ''),
-                (string) ($_POST['date'] ?? ''), $note !== '' ? $note : bk_t($act === 'pay' ? 'KindPayment' : 'KindRefund'), $WHO);
+            $method = (string) ($_POST['method'] ?? '');
+            $id = bk_ledger_add($TOUR, $acc, $act === 'pay' ? 'payment' : 'refund', $amount, $method,
+                (string) ($_POST['date'] ?? ''), $note !== '' ? $note : bk_t($act === 'pay' ? 'KindPayment' : 'KindRefund'), $WHO, 0,
+                array('ref' => bk_cheque_ref($method, $_POST['ref'] ?? '')));
             $done = $id ? $act : 'amount';
         }
     } elseif ($act === 'cancel') {
@@ -100,12 +102,22 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $amounts = array();
         foreach ((array) ($_POST['amt'] ?? array()) as $k => $v) $amounts[(string) $k] = bk_money_in($v);
         $r = bk_ledger_pay_club($TOUR, (string) ($_POST['club'] ?? ''), $amounts, (string) ($_POST['method'] ?? ''),
-            (string) ($_POST['date'] ?? ''), (string) ($_POST['note'] ?? ''), $WHO);
+            (string) ($_POST['date'] ?? ''), (string) ($_POST['note'] ?? ''), $WHO, (string) ($_POST['ref'] ?? ''));
         $back = array('sort' => (string) ($_POST['sort'] ?? ''), 'n' => $r['count'], 'tot' => $r['total']);
         $done = $r['count'] ? 'club' : 'club_none';
     }
     header('Location: ' . due_url($back + array('done' => $done)));
     exit;
+}
+
+// Treasurer's documents: the journal as CSV, the cheque deposit slip as PDF.
+if (!empty($_GET['csv'])) {
+    require_once dirname(__DIR__) . '/lib/ledger-export.php';
+    bk_ledger_csv_send($TOUR, 'payments-' . preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($_SESSION['TourCode'] ?? '')) . '.csv');
+}
+if (($_GET['pdf'] ?? '') === 'cheques') {
+    require_once dirname(__DIR__) . '/lib/ledger-export.php';
+    bk_ledger_pdf_send(bk_cheque_slip_pdf($TOUR), 'cheques-' . preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($_SESSION['TourCode'] ?? '')) . '.pdf');
 }
 
 // PDF: receipt of one account, or the list.
@@ -180,6 +192,13 @@ function due_methods($sel)
     return $h;
 }
 
+/** Cheque number of a payment (kept for a cheque only, bk_cheque_ref). */
+function due_cheque_field()
+{
+    return '<label>' . bk_e(bk_t('DuChequeNo')) . ' <input type="text" name="ref" maxlength="30" size="10" autocomplete="off"'
+        . ' placeholder="' . bk_e(bk_t('DuChequeNoPh')) . '"></label>';
+}
+
 /** Payment or refund form of an account. */
 function due_form($act, $acc, $amount, $method, $sort, $label)
 {
@@ -190,6 +209,7 @@ function due_form($act, $acc, $amount, $method, $sort, $label)
         . '<label>' . bk_e(bk_t('ColAmount')) . ' <input type="text" name="amount" inputmode="decimal" size="7" value="'
         . ($amount > 0 ? bk_e(due_in($amount)) : '') . '" required> ' . bk_e(bk_currency(bk_money_tour())) . '</label>'
         . '<label>' . bk_e(bk_t('ColMeans')) . ' <select name="method">' . due_methods($method) . '</select></label>'
+        . ($act === 'pay' ? due_cheque_field() : '')
         . '<label>' . bk_e(bk_t('ColDate')) . ' <input type="date" name="date" value="' . bk_e($today) . '" max="' . bk_e($today) . '"></label>'
         . '<label class="due-note">' . bk_e(bk_t('DuNote')) . ' <input type="text" name="note" maxlength="120" placeholder="' . bk_e(bk_t('DuNotePh')) . '"></label>'
         . '<button type="submit" class="due-btn' . ($act === 'refund' ? ' due-btn-warn' : '') . '">' . bk_e($label) . '</button></form>';
@@ -397,7 +417,8 @@ if ($open === BK_SHOP_SUMMARY && isset($accounts[$open])) {
             $cancelled = intval($m->BlgCancelled) > 0;
             echo '<tr' . ($cancelled ? ' class="is-cancelled"' : '') . '><td>' . bk_e(bk_date_fr($m->BlgWhen)) . '</td>'
                 . '<td>' . bk_e($kinds[$m->BlgKind] ?? $m->BlgKind) . '</td>'
-                . '<td>' . bk_e($methods[$m->BlgMethod] ?? '') . '</td>'
+                . '<td>' . bk_e($methods[$m->BlgMethod] ?? '')
+                . ($m->BlgMethod === 'cheque' && $m->BlgRef !== '' ? ' <span class="due-mut">' . bk_e(bk_t('DuChequeNoX', $m->BlgRef)) . '</span>' : '') . '</td>'
                 . '<td>' . bk_e($m->BlgLabel) . (intval($m->BlgGroup) ? ' <span class="due-mut">(' . bk_e(bk_t('DuGrouped')) . ')</span>' : '') . '</td>'
                 . '<td class="num">' . due_eur($m->BlgAmount) . '</td>'
                 . '<td class="keep due-mut">' . bk_e(due_by($m, $standNames)) . ' — ' . bk_e(bk_date_fr($m->BlgCreated) . ' ' . due_hm($m->BlgCreated)) . '</td>'
@@ -479,6 +500,7 @@ if (!$rows) {
                 . '<td class="num">' . due_eur($sum['shop']) . '</td><td class="num" id="due-club-sum"></td></tr></table></div>'
                 . '<p class="due-msg due-msg-info" id="due-club-warn" hidden></p>'
                 . '<div class="due-form"><label>' . bk_e(bk_t('ColMeans')) . ' <select name="method">' . due_methods('') . '</select></label>'
+                . due_cheque_field()
                 . '<label>' . bk_e(bk_t('ColDate')) . ' <input type="date" name="date" value="' . bk_e($today) . '" max="' . bk_e($today) . '"></label>'
                 . '<label class="due-note">' . bk_e(bk_t('DuNote')) . ' <input type="text" name="note" maxlength="80" placeholder="' . bk_e(bk_t('DuNoteClubPh')) . '"></label>'
                 . '<button type="submit" class="due-btn">' . bk_e(bk_t('DuClubCollect')) . '</button></div>'
@@ -496,7 +518,10 @@ if (!$rows) {
         . '<button type="button" data-f="over">' . bk_e(bk_t('StateOver')) . '</button>'
         . '<input type="search" id="due-q" placeholder="' . bk_e(bk_t('DuSearchPh')) . '" aria-label="' . bk_e(bk_t('DuSearch')) . '">'
         . '<a class="due-btn due-btn-light" style="margin-left:auto" href="' . bk_e(due_url(array('pdf' => 'list'))) . '" target="_blank">'
-        . '<img src="' . $CFG->ROOT_DIR . 'Common/Images/pdf_small.gif" alt="" style="vertical-align:middle"> ' . bk_e(bk_t('DuList')) . '</a></div>';
+        . '<img src="' . $CFG->ROOT_DIR . 'Common/Images/pdf_small.gif" alt="" style="vertical-align:middle"> ' . bk_e(bk_t('DuList')) . '</a>'
+        . '<a class="due-btn due-btn-light" href="' . bk_e(due_url(array('pdf' => 'cheques'))) . '" target="_blank">'
+        . '<img src="' . $CFG->ROOT_DIR . 'Common/Images/pdf_small.gif" alt="" style="vertical-align:middle"> ' . bk_e(bk_t('DuSlip')) . '</a>'
+        . '<a class="due-btn due-btn-light" href="' . bk_e(due_url(array('csv' => 1))) . '">' . bk_e(bk_t('DuCsv')) . '</a></div>';
 
     // Payer trust index (AUTH core): a badge beside the name, in its alert and block modes only.
     $trust = false;

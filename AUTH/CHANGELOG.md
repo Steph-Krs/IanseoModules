@@ -2,6 +2,10 @@
 
 Une entrée par version publiée, la plus récente en haut. Les notes de `version.json` ne gardent que la série en cours.
 
+## 1.6.0 — 2026-11-13
+
+Caisse du greffe : a la cloture d un depart, le fond de caisse et les especes comptees se saisissent (ou plus tard sur la cloture, et se corrigent) ; l ecart (especes comptees - fond de caisse - especes attendues) est calcule pour chaque cloture et chaque depart, affiche sur la page et sur la feuille de caisse PDF. Numero de cheque a l encaissement (page Paiements, reglement d un club, greffe). Page Paiements : bordereau de remise de cheques en PDF (un cheque de club compte une fois ; cheques annules, refuses et remboursements exclus) et export du journal des paiements en CSV pour la tresorerie (origine de chaque ligne, cloture du greffe, annulations). Base de donnees : nouvelles colonnes ShopDeskCloses.DcFloat et DcCounted. Suite de #5.
+
 ## 1.5.1 — 2026-11-12
 
 Espace licencie, page Documents : un archer inscrit par l organisateur dans ianseo y trouve aussi son dossard (si la competition le propose) et sa feuille de marque officielle (si l organisateur l autorise), comme pour une inscription en ligne. Suite de #3.

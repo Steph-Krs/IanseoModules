@@ -437,10 +437,16 @@
         if (!can('pay')) return box;
         var amount = h('input', { type: 'text', inputmode: 'decimal', class: 'dk-amount', value: num(left.toFixed(2)), 'aria-label': T('DkPayAmount') });
         box.push(h('label', { class: 'dk-inline' }, [h('span', { text: T('DkPayAmount') }), amount]));
+        // Cheque number, for the deposit slip: kept by the server for a cheque only.
+        var ref = null;
+        if ((C.methods || []).some(function (m) { return m.code === 'cheque'; })) {
+            ref = h('input', { type: 'text', inputmode: 'numeric', maxlength: '30', autocomplete: 'off', class: 'dk-amount', 'aria-label': T('DkPayChequeNo') });
+            box.push(h('label', { class: 'dk-inline' }, [h('span', { text: T('DkPayChequeNo') }), ref]));
+        }
         box.push(h('div', { class: 'dk-btns dk-methods' }, (C.methods || []).map(function (m) {
             return confirmBtn(m.label, T('DkPayConfirm'), 'dk-method', function (b) {
                 b.disabled = true;
-                write({ act: 'pay', method: m.code, amount: amount.value.trim() }, T('DkPayDone'));
+                write({ act: 'pay', method: m.code, amount: amount.value.trim(), ref: ref ? ref.value.trim() : '' }, T('DkPayDone'));
             });
         })));
         return box;

@@ -17,6 +17,12 @@
  * clock. A departure may be closed several times (a late payment after the closing): its till
  * is the sum of its closings. Only the LAST closing may be undone (its lines go back to the
  * open till).
+ *
+ * COUNT: a closing may carry the count of the drawer: the float put in at the start (DcFloat)
+ * and the cash found at the end (DcCounted), typed at the closing or later. The gap is
+ * counted - float - cash expected, the cash expected being the closing's cash lines: a line
+ * cancelled after the closing has its counter line in the open till, so a closing's figures
+ * never move once made.
  */
 
 if (defined('SHP_DESK_CASH_LOADED')) return;
@@ -34,22 +40,89 @@ function shp_cash_where($tourId)
 }
 
 /**
- * Closings of a competition, oldest first: [DcId => ['id', 'session', 'when', 'by', 'total', 'n']].
+ * Closings of a competition, oldest first: [DcId => ['id', 'session', 'when', 'by', 'total', 'n',
+ * 'cash' (cash expected), 'float', 'counted' (null while not counted), 'gap' (null likewise)]].
  */
 function shp_cash_closes($tourId)
 {
     shp_schema();
     $tourId = intval($tourId);
     $out = array();
-    $rs = safe_r_sql("SELECT DcId, DcSession, DcWhen, DcBy,
+    $rs = safe_r_sql("SELECT DcId, DcSession, DcWhen, DcBy, DcFloat, DcCounted,
             (SELECT IFNULL(SUM(BlgAmount), 0) FROM BookingLedger WHERE BlgDeskClose = DcId AND " . shp_cash_where($tourId) . ") AS Total,
+            (SELECT IFNULL(SUM(BlgAmount), 0) FROM BookingLedger WHERE BlgDeskClose = DcId AND BlgMethod = 'cash' AND " . shp_cash_where($tourId) . ") AS Cash,
             (SELECT COUNT(*) FROM BookingLedger WHERE BlgDeskClose = DcId AND " . shp_cash_where($tourId) . ") AS N
         FROM ShopDeskCloses WHERE DcTournament = $tourId ORDER BY DcId");
     while ($r = safe_fetch($rs)) {
+        $cash = round((float) $r->Cash, 2);
+        $float = $r->DcFloat === null ? null : round((float) $r->DcFloat, 2);
+        $counted = $r->DcCounted === null ? null : round((float) $r->DcCounted, 2);
         $out[intval($r->DcId)] = array('id' => intval($r->DcId), 'session' => intval($r->DcSession), 'when' => (string) $r->DcWhen,
-            'by' => (string) $r->DcBy, 'total' => round((float) $r->Total, 2), 'n' => intval($r->N));
+            'by' => (string) $r->DcBy, 'total' => round((float) $r->Total, 2), 'n' => intval($r->N),
+            'cash' => $cash, 'float' => $float, 'counted' => $counted,
+            'gap' => $counted === null ? null : round($counted - (float) $float - $cash, 2));
     }
     return $out;
+}
+
+/**
+ * Count of a departure from its closings: ['cash', 'float', 'counted', 'gap', 'all' (every closing
+ * counted)], sums over the closings counted; null when none is.
+ */
+function shp_cash_session_count(array $closes, $session)
+{
+    $t = array('cash' => 0.0, 'float' => 0.0, 'counted' => 0.0, 'gap' => 0.0, 'all' => true);
+    $any = false;
+    foreach ($closes as $c) {
+        if ($c['session'] !== intval($session)) continue;
+        if ($c['counted'] === null) {
+            $t['all'] = false;
+            continue;
+        }
+        $any = true;
+        $t['cash'] += $c['cash'];
+        $t['float'] += (float) $c['float'];
+        $t['counted'] += $c['counted'];
+        $t['gap'] += $c['gap'];
+    }
+    if (!$any) return null;
+    foreach (array('cash', 'float', 'counted', 'gap') as $k) $t[$k] = round($t[$k], 2);
+    return $t;
+}
+
+/**
+ * An amount typed for the count: null when left empty, false when unreadable, else the amount
+ * (0 allowed: an empty drawer is a count).
+ */
+function shp_cash_amount_in($v)
+{
+    $v = str_replace(array(' ', "\u{00A0}", "\u{20AC}"), '', str_replace(',', '.', trim((string) $v)));
+    if ($v === '') return null;
+    return preg_match('/^\d{1,6}(\.\d{1,2})?$/', $v) ? round((float) $v, 2) : false;
+}
+
+/** The float of the last closing of a competition, proposed for the next one (null: none). */
+function shp_cash_last_float($tourId)
+{
+    $r = safe_fetch(safe_r_sql("SELECT DcFloat FROM ShopDeskCloses WHERE DcTournament = " . intval($tourId) . "
+        AND DcFloat IS NOT NULL ORDER BY DcId DESC LIMIT 1"));
+    return $r ? round((float) $r->DcFloat, 2) : null;
+}
+
+/**
+ * Records the count of a closing (typed at the closing or later, corrected as often as needed).
+ * $counted null clears the count. Returns false for a closing of another competition.
+ */
+function shp_cash_count($tourId, $closeId, $float, $counted)
+{
+    shp_schema();
+    $tourId = intval($tourId);
+    $closeId = intval($closeId);
+    if ($closeId <= 0 || !safe_fetch(safe_r_sql("SELECT DcId FROM ShopDeskCloses WHERE DcId = $closeId AND DcTournament = $tourId"))) return false;
+    $sql = function ($v) { return $v === null ? 'NULL' : StrSafe_DB(number_format((float) $v, 2, '.', '')); };
+    safe_w_sql("UPDATE ShopDeskCloses SET DcFloat = " . ($counted === null ? 'NULL' : $sql($float ?? 0.0)) . ",
+        DcCounted = " . $sql($counted) . " WHERE DcId = $closeId AND DcTournament = $tourId");
+    return true;
 }
 
 /**
@@ -115,9 +188,10 @@ function shp_cash_totals(array $lines)
 
 /**
  * Closes the open till on a departure: every line not closed yet (but the ones paid before the
- * desk opens) is tied to it. Returns the closing's id, 0 when there was nothing to close.
+ * desk opens) is tied to it, with the count of the drawer when typed (shp_cash_count). Returns
+ * the closing's id, 0 when there was nothing to close.
  */
-function shp_cash_close($tourId, $session, $by)
+function shp_cash_close($tourId, $session, $by, $float = null, $counted = null)
 {
     shp_schema();
     $tourId = intval($tourId);
@@ -139,6 +213,7 @@ function shp_cash_close($tourId, $session, $by)
     $id = intval(safe_w_last_id());
     safe_w_sql("UPDATE BookingLedger SET BlgDeskClose = $id WHERE BlgTournament = $tourId AND BlgId IN (" . implode(',', $ids) . ")");
     safe_w_Commit();
+    if ($counted !== null) shp_cash_count($tourId, $id, $float, $counted);
     return $id;
 }
 
@@ -195,9 +270,21 @@ function shp_cash_pdf($tourId, $view, array $sessions)
     if (!$rows) $rows[] = array(shp_t('DkCashNone'), '', '');
     shp_pdf_table($pdf, array(array(shp_t('DkCashMethod'), $w - 80), array('', 40, 'R'), array(shp_t('DkCashAmount'), 40, 'R')),
         $rows, array(shp_t('DkCashTotal'), shp_t('DkCashCount', $tot['n']), shp_pdf_eur($tot['total'])));
+    // Count of the drawer: the figures once every closing of the departure is counted, else the
+    // lines to fill in by hand.
+    $closes = shp_cash_closes($tourId);
+    $count = $view === 'open' ? null : shp_cash_session_count($closes, $view);
     $pdf->Ln(2);
-    shp_pdf_pair($pdf, shp_t('ShRepCashCounted') . ' ' . str_repeat('.', 40), '');
-    shp_pdf_pair($pdf, shp_t('ShRepCashGap') . ' ' . str_repeat('.', 40), '');
+    if ($count && $count['all']) {
+        shp_pdf_pair($pdf, shp_t('DkCashFloat'), shp_pdf_eur($count['float']));
+        shp_pdf_pair($pdf, shp_t('DkCashExpected'), shp_pdf_eur($count['cash']));
+        shp_pdf_pair($pdf, shp_t('ShRepCashCounted'), shp_pdf_eur($count['counted']));
+        shp_pdf_pair($pdf, shp_t('ShRepCashGap'), shp_pdf_eur($count['gap']));
+    } else {
+        shp_pdf_pair($pdf, shp_t('DkCashFloat') . ' ' . str_repeat('.', 40), '');
+        shp_pdf_pair($pdf, shp_t('ShRepCashCounted') . ' ' . str_repeat('.', 40), '');
+        shp_pdf_pair($pdf, shp_t('ShRepCashGap') . ' ' . str_repeat('.', 40), '');
+    }
 
     // By volunteer: what each one must hand over.
     if ($lines) {
@@ -220,14 +307,17 @@ function shp_cash_pdf($tourId, $view, array $sessions)
     // Closings of the departure.
     if ($view !== 'open') {
         $rows = array();
-        foreach (shp_cash_closes($tourId) as $c) {
+        foreach ($closes as $c) {
             if ($c['session'] !== $view) continue;
-            $rows[] = array(bk_date_time($c['when']), $c['by'], (string) $c['n'], shp_pdf_eur($c['total']));
+            $rows[] = array(bk_date_time($c['when']), $c['by'], (string) $c['n'], shp_pdf_eur($c['total']), shp_pdf_eur($c['cash']),
+                $c['counted'] === null ? shp_t('DkCashNotCounted') : shp_pdf_eur($c['counted']),
+                $c['gap'] === null ? '' : shp_pdf_eur($c['gap']));
         }
         if ($rows) {
             bk_pdf_section($pdf, shp_pdf_text(shp_t('DkCashClosesTitle')));
-            shp_pdf_table($pdf, array(array(shp_t('DkCashWhen'), 40), array(shp_t('DkCashClosedBy'), $w - 110),
-                array(shp_t('DkCashLinesN'), 30, 'R'), array(shp_t('DkCashTotal'), 40, 'R')), $rows);
+            shp_pdf_table($pdf, array(array(shp_t('DkCashWhen'), 28), array(shp_t('DkCashClosedBy'), $w - 142),
+                array(shp_t('DkCashLinesN'), 14, 'R'), array(shp_t('DkCashTotal'), 24, 'R'), array(shp_t('DkCashExpected'), 26, 'R'),
+                array(shp_t('DkCashCounted'), 26, 'R'), array(shp_t('DkCashGap'), 24, 'R')), $rows);
         }
     }
 

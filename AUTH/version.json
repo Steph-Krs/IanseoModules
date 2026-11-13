@@ -1,7 +1,7 @@
 {
-    "version": "1.5.1",
-    "date": "2026-11-12",
-    "notes": "1.5.1 : Espace licencie, page Documents : un archer inscrit par l organisateur dans ianseo y trouve aussi son dossard (si la competition le propose) et sa feuille de marque officielle (si l organisateur l autorise), comme pour une inscription en ligne. 1.5.0 : Greffe, nouvelle page Caisse du greffe : ce qui a ete encaisse au greffe (par un benevole, ou par l organisateur qui a ouvert le greffe sur son appareil), par moyen de paiement et par benevole, pour compter la caisse a la fin de chaque depart. A la fin d un depart, l organisateur cloture la caisse : tous les encaissements pas encore clotures sont rattaches au depart qui se termine (c est la cloture qui dit quand un depart se termine, les horaires des departs etant rarement saisis). Un depart peut etre cloture plusieurs fois, la derniere cloture peut etre annulee. Vue de la caisse en cours ou d un depart, feuille de caisse en PDF (totaux, par benevole, clotures, encaissements, especes comptees, signature). Ce qui est saisi sur la page Paiements, les paiements en ligne et la buvette n entrent pas dans la caisse ; l annulation d un encaissement du greffe y compte en negatif. Un encaissement fait au greffe a pour libelle Reglement au greffe (au lieu de Reglement du compte a un stand) ; les lignes deja enregistrees gardent leur libelle. Greffe, liste des controles et saisie : la cible affichee est celle de ianseo ; une cible changee ou retiree dans ianseo apres le placement par les inscriptions en ligne s affiche desormais au greffe, et la liste est triee sur cette cible. Espace licencie : un archer inscrit par l organisateur dans ianseo (liste des participants, import) retrouve cette inscription dans son espace, comme une inscription en ligne : accueil et Mes inscriptions avec son depart, mention Saisie par l organisateur, sans annulation possible ; un changement de depart ou une suppression faits dans ianseo se voient aussitot ; la competition est marquee deja inscrit dans le calendrier, la carte, les suggestions et l export agenda. Seulement pour une competition visible dans l espace licencie ; rien n est ecrit dans les tables du module. Base de donnees : nouvelle table ShopDeskCloses, nouvelle colonne BookingLedger.BlgDeskClose.",
+    "version": "1.6.0",
+    "date": "2026-11-13",
+    "notes": "1.6.0 : Caisse du greffe : a la cloture d un depart, le fond de caisse et les especes comptees se saisissent (ou plus tard sur la cloture, et se corrigent) ; l ecart (especes comptees - fond de caisse - especes attendues) est calcule pour chaque cloture et chaque depart, affiche sur la page et sur la feuille de caisse PDF. Numero de cheque a l encaissement (page Paiements, reglement d un club, greffe). Page Paiements : bordereau de remise de cheques en PDF (un cheque de club compte une fois ; cheques annules, refuses et remboursements exclus) et export du journal des paiements en CSV pour la tresorerie (origine de chaque ligne, cloture du greffe, annulations). Base de donnees : nouvelles colonnes ShopDeskCloses.DcFloat et DcCounted.",
     "files": [
         "menu.php",
         "lib.php",
@@ -109,6 +109,7 @@
         "booking/lib/payment.php",
         "booking/lib/lang.php",
         "booking/lib/ledger-pdf.php",
+        "booking/lib/ledger-export.php",
         "booking/lib/mandate-pdf.php",
         "booking/lib/caps.php",
         "booking/lib/field-events.php",

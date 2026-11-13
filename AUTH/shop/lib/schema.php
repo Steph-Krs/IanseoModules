@@ -20,7 +20,7 @@
 if (defined('SHP_SCHEMA_LOADED')) return;
 define('SHP_SCHEMA_LOADED', true);
 
-if (!defined('SHP_SCHEMA_VERSION')) define('SHP_SCHEMA_VERSION', 11);
+if (!defined('SHP_SCHEMA_VERSION')) define('SHP_SCHEMA_VERSION', 12);
 
 // The shop shares the payment journal and the licensee accounts of the online registration
 // (same module): booking's schema, clock and texts come first.
@@ -389,6 +389,12 @@ function shp_schema()
         KEY DcTourIdx (DcTournament)
     )$opt");
     shp_colonne('BookingLedger', 'BlgDeskClose', "INT UNSIGNED NOT NULL DEFAULT 0");
+
+    // v12 — the drawer counted at a closing (desk/cash.php): the float put in at the start and the
+    // cash found at the end, NULL while not counted. The gap is computed, never stored: the cash
+    // expected is the sum of the closing's cash lines, which no later write changes.
+    shp_colonne('ShopDeskCloses', 'DcFloat', "DECIMAL(10,2) NULL DEFAULT NULL");
+    shp_colonne('ShopDeskCloses', 'DcCounted', "DECIMAL(10,2) NULL DEFAULT NULL");
 
     $_SESSION[$flag] = true;
     $busy = false;

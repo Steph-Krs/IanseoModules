@@ -2,3 +2,8 @@
 
 #shpadm .dc-lines tr.dc-cancelled td { color: #7d8183; }
 #shpadm .dc-lines tr.dc-cancelled td.sa-num { text-decoration: line-through; }
+#shpadm .dc-count { display: inline-block; vertical-align: middle; }
+#shpadm .dc-count summary { list-style: none; cursor: pointer; }
+#shpadm .dc-count summary::-webkit-details-marker { display: none; }
+#shpadm .dc-count[open] { display: block; margin: 4px 0; }
+#shpadm .dc-count form { margin-top: 4px; }

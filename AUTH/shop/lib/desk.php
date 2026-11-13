@@ -590,14 +590,15 @@ function shp_desk_note($me, $account, $post, $text, $idem)
 }
 
 /** Collects what an archer owes (registrations and stands, as the till settles an account). Right pay. */
-function shp_desk_pay($me, $account, $method, $amount, $idem)
+function shp_desk_pay($me, $account, $method, $amount, $idem, $ref = '')
 {
     if (!shp_desk_can($me, 'pay')) return shp_err('forbidden', 'ShPayErrRight');
     if (!isset(shp_desk_pay_methods()[(string) $method])) return shp_err('method', 'ShPayErrMethod');
     if (!shp_desk_account_ok($account) || !shp_desk_entries(intval($me->SfTournament), (string) $account)) {
         return shp_err('account', 'DkErrArcher');
     }
-    return shp_pay_account(intval($me->SfTournament), (string) $account, $amount, (string) $method, intval($me->SfId), (string) $idem, 0);
+    return shp_pay_account(intval($me->SfTournament), (string) $account, $amount, (string) $method, intval($me->SfId), (string) $idem, 0,
+        (string) $ref);
 }
 
 /* ------------------------------------------------------------------ */
