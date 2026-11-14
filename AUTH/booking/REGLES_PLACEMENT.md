@@ -66,6 +66,11 @@ room between them on the shooting line (2 archers at ABC: A and C, not B; 2 at A
 the same rule as REPARTITION_EPREUVES. Indoors, when two families of faces share the target, the
 halves of the buttress decide. A letter wish comes first.
 
+**Archer in a wheelchair or with a bow stand** (box of the registration form, "wheelchair" field of
+ianseo): they take **two places**, their own and the one beside it, which stays empty — **A and B**
+at rhythm ABC, **A and C** or **B and D** at rhythm ABCD. At rhythm AB nothing changes (the
+organiser is only told). Beyond 4, the former rule: never 4 archers on their target.
+
 ## Hard (never broken)
 
 - one distance per target, series by series;
@@ -85,20 +90,24 @@ halves of the buttress decide. A letter wish comes first.
    (6 by default, editable only overseas, like the club quota).
 3. **Club quota** per target.
 4. **Regulations B.1.2**: not 2 archers of one club alone on a target (they would mark each
-   other); no archer alone; not 4 archers on the target of a wheelchair archer (wheelchair field of
-   ianseo).
+   other); no archer alone; the place beside an archer in a wheelchair or with a bow stand stays
+   empty.
 5. **No 40 with a triple face** on one target.
 6. **The order** above, mixing as little as possible: when a rule forces an archer to move, they
    swap with the nearest archer in the order, the one changing only the least important criterion
    (within one category first).
 7. **Balance**: 6 archers on 2 targets make 3 + 3, not 4 + 2.
-8. "**On the same target as**" wish, then **letter** wish.
+8. "**On the same target as**" wish, then **letter** wish, **the oldest registration first**: when
+   two archers ask for the same letter, the first registered gets it. To meet a wish, the placement
+   may swap two archers of one target, or an archer with another of **the same profile** (same
+   distance, face, bow, age, sex) on another target — never breaking a rule above nor undoing an
+   older wish. A wish that could only be met at the cost of a rule is not taken into account.
 
 ## Rules check
 
 The Target assignment page (and the "Registration status" tab) checks the targets **as they are**,
 the organiser's moves in ianseo included: club quota, number of clubs, targets in use, archer alone,
-2 archers of one club alone, 4 archers on the target of a wheelchair archer, faces that cannot share
+2 archers of one club alone, place beside a wheelchair archer taken, faces that cannot share
 their target, double registrations, archers not placed.
 
 ## Registration gauge
@@ -119,6 +128,7 @@ gauge stays immediate on a session of 9,999 targets.
 3. The targets are laid on the field in the direction of the session, following the constraints.
 4. Swaps of one archer, then of two, for the club quota and the pairs of one club.
 5. The archers left go where they can; last moves for the B.1.2 rules.
+6. Letter wishes still unmet, from the oldest to the newest: swaps that make no rule worse.
 
 ## Tests
 

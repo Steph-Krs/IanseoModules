@@ -39,6 +39,11 @@ function bk_tour_code($tourId)
 /**
  * Old orphan tournament matching this code (booking data of a previous version), or 0. The most
  * recent previous version is taken.
+ *
+ * Only a tournament that no longer exists is an orphan: a re-import deletes the old version. A
+ * competition that still exists under another code was RENAMED by its organiser, and creating a
+ * new one with the freed code is a deliberate fresh start — its settings must stay where they
+ * are (real bug on the test server: a renamed example lost its settings to the new competition).
  */
 function bk_adopt_orphan($newId, $code)
 {
@@ -46,9 +51,22 @@ function bk_adopt_orphan($newId, $code)
     $code  = trim((string) $code);
     if ($code === '') return 0;
     $r = safe_fetch(safe_r_sql("SELECT BcTournament FROM BookingCompetitions
-        WHERE BcCode = " . StrSafe_DB($code) . " AND BcTournament <> $newId
+        LEFT JOIN Tournament ON ToId = BcTournament
+        WHERE BcCode = " . StrSafe_DB($code) . " AND BcTournament <> $newId AND ToId IS NULL
         ORDER BY BcTournament DESC LIMIT 1"));
     return $r ? intval($r->BcTournament) : 0;
+}
+
+/**
+ * Keeps the re-import anchor in step with the live code: a competition renamed in ianseo must not
+ * keep answering to its former code. Cheap (one indexed UPDATE that usually changes nothing).
+ */
+function bk_adopt_sync_codes()
+{
+    safe_w_sql("UPDATE BookingCompetitions
+        INNER JOIN Tournament ON ToId = BcTournament
+        SET BcCode = ToCode
+        WHERE BcCode <> ToCode COLLATE utf8mb4_unicode_ci");
 }
 
 /** Does the competition (new ToId) already have booking data of its own? */
@@ -74,6 +92,7 @@ function bk_adopt_check($tourId)
     bk_schema();
     $tourId = intval($tourId);
     if ($tourId <= 0) return null;
+    bk_adopt_sync_codes();
 
     // Already has its own data? → either already adopted, or a competition not concerned.
     if (bk_has_booking_data($tourId)) return null;

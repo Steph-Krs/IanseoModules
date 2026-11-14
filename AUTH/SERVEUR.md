@@ -986,10 +986,22 @@ The licensee database is maintained by the server, not by the organisers:
    ```json
    { "licsync": { "username": "svc-ianseo", "password": "…", "otp": "" } }
    ```
-3. Crontab:
+3. Scheduling: at night by `cron/maintenance.php` (below), **and in the morning** by
+   `ianseo-licences`:
+   ```bash
+   sudo install -m 0644 -o root -g root /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-licences /etc/cron.d/
    ```
-   15 3 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/sync-licences.php >> /var/log/ianseo-licsync.log 2>&1
-   ```
+   The federation publishes its file only **once a day, at 08:00**. The night alone left up to
+   two days between a licence taken and the server knowing it — the archer coming to the
+   check-in desk the morning after included. Runs at 08:20, 08:50, 09:30, 10:30 and 12:30 with
+   `--if-new`: nothing at all once the file of the day is imported, otherwise one download, and
+   the import only when the file changed. The night run stays as the safety net (a morning
+   without the officers' space) and does not import an identical file again. Hour of
+   publication: `"licsync": {"publish_at": "08:00"}`.
+   **On the day of a competition nothing moves**: no suspension, no putting back, no change of
+   club (competitions started are left out); only the licence statuses are passed on, never
+   over a decision of the check-in desk. The check-in desk reads the licence file live: a
+   licence published at 08:00 shows as valid there after the next run.
    (Windows: Task Scheduler → `php.exe …\cron\sync-licences.php`.)
 4. The script downloads `parametres_ianseo.ffta`, imports it into
    `LookUpEntries`, updates the registration statuses of the current/upcoming
@@ -1048,6 +1060,7 @@ the next night: a half-updated module would run two versions at once.
 | 04:40 | `ianseo-restart`: services still running an old copy (§ 4.1) | a few s, only after an update that needs it |
 | 04:45 | reboot, only when a kernel or system library requires it (`51ianseo-auto-reboot`) | ~25 s measured |
 | 05:15 | `ianseo-trust`: payer trust index | none |
+| 08:20 → 12:30 | `ianseo-licences`: licence file of the day, as soon as it is out (08:00) | none (one import of about 1 min a day, low priority) |
 | 09:05, 15:05, 21:05 | `ianseo-backup-live`: hot copies of the database | none (2.6 s, low priority) |
 | every 10 min | `ianseo-waitlist`: waiting lists | none |
 

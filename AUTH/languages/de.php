@@ -163,6 +163,7 @@ $lang['BarSwitchConfirm'] = 'Ansicht wechseln? Das geöffnete Turnier wird gesch
 $lang['BarShare']         = 'Freigabe';
 $lang['BarReport']        = 'Melden';
 $lang['BarReportTitle']   = 'Einen Fehler melden / eine Verbesserung vorschlagen';
+$lang['BarTicketsOpen']    = '{$a} Ticket(s) zu bearbeiten';
 $lang['BarAccounts']      = 'Konten';
 $lang['Bar2faTitle']      = 'Zwei-Faktor-Authentifizierung (optional, außer für Administratoren)';
 $lang['BarPassword']      = 'Passwort';

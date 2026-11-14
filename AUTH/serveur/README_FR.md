@@ -25,6 +25,7 @@ et ne peut pas les modifier. Vous les copiez une fois, à la main.
 | `apache/maintenance.html` | `/var/www/maintenance/index.html` | `root:root 0644` |
 | `cron/ianseo-nightly` | `/etc/cron.d/ianseo-nightly` | `root:root 0644` |
 | `cron/ianseo-backup-live` | `/etc/cron.d/ianseo-backup-live` | `root:root 0644` |
+| `cron/ianseo-licences` | `/etc/cron.d/ianseo-licences` | `root:root 0644` |
 | `cron/ianseo-waitlist` | `/etc/cron.d/ianseo-waitlist` | `root:root 0644` |
 | `cron/ianseo-trust` | `/etc/cron.d/ianseo-trust` | `root:root 0644` |
 | `cron/ianseo-restart` | `/etc/cron.d/ianseo-restart` | `root:root 0644` |
@@ -105,6 +106,8 @@ sudo install -m 0644 -o root -g root cron/ianseo-nightly /etc/cron.d/ianseo-nigh
 sudo install -m 0644 -o root -g root cron/ianseo-backup-live /etc/cron.d/ianseo-backup-live
 # Listes d'attente des inscriptions en ligne, toutes les 10 minutes (SERVEUR.md § 11 bis)
 sudo install -m 0644 -o root -g root cron/ianseo-waitlist /etc/cron.d/ianseo-waitlist
+# Synchro des licences le matin, dès la publication du fichier fédéral (08:00) (SERVEUR.md § 12)
+sudo install -m 0644 -o root -g root cron/ianseo-licences /etc/cron.d/ianseo-licences
 # Indice de confiance des payeurs, une fois par nuit à 05:15 (après la fenêtre de maintenance)
 sudo install -m 0644 -o root -g root cron/ianseo-trust /etc/cron.d/ianseo-trust
 # Services redémarrés la nuit après une mise à jour, 04:40 (SERVEUR.md § 4.1)

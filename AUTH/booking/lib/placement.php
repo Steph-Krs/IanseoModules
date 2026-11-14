@@ -129,6 +129,21 @@ function bk_plan_halves_model($disc, $rhythm)
 }
 
 /**
+ * An archer in a wheelchair or with a bow stand takes two places on the target (regulations
+ * B.1.2, as the user put it): A and B at rhythm ABC, A and C or B and D at rhythm ABCD — the
+ * letter they shoot from and the one left empty beside them. [letter => partner], empty at the
+ * other rhythms (AB: nothing changes; beyond 4, the former rule: never 4 archers on their target).
+ */
+function bk_wheel_pairs($rhythm)
+{
+    switch (intval($rhythm)) {
+        case 3: return array('A' => 'B', 'B' => 'A');
+        case 4: return array('A' => 'C', 'C' => 'A', 'B' => 'D', 'D' => 'B');
+    }
+    return array();
+}
+
+/**
  * Is a target possible on ONE distance? $byLetter: letter → family. Returns
  * ['ok' => bool, 'mixed40tri' => bool].
  */
@@ -329,6 +344,7 @@ function bk_plan_session($in)
         }
         $places = bk_plan_leftovers($ctx, $places);
         $places = bk_plan_repair($ctx, $places);
+        $places = bk_plan_wish_swaps($ctx, $places);
     }
     return bk_plan_result($ctx, $places);
 }
@@ -441,7 +457,7 @@ function bk_plan_cut($ctx, $seq)
         else $runs[] = array('dk' => $dk, 'ids' => array($id));
     }
 
-    // Targets per run: the seats (one more beside each wheelchair archer at rhythm 4), the club
+    // Targets per run: the seats (one more beside each wheelchair archer from rhythm 3), the club
     // quota (a club of 6 at 2 per target needs 3 targets).
     foreach ($runs as &$r) {
         $n = count($r['ids']);
@@ -451,7 +467,7 @@ function bk_plan_cut($ctx, $seq)
             if ($a['wheel']) $wheel++;
             $clubs[$a['club']] = ($clubs[$a['club']] ?? 0) + 1;
         }
-        $seats = $n + ($ctx['rhythm'] >= 4 ? $wheel : 0);
+        $seats = $n + ((bk_wheel_pairs($ctx['rhythm']) || $ctx['rhythm'] >= 4) ? $wheel : 0);
         $r['k'] = min($n, max(1, (int) ceil($seats / $ctx['rhythm']), (int) ceil(max($clubs) / $ctx['max'])));
     }
     unset($r);
@@ -564,7 +580,7 @@ function bk_plan_dp($ctx, $ids, $k)
  * Letters of a target for a group of archers, or null when the group cannot share a target: one
  * distance series, the rhythm, the wheelchair rule, indoors one family of faces per half (the
  * first family in the order on the left half), the sharing rules at every distance. Letter wishes
- * are kept when asked ($wishes) and possible. Returns ['letters' => [id => letter],
+ * are kept when asked ($wishes) and possible, the oldest registration first. Returns ['letters' => [id => letter],
  * 'kinds' => families, 'mix40tri' => bool].
  */
 function bk_plan_fit($ctx, $ids, $wishes = false)
@@ -584,8 +600,10 @@ function bk_plan_fit($ctx, $ids, $wishes = false)
         $A[$id] = $a;
         $byKind[$a['fk']][] = $id;
     }
-    // Regulations B.1.2: no 4 archers on the target of an archer in a wheelchair.
-    if ($wheel && $n >= 4) return null;
+    // Regulations B.1.2: two places for an archer in a wheelchair or with a bow stand
+    // (bk_wheel_pairs); beyond rhythm 4, never 4 archers on their target.
+    $pairs = bk_wheel_pairs($ctx['rhythm']);
+    if ($wheel && !$pairs && $n >= 4) return null;
 
     if ($ctx['halves']) {
         if (count($byKind) > 2) return null;
@@ -599,31 +617,29 @@ function bk_plan_fit($ctx, $ids, $wishes = false)
         $orients = array(array('*' => $ctx['letters']));
         $byKind = array('*' => $ids);
     }
+    $kindOf = array();
+    foreach ($byKind as $kind => $list) foreach ($list as $id) $kindOf[$id] = $kind;
+
     $best = null; $bestKept = -1;
     foreach ($orients as $o) {
-        $letters = array(); $kept = 0; $ok = true;
-        foreach ($o as $kind => $ls) {
-            $list = $byKind[$kind];
-            if (count($list) > count($ls)) { $ok = false; break; }
-            $free = $ls;
-            if ($wishes) {
-                foreach ($list as $id) {
-                    $w = $A[$id]['letter'];
-                    $pos = $w !== '' ? array_search($w, $free, true) : false;
-                    if ($pos === false) continue;
-                    $letters[$id] = $w; unset($free[$pos]); $kept++;
-                }
+        // The first wheelchair archer's letter is tried in turn (their wish first), so a wheelchair
+        // archer never takes the letter another archer asked for when another one would do.
+        $tries = array(null);
+        if ($pairs) {
+            foreach (bk_plan_by_seniority($A, $ids) as $id) {
+                if (!$A[$id]['wheel']) continue;
+                $tries = array();
+                foreach ($o[$kindOf[$id]] as $l) if (isset($pairs[$l])) $tries[] = $l;
+                if (!$tries) continue 2;   // no place with a free neighbour in this orientation
+                break;
             }
-            // The others on the outer letters of what is left, to leave room between them on the
-            // shooting line: two archers on A-B-C take A and C (same rule as REPARTITION_EPREUVES).
-            $free = array_values($free);
-            $rest = array();
-            foreach ($list as $id) if (!isset($letters[$id])) $rest[] = $id;
-            $k = count($rest);
-            foreach ($rest as $j => $id) $letters[$id] = $free[$k > 1 ? (int) round($j * (count($free) - 1) / ($k - 1)) : 0];
         }
-        if ($ok && $kept > $bestKept) { $best = $letters; $bestKept = $kept; }
-        if ($ok && !$wishes) break;
+        foreach ($tries as $firstWheel) {
+            $r = bk_plan_fit_letters($A, $ids, $o, $kindOf, $byKind, $pairs, $wishes, $firstWheel);
+            if ($r === null) continue;
+            if ($r['kept'] > $bestKept) { $best = $r['letters']; $bestKept = $r['kept']; }
+            if (!$wishes) break 2;
+        }
     }
     if ($best === null) return null;
 
@@ -637,6 +653,84 @@ function bk_plan_fit($ctx, $ids, $wishes = false)
         if ($r['mixed40tri']) $mix = true;
     }
     return array('letters' => $best, 'kinds' => count($kinds), 'mix40tri' => $mix);
+}
+
+/** Ids in order of seniority: the oldest registration first ('since'), then the id. */
+function bk_plan_by_seniority($A, $ids)
+{
+    $ids = array_values($ids);
+    usort($ids, function ($x, $y) use ($A) {
+        return (($A[$x]['since'] ?? PHP_INT_MAX) <=> ($A[$y]['since'] ?? PHP_INT_MAX)) ?: $x <=> $y;
+    });
+    return $ids;
+}
+
+/**
+ * One assignment of letters for bk_plan_fit, in one orientation ($o: kind => letters): wheelchair
+ * archers first (their letter and the one beside it, $firstWheel for the first of them), then the
+ * letter wishes in order of seniority, then the others on the outer letters of what is left.
+ * Returns ['letters' => [id => letter], 'kept' => wishes kept] or null.
+ */
+function bk_plan_fit_letters($A, $ids, $o, $kindOf, $byKind, $pairs, $wishes, $firstWheel)
+{
+    $avail = array();
+    foreach ($o as $kind => $ls) $avail[$kind] = array_values($ls);
+    $free = function ($l) use (&$avail) {
+        foreach ($avail as $ls) if (in_array($l, $ls, true)) return true;
+        return false;
+    };
+    $drop = function ($l) use (&$avail) {
+        foreach ($avail as $k => $ls) $avail[$k] = array_values(array_diff($ls, array($l)));
+    };
+    $letters = array(); $kept = 0;
+    $order = bk_plan_by_seniority($A, $ids);
+
+    if ($pairs) {
+        $first = true;
+        foreach ($order as $id) {
+            if (!$A[$id]['wheel']) continue;
+            $cands = array();
+            if ($first && $firstWheel !== null) $cands[] = $firstWheel;
+            else {
+                if ($wishes && $A[$id]['letter'] !== '') $cands[] = $A[$id]['letter'];
+                foreach ($avail[$kindOf[$id]] as $l) $cands[] = $l;
+            }
+            $first = false;
+            $got = null;
+            foreach ($cands as $l) {
+                if (!in_array($l, $avail[$kindOf[$id]], true) || !isset($pairs[$l]) || !$free($pairs[$l])) continue;
+                $got = $l;
+                break;
+            }
+            if ($got === null) return null;
+            $letters[$id] = $got;
+            $drop($got);
+            $drop($pairs[$got]);
+            if ($wishes && $A[$id]['letter'] === $got) $kept++;
+        }
+    }
+    if ($wishes) {
+        foreach ($order as $id) {
+            if (isset($letters[$id])) continue;
+            $w = $A[$id]['letter'];
+            if ($w === '' || !in_array($w, $avail[$kindOf[$id]], true)) continue;
+            $letters[$id] = $w;
+            $drop($w);
+            $kept++;
+        }
+    }
+    // The others on the outer letters of what is left, to leave room between them on the
+    // shooting line: two archers on A-B-C take A and C (same rule as REPARTITION_EPREUVES).
+    foreach ($byKind as $kind => $list) {
+        $rest = array();
+        foreach ($list as $id) if (!isset($letters[$id])) $rest[] = $id;
+        $k = count($rest);
+        if (!$k) continue;
+        $left = $avail[$kind];
+        if ($k > count($left)) return null;
+        foreach ($rest as $j => $id) $letters[$id] = $left[$k > 1 ? (int) round($j * (count($left) - 1) / ($k - 1)) : 0];
+    }
+    return array('letters' => $letters, 'kept' => $kept);
 }
 
 /**
@@ -851,7 +945,14 @@ function bk_plan_slot_cost($ctx, $occ, $t, $l, $a)
         if ($o['dk'] !== $a['dk']) return null;
         if ($o['wheel']) $wheel = true;
     }
-    if ($wheel && count($here) + 1 >= 4) return null;
+    $pairs = bk_wheel_pairs($ctx['rhythm']);
+    if ($pairs) {
+        // The place beside a wheelchair archer stays empty; a wheelchair archer needs it free.
+        if ($a['wheel'] && (!isset($pairs[$l]) || isset($here[$pairs[$l]]))) return null;
+        foreach ($here as $ol => $o) if (!empty($o['wheel']) && ($pairs[$ol] ?? '') === $l) return null;
+    } elseif ($wheel && count($here) + 1 >= 4) {
+        return null;
+    }
     if (!bk_plan_caps_ok($ctx, $t, $a)) return null;
     $mix = 0;
     foreach ($a['fams'] as $d => $f) {
@@ -920,7 +1021,7 @@ function bk_plan_repair($ctx, $places)
     return $places;
 }
 
-/** Problems of one target: [alone, same-club pair, wheelchair target full]. */
+/** Problems of one target: [alone, same-club pair, no free place beside a wheelchair archer]. */
 function bk_plan_target_issues($ctx, $here)
 {
     $n = count($here);
@@ -931,7 +1032,11 @@ function bk_plan_target_issues($ctx, $here)
         $pair = $c[0] === $c[1] ? 1 : 0;
     }
     $wheel = 0;
-    if ($n >= 4) foreach ($here as $o) if (!empty($o['wheel'])) { $wheel = 1; break; }
+    $pairs = bk_wheel_pairs($ctx['rhythm']);
+    foreach ($here as $l => $o) {
+        if (empty($o['wheel'])) continue;
+        if ($pairs ? (!isset($pairs[$l]) || isset($here[$pairs[$l]])) : $n >= 4) { $wheel = 1; break; }
+    }
     return array($alone, $pair, $wheel);
 }
 
@@ -1010,6 +1115,95 @@ function bk_plan_room($ctx, $occ, $t, $a)
         $n++;
     }
     return $n;
+}
+
+/** Is the wish of archer $id met where everyone stands ($where: id => [t, l])? */
+function bk_plan_wish_met($ctx, $where, $id)
+{
+    $a = $ctx['archers'][$id];
+    if (!isset($where[$id])) return false;
+    if ($a['letter'] !== '' && $where[$id]['l'] !== $a['letter']) return false;
+    if ($a['with'] !== null && (!isset($where[$a['with']]) || $where[$a['with']]['t'] !== $where[$id]['t'])) return false;
+    return true;
+}
+
+/** The wishes met, one 0/1 per archer with a wish, the oldest registration first. */
+function bk_plan_wish_vector($ctx, $places)
+{
+    $where = array();
+    foreach ($ctx['fixed'] as $id => $f) $where[$id] = array('t' => $f['t'], 'l' => $f['l']);
+    foreach ($places as $id => $p) $where[$id] = $p;
+    $ids = array();
+    foreach ($ctx['archers'] as $id => $a) if ($a['letter'] !== '' || $a['with'] !== null) $ids[] = $id;
+    $v = array();
+    foreach (bk_plan_by_seniority($ctx['archers'], $ids) as $id) $v[] = bk_plan_wish_met($ctx, $where, $id) ? 1 : 0;
+    return $v;
+}
+
+/** Can every archer on target $t stand where they are ($here: letter => archer)? */
+function bk_plan_target_ok($ctx, $t, $here)
+{
+    $o = array();
+    foreach ($here as $l => $a) {
+        if (bk_plan_slot_cost($ctx, array($t => $o), $t, $l, $a) === null) return false;
+        $o[$l] = $a;
+    }
+    return true;
+}
+
+/**
+ * Last pass: the letter wishes still unmet, the oldest registration first. An archer takes the
+ * letter asked for by swapping with the archer on it (same target), or with an archer of the
+ * same profile on another target (same distance, face, bow, age, sex: the organiser's order is
+ * untouched). A change is kept only when no rule gets worse (club quota, same-club pairs, archer
+ * alone, wheelchair, 40 with triple) and the wishes met, read from the oldest, gain — a newer
+ * wish never costs an older one. Archers already placed never move.
+ */
+function bk_plan_wish_swaps($ctx, $places)
+{
+    for ($guard = 0; $guard < 200; $guard++) {
+        $occ = bk_plan_occupants($ctx, $places);
+        $score = bk_plan_repair_score($ctx, $occ);
+        $vec = bk_plan_wish_vector($ctx, $places);
+        $done = false;
+        $wishers = array();
+        foreach ($ctx['archers'] as $id => $a) if ($a['letter'] !== '' && isset($places[$id]) && $places[$id]['l'] !== $a['letter']) $wishers[] = $id;
+        foreach (bk_plan_by_seniority($ctx['archers'], $wishers) as $x) {
+            $W = $ctx['archers'][$x]['letter'];
+            if (!in_array($W, $ctx['letters'], true)) continue;
+            $px = $places[$x];
+            $moves = array();
+            // Same target: take the letter, swapping with whoever stands on it.
+            $h = $occ[$px['t']][$W] ?? null;
+            if ($h === null) $moves[] = array($x => array('t' => $px['t'], 'l' => $W));
+            elseif (isset($places[$h['id']])) $moves[] = array($x => array('t' => $px['t'], 'l' => $W), $h['id'] => $px);
+            // Another target: swap with an archer of the same profile there.
+            foreach ($places as $y => $py) {
+                if ($y === $x || $py['t'] === $px['t'] || bk_plan_gap($ctx, $x, $y) !== 0) continue;
+                $on = $occ[$py['t']][$W] ?? null;
+                if ($on !== null && $on['id'] !== $y) continue;   // the letter is someone else's
+                $moves[] = array($x => array('t' => $py['t'], 'l' => $W), $y => $px);
+            }
+            foreach ($moves as $mv) {
+                $try = $places;
+                foreach ($mv as $id => $p) $try[$id] = $p;
+                $occ2 = bk_plan_occupants($ctx, $try);
+                $ok = true;
+                foreach ($mv as $p) if (!bk_plan_target_ok($ctx, $p['t'], $occ2[$p['t']])) { $ok = false; break; }
+                if (!$ok) continue;
+                if (bk_plan_repair_score($ctx, $occ2) > $score) continue;
+                $vec2 = bk_plan_wish_vector($ctx, $try);
+                $gain = 0;
+                foreach ($vec as $i => $v) if ($vec2[$i] !== $v) { $gain = $vec2[$i] > $v ? 1 : -1; break; }
+                if ($gain <= 0) continue;
+                $places = $try;
+                $done = true;
+                break 2;
+            }
+        }
+        if (!$done) break;
+    }
+    return $places;
 }
 
 /** Wishes asked and kept. */

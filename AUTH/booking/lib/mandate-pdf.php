@@ -206,12 +206,16 @@ function bk_mandate_pdf_draw($pdf, $data, $m, $ctx)
     };
 
     // Free text block of the organiser.
-    $block = function ($key) use ($pdf, $m, $h2, $fs, $lh) {
+    // Links, e-mail addresses and phone numbers clickable, as on screen.
+    $block = function ($key) use ($pdf, $m, $h2, $fs, $esc, $left, $data, $hex, $dark) {
         if (empty($m['blocks'][$key])) return;
         $h2(bk_mandate_sections()[$key]);
         $pdf->SetFont($pdf->FontStd, '', $fs);
         $pdf->SetTextColor(32, 38, 61);
-        $pdf->MultiCell(0, $lh, bk_mandate_pdf_text($m['blocks'][$key]), 0, 'L');
+        $pdf->SetX($left);
+        $text = nl2br(bk_linkify_contact($m['blocks'][$key], $data['mailSubject'] ?? '', $esc));
+        $text = str_replace('<a ', '<a style="color:' . $hex($dark) . '" ', $text);
+        $pdf->writeHTML('<span style="color:#20263d">' . $text . '</span>', true, false, true, false, '');
     };
 
     // Title of the document.
@@ -320,9 +324,35 @@ function bk_mandate_pdf_draw($pdf, $data, $m, $ctx)
         $h2(bk_t('MnFees'));
         if ($data['fee'] <= 0 && !$data['feeAdvanced']) {
             $html($esc(bk_t('MnFree')));
-        } else {
+        } elseif (!$data['feeAdvanced']) {
             $html('<b>' . $esc(bk_t('MnBaseFee')) . '</b> ' . $esc(bk_eur($data['fee'], false, $tourId)));
-            if ($data['feeAdvanced']) $html('<span style="color:#4c4e50">' . $esc(bk_t('MnFeeAdjust')) . '</span>');
+        } else {
+            // As on screen: fixed prices by category and departure, then the other adjustments.
+            $ft = $data['feeTable'];
+            $n = count($ft['cols']);
+            $first = $n > 3 ? 34 : 46;
+            $cw = round((100 - $first) / max(1, $n), 2);
+            $t = '<table cellpadding="3"><tr><th width="' . $first . '%"></th>';
+            foreach ($ft['cols'] as $lab) $t .= '<th width="' . $cw . '%" align="center">' . $esc($lab) . '</th>';
+            $t .= '</tr>';
+            foreach ($ft['rows'] as $r) {
+                $t .= '<tr nobr="true"><td width="' . $first . '%"><b>' . $esc($r['label']) . '</b>'
+                    . ($r['sub'] !== '' ? '<br><span style="color:#7d8183;font-size:' . ($fs - 1.5) . 'pt">' . $esc($r['sub']) . '</span>' : '') . '</td>';
+                foreach ($r['cells'] as $v) $t .= '<td width="' . $cw . '%" align="center">' . $esc(bk_eur($v, false, $tourId)) . '</td>';
+                $t .= '</tr>';
+            }
+            $t .= '</table>';
+            $pdf->SetFont($pdf->FontStd, '', $fs - 0.5);
+            $pdf->SetTextColor(32, 38, 61);
+            $pdf->SetX($left);
+            $pdf->writeHTML('<style>th{background-color:' . $hex($light) . ';color:' . $hex($dark) . ';font-weight:bold;}'
+                . ' td{border-bottom:0.2px solid #e3e6ea;}</style>' . $t, true, false, true, false, '');
+            if ($ft['notes']) {
+                $pdf->Ln(1);
+                $html('<b>' . $esc(bk_t('MnFeeAdjustTitle')) . '</b>');
+                foreach ($ft['notes'] as $nt) $bullet($esc($nt[0]) . ' ' . $esc(bk_eur($nt[1], true, $tourId)));
+            }
+            $html('<span style="color:#4c4e50">' . $esc(bk_t('MnFeeExact')) . '</span>');
         }
     }
 

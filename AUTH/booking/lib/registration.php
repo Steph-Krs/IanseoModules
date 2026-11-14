@@ -449,11 +449,28 @@ function bk_reg_unlock($tourId)
 }
 
 /**
+ * Does the archer shoot in a wheelchair or with a bow stand (two places on the target)? Read from
+ * their account; 0 without one. Copied to ianseo's own field (EnWChair) by every registration.
+ */
+function bk_wheelchair_get($licence)
+{
+    $r = safe_fetch(safe_r_sql("SELECT BaWheelchair FROM BookingArchers WHERE BaLicence = " . StrSafe_DB(bk_clean_licence($licence))));
+    return ($r && intval($r->BaWheelchair) > 0) ? 1 : 0;
+}
+
+/** Keeps the choice on the archer's account, when they have one (not asked again next time). */
+function bk_wheelchair_set($licence, $on)
+{
+    safe_w_sql("UPDATE BookingArchers SET BaWheelchair = " . ($on ? 1 : 0) . "
+        WHERE BaLicence = " . StrSafe_DB(bk_clean_licence($licence)));
+}
+
+/**
  * Registers an archer. Returns ['ok'=>true, 'enid'=>N] or ['ok'=>false, 'msg'=>…].
  *
  * $lue     : LookUpEntries record (federation identity)
  * $by      : ['role'=>'SELF'|'MANAGER', 'who'=>identifier, 'archer'=>BaId]
- * $opts    : face, letter, with; skip_capacity (re-import, organiser registering by hand from the
+ * $opts    : face, letter, with, wheelchair (default: the archer's account); skip_capacity (re-import, organiser registering by hand from the
  *            waiting list); from_wait (the waiting list serving one of its rows)
  *
  * Under the competition's lock (bk_reg_lock): a direct registration first lets the waiting list
@@ -553,13 +570,16 @@ function bk_register_write($tourId, $lue, $division, $class, $sessionOrder, $req
             $face = ($want && in_array($want, $ids, true)) ? $want : $ids[0];
         }
 
+        // Wheelchair or bow stand: the choice made with this registration, else the account's.
+        $wheel = isset($opts['wheelchair']) ? (!empty($opts['wheelchair']) ? 1 : 0) : bk_wheelchair_get($lue->LueCode);
+
         // Admission check (faces sharing a target): the field plan defines what is technically
         // possible. When no target of this departure can take this profile any more (bow +
         // category + face), the registration is REFUSED — otherwise the archer could never be
         // placed. bk_profile_remaining lives in targets.php (loaded as soon as there is
         // placement); without it, nothing is blocked.
         if (empty($opts['skip_capacity']) && function_exists('bk_profile_remaining')) {
-            $rem = bk_profile_remaining($tourId, $sessionOrder, $division, $class, $face);
+            $rem = bk_profile_remaining($tourId, $sessionOrder, $division, $class, $face, $wheel);
             if ($rem !== null && $rem < 1) {
                 return array('ok' => false, 'msg' => bk_t('RgProfileFull'));
             }
@@ -591,6 +611,7 @@ function bk_register_write($tourId, $lue, $division, $class, $sessionOrder, $req
             EnFirstName = " . StrSafe_DB(AdjustCaseTitle($lue->LueFamilyName)) . ",
             EnSex = " . (intval($lue->LueSex) ? 1 : 0) . ",
             EnTargetFace = $face,
+            EnWChair = $wheel,
             EnStatus = 1,
             EnIndClEvent = $ev, EnTeamClEvent = $ev,
             EnIndFEvent = $ev, EnTeamFEvent = $ev, EnTeamMixEvent = $ev";

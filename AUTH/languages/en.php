@@ -165,6 +165,7 @@ $lang['BarSwitchConfirm'] = 'Change view? The open competition will be closed if
 $lang['BarShare']         = 'Sharing';
 $lang['BarReport']        = 'Report';
 $lang['BarReportTitle']   = 'Report a bug / suggest an improvement';
+$lang['BarTicketsOpen']    = '{$a} ticket(s) to handle';
 $lang['BarAccounts']      = 'Accounts';
 $lang['Bar2faTitle']      = 'Two-factor authentication (optional, except for administrators)';
 $lang['BarPassword']      = 'Password';

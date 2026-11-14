@@ -25,6 +25,7 @@ once, by hand.
 | `apache/maintenance.html` | `/var/www/maintenance/index.html` | `root:root 0644` |
 | `cron/ianseo-nightly` | `/etc/cron.d/ianseo-nightly` | `root:root 0644` |
 | `cron/ianseo-backup-live` | `/etc/cron.d/ianseo-backup-live` | `root:root 0644` |
+| `cron/ianseo-licences` | `/etc/cron.d/ianseo-licences` | `root:root 0644` |
 | `cron/ianseo-waitlist` | `/etc/cron.d/ianseo-waitlist` | `root:root 0644` |
 | `cron/ianseo-trust` | `/etc/cron.d/ianseo-trust` | `root:root 0644` |
 | `cron/ianseo-restart` | `/etc/cron.d/ianseo-restart` | `root:root 0644` |
@@ -103,6 +104,8 @@ sudo install -m 0644 -o root -g root cron/ianseo-nightly /etc/cron.d/ianseo-nigh
 sudo install -m 0644 -o root -g root cron/ianseo-backup-live /etc/cron.d/ianseo-backup-live
 # Waiting lists of the online registration, every 10 minutes (SERVEUR.md § 11 bis)
 sudo install -m 0644 -o root -g root cron/ianseo-waitlist /etc/cron.d/ianseo-waitlist
+# Morning licence sync, as soon as the federation file is out (08:00) (SERVEUR.md § 12)
+sudo install -m 0644 -o root -g root cron/ianseo-licences /etc/cron.d/ianseo-licences
 # Payer trust index, once a night at 05:15 (after the maintenance window)
 sudo install -m 0644 -o root -g root cron/ianseo-trust /etc/cron.d/ianseo-trust
 # Services restarted at night after an update, 04:40 (SERVEUR.md § 4.1)

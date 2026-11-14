@@ -1,0 +1,26 @@
+# /etc/cron.d/ianseo-licences — morning licence synchronisation.
+#
+# root:root, chmod 0644. Same traps as ianseo-nightly: file name WITHOUT a dot, final LINE
+# FEED mandatory, USER field (7 fields).
+#
+# The federation publishes its licence file ONCE a day, at 08:00. The night synchronisation
+# alone (ianseo-nightly, 03:15) would leave up to two days between a licence taken and the
+# server knowing it — an archer arriving at the check-in desk the morning after included.
+# These runs take the file of the day as soon as it is out: --if-new does nothing at all once
+# it is in, and imports it only when it changed (one download per run until then). About a
+# minute of writes once a day, in one transaction (the pages keep the former list until the
+# end), with a lower priority than the pages.
+#
+# On a competition that has started (the competition day included) nothing moves: no
+# registration suspended, put back or moved to another club; only the statuses of the
+# licences are passed on, never over a decision of the check-in desk. The check-in desk reads
+# the licence file live: a licence of the day shows as valid there right after the run.
+#
+# Hour of publication: config.local.json → "licsync": {"publish_at": "08:00"} (local time).
+# Keep the first run below a little after it.
+
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+20,50 8 * * * www-data nice -n 10 ionice -c2 -n7 /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/sync-licences.php --if-new >> /var/log/ianseo-maintenance.log 2>&1
+30 9,10,12 * * * www-data nice -n 10 ionice -c2 -n7 /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/sync-licences.php --if-new >> /var/log/ianseo-maintenance.log 2>&1

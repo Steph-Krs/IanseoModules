@@ -86,7 +86,8 @@ final class Plan
 
     /**
      * $n archers to place; $fam: one family, or one per distance. Options: club, div, cls, age,
-     * sex (1 woman, 0 man), face (TfId), dist, wheelchair. Returns their ids.
+     * sex (1 woman, 0 man), face (TfId), dist, wheelchair, since (seniority of the registration,
+     * default: the id). Returns their ids.
      */
     public function add($n, $fam, $o = array())
     {
@@ -96,17 +97,18 @@ final class Plan
             $this->in['archers'][] = array('id' => $id, 'dist' => $o['dist'] ?? array(18, 18), 'fam' => $fam,
                 'club' => $o['club'] ?? ('C' . $id), 'with' => null, 'letter' => '',
                 'div' => $o['div'] ?? 'CL', 'cls' => $o['cls'] ?? 'S1H', 'age' => array_key_exists('age', $o) ? $o['age'] : 20,
-                'sex' => $o['sex'] ?? 0, 'face' => $o['face'] ?? 0, 'wheelchair' => !empty($o['wheelchair']));
+                'sex' => $o['sex'] ?? 0, 'face' => $o['face'] ?? 0, 'wheelchair' => !empty($o['wheelchair']),
+                'since' => $o['since'] ?? $id);
             $ids[] = $id;
         }
         return $ids;
     }
 
     /** An archer already placed (by hand or by another tool). */
-    public function fixed($t, $l, $fam, $club = 'FIX', $dist = array(18, 18))
+    public function fixed($t, $l, $fam, $club = 'FIX', $dist = array(18, 18), $wheel = false)
     {
         $id = ++$this->seq;
-        $this->in['fixed'][] = array('id' => $id, 't' => $t, 'l' => $l, 'dist' => $dist, 'fam' => $fam, 'club' => $club);
+        $this->in['fixed'][] = array('id' => $id, 't' => $t, 'l' => $l, 'dist' => $dist, 'fam' => $fam, 'club' => $club, 'wheelchair' => $wheel);
         return $id;
     }
 
@@ -583,6 +585,105 @@ test_case('no 4 archers on the target of a wheelchair archer', function () {
     same(0, $res['wheelchairFull']);
     $t = Plan::at($res, $w[0])['t'];
     truthy(count($p->byTarget($res)[$t]) <= 3, 'wheelchair target of 3 at most');
+});
+test_case('rhythm ABCD: the place beside a wheelchair archer stays empty (A and C, B and D)', function () {
+    foreach (array('salle', 'ext') as $disc) {
+        $fam = $disc === 'salle' ? '40' : '122|full';
+        $p = new Plan($disc, 3);
+        $w = $p->add(1, $fam, array('wheelchair' => true));
+        $p->add(7, $fam);
+        $res = $p->run();
+        same(0, $res['wheelchairFull'], $disc);
+        $at = Plan::at($res, $w[0]);
+        $pair = array('A' => 'C', 'C' => 'A', 'B' => 'D', 'D' => 'B');
+        truthy(!isset($p->byTarget($res)[$at['t']][$pair[$at['l']]]), "$disc: place beside the wheelchair archer taken");
+    }
+});
+test_case('rhythm ABC: a wheelchair archer takes A and B, the other archer shoots on C', function () {
+    $p = new Plan('ext', 1, 3);
+    $w = $p->add(1, '122|full', array('wheelchair' => true));
+    $o = $p->add(1, '122|full');
+    $res = $p->run();
+    same(0, $res['wheelchairFull']);
+    truthy(in_array(Plan::at($res, $w[0])['l'], array('A', 'B'), true), 'wheelchair archer on A or B');
+    same('C', Plan::at($res, $o[0])['l']);
+});
+test_case('no place with a free neighbour: the wheelchair archer is not put on that target', function () {
+    $p = new Plan('salle', 1);
+    $p->fixed(1, 'C', '40');
+    $p->fixed(1, 'B', '40', 'FIX2');
+    $w = $p->add(1, '40', array('wheelchair' => true));
+    same(array($w[0]), $p->run()['unplaced']);
+});
+test_case('a wheelchair archer already placed by hand keeps the place beside them empty', function () {
+    $p = new Plan('salle', 1);
+    $p->fixed(1, 'A', '40', 'FIX', array(18, 18), true);
+    $p->add(2, '40');
+    $res = $p->run();
+    same(array(), $res['unplaced']);
+    truthy(!isset($p->byTarget($res)[1]['C']), 'C beside the wheelchair archer stays empty');
+});
+test_case('the gauge counts two places for a wheelchair archer', function () {
+    $ctx = bk_plan_ctx(array('disc' => 'salle', 'rhythm' => 4, 'targets' => array(1)));
+    same(2, bk_plan_room($ctx, array(), 1, array('id' => -1, 'dist' => array(18, 18), 'fam' => '40', 'club' => '~', 'wheelchair' => true)));
+    $occ = array(1 => array('A' => bk_plan_norm(array('id' => 9, 'dist' => array(18, 18), 'fam' => '40', 'club' => 'X', 'wheelchair' => true))));
+    same(2, bk_plan_room($ctx, $occ, 1, array('id' => -1, 'dist' => array(18, 18), 'fam' => '40', 'club' => '~')));
+    $ctx3 = bk_plan_ctx(array('disc' => 'ext', 'rhythm' => 3, 'targets' => array(1)));
+    same(1, bk_plan_room($ctx3, array(), 1, array('id' => -1, 'dist' => array(70), 'fam' => '122|full', 'club' => '~', 'wheelchair' => true)));
+});
+test_case('a wish never takes the place beside a wheelchair archer', function () {
+    $p = new Plan('salle', 1);
+    $w = $p->add(1, '40', array('wheelchair' => true));
+    $o = $p->add(1, '40');
+    $p->wish($o[0], null, 'C');
+    $res = $p->run();
+    same(0, $res['wheelchairFull']);
+    $pair = array('A' => 'C', 'C' => 'A', 'B' => 'D', 'D' => 'B');
+    truthy(Plan::at($res, $o[0])['l'] !== $pair[Plan::at($res, $w[0])['l']], 'the wish took the place beside');
+    same('C', Plan::at($res, $o[0])['l'], 'the wheelchair archer took B to leave C free');
+});
+
+section('Letter wishes, the oldest registration first');
+
+test_case('the first archer registered asking for C shoots on C', function () {
+    foreach (array(array('salle', 4), array('ext', 4), array('ext', 3)) as $c) {
+        $p = new Plan($c[0], 10, $c[1]);
+        $ids = $p->add(1, $c[0] === 'salle' ? '40' : '122|full');
+        $p->wish($ids[0], null, 'C');
+        same('C', Plan::at($p->run(), $ids[0])['l'], $c[0] . ' ' . $c[1]);
+    }
+});
+test_case('two archers of one target asking for the same letter: the older registration gets it', function () {
+    $p = new Plan('salle', 1);
+    $newer = $p->add(1, '40', array('since' => 200));
+    $older = $p->add(1, '40', array('since' => 100));
+    $p->wish($newer[0], null, 'B');
+    $p->wish($older[0], null, 'B');
+    $res = $p->run();
+    same('B', Plan::at($res, $older[0])['l'], 'the oldest keeps B');
+    truthy(Plan::at($res, $newer[0])['l'] !== 'B', 'the newest is not on B');
+});
+test_case('a wish met by swapping with an archer of the same profile on another target', function () {
+    $p = new Plan('salle', 2, 4, 4);
+    $p->in['minTargets'] = 2;
+    $ids = $p->add(8, '40');
+    $p->wish($ids[0], null, 'A');
+    $p->wish($ids[1], null, 'A');
+    $res = $p->run();
+    same(array('asked' => 2, 'kept' => 2), $res['wishes']);
+    truthy(Plan::at($res, $ids[0])['t'] !== Plan::at($res, $ids[1])['t'], 'both on A, on two targets');
+});
+test_case('a wish never moves an archer out of the order set by the organiser (another bow)', function () {
+    $p = new Plan('salle', 2, 4, 4);
+    $p->in['minTargets'] = 2;
+    $cl = $p->add(4, '40', array('div' => 'CL'));
+    $p->add(4, 'tri', array('div' => 'CO'));
+    $p->wish($cl[0], null, 'A');
+    $p->wish($cl[1], null, 'A');
+    $res = $p->run();
+    same(1, $res['wishes']['kept']);
+    same(Plan::at($res, $cl[0])['t'], Plan::at($res, $cl[1])['t'], 'the bows stay grouped');
+    same('A', Plan::at($res, $cl[0])['l'], 'the oldest wish is the one kept');
 });
 
 section('Indoor 25 + 18 and outdoors');

@@ -675,6 +675,11 @@ $out .= '<form method="post" id="bk-cfg" data-level="' . $level . '">' . aut_adm
     . '<div class="bk-levels">' . $levels . '</div>'
     . '<div class="bk-link" data-lvl="2 3"' . ($level >= 2 ? '' : ' hidden') . '>' . bk_e(bk_t('AcRegLink'))
     . ' <a href="' . bk_e($publicUrl) . '" target="_blank" rel="noopener">' . bk_e($publicUrl) . '</a>' . $qLink . $hLink . '</div>'
+    // The invitation's own link, to share with everyone (it needs no sign-in), once one exists.
+    . (trim((string) ($cfg->BcMandate ?? '')) !== ''
+        ? '<div class="bk-link">' . bk_e(bk_t('AcInvLink')) . ' ' . bk_copy_link_html(bk_mandate_public_url($TOUR))
+          . '<p class="sa-hint" style="margin:2px 0 0">' . bk_e(bk_t(bk_mandate_visible($cfg) ? 'AcInvLinkHint' : 'AcInvLinkHidden')) . '</p></div>'
+        : '')
     . '<p class="bk-lvl-wait" id="bk-lvl-wait" hidden>' . bk_e(bk_t('AcLvlPending')) . '</p></div>';
 
 // ---- Level 1 (closed): the payments and the shop used or not; their tariffs below as soon as

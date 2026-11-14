@@ -55,7 +55,7 @@ function bk_session_archers_full($tourId, $sessionOrder)
     $rs = safe_r_sql("SELECT EnId, EnCode, EnFirstName, EnName, EnDivision, EnClass,
                 EnCountry, EnTargetFace, EnWChair, CoCode, CoName,
                 QuTarget, QuLetter,
-                BrEnId, BrRequest, BrWantLetter, BrWantWith, BrValidated
+                BrEnId, BrRequest, BrWantLetter, BrWantWith, BrValidated, UNIX_TIMESTAMP(BrCreated) AS BrSince
         FROM Entries
         INNER JOIN Qualifications ON QuId = EnId
         LEFT  JOIN Countries ON CoId = EnCountry
@@ -124,7 +124,7 @@ function bk_plan_read($tourId, $sessionOrder, $cfg = null)
         $cl = $classes[(string) $a->EnClass] ?? array('age' => null, 'sex' => null);
         $one = array('id' => $id, 'dist' => $dist, 'fam' => $face['fams'], 'fsize' => $face['fsize'],
                      'face' => intval($a->EnTargetFace), 'club' => (string) ($a->CoCode ?: '?'),
-                     // Wheelchair (ianseo's own field): no 4 archers on their target (B.1.2).
+                     // Wheelchair or bow stand (ianseo's own field): two places on the target (B.1.2).
                      'wheelchair' => intval($a->EnWChair ?? 0) > 0,
                      'div' => (string) $a->EnDivision, 'cls' => (string) $a->EnClass, 'age' => $cl['age'], 'sex' => $cl['sex']);
         if (intval($a->QuTarget) > 0) {
@@ -138,6 +138,8 @@ function bk_plan_read($tourId, $sessionOrder, $cfg = null)
         $one['with'] = ($want !== '' && isset($byLicence[$want]) && $byLicence[$want] !== $id) ? $byLicence[$want] : null;
         // bytes: target letters are ASCII
         $one['letter'] = strtoupper(trim((string) ($a->BrWantLetter ?? '')));
+        // Seniority of the wishes: the oldest registration is served first.
+        $one['since'] = intval($a->BrSince ?? 0) ?: PHP_INT_MAX;
         $in['archers'][] = $one;
     }
     return array('in' => $in, 'rows' => $rows, 'type' => $type, 'disc' => $disc, 'nDist' => $nDist);
@@ -179,8 +181,8 @@ function bk_plan_series($tourId, $type, $division, $class, $nDist)
  *
  * Returns ['places'=>N, 'restants'=>M, 'compromis'=>K, 'melanges'=>X, 'fauteuil'=>F,
  * 'incompatibles'=>I, 'voeux'=>W, 'voeuxOk'=>V]: `compromis` counts the archers placed beyond the
- * club quota, `melanges` the targets carrying both 40 and triple faces, `fauteuil` the targets of
- * 4 archers with a wheelchair archer, `incompatibles` the archers no target of the departure can
+ * club quota, `melanges` the targets carrying both 40 and triple faces, `fauteuil` the targets where
+ * the place beside a wheelchair archer is taken, `incompatibles` the archers no target of the departure can
  * take (field settings).
  */
 function bk_assign_session($tourId, $sessionOrder, $cfg)
@@ -233,10 +235,10 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
  * validation (each registration is placed at once); with MANUAL validation, the pending
  * registrations are not placed yet.
  */
-function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId)
+function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId, $wheel = false)
 {
     $ctx = bk_profile_ctx($tourId, $sessionOrder);
-    return $ctx === null ? null : bk_profile_left($ctx, $division, $class, $faceId);
+    return $ctx === null ? null : bk_profile_left($ctx, $division, $class, $faceId, $wheel);
 }
 
 /**
@@ -263,14 +265,15 @@ function bk_profile_ctx($tourId, $sessionOrder)
  * so each target is filled archer by archer. Empty targets with the same settings take the same
  * number: measured once (a departure of 9 999 targets stays cheap).
  */
-function bk_profile_left(&$ctx, $division, $class, $faceId)
+function bk_profile_left(&$ctx, $division, $class, $faceId, $wheel = false)
 {
     $dist = bk_plan_series($ctx['tour'], $ctx['type'], $division, $class, $ctx['nDist']);
-    $key = implode('-', $dist) . '#' . intval($faceId) . '#' . implode(',', $ctx['plan']['targets']);
+    $key = implode('-', $dist) . '#' . intval($faceId) . '#' . ($wheel ? 'w' : '') . '#' . implode(',', $ctx['plan']['targets']);
     $key = md5($key);
     if (isset($ctx['left'][$key])) return $ctx['left'][$key];
     $face = bk_caps_face_profile($ctx['tour'], $ctx['disc'], $faceId, max(1, count($dist)));
-    $a = array('id' => -1, 'dist' => $dist, 'fam' => $face['fams'], 'face' => intval($faceId), 'club' => '~');
+    // A wheelchair archer needs a place with the one beside it free (bk_wheel_pairs).
+    $a = array('id' => -1, 'dist' => $dist, 'fam' => $face['fams'], 'face' => intval($faceId), 'club' => '~', 'wheelchair' => (bool) $wheel);
     $n = 0;
     $empty = array();
     foreach ($ctx['plan']['targets'] as $t) {
@@ -401,7 +404,7 @@ function bk_clear_session($tourId, $sessionOrder)
  *
  * Returns an array per departure: club/target quota breaches, number of clubs present, targets
  * with 2 archers or more against the minimum, archers alone, two archers of one club alone,
- * 4 archers on the target of a wheelchair archer, faces that cannot share their target (one
+ * the place beside a wheelchair archer taken, faces that cannot share their target (one
  * family per half of the buttress indoors, sharing rules outdoors, one distance), archers not
  * placed, the same licence twice.
  */

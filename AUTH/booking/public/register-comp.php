@@ -227,6 +227,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1
     } elseif ($waitOn && !empty($sessionFull[$sessionOrder])) {
         // Full departure: the SERVER decides to queue, from the state seen after the list
         // was served above — never the label of the button, which is only a display.
+        // Wheelchair / bow stand kept on the account: the waiting list registers with it later.
+        bk_wheelchair_set($subjectLicence, !empty($_POST['wheelchair']));
         $res = bk_waitlist_join($tourId, $cfg, $lue, $division, $class, $curFace, $sessionOrder,
             array('role' => $groupMode ? 'CLUB' : 'SELF', 'who' => $archer->BaLicence, 'archer' => $archer->BaId),
             array('letter' => $_POST['letter'] ?? '', 'with' => $_POST['with'] ?? '', 'request' => $request,
@@ -241,6 +243,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1
         $err = bk_reg_blocked($tourId, $cfg, $subjectLicence, $lue->LueCountry,
             $division, $class, $sessionOrder, $lue);
         if ($err === '') {
+            bk_wheelchair_set($subjectLicence, !empty($_POST['wheelchair']));
             $res = bk_register($tourId, $lue, $division, $class, $sessionOrder, $request, array(
                 'role'   => $groupMode ? 'CLUB' : 'SELF',
                 'who'    => $archer->BaLicence,   // author of the registration
@@ -249,6 +252,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1
                 'face'   => intval($_POST['face'] ?? 0),
                 'letter' => (string) ($_POST['letter'] ?? ''),
                 'with'   => (string) ($_POST['with'] ?? ''),
+                'wheelchair' => !empty($_POST['wheelchair']),
             ));
             if (!empty($res['ok'])) {
                 bk_log('REG_NEW', $subjectLicence);
@@ -291,7 +295,14 @@ echo '<div class="bk-block"><h2>' . bk_e(bk_t($groupMode ? 'RegClubMate' : 'Your
     . '<dt>' . bk_e(bk_t('Licence')) . '</dt><dd>' . bk_e($lue->LueCode) . '</dd>'
     . '<dt>' . bk_e(bk_t('FullName')) . '</dt><dd>' . bk_e($lue->LueFamilyName) . ' ' . bk_e($lue->LueName) . '</dd>'
     . '<dt>' . bk_e(bk_t('BornOn')) . '</dt><dd>' . bk_e(bk_date_fr($lue->LueCtrlCode)) . '</dd>'
-    . '<dt>' . bk_e(bk_t('Club')) . '</dt><dd>' . bk_e($lue->LueCoDescr) . '</dd></dl>';
+    . '<dt>' . bk_e(bk_t('Club')) . '</dt><dd>' . bk_e($lue->LueCoDescr) . '</dd></dl>'
+    // Two places on the target: sent with the registration form below (form attribute), kept
+    // on the account so it is ticked already next time.
+    . (!$singleDone && $geo === ''
+        ? '<label class="bk-chk" style="display:flex;gap:8px;align-items:center;margin:10px 0 0;font-weight:600"><input type="checkbox" name="wheelchair" value="1" form="bkreg"'
+          . ((($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' ? !empty($_POST['wheelchair']) : bk_wheelchair_get($subjectLicence)) ? ' checked' : '')
+          . '> ' . bk_e(bk_t('RegWheelchair')) . '</label><p class="bk-hint">' . bk_e(bk_t('RegWheelchairHint')) . '</p>'
+        : '');
 if ($groupMode) {
     echo '<p class="bk-hint">' . bk_e(bk_t('GroupHint', $archer->BaLicence)) . '</p>'
         . '<p><a class="bk-btn" href="' . bk_e(bk_public_url('register-comp.php?t=' . $tourId)) . '">' . bk_e(bk_t('BackOwnReg')) . '</a></p>';

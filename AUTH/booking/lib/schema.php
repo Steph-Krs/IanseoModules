@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 39);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 40);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -768,6 +768,11 @@ function bk_schema()
     bk_colonne('BookingCompetitions', 'BcMinTargetsPerSession', "TINYINT NOT NULL DEFAULT 6 AFTER BcMinClubsPerSession");
     bk_colonne('BookingCompetitions', 'BcPlaceOrder', "TEXT NULL");
     bk_colonne('BookingCompetitions', 'BcPlaceReverse', "VARCHAR(255) NOT NULL DEFAULT ''");
+
+    // v40 — the archer shoots in a wheelchair or with a bow stand: two places on the target
+    // (lib/placement.php). Kept on the account so it is not asked at every registration; each
+    // registration copies it to ianseo's own field (Entries.EnWChair).
+    bk_colonne('BookingArchers', 'BaWheelchair', "TINYINT NOT NULL DEFAULT 0");
 
     $_SESSION[$flag] = true;
 }

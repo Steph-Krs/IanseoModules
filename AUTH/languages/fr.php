@@ -163,6 +163,7 @@ $lang['BarSwitchConfirm'] = 'Changer de vue ? La compétition ouverte sera ferm�
 $lang['BarShare']         = 'Partage';
 $lang['BarReport']        = 'Signaler';
 $lang['BarReportTitle']   = 'Signaler un bug / proposer une évolution';
+$lang['BarTicketsOpen']    = '{$a} ticket(s) à traiter';
 $lang['BarAccounts']      = 'Comptes';
 $lang['Bar2faTitle']      = 'Double authentification (facultative, sauf administrateur)';
 $lang['BarPassword']      = 'Mot de passe';

@@ -989,10 +989,22 @@ La base licenciés est maintenue par le serveur, pas par les organisateurs :
    ```json
    { "licsync": { "username": "svc-ianseo", "password": "…", "otp": "" } }
    ```
-3. Crontab :
+3. Planification : la nuit, par `cron/maintenance.php` (ci-dessous), **et le matin** par
+   `ianseo-licences` :
+   ```bash
+   sudo install -m 0644 -o root -g root /var/www/ianseo/Modules/Custom/AUTH/serveur/cron/ianseo-licences /etc/cron.d/
    ```
-   15 3 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/sync-licences.php >> /var/log/ianseo-licsync.log 2>&1
-   ```
+   La fédération ne publie son fichier qu'**une fois par jour, à 08:00**. La nuit seule laissait
+   jusqu'à deux jours entre une licence prise et le serveur qui la connaît — l'archer qui se
+   présente au greffe le lendemain matin compris. Passages à 08:20, 08:50, 09:30, 10:30 et 12:30
+   avec `--if-new` : rien du tout une fois le fichier du jour importé, sinon un téléchargement, et
+   l'import seulement si le fichier a changé. Le passage de la nuit reste le filet (matinée sans
+   espace dirigeant) et ne réimporte pas un fichier identique. Heure de publication réglable :
+   `"licsync": {"publish_at": "08:00"}`.
+   **Le jour même d'une compétition, rien ne bouge** : ni suspension, ni remise, ni changement de
+   club (compétitions commencées exclues) ; seuls les statuts de licence sont reportés, jamais
+   par-dessus une décision du greffe. Le greffe lit le fichier des licences en direct : une
+   licence publiée à 08:00 y apparaît valide dès le passage suivant.
    (Windows : Planificateur de tâches → `php.exe …\cron\sync-licences.php`.)
 4. Le script télécharge `parametres_ianseo.ffta`, importe dans
    `LookUpEntries`, met à jour les statuts d'inscription des compétitions en
@@ -1053,6 +1065,7 @@ quel** et retenté la nuit suivante : un module à moitié mis à jour ferait to
 | 04:40 | `ianseo-restart` : services qui tournent encore avec une ancienne copie (§ 4.1) | quelques s, seulement après une mise à jour qui l'exige |
 | 04:45 | redémarrage de la machine, seulement si un noyau ou une bibliothèque système l'exige (`51ianseo-auto-reboot`) | ~25 s mesurées |
 | 05:15 | `ianseo-trust` : indice de confiance des payeurs | aucune |
+| 08:20 → 12:30 | `ianseo-licences` : fichier des licences du jour, dès sa publication (08:00) | aucune (un import d'environ 1 min par jour, priorité basse) |
 | 09:05, 15:05, 21:05 | `ianseo-backup-live` : copies à chaud de la base | aucune (2,6 s, priorité basse) |
 | toutes les 10 min | `ianseo-waitlist` : listes d'attente | aucune |
 

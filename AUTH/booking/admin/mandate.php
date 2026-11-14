@@ -155,7 +155,9 @@ if (!$hasMandate) {
         . '<form method="post" style="margin:0">' . bk_csrf_field()
         . '<input type="hidden" name="set_visible" value="' . ($mandateVisible ? '0' : '1') . '">'
         . '<button type="submit" class="bk-btn' . ($mandateVisible ? '' : ' bk-btn-primary') . '">'
-        . bk_e(bk_t($mandateVisible ? 'AmHideBtn' : 'AmShowBtn')) . '</button></form>';
+        . bk_e(bk_t($mandateVisible ? 'AmHideBtn' : 'AmShowBtn')) . '</button></form>'
+        . '<p style="margin:10px 0 0;font-size:13px">' . bk_e(bk_t('AcInvLink')) . ' ' . bk_copy_link_html(bk_mandate_public_url($TOUR)) . '</p>'
+        . '<p class="bk-hint">' . bk_e(bk_t($mandateVisible ? 'AcInvLinkHint' : 'AcInvLinkHidden')) . '</p>';
 }
 $out .= '</div>';
 

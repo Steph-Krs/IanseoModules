@@ -9,8 +9,18 @@
  *
  * Import flow taken from the existing French integration (FFTAAjax.php).
  *
- * crontab (every day at 03:15):
- *   15 3 * * * www-data /usr/bin/php /var/www/ianseo/Modules/Custom/AUTH/cron/sync-licences.php >> /var/log/ianseo-licsync.log 2>&1
+ * Run every night by cron/maintenance.php (03:15), and in the morning by serveur/cron/ianseo-licences
+ * with --if-new: the federation publishes its file ONCE a day, at 08:00 (config.local.json →
+ * licsync.publish_at). The night alone would leave up to two days between a licence taken and
+ * the server knowing it — the archer arriving at the check-in desk the morning after included.
+ *
+ *   --if-new  morning run: nothing at all once the file of the day is in (imported after
+ *             publish_at today); otherwise the file is downloaded, and imported only when it
+ *             changed — several runs a morning cost one download each until the federation
+ *             publishes.
+ *
+ * Without --if-new (the night): a file identical to the last one imported is not imported again
+ * (about 50 s of writes saved), the statuses of the registrations are checked all the same.
  *
  * config.local.json (chmod 600):
  *   { "licsync": { "username": "service-account", "password": "…", "otp": "" } }
@@ -31,6 +41,12 @@ require_once('Common/Fun_Various.inc.php');
 require_once('Common/Lib/Fun_DateTime.inc.php');
 
 ini_set('memory_limit', '512M');
+
+$ifNew = in_array('--if-new', $argv ?? array(), true);
+// Hour the federation publishes its file of the day (local time of the server).
+$publishAt = (string) (aut_local_config()['licsync']['publish_at'] ?? '08:00');
+if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9]$/', $publishAt)) $publishAt = '08:00';
+$todayFile = aut_log_time('Y-m-d') . ' ' . $publishAt . ':00';   // the file of today, once published
 
 function lic_log($msg) {
     // LOCAL time (ianseo forces PHP to UTC) — see aut_log_time().
@@ -60,6 +76,12 @@ function lic_skip($msg) {
 $lock = fopen(__DIR__ . '/.sync.lock', 'c');
 if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
     lic_fail('a synchronisation is already running.');
+}
+
+/* ---- Morning run: the file of the day is already in → nothing to do, silently ---- */
+if ($ifNew) {
+    if (aut_log_time('Y-m-d H:i:s') < $todayFile) exit(0);   // not published yet: the next run will see
+    if ((string) GetParameter('AutLicAt', false, '') >= $todayFile) exit(0);
 }
 
 /* ---- Credentials of the service account ---- */
@@ -101,36 +123,58 @@ lic_log('File received (' . number_format(strlen($data)) . ' bytes).');
 
 if ($u = @gzuncompress($data)) $data = $u;
 
+// The same file as the last one imported: the federation has not published a new one yet.
+$hash = md5($data);
+$same = $hash === (string) GetParameter('AutLicHash', false, '');
+if ($same && $ifNew) {
+    lic_log('File unchanged since the last import: the federation has not published today\'s file yet.');
+    flock($lock, LOCK_UN);
+    exit(0);
+}
+
 /* ---- Import (JSON or tab-separated 2.0 formats, as the FR set) ---- */
 $licCount = function () {
     $r = safe_fetch(safe_r_sql("SELECT COUNT(DISTINCT LueCode) AS n FROM LookUpEntries WHERE LueIocCode = 'FRA'"));
     return $r ? intval($r->n) : 0;
 };
 $before = $licCount();
-$archers = json_decode($data);
-if ($archers !== null) {
-    $n = lic_import_json($archers);
+if ($same) {
+    // Nothing new to import: the verdict on the file stays the one of its import.
+    unset($data);
+    lic_log('File unchanged since the last import: import skipped, statuses checked.');
+    $after = $before;
+    $fileOk = (string) GetParameter('AutLicFileOk', false, '') === '1';
 } else {
-    $n = lic_import_tabulated($data);
-}
-unset($data, $archers);
-lic_log(number_format($n) . ' licensees imported into LookUpEntries.');
+    $archers = json_decode($data);
+    if ($archers !== null) {
+        $n = lic_import_json($archers);
+    } else {
+        $n = lic_import_tabulated($data);
+    }
+    unset($data, $archers);
+    lic_log(number_format($n) . ' licensees imported into LookUpEntries.');
 
-// The file is the licence: an archer missing from it has none today. A file cut short would
-// suspend registrations by the hundred, so it is believed only when it holds at least 90 % of
-// the licensees of the day before (booking/lib/licences.php, licence-lib.php read this verdict).
-$after = $licCount();
-$fileOk = $after > 0 && ($before === 0 || $after >= 0.9 * $before);
-SetParameter('AutLicFileOk', $fileOk ? '1' : '0');
-if (!$fileOk) {
-    lic_log("WARNING: $after licensees against $before the day before: missing licences are not acted upon.");
-    aut_log('LICSYNC_SHRINK', 'cron', 'cli');
+    // The file is the licence: an archer missing from it has none today. A file cut short would
+    // suspend registrations by the hundred, so it is believed only when it holds at least 90 % of
+    // the licensees of the day before (booking/lib/licences.php, licence-lib.php read this verdict).
+    $after = $licCount();
+    $fileOk = $after > 0 && ($before === 0 || $after >= 0.9 * $before);
+    SetParameter('AutLicFileOk', $fileOk ? '1' : '0');
+    SetParameter('AutLicHash', $hash);
+    // A file believed: the morning runs stop for today. A file cut short: they go on trying,
+    // the federation may put a complete one back.
+    if ($fileOk) SetParameter('AutLicAt', aut_log_time('Y-m-d H:i:s'));
+    if (!$fileOk) {
+        lic_log("WARNING: $after licensees against $before the day before: missing licences are not acted upon.");
+        aut_log('LICSYNC_SHRINK', 'cron', 'cli');
+    }
 }
 
 /* ---- Update of the statuses for the competitions not over yet ---- */
 $_SESSION = array();   // the registration swaps the competition session (bk_with_tournament)
 require_once(dirname(__DIR__) . '/booking/lib/licences.php');
 require_once(dirname(__DIR__) . '/booking/lib/clubmoves.php');
+bk_schema();   // lic_entries_check reads BookingRegistrations
 $q = safe_r_sql("SELECT ToId, ToCode, ToWhenTo >= CURDATE() AS NotOver FROM Tournament
     WHERE ToWhenTo >= DATE_SUB(CURDATE(), INTERVAL 2 DAY)");
 $nComp = 0; $nHeld = 0;
@@ -283,6 +327,9 @@ function lic_import_tabulated($data) {
  * Passes the licence statuses on to the registrations of a competition. Left alone: 1 (written
  * by the online registration, until the check-in desk), 6, 7 and 8 — decisions of the organiser
  * or of the check-in desk (AUTH/shop/lib/desk.php), which the file of the night must not undo.
+ * Left alone too: the online registrations SUSPENDED (licence or club, BrLicHold), which
+ * booking/lib/licences.php puts back. On the day of the competition nothing puts them back (the
+ * organiser is told): the status 0 written here would read as "checked in by the desk".
  */
 function lic_entries_check($tid) {
     $tid = intval($tid);
@@ -298,7 +345,8 @@ function lic_entries_check($tid) {
                 AND LueStatusValidUntil<>'0000-00-00',5,LueStatus),
             EnNameOrder=LueNameOrder, EnClassified=LueClassified
         WHERE EnTournament=$tid
-          AND NOT (EnStatus=6 OR EnStatus=7 OR EnStatus=1 OR EnStatus=8)");
+          AND NOT (EnStatus=6 OR EnStatus=7 OR EnStatus=1 OR EnStatus=8)
+          AND EnId NOT IN (SELECT BrEnId FROM BookingRegistrations WHERE BrTournament=$tid AND BrLicHold IS NOT NULL)");
 
     safe_w_sql("UPDATE Entries
         INNER JOIN Tournament ON EnTournament=ToId

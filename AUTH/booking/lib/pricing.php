@@ -194,3 +194,31 @@ function bk_price_min($base, $p)
     $best += $rankBest;
     return max(0.0, round($b + $best, 2));
 }
+
+/**
+ * The fixed prices of the tariff, as said to the archers: the base, then each category rule
+ * ("Young tariff") with the categories it covers. [['label', 'amount', 'div' => [], 'cls' => []]].
+ */
+function bk_price_cat_lines($base, $p)
+{
+    $out = array(array('label' => bk_t('PriceBase'), 'amount' => round((float) $base, 2), 'div' => array(), 'cls' => array()));
+    // The first rule that matches wins (bk_price_calc): a rule an earlier one covers entirely
+    // never applies, so it is not shown (an empty list means every bow / every class).
+    $covers = function ($prev, $cur) {
+        return !$prev || ($cur && !array_diff($cur, $prev));
+    };
+    $seen = array();
+    foreach ($p['categories'] as $rule) {
+        foreach ($seen as $s) if ($covers($s['div'], $rule['div']) && $covers($s['cls'], $rule['cls'])) continue 2;
+        $seen[] = $rule;
+        $out[] = array('label' => $rule['label'] !== '' ? bk_t('PriceCatNamed', $rule['label']) : bk_t('PriceCat'),
+            'amount' => round((float) $rule['price'], 2), 'div' => $rule['div'], 'cls' => $rule['cls']);
+    }
+    return $out;
+}
+
+/** Are there adjustments the fixed prices do not show (departure, origin, several registrations)? */
+function bk_pricing_has_adjust($p)
+{
+    return $p['departures'] || $p['prov']['dept'] != 0.0 || $p['prov']['region'] != 0.0 || $p['rank'];
+}

@@ -2,6 +2,19 @@
 
 Une entrée par version publiée, la plus récente en haut. Les notes de `version.json` ne gardent que la série en cours.
 
+## 1.8.0 — 2026-11-15
+- Barre des administrateurs : pastille rouge avec le nombre de tickets à traiter (nouveaux et en cours), visible même barre repliée.
+- Une compétition renommée puis recréée avec l'ancien code ne reprend plus les paramètres de l'ancienne : seule une compétition supprimée (réimport) est reprise, et le code mémorisé suit les renommages.
+- Invitation : seuls les épreuves, catégories et blasons réellement possibles (catégories admises et contraintes du terrain) sont affichés.
+- Invitation : tarifs en tableau (tarif de base et tarifs par catégorie en lignes, départs en colonnes quand un départ change le prix), provenance et inscriptions multiples en dessous.
+- Invitation : liens, adresses e-mail (avec objet : code, ville, date de début) et téléphones des blocs de texte libres cliquables, à l'écran et dans le PDF.
+- Lien public de l'invitation, avec bouton Copier, sur les pages Invitation et Inscriptions en ligne.
+- Page compétition de l'espace archer : tarif de base et tarif de chaque catégorie ; message d'ajustement pour la provenance, le nombre de départs et le départ choisi.
+- Archer en fauteuil ou avec une potance : case à cocher à l'inscription, mémorisée sur le compte et reportée dans le champ « fauteuil roulant » d'ianseo ; deux places sur la cible (A et B en ABC, A et C ou B et D en ABCD) dans le placement, la jauge et le contrôle du règlement.
+- Vœux de lettre traités par ancienneté : la plus ancienne inscription d'abord, échanges avec un archer du même profil pour les satisfaire, jamais au prix d'une règle ni d'un vœu plus ancien.
+- Licences : la fédération publie son fichier une fois par jour, à 08:00. Nouvelle tâche planifiée `serveur/cron/ianseo-licences` (à installer dans `/etc/cron.d`, voir `SERVEUR.md` § 12) qui le prend dès sa publication (passages de 08:20 à 12:30, rien du tout une fois le fichier du jour importé) ; la synchro de la nuit reste le filet et ne réimporte plus un fichier identique. Le jour même d'une compétition, rien ne bouge (ni suspension, ni remise, ni changement de club), et une inscription suspendue n'est plus passée au statut 0, que le greffe lisait comme « validé ».
+- Base de données : nouvelle colonne `BookingArchers.BaWheelchair`.
+
 ## 1.7.0 — 2026-11-14
 
 Contribution de Matthieu Bouquet (@matthieu-bouquet) : issue #9, pull request #10 (placement par blason, moitiés de butte, 6 cibles occupées, contrôles du règlement, banc de test), reprise et complétée.

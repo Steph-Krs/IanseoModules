@@ -44,6 +44,77 @@ function bk_field_palette($tourId, $sessionOrder)
 }
 
 /**
+ * What the competition really offers, all departures together, for the invitation: the
+ * categories open to online registration on a departure where at least one target accepts their
+ * distances and one of their faces (field constraints, placement rules), those faces, and the
+ * events having such a category. Returns ['cats' => ['DIV|CLS' => true], 'faces' => [TfId => true],
+ * 'events' => ['ind|CODE' / 'team|CODE' => true]] — empty lists when nothing can be worked out
+ * (no departure set up yet): the caller then shows everything, as before.
+ */
+function bk_field_possible($tourId)
+{
+    $tourId = intval($tourId);
+    $out = array('cats' => array(), 'faces' => array(), 'events' => array());
+    $tr = safe_fetch(safe_r_sql("SELECT ToType, ToTypeName, ToTypeSubRule, ToNumDist FROM Tournament WHERE ToId = $tourId"));
+    if (!$tr) return $out;
+    $disc = bk_comp_discipline($tr->ToType, $tr->ToTypeSubRule, $tr->ToTypeName)['key'];
+    $nDist = max(1, intval($tr->ToNumDist));
+    $faces = bk_caps_faces($tourId);
+    $catSes = array();   // 'DIV|CLS' => [departures where it can shoot]
+    $needsOf = $famOf = array();
+
+    $rs = safe_r_sql("SELECT SesOrder, SesAth4Target, SesFirstTarget, SesTar4Session FROM Session
+        WHERE SesTournament = $tourId AND SesType = 'Q' ORDER BY SesOrder");
+    while ($ses = safe_fetch($rs)) {
+        $so = intval($ses->SesOrder);
+        $first = intval($ses->SesFirstTarget) ?: 1;
+        $targets = array();
+        for ($i = 0; $i < intval($ses->SesTar4Session); $i++) $targets[] = $first + $i;
+        if (!$targets) continue;
+        $caps = array();
+        foreach (bk_caps_get($tourId, $so) as $t => $c) $caps[$t] = array('min' => $c['min'], 'max' => $c['max'], 'faces' => $c['f']);
+        $ctx = bk_plan_ctx(array('disc' => $disc, 'rhythm' => max(1, intval($ses->SesAth4Target)), 'targets' => $targets, 'caps' => $caps));
+        $room = array(); $seen = array();
+        foreach (bk_cat_grid($tourId, bk_cat_forbidden($tourId, $so))['cells'] as $div => $row) {
+            foreach ($row as $cls => $open) {
+                if (!$open) continue;
+                foreach (array_keys(bk_caps_faces_for($tourId, $div, $cls, $faces)) ?: array(0) as $fid) {
+                    $nk = $div . '|' . $cls . '|' . $fid;
+                    if (!isset($needsOf[$nk])) $needsOf[$nk] = bk_caps_needs($tourId, $tr->ToType, $div, $cls, $fid);
+                    if (!isset($famOf[$fid])) $famOf[$fid] = bk_caps_face_profile($tourId, $disc, $fid, $nDist)['fams'];
+                    $needs = $needsOf[$nk];
+                    $pk = bk_caps_dist_key($needs) . '#' . $fid;
+                    if (isset($seen[$pk])) {   // same distances and face: same answer on this departure
+                        if ($seen[$pk]) { $out['cats'][$div . '|' . $cls] = true; $catSes[$div . '|' . $cls][$so] = true; }
+                        continue;
+                    }
+                    $a = array('id' => -1, 'dist' => $needs['d'], 'fam' => $famOf[$fid], 'face' => intval($fid), 'club' => '~');
+                    $ok = false;
+                    foreach ($targets as $t) {
+                        $k = $pk . '#' . json_encode($caps[$t] ?? null);
+                        if (!isset($room[$k])) $room[$k] = bk_plan_room($ctx, array(), $t, $a);
+                        if ($room[$k] > 0) { $ok = true; break; }
+                    }
+                    $seen[$pk] = $ok;
+                    if (!$ok) continue;
+                    $out['cats'][$div . '|' . $cls] = true;
+                    $catSes[$div . '|' . $cls][$so] = true;
+                    if ($fid) $out['faces'][intval($fid)] = true;
+                }
+            }
+        }
+    }
+
+    // An event: one of its categories can shoot, on a departure where it is open.
+    $rs = safe_r_sql("SELECT EcCode, EcTeamEvent, EcDivision, EcClass FROM EventClass WHERE EcTournament = $tourId");
+    while ($r = safe_fetch($rs)) {
+        if (empty($catSes[$r->EcDivision . '|' . $r->EcClass])) continue;
+        $out['events'][(intval($r->EcTeamEvent) > 0 ? 'team' : 'ind') . '|' . $r->EcCode] = true;
+    }
+    return $out;
+}
+
+/**
  * Events of a departure, split: ['ind' => ['ok' => [...], 'ko' => [...]], 'team' => [...]].
  * Each: code, name, dist (metres, "70 m"), faces (labels), places (ok) or why (ko).
  */

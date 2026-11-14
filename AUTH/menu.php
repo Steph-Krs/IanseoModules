@@ -94,6 +94,10 @@ if ($_aut_vol) {
 /* Folded (choice of the user): only the account, the rest unfolds when pointed at. */
 #aut-bar.aut-folded { cursor:pointer; opacity:.8; }
 #aut-bar.aut-folded .aut-bar-more { display:none; }
+/* Tickets still to handle (admins): stays visible when the bar is folded. */
+#aut-bar a.aut-tk-badge { display:inline-block; min-width:16px; margin-left:6px; padding:0 5px; border-radius:9px;
+    background:#d62d20; color:#fff; font-weight:bold; text-align:center; line-height:16px; }
+#aut-bar a.aut-tk-badge:hover { color:#fff; text-decoration:none; background:#b0170c; }
 #aut-warn { position:fixed; top:30px; right:8px; z-index:99990; background:#8b1a1a; color:#fff;
     font:11px Verdana,Arial,sans-serif; border-radius:4px; padding:4px 12px; }
 #aut-warn a { color:#ffd7d7; }
@@ -101,7 +105,20 @@ if ($_aut_vol) {
 .WhatIanseoDoes { display:none !important; }
 </style>
 ';
-    echo '<div id="aut-bar">👤 ' . htmlspecialchars($_SESSION['AUTH_User']) . '<span class="aut-bar-more">' . "\n";
+    // Tickets not handled yet (new or in progress), for the administrators: a read guarded by
+    // $force — a missing table must never take the whole site down from the menu.
+    $_aut_tk = '';
+    if ($_aut_root) {
+        $_aut_q = safe_r_sql("SELECT COUNT(*) AS n FROM AuthTickets WHERE TkStatus IN ('new', 'in_progress')", false, true);
+        $_aut_n = ($_aut_q && ($_aut_r1 = safe_fetch($_aut_q))) ? intval($_aut_r1->n) : 0;
+        if ($_aut_n > 0) {
+            $_aut_tk = '<a class="aut-tk-badge" href="' . $_aut_r . 'Modules/Custom/AUTH/admin/tickets.php" title="'
+                . htmlspecialchars(aut_t('BarTicketsOpen', $_aut_n)) . '">' . $_aut_n . '</a>';
+        }
+        unset($_aut_q, $_aut_n, $_aut_r1);
+    }
+    echo '<div id="aut-bar">👤 ' . htmlspecialchars($_SESSION['AUTH_User']) . $_aut_tk . '<span class="aut-bar-more">' . "\n";
+    unset($_aut_tk);
     if (count($_aut_views) > 1) {
         // view switched on the fly
         $_aut_curIdx = 0;

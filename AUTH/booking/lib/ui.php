@@ -41,6 +41,39 @@ function bk_linkify($s, $esc = null)
     return $out . $esc(substr($s, $pos));   // bytes, as above
 }
 
+/**
+ * Like bk_linkify(), plus e-mail addresses (mailto:, with $subject when given) and phone numbers
+ * (tel:) — for the free texts the organiser types, read on screen and on a phone. French numbers
+ * (01 23 45 67 89, 01.23.45.67.89, +33 1 23 45 67 89) and international ones written with "+".
+ */
+function bk_linkify_contact($s, $subject = '', $esc = null)
+{
+    $s = (string) $s;
+    $esc = $esc ?: 'bk_e';
+    $re = '~(?<mail>[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,})'
+        . '|(?<url>\b(?:https?://|www\.)[^\s<>"]+)'
+        . '|(?<tel>(?<![\d+])(?:(?:\+33\s?|0)[1-9](?:[\s.\-]?\d{2}){4}|\+\d{1,3}(?:[\s.\-]?\d){7,12})(?!\d))~u';
+    if (!preg_match_all($re, $s, $m, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) return $esc($s);
+    $out = ''; $pos = 0;
+    foreach ($m as $hit) {
+        list($txt, $at) = $hit[0];
+        if (isset($hit['url']) && $hit['url'][1] >= 0 && $hit['url'][0] !== '') {
+            $txt = rtrim($txt, '.,;:!?)');   // trailing punctuation belongs to the sentence
+            $href = stripos($txt, 'www.') === 0 ? 'https://' . $txt : $txt;
+            $a = '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener nofollow">';
+        } elseif (isset($hit['mail']) && $hit['mail'][1] >= 0 && $hit['mail'][0] !== '') {
+            $href = 'mailto:' . $txt . ($subject !== '' ? '?subject=' . rawurlencode($subject) : '');
+            $a = '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '">';
+        } else {
+            $a = '<a href="tel:' . htmlspecialchars(preg_replace('/[^\d+]/', '', $txt), ENT_QUOTES, 'UTF-8') . '">';
+        }
+        // bytes: preg offsets are byte offsets, so the cuts fall between characters
+        $out .= $esc(substr($s, $pos, $at - $pos)) . $a . $esc($txt) . '</a>';
+        $pos = $at + strlen($txt);   // bytes, as above
+    }
+    return $out . $esc(substr($s, $pos));   // bytes, as above
+}
+
 function bk_public_url($page = '')
 {
     global $CFG;

@@ -68,6 +68,11 @@ B ; 2 en ABCD : A et D) — même règle que REPARTITION_EPREUVES. En salle, qua
 blasons partagent la cible, ce sont les moitiés de butte qui décident. Un vœu de lettre passe
 avant.
 
+**Archer en fauteuil ou avec une potance** (case de l'inscription, champ « fauteuil roulant »
+d'ianseo) : il occupe **deux places**, la sienne et la place voisine, qui reste vide — **A et B** en
+rythme ABC, **A et C** ou **B et D** en rythme ABCD. En rythme AB, rien ne change (l'organisateur est
+seulement prévenu). Au-delà de 4, ancienne règle : jamais 4 archers sur sa cible.
+
 ## Strict (jamais enfreint)
 
 - une seule distance par cible, série par série ;
@@ -88,21 +93,25 @@ avant.
    compétition (6 par défaut, modifiable seulement en DROM-TOM, comme le quota de clubs).
 3. **Quota de clubs** par cible.
 4. **Règlement B.1.2** : pas 2 archers d'un même club seuls sur une cible (ils se marqueraient) ;
-   pas d'archer seul ; pas 4 archers sur la cible d'un archer en fauteuil roulant (champ fauteuil
-   d'ianseo).
+   pas d'archer seul ; la place voisine d'un archer en fauteuil ou avec potance reste vide.
 5. **Pas de 40 avec un trispot** sur une même cible.
 6. **L'ordre** ci-dessus, en panachant le moins possible : quand une règle oblige à déplacer un
    archer, il est échangé avec le plus proche dans l'ordre, celui qui ne change que le critère le
    moins important (dans une même catégorie d'abord).
 7. **Équilibrage** : 6 archers sur 2 cibles font 3 + 3, pas 4 + 2.
-8. Vœu « **sur la même cible que** », puis vœu de **lettre**.
+8. Vœu « **sur la même cible que** », puis vœu de **lettre**, **la plus ancienne inscription
+   d'abord** : deux archers qui demandent la même lettre, c'est le premier inscrit qui l'obtient.
+   Pour satisfaire un vœu, le placement peut échanger deux archers d'une même cible, ou un archer
+   avec un autre **du même profil** (même distance, blason, arme, âge, sexe) sur une autre cible —
+   jamais en enfreignant une règle ci-dessus ni en défaisant un vœu plus ancien. Un vœu qui ne peut
+   être tenu qu'au prix d'une règle n'est pas pris en compte.
 
 ## Contrôle du règlement
 
 La page Attribution des cibles (et l'onglet « État des inscriptions ») vérifie les cibles **telles
 qu'elles sont**, déplacements faits par l'organisateur dans ianseo compris : quota de club, nombre
-de clubs, cibles occupées, archer seul, 2 archers d'un même club seuls, 4 archers sur la cible d'un
-archer en fauteuil, blasons qui ne peuvent pas partager leur cible, doublons, archers non placés.
+de clubs, cibles occupées, archer seul, 2 archers d'un même club seuls, place voisine d'un archer en
+fauteuil occupée, blasons qui ne peuvent pas partager leur cible, doublons, archers non placés.
 
 ## Jauge d'inscription
 
@@ -122,6 +131,8 @@ la jauge reste immédiate sur un départ de 9 999 cibles.
 3. Les cibles sont posées sur le terrain dans le sens du départ, en respectant les contraintes.
 4. Échanges d'un archer, puis de deux, pour le quota et les paires d'un même club.
 5. Les archers restants vont là où ils peuvent ; derniers déplacements pour les règles B.1.2.
+6. Vœux de lettre encore non tenus, du plus ancien au plus récent : échanges qui n'aggravent aucune
+   règle.
 
 ## Tests
 

@@ -406,7 +406,14 @@ function bk_caps_faces_for($tourId, $division, $class, $faces = null)
     if (!function_exists('getTargets')) require_once('Partecipants/Fun_Targets.php');
     if ($faces === null) $faces = bk_caps_faces($tourId);
 
-    if (!isset($allOf[intval($tourId)])) $allOf[intval($tourId)] = getTargets(true);
+    if (!isset($allOf[intval($tourId)])) {
+        // getTargets() reads the competition open in the session: pointed at this one for the call
+        // (one query; the archer's pages and the public invitation have no competition open).
+        $keep = $_SESSION['TourId'] ?? null;
+        $_SESSION['TourId'] = intval($tourId);
+        $allOf[intval($tourId)] = getTargets(true);
+        if ($keep === null) unset($_SESSION['TourId']); else $_SESSION['TourId'] = $keep;
+    }
     $all = $allOf[intval($tourId)];
     $out = array();
     foreach (array_keys($all[$division][$class] ?? array()) as $id) {

@@ -22,6 +22,7 @@ require_once __DIR__ . '/pricing.php';
 require_once __DIR__ . '/payment.php';
 require_once __DIR__ . '/ui.php';
 require_once __DIR__ . '/ffta-event.php';   // itinerary links
+require_once __DIR__ . '/field-events.php';  // what can really be shot (bk_field_possible)
 
 /** Available templates: key => readable label. */
 function bk_mandate_templates()
@@ -230,6 +231,68 @@ function bk_mandate_shop_url($tourId, $abs)
  * exist. Does NOT assume the registration is open (the organiser may prepare the mandate
  * before opening it).
  */
+/** Absolute address of the public invitation (to share with everyone, no sign-in needed). */
+function bk_mandate_public_url($tourId)
+{
+    // bytes: an ASCII server variable
+    $scheme = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
+    return $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . bk_public_url('mandate.php?t=' . intval($tourId));
+}
+
+/** A link and its Copy button (organiser pages). The button's labels are read from its data. */
+function bk_copy_link_html($url)
+{
+    return '<a href="' . bk_e($url) . '" target="_blank" rel="noopener">' . bk_e($url) . '</a> '
+        . '<button type="button" class="sa-btn bk-copy" data-url="' . bk_e($url) . '" data-done="' . bk_e(bk_t('CopiedBtn')) . '"'
+        . ' onclick="var b=this;navigator.clipboard.writeText(b.dataset.url).then(function(){var t=b.textContent;b.textContent=b.dataset.done;setTimeout(function(){b.textContent=t;},1500);});">'
+        . bk_e(bk_t('CopyBtn')) . '</button>';
+}
+
+/**
+ * Tariff of the invitation as a table: one row per fixed price (base, then each category rule
+ * with the categories it covers), one column per departure when a departure changes the price
+ * (a single column otherwise); then the adjustments the table cannot hold (origin, several
+ * registrations), as short lines. ['cols' => [order => label], 'rows' => [['label', 'sub',
+ * 'cells' => [order => amount]]], 'notes' => [['label', 'amount']]].
+ */
+function bk_mandate_fee_table($tourId, $base, $p, $sessions)
+{
+    $tourId = intval($tourId);
+    $cols = array();
+    if ($p['departures']) {
+        foreach ($sessions as $s) {
+            $ss = bk_session_start($s);
+            $cols[intval($s->SesOrder)] = bk_t('DepCap', intval($s->SesOrder)) . ($ss !== '' ? ' — ' . bk_date_time($ss) : '');
+        }
+    }
+    if (!$cols) $cols = array(0 => bk_t('MnFeeTariff'));
+
+    $names = array('div' => array(), 'cls' => array());
+    $rs = safe_r_sql("SELECT DivId, DivDescription FROM Divisions WHERE DivTournament = $tourId");
+    while ($r = safe_fetch($rs)) $names['div'][(string) $r->DivId] = (string) $r->DivDescription;
+    $rs = safe_r_sql("SELECT ClId, ClDescription FROM Classes WHERE ClTournament = $tourId");
+    while ($r = safe_fetch($rs)) $names['cls'][(string) $r->ClId] = (string) $r->ClDescription;
+
+    $rows = array();
+    foreach (bk_price_cat_lines($base, $p) as $line) {
+        $sub = array();
+        foreach (array('div', 'cls') as $k) {
+            if ($line[$k]) $sub[] = implode(', ', array_map(function ($c) use ($names, $k) { return $names[$k][$c] ?? $c; }, $line[$k]));
+        }
+        $cells = array();
+        foreach (array_keys($cols) as $ord) $cells[$ord] = max(0.0, $line['amount'] + (float) ($p['departures'][(string) $ord] ?? 0));
+        $rows[] = array('label' => $line['label'], 'sub' => implode(' — ', $sub), 'cells' => $cells);
+    }
+
+    $notes = array();
+    if ($p['prov']['dept'] != 0.0 && $p['prov']['deptCode'] !== '') $notes[] = array(bk_t('MnFeeDept', $p['prov']['deptCode']), $p['prov']['dept']);
+    if ($p['prov']['region'] != 0.0 && $p['prov']['regionCode'] !== '') $notes[] = array(bk_t('MnFeeRegion', bk_region_name($p['prov']['regionCode'])), $p['prov']['region']);
+    $rank = $p['rank'];
+    ksort($rank, SORT_NUMERIC);
+    foreach ($rank as $th => $d) $notes[] = array(bk_t('MnFeeRank', intval($th)), (float) $d);
+    return array('cols' => $cols, 'rows' => $rows, 'notes' => $notes);
+}
+
 function bk_mandate_data($tourId)
 {
     bk_schema();
@@ -244,35 +307,54 @@ function bk_mandate_data($tourId)
     $disc = bk_comp_discipline($t->ToType, $t->ToTypeSubRule, $t->ToTypeName);
     $labels = bk_disc_labels();
 
-    $divisions = array();
-    $rs = safe_r_sql("SELECT DivDescription FROM Divisions
-        WHERE DivTournament = $tourId AND DivAthlete = 1 ORDER BY DivViewOrder, DivId");
-    while ($r = safe_fetch($rs)) $divisions[] = $r->DivDescription;
+    // What can really be shot (categories open to online registration, field constraints): the
+    // invitation lists only that. Nothing worked out (no departure set up) → everything, as before.
+    $poss = bk_field_possible($tourId);
+    $filter = (bool) $poss['cats'];
 
-    $classes = array();
-    $rs = safe_r_sql("SELECT ClDescription FROM Classes
+    $divisions = array(); $classes = array();
+    $okDiv = $okCls = array();
+    foreach (array_keys($poss['cats']) as $dc) { list($d, $c) = explode('|', $dc, 2); $okDiv[$d] = true; $okCls[$c] = true; }
+    $rs = safe_r_sql("SELECT DivId, DivDescription FROM Divisions
+        WHERE DivTournament = $tourId AND DivAthlete = 1 ORDER BY DivViewOrder, DivId");
+    while ($r = safe_fetch($rs)) if (!$filter || isset($okDiv[$r->DivId])) $divisions[] = $r->DivDescription;
+    $rs = safe_r_sql("SELECT ClId, ClDescription FROM Classes
         WHERE ClTournament = $tourId AND ClAthlete = 1 ORDER BY ClAgeFrom, ClId");
-    while ($r = safe_fetch($rs)) $classes[] = $r->ClDescription;
+    while ($r = safe_fetch($rs)) if (!$filter || isset($okCls[$r->ClId])) $classes[] = $r->ClDescription;
 
     // Form of the competition (rules B.1.1): type and sub-rule in the core's own words, events
     // with their duels, faces of the competition.
     $events = array(); $duels = false;
-    $rs = safe_r_sql("SELECT EvEventName, EvTeamEvent, EvFinalFirstPhase FROM Events
+    $rs = safe_r_sql("SELECT EvCode, EvEventName, EvTeamEvent, EvFinalFirstPhase FROM Events
         WHERE EvTournament = $tourId AND EvCodeParent = '' ORDER BY EvTeamEvent, EvProgr");
     while ($r = safe_fetch($rs)) {
+        if ($filter && empty($poss['events'][(intval($r->EvTeamEvent) > 0 ? 'team' : 'ind') . '|' . $r->EvCode])) continue;
         $d = intval($r->EvFinalFirstPhase) > 0;
         $duels = $duels || $d;
         $events[] = array('name' => (string) $r->EvEventName, 'team' => intval($r->EvTeamEvent) > 0, 'duels' => $d);
     }
     $faces = array();
-    $rs = safe_r_sql("SELECT DISTINCT TfName FROM TargetFaces WHERE TfTournament = $tourId ORDER BY TfW1 DESC, TfName");
-    while ($r = safe_fetch($rs)) if (trim((string) $r->TfName) !== '') $faces[] = trim((string) $r->TfName);
+    $rs = safe_r_sql("SELECT TfId, TfName FROM TargetFaces WHERE TfTournament = $tourId ORDER BY TfW1 DESC, TfName");
+    while ($r = safe_fetch($rs)) {
+        $n = trim((string) $r->TfName);
+        if ($n === '' || in_array($n, $faces, true)) continue;
+        if ($filter && $poss['faces'] && empty($poss['faces'][intval($r->TfId)])) continue;
+        $faces[] = $n;
+    }
     $format = array_filter(array(
         $t->ToTypeName ? get_text($t->ToTypeName, 'Tournament') : '',
         $t->ToTypeSubRule ? get_text($t->ToTypeSubRule, 'Install') : '',
     ));
 
     $pricing = bk_pricing_get($cfg);
+    $sessions = bk_comp_sessions($tourId);
+
+    // Subject of the e-mails written from the invitation: code, town, first day.
+    $ff = bk_ffta_row($tourId);
+    $town = trim((string) ($ff->FeVenueCity ?? ''));
+    if ($town === '') $town = trim((string) ($ff->ToVenue ?? ''));
+    if ($town === '') $town = trim((string) $t->ToWhere);
+    $mailSubject = implode(' - ', array_filter(array(trim((string) $t->ToCode), $town, bk_date_fr($t->ToWhenFrom)), 'strlen'));
 
     return array(
         'tour'        => $t,
@@ -281,7 +363,7 @@ function bk_mandate_data($tourId)
         'discLabel'   => $labels[$disc['key']] ?? $disc['key'],
         // bytes: ToCommitee is an ASCII approval number
         'region'      => bk_region_name(substr((string) $t->ToCommitee, 0, 2)),
-        'sessions'    => bk_comp_sessions($tourId),
+        'sessions'    => $sessions,
         'divisions'   => $divisions,
         'classes'     => $classes,
         'format'      => implode(' — ', $format),
@@ -295,8 +377,10 @@ function bk_mandate_data($tourId)
         'fee'         => (float) $cfg->BcFee,
         'feeAdvanced' => bk_pricing_is_advanced($pricing),
         'pricing'     => $pricing,
+        'feeTable'    => bk_mandate_fee_table($tourId, (float) $cfg->BcFee, $pricing, $sessions),
         'deadline'    => $cfg->BcOpenTo ?? null,
         'shop'        => bk_mandate_shop($tourId),
+        'mailSubject' => $mailSubject,
     );
 }
 
@@ -762,10 +846,10 @@ function bk_mandate_document($data, $m, $ctx)
     $shopUrl = (string) ($ctx['shopUrl'] ?? '');
     $toolbar = (string) ($ctx['toolbar'] ?? '');
 
-    $block = function ($key) use ($m) {
+    $block = function ($key) use ($m, $data) {
         if (empty($m['blocks'][$key])) return '';
         return '<div class="mn-free"><h2>' . bk_e(bk_mandate_sections()[$key])
-             . '</h2><div class="mn-text">' . nl2br(bk_e($m['blocks'][$key])) . '</div></div>';
+             . '</h2><div class="mn-text">' . nl2br(bk_linkify_contact($m['blocks'][$key], $data['mailSubject'])) . '</div></div>';
     };
 
     header('Content-Type: text/html; charset=utf-8');
@@ -830,6 +914,11 @@ ul.mn-list li{ margin:3px 0; }
 .mn-prog .SchTitle{ font-weight:700; color:var(--dark); }
 .mn-prog .SchSubTitle{ font-weight:600; }
 .mn-text{ white-space:normal; }
+.mn-fees{ border-collapse:collapse; margin:4px 0 0; max-width:100%; }
+.mn-fees th{ background:var(--light); color:var(--dark); font-size:13px; padding:4px 10px; text-align:center; }
+.mn-fees td{ padding:4px 10px; border-bottom:1px solid #e3e6ea; vertical-align:top; }
+.mn-fees td.mn-fee-v{ text-align:center; white-space:nowrap; }
+.mn-fee-sub{ color:#7d8183; font-size:12px; }
 .mn-free{ margin-top:4px; }
 .mn-reg{ background:var(--light); border:1px solid var(--pri); border-radius:8px;
   padding:12px 14px; margin-top:6px; }
@@ -965,9 +1054,26 @@ body.tpl-ligne .mn-title h1{ font-weight:600; letter-spacing:.01em; }
         $out .= '<h2>' . bk_e(bk_t('MnFees')) . '</h2>';
         if ($data['fee'] <= 0 && !$data['feeAdvanced']) {
             $out .= '<p style="margin:0">' . bk_e(bk_t('MnFree')) . '</p>';
-        } else {
+        } elseif (!$data['feeAdvanced']) {
             $out .= '<p style="margin:0"><b>' . bk_e(bk_t('MnBaseFee')) . '</b> ' . bk_e(bk_eur($data['fee'], false, $tourId)) . '</p>';
-            if ($data['feeAdvanced']) $out .= '<p class="mn-text" style="margin:4px 0 0; color:#4c4e50">' . bk_e(bk_t('MnFeeAdjust')) . '</p>';
+        } else {
+            // Fixed prices by category (rows) and departure (columns), then the other adjustments.
+            $ft = $data['feeTable'];
+            $out .= '<div style="overflow-x:auto"><table class="mn-fees"><tr><th></th>';
+            foreach ($ft['cols'] as $lab) $out .= '<th>' . bk_e($lab) . '</th>';
+            $out .= '</tr>';
+            foreach ($ft['rows'] as $r) {
+                $out .= '<tr><td><b>' . bk_e($r['label']) . '</b>' . ($r['sub'] !== '' ? '<div class="mn-fee-sub">' . bk_e($r['sub']) . '</div>' : '') . '</td>';
+                foreach ($r['cells'] as $v) $out .= '<td class="mn-fee-v">' . bk_e(bk_eur($v, false, $tourId)) . '</td>';
+                $out .= '</tr>';
+            }
+            $out .= '</table></div>';
+            if ($ft['notes']) {
+                $out .= '<p style="margin:8px 0 2px"><b>' . bk_e(bk_t('MnFeeAdjustTitle')) . '</b></p><ul class="mn-list">';
+                foreach ($ft['notes'] as $n) $out .= '<li>' . bk_e($n[0]) . ' ' . bk_e(bk_eur($n[1], true, $tourId)) . '</li>';
+                $out .= '</ul>';
+            }
+            $out .= '<p class="mn-text" style="margin:4px 0 0; color:#4c4e50">' . bk_e(bk_t('MnFeeExact')) . '</p>';
         }
     }
 

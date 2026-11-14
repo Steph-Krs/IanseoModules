@@ -114,6 +114,7 @@ function aut_health_template_list()
         $file('cron/ianseo-nightly', '/etc/cron.d/ianseo-nightly', true),
         $file('cron/ianseo-restart', '/etc/cron.d/ianseo-restart', true),
         $file('cron/ianseo-backup-live', '/etc/cron.d/ianseo-backup-live', false),
+        $file('cron/ianseo-licences', '/etc/cron.d/ianseo-licences', false),
         $file('cron/ianseo-waitlist', '/etc/cron.d/ianseo-waitlist', false),
         $file('cron/ianseo-trust', '/etc/cron.d/ianseo-trust', false),
         $file('logrotate/ianseo', '/etc/logrotate.d/ianseo', true),
