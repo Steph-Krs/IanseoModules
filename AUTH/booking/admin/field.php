@@ -87,7 +87,7 @@ $boot['t'] = bk_ts(array('FjClickRemove', 'FjMin', 'FjDef', 'FjMax', 'FjSel0', '
     'FjSaveFail', 'FjServerDown', 'FjSaved1', 'FjSavedN', 'FjSelectFirst', 'FjPickValue', 'FjCleared',
     'FjClearAllConfirm', 'FjDepCleared', 'FjPickDest', 'FjCopyConfirm', 'FjCopied', 'FjPickSrc',
     'FjCopyFromConfirm', 'FjCopiedFrom', 'FjEvPlaces', 'FjEvNoneOk', 'FjEvNoneKo', 'FjEvWhyNone', 'FjEvWhyDist',
-    'FjEvWhyFace', 'FjEvEmpty'));
+    'FjEvWhyFace', 'FjEvEmpty', 'FjOrderSaved'));
 
 $base = $CFG->ROOT_DIR . 'Modules/Custom/AUTH/booking/admin/';
 $PAGE_TITLE = bk_t('MnuField');
@@ -110,6 +110,51 @@ if (!$sessions) {
             . bk_e(bk_t('DepCap', $o) . ($s->SesName ? ' — ' . $s->SesName : '')) . '</a>';
     }
     $out .= '</div>';
+
+    // Order of the placement (REGLES_PLACEMENT.md): the direction of this departure, then,
+    // folded, the order and the direction of each criterion for the whole competition.
+    $cfg = bk_comp_config($TOUR);
+    $po = bk_place_order($TOUR, $cfg);
+    $rev = in_array($ses, $po['reverse'], true);
+    $dirKeys = array('dist' => array(1 => 'FldDistAsc', -1 => 'FldDistDesc'), 'face' => array(1 => 'FldFaceBig', -1 => 'FldFaceSmall'),
+                     'age' => array(1 => 'FldAgeYoung', -1 => 'FldAgeOld'), 'sex' => array(1 => 'FldSexF', -1 => 'FldSexH'));
+    $names = array('dist' => 'FldCritDist', 'face' => 'FldCritFace', 'div' => 'FldCritDiv', 'age' => 'FldCritAge', 'sex' => 'FldCritSex');
+    $mv = function ($kind, $sign, $key) {
+        return '<button type="button" class="bkf-mv" data-mv="' . $kind . '" title="' . bk_e(bk_t($key)) . '" aria-label="' . bk_e(bk_t($key)) . '">' . $sign . '</button>';
+    };
+    // Bows: only the divisions with a category open to online registration (Restrictions), as
+    // the distances and faces of the palette; all of them when none is.
+    $openDivs = array();
+    foreach (bk_cat_grid($TOUR, bk_cat_forbidden($TOUR, 0))['cells'] as $div => $row) if (array_filter($row)) $openDivs[$div] = true;
+    $bows = $openDivs ? array_intersect_key($po['bows'], $openDivs) : $po['bows'];
+    $rows = '';
+    foreach ($po['crit'] as $c) {
+        list($k, $d) = $c;
+        if ($k === 'div') {
+            $ctl = '<span class="bkf-bows">';
+            foreach ($bows as $code => $label) {
+                $ctl .= '<span class="bkf-bow" data-bow="' . bk_e($code) . '">' . $mv('bow-up', '&#9664;', 'FldBefore')
+                    . '<span class="bkf-bow-name">' . bk_e($label) . '</span>' . $mv('bow-down', '&#9654;', 'FldAfter') . '</span>';
+            }
+            $ctl .= '</span>';
+        } else {
+            $ctl = '<select class="bkf-crit-dir">';
+            foreach ($dirKeys[$k] as $v => $key) $ctl .= '<option value="' . $v . '"' . ($v === $d ? ' selected' : '') . '>' . bk_e(bk_t($key)) . '</option>';
+            $ctl .= '</select>';
+        }
+        $rows .= '<tr class="bkf-crit" data-crit="' . $k . '"><td class="bkf-crit-mv"><span class="bkf-rank"></span>'
+            . $mv('up', '&#9650;', 'FldUp') . $mv('down', '&#9660;', 'FldDown')
+            . '</td><td class="bkf-crit-name">' . bk_e(bk_t($names[$k])) . '</td><td>' . $ctl . '</td></tr>';
+    }
+    list($qOrd, $hOrd) = aut_adm_help(bk_e(bk_t('FldOrderHint')));
+    $out .= '<section class="bkf-order" id="bkf-order"><h2>' . bk_e(bk_t('FldOrderTitle')) . $qOrd . '</h2>' . $hOrd
+        . '<div class="bkf-dir"><span>' . bk_e(bk_t('FldDirection')) . '</span>'
+        . ' <label><input type="radio" name="bkf-dir" value="0"' . ($rev ? '' : ' checked') . '> ' . bk_e(bk_t('FldDirFirst', $targets ? $targets[0] : 1)) . '</label>'
+        . ' <label><input type="radio" name="bkf-dir" value="1"' . ($rev ? ' checked' : '') . '> ' . bk_e(bk_t('FldDirLast', $targets ? end($targets) : 1)) . '</label></div>'
+        . '<details class="bkf-adv"' . (!empty($cfg->BcPlaceOrder) ? ' open' : '') . '><summary>' . bk_e(bk_t('FldAdvanced')) . '</summary>'
+        . '<table class="bkf-crit-table"><thead><tr><th>' . bk_e(bk_t('FldColOrder')) . '</th><th>' . bk_e(bk_t('FldColCrit'))
+        . '</th><th>' . bk_e(bk_t('FldColDir')) . '</th></tr></thead><tbody class="bkf-crits">' . $rows . '</tbody></table>'
+        . '<button type="button" class="bkf-btn" data-order="reset">' . bk_e(bk_t('FldOrderReset')) . '</button></details></section>';
 
     // Distances column.
     $out .= '<div class="bkf-wrap"><aside class="bkf-palette"><div class="bkf-pcol"><h2>' . bk_e(bk_t('FldDistances')) . '</h2>';

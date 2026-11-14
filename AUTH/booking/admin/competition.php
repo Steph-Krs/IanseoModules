@@ -803,7 +803,8 @@ $out .= $panel('3', 'restrict', '<div class="bk-sec">' . bk_title('h2', bk_t('Ac
     . ($isDrom
         ? '<div class="bk-row">'
           . bk_fld(bk_t('AcMaxClub'), '<input type="number" name="max_club" min="1" max="20" value="' . intval($cfg3->BcMaxPerClubPerTarget) . '">')
-          . bk_fld(bk_t('AcMinClubs'), '<input type="number" name="min_clubs" min="1" max="50" value="' . intval($cfg3->BcMinClubsPerSession) . '">') . '</div>'
+          . bk_fld(bk_t('AcMinClubs'), '<input type="number" name="min_clubs" min="1" max="50" value="' . intval($cfg3->BcMinClubsPerSession) . '">')
+          . bk_fld(bk_t('AcMinTargets'), '<input type="number" name="min_targets" min="0" max="50" value="' . intval($cfg3->BcMinTargetsPerSession ?? 6) . '">') . '</div>'
         : '')
     . bk_chk('manual_validation', !empty($cfg3->BcManualValidation), bk_t('AcManualBox'), '', bk_t('AcManualHint'))
     . '<input type="hidden" name="single_reg_present" value="1">'
@@ -1053,6 +1054,11 @@ if (!$rules) {
             }
             if (intval($rc['nonPlaces']) > 0) $li .= '<li>' . bk_e(bk_t('AcUnplaced', intval($rc['nonPlaces']))) . '</li>';
             if (!empty($rc['doublons'])) $li .= '<li>' . bk_e(bk_t('AcDupes')) . '</li>';
+            if (empty($rc['targetsOk'])) $li .= '<li>' . bk_e(bk_t('TgMinTargets', array('n' => intval($rc['remplies']), 'min' => intval($rc['minTargets'])))) . '</li>';
+            foreach ($rc['seuls'] ?? array() as $t) $li .= '<li>' . bk_e(bk_t('TgAlone', intval($t))) . '</li>';
+            foreach ($rc['paires'] ?? array() as $pr) $li .= '<li>' . bk_e(bk_t('TgSameClubPair', array('target' => intval($pr['cible']), 'club' => $pr['club']))) . '</li>';
+            foreach ($rc['fauteuil'] ?? array() as $t) $li .= '<li>' . bk_e(bk_t('TgWheelTarget', intval($t))) . '</li>';
+            foreach ($rc['blasons'] ?? array() as $t) $li .= '<li>' . bk_e(bk_t('TgFacesClash', intval($t))) . '</li>';
             $state .= '<span style="color:#c0392b;font-weight:600">' . bk_e(bk_t('AcReview')) . '</span>'
                 . '<ul class="bk-hint" style="margin:4px 0 0; padding-left:18px; color:#a80000">' . $li . '</ul>';
         }

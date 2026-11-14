@@ -310,9 +310,9 @@ les règles d'accès.
 | `INSERT INTO` | `Entries` | `booking/lib/registration.php:598` | — |
 | `UPDATE` | `Entries` | `booking/lib/registration.php:608` | review scope by hand |
 | `INSERT INTO` | `Qualifications` | `booking/lib/registration.php:613` | — |
-| `UPDATE` | `Qualifications` | `booking/lib/targets.php:302` | — |
-| `UPDATE` | `Qualifications` | `booking/lib/targets.php:457` | — |
-| `UPDATE` | `Qualifications` | `booking/lib/targets.php:548` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/targets.php:200` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/targets.php:298` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/targets.php:390` | — |
 | `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:180` | review scope by hand |
 | `INSERT INTO` | `LookUpEntries` | `cron/sync-licences.php:196` | — |
 | `UPDATE` | `LookUpPaths` | `cron/sync-licences.php:200` | review scope by hand |
@@ -418,34 +418,38 @@ les règles d'accès.
 | `DELETE FROM` | `BookingSessions` | `booking/lib/archer.php:295` | — |
 | `UPDATE` | `BookingSessions` | `booking/lib/archer.php:300` | — |
 | `DELETE FROM` | `BookingSessions` | `booking/lib/archer.php:312` | — |
-| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/caps.php:218` | — |
-| `INSERT INTO` | `BookingTargetCaps` | `booking/lib/caps.php:223` | — |
-| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/caps.php:231` | — |
+| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/caps.php:192` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/caps.php:201` | — |
+| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/caps.php:209` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/caps.php:215` | — |
+| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/caps.php:319` | — |
+| `INSERT INTO` | `BookingTargetCaps` | `booking/lib/caps.php:324` | — |
+| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/caps.php:332` | — |
 | `UPDATE` | `BookingRegistrations` | `booking/lib/clubmoves.php:100` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/clubmoves.php:101` | — |
 | `DELETE FROM` | `BookingRegistrations` | `booking/lib/clubmoves.php:120` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/clubmoves.php:121` | — |
 | `INSERT INTO` | `BookingClubMoves` | `booking/lib/clubmoves.php:142` | — |
 | `UPDATE` | `BookingClubMoves` | `booking/lib/clubmoves.php:191` | — |
-| `UPDATE` | `BookingClubMoves` | `booking/lib/clubmoves.php:278` | — |
-| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/competition.php:259` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:268` | — |
-| `DELETE FROM` | `BookingSessionRules` | `booking/lib/competition.php:285` | — |
-| `INSERT INTO` | `BookingSessionRules` | `booking/lib/competition.php:286` | — |
-| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/competition.php:334` | — |
-| `INSERT INTO` | `BookingTargetCaps` | `booking/lib/competition.php:342` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:448` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:611` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:634` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:637` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:642` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:681` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:700` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:709` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:713` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:717` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:722` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:724` | — |
+| `UPDATE` | `BookingClubMoves` | `booking/lib/clubmoves.php:281` | — |
+| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/competition.php:260` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:269` | — |
+| `DELETE FROM` | `BookingSessionRules` | `booking/lib/competition.php:287` | — |
+| `INSERT INTO` | `BookingSessionRules` | `booking/lib/competition.php:288` | — |
+| `DELETE FROM` | `BookingTargetCaps` | `booking/lib/competition.php:336` | — |
+| `INSERT INTO` | `BookingTargetCaps` | `booking/lib/competition.php:344` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:451` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:614` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:637` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:640` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:645` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:684` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/lib/competition.php:703` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:712` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:716` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:720` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:725` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:727` | — |
 | `DELETE FROM` | `BookingFedLicences` | `booking/lib/fedlic.php:188` | — |
 | `INSERT IGNORE INTO` | `BookingFedLicences` | `booking/lib/fedlic.php:189` | — |
 | `INSERT INTO` | `BookingFedSources` | `booking/lib/fedlic.php:241` | — |
@@ -499,8 +503,8 @@ les règles d'accès.
 | `INSERT INTO` | `BookingSurveys` | `booking/lib/survey.php:193` | — |
 | `INSERT IGNORE INTO` | `BookingSurveyVoters` | `booking/lib/survey.php:196` | — |
 | `UPDATE` | `BookingSurveys` | `booking/lib/survey.php:275` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:524` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:539` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:366` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:381` | — |
 | `INSERT INTO` | `BookingWaitlist` | `booking/lib/waitlist.php:107` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:129` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:220` | — |

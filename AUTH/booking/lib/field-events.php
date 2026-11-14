@@ -6,17 +6,17 @@
  * For each event of the competition (individual or team), only its categories OPEN to online
  * registration on this departure count (bk_cat_allowed); an event without any is left out. An event can take part
  * when at least one target of the departure accepts the distances and a target face of one of
- * these categories, as the placement decides (bk_caps_target_ok). Its places: the maximum the
- * empty departure offers to this event alone — on each target, the archers its best face lets
- * share it (rhythm of the departure, rules of faces sharing a target: lib/cohabitation.php),
- * whoever is registered. The places really left will be shown elsewhere, later.
+ * these categories, with the rules of the placement itself (lib/placement.php: field settings,
+ * halves of the buttress, faces sharing a target). Its places: the maximum the empty departure
+ * offers to this event alone — on each target, the archers its best face lets share it,
+ * whoever is registered. The places really left are in the registration state.
  */
 
 if (defined('BK_FIELD_EVENTS_LOADED')) return;
 define('BK_FIELD_EVENTS_LOADED', true);
 
 require_once __DIR__ . '/caps.php';
-require_once __DIR__ . '/cohabitation.php';
+require_once __DIR__ . '/placement.php';
 require_once __DIR__ . '/competition.php';
 
 /**
@@ -53,33 +53,27 @@ function bk_field_events($tourId, $sessionOrder)
     $sessionOrder = intval($sessionOrder);
     $out = array('ind' => array('ok' => array(), 'ko' => array()), 'team' => array('ok' => array(), 'ko' => array()));
 
-    $tr = safe_fetch(safe_r_sql("SELECT ToType, ToTypeName, ToTypeSubRule FROM Tournament WHERE ToId = $tourId"));
+    $tr = safe_fetch(safe_r_sql("SELECT ToType, ToTypeName, ToTypeSubRule, ToNumDist FROM Tournament WHERE ToId = $tourId"));
     $ses = safe_fetch(safe_r_sql("SELECT SesAth4Target, SesFirstTarget, SesTar4Session FROM Session
         WHERE SesTournament = $tourId AND SesOrder = $sessionOrder AND SesType = 'Q'"));
     if (!$tr || !$ses) return $out;
     $type = $tr->ToType;
     $disc = bk_comp_discipline($type, $tr->ToTypeSubRule, $tr->ToTypeName)['key'];
-    $rhythm = max(1, intval($ses->SesAth4Target));
+    $nDist = max(1, intval($tr->ToNumDist));
     $first = intval($ses->SesFirstTarget) ?: 1;
     $targets = array();
     for ($i = 0; $i < intval($ses->SesTar4Session); $i++) $targets[] = $first + $i;
-    $caps = bk_caps_get($tourId, $sessionOrder);
+    $caps = array();
+    foreach (bk_caps_get($tourId, $sessionOrder) as $t => $c) $caps[$t] = array('min' => $c['min'], 'max' => $c['max'], 'faces' => $c['f']);
     $faces = bk_caps_faces($tourId);
+    $ctx = bk_plan_ctx(array('disc' => $disc, 'rhythm' => max(1, intval($ses->SesAth4Target)), 'targets' => $targets, 'caps' => $caps));
 
-    // Archers one target takes of a face alone (same for every target: rhythm and face).
-    $perTarget = array();
-    $capOf = function ($faceId) use (&$perTarget, $tourId, $disc, $rhythm) {
-        $cls = bk_face_class_by_id($tourId, $faceId);
-        $k = bk_face_key($cls);
-        if (!isset($perTarget[$k])) {
-            $cur = array();
-            for ($n = 0; $n < $rhythm; $n++) {
-                if (bk_cohabit_max_add($cur, $cls, $disc, $rhythm) < 1) break;
-                $cur[] = $cls;
-            }
-            $perTarget[$k] = count($cur);
-        }
-        return $perTarget[$k];
+    // Archers an empty target takes of one profile: the same on every target with the same settings.
+    $room = array();
+    $roomOf = function ($t, $p) use (&$room, $ctx) {
+        $k = $p['key'] . '#' . json_encode($ctx['caps'][$t] ?? null);
+        if (!isset($room[$k])) $room[$k] = bk_plan_room($ctx, array(), $t, $p['a']);
+        return $room[$k];
     };
 
     // Categories of each event, open to online registration on this departure only.
@@ -106,7 +100,10 @@ function bk_field_events($tourId, $sessionOrder)
             $fs = array_keys(bk_caps_faces_for($tourId, $c[0], $c[1], $faces)) ?: array(0);
             foreach ($fs as $fid) {
                 $needs = bk_caps_needs($tourId, $type, $c[0], $c[1], $fid);
-                $profiles[bk_caps_dist_key($needs) . '#' . $fid] = $needs;
+                $key = bk_caps_dist_key($needs) . '#' . $fid;
+                $face = bk_caps_face_profile($tourId, $disc, $fid, $nDist);
+                $profiles[$key] = array('key' => $key, 'd' => $needs['d'], 'f' => intval($fid),
+                    'a' => array('id' => -1, 'dist' => $needs['d'], 'fam' => $face['fams'], 'face' => intval($fid), 'club' => '~'));
             }
         }
         $dists = $faceIds = array();
@@ -127,7 +124,7 @@ function bk_field_events($tourId, $sessionOrder)
         $places = 0;
         foreach ($targets as $t) {
             $best = 0;
-            foreach ($profiles as $p) if (bk_caps_target_ok($caps, $t, $p)) $best = max($best, $capOf($p['f']));
+            foreach ($profiles as $p) $best = max($best, $roomOf($t, $p));
             $places += $best;
         }
         if ($places > 0) {
@@ -141,7 +138,7 @@ function bk_field_events($tourId, $sessionOrder)
         } else {
             $distOk = false;
             foreach ($targets as $t) {
-                foreach ($profiles as $p) if (bk_caps_target_ok($caps, $t, array('d' => $p['d'], 'f' => 0))) { $distOk = true; break 2; }
+                foreach ($profiles as $p) if (bk_plan_caps_ok($ctx, $t, bk_plan_norm(array('id' => -1, 'dist' => $p['d'])))) { $distOk = true; break 2; }
             }
             $item['why'] = $distOk ? 'face' : 'dist';
         }

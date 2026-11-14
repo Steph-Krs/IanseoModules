@@ -95,9 +95,13 @@ Everything is in the **Modules › Online registration** menu, with the competit
   session to another, and a size slider to show 50 to 70 targets at a glance. A target without
   settings accepts everything. ("Field plan" means the visual target plan of the DragDropTarget
   module.)
-- 🎯 **Target assignment**: automatic placement following the field assignment constraints,
-  with clubs mixed, target plan, and **rule checks** — archers of the same club per target,
-  different clubs per session, duplicates on a same session, archers not placed.
+- 🎯 **Target assignment**: automatic placement by face then by category — distance, face
+  from the largest, bow, age, sex, an order the organiser can change (direction per session,
+  advanced settings), rules in [REGLES_PLACEMENT.md](REGLES_PLACEMENT.md) — following the field
+  assignment constraints and the halves of the buttress, clubs spread, target plan, and **rule
+  checks** on the targets as they are — archers of the same club per target, different clubs and
+  targets in use per session, archer alone, 2 archers of one club alone, wheelchair, faces that
+  cannot share their target, duplicates on a same session, archers not placed.
 - 🏛️ **Club managers**: a designated licensee can register the archers of their club (or of
   their department / region). Works with an accounts module as well as without.
 

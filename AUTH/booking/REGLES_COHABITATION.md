@@ -7,6 +7,10 @@ Specification provided (source: FFTA). Basis of the cohabitation implementation 
 invent nothing, keep the safe fallback (no forced cohabitation).
 
 ## General principle (all disciplines)
+
+> The order of the placement and the rules of the indoor buttress are in
+> [REGLES_PLACEMENT.md](REGLES_PLACEMENT.md), which replaces this paragraph.
+
 - Archers of the **same categories are placed together** to group them (an organisational
   convenience, not an explicit rule of the regulations).
 - Target face cohabitations happen **on the transition targets** from one category to the
@@ -15,7 +19,8 @@ invent nothing, keep the safe fallback (no forced cohabitation).
 ## Outdoor target archery (TAE) — whatever the rhythm
 On a given target, one of these cases:
 - **1** target face of **60**, of **80 (zones 1-10)** or of **122**;
-- **2 or 3** target faces of **reduced 80** (zones 5-10 or 6-10).
+- **reduced 80** target faces (zones 5-X, 5-10 or 6-10): **one per archer**, as many as the rhythm
+  (4 at ABCD, 3 at ABC), never with another target face.
 
 ## 18 m indoor — depending on the rhythm (number of archers per target)
 Classic trispot or compound = **no distinction**. Monospot = "single face".

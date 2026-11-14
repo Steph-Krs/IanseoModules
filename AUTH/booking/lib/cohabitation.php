@@ -8,13 +8,15 @@
  * (SesAth4Target).
  *
  *   18 m (buttress 4×40cm): budget 4 — 40cm→1, 60cm→2, 80→4.
- *   Outdoor (80 face)     : budget 3 — reduced 80→1, full (60/80/122)→3.
+ *   Outdoor (80 face)     : budget 3 — full (60/80/122)→3, shared by the archers of the target;
+ *                           reduced 80 (5-X): one per archer up to the rhythm, never with another face.
  *
  * An unknown face costs the whole target (= budget) → never overfilled: when in doubt, the
  * target takes a single archer.
  *
- * Pure (no write): used by the admission check at registration (gauge per category/face +
- * refusal when there is no room left) AND by the eligibility of the placement.
+ * Pure (no write): used by the placement (lib/placement.php) outdoors — the gauge of the
+ * registration and the places of an event come from the same code. Indoors, the halves of the
+ * buttress decide (lib/placement.php, REGLES_PLACEMENT.md).
  * Courses (groups): a separate model (size/club quota/balance), for later.
  */
 
@@ -89,24 +91,6 @@ function bk_face_class($tfName)
     return array('dia' => $dia, 'type' => $type, 'raw' => (string) $tfName);
 }
 
-/** Class of a face from its TfId (TargetFaces read + cache per competition). */
-function bk_face_class_by_id($tourId, $tfId)
-{
-    static $cache = array();
-    $tfId = intval($tfId);
-    $key  = intval($tourId) . ':' . $tfId;
-    if (!isset($cache[$key])) {
-        $name = '';
-        if ($tfId > 0) {
-            $r = safe_fetch(safe_r_sql("SELECT TfName FROM TargetFaces
-                WHERE TfId = $tfId AND TfTournament = " . intval($tourId)));
-            if ($r) $name = $r->TfName;
-        }
-        $cache[$key] = bk_face_class($name);
-    }
-    return $cache[$key];
-}
-
 /** Cost of a PLACED face (share of the target it takes) by discipline. */
 function bk_face_cost($class, $disc)
 {
@@ -172,34 +156,15 @@ function bk_cohabit_ok($faces, $disc, $rhythm)
     $rhythm = max(1, intval($rhythm));
     if (count($faces) > $rhythm) return false;
     if (!bk_cohabit_enabled($disc)) return true;
-    return bk_cohabit_pins_cost($faces, $disc) <= bk_cohabit_budget($disc);
-}
-
-/**
- * How many archers with face $newFace can STILL be added to a target already carrying $current
- * (one class per archer), rhythm $rhythm? 0 = no more room for this face.
- * A shareable face already placed is joined at no cost (only the rhythm limits).
- */
-function bk_cohabit_max_add($current, $newFace, $disc, $rhythm)
-{
-    $rhythm = max(1, intval($rhythm));
-    $byCount = $rhythm - count($current);
-    if ($byCount <= 0) return 0;
-    if (!bk_cohabit_enabled($disc)) return $byCount;
-
-    $b = bk_cohabit_budget($disc);
-
-    // Joining an identical shareable face already placed: no extra cost.
-    if (bk_face_shareable($newFace, $disc)) {
-        $k = bk_face_key($newFace);
-        foreach ($current as $f) {
-            if (bk_face_shareable($f, $disc) && bk_face_key($f) === $k) return $byCount;
+    if ($disc === 'ext') {
+        // Reduced faces (80 cm, 5-X): one per archer, as many as the rhythm (4 at ABCD, 3 at
+        // ABC), never with another face on the target.
+        $red = array();
+        foreach ($faces as $f) if ((string) ($f['type'] ?? '') === 'reduit') $red[intval($f['dia'] ?? 0)] = true;
+        if ($red) {
+            foreach ($faces as $f) if ((string) ($f['type'] ?? '') !== 'reduit') return false;
+            return count($red) === 1;
         }
     }
-
-    $used = bk_cohabit_pins_cost($current, $disc);
-    $cost = bk_face_cost($newFace, $disc);
-    if ($cost <= 0) $cost = $b;
-    $byBudget = intdiv(max(0, $b - $used), $cost);
-    return max(0, min($byCount, $byBudget));
+    return bk_cohabit_pins_cost($faces, $disc) <= bk_cohabit_budget($disc);
 }

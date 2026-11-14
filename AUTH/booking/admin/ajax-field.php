@@ -88,4 +88,36 @@ if ($act === 'copyfrom') {
         'caps' => (object) bk_caps_get($TOUR, $ses), 'events' => bk_field_events($TOUR, $ses)));
 }
 
+// The order is kept on the competition's row of BookingCompetitions: that row counts as booking
+// data of its own, after which a re-imported competition would no longer adopt its former
+// registrations. The adoption therefore runs first (as on the payments page).
+if ($act === 'reverse' || $act === 'order') {
+    require_once dirname(__DIR__) . '/lib/adopt.php';
+    bk_adopt_check($TOUR);
+}
+
+if ($act === 'reverse') {
+    // This departure placed from its last target, or from target 1.
+    bk_place_reverse_save($TOUR, $ses, !empty($_POST['on']));
+    JsonOut(array('error' => 0, 'msg' => bk_t('FjOrderSaved')));
+}
+
+if ($act === 'order') {
+    // Order of the criteria and of the bows, for the whole competition. Only known criteria and
+    // the divisions of the competition are kept (bk_place_order_save filters the rest).
+    if (!empty($_POST['reset'])) {
+        bk_place_order_save($TOUR, null, null);
+        JsonOut(array('error' => 0, 'msg' => bk_t('FjOrderSaved')));
+    }
+    $crit = array();
+    foreach ((array) ($_POST['crit'] ?? array()) as $c) {
+        $p = explode(':', (string) $c, 2);
+        $crit[] = array($p[0], intval($p[1] ?? 1));
+    }
+    $known = array_keys(bk_place_order($TOUR)['bows']);
+    $bows = array_values(array_intersect(array_map('strval', (array) ($_POST['bows'] ?? array())), $known));
+    bk_place_order_save($TOUR, $crit, $bows);
+    JsonOut(array('error' => 0, 'msg' => bk_t('FjOrderSaved')));
+}
+
 JsonOut(array('error' => 1, 'msg' => bk_t('AdmUnknownAction')));

@@ -2,6 +2,18 @@
 
 Une entrée par version publiée, la plus récente en haut. Les notes de `version.json` ne gardent que la série en cours.
 
+## 1.7.0 — 2026-11-14
+
+Contribution de Matthieu Bouquet (@matthieu-bouquet) : issue #9, pull request #10 (placement par blason, moitiés de butte, 6 cibles occupées, contrôles du règlement, banc de test), reprise et complétée.
+
+Attribution des cibles : placement par blason puis par categorie. Les archers d un depart sont ranges par distance (la plus courte d abord), blason (du plus grand au plus petit, l unique avant le trispot a taille egale), arme (arc nu, classique, poulies, puis les autres divisions), age (les plus jeunes d abord) et sexe (les femmes d abord), les clubs alternant dans une meme categorie, puis repartis equitablement sur les cibles. En salle, une moitie de butte (A et C, B et D) porte une seule famille de blasons. En exterieur, le blason de 80 reduit (5-X) se pose un par archer, autant que le rythme (4 en ABCD, 3 en ABC), jamais avec un autre blason. Une cible qui a moins d archers que de lettres les place sur les lettres extremes (2 archers en ABC : A et C). Au moins 6 cibles occupees (2 archers ou plus) par depart : on etale tant qu elles ne sont pas atteintes, puis on complete. Quand le reglement l impose (quota de club, 2 archers d un meme club seuls, archer seul, 4 archers sur la cible d un archer en fauteuil), le placement echange les archers les plus proches dans l ordre, en changeant d abord le critere le moins important.
+
+Page Contraintes d affectation du terrain : sens de placement par depart (depuis la cible 1 ou depuis la derniere) et reglages avances facultatifs de l ordre (ordre des criteres, sens de chacun, ordre des armes, toutes divisions). Une cible reservee a un blason precis le reste (trispots poulies sans les trispots classiques) et sert d abord aux archers de ce blason.
+
+Controle du reglement, sur les cibles telles qu elles sont (deplacements faits dans ianseo compris) : cibles occupees, archer seul, 2 archers d un meme club seuls, 4 archers sur la cible d un archer en fauteuil, blasons qui ne peuvent pas partager leur cible. Jauge d inscription et places des epreuves calculees avec les memes regles, immediates meme sur un depart de 9 999 cibles.
+
+Base de donnees : nouvelles colonnes BookingCompetitions.BcMinTargetsPerSession, BcPlaceOrder et BcPlaceReverse.
+
 ## 1.6.1 — 2026-11-13
 
 L extranet FFTA n a plus de formulaire de connexion (on y entre desormais depuis l Espace Dirigeant ou l Espace Licencie). A la connexion d un organisateur, la session extranet reutilisee par SYNCHRO_FFTA s ouvre maintenant par la passerelle de l Espace Dirigeant, sans renvoyer le mot de passe : elle echouait depuis ce changement. Import du palmares : le bouton ouvre l extranet en passant par l Espace Licencie (connexion demandee si besoin), texte de l etape 1 corrige dans les 5 langues.

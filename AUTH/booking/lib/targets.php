@@ -2,10 +2,12 @@
 /**
  * lib/targets.php — target assignment and check of the federation rules.
  *
- * The possible slots are NOT computed here: they come from createAvailableTargetSQL()
- * (Common/Globals.inc.php), the virtual view the ianseo core builds from Session
- * (SesFirstTarget/SesTar4Session/SesAth4Target). The AvailableTarget table exists but is dead
- * (its INSERT is commented out in Fun_ManSessions.inc.php): never rely on it.
+ * The planner itself is pure (lib/placement.php, rules in REGLES_PLACEMENT.md); this file reads
+ * a departure from ianseo for it and writes its result. The targets of a departure come from its
+ * Session row (SesFirstTarget, SesTar4Session, SesAth4Target), never from
+ * createAvailableTargetSQL(): a filter on that derived table turns quadratic under MySQL 8
+ * (derived_condition_pushdown). The AvailableTarget table is dead (its INSERT is commented out
+ * in Fun_ManSessions.inc.php): never rely on it.
  *
  * ⚠️ Qualifications has no competition column: every read and every write goes through a join
  * on Entries (EnTournament).
@@ -18,7 +20,7 @@ require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/competition.php';
 require_once __DIR__ . '/registration.php';
 require_once __DIR__ . '/caps.php';
-require_once __DIR__ . '/cohabitation.php';   // faces sharing a target (M7)
+require_once __DIR__ . '/placement.php';
 
 /** ianseo format of QuTargetNo: departure + target on 3 digits + letter → 1004A. */
 function bk_target_no($session, $target, $letter)
@@ -27,43 +29,12 @@ function bk_target_no($session, $target, $letter)
     return intval($session) . str_pad(intval($target), 3, '0', STR_PAD_LEFT) . strtoupper($letter);
 }
 
-/**
- * Free slots of a departure, ordered by target then letter. The slots are those
- * createAvailableTargetSQL() of the core defines (targets of the Session row × its letters),
- * built here from that row rather than filtered in SQL: a filter on that derived table turns
- * quadratic under MySQL 8 (derived_condition_pushdown), and its query cost 60 to 650 ms per
- * departure even under MariaDB.
- */
-function bk_free_slots($tourId, $sessionOrder)
-{
-    $tourId = intval($tourId);
-    $sessionOrder = intval($sessionOrder);
-    $ses = safe_fetch(safe_r_sql("SELECT SesFirstTarget, SesTar4Session, SesAth4Target FROM Session
-        WHERE SesTournament = $tourId AND SesOrder = $sessionOrder AND SesType = 'Q'"));
-    if (!$ses) return array();
-    $taken = array();
-    $rs = safe_r_sql("SELECT QuTarget, QuLetter FROM Qualifications
-        INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
-        WHERE QuSession = $sessionOrder");
-    // bytes: target letters are ASCII (the SQL join compared them without case)
-    while ($r = safe_fetch($rs)) $taken[intval($r->QuTarget) . '|' . strtoupper((string) $r->QuLetter)] = true;
-    $out = array();
-    $first = intval($ses->SesFirstTarget);
-    for ($t = $first; $t < $first + intval($ses->SesTar4Session); $t++) {
-        for ($i = 0; $i < intval($ses->SesAth4Target); $i++) {
-            $l = chr(65 + $i);
-            if (!isset($taken[$t . '|' . $l])) $out[] = array('t' => $t, 'l' => $l);
-        }
-    }
-    return $out;
-}
-
 /** Archers of a departure, with their club and their place if already assigned. */
 function bk_session_archers($tourId, $sessionOrder)
 {
     $tourId = intval($tourId);
     $rs = safe_r_sql("SELECT EnId, EnCode, EnFirstName, EnName, EnDivision, EnClass,
-                EnCountry, EnTargetFace, CoCode, CoName,
+                EnCountry, EnTargetFace, EnWChair, CoCode, CoName,
                 QuTarget, QuLetter, BrRequest, BrEnId AS BrRow, BrValidated
         FROM Entries
         INNER JOIN Qualifications ON QuId = EnId
@@ -82,7 +53,7 @@ function bk_session_archers_full($tourId, $sessionOrder)
 {
     $tourId = intval($tourId);
     $rs = safe_r_sql("SELECT EnId, EnCode, EnFirstName, EnName, EnDivision, EnClass,
-                EnCountry, EnTargetFace, CoCode, CoName,
+                EnCountry, EnTargetFace, EnWChair, CoCode, CoName,
                 QuTarget, QuLetter,
                 BrEnId, BrRequest, BrWantLetter, BrWantWith, BrValidated
         FROM Entries
@@ -98,257 +69,156 @@ function bk_session_archers_full($tourId, $sessionOrder)
 }
 
 /**
- * Assigns a target to the archers of a departure who have none yet.
+ * What the planner (lib/placement.php) needs of a departure, read from ianseo: discipline,
+ * rhythm, targets, field settings, order of the placement, archers already placed (they never
+ * move) and archers to place, with their distances series by series, their face (family at each
+ * distance, size, TfId), their category (bow, age, sex), their club and their wishes.
+ *
+ * Returns null when the departure does not exist, else
+ * ['in' => planner input, 'rows' => [EnId => row], 'type' => ToType, 'disc' => discipline, 'nDist' => int].
+ */
+function bk_plan_read($tourId, $sessionOrder, $cfg = null)
+{
+    $tourId = intval($tourId);
+    $sessionOrder = intval($sessionOrder);
+    $tr = safe_fetch(safe_r_sql("SELECT ToType, ToTypeName, ToTypeSubRule, ToNumDist FROM Tournament WHERE ToId = $tourId"));
+    $ses = safe_fetch(safe_r_sql("SELECT SesFirstTarget, SesTar4Session, SesAth4Target FROM Session
+        WHERE SesTournament = $tourId AND SesOrder = $sessionOrder AND SesType = 'Q'"));
+    if (!$tr || !$ses) return null;
+    if ($cfg === null) $cfg = bk_comp_config($tourId);
+    $type = $tr->ToType;
+    $disc = bk_comp_discipline($type, $tr->ToTypeSubRule, $tr->ToTypeName)['key'];
+    $nDist = max(1, intval($tr->ToNumDist));
+    $order = bk_place_order($tourId, $cfg);
+
+    $caps = array();
+    foreach (bk_caps_get($tourId, $sessionOrder) as $t => $c) $caps[$t] = array('min' => $c['min'], 'max' => $c['max'], 'faces' => $c['f']);
+
+    // Age and sex of each class: a class without an age range (discovery: 1 to 127) has no age.
+    $classes = array();
+    $rs = safe_r_sql("SELECT ClId, ClSex, ClAgeFrom, ClAgeTo FROM Classes WHERE ClTournament = $tourId");
+    while ($r = safe_fetch($rs)) {
+        $classes[(string) $r->ClId] = array(
+            'age' => (intval($r->ClAgeFrom) <= 1 && intval($r->ClAgeTo) >= 99) ? null : intval($r->ClAgeFrom),
+            'sex' => intval($r->ClSex));
+    }
+
+    $targets = array();
+    for ($t = intval($ses->SesFirstTarget); $t < intval($ses->SesFirstTarget) + intval($ses->SesTar4Session); $t++) $targets[] = $t;
+
+    $in = array('disc' => $disc, 'rhythm' => max(1, intval($ses->SesAth4Target)), 'targets' => $targets,
+                'reverse' => in_array($sessionOrder, $order['reverse'], true),
+                'maxPerClub' => max(1, intval($cfg->BcMaxPerClubPerTarget ?? 2)),
+                'minTargets' => max(0, intval($cfg->BcMinTargetsPerSession ?? 6)),
+                'caps' => $caps, 'order' => $order['crit'], 'bows' => array_flip(array_keys($order['bows'])),
+                'fixed' => array(), 'archers' => array());
+    $rows = array();
+    $byLicence = array();
+    $archers = bk_session_archers_full($tourId, $sessionOrder);
+    foreach ($archers as $a) $byLicence[bk_clean_licence($a->EnCode)] = intval($a->EnId);
+    foreach ($archers as $a) {
+        $id = intval($a->EnId);
+        $rows[$id] = $a;
+        $dist = bk_plan_series($tourId, $type, $a->EnDivision, $a->EnClass, $nDist);
+        $face = bk_caps_face_profile($tourId, $disc, $a->EnTargetFace, max(1, count($dist)));
+        $cl = $classes[(string) $a->EnClass] ?? array('age' => null, 'sex' => null);
+        $one = array('id' => $id, 'dist' => $dist, 'fam' => $face['fams'], 'fsize' => $face['fsize'],
+                     'face' => intval($a->EnTargetFace), 'club' => (string) ($a->CoCode ?: '?'),
+                     // Wheelchair (ianseo's own field): no 4 archers on their target (B.1.2).
+                     'wheelchair' => intval($a->EnWChair ?? 0) > 0,
+                     'div' => (string) $a->EnDivision, 'cls' => (string) $a->EnClass, 'age' => $cl['age'], 'sex' => $cl['sex']);
+        if (intval($a->QuTarget) > 0) {
+            // bytes: target letters are ASCII
+            $in['fixed'][] = $one + array('t' => intval($a->QuTarget), 'l' => strtoupper((string) $a->QuLetter));
+            continue;
+        }
+        // Online registration not validated yet (manual mode) → not placed.
+        if (!empty($a->BrEnId) && intval($a->BrValidated) === 0) continue;
+        $want = bk_clean_licence($a->BrWantWith ?? '');
+        $one['with'] = ($want !== '' && isset($byLicence[$want]) && $byLicence[$want] !== $id) ? $byLicence[$want] : null;
+        // bytes: target letters are ASCII
+        $one['letter'] = strtoupper(trim((string) ($a->BrWantLetter ?? '')));
+        $in['archers'][] = $one;
+    }
+    return array('in' => $in, 'rows' => $rows, 'type' => $type, 'disc' => $disc, 'nDist' => $nDist);
+}
+
+/**
+ * Distances of a category, series by series, in metres (TournamentDistances: Td<n> / TdDist<n>,
+ * the most specific TdClasses). A series without a distance ("-") is left out.
+ */
+function bk_plan_series($tourId, $type, $division, $class, $nDist)
+{
+    static $cache = array();
+    $k = intval($tourId) . '|' . $type . '|' . $division . '|' . $class;
+    if (isset($cache[$k])) return $cache[$k];
+    $rs = safe_r_sql("SELECT * FROM TournamentDistances
+        WHERE TdTournament = " . intval($tourId) . "
+          AND TdType = " . StrSafe_DB($type) . "
+          AND " . StrSafe_DB(trim($division) . trim($class)) . " LIKE TdClasses
+        ORDER BY CHAR_LENGTH(TdClasses) DESC LIMIT 1");
+    $d = array();
+    if ($r = safe_fetch($rs)) {
+        for ($i = 1; $i <= min(8, max(1, intval($nDist))); $i++) {
+            $lab = trim((string) ($r->{'Td' . $i} ?? ''));
+            if ($lab === '' || $lab === '-') continue;
+            $m = bk_td_metres($lab, $r->{'TdDist' . $i} ?? 0);
+            if ($m > 0) $d[] = $m;
+        }
+    }
+    return $cache[$k] = $d;
+}
+
+/**
+ * Assigns a target to the archers of a departure who have none yet (lib/placement.php, rules in
+ * REGLES_PLACEMENT.md).
  *
  * NEVER MOVES an archer already placed: the organiser may have adjusted by hand (or another tool
- * placed them), and a late registration must not reshuffle everyone.
+ * placed them), and a late registration must not reshuffle everyone. Writes QuTarget, QuLetter
+ * and QuTargetNo, as the target screens of the core do.
  *
- * Constraints, by priority:
- *  1. **Field capabilities** (BookingTargetCaps) — a target that does not accept the archer's
- *     distance or face is ruled out. HARD constraint: better leave an archer unplaced than on an
- *     impossible target.
- *  2. **One distance per target** — two archers of one target shoot together: a physical
- *     constraint, not a rule on faces sharing a target.
- *  3. At most `BcMaxPerClubPerTarget` archers of one club per target. Soft: exceeded as a last
- *     resort, and reported by the check.
- *
- * Archers are served club by club in turn, to spread the clubs.
- *
- * Returns ['places'=>N, 'restants'=>M, 'compromis'=>K, 'incompatibles'=>I] — `incompatibles`
- * counts the archers no target of the departure can take.
+ * Returns ['places'=>N, 'restants'=>M, 'compromis'=>K, 'melanges'=>X, 'fauteuil'=>F,
+ * 'incompatibles'=>I, 'voeux'=>W, 'voeuxOk'=>V]: `compromis` counts the archers placed beyond the
+ * club quota, `melanges` the targets carrying both 40 and triple faces, `fauteuil` the targets of
+ * 4 archers with a wheelchair archer, `incompatibles` the archers no target of the departure can
+ * take (field settings).
  */
 function bk_assign_session($tourId, $sessionOrder, $cfg)
 {
     $tourId = intval($tourId);
-    $max    = max(1, intval($cfg->BcMaxPerClubPerTarget));
+    $zero = array('places' => 0, 'restants' => 0, 'compromis' => 0, 'melanges' => 0, 'fauteuil' => 0,
+                  'incompatibles' => 0, 'voeux' => 0, 'voeuxOk' => 0);
+    $data = bk_plan_read($tourId, $sessionOrder, $cfg);
+    if ($data === null || !$data['in']['archers']) return $zero;
 
-    $archers = bk_session_archers_full($tourId, $sessionOrder);
-    $slots   = bk_free_slots($tourId, $sessionOrder);
+    $res = bk_plan_session($data['in']);
 
-    $rs = safe_r_sql("SELECT ToType, ToTypeName, ToTypeSubRule FROM Tournament WHERE ToId = $tourId");
-    $tr = safe_fetch($rs);
-    $type = $tr ? $tr->ToType : '';
-    $caps = bk_caps_get($tourId, $sessionOrder);
-
-    // Faces sharing a target (M7): discipline + rhythm (archers per target) of the departure.
-    // Outdoors/18 m, a target can only carry a set of faces whose "costs" fit in the physical
-    // budget (see lib/cohabitation.php).
-    $dd   = bk_comp_discipline($type, $tr ? $tr->ToTypeSubRule : '', $tr ? $tr->ToTypeName : '');
-    $disc = $dd['key'];
-    $sr   = safe_fetch(safe_r_sql("SELECT SesAth4Target FROM Session
-        WHERE SesTournament = $tourId AND SesOrder = " . intval($sessionOrder) . " AND SesType = 'Q'"));
-    $rhythm = $sr ? max(1, intval($sr->SesAth4Target)) : 1;
-
-    // Needs of each archer (distances + face), cached by category.
-    $needCache = array();
-    $needs = function ($a) use (&$needCache, $tourId, $type) {
-        $k = $a->EnDivision . '|' . $a->EnClass . '|' . intval($a->EnTargetFace);
-        if (!isset($needCache[$k])) {
-            $needCache[$k] = bk_caps_needs($tourId, $type, $a->EnDivision, $a->EnClass, $a->EnTargetFace);
-        }
-        return $needCache[$k];
-    };
-
-    // Occupation of the targets already in place: quota per club AND distance already imposed
-    // on the target by its occupants.
-    $parCible = array();
-    $distCible = array();
-    $facesCible = array();     // target → list of the face classes already placed (sharing)
-    $aPlacer  = array();
-    foreach ($archers as $a) {
-        $club = (string) ($a->CoCode ?: '?');
-        if (intval($a->QuTarget) > 0) {
-            $t = intval($a->QuTarget);
-            $parCible[$t][$club] = ($parCible[$t][$club] ?? 0) + 1;
-            $distCible[$t] = bk_caps_dist_key($needs($a));
-            $facesCible[$t][] = bk_face_class_by_id($tourId, $a->EnTargetFace);
-        } else {
-            // Online registration not validated yet (manual mode) → not placed.
-            if (!empty($a->BrEnId) && intval($a->BrValidated) === 0) continue;
-            $aPlacer[$club][] = $a;
-        }
-    }
-    if (!$aPlacer) return array('places' => 0, 'restants' => 0, 'compromis' => 0,
-                               'incompatibles' => 0, 'voeux' => 0, 'voeuxOk' => 0);
-
-    // Queue: one archer of each club in turn, the biggest clubs first — this is what spreads
-    // the clubs over all the targets.
-    uasort($aPlacer, function ($x, $y) { return count($y) - count($x); });
-    $file = array();
-    while ($aPlacer) {
-        foreach ($aPlacer as $club => $liste) {
-            $file[] = array_shift($aPlacer[$club]);
-            if (!$aPlacer[$club]) unset($aPlacer[$club]);
-        }
-    }
-
-    /* ---- "With someone" wishes: grouped before placing --------------------
-       Such a wish cannot be met by placing archers one by one in order of arrival. Clusters are
-       therefore built (simplified union-find), and each cluster moves to the front of the
-       queue: its members are served one after the other, so on the same target while there is
-       room. Clusters bigger than a target overflow — unavoidable. */
-    $indexLic = array();
-    foreach ($file as $i => $a) $indexLic[bk_clean_licence($a->EnCode)] = $i;
-
-    $groupe = array();                       // EnId → cluster id
-    $racine = function ($x) use (&$groupe, &$racine) {
-        while (isset($groupe[$x]) && $groupe[$x] !== $x) $x = $groupe[$x];
-        return $x;
-    };
-    foreach ($file as $a) {
-        $me = intval($a->EnId);
-        if (!isset($groupe[$me])) $groupe[$me] = $me;
-        $want = bk_clean_licence($a->BrWantWith ?? '');
-        if ($want === '' || !isset($indexLic[$want])) continue;
-        $lui = intval($file[$indexLic[$want]]->EnId);
-        if (!isset($groupe[$lui])) $groupe[$lui] = $lui;
-        $ra = $racine($me); $rb = $racine($lui);
-        if ($ra !== $rb) $groupe[$ra] = $rb;
-    }
-    $grappes = array();
-    foreach ($file as $i => $a) $grappes[$racine(intval($a->EnId))][] = $i;
-
-    // Within a cluster, the ANCHOR first: the one the others asked for. When the cluster does
-    // not fit on one target (club quota), they are the one who must stay — otherwise the
-    // askers end up together without the person they asked for, which pleases nobody.
-    $cite = array();
-    foreach ($file as $a) {
-        $w = bk_clean_licence($a->BrWantWith ?? '');
-        if ($w !== '') $cite[$w] = ($cite[$w] ?? 0) + 1;
-    }
-    foreach ($grappes as &$g) {
-        usort($g, function ($x, $y) use ($file, $cite) {
-            $cx = $cite[bk_clean_licence($file[$x]->EnCode)] ?? 0;
-            $cy = $cite[bk_clean_licence($file[$y]->EnCode)] ?? 0;
-            return $cy - $cx;
-        });
-    }
-    unset($g);
-
-    // Real clusters (≥ 2) first, the biggest at the front; then the single ones in the club
-    // shuffling order already computed.
-    uasort($grappes, function ($x, $y) { return count($y) - count($x); });
-    $ordre = array();
-    $enGrappe = array();          // index (in the NEW queue) → member of a cluster
-    foreach ($grappes as $g) { if (count($g) > 1) foreach ($g as $i) { $ordre[] = $i; } }
-    foreach ($grappes as $g) { if (count($g) === 1) $ordre[] = $g[0]; }
-    $nouvelle = array();
-    foreach ($ordre as $rang => $i) {
-        $nouvelle[] = $file[$i];
-        $enGrappe[intval($file[$i]->EnId)] = (count($grappes[$racine(intval($file[$i]->EnId))]) > 1);
-    }
-    $file = $nouvelle;
-
-    // Count of the wishes, to report to the organiser.
-    $voeux = 0;
-    foreach ($file as $a) {
-        if (trim((string) ($a->BrWantLetter ?? '')) !== '' || trim((string) ($a->BrWantWith ?? '')) !== '') $voeux++;
-    }
-    $voeuxOk = 0;
-
-    $places = 0; $compromis = 0; $pose = array();
-    foreach ($slots as $slot) {
-        if (!$file) break;
-        $t = $slot['t'];
-
-        // Candidates THIS target can physically take: field capabilities, then the distance
-        // already imposed by the target's occupants.
-        $eligibles = array();
-        foreach ($file as $i => $a) {
-            $n = $needs($a);
-            if (!bk_caps_target_ok($caps, $t, $n)) continue;
-            if (isset($distCible[$t]) && $distCible[$t] !== bk_caps_dist_key($n)) continue;
-            // Sharing: the archer's face must fit in the target's remaining budget given the
-            // faces already placed (outdoors/18 m; no effect otherwise).
-            if (bk_cohabit_max_add($facesCible[$t] ?? array(),
-                    bk_face_class_by_id($tourId, $a->EnTargetFace), $disc, $rhythm) < 1) continue;
-            $eligibles[] = $i;
-        }
-        if (!$eligibles) continue;   // no impossible target: the slot stays empty
-
-        // Among them, the first whose club still fits on this target. On a tie, the one who
-        // asked for THIS letter goes first: a wish never beats a rule, only the arrival order.
-        $possibles = array();
-        foreach ($eligibles as $i) {
-            $club = (string) ($file[$i]->CoCode ?: '?');
-            if (($parCible[$t][$club] ?? 0) < $max) $possibles[] = $i;
-        }
-        $idx = null;
-        if ($possibles) {
-            // Letter preference: only among the archers WITHOUT a cluster. Letting a letter
-            // wish overtake a cluster member would break the adjacency that meets a "with
-            // someone" wish — two broken requests instead of one.
-            foreach ($possibles as $i) {
-                if (!empty($enGrappe[intval($file[$i]->EnId)])) continue;
-                // bytes: target letters and numbers are ASCII
-                if (strtoupper(trim((string) ($file[$i]->BrWantLetter ?? ''))) === strtoupper($slot['l'])) {
-                    $idx = $i; break;
-                }
-            }
-            if ($idx === null) $idx = $possibles[0];
-        } else {
-            $idx = $eligibles[0]; $compromis++;   // quota exceeded, reported
-        }
-
-        $a    = $file[$idx];
-        $club = (string) ($a->CoCode ?: '?');
-        $distCible[$t] = bk_caps_dist_key($needs($a));
-        unset($file[$idx]);
-        $file = array_values($file);
-
-        $no = bk_target_no($sessionOrder, $slot['t'], $slot['l']);
+    foreach ($res['places'] as $id => $p) {
+        $no = bk_target_no($sessionOrder, $p['t'], $p['l']);
         // Redundant safeguard: the UPDATE aims at one EnId AND checks the competition again —
         // Qualifications alone would spill over the whole database.
         safe_w_sql("UPDATE Qualifications
             INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
-            SET QuTarget = " . intval($slot['t']) . ",
-                QuLetter = " . StrSafe_DB($slot['l']) . ",
+            SET QuTarget = " . intval($p['t']) . ",
+                QuLetter = " . StrSafe_DB($p['l']) . ",
                 QuTargetNo = " . StrSafe_DB($no) . ",
                 QuTimestamp = QuTimestamp
-            WHERE QuId = " . intval($a->EnId));
-
-        $parCible[$t][$club] = ($parCible[$t][$club] ?? 0) + 1;
-        $facesCible[$t][] = bk_face_class_by_id($tourId, $a->EnTargetFace);
-        // bytes: target letters and numbers are ASCII
-        $pose[bk_clean_licence($a->EnCode)] = array('t' => $t, 'l' => strtoupper($slot['l']), 'a' => $a);
-        $places++;
+            WHERE QuId = " . intval($id));
     }
 
-    // Actual satisfaction, measured AFTERWARDS rather than guessed during placement: a "with
-    // someone" wish can only be judged once both are placed.
-    foreach ($archers as $a) {
-        if (intval($a->QuTarget) > 0) {
-            $pose[bk_clean_licence($a->EnCode)] = array(
-                // bytes: target letters and numbers are ASCII
-                't' => intval($a->QuTarget), 'l' => strtoupper($a->QuLetter), 'a' => $a);
-        }
-    }
-    foreach ($pose as $lic => $p) {
-        // bytes: target letters and numbers are ASCII
-        $wl = strtoupper(trim((string) ($p['a']->BrWantLetter ?? '')));
-        $ww = bk_clean_licence($p['a']->BrWantWith ?? '');
-        if ($wl === '' && $ww === '') continue;
-        $ok = true;
-        if ($wl !== '' && $p['l'] !== $wl) $ok = false;
-        if ($ww !== '' && (!isset($pose[$ww]) || $pose[$ww]['t'] !== $p['t'])) $ok = false;
-        if ($ok) $voeuxOk++;
-    }
-
-    // Those NO target of the departure can take: told apart from a mere lack of room, since
-    // the cause is the field's setting.
+    // Those NO target of the departure can take (field settings), told apart from a lack of room.
+    $ctx = bk_plan_ctx($data['in']);
     $incompatibles = 0;
-    foreach ($file as $a) {
-        $n = $needs($a);
+    foreach ($res['unplaced'] as $id) {
         $ok = false;
-        foreach ($slots as $s) {
-            if (bk_caps_target_ok($caps, $s['t'], $n)) { $ok = true; break; }
-        }
+        foreach ($ctx['targets'] as $t) if (bk_plan_caps_ok($ctx, $t, $ctx['archers'][$id])) { $ok = true; break; }
         if (!$ok) $incompatibles++;
     }
 
-    return array('places' => $places, 'restants' => count($file),
-                 'compromis' => $compromis, 'incompatibles' => $incompatibles,
-                 'voeux' => $voeux, 'voeuxOk' => $voeuxOk);
+    return array('places' => count($res['places']), 'restants' => count($res['unplaced']),
+                 'compromis' => $res['overQuota'], 'melanges' => $res['mixed40tri'], 'fauteuil' => $res['wheelchairFull'],
+                 'incompatibles' => $incompatibles,
+                 'voeux' => $res['wishes']['asked'], 'voeuxOk' => $res['wishes']['kept']);
 }
 
 /**
@@ -356,11 +226,12 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
  * "specific gauge" of the registration, and the admission check: 0 ⇒ no target can take this
  * archer any more, the registration must be refused.
  *
- * Reproduces exactly the eligibility of bk_assign_session (field capabilities, one distance per
- * target, faces sharing a target) and adds up, over the targets with free letters, what each
- * can still take of this profile. Returns null when the constraint is unknown (no departure).
- * Based on the current placements: exact with AUTOMATIC validation (each registration is placed
- * at once); with MANUAL validation, the pending registrations are not placed yet.
+ * Target by target, archers of the profile are added around the archers already placed while a
+ * letter accepts them, with the rules of the placement itself (bk_plan_room: one distance, halves
+ * of the buttress, faces sharing a target, field settings, wheelchair). Returns null when the
+ * constraint is unknown (no departure). Based on the current placements: exact with AUTOMATIC
+ * validation (each registration is placed at once); with MANUAL validation, the pending
+ * registrations are not placed yet.
  */
 function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId)
 {
@@ -371,74 +242,44 @@ function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId
 /**
  * What bk_profile_remaining needs of a departure, read once: several profiles can then be
  * measured against it (the table of the places left per category). null: no such departure.
+ * $ctx['plan']['targets'] can be narrowed by the caller: the gauge counts target by target.
  */
 function bk_profile_ctx($tourId, $sessionOrder)
 {
-    $tourId = intval($tourId);
-    $sessionOrder = intval($sessionOrder);
-
-    $tr = safe_fetch(safe_r_sql("SELECT ToType, ToTypeName, ToTypeSubRule FROM Tournament WHERE ToId = $tourId"));
-    if (!$tr) return null;
-    $type = $tr->ToType;
-    $dd   = bk_comp_discipline($type, $tr->ToTypeSubRule, $tr->ToTypeName);
-
-    $ses = safe_fetch(safe_r_sql("SELECT SesAth4Target FROM Session
-        WHERE SesTournament = $tourId AND SesOrder = $sessionOrder AND SesType = 'Q'"));
-    if (!$ses) return null;
-
-    $ctx = array('tour' => $tourId, 'type' => $type, 'disc' => $dd['key'], 'rhythm' => max(1, intval($ses->SesAth4Target)),
-                 'caps' => bk_caps_get($tourId, $sessionOrder), 'targets' => array(), 'faces' => array(), 'dist' => array());
-    foreach (bk_free_slots($tourId, $sessionOrder) as $s) $ctx['targets'][intval($s['t'])] = true;
-
-    // Current occupation: faces and distance imposed by the archers already placed.
-    foreach (bk_session_archers_full($tourId, $sessionOrder) as $a) {
-        if (intval($a->QuTarget) <= 0) continue;
-        $t = intval($a->QuTarget);
-        $ctx['faces'][$t][] = bk_face_class_by_id($tourId, $a->EnTargetFace);
-        $ctx['dist'][$t] = bk_caps_dist_key(bk_profile_needs($tourId, $type, $a->EnDivision, $a->EnClass, $a->EnTargetFace));
-    }
-    return $ctx;
+    $data = bk_plan_read($tourId, $sessionOrder);
+    if ($data === null) return null;
+    $data['in']['archers'] = array();   // the archers still to place are not counted (as before)
+    $data['plan'] = bk_plan_ctx($data['in']);
+    $data['occ'] = bk_plan_occupants($data['plan'], array());
+    $data['tour'] = intval($tourId);
+    $data['left'] = array();
+    return $data;
 }
 
-/** bk_caps_needs, kept for the request: the same categories come back for every departure. */
-function bk_profile_needs($tourId, $type, $div, $cls, $fid)
+/**
+ * Places of a departure (bk_profile_ctx) still open to one profile — see bk_profile_remaining.
+ *
+ * ⚠️ PLACES, not targets: an outdoor full face (122) is SHARED by up to SesAth4Target archers,
+ * so each target is filled archer by archer. Empty targets with the same settings take the same
+ * number: measured once (a departure of 9 999 targets stays cheap).
+ */
+function bk_profile_left(&$ctx, $division, $class, $faceId)
 {
-    static $cache = array();
-    $k = intval($tourId) . '|' . $type . '|' . $div . '|' . $cls . '|' . intval($fid);
-    if (!isset($cache[$k])) $cache[$k] = bk_caps_needs($tourId, $type, $div, $cls, $fid);
-    return $cache[$k];
-}
-
-/** Places of a departure (bk_profile_ctx) still open to one profile — see bk_profile_remaining. */
-function bk_profile_left($ctx, $division, $class, $faceId)
-{
-    $tourId    = $ctx['tour'];
-    $disc      = $ctx['disc'];
-    $rhythm    = $ctx['rhythm'];
-    $caps      = $ctx['caps'];
-    $needs     = bk_profile_needs($tourId, $ctx['type'], $division, $class, $faceId);
-    $distKey   = bk_caps_dist_key($needs);
-    $faceClass = bk_face_class_by_id($tourId, intval($faceId));
-    $facesCible = $ctx['faces'];
-    $distCible  = $ctx['dist'];
-
-    $remaining = 0;
-    foreach (array_keys($ctx['targets']) as $t) {
-        if (!bk_caps_target_ok($caps, $t, $needs)) continue;
-        if (isset($distCible[$t]) && $distCible[$t] !== $distKey) continue;
-        // ⚠️ bk_cohabit_max_add() answers "how many more NOW", not "how many in all". On an
-        // empty outdoor target, a full face (122) costs the whole budget → it returned 1,
-        // although this face is THEN SHARED by up to SesAth4Target archers. The gauge showed
-        // the number of free TARGETS and not the places (confusion reported at registration).
-        // Archers are therefore placed one by one, as the placement really does.
-        $cur = $facesCible[$t] ?? array();
-        for ($n = 0; $n < $rhythm; $n++) {
-            if (bk_cohabit_max_add($cur, $faceClass, $disc, $rhythm) < 1) break;
-            $cur[] = $faceClass;
-            $remaining++;
-        }
+    $dist = bk_plan_series($ctx['tour'], $ctx['type'], $division, $class, $ctx['nDist']);
+    $key = implode('-', $dist) . '#' . intval($faceId) . '#' . implode(',', $ctx['plan']['targets']);
+    $key = md5($key);
+    if (isset($ctx['left'][$key])) return $ctx['left'][$key];
+    $face = bk_caps_face_profile($ctx['tour'], $ctx['disc'], $faceId, max(1, count($dist)));
+    $a = array('id' => -1, 'dist' => $dist, 'fam' => $face['fams'], 'face' => intval($faceId), 'club' => '~');
+    $n = 0;
+    $empty = array();
+    foreach ($ctx['plan']['targets'] as $t) {
+        if (!empty($ctx['occ'][$t])) { $n += bk_plan_room($ctx['plan'], $ctx['occ'], $t, $a); continue; }
+        $sig = json_encode($ctx['plan']['caps'][$t] ?? null);
+        if (!isset($empty[$sig])) $empty[$sig] = bk_plan_room($ctx['plan'], $ctx['occ'], $t, $a);
+        $n += $empty[$sig];
     }
-    return $remaining;
+    return $ctx['left'][$key] = $n;
 }
 
 /**
@@ -473,7 +314,8 @@ function bk_replan_all($tourId, $cfg)
         INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
         INNER JOIN BookingRegistrations ON BrEnId = EnId
         WHERE QuSession > 0");
-    $tot = array('places' => 0, 'restants' => 0, 'compromis' => 0, 'incompatibles' => 0, 'voeux' => 0, 'voeuxOk' => 0);
+    $tot = array('places' => 0, 'restants' => 0, 'compromis' => 0, 'melanges' => 0, 'fauteuil' => 0,
+                 'incompatibles' => 0, 'voeux' => 0, 'voeuxOk' => 0);
     while ($r = safe_fetch($rs)) {
         $x = bk_replan_session($tourId, intval($r->QuSession), $cfg);
         foreach ($tot as $k => $v) $tot[$k] = $v + ($x[$k] ?? 0);
@@ -554,16 +396,21 @@ function bk_clear_session($tourId, $sessionOrder)
 
 /**
  * Check of the rules, departure by departure. To run when registrations close (that is when the
- * check makes sense: before, the field still moves).
+ * check makes sense: before, the field still moves). It looks at the targets as they are, the
+ * organiser's own moves in ianseo included.
  *
- * Returns an array per departure: club/target quota breaches, number of clubs present, archers
- * not placed.
+ * Returns an array per departure: club/target quota breaches, number of clubs present, targets
+ * with 2 archers or more against the minimum, archers alone, two archers of one club alone,
+ * 4 archers on the target of a wheelchair archer, faces that cannot share their target (one
+ * family per half of the buttress indoors, sharing rules outdoors, one distance), archers not
+ * placed, the same licence twice.
  */
 function bk_rules_check($tourId, $cfg)
 {
     $tourId   = intval($tourId);
     $max      = max(1, intval($cfg->BcMaxPerClubPerTarget));
     $minClubs = max(1, intval($cfg->BcMinClubsPerSession));
+    $minTargets = max(0, intval($cfg->BcMinTargetsPerSession ?? 0));
 
     $out = array();
     foreach (bk_comp_sessions($tourId) as $s) {
@@ -580,6 +427,38 @@ function bk_rules_check($tourId, $cfg)
             } else {
                 $nonPlaces++;
             }
+        }
+
+        // Targets with 2 archers or more (rule of the regulations, with the clubs); no archer
+        // alone, nor 2 archers of one club alone (they would mark each other's scores) —
+        // regulations B.1.2, after withdrawals too.
+        $remplies = 0; $seuls = array(); $paires = array();
+        foreach ($parCible as $cible => $parClub) {
+            $n = 0;
+            foreach ($parClub as $liste) $n += count($liste);
+            if ($n >= 2) $remplies++;
+            if ($n === 1) $seuls[] = $cible;
+            if ($n === 2 && count($parClub) === 1) $paires[] = array('cible' => $cible, 'club' => (string) key($parClub));   // a numeric club code is an int key
+        }
+
+        // Wheelchair and faces, from the placement rules (lib/placement.php).
+        $fauteuil = array(); $blasons = array();
+        $data = bk_plan_read($tourId, $order, $cfg);
+        if ($data !== null) {
+            $ctx = bk_plan_ctx($data['in']);
+            foreach (bk_plan_occupants($ctx, array()) as $cible => $here) {
+                if (bk_plan_target_issues($ctx, $here)[2]) $fauteuil[] = $cible;
+                $ok = count(array_unique(array_map(function ($o) { return $o['dk']; }, $here))) === 1;
+                $nd = count(reset($here)['fams']);
+                for ($d = 0; $ok && $d < $nd; $d++) {
+                    $by = array();
+                    foreach ($here as $l => $o) $by[$l] = $o['fams'][$d] ?? $o['fams'][0];
+                    $ok = bk_target_layout($ctx['disc'], $ctx['rhythm'], $by)['ok'];
+                }
+                if (!$ok) $blasons[] = $cible;
+            }
+            sort($fauteuil);
+            sort($blasons);
         }
 
         $exces = array();
@@ -608,11 +487,19 @@ function bk_rules_check($tourId, $cfg)
             'clubs'      => count($clubs),
             'minClubs'   => $minClubs,
             'clubsOk'    => count($clubs) >= $minClubs,
+            'remplies'   => $remplies,
+            'minTargets' => $minTargets,
+            'targetsOk'  => $remplies >= $minTargets,
             'max'        => $max,
             'exces'      => $exces,
             'nonPlaces'  => $nonPlaces,
             'doublons'   => $doublons,
-            'ok'         => !$exces && count($clubs) >= $minClubs && $nonPlaces === 0 && !$doublons,
+            'seuls'      => $seuls,
+            'paires'     => $paires,
+            'fauteuil'   => $fauteuil,
+            'blasons'    => $blasons,
+            'ok'         => !$exces && count($clubs) >= $minClubs && $remplies >= $minTargets && $nonPlaces === 0 && !$doublons
+                            && !$seuls && !$paires && !$fauteuil && !$blasons,
         );
     }
     return $out;

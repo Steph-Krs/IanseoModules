@@ -493,6 +493,42 @@
         });
     }
 
+    /* ---------- order of the placement ---------- */
+
+    // Direction of this departure, order and direction of the criteria, order of the bows: each
+    // change is saved at once, like the rest of the page.
+    var ord = document.getElementById('bkf-order');
+    function saveOrder() {
+        var crit = [], bows = [];
+        ord.querySelectorAll('.bkf-crit').forEach(function (li) {
+            var s = li.querySelector('.bkf-crit-dir');
+            crit.push(li.getAttribute('data-crit') + ':' + (s ? s.value : 1));
+        });
+        ord.querySelectorAll('.bkf-bow').forEach(function (b) { bows.push(b.getAttribute('data-bow')); });
+        post({ action: 'order', crit: crit, bows: bows }, function () { flash(T('FjOrderSaved')); });
+    }
+    if (ord) {
+        ord.addEventListener('change', function (e) {
+            if (e.target.name === 'bkf-dir') post({ action: 'reverse', on: e.target.value }, function () { flash(T('FjOrderSaved')); });
+            else if (e.target.classList.contains('bkf-crit-dir')) saveOrder();
+        });
+        ord.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-mv],[data-order]');
+            if (!b) return;
+            if (b.getAttribute('data-order') === 'reset') {
+                post({ action: 'order', reset: 1 }, function () { location.reload(); });
+                return;
+            }
+            var mv = b.getAttribute('data-mv');
+            var item = b.closest(mv.indexOf('bow') === 0 ? '.bkf-bow' : '.bkf-crit');
+            var up = mv === 'up' || mv === 'bow-up';
+            var sib = up ? item.previousElementSibling : item.nextElementSibling;
+            if (!sib) return;
+            item.parentNode.insertBefore(up ? item : sib, up ? sib : item);
+            saveOrder();
+        });
+    }
+
     renderAxis();
     render();
     renderEvents();

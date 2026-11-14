@@ -220,7 +220,10 @@ function bk_club_serve_return($tourId, $cfg, $w)
         INNER JOIN Countries ON CoId = EnCountry
         WHERE QuSession = $o AND QuTarget > 0 AND CoCode = " . StrSafe_DB($club) . " GROUP BY QuTarget");
     while ($r = safe_fetch($rs)) $count[intval($r->QuTarget)] = intval($r->n);
-    foreach (array_keys($ctx['targets']) as $t) if (($count[$t] ?? 0) >= $max) unset($ctx['targets'][$t]);
+    // The gauge counts target by target: a target left out takes its places with it.
+    $ctx['plan']['targets'] = array_values(array_filter($ctx['plan']['targets'], function ($t) use ($count, $max) {
+        return ($count[$t] ?? 0) < $max;
+    }));
     if (bk_profile_left($ctx, $w->BwDivision, $w->BwClass, intval($w->BwFace)) < 1) return false;
 
     $before = count(bk_club_over($tourId, $o, $club, $max));

@@ -16,6 +16,7 @@ if (defined('BK_CAPS_LOADED')) return;
 define('BK_CAPS_LOADED', true);
 
 require_once __DIR__ . '/schema.php';
+require_once __DIR__ . '/placement.php';   // families of faces, order of the placement
 
 /**
  * Metres of one distance of TournamentDistances. TdDist is 0 on competitions made by a set that
@@ -113,6 +114,106 @@ function bk_caps_faces($tourId)
         $out[$id]['tag'] = (!$f['peg'] && $f['cm']) ? (string) $f['cm'] : $out[$id]['short'];
     }
     return $out;
+}
+
+/**
+ * Type and diameter of every face of the competition, distance by distance:
+ * [TfId => ['name' => TfName, 'tw' => [[TfT1, TfW1], …]]], read once per request.
+ */
+function bk_caps_face_specs($tourId)
+{
+    static $cache = array();
+    $tourId = intval($tourId);
+    if (isset($cache[$tourId])) return $cache[$tourId];
+    $out = array();
+    $rs = safe_r_sql("SELECT * FROM TargetFaces WHERE TfTournament = $tourId");
+    while ($r = safe_fetch($rs)) {
+        $tw = array();
+        for ($i = 1; $i <= 8; $i++) $tw[] = array(intval($r->{'TfT' . $i} ?? 0), intval($r->{'TfW' . $i} ?? 0));
+        $out[intval($r->TfId)] = array('name' => (string) $r->TfName, 'tw' => $tw);
+    }
+    return $cache[$tourId] = $out;
+}
+
+/**
+ * What the placement needs of a face over $n distances: its family at each distance
+ * (lib/placement.php) and its size for the order ([diameter, 1 if reduced or triple]).
+ * An unknown face (none set) is alone on its target indoors and outdoors.
+ */
+function bk_caps_face_profile($tourId, $disc, $faceId, $n)
+{
+    static $cache = array();
+    $n = max(1, intval($n));
+    $k = intval($tourId) . '|' . $disc . '|' . intval($faceId) . '|' . $n;
+    if (isset($cache[$k])) return $cache[$k];
+    $f = bk_caps_face_specs($tourId)[intval($faceId)] ?? null;
+    if (!$f) {
+        return $cache[$k] = array('fams' => array_fill(0, $n, in_array($disc, array('salle', 'ext'), true) ? '?' : '*'),
+                                  'fsize' => array_fill(0, $n, array(0, 0)));
+    }
+    $size = array();
+    for ($i = 0; $i < $n; $i++) {
+        $t = intval($f['tw'][$i][0] ?? 0);
+        if ($i > 0 && $t === 0) { $size[] = $size[$i - 1]; continue; }
+        $size[] = array(intval($f['tw'][$i][1] ?? 0), in_array($t, BK_REDUCED_TYPES, true) ? 1 : 0);
+    }
+    return $cache[$k] = array('fams' => bk_face_families($disc, $f['name'], $f['tw'], $n), 'fsize' => $size);
+}
+
+/**
+ * Order of the placement of a competition. BookingCompetitions.BcPlaceOrder holds JSON
+ * {"c": [[criterion, 1|-1]…], "bows": [division…]}; BcPlaceReverse the departures placed from
+ * the last target ("2,3"). Defaults: distance, face, bow, age, sex, each in its first direction;
+ * bows barebow, recurve, compound, then the other divisions in the order of ianseo. A division
+ * added later takes its place at the end, one removed is dropped.
+ * Returns ['crit' => [[criterion, 1|-1]…], 'bows' => [DivId => label] in order, 'reverse' => [SesOrder…]].
+ */
+function bk_place_order($tourId, $cfg = null)
+{
+    $j = $cfg && !empty($cfg->BcPlaceOrder) ? json_decode((string) $cfg->BcPlaceOrder, true) : null;
+    $all = array();
+    $rs = safe_r_sql("SELECT DivId, DivDescription FROM Divisions
+        WHERE DivTournament = " . intval($tourId) . " AND DivAthlete = '1' ORDER BY DivViewOrder, DivId");
+    while ($r = safe_fetch($rs)) $all[(string) $r->DivId] = (string) ($r->DivDescription ?: $r->DivId);
+    $first = is_array($j['bows'] ?? null) ? array_map('strval', $j['bows']) : BK_PLACE_BOWS;
+    $bows = array();
+    foreach ($first as $d) if (isset($all[$d])) $bows[$d] = $all[$d];
+    foreach (BK_PLACE_BOWS as $d) if (isset($all[$d]) && !isset($bows[$d])) $bows[$d] = $all[$d];
+    $bows += $all;
+    $reverse = array();
+    foreach (explode(',', (string) ($cfg->BcPlaceReverse ?? '')) as $s) if (intval($s) > 0) $reverse[] = intval($s);
+    return array('crit' => bk_plan_criteria(is_array($j['c'] ?? null) ? $j['c'] : array()), 'bows' => $bows, 'reverse' => $reverse);
+}
+
+/** Saves the order of the criteria and of the bows (null: back to the defaults). */
+function bk_place_order_save($tourId, $crit, $bows)
+{
+    $tourId = intval($tourId);
+    safe_w_sql("INSERT IGNORE INTO BookingCompetitions (BcTournament) VALUES ($tourId)");
+    $v = 'NULL';
+    if ($crit !== null) {
+        $c = array();
+        foreach (bk_plan_criteria($crit) as $x) $c[] = array($x[0], $x[1]);
+        $b = array();
+        foreach ((array) $bows as $d) if (preg_match('/^[A-Za-z0-9_-]{1,4}$/', (string) $d)) $b[] = (string) $d;
+        $v = StrSafe_DB(json_encode(array('c' => $c, 'bows' => array_values(array_unique($b)))));
+    }
+    safe_w_sql("UPDATE BookingCompetitions SET BcPlaceOrder = $v WHERE BcTournament = $tourId");
+}
+
+/** Places a departure from its last target ($on) or from target 1. */
+function bk_place_reverse_save($tourId, $session, $on)
+{
+    $tourId = intval($tourId);
+    $session = intval($session);
+    safe_w_sql("INSERT IGNORE INTO BookingCompetitions (BcTournament) VALUES ($tourId)");
+    $r = safe_fetch(safe_r_sql("SELECT BcPlaceReverse FROM BookingCompetitions WHERE BcTournament = $tourId"));
+    $list = array();
+    foreach (explode(',', (string) ($r->BcPlaceReverse ?? '')) as $s) if (intval($s) > 0) $list[intval($s)] = true;
+    if ($on) $list[$session] = true; else unset($list[$session]);
+    ksort($list);
+    safe_w_sql("UPDATE BookingCompetitions SET BcPlaceReverse = " . StrSafe_DB(implode(',', array_keys($list))) . "
+        WHERE BcTournament = $tourId");
 }
 
 /**
@@ -263,27 +364,6 @@ function bk_caps_needs($tourId, $type, $division, $class, $faceId)
     $d = array_keys($d);
     sort($d);
     return array('d' => $d, 'f' => intval($faceId));
-}
-
-/**
- * Can a target take this archer?
- * A capability NOT declared (empty list) imposes nothing — never invent a constraint the
- * organiser did not set.
- */
-function bk_caps_target_ok($caps, $target, $needs)
-{
-    $c = $caps[$target] ?? null;
-    if (!$c) return true;
-
-    // Each distance the archer needs must fit in the target's range.
-    foreach ($needs['d'] as $m) {
-        if (!empty($c['min']) && $m < $c['min']) return false;
-        if (!empty($c['max']) && $m > $c['max']) return false;
-    }
-    if (!empty($c['f']) && !empty($needs['f'])) {
-        if (!in_array($needs['f'], $c['f'], true)) return false;
-    }
-    return true;
 }
 
 /**
