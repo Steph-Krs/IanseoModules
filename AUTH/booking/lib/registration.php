@@ -620,13 +620,15 @@ function bk_register_write($tourId, $lue, $division, $class, $sessionOrder, $req
         $enId = intval(safe_w_last_id());
         if (!$enId) return array('ok' => false, 'msg' => bk_t('RegFailed'));
 
-        // Empty EnIocCode = inherits the competition's ToIocCode (core convention:
-        // LueIocCode = IF(EnIocCode!='', EnIocCode, ToIocCode)). Only set when the archer
-        // belongs to another federation.
+        // EnIocCode is always set, as the core does when it adds an entry
+        // (Partecipants/AddRow.php: EnIocCode = ToIocCode). An empty value is not read as the
+        // competition's country everywhere: the FFTA export writes 999999 instead of the
+        // licence unless EnIocCode = 'FRA', and the licence sync joins on EnIocCode.
         $rs = safe_r_sql("SELECT ToIocCode FROM Tournament WHERE ToId = $tourId");
         $to = safe_fetch($rs);
-        if ($to && $lue->LueIocCode && $lue->LueIocCode !== $to->ToIocCode) {
-            safe_w_sql("UPDATE Entries SET EnIocCode = " . StrSafe_DB($lue->LueIocCode)
+        $ioc = (string) ($lue->LueIocCode ?: ($to ? $to->ToIocCode : ''));
+        if ($ioc !== '') {
+            safe_w_sql("UPDATE Entries SET EnIocCode = " . StrSafe_DB($ioc)
                 . ", EnTimestamp = EnTimestamp WHERE EnId = $enId");
         }
 
