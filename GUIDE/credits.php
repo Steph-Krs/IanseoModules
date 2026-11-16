@@ -31,4 +31,4 @@ if (is_file($_credits_manifest)) {
 unset($_credits_manifest);
 
 $Authors = ['Stéphane Kraus'];
-$Email   = 's.kraus@ffta.fr';   // direct contact for this module
+$Email   = 'kraus.stephane97@gmail.com';   // direct contact for this module
