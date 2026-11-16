@@ -1,5 +1,9 @@
 # Changelog — Scorecard reader (OCR)
 
+## 0.2.1 — 2026-11-16
+
+Contact address of the module updated (credits page).
+
 ## 0.2.0 — 2026-11-05
 
 The match sheets (duels.php, Read the scorecards - matches): one sheet a match, its two cards side by
