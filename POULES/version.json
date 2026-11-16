@@ -1,8 +1,9 @@
 {
-    "version": "1.0.8",
-    "date": "2026-07-21",
-    "notes": "README au format commun ajouté au manifeste. Module lecture seule, sans table.",
+    "version": "1.0.9",
+    "date": "2026-11-16",
+    "notes": "1.0.9 : page des crédits ajoutée (auteurs et contact du module).\n\nREADME au format commun ajouté au manifeste. Module lecture seule, sans table.",
     "files": [
+        "credits.php",
         "menu.php",
         "index.php",
         "action.php",
