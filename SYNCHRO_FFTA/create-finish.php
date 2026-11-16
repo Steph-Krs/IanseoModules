@@ -31,6 +31,7 @@ $tid = (int) $_SESSION['TourId'];
  *     moyen pour un organisateur de mettre ses propres images sans les perdre. (Même logique et
  *     même suffixe que les `config.local.json` des autres modules.)
  *  2. `<nom>.<ext>` — l'image par défaut livrée avec le module, mise à jour depuis le dépôt.
+ * Avant ces deux niveaux, un autre module peut fournir l'image (`default-images.php`).
  *
  * À chaque niveau on retient le fichier le plus RÉCEMMENT modifié : version.json fige des noms
  * exacts, donc changer l'extension d'une image sur le dépôt (vécu : ToRight.png → ToRight.jpg)
@@ -39,6 +40,15 @@ $tid = (int) $_SESSION['TourId'];
  */
 function sfa_asset_image(string $base): ?string
 {
+    // Another module of Custom/ may supply the image first: its default-images.php returns a
+    // function ($base) giving the path of an image file, or null.
+    foreach (glob(dirname(__DIR__) . '/*/default-images.php') ?: [] as $provider) {
+        $fn = include $provider;
+        $file = is_callable($fn) ? $fn($base) : null;
+        if (is_string($file) && is_file($file)) {
+            return $file;
+        }
+    }
     foreach ([$base . '-local', $base] as $name) {
         $found = [];
         foreach (['jpg', 'jpeg', 'png', 'JPG', 'JPEG', 'PNG'] as $ext) {

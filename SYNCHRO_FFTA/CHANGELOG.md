@@ -2,6 +2,10 @@
 
 Une entrée par version publiée, la plus récente en haut. Les notes de `version.json` ne gardent que la série en cours.
 
+## 0.10.6 — 2026-11-16
+
+Page des crédits ajoutée (auteurs et contact du module). Les images par défaut d’une nouvelle compétition peuvent être fournies par un autre module.
+
 ## 0.10.5 — 2026-11-13
 
 L extranet FFTA n a plus de formulaire de connexion (on y entre desormais depuis l Espace Dirigeant ou l Espace Licencie) : la creation par le calendrier et le depot des resultats ne pouvaient plus s y connecter. L extranet s ouvre maintenant depuis l Espace Dirigeant - session ouverte par la connexion a ianseo quand le module AUTH est present, sinon formulaire de connexion du module, code de double authentification compris (ajoute au formulaire du depot) - et se rouvre de lui-meme quand sa session expire, tant que celle de l Espace Dirigeant est valide. Une session extranet expiree est de nouveau reconnue comme telle. Connexion par le formulaire avec le module AUTH : le cookie de l Espace Dirigeant est desormais bien conserve (il etait copie vide).
