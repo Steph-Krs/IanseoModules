@@ -119,8 +119,15 @@ function bk_waitlist_join($tourId, $cfg, $lue, $division, $class, $face, $sessio
         BwRequest = "    . StrSafe_DB(mb_substr(trim((string) ($wishes['request'] ?? '')), 0, 2000)) . ",
         BwPayChoice = "  . StrSafe_DB(preg_match('/^[A-Za-z0-9_]{1,20}\|(before|onsite)$/', (string) ($wishes['pay'] ?? ''))
                                 ? (string) $wishes['pay'] : '') . ",
+        BwEvOpts = "     . (isset($wishes['events']) && $wishes['events'] !== null ? intval($wishes['events']) : 'NULL') . ",
         BwCreated = "    . bk_waitlist_now_sql($tourId));
     return array('ok' => true, 'msg' => '');
+}
+
+/** Events chosen with a waiting row (lib/events.php), or null when it predates the choice. */
+function bk_waitlist_evopts($w)
+{
+    return (isset($w->BwEvOpts) && $w->BwEvOpts !== null) ? intval($w->BwEvOpts) : null;
 }
 
 /** Closes a row that can no longer succeed; the archer sees why in "Mes inscriptions". */
@@ -214,7 +221,7 @@ function bk_waitlist_process($tourId)
 
                 $res = bk_register($tourId, $lue, $w->BwDivision, $w->BwClass, $o, (string) $w->BwRequest,
                     array('role' => $w->BwByRole, 'who' => $w->BwBy, 'archer' => intval($w->BwArcher)),
-                    array('face' => intval($w->BwFace), 'letter' => $w->BwWantLetter, 'with' => $w->BwWantWith, 'from_wait' => true));
+                    array('face' => intval($w->BwFace), 'letter' => $w->BwWantLetter, 'with' => $w->BwWantWith, 'events' => bk_waitlist_evopts($w), 'from_wait' => true));
                 if (empty($res['ok'])) continue;
 
                 safe_w_sql("UPDATE BookingWaitlist SET BwStatus = 1, BwSeen = 0, BwEnId = " . intval($res['enid'])
@@ -423,7 +430,7 @@ function bk_waitlist_register_now($tourId, $id, $session)
     }
     $res = bk_register($tourId, $lue, $w->BwDivision, $w->BwClass, $session, (string) $w->BwRequest,
         array('role' => $w->BwByRole, 'who' => $w->BwBy, 'archer' => intval($w->BwArcher)),
-        array('face' => intval($w->BwFace), 'letter' => $w->BwWantLetter, 'with' => $w->BwWantWith, 'skip_capacity' => true,
+        array('face' => intval($w->BwFace), 'letter' => $w->BwWantLetter, 'with' => $w->BwWantWith, 'events' => bk_waitlist_evopts($w), 'skip_capacity' => true,
               'from_wait' => true));
     if (empty($res['ok'])) return array('ok' => false, 'msg' => $res['msg'] ?? bk_t('RegFailed'));
     safe_w_sql("UPDATE BookingWaitlist SET BwStatus = 1, BwSeen = 0, BwEnId = " . intval($res['enid'])

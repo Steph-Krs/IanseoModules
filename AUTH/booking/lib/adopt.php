@@ -179,6 +179,7 @@ function bk_adopt_reinject($newId, $reg)
         'face'   => intval($reg->BrFace),
         'letter' => (string) $reg->BrWantLetter,
         'with'   => (string) $reg->BrWantWith,
+        'events' => (isset($reg->BrEvOpts) && $reg->BrEvOpts !== null) ? intval($reg->BrEvOpts) : null,
         'skip_capacity' => true,   // injection of a past registration: never refused by the admission check
     );
     $res = bk_register($newId, $lue, $reg->BrDivision, $reg->BrClass,

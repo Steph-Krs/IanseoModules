@@ -31,6 +31,13 @@ in a few clicks. Designed for ianseo servers reachable online.
 - 🗑️ **Delete my account** (every archer): erases for good what is to come — registrations for the
   competitions not started, waiting-list requests, the account; nothing that is done or under way
   changes (competitions started, results, sums due).
+- 🎯 **Events to choose**: when registering, take part in the matches or not (yes by default; the
+  place for the qualification round stays booked), and enter the team and/or mixed team event
+  offered to the category. **Change the registration** until it closes (bow, category, face,
+  session, events, wishes) without losing its date or its payments.
+- 📈 **Statistics of a competition**: score end by end (target by target on a course), average
+  arrow, success zone at the percentage chosen, spread of the arrows, compared with the
+  competition, the category or an archer of the competition once the results are public.
 - 📅 **Calendar** of the competitions open for registration: filters (name, place, dates,
   type) and places left per session.
 - 🗺️ **Map** of the competitions and **directions** to the venue (Google Maps, Waze, Apple Maps);
@@ -74,11 +81,17 @@ in a few clicks. Designed for ianseo servers reachable online.
 
 ### For the organiser
 
-Everything is in the **Modules › Online registration** menu, with the competition open.
+Everything is in the **Online registration** tab of the menu (beside **Modules**), with the competition open.
 
-- ⚙️ **Open / configure the registrations**: opening period, restriction to the archers of a
-  department or a region with a **later opening to everyone**, fee, and what the archers are
+- ⚙️ **Open / configure the registrations**: opening period, restriction to the archers of the
+  organiser's department or region (read from its approval number, nothing to type) with a
+  **later opening to everyone**, fee, and what the archers are
   allowed to see.
+- 🏆 **Departmental or regional championship**: individual events and, separately, team events
+  kept to the archers of the clubs of the organiser's department or region; the others register and
+  shoot without taking part in them, their scores still count for the national ranking. Set in
+  the same block as the geographic restriction, which explains the difference.
+- ⏱️ **Changes and cancellations**: by default until the registration closes (changes) and until the eve of the competition (cancellations), or until 1 hour before the session when the organiser allows it; the archer is told the limits. Each session closes 1 hour before it starts at the latest (the eve when no time is entered): the last hour belongs to the organiser (score sheets, faces).
 - 🗓️ **Opening session by session**: open, closed, or open by itself once the earlier sessions
   are full, with dates of its own when needed. Option **one registration per archer**, whatever
   the session.
@@ -139,7 +152,7 @@ Optional settings in `config.local.json` (not versioned):
 - **Licensee space** (archers): `Modules/Custom/AUTH/booking/public/` — reachable without an
   organiser account. Give this link to your licensees; it is shown again on the page that opens
   the registrations.
-- **Every organiser screen**: **Modules › Online registration** menu. Opening the registrations
+- **Every organiser screen**: the **Online registration** tab of the menu. Opening the registrations
   and the target assignment only appear when a competition is open; the club managers and the
   update are reserved to the administrator.
 
@@ -147,6 +160,6 @@ Optional settings in `config.local.json` (not versioned):
 
 See the [general README](../../README.md). In short: copy the `BOOKING/` and `_shared/` folders into
 `Modules/Custom/` (or `install.sh` / `install.ps1`). Updates and uninstallation from ianseo:
-**Modules › Online registration › Update** menu.
+**Modules › Multi-account hosting › Module update** menu.
 
 French version: [README_BOOKING_FR.md](README_BOOKING_FR.md).

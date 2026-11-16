@@ -209,21 +209,25 @@
           .catch(function () { flash(T('FjServerDown'), true); });
     }
 
-    /** Writes a batch of targets, keeping for each what is not changed. */
+    /** Writes a batch of targets, keeping for each what is not changed. $patch: the same change for
+     *  every target, or a function giving each target its own. ONE request for the whole batch:
+     *  each answer recomputes the events of the departure, which costs (one request per target
+     *  made removing a face from 60 selected targets crawl, target after target). */
     function ecrire(targets, patch) {
         if (!targets.length) return;
         var groupes = {};
         targets.forEach(function (t) {
             var c = capOf(t), v = vue(c);
+            var p = typeof patch === 'function' ? patch(t) : patch;
             // A still blank target starts from the full range: setting one handle must give a
             // complete, consistent setting, not a half-defined range.
             var base = v.pose ? { def: c.def, min: c.min, max: c.max }
                               : { def: v.def, min: v.min, max: v.max };
             var o = {
-                def: patch.def !== undefined ? patch.def : base.def,
-                min: patch.min !== undefined ? patch.min : base.min,
-                max: patch.max !== undefined ? patch.max : base.max,
-                f:   patch.f   !== undefined ? patch.f   : c.f
+                def: p.def !== undefined ? p.def : base.def,
+                min: p.min !== undefined ? p.min : base.min,
+                max: p.max !== undefined ? p.max : base.max,
+                f:   p.f   !== undefined ? p.f   : c.f
             };
             if (o.min && o.max && o.min > o.max) { var x = o.min; o.min = o.max; o.max = x; }
             if (o.def && o.min && o.def < o.min) o.def = o.min;
@@ -232,16 +236,12 @@
             var k = o.def + '|' + o.min + '|' + o.max + '|' + o.f.slice().sort().join(',');
             (groupes[k] = groupes[k] || { v: o, t: [] }).t.push(t);
         });
-        var reste = Object.keys(groupes).length, n = 0;
-        Object.keys(groupes).forEach(function (k) {
+        var list = Object.keys(groupes).map(function (k) {
             var g = groupes[k];
-            n += g.t.length;
-            post({ action: 'set', targets: g.t, def: g.v.def, min: g.v.min, max: g.v.max, f: g.v.f },
-                 function () {
-                     if (--reste === 0) {
-                         flash(n > 1 ? T('FjSavedN', n) : T('FjSaved1'));
-                     }
-                 });
+            return { t: g.t, def: g.v.def, min: g.v.min, max: g.v.max, f: g.v.f };
+        });
+        post({ action: 'batch', groups: JSON.stringify(list) }, function () {
+            flash(targets.length > 1 ? T('FjSavedN', targets.length) : T('FjSaved1'));
         });
     }
 
@@ -326,13 +326,11 @@
     });
 
     function ajoutFace(targets, id) {
-        var groupes = {};
-        targets.forEach(function (t) {
+        ecrire(targets, function (t) {
             var f = capOf(t).f.slice();
             if (f.indexOf(id) < 0) f.push(id);
-            (groupes[f.slice().sort().join(',')] = groupes[f.slice().sort().join(',')] || { f: f, t: [] }).t.push(t);
+            return { f: f };
         });
-        Object.keys(groupes).forEach(function (k) { ecrire(groupes[k].t, { f: groupes[k].f }); });
     }
 
     grid.addEventListener('click', function (e) {
@@ -340,8 +338,8 @@
         if (!tag) return;
         e.stopPropagation();
         var id = +tag.getAttribute('data-face');
-        cibles(+tag.getAttribute('data-target')).forEach(function (t) {
-            ecrire([t], { f: capOf(t).f.filter(function (x) { return x !== id; }) });
+        ecrire(cibles(+tag.getAttribute('data-target')), function (t) {
+            return { f: capOf(t).f.filter(function (x) { return x !== id; }) };
         });
     });
 

@@ -36,27 +36,36 @@ foreach (bk_comp_sessions($TOUR) as $s) {
 }
 if (!$valid) JsonOut(array('error' => 1, 'msg' => bk_t('AdmUnknownDep')));
 
-if ($act === 'set') {
-    $targets = array_map('intval', (array) ($_POST['targets'] ?? array()));
-    $f = array_map('intval', (array) ($_POST['f'] ?? array()));
+// 'set': one setting for a list of targets; 'batch': several such groups (JSON 'groups'), written
+// together, so that the events of the departure are computed once for the whole change.
+if ($act === 'set' || $act === 'batch') {
+    $groups = array();
+    if ($act === 'set') {
+        $groups[] = array('t' => $_POST['targets'] ?? array(), 'f' => $_POST['f'] ?? array(),
+            'def' => $_POST['def'] ?? 0, 'min' => $_POST['min'] ?? 0, 'max' => $_POST['max'] ?? 0);
+    } else {
+        $groups = json_decode((string) ($_POST['groups'] ?? ''), true);
+        if (!is_array($groups)) JsonOut(array('error' => 1, 'msg' => bk_t('FjSaveFail')));
+    }
 
     // The faces must exist on the competition — never what the browser sends. Distances are
     // bounded integers (a range is not limited to the declared distances: a target may be set
     // beyond).
     $okF = array_keys(bk_caps_faces($TOUR));
-    $f = array_values(array_intersect($f, $okF));
-
     $borne = function ($v) { return max(0, min(500, intval($v))); };
-    $def = $borne($_POST['def'] ?? 0);
-    $dmin = $borne($_POST['min'] ?? 0);
-    $dmax = $borne($_POST['max'] ?? 0);
-
     list($tmin, $tmax) = $capacity[$ses];
     $n = 0;
-    foreach ($targets as $t) {
-        if ($t < $tmin || $t > $tmax) continue;
-        bk_caps_set($TOUR, $ses, $t, $def, $dmin, $dmax, $f);
-        $n++;
+    foreach ($groups as $g) {
+        if (!is_array($g)) continue;
+        $f = array_values(array_intersect(array_map('intval', (array) ($g['f'] ?? array())), $okF));
+        $def = $borne($g['def'] ?? 0);
+        $dmin = $borne($g['min'] ?? 0);
+        $dmax = $borne($g['max'] ?? 0);
+        foreach (array_map('intval', (array) ($g['t'] ?? array())) as $t) {
+            if ($t < $tmin || $t > $tmax) continue;
+            bk_caps_set($TOUR, $ses, $t, $def, $dmin, $dmax, $f);
+            $n++;
+        }
     }
     JsonOut(array('error' => 0, 'msg' => '', 'n' => $n, 'caps' => (object) bk_caps_get($TOUR, $ses),
         'events' => bk_field_events($TOUR, $ses)));

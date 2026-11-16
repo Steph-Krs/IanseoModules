@@ -17,6 +17,11 @@ define('BK_COMP_LOADED', true);
 
 require_once __DIR__ . '/schema.php';
 
+// What an archer does on a departure (register, change, cancel) stops this long before it starts:
+// score sheets are printed and faces put up in that hour — after it, only the organiser, who is
+// then aware of every last-minute change (user's rule). Used by lib/sessionrules.php too.
+if (!defined('BK_ARCHER_CUTOFF_MIN')) define('BK_ARCHER_CUTOFF_MIN', 60);
+
 /** Geographic restriction scopes offered. */
 function bk_restrict_kinds()
 {
@@ -40,18 +45,27 @@ function bk_scope_like($kind, $code)
     return $code . '%';                                 // region: prefix
 }
 
-/** Check of a typed scope. Empty string = valid. */
-function bk_scope_error($kind, $code)
+/**
+ * Code of a restriction, taken from the organiser's approval number (ToCommitee, LLDDCCC): its
+ * department (positions 3-4) or its region (2 first characters). Nothing to type: the organiser's
+ * own area is the only one that makes sense. '' = no restriction, or no usable approval number.
+ */
+function bk_scope_code($kind, $tourId)
+{
+    if ($kind !== 'CD' && $kind !== 'CR') return '';
+    // bytes: approval numbers are ASCII letters and digits
+    $org = strtoupper(preg_replace('/[^0-9A-Za-z]/', '', bk_org_agrement($tourId)));
+    // bytes: same ASCII code
+    if (strlen($org) < 4 || !ctype_digit(substr($org, 0, 2))) return '';
+    // bytes: same ASCII code
+    return $kind === 'CD' ? substr($org, 2, 2) : substr($org, 0, 2);
+}
+
+/** Check of a restriction before saving. Empty string = valid. */
+function bk_scope_error($kind, $tourId)
 {
     if ($kind === '') return '';
-    $code = trim((string) $code);
-    if ($code === '') return bk_t('ScopeNeedCode');
-    if (preg_match('/^[0-9A-Za-z_%]{2,12}$/', $code) && preg_match('/[_%]/', $code)) return '';
-    if (!preg_match('/^[0-9A-Za-z]{2,10}$/', $code)) return bk_t('ScopeFormat');
-    // bytes: the code was just checked to be ASCII letters and digits.
-    if ($kind === 'CD' && strlen($code) != 2) return bk_t('ScopeDept2');
-    if ($kind === 'CR' && strlen($code) != 2) return bk_t('ScopeRegion2');
-    return '';
+    return bk_scope_code($kind, $tourId) === '' ? bk_t('AcGeoNoOrg') : '';
 }
 
 /**
@@ -76,11 +90,20 @@ function bk_comp_calc_sql($alias = '')
     $open = $general;
     if (bk_session_rules_ready()) {
         $noSes = "NOT EXISTS (SELECT 1 FROM Session WHERE SesTournament = {$a}BcTournament AND SesType = 'Q')";
+        // A departure closes an hour before it starts at the latest, whatever the closing date — the
+        // time of distance 1, else SesDtStart, else the competition's first day at 00:00
+        // (bk_session_limit_at, same order; a day without a time = 00:00, i.e. until the eve).
+        $start = "COALESCE((SELECT CONCAT(DiDay, ' ', DiStart) FROM DistanceInformation
+                       WHERE DiTournament = SesTournament AND DiSession = SesOrder AND DiType = 'Q'
+                         AND DiDistance = 1 AND DiDay > '0000-00-00' LIMIT 1),
+                    IF(YEAR(SesDtStart) > 1900, SesDtStart, NULL),
+                    (SELECT CONCAT(ToWhenFrom, ' 00:00:00') FROM Tournament WHERE ToId = SesTournament))";
         $open = "EXISTS (SELECT 1 FROM Session
                     LEFT JOIN BookingSessionRules ON {$a}BcPublishLevel = 3
                          AND BdTournament = SesTournament AND BdSession = SesOrder
                     WHERE SesTournament = {$a}BcTournament AND SesType = 'Q' AND COALESCE(BdState, 1) <> 0
-                      AND " . $win("COALESCE(BdOpenFrom, {$a}BcOpenFrom)", "COALESCE(BdOpenTo, {$a}BcOpenTo)") . ")
+                      AND " . $win("COALESCE(BdOpenFrom, {$a}BcOpenFrom)", "COALESCE(BdOpenTo, {$a}BcOpenTo)") . "
+                      AND IF(TIME($start) <> '00:00:00', $start - INTERVAL " . intval(BK_ARCHER_CUTOFF_MIN) . " MINUTE, $start) > $now)
                  OR ($noSes AND $general)";
     }
     return "({$a}BcOpen = 1 AND ($open)) AS BcIsOpen,
@@ -119,6 +142,7 @@ function bk_comp_defaults($tourId)
         'BcPayInfo' => null, 'BcManualValidation' => 0, 'BcMandate' => null, 'BcShowMandate' => null,
         'BcIanseoUrl' => null, 'BcShowProgram' => 0, 'BcShowParticipants' => 0, 'BcShowResults' => 0,
         'BcShowDossard' => 0, 'BcSurvey' => 1, 'BcWaitlist' => 1, 'BcSingleReg' => 0,
+        'BcModUntilStart' => 0, 'BcCancelUntilStart' => 0,
         'BcPublishLevel' => 1, 'BcAdvancedBackup' => null, 'BcPayments' => 0,
         'BcIsOpen' => 0, 'BcAllOpen' => 1,
     );
@@ -138,7 +162,8 @@ function bk_comp_advanced_cols()
         'BcMaxPerClubPerTarget', 'BcMinClubsPerSession', 'BcMinTargetsPerSession', 'BcShowAssignment', 'BcShowGauges', 'BcAllowScoresheet',
         'BcWishLetter', 'BcWishWith', 'BcWishFree', 'BcPricing', 'BcManualValidation',
         'BcShowMandate', 'BcMandate', 'BcIanseoUrl', 'BcShowProgram', 'BcShowParticipants', 'BcShowResults',
-        'BcShowDossard', 'BcSurvey', 'BcWaitlist', 'BcPayInfo', 'BcShopUntil', 'BcSingleReg');
+        'BcShowDossard', 'BcSurvey', 'BcWaitlist', 'BcPayInfo', 'BcShopUntil', 'BcSingleReg',
+        'BcModUntilStart', 'BcCancelUntilStart');
 }
 
 /**
@@ -280,7 +305,8 @@ function bk_comp_copy_from($destTour, $srcTour, $staff = false)
         d.BcShowMandate = s.BcShowMandate, d.BcShowProgram = s.BcShowProgram,
         d.BcShowParticipants = s.BcShowParticipants, d.BcShowResults = s.BcShowResults,
         d.BcShowDossard = s.BcShowDossard, d.BcSurvey = s.BcSurvey, d.BcWaitlist = s.BcWaitlist,
-        d.BcSingleReg = s.BcSingleReg, d.BcPayments = s.BcPayments, d.BcCategories = s.BcCategories
+        d.BcSingleReg = s.BcSingleReg, d.BcPayments = s.BcPayments, d.BcCategories = s.BcCategories,
+        d.BcModUntilStart = s.BcModUntilStart, d.BcCancelUntilStart = s.BcCancelUntilStart
         WHERE d.BcTournament = $destTour");
 
     // Opening of each departure, its own dates moved by the same offset.
@@ -361,6 +387,25 @@ function bk_is_finished($toWhenTo)
     return $d !== '' && strpos($d, '0000') !== 0 && $d < bk_today();
 }
 
+/**
+ * Has the competition started? (first day <= today, server's zone like bk_is_finished). From
+ * then on an archer neither changes nor cancels a registration: the organiser has them on the
+ * targets, whatever the registration window says.
+ */
+function bk_is_started($toWhenFrom)
+{
+    $d = substr((string) $toWhenFrom, 0, 10);   // bytes: an ASCII date
+    return $d !== '' && strpos($d, '0000') !== 0 && $d <= bk_today();
+}
+
+/** Same, from a competition id (reads ToWhenFrom). */
+function bk_comp_started($tourId)
+{
+    $rs = safe_r_sql("SELECT ToWhenFrom FROM Tournament WHERE ToId = " . intval($tourId));
+    $r = safe_fetch($rs);
+    return $r ? bk_is_started($r->ToWhenFrom) : false;
+}
+
 /** Same, from a competition id (reads ToWhenTo). */
 function bk_comp_finished($tourId)
 {
@@ -430,6 +475,13 @@ function bk_comp_save($tourId, $in)
     // One registration per archer: same rule.
     if (array_key_exists('single_reg', $in)) {
         $set .= ", BcSingleReg = " . (empty($in['single_reg']) ? 0 : 1);
+    }
+    // Changing and cancelling until the departure starts: same rule.
+    if (array_key_exists('mod_until_start', $in)) {
+        $set .= ", BcModUntilStart = " . (empty($in['mod_until_start']) ? 0 : 1);
+    }
+    if (array_key_exists('cancel_until_start', $in)) {
+        $set .= ", BcCancelUntilStart = " . (empty($in['cancel_until_start']) ? 0 : 1);
     }
 
     // Detailed tariff: JSON already normalised by the caller, or NULL (single fee).
@@ -676,6 +728,7 @@ function bk_comp_apply_auto($tourId)
         . ", BcSurvey = 1"   // survey always offered at level 2: only level 3 can switch it off
         . ", BcWaitlist = 1" // same for the waiting list
         . ", BcSingleReg = 0" // and the limit to one registration (departure rules: level 3 only)
+        . ", BcModUntilStart = 0, BcCancelUntilStart = 0" // changes and cancellations: the defaults
         // ianseo.net link offered when the competition is published there; nothing to show
         // otherwise. Rebuilt, as everywhere, from ToOnlineId.
         . ", BcIanseoUrl = " . (($u = bk_ianseo_url($tourId)) === '' ? 'NULL' : StrSafe_DB($u))
@@ -766,7 +819,7 @@ function bk_comp_archer_blocked($cfg, $clubCode)
     }
     if ($ok) return '';
 
-    return bk_t($kind === 'CD' ? 'BlockedDept' : 'BlockedRegion', $code);
+    return $kind === 'CD' ? bk_t('BlockedDept', $code) : bk_t('BlockedRegion', bk_region_name($code));
 }
 
 /**

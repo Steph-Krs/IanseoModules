@@ -34,6 +34,13 @@ quelques clics. Pensé pour les serveurs ianseo accessibles en ligne.
 - 🗑️ **Supprimer mon compte** (tout archer) : efface définitivement ce qui est à venir — inscriptions
   aux compétitions pas commencées, demandes en liste d'attente, le compte ; rien de ce qui est passé
   ou en cours ne change (compétitions commencées, résultats, sommes dues).
+- 🎯 **Épreuves au choix** : à l'inscription, participer ou non aux duels (oui par défaut ; la place
+  pour les qualifications reste réservée), et s'inscrire à l'épreuve par équipe et/ou par équipe
+  mixte proposées à sa catégorie. **Modifier son inscription** jusqu'à la clôture (arme, catégorie,
+  blason, départ, épreuves, souhaits) sans perdre sa date ni ses paiements.
+- 📈 **Statistiques d'une compétition** : score volée par volée (cible par cible en parcours),
+  moyenne par flèche, zone de réussite au pourcentage choisi, répartition des flèches, comparées à la
+  compétition, à la catégorie ou à un archer de la compétition une fois les résultats publics.
 - 📅 **Calendrier** des compétitions ouvertes aux inscriptions : filtres (nom, lieu, dates,
   type) et places restantes par départ.
 - 🗺️ **Carte** des compétitions et **itinéraire** vers le lieu (Google Maps, Waze, Plans) ; avec le
@@ -79,11 +86,18 @@ quelques clics. Pensé pour les serveurs ianseo accessibles en ligne.
 
 ### Pour l'organisateur
 
-Tout se trouve dans le menu **Modules › Inscriptions en ligne**, compétition ouverte.
+Tout se trouve dans l'onglet **Inscriptions en ligne** du menu (à côté de **Modules**), compétition ouverte.
 
 - ⚙️ **Ouvrir / configurer les inscriptions** : période d'ouverture, restriction aux archers
-  d'un département ou d'une région avec **ouverture différée à tous**, tarif, et ce que les
+  du département ou de la région de l'organisateur (repris de son agrément, rien à saisir) avec
+  **ouverture différée à tous**, tarif, et ce que les
   archers ont le droit de voir.
+- 🏆 **Championnat départemental ou régional** : épreuves individuelles et, séparément, épreuves par
+  équipe réservées aux archers des clubs du département ou de la région de l'organisateur ; les
+  autres s'inscrivent et tirent sans y participer, leurs scores remontent tout de même au
+  classement national. Réglé dans le même bloc que la restriction géographique, qui explique la
+  différence.
+- ⏱️ **Modification et annulation** : par défaut jusqu'à la clôture des inscriptions (modification) et jusqu'à la veille de la compétition (annulation), ou jusqu'à 1 h avant le départ si l'organisateur le permet ; délais rappelés à l'archer. Chaque départ ferme au plus tard 1 h avant son début (la veille si l'heure n'est pas saisie) : la dernière heure appartient à l'organisateur (feuilles de marque, blasonnage).
 - 🗓️ **Ouverture départ par départ** : ouvert, fermé, ou ouvert tout seul quand les départs
   précédents sont complets, avec au besoin des dates propres à chaque départ. Option **une seule
   inscription par archer**, tous départs confondus.
@@ -146,7 +160,7 @@ Réglages facultatifs dans `config.local.json` (non versionné) :
 - **Espace licencié** (archers) : `Modules/Custom/AUTH/booking/public/` — accessible sans compte
   organisateur. Communiquez ce lien à vos licenciés ; il est rappelé sur la page d'ouverture
   des inscriptions.
-- **Tous les écrans organisateur** : menu **Modules › Inscriptions en ligne**. L'ouverture des
+- **Tous les écrans organisateur** : onglet **Inscriptions en ligne** du menu. L'ouverture des
   inscriptions et l'attribution des cibles n'apparaissent que lorsqu'une compétition est
   ouverte ; les gestionnaires de club et la mise à jour sont réservés à l'administrateur.
 
@@ -154,4 +168,4 @@ Réglages facultatifs dans `config.local.json` (non versionné) :
 
 Voir le [README général](../../README_FR.md). En résumé : copier le dossier `BOOKING/` et `_shared/`
 dans `Modules/Custom/` (ou `install.sh` / `install.ps1`). Mises à jour et désinstallation depuis
-ianseo : menu **Modules › Inscriptions en ligne › Mise à jour**.
+ianseo : menu **Modules › Multi-comptes › Mise à jour module**.

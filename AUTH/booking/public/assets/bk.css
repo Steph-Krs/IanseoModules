@@ -697,3 +697,7 @@ body.bk-modal-open { overflow:hidden; }
 #bk .bk-owed h2 { margin:0 0 6px; font-size:16px; color:#8a5a26; }
 #bk .bk-owed ul { margin:4px 0 0; padding-left:18px; }
 #bk .bk-owed li { margin:4px 0; }
+
+/* Events of the registration form (lib/events.php): one box per line, its text beside it. */
+#bk .bk-ev-chk { display: flex; gap: 8px; align-items: center; margin: 8px 0 2px; font-weight: 600; }
+#bk .bk-ev-chk .bk-hint { font-weight: 400; }

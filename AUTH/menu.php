@@ -18,10 +18,11 @@ $_aut_root   = !empty($_SESSION['AUTH_ROOT']);
 $_aut_admin  = $_aut_root
     || (empty($_SESSION['AUTH_ENABLE']) && isset($acl) && subFeatureAcl($acl, AclRoot, '') == AclReadWrite);
 
-/* ---- Modules menu: the sections of the organiser side (adm-lib.php), in the order they are
-       used — online registration | check-in, judges, food & shop, volunteers | accounts of the
-       server —, separated from each other and from the other modules. The pages show the same
-       sections in their navigation. ---- */
+/* ---- Menus: the sections of the organiser side (adm-lib.php), in the order they are used. The
+       competition's — online registration | check-in, judges, food & shop, volunteers — in a tab of
+       their own just before Modules (user's request, 2026-11-16); the accounts of the server stay
+       under Modules, separated from the other modules. The pages show the same sections in their
+       navigation. ---- */
 if ($_aut_vol) {
     // What the menus hold so far (the core's, its modules', the sets'); the modules after this one
     // are cut in the browser by the bar's script.
@@ -31,10 +32,22 @@ if ($_aut_vol) {
         return isset($acl) && function_exists('subFeatureAcl') && subFeatureAcl($acl, $f, $sub) >= $lvl;
     };
     $_aut_others = count(glob(dirname(__DIR__) . '/*/menu.php') ?: array()) > 1;
-    foreach (aut_adm_menu($_aut_can, !empty($on) ? intval($_SESSION['TourId'] ?? 0) : 0, $_aut_admin, $_aut_logged, $_aut_others) as $_aut_k => $_aut_v) {
+    $_aut_tour = !empty($on) ? intval($_SESSION['TourId'] ?? 0) : 0;
+    foreach (aut_adm_menu($_aut_can, $_aut_tour, $_aut_admin, $_aut_logged, $_aut_others) as $_aut_k => $_aut_v) {
         if (is_int($_aut_k)) $ret['MODS'][] = $_aut_v; else $ret['MODS'][$_aut_k] = $_aut_v;
     }
-    unset($_aut_can, $_aut_others, $_aut_k, $_aut_v);
+    $_aut_tab = aut_adm_tab($_aut_can, $_aut_tour, $_aut_admin, $_aut_logged);
+    if ($_aut_tab) {
+        // Same level as the core's tabs, right before Modules.
+        $_aut_menus = array();
+        foreach ($ret as $_aut_k => $_aut_v) {
+            if ($_aut_k === 'MODS') $_aut_menus['AUT_COMP'] = $_aut_tab;
+            $_aut_menus[$_aut_k] = $_aut_v;
+        }
+        if (!isset($_aut_menus['AUT_COMP'])) $_aut_menus['AUT_COMP'] = $_aut_tab;
+        $ret = $_aut_menus;
+    }
+    unset($_aut_can, $_aut_others, $_aut_k, $_aut_v, $_aut_tour, $_aut_tab, $_aut_menus);
 }
 
 /* ---- Competitions created only through SYNCHRO_FFTA (option, lib.php): the core's "New" is

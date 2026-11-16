@@ -110,7 +110,9 @@ foreach (array_reverse($all) as $r) {
     }
     $out .= '<tr class="' . ($isRec ? 'rec' : '') . (!$r['complete'] ? ' inc' : '') . '">'
         . '<td>' . bk_e(bk_date_fr($r['date'])) . '</td>'
-        . '<td>' . bk_e($r['name']) . ($r['where'] !== '' ? '<br><small>' . bk_e($r['where']) . '</small>' : '')
+        // A shoot of this server: its own statistics (lib/compstats.php).
+        . '<td>' . (!empty($r['enid']) ? '<a href="' . bk_e(bk_public_url('stats-comp.php?e=' . intval($r['enid']))) . '">' . bk_e($r['name']) . '</a>' : bk_e($r['name']))
+        . ($r['where'] !== '' ? '<br><small>' . bk_e($r['where']) . '</small>' : '')
         . ($from ? '<br><small class="pal">' . bk_e(implode(' · ', $from)) . '</small>' : '') . '</td>'
         . '<td>' . bk_e($r['clsName']) . '</td>'
         . '<td class="num"><b>' . intval($r['score']) . '</b>' . ($honours && $r['honours'] !== null ? '<br><small>' . bk_e(bk_t('DistHonours', $r['honours'])) . '</small>' : '')

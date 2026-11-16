@@ -95,7 +95,6 @@ function bk_mandate_pdf_draw($pdf, $data, $m, $ctx)
     $light = bk_mandate_rgb($pal['light']);
     $dark = bk_mandate_rgb($pal['dark']);
     $on = bk_mandate_rgb($pal['on']);
-    $grey = array(76, 78, 80);
     $regUrl = (string) ($ctx['regUrl'] ?? '');
     $shopUrl = (string) ($ctx['shopUrl'] ?? '');
 
@@ -205,6 +204,50 @@ function bk_mandate_pdf_draw($pdf, $data, $m, $ctx)
         $pdf->SetXY($left, $y + $h + 1);
     };
 
+    // Height (mm) of an HTML block written at $size points over the text width, measured on a scratch
+    // page tall enough never to break. A separate document: writeHTML() opens transactions of its own
+    // (rows kept together), and opening one commits any transaction around it.
+    $measure = function ($markup, $size) use ($pdf, $W) {
+        $m = new TCPDF('P', 'mm', array($W + 2, 3000), true, 'UTF-8', false);
+        $m->setPrintHeader(false);
+        $m->setPrintFooter(false);
+        $m->SetMargins(1, 0, 1);
+        $m->SetAutoPageBreak(false);
+        $pad = $pdf->getCellPaddings();
+        $m->setCellPaddings($pad['L'], $pad['T'], $pad['R'], $pad['B']);
+        $m->setCellHeightRatio($pdf->getCellHeightRatio());
+        $m->AddPage();
+        $m->SetFont($pdf->FontStd, '', $size);
+        $m->SetY(0);
+        $m->writeHTML($markup, true, false, true, false, '');
+        return $m->GetY();
+    };
+
+    // Writes a table — with its heading — WHOLE on one page: on the next page when what is left of
+    // this one is too short, in a smaller font (3 points at most) when it is longer than a whole page.
+    $whole = function ($markup, $size, $heading = '') use ($pdf, $measure, $html, $esc, $left) {
+        $bottom = $pdf->getPageHeight() - $pdf->getBreakMargin();
+        $usable = $bottom - $pdf->getMargins()['top'];
+        $head = $heading !== '' ? 8 : 0;
+        $h = $measure($markup, $size);
+        for ($s = $size; $head + $h > $usable && $s > $size - 3;) $h = $measure($markup, --$s);
+        if ($pdf->GetY() + $head + $h > $bottom && $pdf->GetY() > $pdf->getMargins()['top'] + 2) $pdf->AddPage();
+        if ($heading !== '') { $pdf->Ln(1.5); $html('<b>' . $esc($heading) . '</b>'); $pdf->Ln(1); }
+        $pdf->SetFont($pdf->FontStd, '', $s);
+        $pdf->SetTextColor(32, 38, 61);
+        $pdf->SetX($left);
+        $pdf->writeHTML($markup, true, false, true, false, '');
+        $pdf->SetDefaultColor();
+    };
+
+    // Label of a list of chips, never alone at the bottom of a page: a line of chips goes with it.
+    $chipsHead = function ($label) use ($pdf, $html, $esc) {
+        if ($pdf->GetY() > $pdf->getPageHeight() - 36) $pdf->AddPage();   // $chips breaks at 25 mm from the bottom
+        $pdf->Ln(1.5);
+        $html('<b>' . $esc($label) . '</b>');
+        $pdf->Ln(1);
+    };
+
     // Free text block of the organiser.
     // Links, e-mail addresses and phone numbers clickable, as on screen.
     $block = function ($key) use ($pdf, $m, $h2, $fs, $esc, $left, $data, $hex, $dark) {
@@ -218,40 +261,30 @@ function bk_mandate_pdf_draw($pdf, $data, $m, $ctx)
         $pdf->writeHTML('<span style="color:#20263d">' . $text . '</span>', true, false, true, false, '');
     };
 
-    // Title of the document.
-    $sub = $data['discLabel'] . ($t->ToWhere ? ' — ' . $t->ToWhere : '') . ' — ' . bk_date_range($t->ToWhenFrom, $t->ToWhenTo);
-    $org = array();
-    if ($t->ToComDescr) $org[] = bk_t('OrganisedBy', $t->ToComDescr);
-    if ($data['region']) $org[] = $data['region'];
-    $titleSize = $compact ? 16 : ($tpl === 'moderne' ? 21 : 19);
+    // Head of the document. The core header already prints, on every page, the competition's name,
+    // the organiser with its code, the place and the dates (IanseoPdf::Header): only what it does
+    // not say is written here — the discipline and the region.
+    $lead = array();
+    if ($data['discLabel'] !== '') $lead[] = $data['discLabel'];
+    if ($data['region']) $lead[] = $data['region'];
     $align = $tpl === 'moderne' ? 'L' : 'C';
-    $pdf->Ln(2);
-    $y0 = $pdf->GetY();
-    if ($tpl === 'bandeau') {
-        $pdf->SetFont($pdf->FontStd, 'B', $titleSize);
-        $hTitle = $pdf->getNumLines(bk_mandate_pdf_text($t->ToName), $W - 10) * ($titleSize * 0.47);
-        $pdf->SetFont($pdf->FontStd, '', 11);
-        $hSub = $pdf->getNumLines(bk_mandate_pdf_text($sub), $W - 10) * 5.2 + ($org ? 5 : 0);
-        $pdf->SetFillColorArray($pri);
-        $pdf->Rect($left, $y0, $W, $hTitle + $hSub + 9, 'F');
-        $pdf->SetTextColorArray($on);
-        $pdf->SetXY($left + 5, $y0 + 4);
-    } else {
-        $pdf->SetTextColorArray($dark);
+    $pdf->Ln(1);
+    if ($lead) {
+        $leadTxt = bk_mandate_pdf_text(implode(' — ', $lead));
+        $pdf->SetFont($pdf->FontStd, 'B', $compact ? 11 : 12);
+        if ($tpl === 'bandeau') {
+            $y0 = $pdf->GetY();
+            $hLead = $pdf->getNumLines($leadTxt, $W - 10) * 5.6;
+            $pdf->SetFillColorArray($pri);
+            $pdf->Rect($left, $y0, $W, $hLead + 4, 'F');
+            $pdf->SetTextColorArray($on);
+            $pdf->MultiCell($W - 10, 5.6, $leadTxt, 0, $align, false, 1, $left + 5, $y0 + 2);
+            $pdf->SetY($y0 + $hLead + 5);
+        } else {
+            $pdf->SetTextColorArray($dark);
+            $pdf->MultiCell($W, 5.6, $leadTxt, 0, $align, false, 1, $left);
+        }
     }
-    $pdf->SetFont($pdf->FontStd, 'B', $titleSize);
-    $pdf->MultiCell($tpl === 'bandeau' ? $W - 10 : $W, $titleSize * 0.47, bk_mandate_pdf_text($t->ToName), 0, $align, false, 1,
-        $tpl === 'bandeau' ? $left + 5 : $left);
-    if ($tpl !== 'bandeau') $pdf->SetTextColorArray($grey);
-    $pdf->SetFont($pdf->FontStd, '', 11);
-    $pdf->MultiCell($tpl === 'bandeau' ? $W - 10 : $W, 5.2, bk_mandate_pdf_text($sub), 0, $align, false, 1,
-        $tpl === 'bandeau' ? $left + 5 : $left);
-    if ($org) {
-        $pdf->SetFont($pdf->FontStd, '', 9.5);
-        $pdf->MultiCell($tpl === 'bandeau' ? $W - 10 : $W, 5, bk_mandate_pdf_text(implode(' — ', $org)), 0, $align, false, 1,
-            $tpl === 'bandeau' ? $left + 5 : $left);
-    }
-    if ($tpl === 'bandeau') $pdf->SetY($pdf->GetY() + 4);
     // Itinerary links (navigation applications), clickable in the PDF.
     if (!empty($data['itinerary'])) {
         $links = array();
@@ -329,11 +362,8 @@ function bk_mandate_pdf_draw($pdf, $data, $m, $ctx)
                 $t .= '</tr>';
             }
             $t .= '</table>';
-            $pdf->SetFont($pdf->FontStd, '', $fs - 0.5);
-            $pdf->SetTextColor(32, 38, 61);
-            $pdf->SetX($left);
-            $pdf->writeHTML('<style>th{background-color:' . $hex($light) . ';color:' . $hex($dark) . ';font-weight:bold;}'
-                . ' td{border-bottom:0.2px solid #e3e6ea;}</style>' . $t, true, false, true, false, '');
+            $whole('<style>th{background-color:' . $hex($light) . ';color:' . $hex($dark) . ';font-weight:bold;}'
+                . ' td{border-bottom:0.2px solid #e3e6ea;}</style>' . $t, $fs - 0.5);
             if ($ft['notes']) {
                 $pdf->Ln(1);
                 $html('<b>' . $esc(bk_t('MnFeeAdjustTitle')) . '</b>');
@@ -398,26 +428,28 @@ function bk_mandate_pdf_draw($pdf, $data, $m, $ctx)
         $st = array('head' => $hex($light), 'cell' => '#ffffff', 'line' => '#c9ced6', 'duel' => $hex($pri), 'on' => $hex($on), 'pdf' => true);
         $grids = array(array('MnEventsInd', $data['eventGrid'], false), array('MnEventsTeam', $data['teamGrid'], true));
         $any = $data['eventGrid'] || $data['teamGrid'] || $data['events'] || $data['divisions'] || $data['classes'] || $data['faces'];
-        if ($any) $h2(bk_t('MnEventsTitle'));
+        // The section heading goes with its first table (moved to the next page with it).
+        $first = $data['eventGrid'] ?: $data['teamGrid'];
+        $need = 45;
+        if ($first) {
+            $usable = $pdf->getPageHeight() - $pdf->getBreakMargin() - $pdf->getMargins()['top'];
+            $need = min($usable, 8 + $measure(bk_mandate_pdf_text(bk_mandate_event_grid_html($first, $st)), $fs - 2) + 12);
+        }
+        if ($any) $h2(bk_t('MnEventsTitle'), $need);
         foreach ($grids as $g) {
             if ($g[1]) {
-                $pdf->Ln(1.5); $html('<b>' . $esc(bk_t($g[0])) . '</b>'); $pdf->Ln(1);
-                $pdf->SetFont($pdf->FontStd, '', $fs - 2);
-                $pdf->SetTextColor(32, 38, 61);
-                $pdf->SetX($left);
-                $pdf->writeHTML(bk_mandate_pdf_text(bk_mandate_event_grid_html($g[1], $st)), true, false, true, false, '');
-                $pdf->SetDefaultColor();
+                $whole(bk_mandate_pdf_text(bk_mandate_event_grid_html($g[1], $st)), $fs - 2, bk_t($g[0]));
                 continue;
             }
             // Events without any class to show: their names, as before.
             $list = array();
             foreach ($data['events'] as $ev) if ($ev['team'] === $g[2]) $list[] = $ev['name'] . ($ev['duels'] ? ' · ' . bk_t('MnDuels') : '');
-            if ($list) { $pdf->Ln(1.5); $html('<b>' . $esc(bk_t($g[0])) . '</b>'); $pdf->Ln(1); $chips($list); }
+            if ($list) { $chipsHead(bk_t($g[0])); $chips($list); }
         }
         if (!$data['events']) {
-            if ($data['divisions']) { $pdf->Ln(1.5); $html('<b>' . $esc(bk_t('MnBows')) . '</b>'); $pdf->Ln(1); $chips($data['divisions']); }
-            if ($data['classes']) { $pdf->Ln(1.5); $html('<b>' . $esc(bk_t('MnClasses')) . '</b>'); $pdf->Ln(1); $chips($data['classes']); }
+            if ($data['divisions']) { $chipsHead(bk_t('MnBows')); $chips($data['divisions']); }
+            if ($data['classes']) { $chipsHead(bk_t('MnClasses')); $chips($data['classes']); }
         }
-        if ($data['faces']) { $pdf->Ln(1.5); $html('<b>' . $esc(bk_t('MnFaces')) . '</b>'); $pdf->Ln(1); $chips($data['faces']); }
+        if ($data['faces']) { $chipsHead(bk_t('MnFaces')); $chips($data['faces']); }
     }
 }

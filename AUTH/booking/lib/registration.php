@@ -18,6 +18,7 @@ require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/competition.php';
 require_once __DIR__ . '/sessionrules.php';   // bk_session_states
 require_once __DIR__ . '/archer.php';   // bk_lookup_licence, bk_clean_licence
+require_once __DIR__ . '/events.php';   // duels and team events chosen by the archer
 
 // Core ianseo functions used to write a registration and start the recomputations. Loaded by
 // relative path: config.php adds htdocs to the include_path, so these files include each
@@ -193,7 +194,7 @@ function bk_authored_registrations($archerId, $selfLicence)
     if ($archerId <= 0) return array();
 
     $rs = safe_r_sql("SELECT BrId, BrEnId, BrTournament, BrLicence, BrCreated, BrValidated, BrLicHold, BrHoldSession, BrHoldReason,
-                EnFirstName, EnName, EnCode, EnDivision, EnClass, EnIndClEvent,
+                EnFirstName, EnName, EnCode, EnDivision, EnClass, EnIndClEvent, EnIndFEvent, EnTeamFEvent, EnTeamMixEvent,
                 QuSession, QuTarget, QuLetter,
                 DivDescription, ClDescription,
                 ToName, ToWhere, ToVenue, ToWhenFrom, ToWhenTo,
@@ -249,10 +250,23 @@ function bk_reg_session_left($tourId, $order)
  *
  * Checked again by the server when writing: the calendar informs, it does not authorise.
  */
-function bk_reg_blocked($tourId, $cfg, $licence, $clubCode, $division, $class, $sessionOrder, $lue = null, $ignoreFull = false)
+function bk_reg_blocked($tourId, $cfg, $licence, $clubCode, $division, $class, $sessionOrder, $lue = null, $ignoreFull = false, $except = 0)
 {
     // $ignoreFull: every rule but "this departure is full" — used to join the waiting list.
-    if (empty($cfg->BcIsOpen)) return bk_t('ClubRegsNotOpen');
+    // $except: the registration being changed (bk_reg_modify), which does not count against itself.
+    $except = intval($except);
+    $others = array_values(array_filter(bk_reg_existing($tourId, $licence), function ($e) use ($except) {
+        return intval($e->EnId) !== $except;
+    }));
+    $stayOn = false;   // the registration changed keeps its departure: its place is already its own
+    if ($except) {
+        foreach (bk_reg_existing($tourId, $licence) as $e) {
+            if (intval($e->EnId) === $except && intval($e->QuSession) === intval($sessionOrder)) $stayOn = true;
+        }
+    }
+    // A registration being changed after the registration closed, when the organiser allows it
+    // until the departure starts (BcModUntilStart): bk_reg_modifiable() already decided.
+    if (empty($cfg->BcIsOpen) && !($except && !empty($cfg->BcModUntilStart))) return bk_t('ClubRegsNotOpen');
 
     // A finished competition can no longer be registered for, even if the registration window
     // was left open past its date.
@@ -289,21 +303,22 @@ function bk_reg_blocked($tourId, $cfg, $licence, $clubCode, $division, $class, $
 
     // One registration per archer (option of level 3): any entry of this licence counts, made
     // here or typed by the organiser in ianseo.
-    if (!empty($cfg->BcSingleReg) && bk_reg_existing($tourId, $licence)) return bk_t('RgSingleOnly');
+    if (!empty($cfg->BcSingleReg) && $others) return bk_t('RgSingleOnly');
 
     // Departure closed, not open yet or waiting for the earlier ones (lib/sessionrules.php) —
     // the waiting list included.
     $st = bk_session_states($tourId, $cfg);
-    if (isset($st[intval($sessionOrder)]) && !$st[intval($sessionOrder)]['open']) {
+    if (isset($st[intval($sessionOrder)]) && !$st[intval($sessionOrder)]['open']
+        && !($except && bk_session_open_for_change($tourId, $cfg, $st[intval($sessionOrder)]))) {
         return bk_t('RgDepClosed') . ' ' . bk_session_state_text($st[intval($sessionOrder)]);
     }
 
     $left = bk_reg_session_left($tourId, $sessionOrder);
     if ($left < 0)  return bk_t('WlNoDep');
-    if ($left === 0 && !$ignoreFull) return bk_t('RgDepFull');
+    if ($left === 0 && !$ignoreFull && !$stayOn) return bk_t('RgDepFull');
 
     // Rule: never two shoots for one archer on the same departure.
-    foreach (bk_reg_existing($tourId, $licence) as $e) {
+    foreach ($others as $e) {
         if (intval($e->QuSession) === intval($sessionOrder)) {
             return bk_t('RgAlreadyDep');
         }
@@ -356,13 +371,15 @@ function bk_reg_club_id($tourId, $code, $name)
 /* ------------------------------------------------------------------ */
 /* Several shoots of one archer with one weapon                        */
 /* ------------------------------------------------------------------ */
-// Only the FIRST SHOOT OF THE COMPETITION takes part in the events (ranking, teams, finals);
-// any other shoot with the same weapon is an extra shoot, out of the events — otherwise the
-// archer would be ranked twice. "First" is in the order of the competition, not of the
-// registrations: registered on departure 2, then adding departure 1, it is departure 1 that
-// counts and departure 2 becomes the extra shoot. Another weapon has its own events.
 
-/** Event flags of Entries, moved together from one shoot to another. */
+// Rule (user's, corrected 2026-11-16): with a given weapon, only the FIRST shoot of the competition
+// carries the events (duels, team events); every shoot keeps "Tir Ind." (EnIndClEvent) on — five
+// switches at 0 break ianseo. "First" is in the order of the competition, not of the
+// registrations: registered on departure 2, then adding departure 1, it is departure 1 that
+// carries them. Another weapon has its own events. The switches are put in order by
+// bk_events_normalise (lib/events.php).
+
+/** Event switches of Entries. */
 function bk_event_cols()
 {
     return array('EnIndClEvent', 'EnTeamClEvent', 'EnIndFEvent', 'EnTeamFEvent', 'EnTeamMixEvent');
@@ -389,7 +406,7 @@ function bk_shoots_in_order($tourId, $code, $division)
     return $out;
 }
 
-/** Sets the event flags of a shoot of competition $tourId (array col => 0/1). */
+/** Sets the event switches of a shoot of competition $tourId (array col => 0/1). */
 function bk_event_flags_set($tourId, $enId, $flags)
 {
     $set = array();
@@ -399,36 +416,24 @@ function bk_event_flags_set($tourId, $enId, $flags)
 }
 
 /**
- * Gives the events to the first shoot of the competition (see above). The shoot that took
- * part hands its flags over as they are (the organiser may have taken the archer out of the
- * team or final events) and becomes an extra shoot. Returns the EnId that lost the events,
- * or 0 when nothing moved. When no shoot takes part (organiser's choice), nothing moves.
- */
-function bk_events_to_first_shoot($tourId, $code, $division)
-{
-    $shoots = bk_shoots_in_order($tourId, $code, $division);
-    if (count($shoots) < 2 || intval($shoots[0]->EnIndClEvent) === 1) return 0;
-    foreach ($shoots as $s) {
-        if (intval($s->EnIndClEvent) !== 1) continue;
-        bk_event_flags_set($tourId, $shoots[0]->EnId, (array) $s);
-        bk_event_flags_set($tourId, $s->EnId, array());
-        return intval($s->EnId);
-    }
-    return 0;
-}
-
-/**
- * A shoot is removed: if it took part in the events ($old: its EnCode, EnDivision and flags,
- * read before removal), the first remaining shoot of the competition with the same weapon
- * takes them over, with the same flags. Returns the EnId promoted, or 0.
+ * A shoot is removed ($old: its EnCode, EnDivision and switches, read before removal): what it
+ * carried goes to the first remaining shoot of the competition with the same weapon — otherwise
+ * the archer would leave the events while still registered. Recalculates what changed; to call
+ * with the competition's session open. Returns [EnId => switches changed].
  */
 function bk_events_after_removal($tourId, $old)
 {
-    if (!$old || intval($old->EnIndClEvent ?? 0) !== 1) return 0;
+    if (!$old || (string) ($old->EnCode ?? '') === '') return array();
     $shoots = bk_shoots_in_order($tourId, $old->EnCode, $old->EnDivision);
-    if (!$shoots) return 0;
-    bk_event_flags_set($tourId, $shoots[0]->EnId, (array) $old);
-    return intval($shoots[0]->EnId);
+    if (!$shoots) return array();
+    $carry = array();
+    foreach (bk_ev_carry_cols() as $c) {
+        $carry[$c] = intval($old->$c ?? 0);
+        foreach ($shoots as $s) if (intval($s->$c) === 1) $carry[$c] = 1;
+    }
+    $changed = bk_events_normalise($tourId, $old->EnCode, $old->EnDivision, $carry);
+    if ($changed) bk_events_recalc($tourId, $changed);
+    return $changed;
 }
 
 /**
@@ -470,8 +475,11 @@ function bk_wheelchair_set($licence, $on)
  *
  * $lue     : LookUpEntries record (federation identity)
  * $by      : ['role'=>'SELF'|'MANAGER', 'who'=>identifier, 'archer'=>BaId]
- * $opts    : face, letter, with, wheelchair (default: the archer's account); skip_capacity (re-import, organiser registering by hand from the
- *            waiting list); from_wait (the waiting list serving one of its rows)
+ * $opts    : face, letter, with, wheelchair (default: the archer's account); events (choices
+ *            BK_EV_*, lib/events.php; absent or null: those of the archer's other shoots with
+ *            this weapon, else the defaults — duels yes, team events no); skip_capacity
+ *            (re-import, organiser registering by hand from the waiting list); from_wait (the
+ *            waiting list serving one of its rows)
  *
  * Under the competition's lock (bk_reg_lock): a direct registration first lets the waiting list
  * take the places freed (whoever freed them: an archer, the organiser in ianseo), then the
@@ -585,17 +593,19 @@ function bk_register_write($tourId, $lue, $division, $class, $sessionOrder, $req
             }
         }
 
-        // Events: with the same weapon, only the first shoot of the competition takes part
-        // (see bk_events_to_first_shoot). Inserted out of the events when another shoot
-        // already takes part; moved just below if this one comes first in the competition.
-        $rs = safe_r_sql("SELECT COUNT(*) AS n FROM Entries
-            WHERE EnTournament = $tourId
-              AND EnCode = " . StrSafe_DB($lue->LueCode) . "
-              AND EnDivision = " . StrSafe_DB($division) . "
-              AND EnAthlete = 1
-              AND EnIndClEvent = 1");
-        $r = safe_fetch($rs);
-        $ev = ($r && intval($r->n) > 0) ? 0 : 1;
+        // Events (lib/events.php): what the archer chose, within what the category is offered
+        // and the championship's area. Inserted with "Tir Ind." alone; bk_events_normalise then
+        // gives the choices to the first shoot of the competition with this weapon.
+        $offer = bk_ev_offer($tourId, $division, $class, $lue->LueCountry);
+        $evOpts = (isset($opts['events']) && $opts['events'] !== null) ? bk_ev_opts_clean($offer, $opts['events']) : null;
+        $sameBow = bk_shoots_in_order($tourId, $lue->LueCode, $division);
+        if ($evOpts !== null) {
+            $carry = bk_ev_flags($offer, $evOpts);
+        } elseif ($sameBow) {
+            $carry = null;   // kept as the other shoots carry them
+        } else {
+            $carry = bk_ev_flags($offer, 0);
+        }
 
         $sql = "EnTournament = $tourId,
             EnDivision = "   . StrSafe_DB($division) . ",
@@ -613,8 +623,8 @@ function bk_register_write($tourId, $lue, $division, $class, $sessionOrder, $req
             EnTargetFace = $face,
             EnWChair = $wheel,
             EnStatus = 1,
-            EnIndClEvent = $ev, EnTeamClEvent = $ev,
-            EnIndFEvent = $ev, EnTeamFEvent = $ev, EnTeamMixEvent = $ev";
+            EnIndClEvent = 1, EnTeamClEvent = 0,
+            EnIndFEvent = 0, EnTeamFEvent = 0, EnTeamMixEvent = 0";
 
         safe_w_sql("INSERT INTO Entries SET EnTimestamp = '$now', EnMainInfoUpdate = '$now', $sql");
         $enId = intval(safe_w_last_id());
@@ -636,21 +646,27 @@ function bk_register_write($tourId, $lue, $division, $class, $sessionOrder, $req
         safe_w_sql("INSERT INTO Qualifications (QuId, QuSession, QuTarget, QuLetter) VALUES ($enId, "
             . intval($sessionOrder) . ", 0, '')");
 
-        // Registered on a departure before an existing shoot with the same weapon: this one
-        // now takes part in the events, the other becomes the extra shoot.
-        $lost = bk_events_to_first_shoot($tourId, $lue->LueCode, $division);
+        // The events go to the first shoot of the competition with this weapon — this one, or
+        // an earlier departure registered before.
+        if ($carry === null) {
+            $carry = array_fill_keys(bk_ev_carry_cols(), 0);
+            foreach ($sameBow as $sb) foreach (bk_ev_carry_cols() as $c) if (intval($sb->$c) === 1) $carry[$c] = 1;
+            $carry = bk_ev_constrain($offer, $carry);
+        }
+        $changed = bk_events_normalise($tourId, $lue->LueCode, $division, $carry);
 
         // Core recalculation hooks, as Partecipants/PopEdit.php does — without them rankings
-        // and teams stay out of date. Also for the shoot that lost the events.
+        // and teams stay out of date. Then those of the event switches changed on the other
+        // shoots (as the core's event access screen does).
         $rs = safe_r_sql("SELECT ToNumDist FROM Tournament WHERE ToId = $tourId");
         $t = safe_fetch($rs);
-        foreach (array_unique(array_filter(array($enId, $lost))) as $recalcId) {
-            $p = Params4Recalc($recalcId);
-            if ($p === false) continue;
+        $p = Params4Recalc($enId);
+        if ($p !== false) {
             list($indF, $teamF, $country, $div, $cl, $subCl, $zero) = $p;
             RecalculateShootoffAndTeams($indF, $teamF, $country, $div, $cl, $subCl, $zero);
             if ($t) for ($i = 0; $i < intval($t->ToNumDist); $i++) CalcQualRank($i, $div . $cl);
         }
+        if ($changed) bk_events_recalc($tourId, $changed);
         MakeIndAbs();
         checkAgainstLUE($enId);
 
@@ -688,8 +704,13 @@ function bk_register_write($tourId, $lue, $division, $class, $sessionOrder, $req
             BrDivision = " . StrSafe_DB($division) . ",
             BrClass = "    . StrSafe_DB($class) . ",
             BrSession = "  . intval($sessionOrder) . ",
-            BrFace = $face");
+            BrFace = $face,
+            BrEvOpts = " . ($evOpts === null ? 'NULL' : intval($evOpts)));
 
+        if ($evOpts !== null) bk_events_store_opts($tourId, $lue->LueCode, $division, $evOpts);
+
+        $first = $sameBow ? bk_shoots_in_order($tourId, $lue->LueCode, $division) : array();
+        $ev = (!$first || intval($first[0]->EnId) === $enId) ? 1 : 0;
         return array('ok' => true, 'enid' => $enId, 'event' => $ev, 'validated' => $validated);
     });
 }
@@ -713,28 +734,35 @@ function bk_unregister($enId, $archerId, $licence, $force = false)
         INNER JOIN Entries ON EnId = BrEnId
         WHERE BrEnId = $enId");
     $r = safe_fetch($rs);
-    if (!$r) return array('ok' => false, 'msg' => "Inscription introuvable.");
-    // Registration taken from an import (entered outside the module by the organiser): visible in
-    // the archer's space, but NOT cancellable by them — the rule "an archer never deletes a
-    // participant entered by the organiser" holds despite the takeover.
-    if ((string) $r->BrByRole === 'IMPORT') {
-        return array('ok' => false, 'msg' => bk_t('RgByOrganiser'));
+    // A participation the organiser entered in ianseo: the archer cancels it under the same rules
+    // as an online registration (user's rule) — the organiser keeps every right in ianseo.
+    $org = false;
+    if (!$r) {
+        $r = bk_reg_org_row($enId, $licence);
+        $org = (bool) $r;
     }
+    if (!$r) return array('ok' => false, 'msg' => bk_t('RgModMissing'));
     $isOwn    = bk_clean_licence($r->BrLicence) === bk_clean_licence($licence);
-    $isAuthor = $archerId > 0 && intval($r->BrArcher) === $archerId;
+    // An entry of the organiser (taken over at a re-import, or read live) has no author.
+    $isAuthor = (string) $r->BrByRole !== 'IMPORT' && $archerId > 0 && intval($r->BrArcher) === $archerId;
     if (!$isOwn && !$isAuthor) {
         return array('ok' => false, 'msg' => bk_t('NotYourReg'));
     }
 
     $tourId = intval($r->BrTournament);
+    // Until when (bk_change_window): by default the eve of the competition, with
+    // BcCancelUntilStart until the departure starts — whatever the registration window says.
+    // Deleting one's account follows the same limit: what has started stays.
     $cfg    = bk_comp_config($tourId);
-    if (empty($cfg->BcIsOpen) && !$force) {
-        return array('ok' => false, 'msg' => bk_t('RgClosed'));
+    $ses    = safe_fetch(safe_r_sql("SELECT QuSession FROM Qualifications WHERE QuId = $enId"));
+    $w      = bk_change_window($tourId, $cfg, $ses ? intval($ses->QuSession) : 0);
+    if (!$w['cancel']['ok']) {
+        return array('ok' => false, 'msg' => bk_t(bk_comp_started($tourId) ? 'RgStarted' : 'RgCancelClosed'));
     }
 
     if (!bk_reg_remove($tourId, $enId)) return array('ok' => false, 'msg' => bk_t('RgLocked'));
 
-    safe_w_sql("DELETE FROM BookingRegistrations WHERE BrEnId = $enId");
+    if (!$org) safe_w_sql("DELETE FROM BookingRegistrations WHERE BrEnId = $enId");
     return array('ok' => true);
 }
 
@@ -777,12 +805,39 @@ function bk_reg_remove($tourId, $enId)
 }
 
 /**
+ * A participation the organiser entered in ianseo (no BookingRegistrations row) for the licence
+ * $licence, shaped like a row of BookingRegistrations joined to Entries and Qualifications
+ * (BrByRole 'IMPORT', no author, validated, no wish; BkOrgEntry = 1) — so that the archer changes
+ * and cancels it under the same rules as an online registration. Only on a competition the archer
+ * sees in their space (bk_my_registrations). Nothing is written into BookingRegistrations: the
+ * module keeps leaving the organiser's entries alone (placement, licence check, club moves).
+ * null when $enId is not such an entry of this licence.
+ */
+function bk_reg_org_row($enId, $licence)
+{
+    $r = safe_fetch(safe_r_sql("SELECT EnId AS BrEnId, EnTournament AS BrTournament, EnCode AS BrLicence,
+            0 AS BrArcher, 'IMPORT' AS BrByRole, NULL AS BrLicHold, 1 AS BrValidated,
+            '' AS BrRequest, '' AS BrWantLetter, '' AS BrWantWith, NULL AS BrEvOpts, 1 AS BkOrgEntry,
+            EnCode, EnDivision, EnClass, EnTargetFace, EnWChair, " . implode(', ', bk_event_cols()) . ",
+            QuSession, QuTarget, QuLetter
+        FROM Entries
+        INNER JOIN Qualifications ON QuId = EnId
+        INNER JOIN BookingCompetitions ON BcTournament = EnTournament
+        LEFT JOIN BookingRegistrations ON BrEnId = EnId
+        WHERE EnId = " . intval($enId) . " AND EnAthlete = 1 AND BrEnId IS NULL
+          AND EnCode = " . StrSafe_DB(bk_clean_licence($licence)) . "
+          AND (BcPublishLevel >= 2 OR BcPayments = 1)"));
+    return $r ?: null;
+}
+
+/**
  * Registrations of an archer (all competitions), the most recent first.
  *
  * Besides the online registrations (BookingRegistrations), the participations the organiser
  * entered in ianseo itself (participants list, import…) for this licence are listed too, as
- * BrByRole='IMPORT' rows (shown "by the organiser", never cancellable by the archer — see
- * bk_unregister). They are READ LIVE from Entries, never written into BookingRegistrations: a row
+ * BrByRole='IMPORT' rows (shown "by the organiser"; the archer changes and cancels them under the
+ * same rules as their online registrations — bk_reg_org_row). They are READ LIVE from Entries,
+ * never written into BookingRegistrations: a row
  * there means "online registration handled by the module" for the placement, the licence check,
  * the club moves and the trust index, which must keep leaving the organiser's entries alone.
  * Reading live also follows a change of departure or a deletion made in ianseo at once. Only
@@ -792,13 +847,15 @@ function bk_my_registrations($licence)
 {
     bk_schema();
     $lic = StrSafe_DB(bk_clean_licence($licence));
-    $cols = "EnDivision, EnClass, EnIndClEvent, EnTargetFace,
+    $cols = "EnDivision, EnClass, EnIndClEvent, EnIndFEvent, EnTeamFEvent, EnTeamMixEvent, EnTargetFace,
                 QuSession, QuTarget, QuLetter,
                 DivDescription, ClDescription,
                 ToName, ToWhere, ToVenue, ToWhenFrom, ToWhenTo,
                 ToType, ToTypeName, ToTypeSubRule,
                 BcShowAssignment, BcAllowScoresheet, BcFee, BcMandate, BcShowMandate, BcIanseoUrl,
                 BcShowProgram, BcShowParticipants, BcShowResults, BcPublishLevel,
+                (TRIM(CONCAT(QuD1Arrowstring, QuD2Arrowstring, QuD3Arrowstring, QuD4Arrowstring,
+                    QuD5Arrowstring, QuD6Arrowstring, QuD7Arrowstring, QuD8Arrowstring)) <> '') AS BkHasArrows,
                 " . bk_comp_calc_sql();
     $joins = "INNER JOIN Qualifications ON QuId = EnId
         LEFT  JOIN Divisions      ON DivTournament = ToId AND DivId = EnDivision

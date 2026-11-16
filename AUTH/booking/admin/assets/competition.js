@@ -58,7 +58,7 @@
     each('[data-lvl]', function (p) {
       var vis = p.getAttribute('data-lvl').split(' ').indexOf(l) >= 0;
       var t = p.getAttribute('data-tab');
-      if (vis && t && bar) vis = t === tab;
+      if (vis && t && bar) vis = t.split(' ').indexOf(tab) >= 0;   // a block may sit in a tab of each level
       if (vis && t === 'tariffs' && l === '1') vis = !!pay && pay.checked;
       p.hidden = !vis;
     });
@@ -79,6 +79,12 @@
   form.addEventListener('input', function (e) {
     if (!e.target.hasAttribute('data-fee')) return;
     each('[data-fee]', function (f) { if (f !== e.target) f.value = e.target.value; }, form);
+  });
+  /* The championship settings: one copy per level, one value */
+  form.addEventListener('change', function (e) {
+    var z = e.target.getAttribute('data-zone');
+    if (!z) return;
+    each('[data-zone="' + z + '"]', function (f) { if (f !== e.target) f.value = e.target.value; }, form);
   });
 
   show();

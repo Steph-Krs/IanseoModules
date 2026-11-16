@@ -14,10 +14,29 @@ require_once dirname(__DIR__) . '/lib/targets.php';
 require_once dirname(__DIR__) . '/lib/documents.php';   // bk_doc_distances
 require_once dirname(__DIR__) . '/lib/payment.php';     // means of payment
 require_once dirname(__DIR__) . '/lib/waitlist.php';
+require_once dirname(__DIR__) . '/lib/events.php';
+require_once dirname(__DIR__) . '/lib/modify.php';
 
 $archer = bk_require_archer();
 
 $tourId = intval($_GET['t'] ?? $_POST['t'] ?? 0);
+
+// ?edit=<EnId>: the same form changes an existing online registration (lib/modify.php) — its
+// own or one made for a clubmate, until the registration closes. Filled in from it on the first
+// display; never a waiting list, and the registration does not count against itself.
+$editId = intval($_GET['edit'] ?? $_POST['edit'] ?? 0);
+$editRow = null;
+if ($editId) {
+    list($editRow, $editWhy) = bk_reg_modifiable($editId, $archer);
+    if (!$editRow) {
+        bk_head(bk_t('RegModTitle'), 'card');
+        echo '<div class="bk-card"><h1>' . bk_e(bk_t('RegModImpossible')) . '</h1>' . bk_msg('err', $editWhy)
+           . '<p class="bk-alt"><a href="' . bk_e(bk_public_url('registrations.php')) . '">' . bk_e(bk_t('NavMyRegs')) . '</a></p></div>';
+        bk_foot();
+        exit;
+    }
+    $tourId = intval($editRow->BrTournament);
+}
 $cfg    = bk_comp_config($tourId);
 bk_money_tour($tourId);   // amounts of this page in its currency
 
@@ -33,7 +52,20 @@ function bk_reg_stop($msg, $back = true)
 }
 
 // A competition not open cannot be registered for, even by direct address.
-if (!$tourId || empty($cfg->BcIsOpen)) bk_reg_stop(bk_t('RegNotOpen'));
+// A change was already allowed by bk_reg_modifiable (it may outlive the registration window).
+if (!$tourId || (empty($cfg->BcIsOpen) && !$editRow)) bk_reg_stop(bk_t('RegNotOpen'));
+
+// First display of a change: the form starts from the registration as it is.
+$isPost = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST';
+if ($editRow && !$isPost) {
+    $carrier = bk_shoots_in_order($tourId, $editRow->EnCode, $editRow->EnDivision);
+    $evNow = $editRow->BrEvOpts !== null ? intval($editRow->BrEvOpts) : bk_ev_opts_from_entry($carrier ? $carrier[0] : $editRow);
+    $_POST = array('division' => $editRow->EnDivision, 'class' => $editRow->EnClass, 'face' => intval($editRow->EnTargetFace),
+        'session' => intval($editRow->QuSession), 'letter' => $editRow->BrWantLetter, 'with' => $editRow->BrWantWith,
+        'request' => $editRow->BrRequest, 'wheelchair' => intval($editRow->EnWChair) > 0 ? 1 : '',
+        'ev_nofinals' => ($evNow & BK_EV_NOFINALS) ? 1 : '', 'ev_team' => ($evNow & BK_EV_TEAM) ? 1 : '', 'ev_mix' => ($evNow & BK_EV_MIX) ? 1 : '');
+    $isPost = true;   // the form is shown as if it had come back with these values
+}
 
 $rs = safe_r_sql("SELECT ToId, ToName, ToWhere, ToWhenFrom, ToWhenTo, ToType FROM Tournament WHERE ToId = $tourId");
 $tour = safe_fetch($rs);
@@ -63,6 +95,16 @@ $groupMode  = false;
 $lue        = $selfLue;
 $clubErr    = '';
 $reqSubject = bk_clean_licence($_POST['subject'] ?? $_GET['subject'] ?? '');
+if ($editRow) {
+    // A change: the subject is the registration's archer (bk_reg_modifiable checked the right).
+    $reqSubject = '';
+    if (bk_clean_licence($editRow->BrLicence) !== bk_clean_licence($archer->BaLicence)) {
+        $mateLue = bk_lookup_licence($editRow->BrLicence);
+        if (!$mateLue) bk_reg_stop(bk_t('RgModNoLicence'));
+        $groupMode = true;
+        $lue = $mateLue;
+    }
+}
 if ($reqSubject !== '' && $reqSubject !== bk_clean_licence($archer->BaLicence)) {
     if (!$canGroup) {
         $clubErr = bk_t('OnlyAdultGroup');
@@ -128,10 +170,10 @@ if ($facesDispo) {
 }
 $profileLeft = array();
 if ($division !== '' && $class !== '' && $curFace > 0 && function_exists('bk_profile_remaining')) {
-    $profileLeft = bk_with_tournament($tourId, function () use ($tourId, $sessions, $division, $class, $curFace) {
+    $profileLeft = bk_with_tournament($tourId, function () use ($tourId, $sessions, $division, $class, $curFace, $editId) {
         $out = array();
         foreach ($sessions as $s) {
-            $r = bk_profile_remaining($tourId, intval($s->SesOrder), $division, $class, $curFace);
+            $r = bk_profile_remaining($tourId, intval($s->SesOrder), $division, $class, $curFace, false, $editId);
             $out[intval($s->SesOrder)] = ($r === null) ? null : intval($r);
         }
         return $out;
@@ -140,7 +182,9 @@ if ($division !== '' && $class !== '' && $curFace > 0 && function_exists('bk_pro
 
 // Registrations this archer already has on this competition: to offer another departure and
 // announce the effect on the events.
-$mine = bk_reg_existing($tourId, $subjectLicence);
+$mine = array_values(array_filter(bk_reg_existing($tourId, $subjectLicence), function ($d) use ($editId) {
+    return intval($d->EnId) !== $editId;   // a change: the registration itself is not "another one"
+}));
 $mineSessions = array();
 foreach ($mine as $d) $mineSessions[intval($d->QuSession)] = true;
 // One registration per archer (option): this subject already has theirs.
@@ -149,7 +193,7 @@ $singleDone = !empty($cfg->BcSingleReg) && $mine;
 // Waiting list (lib/waitlist.php): with the list on, a departure full for this profile
 // stays selectable and the same form puts the archer on its list instead of registering.
 // One waiting request per weapon: a departure of a weapon already waited for is not offered.
-$waitOn = bk_waitlist_on($cfg);
+$waitOn = bk_waitlist_on($cfg) && !$editRow;
 $myWait = array();   // weapon => waiting row of the subject of this form
 foreach (bk_waitlist_for_archer($archer->BaId, $archer->BaLicence) as $w) {
     if (intval($w->BwTournament) === $tourId && intval($w->BwStatus) === 0
@@ -167,6 +211,12 @@ foreach ($sessions as $s) {
 $pricing  = bk_pricing_get($cfg);
 $provTier = bk_prov_tier($pricing, $lue->LueCountry);
 $nextRank = count($mine) + 1;
+if ($editRow) {
+    // Its own rank among the archer's registrations, as the amount due counts it.
+    foreach (bk_account_registrations($tourId, $subjectLicence) as $accOne) {
+        foreach ($accOne['rows'] as $i => $accRow) if ($accRow['enid'] === $editId) $nextRank = $i + 1;
+    }
+}
 $provDelta = $provTier === 'dept' ? (float) $pricing['prov']['dept']
            : ($provTier === 'region' ? (float) $pricing['prov']['region'] : 0.0);
 $rankDelta = 0.0; $rankTh = 0;
@@ -212,6 +262,18 @@ foreach ($sessions as $s) {
 $err = '';
 $geo = bk_comp_archer_blocked($cfg, $lue->LueCountry);
 
+// Events offered to the category (lib/events.php): boxes kept from the form, or — a new shoot
+// with a weapon already registered — the choices that shoot carries.
+$evOffer = ($division !== '' && $class !== '') ? bk_ev_offer($tourId, $division, $class, $lue->LueCountry, $cfg) : null;
+if ($isPost) {
+    $evOpts = bk_ev_opts_post($_POST);
+} else {
+    $evOpts = 0;
+    $sameBow = bk_shoots_in_order($tourId, $subjectLicence, $division);
+    if ($sameBow) $evOpts = bk_ev_opts_from_entry($sameBow[0]);
+}
+if ($evOffer) $evOpts = bk_ev_opts_clean($evOffer, $evOpts);
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1') {
     if (!bk_csrf_check()) {
         $err = bk_t('SessionExpired');
@@ -221,9 +283,23 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1
         // The category posted is not in the allowed list: it is not replaced silently, the
         // archer is told (forged POST or stale form).
         $err = bk_t('CatNotForAge');
-    } elseif ($groupMode && !$canGroup) {
+    } elseif ($groupMode && !$canGroup && !$editRow) {
         // Guard on the write side: a forged POST must not get round the age rule.
         $err = bk_t('OnlyAdultGroup');
+    } elseif ($editRow) {
+        // Change of an existing registration: every rule again, in lib/modify.php.
+        $res = bk_reg_modify($editId, $archer, array(
+            'division' => $division, 'class' => $class, 'session' => $sessionOrder,
+            'face' => intval($_POST['face'] ?? 0), 'wheelchair' => !empty($_POST['wheelchair']),
+            'events' => $evOpts, 'letter' => (string) ($_POST['letter'] ?? ''),
+            'with' => (string) ($_POST['with'] ?? ''), 'request' => $request,
+        ));
+        if (!empty($res['ok'])) {
+            bk_log('REG_MODIFY', $subjectLicence);
+            bk_reg_modify_after($tourId, $res);
+            bk_redirect('registrations.php?mod=1&t=' . $tourId);
+        }
+        $err = $res['msg'] ?? bk_t('RegFailed');
     } elseif ($waitOn && !empty($sessionFull[$sessionOrder])) {
         // Full departure: the SERVER decides to queue, from the state seen after the list
         // was served above — never the label of the button, which is only a display.
@@ -232,7 +308,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1
         $res = bk_waitlist_join($tourId, $cfg, $lue, $division, $class, $curFace, $sessionOrder,
             array('role' => $groupMode ? 'CLUB' : 'SELF', 'who' => $archer->BaLicence, 'archer' => $archer->BaId),
             array('letter' => $_POST['letter'] ?? '', 'with' => $_POST['with'] ?? '', 'request' => $request,
-                  'pay' => $_POST['pay_choice'] ?? ''));
+                  'pay' => $_POST['pay_choice'] ?? '', 'events' => $evOpts));
         if (!empty($res['ok'])) {
             bk_log('WAIT_JOIN', $subjectLicence);
             bk_waitlist_process($tourId);   // a place may have freed meanwhile: then registered at once
@@ -253,6 +329,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1
                 'letter' => (string) ($_POST['letter'] ?? ''),
                 'with'   => (string) ($_POST['with'] ?? ''),
                 'wheelchair' => !empty($_POST['wheelchair']),
+                'events' => $evOpts,
             ));
             if (!empty($res['ok'])) {
                 bk_log('REG_NEW', $subjectLicence);
@@ -278,7 +355,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['go'] ?? '') === '1
 $mateName = trim($lue->LueFamilyName . ' ' . $lue->LueName);
 $sel = function ($on) { return $on ? ' selected' : ''; };
 
-bk_head(bk_t('RegTitle'));
+bk_head(bk_t($editRow ? 'RegModTitle' : 'RegTitle'));
 echo '<div class="bk-block" style="margin-bottom:16px"><h2>' . bk_e($tour->ToName) . '</h2><p class="bk-meta">'
     . '<span>' . bk_e(bk_date_range($tour->ToWhenFrom, $tour->ToWhenTo)) . '</span>'
     . ($tour->ToWhere ? '<span>' . bk_e($tour->ToWhere) . '</span>' : '') . '</p></div>';
@@ -300,16 +377,18 @@ echo '<div class="bk-block"><h2>' . bk_e(bk_t($groupMode ? 'RegClubMate' : 'Your
     // on the account so it is ticked already next time.
     . (!$singleDone && $geo === ''
         ? '<label class="bk-chk" style="display:flex;gap:8px;align-items:center;margin:10px 0 0;font-weight:600"><input type="checkbox" name="wheelchair" value="1" form="bkreg"'
-          . ((($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' ? !empty($_POST['wheelchair']) : bk_wheelchair_get($subjectLicence)) ? ' checked' : '')
+          . (($isPost ? !empty($_POST['wheelchair']) : bk_wheelchair_get($subjectLicence)) ? ' checked' : '')
           . '> ' . bk_e(bk_t('RegWheelchair')) . '</label><p class="bk-hint">' . bk_e(bk_t('RegWheelchairHint')) . '</p>'
         : '');
-if ($groupMode) {
+if ($editRow) {
+    echo '<p class="bk-hint">' . bk_e(bk_t('RegModHint')) . '</p>';
+} elseif ($groupMode) {
     echo '<p class="bk-hint">' . bk_e(bk_t('GroupHint', $archer->BaLicence)) . '</p>'
         . '<p><a class="bk-btn" href="' . bk_e(bk_public_url('register-comp.php?t=' . $tourId)) . '">' . bk_e(bk_t('BackOwnReg')) . '</a></p>';
 } else {
     echo '<p class="bk-hint">' . bk_e(bk_t('InfoFromFile')) . '</p>';
 }
-if ($canGroup) {
+if ($canGroup && !$editRow) {
     echo '<details class="bk-group-switch"' . ((($clubErr || $singleDone) && !$groupMode) ? ' open' : '') . '><summary>'
         . bk_e(bk_t($groupMode ? 'RegisterOtherMate' : 'RegisterMate')) . '</summary><div class="bk-group-body">';
     if ($mates) {
@@ -353,8 +432,9 @@ if (intval($lue->LueStatus) === 9) {
 
 echo '<form method="post" class="bk-block" style="margin-top:14px" id="bkreg">' . bk_csrf_field()
     . '<input type="hidden" name="t" value="' . intval($tourId) . '"><input type="hidden" name="go" value="1">'
-    . ($groupMode ? '<input type="hidden" name="subject" value="' . bk_e($subjectLicence) . '">' : '')
-    . '<h2>' . bk_e($groupMode ? bk_t('TheirReg', $mateName) : bk_t('YourReg')) . '</h2>';
+    . ($groupMode && !$editRow ? '<input type="hidden" name="subject" value="' . bk_e($subjectLicence) . '">' : '')
+    . ($editRow ? '<input type="hidden" name="edit" value="' . $editId . '">' : '')
+    . '<h2>' . bk_e($groupMode ? bk_t($editRow ? 'RegModOf' : 'TheirReg', $mateName) : bk_t('YourReg')) . '</h2>';
 
 // Bow type and category: a change reloads the form (the categories depend on the bow type).
 echo '<label for="division">' . bk_e(bk_t('Weapon')) . '</label>'
@@ -407,12 +487,14 @@ echo '<label for="session">' . bk_e(bk_t('DepartureLbl')) . '</label><select id=
 foreach ($sessions as $s) {
     $o = intval($s->SesOrder);
     $left = max(0, intval($s->Places) - intval($s->Pris));
+    if ($editRow && intval($editRow->QuSession) === $o) $left++;   // its own place
     $taken = isset($mineSessions[$o]);
     // Specific gauge: places for THIS profile. null = no constraint known.
     $pl = array_key_exists($o, $profileLeft) ? $profileLeft[$o] : null;
     $profFull = ($pl !== null && $pl < 1);
     // Departure closed, not open yet or waiting for the earlier ones (lib/sessionrules.php).
-    $shut = isset($sesStates[$o]) && !$sesStates[$o]['open'];
+    $shut = isset($sesStates[$o]) && !$sesStates[$o]['open']
+        && !($editRow && bk_session_open_for_change($tourId, $cfg, $sesStates[$o]));
     // Category closed to online registration on this departure (Restrictions, by departure).
     $catShut = $class !== '' && !bk_cat_allowed($tourId, $division, $class, $o);
     $avail = ($left > 0 && !$taken && !$profFull && !$shut && !$catShut);
@@ -482,8 +564,12 @@ if ($mine) {
     echo '</div>';
 }
 
+// Events of the category: duels (taken part in by default), team events (not by default).
+if ($evOffer) echo bk_ev_form_html($evOffer, $evOpts, $groupMode);
+
 // Wishes offered by the organiser.
-if ($cfg->BcWishLetter || $cfg->BcWishWith || $cfg->BcWishFree) {
+// An entry of the organiser keeps the organiser's placement: no wish to offer (nothing would keep it).
+if (($cfg->BcWishLetter || $cfg->BcWishWith || $cfg->BcWishFree) && !($editRow && !empty($editRow->BkOrgEntry))) {
     echo '<fieldset class="bk-wishes"><legend>' . bk_e(bk_t('MyWishes')) . ' <span class="bk-opt">' . bk_e(bk_t('Optional')) . '</span></legend>';
     if ($cfg->BcWishLetter) {
         echo '<label for="letter">' . bk_e(bk_t('WishLetter')) . '</label><select id="letter" name="letter">'
@@ -524,7 +610,7 @@ if ($showPrice) {
         . bk_e(bk_eur($calc['total'])) . '</b></p><p class="bk-hint">' . bk_e(bk_t('PriceEstimate')) . '</p></div>';
 }
 
-if ($payChoices) {
+if ($payChoices && !$editRow) {
     echo '<fieldset class="bk-wishes"><legend>' . bk_e(bk_t('Payment')) . ' <span class="bk-opt">' . bk_e(bk_t('Optional')) . '</span></legend>'
         . '<p class="bk-hint">' . bk_e(bk_t('PayHint')) . '</p>'
         . '<label for="pay_choice">' . bk_e(bk_t('PayChoiceLbl')) . '</label><select id="pay_choice" name="pay_choice">'
@@ -538,11 +624,13 @@ if ($payChoices) {
     echo '</fieldset>';
 }
 
-$lblReg  = bk_t($groupMode ? 'ConfirmMate' : 'ConfirmSelf');
+$lblReg  = bk_t($editRow ? 'RegModSave' : ($groupMode ? 'ConfirmMate' : 'ConfirmSelf'));
 $lblWait = bk_t($groupMode ? 'WaitJoinMate' : 'WaitJoinSelf');
 echo '<button type="submit" class="bk-btn bk-btn-primary" id="bk-submit" data-reg="' . bk_e($lblReg)
     . '" data-wait="' . bk_e($lblWait) . '"' . ((!$classes || (!$free && !$waitable)) ? ' disabled' : '') . '>'
-    . bk_e($selWait ? $lblWait : $lblReg) . '</button></form>';
+    . bk_e($selWait ? $lblWait : $lblReg) . '</button>'
+    // Until when this registration can be changed and cancelled (lib/sessionrules.php).
+    . '<p class="bk-hint">' . bk_e(bk_change_note($tourId, $cfg)) . '</p></form>';
 ?>
 <script>
 // Full departure chosen: the button says what will happen (the server decides anyway).

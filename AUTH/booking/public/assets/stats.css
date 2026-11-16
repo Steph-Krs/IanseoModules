@@ -229,3 +229,52 @@
     #bk .bk-pal-step { grid-template-columns: minmax(0, 1fr); }
 }
 #bk .bk-pal-wide { grid-column: 1 / -1; min-width: 0; }
+
+/* ---- Statistics of one competition (public/stats-comp.php, assets/compstats.js). Series colours
+   follow the series (the archer, the competition, the category, an archer picked), never its rank;
+   checked for colour-blind readers, with a legend and the table beside them. ---- */
+#bk-cs { --cs-me: #2a78d6; --cs-comp: #eb6834; --cs-cat: #1baf7a; --cs-pick: #eda100; }
+#bk .bk-cs-cmp { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; margin: 0 0 10px; font-size: 13px; }
+#bk .bk-cs-cmp > span { color: #7d8183; }
+#bk .bk-cs-cmp label { display: inline-flex; gap: 5px; align-items: center; margin: 0; font-weight: 400; }
+#bk .bk-cs-cmp small, #bk .bk-cs-legend small { color: #7d8183; }
+#bk .bk-cs-cmp select { max-width: 100%; }
+#bk .bk-cs-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: #20263d; margin: 0 0 6px; }
+#bk .bk-cs-legend span { display: inline-flex; align-items: center; gap: 6px; }
+#bk .bk-cs-sw { display: inline-block; width: 14px; height: 4px; border-radius: 2px; }
+#bk .bk-cs-chart { position: relative; width: 100%; }
+#bk .bk-cs-chart svg { display: block; max-width: 100%; }
+#bk .bk-cs-grid { stroke: #eef0f3; stroke-width: 1; }
+#bk .bk-cs-axis { fill: #7d8183; font-size: 11px; }
+#bk .bk-cs-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+#bk .bk-cs-dot { stroke: #fff; stroke-width: 2; }
+#bk .bk-cs-cross { stroke: #9aa1a9; stroke-width: 1; stroke-dasharray: 3 3; }
+#bk .bk-cs-tip { position: absolute; pointer-events: none; background: #fff; border: 1px solid #d2d4d6; border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .12); padding: 6px 9px; font-size: 12px; color: #20263d; white-space: nowrap; }
+#bk .bk-cs-tip small { color: #7d8183; }
+#bk .bk-cs-tip div { display: flex; align-items: center; gap: 6px; }
+#bk .bk-cs-s-me { stroke: var(--cs-me); background: var(--cs-me); }
+#bk .bk-cs-dot.bk-cs-s-me { fill: var(--cs-me); }
+#bk .bk-cs-s-comp { stroke: var(--cs-comp); background: var(--cs-comp); }
+#bk .bk-cs-s-cat { stroke: var(--cs-cat); background: var(--cs-cat); }
+#bk .bk-cs-s-pick { stroke: var(--cs-pick); background: var(--cs-pick); }
+#bk .bk-cs-zone { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+#bk .bk-cs-zone label { margin: 0; }
+#bk .bk-cs-zone input[type=range] { flex: 1 1 180px; max-width: 360px; }
+#bk .bk-cs-zone output { font-weight: 700; color: #01367c; min-width: 48px; }
+#bk .bk-cs-zres { font-weight: 600; color: #01367c; margin: 8px 0 12px; }
+#bk .bk-cs-zbox { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+#bk .bk-cs-target { flex: 0 0 auto; }
+#bk .bk-cs-zline { fill: none; stroke: #01367c; stroke-width: 2.5; stroke-dasharray: 5 3; }
+#bk .bk-cs-zline.bk-cs-zall { fill: rgba(1, 54, 124, .14); }
+#bk .bk-cs-spread { flex: 1 1 260px; min-width: 0; }
+#bk .bk-cs-spread h3 { margin: 0 0 6px; font-size: 13px; color: #0254a8; }
+#bk .bk-cs-brow { display: flex; gap: 8px; align-items: flex-start; padding: 3px 4px; border-radius: 4px; font-size: 12px; }
+#bk .bk-cs-brow.in { background: #eef5fd; }
+#bk .bk-cs-brow.in .bk-cs-bv { color: #01367c; font-weight: 700; }
+#bk .bk-cs-bv { flex: 0 0 52px; text-align: right; color: #4c4e50; }
+#bk .bk-cs-bs { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+#bk .bk-cs-b { display: flex; align-items: center; gap: 6px; }
+#bk .bk-cs-b i { display: block; height: 7px; min-width: 1px; border-radius: 0 4px 4px 0; }
+#bk .bk-cs-b em { font-style: normal; color: #4c4e50; font-size: 11px; }
+#bk .bk-cs-dist th { text-align: left; background: #f4f6f9; color: #0254a8; }

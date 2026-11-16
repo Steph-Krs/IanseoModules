@@ -6,8 +6,9 @@
  * shares: title, navigation between the pages of its section, stylesheet (assets/admin.css),
  * save button fixed at the bottom right (assets/admin.js).
  *
- * menu.php builds the Modules menu from aut_adm_sections() too: the menu and the navigation of
- * the pages cannot disagree.
+ * menu.php builds the menus from aut_adm_sections() too — a tab of its own for the competition
+ * (aut_adm_tab), the accounts of the server under Modules (aut_adm_menu): the menus and the
+ * navigation of the pages cannot disagree.
  *
  * WARNING: loaded by menu.php on EVERY ianseo page. Functions only; every read of a module
  * table is guarded ($force), nothing is written.
@@ -131,26 +132,52 @@ function aut_adm_sections($can, $tour, $admin, $logged)
     return array_filter($out, function ($s) { return !empty($s['pages']); });
 }
 
+/** A section as a sub-menu: its title (a link to its first page), then its pages. */
+function aut_adm_submenu($s)
+{
+    $items = array($s['title'] . '|' . aut_adm_url($s['pages'][0][0]));
+    foreach ($s['pages'] as $pg) $items[] = $pg[1] . '|' . aut_adm_url($pg[0]);
+    return $items;
+}
+
 /**
- * Modules menu entries of the module, ready for $ret['MODS']: the sections in order, each a
- * clickable title (its first page) and its pages, with a separator between the online
- * registration and the day of the competition, before the accounts of the server, and around
- * the module (MENU_DIVIDER: the core draws an <hr>).
+ * The tab of the competition, beside Modules (user's request, 2026-11-16): the online
+ * registration pages straight under it, then — after a separator — the day of the competition as
+ * sub-menus (check-in, judges, food & shop, ianseo's screens, volunteers). [] when none of them is
+ * open to this person (no competition open: only the accounts of the server, under Modules).
+ */
+function aut_adm_tab($can, $tour, $admin, $logged)
+{
+    $sections = aut_adm_sections($can, $tour, $admin, $logged);
+    $out = array();
+    if (!empty($sections['booking'])) {
+        foreach ($sections['booking']['pages'] as $pg) $out[] = $pg[1] . '|' . aut_adm_url($pg[0]);
+    }
+    $day = array();
+    foreach (array('desk', 'judges', 'shop', 'ianseo', 'staff') as $k) {
+        if (!empty($sections[$k])) $day['AUT_' . strtoupper($k)] = aut_adm_submenu($sections[$k]);   // bytes: our own ASCII keys
+    }
+    if ($day && $out) $out[] = defined('MENU_DIVIDER') ? MENU_DIVIDER : '---';
+    foreach ($day as $k => $v) $out[$k] = $v;
+    return $out ? array_merge(array(bk_t('Brand')), $out) : array();
+}
+
+/**
+ * Modules menu entries of the module, ready for $ret['MODS']: the accounts of the server, as a
+ * clickable title (its first page) and its pages, separated from the other modules
+ * (MENU_DIVIDER: the core draws an <hr>). The competition's sections have their own tab.
  */
 function aut_adm_menu($can, $tour, $admin, $logged, $othersFollow)
 {
     $sections = aut_adm_sections($can, $tour, $admin, $logged);
-    $groups = array(array('booking'), array('desk', 'judges', 'shop', 'ianseo', 'staff'), array('auth'));
+    $groups = array(array('auth'));
     $out = array();
     $sep = defined('MENU_DIVIDER') ? MENU_DIVIDER : '---';
     foreach ($groups as $g) {
         $block = array();
         foreach ($g as $k) {
             if (empty($sections[$k])) continue;
-            $s = $sections[$k];
-            $items = array($s['title'] . '|' . aut_adm_url($s['pages'][0][0]));
-            foreach ($s['pages'] as $pg) $items[] = $pg[1] . '|' . aut_adm_url($pg[0]);
-            $block['AUT_' . strtoupper($k)] = $items;   // bytes: our own ASCII section keys
+            $block['AUT_' . strtoupper($k)] = aut_adm_submenu($sections[$k]);   // bytes: our own ASCII section keys
         }
         if (!$block) continue;
         $out[] = $sep;

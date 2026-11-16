@@ -10,6 +10,7 @@
 require_once __DIR__ . '/boot.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
 require_once dirname(__DIR__) . '/lib/mandate.php';
+require_once dirname(__DIR__) . '/lib/compstats.php';
 
 $archer = bk_require_archer();
 
@@ -23,6 +24,8 @@ $docs   = $cfg ? bk_docs_list($cfg, $tourId) : array();
 $bibs   = ($cfg && bk_dossard_available($cfg, $tourId)) ? bk_dossard_entries($tourId, $archer) : array();
 // Official score sheets, same registrations as the bibs, when the organiser allows them.
 $sheets = ($cfg && !empty($cfg->BcAllowScoresheet)) ? bk_dossard_entries($tourId, $archer) : array();
+// The archer's own shoots scored arrow by arrow: their statistics of the competition.
+$stats  = $tour ? bk_cs_mine($tourId, $archer->BaLicence) : array();
 
 bk_head(bk_t('Documents'));
 echo '<h1>' . bk_e(bk_t('DocsTitle')) . '</h1>';
@@ -32,7 +35,7 @@ if ($tour) {
         . ($tour->ToWhere ? '<span>' . bk_e($tour->ToWhere) . '</span>' : '') . '</p></div>';
 }
 
-if (!$docs && !$bibs && !$sheets) {
+if (!$docs && !$bibs && !$sheets && !$stats) {
     echo '<p class="bk-empty">' . bk_e(bk_t('NoDocs')) . ' <a href="' . bk_e(bk_public_url('calendar.php')) . '">'
         . bk_e(bk_t('BackCalendarPlain')) . '</a>.</p>';
     bk_foot();
@@ -48,6 +51,17 @@ if ($docs) {
             . '</span></a>';
     }
     echo '</div>';
+}
+
+if ($stats) {
+    echo '<div class="bk-block" style="margin-top:16px"><h2>' . bk_e(bk_t('CsTitle')) . '</h2><div class="bk-doclist">';
+    foreach ($stats as $st) {
+        $cat = trim(($st->DivDescription ?: '') . ' ' . ($st->ClDescription ?: ''));
+        echo '<a class="bk-doc" href="' . bk_e(bk_public_url('stats-comp.php?e=' . intval($st->EnId))) . '">'
+            . '<span class="bk-doc-ic">📊</span><span class="bk-doc-lab">' . bk_e(bk_t('CsBtn'))
+            . ' <span class="bk-doc-ext">' . bk_e(($cat !== '' ? $cat . ' — ' : '') . bk_t('DepX', intval($st->QuSession))) . '</span></span></a>';
+    }
+    echo '</div></div>';
 }
 
 if ($bibs) {

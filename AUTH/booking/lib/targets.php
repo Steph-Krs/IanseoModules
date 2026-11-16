@@ -235,9 +235,9 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
  * validation (each registration is placed at once); with MANUAL validation, the pending
  * registrations are not placed yet.
  */
-function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId, $wheel = false)
+function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId, $wheel = false, $except = 0)
 {
-    $ctx = bk_profile_ctx($tourId, $sessionOrder);
+    $ctx = bk_profile_ctx($tourId, $sessionOrder, $except);
     return $ctx === null ? null : bk_profile_left($ctx, $division, $class, $faceId, $wheel);
 }
 
@@ -245,11 +245,18 @@ function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId
  * What bk_profile_remaining needs of a departure, read once: several profiles can then be
  * measured against it (the table of the places left per category). null: no such departure.
  * $ctx['plan']['targets'] can be narrowed by the caller: the gauge counts target by target.
+ * $except: an EnId left out of the archers already placed.
  */
-function bk_profile_ctx($tourId, $sessionOrder)
+function bk_profile_ctx($tourId, $sessionOrder, $except = 0)
 {
     $data = bk_plan_read($tourId, $sessionOrder);
     if ($data === null) return null;
+    // $except: a registration being changed (bk_reg_modify) — its own place is free for it.
+    if ($except) {
+        $data['in']['fixed'] = array_values(array_filter($data['in']['fixed'], function ($f) use ($except) {
+            return intval($f['id']) !== intval($except);
+        }));
+    }
     $data['in']['archers'] = array();   // the archers still to place are not counted (as before)
     $data['plan'] = bk_plan_ctx($data['in']);
     $data['occ'] = bk_plan_occupants($data['plan'], array());

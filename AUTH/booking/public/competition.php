@@ -142,7 +142,10 @@ if ($over) {
     echo '<a class="bk-btn bk-btn-primary" href="' . $toReg . '">' . bk_e(bk_t('RegisterBtn')) . '</a>' . ($regs !== '' ? ' ' . $regs : '');
 }
 $scoresheets = $mineRows && !empty($c->BcAllowScoresheet);
-if (bk_docs_list($c, $tourId) || (bk_dossard_available($c, $tourId) && ($mine + $mates) > 0) || $scoresheets) {
+// The archer's statistics of this competition are in its documents too (lib/compstats.php).
+require_once dirname(__DIR__) . '/lib/compstats.php';
+if (bk_docs_list($c, $tourId) || (bk_dossard_available($c, $tourId) && ($mine + $mates) > 0) || $scoresheets
+    || bk_cs_mine($tourId, $archer->BaLicence)) {
     echo ' <a class="bk-btn" href="' . bk_e(bk_public_url('documents.php?t=' . $tourId)) . '">' . bk_e(bk_t('DocsBtn')) . '</a>';
 }
 // Food & shop of the competition, when the organiser switched it on.

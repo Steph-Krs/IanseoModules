@@ -208,7 +208,7 @@ function bk_stats_entry_rounds($r, array $info, $all = false)
         $arrows = $complete ? $planned : min($hits, $planned);
         $bow = (string) $r->EnDivision;
         $out[] = array(
-            'tour' => intval($r->ToId), 'code' => (string) $r->ToCode, 'name' => (string) $r->ToName,
+            'tour' => intval($r->ToId), 'enid' => intval($r->EnId), 'code' => (string) $r->ToCode, 'name' => (string) $r->ToName,
             'where' => (string) $r->ToWhere, 'date' => substr((string) $r->ToWhenFrom, 0, 10),   // bytes: ASCII date
             'dateTo' => substr((string) $r->ToWhenTo, 0, 10),   // bytes: ASCII date
             'disc' => $disc, 'bow' => $bow, 'bowName' => (string) ($r->DivDescription ?: $bow),

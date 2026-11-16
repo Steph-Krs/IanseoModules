@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 41);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 43);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -783,6 +783,21 @@ function bk_schema()
         INNER JOIN Tournament ON ToId = EnTournament
         SET EnIocCode = ToIocCode, EnTimestamp = EnTimestamp
         WHERE EnIocCode = '' AND ToIocCode <> ''");
+
+    // v42 — events chosen by the archer (lib/events.php): duels declined, team / mixed team
+    // events (bit set BK_EV_*, NULL = registered before the choice existed: kept as it is), with
+    // the registration and with the waiting row; a championship may keep its individual and its
+    // team events to the organiser's department ('D') or region ('R').
+    bk_colonne('BookingRegistrations', 'BrEvOpts', "TINYINT NULL");
+    bk_colonne('BookingWaitlist', 'BwEvOpts', "TINYINT NULL");
+    bk_colonne('BookingCompetitions', 'BcFinalsZone', "CHAR(1) NOT NULL DEFAULT ''");
+    bk_colonne('BookingCompetitions', 'BcTeamsZone', "CHAR(1) NOT NULL DEFAULT ''");
+
+    // v43 — options of level 3: the archer may change (BcModUntilStart) and cancel
+    // (BcCancelUntilStart) a registration until their departure starts, instead of the
+    // defaults (change: until the registration closes; cancel: until the eve of the competition).
+    bk_colonne('BookingCompetitions', 'BcModUntilStart', "TINYINT NOT NULL DEFAULT 0");
+    bk_colonne('BookingCompetitions', 'BcCancelUntilStart', "TINYINT NOT NULL DEFAULT 0");
 
     $_SESSION[$flag] = true;
 }

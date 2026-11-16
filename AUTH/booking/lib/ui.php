@@ -327,6 +327,15 @@ function bk_version()
         // then never changed address, and browsers kept the old ones after an update.
         $j = json_decode((string) @file_get_contents(dirname(__DIR__, 2) . '/version.json'), true);
         $v = (is_array($j) && !empty($j['version'])) ? $j['version'] : '0';
+        // Plus the date of the latest script or stylesheet: Apache sends them without any cache
+        // header, so a browser keeps a file as long as its address stays the same — a script
+        // changed without a new version number (local work, a fix regrouped before publishing)
+        // was never reloaded.
+        $t = 0;
+        foreach (array('/public/assets/', '/admin/assets/') as $dir) {
+            foreach ((array) glob(dirname(__DIR__) . $dir . '*.{js,css}', GLOB_BRACE) as $f) $t = max($t, (int) @filemtime($f));
+        }
+        if ($t) $v .= '-' . base_convert((string) $t, 10, 36);
     }
     return $v;
 }

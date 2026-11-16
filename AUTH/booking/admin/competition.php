@@ -32,6 +32,7 @@ require_once dirname(__DIR__) . '/lib/sessionrules.php'; // opening of each depa
 require_once dirname(__DIR__) . '/lib/ffta-event.php';    // what the FFTA extranet announces
 require_once dirname(__DIR__) . '/lib/licences.php';      // licences missing from the federation file
 require_once dirname(__DIR__) . '/lib/clubmoves.php';     // changes of club in the federation file
+require_once dirname(__DIR__) . '/lib/events.php';        // events kept to the organiser's area
 require_once dirname(__DIR__, 2) . '/adm-lib.php';         // frame of the organiser pages
 
 bk_schema();
@@ -56,6 +57,10 @@ $onlineId = $rOnline ? intval($rOnline->ToOnlineId) : 0;
 // by booking (same ToCode, different ToId), settings, payments, shop and registrations are
 // brought back automatically. Does nothing (one indexed SELECT) otherwise. See lib/adopt.php.
 $adoptReport = bk_adopt_check($TOUR);
+
+// Online registrations written before "Tir Ind." was kept on for every shoot (an extra shoot had
+// its five event switches at 0, which breaks ianseo): put right as soon as the organiser comes.
+bk_events_repair($TOUR);
 
 /**
  * Detailed tariff rebuilt from the posted form, normalised: JSON for BcPricing, or '' when
@@ -112,6 +117,27 @@ function bk_adm_save_level1($tourId, $post)
 }
 
 /**
+ * Championship (levels 2 and 3, each with its copy of the fields: '2' = level 2): individual events,
+ * and separately team events, kept to the archers of the organiser's department or region. A setting of the
+ * competition itself, not set aside by level 2 (not in bk_comp_advanced_cols).
+ */
+function bk_adm_save_zones($tourId, $post, $sfx = '')
+{
+    if (empty($post['zones_present' . $sfx])) return;
+    $was = bk_comp_config($tourId);
+    $ind = bk_ev_zone_clean($post['zone_ind' . $sfx] ?? '');
+    $team = bk_ev_zone_clean($post['zone_team' . $sfx] ?? '');
+    if ($ind === (string) ($was->BcFinalsZone ?? '') && $team === (string) ($was->BcTeamsZone ?? '')) return;
+    safe_w_sql("UPDATE BookingCompetitions SET
+        BcFinalsZone = " . StrSafe_DB($ind) . ",
+        BcTeamsZone = " . StrSafe_DB($team) . "
+        WHERE BcTournament = " . intval($tourId));
+    // The online registrations already made follow at once (the archers outside the area leave the
+    // events, those back inside get their choices back).
+    bk_events_apply_zones($tourId);
+}
+
+/**
  * Level 2 (simple publication): the base fee only — its own field (fee_simple): the tariffs of
  * levels 1 and 3, in the same page, have theirs.
  */
@@ -119,14 +145,15 @@ function bk_adm_save_level2($tourId, $post)
 {
     $fee = number_format((float) str_replace(',', '.', (string) ($post['fee_simple'] ?? $post['fee'] ?? 0)), 2, '.', '');
     safe_w_sql("UPDATE BookingCompetitions SET BcFee = " . StrSafe_DB($fee) . " WHERE BcTournament = " . intval($tourId));
+    bk_adm_save_zones($tourId, $post, '2');
 }
 
 /** Level 3: what is refused before anything is written. Returns '' or the error shown. */
-function bk_adm_check_level3($post)
+function bk_adm_check_level3($tourId, $post)
 {
     $kind = (string) ($post['kind'] ?? '');
     if (!array_key_exists($kind, bk_restrict_kinds())) $kind = '';
-    return bk_scope_error($kind, $post['code'] ?? '');
+    return bk_scope_error($kind, $tourId);
 }
 
 /** Level 3 (detailed settings): every setting of the form. Returns '' or the error shown. */
@@ -135,7 +162,7 @@ function bk_adm_save_level3($tourId, $post)
     $tourId = intval($tourId);
     $kind = (string) ($post['kind'] ?? '');
     if (!array_key_exists($kind, bk_restrict_kinds())) $kind = '';
-    $err = bk_scope_error($kind, $post['code'] ?? '');
+    $err = bk_scope_error($kind, $tourId);
     if ($err !== '') return $err;
     $pricingJson = bk_adm_pricing_from_post($post);
 
@@ -146,7 +173,7 @@ function bk_adm_save_level3($tourId, $post)
         'from'        => $post['from'] ?? '',
         'to'          => $post['to'] ?? '',
         'kind'        => $kind,
-        'code'        => $post['code'] ?? '',
+        'code'        => bk_scope_code($kind, $tourId),   // the organiser's area, never typed
         'restrict_to' => $kind === '' ? '' : ($post['restrict_to'] ?? ''),
         'max_club'    => $isDromPost ? ($post['max_club'] ?? 2) : 2,
         'min_clubs'   => $isDromPost ? ($post['min_clubs'] ?? 3) : 3,
@@ -180,6 +207,10 @@ function bk_adm_save_level3($tourId, $post)
     if (!empty($post['survey_present'])) $save['survey'] = !empty($post['survey']);
     if (!empty($post['waitlist_present'])) $save['waitlist'] = !empty($post['waitlist']);
     if (!empty($post['single_reg_present'])) $save['single_reg'] = !empty($post['single_reg']);
+    if (!empty($post['changes_present'])) {
+        $save['mod_until_start'] = !empty($post['mod_until_start']);
+        $save['cancel_until_start'] = !empty($post['cancel_until_start']);
+    }
     // Categories closed to online registration (grid of the Restrictions tab, level 3 only).
     // One list per departure ([SesOrder => "DIV|CLS,…"]).
     if (!empty($post['cats_present'])) $save['cat_forbid'] = is_array($post['cat_forbid'] ?? null) ? $post['cat_forbid'] : array();
@@ -187,6 +218,7 @@ function bk_adm_save_level3($tourId, $post)
     // Opening of each departure (lib/sessionrules.php).
     if (!empty($post['ses_present']) && is_array($post['ses'] ?? null)) bk_session_rules_save($tourId, $post['ses']);
     safe_w_sql("UPDATE BookingCompetitions SET BcPublishLevel = 3 WHERE BcTournament = $tourId");
+    bk_adm_save_zones($tourId, $post);
     return '';
 }
 
@@ -233,7 +265,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $curLevel = intval(bk_comp_config($TOUR)->BcPublishLevel ?? 1);
         $newLevel = intval($_POST['level'] ?? $curLevel);
         if (!in_array($newLevel, array(1, 2, 3), true)) $newLevel = $curLevel;
-        if ($curLevel === 3 || $newLevel === 3) $err = bk_adm_check_level3($_POST);
+        if ($curLevel === 3 || $newLevel === 3) $err = bk_adm_check_level3($TOUR, $_POST);
         $saveLevel = function ($lvl) use ($TOUR) {
             if ($lvl === 3) return bk_adm_save_level3($TOUR, $_POST);
             if ($lvl === 2) bk_adm_save_level2($TOUR, $_POST);
@@ -652,7 +684,8 @@ $tabsOf = array(
 $panel = function ($levels, $tab, $html) use ($level, $tabsOf, $cfg) {
     $lv = array_map('intval', explode(' ', $levels));
     $shown = in_array($level, $lv, true);
-    if ($shown && $tab !== '' && isset($tabsOf[$level])) $shown = $tab === array_keys($tabsOf[$level])[0];
+    // $tab may name several tabs ("fin restrict": a block shown in a tab of each level).
+    if ($shown && $tab !== '' && isset($tabsOf[$level])) $shown = in_array(array_keys($tabsOf[$level])[0], explode(' ', $tab), true);
     if ($shown && $tab === 'tariffs' && $level === 1) $shown = !empty($cfg->BcPayments);
     return '<div class="bk-panel" data-lvl="' . $levels . '"' . ($tab !== '' ? ' data-tab="' . $tab . '"' : '')
         . ($shown ? '' : ' hidden') . '>' . $html . '</div>';
@@ -727,7 +760,14 @@ $out .= $panel('3', 'period', '<div class="bk-sec"><div class="bk-row">'
     . bk_fld(bk_t('AcOpenTo'), '<input type="datetime-local" name="to" value="' . bk_e(bk_dtval($cfg3->BcOpenTo)) . '">', $q)
     . '</div>' . $h
     . ($level === 3 ? '<p class="bk-state">' . bk_e(bk_t('AcGeoState')) . ' <b>' . bk_e(bk_t($cfg->BcIsOpen ? 'AcStateOpen' : 'AcStateOut')) . '</b></p>' : '')
-    . bk_adm_session_rules($TOUR, $cfg, $sessions) . '</div>');
+    . bk_adm_session_rules($TOUR, $cfg, $sessions) . '</div>'
+    // Until when an archer changes or cancels a registration (lib/sessionrules.php,
+    // bk_change_window): the defaults, or until their departure starts.
+    . '<div class="bk-sec">' . bk_title('h3', bk_t('AcChgTitle'), bk_e(bk_t('AcChgHint')))
+    . '<input type="hidden" name="changes_present" value="1">'
+    . bk_chk('mod_until_start', !empty($cfg3->BcModUntilStart), bk_e(bk_t('AcModUntilStart')), '', bk_e(bk_t('AcModUntilStartHint')))
+    . bk_chk('cancel_until_start', !empty($cfg3->BcCancelUntilStart), bk_e(bk_t('AcCancelUntilStart')), '', bk_e(bk_t('AcCancelUntilStartHint')))
+    . '</div>');
 
 /**
  * Categories open to online registration (user's choice, 2026-10-14), one grid per departure
@@ -795,14 +835,43 @@ function bk_adm_cats_grid($tourId, $raw, $sessions)
         . $panes . '<input type="hidden" name="cats_present" value="1"></div>';
 }
 
-// ---- Level 3, restrictions: geographic, placement and validation, then the categories allowed.
-$out .= $panel('3', 'restrict', '<div class="bk-sec">' . bk_title('h2', bk_t('AcGeo'), bk_e(bk_t('AcGeoHint'))) . '<div class="bk-row">'
+// ---- The organiser's area, read from its approval number (LLDDCCC): what both geographic settings
+//      compare the archers' clubs with — nothing is typed.
+$orgZ = preg_replace('/[^0-9A-Za-z]/', '', bk_org_agrement($TOUR));   // ASCII: bytes are characters below
+$zoneArea = (strlen($orgZ) >= 4 && ctype_digit(substr($orgZ, 0, 2)))
+    ? bk_t('AcZoneArea', array('dept' => substr($orgZ, 2, 2), 'region' => bk_region_name(substr($orgZ, 0, 2)), 'code' => $orgZ))
+    : '';
+$zoneState = '<p class="bk-state">' . bk_e($zoneArea !== '' ? $zoneArea : bk_t('AcZoneNoOrg')) . '</p>';
+
+// Championship: the events kept to the archers of the organiser's area (lib/events.php). In the
+// geographic block of level 3, and on its own in "To finish" of level 2: two copies of the same two
+// settings, kept equal by the page's script (data-zone); each level saves its own copy.
+$zoneOpts = function ($cur) {
+    $o = '';
+    foreach (bk_ev_zones() as $k => $lab) $o .= '<option value="' . bk_e($k) . '"' . ((string) $cur === (string) $k ? ' selected' : '') . '>' . bk_e($lab) . '</option>';
+    return $o;
+};
+$zoneFields = function ($sfx) use ($cfg, $zoneOpts) {
+    return '<input type="hidden" name="zones_present' . $sfx . '" value="1"><div class="bk-row">'
+        . bk_fld(bk_t('AcZoneInd'), '<select name="zone_ind' . $sfx . '" data-zone="ind">' . $zoneOpts($cfg->BcFinalsZone ?? '') . '</select>')
+        . bk_fld(bk_t('AcZoneTeam'), '<select name="zone_team' . $sfx . '" data-zone="team">' . $zoneOpts($cfg->BcTeamsZone ?? '') . '</select>')
+        . '</div>';
+};
+$out .= $panel('2', 'fin', '<div class="bk-sec">' . bk_title('h2', bk_t('AcZoneTitle'), bk_e(bk_t('AcZoneHint')))
+    . $zoneFields('2') . $zoneState . '</div>');
+
+// ---- Level 3, restrictions: geographic (who may register, who takes part in the events), placement
+//      and validation, then the categories allowed.
+$out .= $panel('3', 'restrict', '<div class="bk-sec">' . bk_title('h2', bk_t('AcGeo'), bk_t('AcGeoHint'))
+    . $zoneState
+    . bk_title('h3', bk_t('AcGeoRegTitle'), bk_e(bk_t('AcGeoRegHint'))) . '<div class="bk-row">'
     . bk_fld(bk_t('AcGeoFor'), '<select name="kind">' . $kinds . '</select>')
-    . bk_fld(bk_t('AcGeoCode'), '<input type="text" name="code" size="8" maxlength="12" value="' . bk_e($cfg3->BcRestrictCode) . '">')
     . bk_fld(bk_t('AcGeoAll'), '<input type="datetime-local" name="restrict_to" value="' . bk_e(bk_dtval($cfg3->BcRestrictTo)) . '">')
     . '</div>'
     . ($level === 3 && $cfg->BcRestrictKind !== ''
         ? '<p class="bk-state">' . bk_e(bk_t('AcGeoState')) . ' <b>' . bk_e(bk_t($cfg->BcAllOpen ? 'AcGeoOpen' : 'AcGeoRestricted')) . '</b></p>' : '')
+    . bk_title('h3', bk_t('AcZoneTitle'), bk_e(bk_t('AcZoneHint')))
+    . $zoneFields('')
     . '</div>'
     . '<div class="bk-sec">' . bk_title('h2', bk_t('AcPlacement'), $isDrom ? bk_e(bk_t('AcDromHint')) : bk_t('AcFedRules'))
     . ($isDrom

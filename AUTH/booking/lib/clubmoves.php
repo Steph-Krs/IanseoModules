@@ -98,6 +98,11 @@ function bk_club_daily($tourId)
         $self = safe_fetch(safe_r_sql("SELECT BaId FROM BookingArchers WHERE BaLicence = " . StrSafe_DB($lic) . " LIMIT 1"));
         $selfId = $self ? intval($self->BaId) : 0;
         if ($isOnline) safe_w_sql("UPDATE BookingRegistrations SET BrArcher = $selfId WHERE BrEnId = $enId");
+        // A championship keeping its events to an area: the new club may be inside or outside it.
+        if ($isOnline && $open) {
+            require_once __DIR__ . '/events.php';
+            bk_events_apply_zones($tourId, $lic);
+        }
         safe_w_sql("UPDATE BookingWaitlist SET BwArcher = $selfId
             WHERE BwTournament = $tourId AND BwStatus = 0 AND BwLicence = " . StrSafe_DB($lic));
 

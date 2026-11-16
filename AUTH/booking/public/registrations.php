@@ -15,6 +15,7 @@ require_once dirname(__DIR__) . '/lib/targets.php';
 require_once dirname(__DIR__) . '/lib/payment.php';
 require_once dirname(__DIR__) . '/lib/mandate.php';   // bk_mandate_visible
 require_once dirname(__DIR__) . '/lib/waitlist.php';
+require_once dirname(__DIR__) . '/lib/events.php';   // tags of the events chosen
 require_once dirname(__DIR__, 2) . '/shop/lib/link.php';   // shop of a competition
 
 $archer = bk_require_archer();
@@ -42,6 +43,8 @@ function rg_tags($r, $withPerson = false)
     if (isset($r->EnIndClEvent) && intval($r->EnIndClEvent) === 0) {
         $h .= '<span class="bk-tag" title="' . bk_e(bk_t('OutOfEventsTip')) . '">' . bk_e(bk_t('OutOfEvents')) . '</span>';
     }
+    // Events chosen (duels declined, team events), on the shoot that carries them.
+    foreach (bk_ev_tags($r) as $evTag) $h .= '<span class="bk-tag">' . bk_e($evTag) . '</span>';
     if (isset($r->BrValidated) && intval($r->BrValidated) === 0) {
         $h .= '<span class="bk-tag bk-tag-wait">' . bk_e(bk_t('PendingVal')) . '</span>';
     } elseif (!empty($r->BcShowAssignment) && intval($r->QuTarget) > 0) {
@@ -56,6 +59,12 @@ function rg_tags($r, $withPerson = false)
     return $h . '</p>';
 }
 
+/** Link to change a registration (lib/modify.php), while the registration is open. */
+function rg_modify_link($enId)
+{
+    return '<a class="bk-btn" href="' . bk_e(bk_public_url('register-comp.php?edit=' . intval($enId))) . '">' . bk_e(bk_t('RegModBtn')) . '</a>';
+}
+
 /** Cancellation form of a registration. */
 /**
  * Address the forms of this page post to: explicit, since posting back to "?ok=1…" would show
@@ -65,6 +74,28 @@ function rg_action()
 {
     global $onlyTour;
     return bk_e(bk_public_url('registrations.php' . ($onlyTour ? '?t=' . $onlyTour : '')));
+}
+
+/**
+ * The "Change" and "Cancel" buttons of a registration, each while its deadline runs
+ * (bk_change_window: by default until the registration closes / the eve of the competition, or
+ * until the departure starts when the organiser allows it). '' when neither applies.
+ */
+function rg_actions($r, $confirmKey, $labelKey)
+{
+    $h = rg_action_buttons($r, $confirmKey, $labelKey);
+    return $h === '' ? '' : '<div class="bk-reg-act">' . $h . '</div>';
+}
+
+/** Same buttons, without their box (put next to other buttons). */
+function rg_action_buttons($r, $confirmKey, $labelKey)
+{
+    static $cfgs = array();
+    $t = intval($r->BrTournament);
+    if (!isset($cfgs[$t])) $cfgs[$t] = bk_comp_config($t);
+    $w = bk_change_window($t, $cfgs[$t], intval($r->QuSession));
+    return ($w['modify']['ok'] && empty($r->BrLicHold) ? rg_modify_link($r->BrEnId) : '')
+         . ($w['cancel']['ok'] ? rg_cancel_form($r->BrEnId, $confirmKey, $labelKey) : '');
 }
 
 function rg_cancel_form($enId, $confirmKey, $labelKey)
@@ -134,8 +165,7 @@ function rg_one_competition($tourId, $archer, $regs, $authored, $waits)
         foreach ($mine as $r) {
             echo '<div class="bk-reg">' . rg_tags($r)
                 . (trim((string) $r->BrRequest) !== '' ? '<p class="bk-org">' . bk_e(bk_t('RequestX', $r->BrRequest)) . '</p>' : '')
-                . ((!empty($r->BcIsOpen) && $r->BrByRole !== 'IMPORT')
-                    ? '<div class="bk-reg-act">' . rg_cancel_form($r->BrEnId, 'CancelDepConfirm', 'CancelDepBtn') . '</div>' : '')
+                . rg_actions($r, 'CancelDepConfirm', 'CancelDepBtn')
                 . '</div>';
         }
         echo '</div>';
@@ -159,7 +189,7 @@ function rg_one_competition($tourId, $archer, $regs, $authored, $waits)
                 echo '<p class="bk-org">' . bk_balance_line($dueA, !bk_is_finished($r->ToWhenTo) || bk_ledger_tracked($tourId), $tourId)
                     . ($declA ? '&nbsp;·&nbsp; ' . bk_t('ChoiceX', bk_e($declA)) : '') . '</p>';
             }
-            if (!empty($r->BcIsOpen)) echo '<div class="bk-reg-act">' . rg_cancel_form($r->BrEnId, 'CancelRegConfirm', 'CancelBtn') . '</div>';
+            echo rg_actions($r, 'CancelRegConfirm', 'CancelBtn');
             echo '</div>';
         }
         echo '</div></section>';
@@ -171,7 +201,7 @@ function rg_one_competition($tourId, $archer, $regs, $authored, $waits)
 $onlyTour = intval($_GET['t'] ?? 0);   // one competition only (see the head of this file)
 
 $err = '';
-$ok  = !empty($_GET['ok']) ? bk_t('RegSaved') : (!empty($_GET['wait']) ? bk_t('WaitSaved') : '');
+$ok  = !empty($_GET['ok']) ? bk_t('RegSaved') : (!empty($_GET['wait']) ? bk_t('WaitSaved') : (!empty($_GET['mod']) ? bk_t('RegModSaved') : ''));
 
 // Registration confirmed: amount + means of payment of the competition just registered for,
 // shown prominently (when the archer expects them).
@@ -199,7 +229,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     } elseif (($_POST['action'] ?? '') === 'cancel') {
         $enid = intval($_POST['enid'] ?? 0);
         // Keep the competition BEFORE the removal: the row is gone afterwards.
-        $rsT = safe_r_sql("SELECT BrTournament FROM BookingRegistrations WHERE BrEnId = $enid");
+        $rsT = safe_r_sql("SELECT EnTournament AS BrTournament FROM Entries WHERE EnId = $enid");
         $rT  = safe_fetch($rsT);
         $res = bk_unregister($enid, $archer->BaId, $archer->BaLicence);
         if (!empty($res['ok'])) {
@@ -350,7 +380,9 @@ if ($regs) {
                 . '<div class="bk-reg-act">'
                 . (!empty($r->BcAllowScoresheet) ? '<a class="bk-btn" href="' . bk_e(bk_public_url('scoresheet-official.php?enid=' . intval($r->BrEnId)))
                     . '" target="_blank" rel="noopener">' . bk_e(bk_t('Scoresheet')) . '</a>' : '')
-                . ((!empty($c->BcIsOpen) && $r->BrByRole !== 'IMPORT') ? rg_cancel_form($r->BrEnId, 'CancelDepConfirm', 'CancelDepBtn') : '')
+                // Arrows scored: the statistics of this shoot (lib/compstats.php).
+                . (!empty($r->BkHasArrows) ? '<a class="bk-btn" href="' . bk_e(bk_public_url('stats-comp.php?e=' . intval($r->BrEnId))) . '">' . bk_e(bk_t('CsBtn')) . '</a>' : '')
+                . rg_action_buttons($r, 'CancelDepConfirm', 'CancelDepBtn')
                 . '</div></div>';
         }
         echo '</div>';
@@ -367,7 +399,9 @@ if ($regs) {
         if (!$pastG && ($shpUrl = shp_public_links($t)['shop']) !== '') {
             echo '<p><a class="bk-btn" href="' . bk_e($shpUrl) . '">' . bk_e(shp_t('ShCusBookingBtn')) . '</a></p>';
         }
-        if (bk_docs_list($c, $t) || bk_dossard_available($c, $t) || !empty($c->BcAllowScoresheet)) {
+        $withArrows = false;
+        foreach ($g['regs'] as $r0) if (!empty($r0->BkHasArrows)) $withArrows = true;
+        if (bk_docs_list($c, $t) || bk_dossard_available($c, $t) || !empty($c->BcAllowScoresheet) || $withArrows) {
             echo '<p><a class="bk-btn" href="' . bk_e(bk_public_url('documents.php?t=' . $t)) . '">' . bk_e(bk_t('DocsBtn')) . '</a></p>';
         }
         echo '<p><a class="bk-btn" href="' . bk_e(bk_public_url('share.php?t=' . $t)) . '">' . bk_e(bk_t('ShareBtn')) . '</a></p>'
@@ -470,7 +504,7 @@ if ($authored) {
                 echo '<div class="bk-reg-act">'
                     . (!empty($r->BcAllowScoresheet) ? '<a class="bk-btn" href="' . bk_e(bk_public_url('scoresheet-official.php?enid=' . intval($r->BrEnId)))
                         . '" target="_blank" rel="noopener">' . bk_e(bk_t('Scoresheet')) . '</a>' : '')
-                    . (!empty($c->BcIsOpen) ? rg_cancel_form($r->BrEnId, 'CancelRegConfirm', 'CancelBtn') : '')
+                    . rg_action_buttons($r, 'CancelRegConfirm', 'CancelBtn')
                     . '</div>';
             }
             echo '</div>';
