@@ -237,7 +237,8 @@ if (!$hist) {
 $blkHistory .= (bk_is_manager() ? '<p class="bk-actions"><a class="bk-btn" href="' . bk_e(bk_public_url('club.php')) . '">' . bk_e(bk_t('ClubBtn')) . '</a></p>' : '')
     . '</section>';
 
-echo '<div class="bk-home-grid">' . $blkLicence . $blkHistory . $blkRegs . $blkComps . '</div>';
+// A slot between the blocks on a phone, above them on a wider screen (bk.css).
+echo '<div class="bk-home-grid">' . $blkLicence . $blkHistory . bk_slot('home') . $blkRegs . $blkComps . '</div>';
 
 // Federation news, loaded by the script below: title and hint, the button beside them, then
 // the news on the columns of the blocks above.

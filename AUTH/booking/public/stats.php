@@ -28,7 +28,8 @@ $out = '<link rel="stylesheet" href="' . bk_e(bk_public_url('assets/stats.css'))
     . '<div class="bk-stat-note-pal"><span>' . bk_e($pal ? bk_t('PalStatusShort', array('n' => $pal['n'], 'first' => $pal['first'], 'last' => $pal['last']))
         : bk_t('PalInvite')) . '</span>'
     . '<a class="bk-btn bk-btn-sm" href="' . bk_e(bk_public_url('stats-import.php')) . '">'
-    . bk_e(bk_t($pal ? 'PalUpdateBtn' : 'PalImportBtn')) . '</a></div></div>';
+    . bk_e(bk_t($pal ? 'PalUpdateBtn' : 'PalImportBtn')) . '</a></div></div>'
+    . bk_slot('stats', array('disc' => isset($rounds) && $rounds ? (string) end($rounds)['disc'] : ''));
 if (!$rounds) {
     echo $out . '<p class="bk-empty">' . bk_e(bk_t('StatNone')) . ' <a href="' . bk_e(bk_public_url('calendar.php')) . '">'
         . bk_e(bk_t('SeeOpenComps')) . '</a>.</p>';

@@ -620,13 +620,15 @@ function bk_register_write($tourId, $lue, $division, $class, $sessionOrder, $req
         $enId = intval(safe_w_last_id());
         if (!$enId) return array('ok' => false, 'msg' => bk_t('RegFailed'));
 
-        // Empty EnIocCode = inherits the competition's ToIocCode (core convention:
-        // LueIocCode = IF(EnIocCode!='', EnIocCode, ToIocCode)). Only set when the archer
-        // belongs to another federation.
+        // Lookup table the archer comes from (EnIocCode), always written, as the core's entry form
+        // does (PopEdit.php: the table chosen). An empty one is not "the competition's": the FFTA
+        // export (Modules/Sets/FR/exports) writes the licence only for EnIocCode = 'FRA' and
+        // 999999 otherwise — real case, every online registration lost its licence in the TXT.
         $rs = safe_r_sql("SELECT ToIocCode FROM Tournament WHERE ToId = $tourId");
         $to = safe_fetch($rs);
-        if ($to && $lue->LueIocCode && $lue->LueIocCode !== $to->ToIocCode) {
-            safe_w_sql("UPDATE Entries SET EnIocCode = " . StrSafe_DB($lue->LueIocCode)
+        $ioc = (string) ($lue->LueIocCode ?: ($to ? $to->ToIocCode : ''));
+        if ($ioc !== '') {
+            safe_w_sql("UPDATE Entries SET EnIocCode = " . StrSafe_DB($ioc)
                 . ", EnTimestamp = EnTimestamp WHERE EnId = $enId");
         }
 

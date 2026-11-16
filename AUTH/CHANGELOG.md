@@ -2,6 +2,12 @@
 
 Une entrée par version publiée, la plus récente en haut. Les notes de `version.json` ne gardent que la série en cours.
 
+## 1.9.0 — 2026-11-15
+- Invitation : nouvelle section « Épreuves de la compétition », en toute fin d'invitation (elle peut être longue), avec les blasons. Les épreuves individuelles puis par équipes en tableau : une ligne par arme, les classes en colonnes, femmes à gauche et hommes à droite ; chaque épreuve est une case, fusionnée sur ses classes, qui les liste de la plus jeune à la plus vieille. Tout vient de ianseo tel que paramétré : une classe ajoutée par l'organisateur apparaît d'elle-même. Les épreuves des deux sexes, ou avec une classe sans sexe, forment une partie « Mixte » en dessous ; une classe dans deux épreuves dédouble la ligne de l'arme. En tir à l'arc extérieur français, le TAE I (classes en F/H) et le TAE N (classes en W/M) sont présentés à part, chacun avec sa partie « Mixte », et une partie « Autre » reçoit le reste. Les épreuves par équipes sont désignées par leur nom, qui dit leur format. Places encore disponibles par épreuve dans l'invitation en ligne, quand les inscriptions sont ouvertes. Même tableau dans le PDF, sans les places.
+- Inscription en ligne : la table de consultation de l'archer est enregistrée. Elle restait vide, et l'export TXT de la FFTA écrivait sa licence « 999999 ». Les inscriptions déjà faites sont réparées.
+- Carte des compétitions : le point est posé sur l'adresse du champ « Lieu » (la même que les liens d'itinéraire), et non plus au centre de la commune, qui pouvait être à plusieurs kilomètres. Centre de la commune seulement si l'adresse est introuvable, jamais une rue homonyme d'une autre commune ; un « Lieu » corrigé dans ianseo déplace le point ; un service de géolocalisation injoignable n'est plus retenu comme « adresse introuvable ».
+- Points d'extension pour les autres modules.
+
 ## 1.8.0 — 2026-11-15
 - Barre des administrateurs : pastille rouge avec le nombre de tickets à traiter (nouveaux et en cours), visible même barre repliée.
 - Une compétition renommée puis recréée avec l'ancien code ne reprend plus les paramètres de l'ancienne : seule une compétition supprimée (réimport) est reprise, et le code mémorisé suit les renommages.

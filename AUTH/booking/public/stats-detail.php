@@ -39,7 +39,8 @@ $where = bk_stats_combo_where($combo);
 $sex = $last['sex'] !== '' ? bk_t('StatSex' . $last['sex']) . ' - ' : '';
 $out .= '<div class="bk-sx-head"><h1>' . bk_e($discName) . '</h1>'
     . '<div class="bk-sx-sub">' . bk_e($sex . $combo['bowName']) . ($where !== '' ? ' · <span>' . bk_e($where) . '</span>' : '') . '</div>'
-    . '<div class="bk-sx-cat">' . bk_e(bk_t('StatLatestCat', $last['clsName'])) . '</div></div>';
+    . '<div class="bk-sx-cat">' . bk_e(bk_t('StatLatestCat', $last['clsName'])) . '</div></div>'
+    . bk_slot('stats', array('disc' => (string) $combo['disc']));
 
 // ---- Distinctions earned, the highest first (under the chart) ----
 $earned = '';

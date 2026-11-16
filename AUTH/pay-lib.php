@@ -8,8 +8,19 @@
  * reaches this server, and nothing ever will: an online provider keeps the card on its own
  * pages and only tells the server "payment X of Y is done" (BlgProvider, BlgRef, BlgStatus).
  *
- * A provider is registered in aut_pay_providers(). Only 'manual' exists. An online provider,
- * when one is added, implements these operations (functions named aut_pay_<code>_<operation>):
+ * Providers are listed by aut_pay_providers(). 'manual' is built in. Any other one lives in its
+ * own file, pay-provider.php, at the root of a module of Custom/: the file returns
+ * ['code' => …, 'online' => bool, 'enabled' => bool] and defines its operations (functions
+ * named aut_pay_<code>_<operation>). For an online provider:
+ *
+ *   available($tourId)
+ *       Can the payers of this competition pay with it?
+ *
+ *   link($tourId)
+ *       HTML of the link that takes a payer to it, shown next to what they still owe.
+ *
+ *   offerable($tourId, $keys), info($tourId, $text) — optional
+ *       The means of payment an organiser may offer, and the text shown with each.
  *
  *   session($tourId, $account, $amount, array $orders, $returnUrl, $idem)
  *       Opens a payment on the provider's hosted page for $amount on journal account $account
@@ -29,7 +40,8 @@
  *       Asks the provider to give back $amount of a 'done' line it collected; the 'refund'
  *       line is written when the provider confirms it (webhook), not before.
  *
- * Until then aut_pay_online_available() is false everywhere and no page offers to pay online.
+ * Without such a file aut_pay_online_available() is false everywhere and no page offers to pay
+ * online.
  */
 
 if (defined('AUT_PAY_LOADED')) return;
@@ -69,13 +81,21 @@ function aut_pay_ledger_method($code)
 
 /**
  * Registered payment providers: [code => ['online' => bool, 'enabled' => bool]]. 'manual' is
- * a person collecting the money; it is always there.
+ * a person collecting the money; it is always there. The others are the pay-provider.php files
+ * of the modules of Custom/, read once per request.
  */
 function aut_pay_providers()
 {
-    return array(
-        'manual' => array('online' => false, 'enabled' => true),
-    );
+    static $out = null;
+    if ($out !== null) return $out;
+    $out = array('manual' => array('online' => false, 'enabled' => true));
+    foreach ((array) glob(dirname(__DIR__) . '/*/pay-provider.php') as $file) {
+        $p = include $file;
+        if (is_array($p) && preg_match('/^[a-z]{1,12}$/', (string) ($p['code'] ?? '')) && $p['code'] !== 'manual') {
+            $out[$p['code']] = array('online' => !empty($p['online']), 'enabled' => !empty($p['enabled']));
+        }
+    }
+    return $out;
 }
 
 /** Is $code a registered provider? (journal lines keep it in BlgProvider) */
@@ -85,11 +105,56 @@ function aut_pay_provider_ok($code)
 }
 
 /**
- * Can the payers of competition $tourId pay online? No provider does it yet: always false.
- * Later: an online provider enabled on the server, the competition's organising structure
- * connected to it, and the organiser's consent for this competition.
+ * Can the payers of competition $tourId pay online? Yes when an online provider enabled on the
+ * server says so: it is the provider that knows whether the organising structure is connected to
+ * it and whether the organiser agreed for this competition.
  */
 function aut_pay_online_available($tourId)
 {
+    foreach (aut_pay_providers() as $code => $p) {
+        $fn = 'aut_pay_' . $code . '_available';
+        if ($p['online'] && $p['enabled'] && function_exists($fn) && $fn(intval($tourId))) return true;
+    }
     return false;
+}
+
+/**
+ * Means of payment an organiser may offer on competition $tourId, among $keys: all of them,
+ * unless an enabled provider narrows the list (operation offerable($tourId, $keys)).
+ */
+function aut_pay_offerable($tourId, array $keys)
+{
+    foreach (aut_pay_providers() as $code => $p) {
+        $fn = 'aut_pay_' . $code . '_offerable';
+        if ($p['enabled'] && function_exists($fn)) $keys = array_values(array_intersect($keys, (array) $fn(intval($tourId), $keys)));
+    }
+    return $keys;
+}
+
+/**
+ * Text an organiser wrote about a means of payment, as shown on competition $tourId: unchanged,
+ * unless an enabled provider rewrites it (operation info($tourId, $text)).
+ */
+function aut_pay_info_text($tourId, $text)
+{
+    foreach (aut_pay_providers() as $code => $p) {
+        $fn = 'aut_pay_' . $code . '_info';
+        if ($p['enabled'] && function_exists($fn)) $text = (string) $fn(intval($tourId), $text);
+    }
+    return $text;
+}
+
+/**
+ * HTML of the link to pay online what is left on competition $tourId, given by the first online
+ * provider that offers it; '' when none does.
+ */
+function aut_pay_online_link($tourId)
+{
+    foreach (aut_pay_providers() as $code => $p) {
+        $fn = 'aut_pay_' . $code . '_link';
+        if (!$p['online'] || !$p['enabled'] || !function_exists($fn)) continue;
+        $html = (string) $fn(intval($tourId));
+        if ($html !== '') return $html;
+    }
+    return '';
 }

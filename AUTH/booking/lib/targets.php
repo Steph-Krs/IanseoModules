@@ -286,6 +286,35 @@ function bk_profile_left(&$ctx, $division, $class, $faceId, $wheel = false)
 }
 
 /**
+ * Places of a departure (bk_profile_ctx) still open to SEVERAL profiles of one bow taken together
+ * — the classes of an event: target by target the best of them (they share the targets, so the
+ * numbers of each profile do not add up), summed. $profiles: [[class, face TfId]…].
+ */
+function bk_profile_left_multi(&$ctx, $division, $profiles)
+{
+    $as = array();
+    foreach ($profiles as $p) {
+        $dist = bk_plan_series($ctx['tour'], $ctx['type'], $division, $p[0], $ctx['nDist']);
+        $face = bk_caps_face_profile($ctx['tour'], $ctx['disc'], $p[1], max(1, count($dist)));
+        $as[implode('-', $dist) . '#' . intval($p[1])] = array('id' => -1, 'dist' => $dist, 'fam' => $face['fams'], 'face' => intval($p[1]), 'club' => '~');
+    }
+    $key = md5('multi#' . implode(',', array_keys($as)) . '#' . implode(',', $ctx['plan']['targets']));
+    if (isset($ctx['left'][$key])) return $ctx['left'][$key];
+    $n = 0;
+    $empty = array();
+    foreach ($ctx['plan']['targets'] as $t) {
+        $busy = !empty($ctx['occ'][$t]);
+        $sig = $busy ? null : json_encode($ctx['plan']['caps'][$t] ?? null);
+        if (!$busy && isset($empty[$sig])) { $n += $empty[$sig]; continue; }
+        $best = 0;
+        foreach ($as as $a) $best = max($best, bk_plan_room($ctx['plan'], $ctx['occ'], $t, $a));
+        if (!$busy) $empty[$sig] = $best;
+        $n += $best;
+    }
+    return $ctx['left'][$key] = $n;
+}
+
+/**
  * Plans a departure ENTIRELY again to best meet the archers' wishes, then places everyone.
  *
  * Called after each registration: a "with someone" wish cannot be met by placing people one by

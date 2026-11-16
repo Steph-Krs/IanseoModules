@@ -102,7 +102,7 @@ function bk_adm_save_level1($tourId, $post)
     // competition to them.
     if ($pay && !empty($post['tariffs_present'])) {
         $pricingJson = bk_adm_pricing_from_post($post);
-        $payJson = bk_payinfo_from_post($post['pay'] ?? array());
+        $payJson = bk_payinfo_from_post($post['pay'] ?? array(), $tourId);
         bk_comp_set_effective($tourId, array(
             'BcFee' => number_format((float) str_replace(',', '.', (string) ($post['fee'] ?? 0)), 2, '.', ''),
             'BcPricing' => $pricingJson === '' ? null : $pricingJson,
@@ -159,7 +159,7 @@ function bk_adm_save_level3($tourId, $post)
         'manual_validation' => !empty($post['manual_validation']),
         'fee'         => $post['fee'] ?? 0,
         'pricing'     => $pricingJson,
-        'payinfo'     => bk_payinfo_from_post($post['pay'] ?? array()),
+        'payinfo'     => bk_payinfo_from_post($post['pay'] ?? array(), $tourId),
         'docs_present'      => 1,
         'show_program'      => !empty($post['show_program']),
         'show_participants' => !empty($post['show_participants']),
@@ -877,7 +877,10 @@ foreach ($classes as $k => $v) $simCls .= '<option value="' . bk_e($k) . '">' . 
 $simSes = '<option value="0">—</option>';
 foreach ($sessions as $s) $simSes .= '<option value="' . intval($s->SesOrder) . '">' . bk_e(bk_t('DepCap', intval($s->SesOrder))) . '</option>';
 $payRows = '';
+require_once dirname(__DIR__, 2) . '/pay-lib.php';
+$payOffer = aut_pay_offerable($TOUR, array_keys(bk_payment_methods()));
 foreach (bk_payment_methods() as $mk => $ml) {
+    if (!in_array($mk, $payOffer, true)) continue;
     $cur = $payByM[$mk] ?? null;
     $when = '';
     foreach (bk_payinfo_when_labels() as $wk => $wl) {

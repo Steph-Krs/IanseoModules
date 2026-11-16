@@ -161,6 +161,7 @@ for ($mo = 1; $mo <= 12; $mo++) {
         . ' href="' . bk_e(bk_cal_url(array('month' => $pickYear . '-' . $mm))) . '">' . bk_e(bk_t('Month' . $mo)) . '</a>';
 }
 $pick .= '</div></div>';
+echo bk_slot('calendar', array('disc' => (string) ($disc ?? ''), 'region' => (string) ($region ?? '')));
 echo '<div class="bk-cal-nav">'
     . '<a class="bk-btn" href="' . bk_e(bk_cal_url(array('month' => $prevYm))) . '">← ' . bk_e($monthName(strtotime($prevYm . '-01'))) . '</a>'
     . '<div class="bk-cal-titlebox"><button type="button" class="bk-cal-title" id="bk-cal-pick-btn" aria-haspopup="dialog"'

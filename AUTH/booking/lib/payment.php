@@ -77,17 +77,20 @@ function bk_payinfo_get($cfg)
 {
     $raw = json_decode((string) ($cfg->BcPayInfo ?? ''), true);
     if (!is_array($raw)) return array();
+    require_once dirname(__DIR__, 2) . '/pay-lib.php';
+    $tourId = intval($cfg->BcTournament ?? 0);
     $methods = bk_payment_methods();
+    $offer = aut_pay_offerable($tourId, array_keys($methods));
     $whens = bk_payinfo_when_labels();
     $out = array();
     foreach ($raw as $r) {
         if (!is_array($r)) continue;
         $m = (string) ($r['m'] ?? '');
-        if (!isset($methods[$m])) continue;
+        if (!isset($methods[$m]) || !in_array($m, $offer, true)) continue;
         $when = (string) ($r['when'] ?? 'both');
         if (!isset($whens[$when])) $when = 'both';
         $out[] = array('m' => $m, 'label' => $methods[$m], 'when' => $when,
-            'whenLabel' => $whens[$when], 'info' => (string) ($r['info'] ?? ''));
+            'whenLabel' => $whens[$when], 'info' => aut_pay_info_text($tourId, (string) ($r['info'] ?? '')));
     }
     return $out;
 }
@@ -121,7 +124,11 @@ function bk_balance_line($d, $known, $tourId)
     if (!$known) return bk_t('BalanceUnknown', $f($d['total']));
     if ($d['remaining'] < -0.005) $st = '<span class="bk-tag">' . bk_t('BalanceOver', $f(-$d['remaining'])) . '</span>';
     elseif ($d['remaining'] <= 0.005) $st = '<span class="bk-tag bk-tag-on">' . bk_e(bk_t('StateSettled')) . '</span>';
-    else $st = '<span class="bk-due-wait">' . bk_t('BalanceLeft', $f($d['remaining'])) . '</span>';
+    else {
+        require_once dirname(__DIR__, 2) . '/pay-lib.php';
+        $link = aut_pay_online_link($tourId);
+        $st = '<span class="bk-due-wait">' . bk_t('BalanceLeft', $f($d['remaining'])) . '</span>' . ($link !== '' ? ' ' . $link : '');
+    }
     return bk_t('BalanceLine', array('due' => $f($d['total']), 'paid' => $f($d['paid']), 'state' => $st));
 }
 
@@ -189,14 +196,16 @@ function bk_payment_declare($tourId, $licence, $method, $when)
         ON DUPLICATE KEY UPDATE PyDeclMethod = " . StrSafe_DB($method) . ", PyDeclWhen = " . StrSafe_DB($when));
 }
 
-/** Builds the BcPayInfo JSON from the POST of the settings page ($_POST['pay']). */
-function bk_payinfo_from_post($post)
+/** Builds the BcPayInfo JSON from the POST of the settings page ($_POST['pay']) of competition $tourId. */
+function bk_payinfo_from_post($post, $tourId = 0)
 {
+    require_once dirname(__DIR__, 2) . '/pay-lib.php';
     $methods = bk_payment_methods();
+    $offer = aut_pay_offerable(intval($tourId), array_keys($methods));
     $whens = bk_payinfo_when_labels();
     $out = array();
     foreach ((array) $post as $m => $row) {
-        if (!isset($methods[$m]) || !is_array($row) || empty($row['on'])) continue;
+        if (!isset($methods[$m]) || !in_array($m, $offer, true) || !is_array($row) || empty($row['on'])) continue;
         $when = (string) ($row['when'] ?? 'both');
         if (!isset($whens[$when])) $when = 'both';
         $out[] = array('m' => $m, 'when' => $when, 'info' => mb_substr(trim((string) ($row['info'] ?? '')), 0, 255));

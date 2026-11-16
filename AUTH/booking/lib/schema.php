@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 40);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 41);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -773,6 +773,16 @@ function bk_schema()
     // (lib/placement.php). Kept on the account so it is not asked at every registration; each
     // registration copies it to ianseo's own field (Entries.EnWChair).
     bk_colonne('BookingArchers', 'BaWheelchair', "TINYINT NOT NULL DEFAULT 0");
+
+    // v41 — online registrations written without their lookup table (EnIocCode empty): the FFTA
+    // export writes their licence as 999999. Repaired with the table of their competition, as the
+    // registration writes it now (lib/registration.php). Only empty ones are touched: replaying it
+    // changes nothing.
+    safe_w_sql("UPDATE Entries
+        INNER JOIN BookingRegistrations ON BrEnId = EnId AND BrTournament = EnTournament
+        INNER JOIN Tournament ON ToId = EnTournament
+        SET EnIocCode = ToIocCode, EnTimestamp = EnTimestamp
+        WHERE EnIocCode = '' AND ToIocCode <> ''");
 
     $_SESSION[$flag] = true;
 }

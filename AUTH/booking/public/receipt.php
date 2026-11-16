@@ -141,7 +141,9 @@ if (!$known) {
 } elseif ($state === 'settled' || $state === 'none') {
     echo '<p class="bk-acc-bal ok">' . bk_e(bk_t($state === 'none' ? 'StateNone' : 'SettledThanks')) . '</p>';
 } else {
-    echo '<p class="bk-acc-bal due">' . bk_e(bk_t('LeftToPayX', bk_eur($a['remaining']))) . '</p>';
+    require_once dirname(__DIR__, 2) . '/pay-lib.php';
+    $payLink = aut_pay_online_link($tourId);
+    echo '<p class="bk-acc-bal due">' . bk_e(bk_t('LeftToPayX', bk_eur($a['remaining']))) . ($payLink !== '' ? ' ' . $payLink : '') . '</p>';
     $pay = bk_payinfo_get(bk_comp_config($tourId));
     if ($pay) {
         echo '<div class="bk-payinfo"><b>' . bk_e(bk_t('PayMeansTitle')) . '</b><ul>';

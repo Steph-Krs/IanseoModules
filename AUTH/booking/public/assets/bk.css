@@ -312,6 +312,10 @@ body {
 /* Home page: four blocks side by side when there is room, two otherwise, one on a phone (never
    three: the news below follow the same columns). */
 #bk .bk-home-grid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* A slot filled by another module (bk_slot): the whole width; between the blocks on a phone,
+   above them on a wider screen. */
+#bk .bk-home-grid > .bk-slot { grid-column: 1 / -1; }
+@media (min-width:641px) { #bk .bk-home-grid > .bk-slot { order: -1; } }
 #bk .bk-home-news { margin-top: 16px; }
 #bk .bk-home-news .bk-block-h { align-items: flex-start; }
 #bk .bk-home-news .bk-block-h .bk-hint { margin-top: 2px; }

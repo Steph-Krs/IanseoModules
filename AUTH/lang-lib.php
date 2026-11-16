@@ -10,7 +10,8 @@
  *   languages/<code>.php            AUTH's own strings,
  *   languages/<section>/<code>.php  one section (booking: the archer space; …),
  * the same split as the core's Common.php, Tournament.php, Errors.php: a page loads only the
- * section it needs.
+ * section it needs. Another module of Custom/ may contribute strings to a section from its own
+ * languages/auth/ folder (see aut_lang_all()).
  *
  * The language is the one ianseo chose for this visitor (SelectLanguage: ?Lang=, the
  * UseLanguage cookie, then the browser), so the archer space follows the same rule as the
@@ -56,6 +57,17 @@ function aut_lang_all($section = '')
         include $dir . $try . '.php';
         if (is_array($lang)) $strings = array_merge($strings, $lang);
         break;
+    }
+    // Another module of Custom/ may add strings to a section, or reword some for an installation:
+    // files of the same format in its own languages/auth[/<section>]/ folder, merged last.
+    foreach ((array) glob(dirname(__DIR__) . '/*/languages/auth', GLOB_ONLYDIR) as $extra) {
+        $extra .= '/' . ($section !== '' ? $section . '/' : '');
+        foreach (array_unique(array('en', $code, mb_substr($code, 0, 2))) as $try) {
+            if (!is_file($extra . $try . '.php')) continue;
+            $lang = array();
+            include $extra . $try . '.php';
+            if (is_array($lang)) $strings = array_merge($strings, $lang);
+        }
     }
     return $cache[$section][$code] = $strings;
 }

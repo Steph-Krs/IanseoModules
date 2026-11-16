@@ -293,6 +293,258 @@ function bk_mandate_fee_table($tourId, $base, $p, $sessions)
     return array('cols' => $cols, 'rows' => $rows, 'notes' => $notes);
 }
 
+/**
+ * Events of the invitation as a table (user's design, 2026-11-15): one row per bow, the classes in
+ * columns, women on the left and men on the right; an event over several classes is one merged
+ * cell, which lists those classes from the youngest to the oldest ("U13F-U15F"). Everything comes
+ * from ianseo as set up — divisions, classes, events: a class the organiser adds (U14H) appears by
+ * itself, nothing is named or grouped here. The events holding both sexes (ClSex 0 and 1), or a
+ * class without a sex (-1), go to a second part below, "Mixed", with its own class headings. A class
+ * in two events of one bow splits the row of that bow in two lines.
+ *
+ * French outdoor target archery (ToLocRule FR, ToType 3) shoots the international and the national
+ * rounds together: their events are shown apart, "TAE I" (classes ending in F or H) then "TAE N"
+ * (classes ending in W or M), each with its women | men part then its mixed part; an event with
+ * any other class (discovery…) goes to "Other". Rule given by the user, from the French set.
+ *
+ * $team: the team events (their classes: every group of team members, EventClass.EcTeamEvent > 0);
+ * their cells show the event's name, which says its format. $okCats / $okEvents: what can really be
+ * shot ('DIV|CLS' => true, 'ind|CODE' / 'team|CODE' => true), or null for everything. $places
+ * (individual events): each block also tells the places still open to it (bk_mandate_block_places).
+ * Returns null when there is no such event, else ['groups' => [['title' => label or '',
+ * 'fh' => part|null, 'mx' => part|null]…], 'duels' => bool, 'at' => local time of the places or ''];
+ * a part: ['cols' => [ClId…], 'women' => count of the women columns (0 in the mixed part),
+ * 'rows' => [['div' => label, 'lanes' => [[block…]…]]…]], a block: ['s', 'e' (columns, inclusive),
+ * 'label', 'name', 'duels', 'places' (int or null)].
+ */
+function bk_mandate_event_grid($tourId, $team = false, $okCats = null, $okEvents = null, $places = false)
+{
+    $tourId = intval($tourId);
+    $tr = safe_fetch(safe_r_sql("SELECT ToLocRule, ToType FROM Tournament WHERE ToId = $tourId"));
+    $tae = $tr && strtoupper(trim((string) $tr->ToLocRule)) === 'FR' && intval($tr->ToType) === 3;
+    $divs = array();
+    $rs = safe_r_sql("SELECT DivId, DivDescription FROM Divisions WHERE DivTournament = $tourId AND DivAthlete = 1 ORDER BY DivViewOrder, DivId");
+    while ($r = safe_fetch($rs)) $divs[(string) $r->DivId] = (string) $r->DivDescription;
+    $cls = array(); $rank = 0;
+    $rs = safe_r_sql("SELECT ClId, ClSex, ClAgeFrom FROM Classes WHERE ClTournament = $tourId AND ClAthlete = 1 ORDER BY ClAgeFrom, ClViewOrder, ClId");
+    while ($r = safe_fetch($rs)) {
+        $id = (string) $r->ClId;
+        $sex = intval($r->ClSex);
+        $grp = '';
+        if ($tae) $grp = preg_match('/[FH]$/', $id) ? 'I' : (preg_match('/[WM]$/', $id) ? 'N' : 'O');
+        $cls[$id] = array('sex' => in_array($sex, array(0, 1), true) ? $sex : -1, 'rank' => $rank++, 'grp' => $grp);
+    }
+
+    $kind = $team ? 'team' : 'ind';
+    $events = array();
+    $rs = safe_r_sql("SELECT EvCode, EvEventName, EvFinalFirstPhase FROM Events
+        WHERE EvTournament = $tourId AND EvTeamEvent = " . ($team ? 1 : 0) . " AND EvCodeParent = '' ORDER BY EvProgr, EvCode");
+    while ($r = safe_fetch($rs)) {
+        if ($okEvents !== null && empty($okEvents[$kind . '|' . $r->EvCode])) continue;
+        $events[(string) $r->EvCode] = array('name' => (string) $r->EvEventName, 'duels' => intval($r->EvFinalFirstPhase) > 0, 'cells' => array());
+    }
+    if (!$events) return null;
+    $rs = safe_r_sql("SELECT DISTINCT EcCode, EcDivision, EcClass FROM EventClass
+        WHERE EcTournament = $tourId AND EcTeamEvent " . ($team ? '> 0' : '= 0'));
+    while ($r = safe_fetch($rs)) {
+        $c = (string) $r->EcCode; $d = (string) $r->EcDivision; $k = (string) $r->EcClass;
+        if (!isset($events[$c], $divs[$d], $cls[$k])) continue;
+        if ($okCats !== null && empty($okCats[$d . '|' . $k])) continue;
+        $events[$c]['cells'][$d . '|' . $k] = array($d, $k);
+    }
+    // The group (TAE I / TAE N / other, or a single one) and the part of each event.
+    foreach ($events as $code => &$ev) {
+        if (!$ev['cells']) { unset($events[$code]); continue; }
+        $sexes = array(); $grps = array();
+        foreach ($ev['cells'] as $cell) { $sexes[$cls[$cell[1]]['sex']] = true; $grps[$cls[$cell[1]]['grp']] = true; }
+        $ev['part'] = (isset($sexes[-1]) || count($sexes) > 1) ? 'mx' : 'fh';
+        $ev['grp'] = count($grps) === 1 ? (string) key($grps) : 'O';
+    }
+    unset($ev);
+    if (!$events) return null;
+
+    $calc = $places && !$team ? bk_mandate_places_ctx($tourId) : null;
+    $out = array('groups' => array(), 'duels' => false, 'at' => $calc ? $calc['at'] : '');
+    $titles = $tae ? array('I' => bk_t('MnTaeI'), 'N' => bk_t('MnTaeN'), 'O' => bk_t('MnEvOther')) : array('' => '');
+    foreach ($titles as $grp => $title) {
+        $g = array('title' => $title, 'fh' => null, 'mx' => null);
+        foreach (array('fh', 'mx') as $part) {
+            $mine = array_filter($events, function ($ev) use ($grp, $part) { return $ev['grp'] === (string) $grp && $ev['part'] === $part; });
+            if ($mine) $g[$part] = bk_mandate_grid_part($mine, $part, $divs, $cls, $team, $calc, $out['duels']);
+        }
+        if ($g['fh'] || $g['mx']) $out['groups'][] = $g;
+    }
+    return $out['groups'] ? $out : null;
+}
+
+/** One part (women | men, or mixed) of bk_mandate_event_grid, for the events $events. */
+function bk_mandate_grid_part($events, $part, $divs, $cls, $team, &$calc, &$duels)
+{
+    $used = array();
+    foreach ($events as $ev) foreach ($ev['cells'] as $cell) $used[$cell[1]] = true;
+    $ids = array_keys($used);
+    usort($ids, function ($a, $b) use ($cls) { return $cls[$a]['rank'] <=> $cls[$b]['rank']; });
+    $women = 0;
+    if ($part === 'fh') {
+        $w = array_values(array_filter($ids, function ($k) use ($cls) { return $cls[$k]['sex'] === 1; }));
+        $m = array_values(array_filter($ids, function ($k) use ($cls) { return $cls[$k]['sex'] === 0; }));
+        $ids = array_merge($w, $m);
+        $women = count($w);
+    }
+    $colOf = array_flip($ids);
+    $rows = array();
+    foreach ($divs as $d => $divDesc) {
+        $blocks = array();
+        foreach ($events as $ev) {
+            $idx = array();
+            foreach ($ev['cells'] as $cell) if ($cell[0] === $d) $idx[] = $colOf[$cell[1]];
+            if (!$idx) continue;
+            sort($idx);
+            // Contiguous runs, never across the women | men boundary.
+            $s = $prev = $idx[0];
+            foreach (array_merge(array_slice($idx, 1), array(null)) as $x) {
+                if ($x !== null && $x === $prev + 1 && !($women && $x === $women)) { $prev = $x; continue; }
+                $run = array_slice($ids, $s, $prev - $s + 1);
+                $blocks[] = array('s' => $s, 'e' => $prev, 'name' => $ev['name'], 'duels' => $ev['duels'],
+                    // A team event by its name (it says the format); an individual one by its classes.
+                    'label' => $team ? $ev['name'] : implode('-', $run),
+                    'places' => $calc ? bk_mandate_block_places($calc, $d, $run) : null);
+                if ($ev['duels']) $duels = true;
+                if ($x !== null) $s = $prev = $x;
+            }
+        }
+        if (!$blocks) continue;
+        usort($blocks, function ($a, $b) { return ($a['s'] <=> $b['s']) ?: ($b['e'] <=> $a['e']); });
+        $lanes = array(); $ends = array();
+        foreach ($blocks as $b) {
+            $l = 0;
+            while (isset($ends[$l]) && $ends[$l] >= $b['s']) $l++;
+            $ends[$l] = $b['e'];
+            $lanes[$l][] = $b;
+        }
+        $rows[] = array('div' => $divDesc, 'lanes' => $lanes);
+    }
+    return $rows ? array('cols' => $ids, 'women' => $women, 'rows' => $rows) : null;
+}
+
+/**
+ * What the places of the event blocks need, read once: each departure (its places left, its
+ * placement context) and the faces of the competition. See bk_mandate_block_places.
+ */
+function bk_mandate_places_ctx($tourId)
+{
+    require_once __DIR__ . '/places.php';
+    $tourId = intval($tourId);
+    $at = safe_fetch(safe_r_sql("SELECT " . bk_local_now_sql() . " AS n FROM Tournament WHERE ToId = $tourId"));
+    $c = array('tour' => $tourId, 'at' => $at ? (string) $at->n : '', 'faces' => bk_caps_faces($tourId), 'choices' => array(), 'ses' => array());
+    foreach (bk_comp_sessions($tourId) as $s) {
+        $o = intval($s->SesOrder);
+        $c['ses'][$o] = array('left' => max(0, intval($s->Places) - intval($s->Pris)), 'ctx' => bk_profile_ctx($tourId, $o));
+    }
+    return $c;
+}
+
+/**
+ * Places still open to one block of an event (bow $div, classes $classes), all departures together:
+ * on each departure where one of these classes is admitted, target by target the best of their
+ * profiles (class × face it may choose) around the archers already placed — the rules of the
+ * registration gauge (bk_profile_left) —, never more than the places left on the departure.
+ */
+function bk_mandate_block_places(&$c, $div, $classes)
+{
+    $total = 0;
+    foreach ($c['ses'] as $o => &$s) {
+        $profiles = array();
+        foreach ($classes as $cl) {
+            if (!bk_cat_allowed($c['tour'], $div, $cl, $o)) continue;
+            $k = $div . '|' . $cl;
+            if (!isset($c['choices'][$k])) $c['choices'][$k] = array_keys(bk_caps_face_choices($c['tour'], $div, $cl, $c['faces']));
+            foreach ($c['choices'][$k] ?: array(0) as $f) $profiles[] = array($cl, $f);
+        }
+        if (!$profiles) continue;
+        if ($s['ctx'] === null) { $total += $s['left']; continue; }
+        $total += min($s['left'], bk_profile_left_multi($s['ctx'], $div, $profiles));
+    }
+    unset($s);
+    return $total;
+}
+
+/**
+ * The table of bk_mandate_event_grid as HTML, for the screen and for the PDF (TCPDF's writeHTML):
+ * group by group (TAE I, TAE N, other — or a single one), the women | men part then the mixed part,
+ * each with its own headings, as tables of the same width that read as one. The group's name sits in
+ * the first column, over the two heading rows. $st: colours ['head', 'cell', 'line', 'duel', 'on']
+ * and 'pdf' => bool.
+ */
+function bk_mandate_event_grid_html($g, $st)
+{
+    $pdf = !empty($st['pdf']);
+    $first = 16;
+    $out = '';
+    foreach ($g['groups'] as $grp) foreach (array('fh', 'mx') as $part) {
+        $p = $grp[$part];
+        if (!$p) continue;
+        $title = $grp['title'] !== '' ? '<b>' . bk_e($grp['title']) . '</b>' : '';
+        $n = count($p['cols']);
+        $w = round((100 - $first) / max(1, $n), 3);
+        $td = function ($attrs, $html, $bg = '', $color = '') use ($pdf, $st) {
+            $style = 'border:0.3px solid ' . $st['line'] . ';' . ($color !== '' ? 'color:' . $color . ';' : '');
+            return '<td' . $attrs . ($bg !== '' ? ($pdf ? ' bgcolor="' . $bg . '"' : '') : '')
+                . ' style="' . $style . ($bg !== '' && !$pdf ? 'background:' . $bg . ';' : '') . '">' . $html . '</td>';
+        };
+        $th = function ($attrs, $html) use ($st, $pdf) {
+            return '<th' . $attrs . ($pdf ? ' bgcolor="' . $st['head'] . '"' : '') . ' style="border:0.3px solid ' . $st['line']
+                . ';text-align:center;' . ($pdf ? '' : 'background:' . $st['head'] . ';') . '">' . $html . '</th>';
+        };
+        $out .= '<table class="mn-evg" cellpadding="2" style="width:100%;border-collapse:collapse;table-layout:fixed">';
+        // The browser sizes a fixed table on its first row, a single merged cell in the mixed part.
+        if (!$pdf) $out .= '<colgroup><col style="width:' . $first . '%">' . str_repeat('<col style="width:' . $w . '%">', $n) . '</colgroup>';
+        $out .= '<tr>' . $th(' rowspan="2" width="' . $first . '%"', $title);
+        if ($part === 'fh') {
+            if ($p['women']) $out .= $th(' colspan="' . $p['women'] . '" width="' . round($w * $p['women'], 3) . '%"', '<b>' . bk_e(bk_t('MnWomen')) . '</b>');
+            if ($n - $p['women']) $out .= $th(' colspan="' . ($n - $p['women']) . '" width="' . round($w * ($n - $p['women']), 3) . '%"', '<b>' . bk_e(bk_t('MnMen')) . '</b>');
+        } else {
+            $out .= $th(' colspan="' . $n . '" width="' . round($w * $n, 3) . '%"', '<b>' . bk_e(bk_t('MnMixed')) . '</b>');
+        }
+        $out .= '</tr><tr>';
+        foreach ($p['cols'] as $c) $out .= $th(' width="' . $w . '%"', bk_e($c));
+        $out .= '</tr>';
+        foreach ($p['rows'] as $row) {
+            foreach ($row['lanes'] as $li => $lane) {
+                $out .= '<tr nobr="true">' . $td(' width="' . $first . '%"', $li === 0 ? '<b>' . bk_e($row['div']) . '</b>' : '');
+                $c = 0;
+                foreach ($lane as $b) {
+                    for (; $c < $b['s']; $c++) $out .= $td(' width="' . $w . '%"', '');
+                    $span = $b['e'] - $b['s'] + 1;
+                    // A long label in a single narrow column: a smaller font rather than a word cut anywhere.
+                    $lab = bk_e($b['label']);
+                    if ($w * $span < 9 && mb_strlen($b['label']) > 5) $lab = '<span class="mn-evg-s" style="font-size:' . ($pdf ? '6pt' : '9px;white-space:nowrap;letter-spacing:-.2px') . '">' . $lab . '</span>';
+                    // Places still open to the event (online invitation, registration open).
+                    if (isset($b['places']) && $b['places'] !== null) {
+                        $pl = intval($b['places']);
+                        // A narrow cell: the number alone (the note under the table says what it is).
+                        $txt = $w * $span < 9 ? (string) $pl : ($pl > 0 ? bk_t($pl > 1 ? 'PlacesMany' : 'PlacesOne', $pl) : bk_t('StFull'));
+                        $lab .= '<br><span class="mn-evg-p' . ($pl > 0 ? '' : ' mn-evg-full') . '">' . bk_e($txt) . '</span>';
+                    }
+                    $out .= $td(' colspan="' . $span . '" width="' . round($w * $span, 3) . '%" align="center"'
+                        . ($pdf ? '' : ' title="' . bk_e($b['name']) . '"' . ($b['duels'] ? ' class="mn-evg-d"' : '')),
+                        $lab, $b['duels'] ? $st['duel'] : $st['cell'], $b['duels'] ? $st['on'] : '');
+                    $c = $b['e'] + 1;
+                }
+                for (; $c < $n; $c++) $out .= $td(' width="' . $w . '%"', '');
+                $out .= '</tr>';
+            }
+        }
+        $out .= '</table>';
+    }
+    if ($g['duels']) {
+        $out .= '<p class="mn-evg-legend" style="margin:4px 0 0;font-size:' . ($pdf ? '7.5pt' : '12px') . ';color:#4c4e50">'
+            . '<span style="' . ($pdf ? 'background-color:' : 'background:') . $st['duel'] . ';color:' . $st['on'] . ';">&nbsp;' . bk_e(bk_t('MnDuels')) . '&nbsp;</span> '
+            . bk_e(bk_t('MnEvDuelsLegend')) . '</p>';
+    }
+    return $out;
+}
+
 function bk_mandate_data($tourId)
 {
     bk_schema();
@@ -369,6 +621,9 @@ function bk_mandate_data($tourId)
         'format'      => implode(' — ', $format),
         'duels'       => $duels,
         'events'      => $events,
+        'eventGrid'   => bk_mandate_event_grid($tourId, false, $filter ? $poss['cats'] : null, $filter ? $poss['events'] : null),
+        'teamGrid'    => bk_mandate_event_grid($tourId, true, $filter ? $poss['cats'] : null, $filter ? $poss['events'] : null),
+        'poss'        => $filter ? array($poss['cats'], $poss['events']) : array(null, null),
         'faces'       => $faces,
         'program'     => bk_mandate_program($tourId),
         'itinerary'   => bk_itinerary_links($tourId),
@@ -919,6 +1174,17 @@ ul.mn-list li{ margin:3px 0; }
 .mn-fees td{ padding:4px 10px; border-bottom:1px solid #e3e6ea; vertical-align:top; }
 .mn-fees td.mn-fee-v{ text-align:center; white-space:nowrap; }
 .mn-fee-sub{ color:#7d8183; font-size:12px; }
+.mn-evg-wrap{ overflow-x:auto; }
+.mn-evg-wrap table{ min-width:660px; font-size:12px; line-height:1.25; }
+.mn-evg-wrap table + table{ margin-top:-1px; }
+.mn-evg-wrap th{ color:var(--dark); font-weight:600; padding:3px 2px; }
+.mn-evg-wrap td{ padding:3px 1px; hyphens:auto; -webkit-hyphens:auto; overflow-wrap:break-word; }
+.mn-evg-wrap td[title]{ cursor:help; }
+.mn-evg-p{ font-size:10px; color:#4c4e50; white-space:nowrap; }
+.mn-evg-full{ color:#b3261e; font-weight:600; }
+/* An event with matches is drawn in the invitation's colour: its places take the cell's own text colour. */
+.mn-evg-d .mn-evg-p, .mn-evg-d .mn-evg-full{ color:inherit; }
+.mn-evg-d .mn-evg-full{ text-decoration:underline; }
 .mn-free{ margin-top:4px; }
 .mn-reg{ background:var(--light); border:1px solid var(--pri); border-radius:8px;
   padding:12px 14px; margin-top:6px; }
@@ -1001,26 +1267,14 @@ body.tpl-ligne .mn-title h1{ font-weight:600; letter-spacing:.01em; }
         . ((!empty($m['logos']['R']) && intval($t->HasR) > 0) ? '<img src="' . bk_e($logo('R', 400)) . '" alt="">' : '')
         . '</div>' . $block('intro');
 
-    // Form of the competition (rules B.1.1): type, sub-rule, duels, events, faces. Without any
-    // event set up yet, the bows and classes as before.
+    // Form of the competition (rules B.1.1): type, sub-rule, duels. Its events and faces are at the
+    // end, under the online registration ("Events of the competition").
     if (!empty($m['show']['categories'])) {
         $form = '';
         if ($data['format'] !== '' || $data['events']) {
             $form .= '<p class="mn-format"><b>' . bk_e($data['format']) . '</b>' . ($data['format'] !== '' ? ' — ' : '')
                 . bk_e(bk_t($data['duels'] ? 'MnWithDuels' : 'MnNoDuel')) . '</p>';
         }
-        foreach (array(false => 'MnEventsInd', true => 'MnEventsTeam') as $team => $key) {
-            $list = array();
-            foreach ($data['events'] as $ev) {
-                if ($ev['team'] === (bool) $team) $list[] = $ev['name'] . ($ev['duels'] ? ' · ' . bk_t('MnDuels') : '');
-            }
-            if ($list) $form .= '<p style="margin:8px 0 4px"><b>' . bk_e(bk_t($key)) . '</b></p>' . $chips($list);
-        }
-        if (!$data['events']) {
-            if ($data['divisions']) $form .= '<p style="margin:8px 0 4px"><b>' . bk_e(bk_t('MnBows')) . '</b></p>' . $chips($data['divisions']);
-            if ($data['classes']) $form .= '<p style="margin:8px 0 4px"><b>' . bk_e(bk_t('MnClasses')) . '</b></p>' . $chips($data['classes']);
-        }
-        if ($data['faces']) $form .= '<p style="margin:8px 0 4px"><b>' . bk_e(bk_t('MnFaces')) . '</b></p>' . $chips($data['faces']);
         if ($form !== '') $out .= '<h2>' . bk_e(bk_t('MnFormat')) . '</h2>' . $form;
     }
 
@@ -1085,6 +1339,16 @@ body.tpl-ligne .mn-title h1{ font-weight:600; letter-spacing:.01em; }
         $out .= '</ul>';
     }
 
+    if (!empty($m['show']['register']) && $regUrl !== '') {
+        $out .= '<h2>' . bk_e(bk_t('Brand')) . '</h2><div class="mn-reg"><p style="margin:0 0 4px">' . bk_e(bk_t('MnRegOnline')) . '</p>'
+            . '<p style="margin:0"><a href="' . bk_e($regUrl) . '">' . bk_e($regUrl) . '</a></p>';
+        if (!empty($data['deadline']) && bk_date_fr($data['deadline']) !== '') {
+            $out .= '<p style="margin:6px 0 0"><b>' . bk_e(bk_t('MnDeadline')) . '</b> '
+                . bk_e(bk_t('DateOn', bk_date_fr($data['deadline']))) . '</p>';
+        }
+        $out .= '</div>';
+    }
+
     if (!empty($m['show']['shop']) && !empty($data['shop']) && $shopUrl !== '') {
         $out .= '<h2>' . bk_e(bk_t('Shop')) . '</h2><ul class="mn-list">';
         foreach ($data['shop'] as $it) {
@@ -1106,17 +1370,43 @@ body.tpl-ligne .mn-title h1{ font-weight:600; letter-spacing:.01em; }
             . ' <a href="' . bk_e($shopUrl) . '" style="color:var(--dark)">' . bk_e($shopUrl) . '</a></p>';
     }
 
-    if (!empty($m['show']['register']) && $regUrl !== '') {
-        $out .= '<h2>' . bk_e(bk_t('Brand')) . '</h2><div class="mn-reg"><p style="margin:0 0 4px">' . bk_e(bk_t('MnRegOnline')) . '</p>'
-            . '<p style="margin:0"><a href="' . bk_e($regUrl) . '">' . bk_e($regUrl) . '</a></p>';
-        if (!empty($data['deadline']) && bk_date_fr($data['deadline']) !== '') {
-            $out .= '<p style="margin:6px 0 0"><b>' . bk_e(bk_t('MnDeadline')) . '</b> '
-                . bk_e(bk_t('DateOn', bk_date_fr($data['deadline']))) . '</p>';
-        }
-        $out .= '</div>';
-    }
-
     foreach (array('access', 'lodging', 'catering', 'awards', 'misc', 'contact') as $k) $out .= $block($k);
+
+    // Events of the competition, last of the invitation (user's choice, 2026-11-15: it can be long):
+    // the tables by bow and class, individual then team (bk_mandate_event_grid), with
+    // the places still open to each individual event while the registration is open, then faces.
+    if (!empty($m['show']['categories'])) {
+        $st = array('head' => 'var(--light)', 'cell' => '#fff', 'line' => '#c9ced6', 'duel' => 'var(--pri)', 'on' => 'var(--on)', 'pdf' => false);
+        $ind = $data['eventGrid'];
+        if ($ind && !empty($data['cfg']->BcOpen)) {
+            $ind = bk_mandate_event_grid($tourId, false, $data['poss'][0], $data['poss'][1], true) ?: $ind;
+        }
+        $ev = '';
+        $sub = function ($key) { return '<p style="margin:8px 0 4px"><b>' . bk_e(bk_t($key)) . '</b></p>'; };
+        if ($ind) {
+            $ev .= $sub('MnEventsInd') . '<div class="mn-evg-wrap">' . bk_mandate_event_grid_html($ind, $st) . '</div>';
+            if ($ind['at'] !== '') {
+                $ev .= '<p class="mn-text" style="margin:4px 0 0; color:#4c4e50; font-size:12px">' . bk_e(bk_t('MnPlacesNote'))
+                    . ' ' . bk_e(bk_t('AcPlacesAt', bk_date_time($ind['at']))) . '</p>';
+            }
+        }
+        if ($data['teamGrid']) {
+            $ev .= $sub('MnEventsTeam') . '<div class="mn-evg-wrap">' . bk_mandate_event_grid_html($data['teamGrid'], $st) . '</div>';
+        }
+        // Events without any class to show (set up without categories): their names, as before.
+        foreach (array(false => array('MnEventsInd', $ind), true => array('MnEventsTeam', $data['teamGrid'])) as $team => $x) {
+            if ($x[1]) continue;
+            $list = array();
+            foreach ($data['events'] as $e1) if ($e1['team'] === (bool) $team) $list[] = $e1['name'] . ($e1['duels'] ? ' · ' . bk_t('MnDuels') : '');
+            if ($list) $ev .= $sub($x[0]) . $chips($list);
+        }
+        if (!$data['events']) {
+            if ($data['divisions']) $ev .= $sub('MnBows') . $chips($data['divisions']);
+            if ($data['classes']) $ev .= $sub('MnClasses') . $chips($data['classes']);
+        }
+        if ($data['faces']) $ev .= $sub('MnFaces') . $chips($data['faces']);
+        if ($ev !== '') $out .= '<h2>' . bk_e(bk_t('MnEventsTitle')) . '</h2>' . $ev;
+    }
     if (!empty($m['logos']['B']) && intval($t->HasB) > 0) {
         $out .= '<div class="mn-bottom"><img src="' . bk_e($logo('B', 1000)) . '" alt=""></div>';
     }

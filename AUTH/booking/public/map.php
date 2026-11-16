@@ -1,7 +1,7 @@
 <?php
 /**
  * public/map.php — map of the competitions: IGN base map loaded by the archer's browser straight
- * from IGN (lib/geo.php, assets/map.js), markers at the towns geocoded by the server.
+ * from IGN (lib/geo.php, assets/map.js), markers at the venues geocoded by the server.
  * Discipline / date filters (default: today → D+14). One colour per discipline (dot in the
  * filter), para as an outline, past competitions paler, unofficial ones in charcoal.
  */
@@ -41,14 +41,14 @@ $rs = safe_r_sql("SELECT ToId, ToName, ToVenue, ToWhere, ToWhenFrom, ToWhenTo, T
 $comps = array();
 while ($r = safe_fetch($rs)) $comps[] = $r;
 
-// Geocoding on demand, capped per page load (one network call per new town).
+// Geocoding on demand, capped per page load (two or three network calls per new address).
 $cap = 15; $pending = 0;
 foreach ($comps as $c) {
     // The venue itself, read on the FFTA extranet, while it is still the competition's.
     if ($p = bk_ffta_point($c)) { $c->BcLat = $p['lat']; $c->BcLng = $p['lng']; continue; }
     $venue = trim((string) $c->ToVenue);
     if ($venue === '') continue;
-    if ($c->BcLat !== null && $c->BcLng !== null && (string) $c->BcGeoSrc === $venue) continue;
+    if ((string) $c->BcGeoSrc === bk_geo_key($c->ToWhere, $venue)) continue;   // done (found or not)
     if ($cap > 0) { $cap--; $g = bk_comp_geocode(intval($c->ToId)); if ($g) { $c->BcLat = $g['lat']; $c->BcLng = $g['lng']; } }
     else $pending++;
 }

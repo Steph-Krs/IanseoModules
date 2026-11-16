@@ -85,6 +85,8 @@ if ($blocked) {
     echo bk_msg('err', $blocked . ($c->BcRestrictTo ? ' ' . bk_t('OpenToAllOn', bk_date_fr($c->BcRestrictTo)) : ''));
 }
 
+echo bk_slot('competition', array('disc' => (string) $dd['key'], 'tour' => $tourId,
+    'region' => mb_substr(preg_replace('/\D/', '', (string) ($c->ToCommitee ?? '')), 0, 2)));
 echo '<h2>' . bk_e(bk_t('Departures')) . '</h2>';
 if (!$sessions) {
     echo '<p class="bk-hint">' . bk_e(bk_t('NoDepYet')) . '</p>';

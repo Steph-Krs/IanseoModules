@@ -408,6 +408,26 @@ function bk_impersonation_block()
     exit;
 }
 
+/**
+ * A place in a page that another module of Custom/ may fill: its slots.php returns a function
+ * ($name, $ctx) giving HTML, or ''. Nothing is shown when no module fills it.
+ * $ctx: what the page knows that may help ('disc' => discipline, 'region' => league, 'tour').
+ */
+function bk_slot($name, array $ctx = array())
+{
+    static $fill = null;
+    if ($fill === null) {
+        $fill = array();
+        foreach ((array) glob(dirname(__DIR__, 3) . '/*/slots.php') as $file) {
+            $fn = include $file;
+            if (is_callable($fn)) $fill[] = $fn;
+        }
+    }
+    $html = '';
+    foreach ($fill as $fn) $html .= (string) $fn((string) $name, $ctx);
+    return $html;
+}
+
 /** Requires a signed-in licensee; to the sign-in otherwise. Then the terms-of-use guard. */
 function bk_require_archer()
 {
