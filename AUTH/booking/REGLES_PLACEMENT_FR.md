@@ -35,6 +35,16 @@ Page **Contraintes d'affectation du terrain**, section « Ordre de placement » 
 Un changement s'applique au prochain placement (nouvelle inscription, validation, ou
 « Réattribuer » sur la page Attribution des cibles).
 
+Qui est replacé :
+
+- après chaque inscription, validation ou annulation en ligne, **les inscriptions en ligne** du
+  départ sont toutes replacées ; un archer saisi dans ianseo (ou placé par un autre outil) garde sa
+  cible. Ce placement automatique ne fait jamais moins bien que les places déjà attribuées : s'il
+  laissait plus d'archers sans cible, les archers placés restent où ils sont et seuls les nouveaux
+  sont placés ;
+- « **Réattribuer** » (un départ, ou tous) replace **tous les archers** du départ, quelle que soit
+  la provenance de leur inscription.
+
 ## La butte en salle
 
 Une butte a deux **moitiés** : **gauche = A et C**, **droite = B et D** (au rythme 3 : gauche A et
@@ -81,12 +91,16 @@ seulement prévenu). Au-delà de 4, ancienne règle : jamais 4 archers sur sa ci
   accepter les deux, on coche les deux. Une cible réservée qui accepte un groupe d'archers lui est
   donnée en priorité ;
 - la capacité de la butte et le rythme ;
-- un archer déjà placé (à la main, par un autre outil) ne bouge jamais ;
+- un archer saisi dans ianseo (ou placé à la main, par un autre outil) ne bouge pas au placement
+  automatique ; seul « Réattribuer » le replace ;
 - une inscription en attente de validation n'est pas placée.
 
 ## Souple, par ordre d'importance
 
-1. **Tout le monde a une cible.**
+1. **Tout le monde a une cible.** Si le placement laisse quelqu'un sans cible, une seconde découpe
+   qui ne mélange jamais deux blasons sur une cible est essayée, et gardée si elle place plus
+   d'archers : sur un départ plein, un archer peut alors rester seul sur sa cible (cible réservée
+   à son blason) plutôt qu'un autre reste sans cible.
 2. **Au moins 6 cibles occupées** (2 archers ou plus) par départ, règle du règlement avec les
    3 clubs : tant que les 6 cibles ne sont pas atteintes, on étale ; au-delà, on complète les
    cibles normalement. Jamais une cible d'un seul archer pour atteindre le minimum. Réglage de la
@@ -115,10 +129,16 @@ fauteuil occupée, blasons qui ne peuvent pas partager leur cible, doublons, arc
 
 ## Jauge d'inscription
 
-Les places restantes d'un profil (arme, catégorie, blason) se comptent cible par cible, autour des
-archers déjà placés, avec les mêmes règles que le placement (moitiés de butte, partage des blasons,
-contraintes du terrain, fauteuil). Les cibles vides de même réglage ne sont mesurées qu'une fois :
-la jauge reste immédiate sur un départ de 9 999 cibles.
+Les places restantes d'un profil (arme, catégorie, blason) sont le nombre d'archers de ce profil que
+le **prochain placement automatique placerait encore**, sans laisser personne sans cible : il est
+rejoué avec 1, 2, 3… archers de plus (recherche par dichotomie, chaque essai un vrai placement).
+Les inscriptions en ligne y sont donc mobiles : un archer d'une autre catégorie posé sur une cible
+partagée ne bloque pas une catégorie qui a encore de la place ailleurs. Le nombre affiché est
+toujours un nombre que le placement atteint.
+
+Le calcul est gardé tant que le départ ne change pas (inscrits, places, contraintes du terrain) :
+un affichage suivant ne coûte que la lecture du départ. Au-delà de 1 500 archers sur un départ,
+la jauge se compte cible par cible autour du placement prévu, sans le rejouer.
 
 ## Méthode
 
@@ -133,6 +153,8 @@ la jauge reste immédiate sur un départ de 9 999 cibles.
 5. Les archers restants vont là où ils peuvent ; derniers déplacements pour les règles B.1.2.
 6. Vœux de lettre encore non tenus, du plus ancien au plus récent : échanges qui n'aggravent aucune
    règle.
+7. S'il reste des archers sans cible : la même chose avec une découpe par blason (voir « Tout le
+   monde a une cible »), gardée si elle en laisse moins.
 
 ## Tests
 

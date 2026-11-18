@@ -330,7 +330,23 @@ function bk_plan_gap($ctx, $x, $y)
  */
 function bk_plan_session($in)
 {
+    $res = bk_plan_session_one($in, false);
+    if ($res['unplaced']) {
+        // Someone left out: one more try with a run per face. Within one distance, the cut mixes
+        // faces to keep nobody alone (an archer on a barebow face cut with two recurve archers
+        // on a target both faces accept) — a seat of the half lost, which a full departure cannot
+        // afford. Kept only when it leaves fewer archers out: nothing changes while all fit.
+        $alt = bk_plan_session_one($in, true);
+        if (count($alt['unplaced']) < count($res['unplaced'])) $res = $alt;
+    }
+    return $res;
+}
+
+/** One plan of bk_plan_session; $split: the cut never mixes two faces (TfId) on a target. */
+function bk_plan_session_one($in, $split)
+{
     $ctx = bk_plan_ctx($in);
+    $ctx['split'] = $split;
     $places = array();
     if ($ctx['archers']) {
         $seq = bk_plan_order($ctx);
@@ -452,9 +468,10 @@ function bk_plan_cut($ctx, $seq)
     $runs = array();
     foreach ($seq as $id) {
         $dk = $ctx['archers'][$id]['dk'];
+        $rk = $dk . (empty($ctx['split']) ? '' : '#' . $ctx['archers'][$id]['face']);
         $last = count($runs) - 1;
-        if ($last >= 0 && $runs[$last]['dk'] === $dk) $runs[$last]['ids'][] = $id;
-        else $runs[] = array('dk' => $dk, 'ids' => array($id));
+        if ($last >= 0 && $runs[$last]['rk'] === $rk) $runs[$last]['ids'][] = $id;
+        else $runs[] = array('dk' => $dk, 'rk' => $rk, 'ids' => array($id));
     }
 
     // Targets per run: the seats (one more beside each wheelchair archer from rhythm 3), the club

@@ -446,9 +446,9 @@ function bk_mandate_places_ctx($tourId)
 
 /**
  * Places still open to one block of an event (bow $div, classes $classes), all departures together:
- * on each departure where one of these classes is admitted, target by target the best of their
- * profiles (class × face it may choose) around the archers already placed — the rules of the
- * registration gauge (bk_profile_left) —, never more than the places left on the departure.
+ * on each departure where one of these classes is admitted, the places of their profiles (class ×
+ * face it may choose) taken together (bk_profile_left_multi, the registration gauge), never more
+ * than the places left on the departure.
  */
 function bk_mandate_block_places(&$c, $div, $classes)
 {

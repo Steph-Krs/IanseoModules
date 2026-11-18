@@ -55,13 +55,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $act = $_POST['action'] ?? '';
         $ses = intval($_POST['session'] ?? 0);
         if ($act === 'assign') {
-            // "Reassign" = FREE the module's placements, then assign again: otherwise an archer
-            // already placed does not move, even when the target plan changed (bk_assign_session
-            // never moves a placed archer).
-            $r = bk_replan_session($TOUR, $ses, $cfg);
+            // "Reassign" = FREE every archer of the departure (online registrations and entries made
+            // in ianseo alike), then assign again: otherwise an archer already placed does not move,
+            // even when the target plan changed (bk_assign_session never moves a placed archer).
+            $r = bk_replan_session($TOUR, $ses, $cfg, true);
             $msg = bk_assign_msg(bk_t('TgDepPrefix', $ses), $r);
         } elseif ($act === 'assign_all') {
-            $r = bk_replan_all($TOUR, $cfg);
+            $r = bk_replan_all($TOUR, $cfg, true);
             $msg = bk_assign_msg('', $r);
         } elseif ($act === 'clear') {
             $n = bk_clear_session($TOUR, $ses);

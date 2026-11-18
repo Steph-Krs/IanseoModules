@@ -74,10 +74,14 @@ function bk_session_archers_full($tourId, $sessionOrder)
  * move) and archers to place, with their distances series by series, their face (family at each
  * distance, size, TfId), their category (bow, age, sex), their club and their wishes.
  *
+ * $replan: the departure as the automatic re-planning sees it (bk_replan_session) — the online
+ * registrations are archers to place even when they hold a target, only the others stay fixed.
+ *
  * Returns null when the departure does not exist, else
- * ['in' => planner input, 'rows' => [EnId => row], 'type' => ToType, 'disc' => discipline, 'nDist' => int].
+ * ['in' => planner input, 'rows' => [EnId => row], 'type' => ToType, 'disc' => discipline,
+ *  'nDist' => int, 'classes' => [ClId => ['age', 'sex']]].
  */
-function bk_plan_read($tourId, $sessionOrder, $cfg = null)
+function bk_plan_read($tourId, $sessionOrder, $cfg = null, $replan = false)
 {
     $tourId = intval($tourId);
     $sessionOrder = intval($sessionOrder);
@@ -127,7 +131,7 @@ function bk_plan_read($tourId, $sessionOrder, $cfg = null)
                      // Wheelchair or bow stand (ianseo's own field): two places on the target (B.1.2).
                      'wheelchair' => intval($a->EnWChair ?? 0) > 0,
                      'div' => (string) $a->EnDivision, 'cls' => (string) $a->EnClass, 'age' => $cl['age'], 'sex' => $cl['sex']);
-        if (intval($a->QuTarget) > 0) {
+        if (intval($a->QuTarget) > 0 && !($replan && !empty($a->BrEnId))) {
             // bytes: target letters are ASCII
             $in['fixed'][] = $one + array('t' => intval($a->QuTarget), 'l' => strtoupper((string) $a->QuLetter));
             continue;
@@ -142,7 +146,7 @@ function bk_plan_read($tourId, $sessionOrder, $cfg = null)
         $one['since'] = intval($a->BrSince ?? 0) ?: PHP_INT_MAX;
         $in['archers'][] = $one;
     }
-    return array('in' => $in, 'rows' => $rows, 'type' => $type, 'disc' => $disc, 'nDist' => $nDist);
+    return array('in' => $in, 'rows' => $rows, 'type' => $type, 'disc' => $disc, 'nDist' => $nDist, 'classes' => $classes);
 }
 
 /**
@@ -228,12 +232,14 @@ function bk_assign_session($tourId, $sessionOrder, $cfg)
  * "specific gauge" of the registration, and the admission check: 0 ⇒ no target can take this
  * archer any more, the registration must be refused.
  *
- * Target by target, archers of the profile are added around the archers already placed while a
- * letter accepts them, with the rules of the placement itself (bk_plan_room: one distance, halves
- * of the buttress, faces sharing a target, field settings, wheelchair). Returns null when the
- * constraint is unknown (no departure). Based on the current placements: exact with AUTOMATIC
- * validation (each registration is placed at once); with MANUAL validation, the pending
- * registrations are not placed yet.
+ * "How many more archers of this profile would the NEXT automatic re-planning still place?"
+ * (bk_replan_session moves every online registration) — never the room left around the archers
+ * where they stand now. Measured around the current places, an archer of another category on a
+ * target shared by two categories looked like a wall, while the next re-planning moves them
+ * onto their own targets (bug of AUTH ≤ 1.10.0 seen on a real competition: recurve archers on
+ * the barebow/recurve targets made the barebow look full). Returns null when the constraint is
+ * unknown (no departure). With MANUAL validation, the pending registrations are not placed yet,
+ * hence not counted.
  */
 function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId, $wheel = false, $except = 0)
 {
@@ -241,72 +247,206 @@ function bk_profile_remaining($tourId, $sessionOrder, $division, $class, $faceId
     return $ctx === null ? null : bk_profile_left($ctx, $division, $class, $faceId, $wheel);
 }
 
+/** Above this many archers on a departure (registered + measured), no simulation: the room around the planned places. */
+const BK_GAUGE_SIM_MAX = 1500;
+
 /**
  * What bk_profile_remaining needs of a departure, read once: several profiles can then be
  * measured against it (the table of the places left per category). null: no such departure.
- * $ctx['plan']['targets'] can be narrowed by the caller: the gauge counts target by target.
- * $except: an EnId left out of the archers already placed.
+ * $except: an EnId left out (a registration being changed: its own place is free for it).
+ *
+ * The departure twice, as the automatic re-planning reads it (bk_replan_pick): 'in' with every
+ * online registration to place (bk_plan_read in replan mode, only the organiser's entries fixed)
+ * and 'inKeep' as it stands (the archers placed stay, only those without a target are placed).
+ * The re-planning itself is computed on demand (bk_profile_base): a gauge already in the cache
+ * costs nothing more than reading the departure.
  */
 function bk_profile_ctx($tourId, $sessionOrder, $except = 0)
 {
-    $data = bk_plan_read($tourId, $sessionOrder);
+    $data = bk_plan_read($tourId, $sessionOrder, null, true);
     if ($data === null) return null;
-    // $except: a registration being changed (bk_reg_modify) — its own place is free for it.
+    $data['inKeep'] = bk_plan_read($tourId, $sessionOrder)['in'];
     if ($except) {
-        $data['in']['fixed'] = array_values(array_filter($data['in']['fixed'], function ($f) use ($except) {
-            return intval($f['id']) !== intval($except);
-        }));
+        $keep = function ($f) use ($except) { return intval($f['id']) !== intval($except); };
+        foreach (array('in', 'inKeep') as $k) {
+            $data[$k]['fixed'] = array_values(array_filter($data[$k]['fixed'], $keep));
+            $data[$k]['archers'] = array_values(array_filter($data[$k]['archers'], $keep));
+        }
     }
-    $data['in']['archers'] = array();   // the archers still to place are not counted (as before)
-    $data['plan'] = bk_plan_ctx($data['in']);
-    $data['occ'] = bk_plan_occupants($data['plan'], array());
     $data['tour'] = intval($tourId);
+    $data['session'] = intval($sessionOrder);
     $data['left'] = array();
+    $data['hash'] = md5(json_encode(array($data['in'], $data['inKeep'])) . '|' . bk_gauge_code_version());
     return $data;
+}
+
+/**
+ * The plan the automatic re-planning keeps (bk_replan_session): everyone placed again ($inAll),
+ * unless keeping the archers where they stand and placing only those without a target ($inKeep)
+ * leaves fewer archers out. Re-planning from scratch around fixed archers spread over the field
+ * (the organiser's entries after a "Reassign") can fail where the places held were a solution:
+ * the re-planning never does worse than them. Returns [planner result, 'all'|'keep'].
+ */
+function bk_replan_pick($inAll, $inKeep)
+{
+    $all = bk_plan_session($inAll);
+    if (!$all['unplaced']) return array($all, 'all');
+    $keep = bk_plan_session($inKeep);
+    return count($keep['unplaced']) < count($all['unplaced']) ? array($keep, 'keep') : array($all, 'all');
+}
+
+/**
+ * The re-planning of the departure, once per context: 'base' (planner result of
+ * bk_replan_pick), 'plan' + 'occ' (the archers where it leaves them, as obstacles), 'placed' (ids
+ * holding a target then) and 'hard' + 'hardOcc' (only the archers no re-planning moves). A caller
+ * of bk_profile_left_static may narrow $ctx['plan']['targets'] after this call: the room is
+ * counted target by target.
+ */
+function bk_profile_base(&$ctx)
+{
+    if (isset($ctx['base'])) return;
+    list($ctx['base'], $mode) = bk_replan_pick($ctx['in'], $ctx['inKeep']);
+    $src = $mode === 'keep' ? $ctx['inKeep'] : $ctx['in'];
+    $fixed = $src['fixed'];
+    foreach ($src['archers'] as $a) {
+        if (isset($ctx['base']['places'][$a['id']])) $fixed[] = $a + $ctx['base']['places'][$a['id']];
+    }
+    $ctx['placed'] = array();
+    foreach ($fixed as $f) $ctx['placed'][intval($f['id'])] = true;
+    $static = $src;
+    $static['fixed'] = $fixed;
+    $static['archers'] = array();
+    $ctx['plan'] = bk_plan_ctx($static);
+    $ctx['occ'] = bk_plan_occupants($ctx['plan'], array());
+    $hard = $ctx['in'];
+    $hard['archers'] = array();
+    $ctx['hard'] = bk_plan_ctx($hard);
+    $ctx['hardOcc'] = bk_plan_occupants($ctx['hard'], array());
+}
+
+/** An archer of the profile, as the planner reads one (no wish, a club of their own). */
+function bk_profile_probe(&$ctx, $division, $class, $faceId, $wheel)
+{
+    $dist = bk_plan_series($ctx['tour'], $ctx['type'], $division, $class, $ctx['nDist']);
+    $face = bk_caps_face_profile($ctx['tour'], $ctx['disc'], $faceId, max(1, count($dist)));
+    $cl = $ctx['classes'][(string) $class] ?? array('age' => null, 'sex' => null);
+    // A wheelchair archer needs a place with the one beside it free (bk_wheel_pairs).
+    return array('id' => -1, 'dist' => $dist, 'fam' => $face['fams'], 'fsize' => $face['fsize'],
+                 'face' => intval($faceId), 'club' => '~', 'wheelchair' => (bool) $wheel,
+                 'div' => (string) $division, 'cls' => (string) $class, 'age' => $cl['age'], 'sex' => $cl['sex']);
+}
+
+/**
+ * Room for archer $a on the targets of $pctx around $occ, archer by archer (bk_plan_room).
+ * ⚠️ PLACES, not targets: an outdoor full face (122) is SHARED by up to SesAth4Target archers,
+ * so each target is filled archer by archer. Empty targets with the same settings take the same
+ * number: measured once (a departure of 9 999 targets stays cheap).
+ */
+function bk_profile_room_sum($pctx, $occ, $a)
+{
+    $n = 0;
+    $empty = array();
+    foreach ($pctx['targets'] as $t) {
+        if (!empty($occ[$t])) { $n += bk_plan_room($pctx, $occ, $t, $a); continue; }
+        $sig = json_encode($pctx['caps'][$t] ?? null);
+        if (!isset($empty[$sig])) $empty[$sig] = bk_plan_room($pctx, $occ, $t, $a);
+        $n += $empty[$sig];
+    }
+    return $n;
+}
+
+/**
+ * Room around the planned places only, no re-planning simulated, on $ctx['plan']['targets'] —
+ * which the caller may narrow (club quota of an archer coming back, lib/clubmoves.php).
+ */
+function bk_profile_left_static(&$ctx, $division, $class, $faceId, $wheel = false)
+{
+    bk_profile_base($ctx);
+    return bk_profile_room_sum($ctx['plan'], $ctx['occ'], bk_profile_probe($ctx, $division, $class, $faceId, $wheel));
 }
 
 /**
  * Places of a departure (bk_profile_ctx) still open to one profile — see bk_profile_remaining.
  *
- * ⚠️ PLACES, not targets: an outdoor full face (122) is SHARED by up to SesAth4Target archers,
- * so each target is filled archer by archer. Empty targets with the same settings take the same
- * number: measured once (a departure of 9 999 targets stays cheap).
+ * The largest k such that the re-planning with k more archers of the profile places all of them
+ * without leaving out anyone it placed before. Bounds: from below, the room around the planned
+ * places (the plan plus those archers is one solution); from above, the room around the
+ * organiser's entries alone, less the online archers of the same distances and face (they take
+ * seats this profile could use). Then a binary search, each step one re-planning (8 ms for 90
+ * archers, 55 ms for 430). Profiles of one bow at the same distances and face share a key: the
+ * class only orders the archers. Kept per request ($ctx['left']) and, between requests, in a file
+ * of the system's temporary folder keyed by the departure's state (bk_gauge_cache): recomputed
+ * only when a registration, a placement, the field plan or the code changes.
  */
 function bk_profile_left(&$ctx, $division, $class, $faceId, $wheel = false)
 {
-    $dist = bk_plan_series($ctx['tour'], $ctx['type'], $division, $class, $ctx['nDist']);
-    $key = implode('-', $dist) . '#' . intval($faceId) . '#' . ($wheel ? 'w' : '') . '#' . implode(',', $ctx['plan']['targets']);
-    $key = md5($key);
+    $a = bk_profile_probe($ctx, $division, $class, $faceId, $wheel);
+    $key = md5($division . '#' . implode('-', $a['dist']) . '#' . intval($faceId) . '#' . ($wheel ? 'w' : ''));
     if (isset($ctx['left'][$key])) return $ctx['left'][$key];
-    $face = bk_caps_face_profile($ctx['tour'], $ctx['disc'], $faceId, max(1, count($dist)));
-    // A wheelchair archer needs a place with the one beside it free (bk_wheel_pairs).
-    $a = array('id' => -1, 'dist' => $dist, 'fam' => $face['fams'], 'face' => intval($faceId), 'club' => '~', 'wheelchair' => (bool) $wheel);
-    $n = 0;
-    $empty = array();
-    foreach ($ctx['plan']['targets'] as $t) {
-        if (!empty($ctx['occ'][$t])) { $n += bk_plan_room($ctx['plan'], $ctx['occ'], $t, $a); continue; }
-        $sig = json_encode($ctx['plan']['caps'][$t] ?? null);
-        if (!isset($empty[$sig])) $empty[$sig] = bk_plan_room($ctx['plan'], $ctx['occ'], $t, $a);
-        $n += $empty[$sig];
+    $cached = bk_gauge_cache($ctx, $key);
+    if ($cached !== null) return $ctx['left'][$key] = $cached;
+
+    bk_profile_base($ctx);
+    $low = bk_profile_room_sum($ctx['plan'], $ctx['occ'], $a);
+    $high = bk_profile_room_sum($ctx['hard'], $ctx['hardOcc'], $a);
+    $an = bk_plan_norm($a);
+    foreach ($ctx['in']['archers'] as $o) {
+        $o = bk_plan_norm($o);
+        if ($o['dk'] === $an['dk'] && $o['face'] === $an['face'] && isset($ctx['placed'][$o['id']])) $high--;
     }
+    $high = max($high, $low);
+    $n = $low;
+    if (count($ctx['in']['archers']) + $high <= BK_GAUGE_SIM_MAX) {
+        $baseOut = count($ctx['base']['unplaced']);
+        $fits = function ($k) use ($ctx, $a, $baseOut) {
+            if ($k <= 0) return true;
+            $in = $ctx['in'];
+            $keep = $ctx['inKeep'];
+            for ($i = 1; $i <= $k; $i++) {
+                $in['archers'][] = $keep['archers'][] = array('id' => -$i, 'club' => '~' . $i) + $a;
+            }
+            list($res) = bk_replan_pick($in, $keep);
+            foreach ($res['unplaced'] as $id) if ($id < 0) return false;
+            return count($res['unplaced']) <= $baseOut;
+        };
+        // Every number given is one the re-planning reaches: the planner starts from scratch and,
+        // near a full departure, does not always find the solution the planned places prove
+        // (the lower bound is then checked too, like any other).
+        if ($fits($high)) {
+            $n = $high;
+        } else {
+            if ($low < $high && $fits($low)) { $lo = $low; $hi = $high - 1; }
+            else { $lo = 0; $hi = $low - 1; }
+            while ($lo < $hi) {
+                $mid = intdiv($lo + $hi + 1, 2);
+                if ($fits($mid)) $lo = $mid; else $hi = $mid - 1;
+            }
+            $n = $lo;
+        }
+        // The admission check: one more archer of the profile must be placed by the re-planning.
+        if ($n > 1 && !$fits(1)) $n = 0;
+    }
+    bk_gauge_cache($ctx, $key, $n);
     return $ctx['left'][$key] = $n;
 }
 
 /**
  * Places of a departure (bk_profile_ctx) still open to SEVERAL profiles of one bow taken together
- * — the classes of an event: target by target the best of them (they share the targets, so the
- * numbers of each profile do not add up), summed. $profiles: [[class, face TfId]…].
+ * — the classes of an event. Two measures, the larger kept: target by target the best of them
+ * around the planned places, summed (classes on different faces each count their own targets),
+ * and the best gauge of a single profile (bk_profile_left: archers moved by the re-planning).
+ * They share the targets, so the numbers of each profile do not add up. $profiles: [[class, face TfId]…].
  */
 function bk_profile_left_multi(&$ctx, $division, $profiles)
 {
     $as = array();
     foreach ($profiles as $p) {
-        $dist = bk_plan_series($ctx['tour'], $ctx['type'], $division, $p[0], $ctx['nDist']);
-        $face = bk_caps_face_profile($ctx['tour'], $ctx['disc'], $p[1], max(1, count($dist)));
-        $as[implode('-', $dist) . '#' . intval($p[1])] = array('id' => -1, 'dist' => $dist, 'fam' => $face['fams'], 'face' => intval($p[1]), 'club' => '~');
+        $a = bk_profile_probe($ctx, $division, $p[0], $p[1], false);
+        $as[implode('-', $a['dist']) . '#' . intval($p[1])] = array($a, $p);
     }
-    $key = md5('multi#' . implode(',', array_keys($as)) . '#' . implode(',', $ctx['plan']['targets']));
+    $key = md5('multi#' . $division . '#' . implode(',', array_keys($as)));
     if (isset($ctx['left'][$key])) return $ctx['left'][$key];
+    bk_profile_base($ctx);
     $n = 0;
     $empty = array();
     foreach ($ctx['plan']['targets'] as $t) {
@@ -314,11 +454,44 @@ function bk_profile_left_multi(&$ctx, $division, $profiles)
         $sig = $busy ? null : json_encode($ctx['plan']['caps'][$t] ?? null);
         if (!$busy && isset($empty[$sig])) { $n += $empty[$sig]; continue; }
         $best = 0;
-        foreach ($as as $a) $best = max($best, bk_plan_room($ctx['plan'], $ctx['occ'], $t, $a));
+        foreach ($as as $x) $best = max($best, bk_plan_room($ctx['plan'], $ctx['occ'], $t, $x[0]));
         if (!$busy) $empty[$sig] = $best;
         $n += $best;
     }
+    foreach ($as as $x) $n = max($n, bk_profile_left($ctx, $division, $x[1][0], $x[1][1]));
     return $ctx['left'][$key] = $n;
+}
+
+/** What changes the gauges besides the departure itself: the planner and this file. */
+function bk_gauge_code_version()
+{
+    static $v = null;
+    if ($v === null) {
+        $v = @filemtime(__DIR__ . '/placement.php') . '.' . @filemtime(__DIR__ . '/cohabitation.php') . '.' . @filemtime(__FILE__);
+    }
+    return $v;
+}
+
+/**
+ * Gauges of a departure kept between requests: one JSON file per departure in the system's
+ * temporary folder (never in the module: Apache would serve it; never in the database: public
+ * pages read the gauge), valid while the departure's state ($ctx['hash']) stays the same. Read
+ * with $set null (null when absent), written otherwise. Unreadable or not writable: everything
+ * still works, only slower.
+ */
+function bk_gauge_cache(&$ctx, $key, $set = null)
+{
+    global $CFG;
+    // bytes: a hexadecimal digest is ASCII
+    $file = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'ianseo-gauge-'
+        . substr(md5(__DIR__ . '|' . ($CFG->DB_NAME ?? '')), 0, 12) . '-' . $ctx['tour'] . '-' . $ctx['session'] . '.json';
+    $raw = @file_get_contents($file);
+    $data = $raw ? json_decode($raw, true) : null;
+    if (!is_array($data) || ($data['h'] ?? '') !== $ctx['hash']) $data = array('h' => $ctx['hash'], 'l' => array());
+    if ($set === null) return isset($data['l'][$key]) ? intval($data['l'][$key]) : null;
+    $data['l'][$key] = intval($set);
+    @file_put_contents($file, json_encode($data), LOCK_EX);
+    return $set;
 }
 
 /**
@@ -327,36 +500,47 @@ function bk_profile_left_multi(&$ctx, $division, $profiles)
  * Called after each registration: a "with someone" wish cannot be met by placing people one by
  * one in order of arrival — the cards must be reshuffled.
  *
- * ⚠️ Frees ONLY the registrations made by this module (in BookingRegistrations). A participant
- * entered by the organiser, or placed by another tool, keeps their target: it becomes a fixed
- * obstacle. Without this guard, an online registration would move the organiser's manual work.
+ * ⚠️ After a registration ($all false), frees ONLY the registrations made by this module (in
+ * BookingRegistrations). A participant entered by the organiser, or placed by another tool, keeps
+ * their target: it becomes a fixed obstacle. Without this guard, an online registration would move
+ * the organiser's manual work. The organiser's "Reassign" buttons ($all true) free EVERY archer of
+ * the departure, whatever the origin of their registration (user's rule, 2026-11-18).
  */
-function bk_replan_session($tourId, $sessionOrder, $cfg)
+function bk_replan_session($tourId, $sessionOrder, $cfg, $all = false)
 {
     $tourId = intval($tourId);
+    if (!$all) {
+        // Never worse than the places held (bk_replan_pick): then only the archers without a
+        // target are placed. bk_assign_session plans the same input again, hence the same plan.
+        $keep = bk_plan_read($tourId, $sessionOrder, $cfg);
+        $full = bk_plan_read($tourId, $sessionOrder, $cfg, true);
+        if ($keep !== null && $full !== null && bk_replan_pick($full['in'], $keep['in'])[1] === 'keep') {
+            return bk_assign_session($tourId, $sessionOrder, $cfg);
+        }
+    }
+    $join = $all ? '' : ' INNER JOIN BookingRegistrations ON BrEnId = EnId';
     safe_w_sql("UPDATE Qualifications
-        INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
-        INNER JOIN BookingRegistrations ON BrEnId = EnId
+        INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId$join
         SET QuTarget = 0, QuLetter = '', QuTargetNo = '', QuTimestamp = QuTimestamp
         WHERE QuSession = " . intval($sessionOrder));
     return bk_assign_session($tourId, $sessionOrder, $cfg);
 }
 
 /**
- * Plans again every departure where the module has registrations. Used after a registration or
- * a cancellation, when the organiser leaves the automatic placement on.
+ * Plans again every departure where the module has registrations. $all: every departure with
+ * archers, all of them freed (the organiser's "Reassign on every session").
  */
-function bk_replan_all($tourId, $cfg)
+function bk_replan_all($tourId, $cfg, $all = false)
 {
     $tourId = intval($tourId);
+    $join = $all ? '' : ' INNER JOIN BookingRegistrations ON BrEnId = EnId';
     $rs = safe_r_sql("SELECT DISTINCT QuSession FROM Qualifications
-        INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId
-        INNER JOIN BookingRegistrations ON BrEnId = EnId
+        INNER JOIN Entries ON EnId = QuId AND EnTournament = $tourId$join
         WHERE QuSession > 0");
     $tot = array('places' => 0, 'restants' => 0, 'compromis' => 0, 'melanges' => 0, 'fauteuil' => 0,
                  'incompatibles' => 0, 'voeux' => 0, 'voeuxOk' => 0);
     while ($r = safe_fetch($rs)) {
-        $x = bk_replan_session($tourId, intval($r->QuSession), $cfg);
+        $x = bk_replan_session($tourId, intval($r->QuSession), $cfg, $all);
         foreach ($tot as $k => $v) $tot[$k] = $v + ($x[$k] ?? 0);
     }
     return $tot;

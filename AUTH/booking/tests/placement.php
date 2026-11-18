@@ -747,6 +747,26 @@ test_case('a target reserved to another face offers no place', function () {
     $ctx = bk_plan_ctx(array('disc' => 'salle', 'rhythm' => 4, 'targets' => array(1), 'caps' => array(1 => array('faces' => array(7)))));
     same(0, bk_plan_room($ctx, array(), 1, array('id' => -1, 'dist' => array(18), 'fam' => 'tri', 'face' => 6, 'club' => '~')));
 });
+// Field of a real competition: targets 1-3 barebow (40), 4-8 barebow or recurve triple, 9-18 recurve triple.
+$sharedField = function ($p) {
+    for ($t = 1; $t <= 18; $t++) $p->in['caps'][$t] = array('faces' => $t <= 3 ? array(1) : ($t <= 8 ? array(1, 11) : array(11)));
+};
+test_case('room to spare: a single barebow shares a target rather than shooting alone', function () use ($sharedField) {
+    $p = new Plan('salle', 18, 4, 4); $sharedField($p);
+    $bb = $p->add(1, '40', array('div' => 'BB', 'face' => 1));
+    $p->add(20, 'tri', array('div' => 'CL', 'face' => 11));
+    $res = $p->run();
+    same(array(), $res['unplaced']);
+    truthy(count($p->byTarget($res)[Plan::at($res, $bb[0])['t']]) > 1, 'the barebow is not alone');
+});
+test_case('full departure: a single barebow alone on its own target rather than a recurve left out', function () use ($sharedField) {
+    $p = new Plan('salle', 18, 4, 4); $sharedField($p);
+    $bb = $p->add(1, '40', array('div' => 'BB', 'face' => 1));
+    $p->add(60, 'tri', array('div' => 'CL', 'face' => 11));   // every recurve seat of targets 4-18
+    $res = $p->run();
+    same(array(), $res['unplaced']);
+    truthy(Plan::at($res, $bb[0])['t'] <= 3, 'the barebow on a barebow target');
+});
 
 section('A large departure');
 

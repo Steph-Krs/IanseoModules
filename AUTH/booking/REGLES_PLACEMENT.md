@@ -35,6 +35,15 @@ Page **Field assignment constraints**, section "Order of the placement":
 A change applies to the next placement (a new registration, a validation, or "Reassign" on the
 Target assignment page).
 
+Who is placed again:
+
+- after each online registration, validation or cancellation, **the online registrations** of the
+  session are all placed again; an archer entered in ianseo (or placed by another tool) keeps their
+  target. This automatic placement never does worse than the places already given: if it left more
+  archers without a target, the archers placed stay where they are and only the new ones are placed;
+- "**Reassign**" (one session, or all) places **every archer** of the session again, whatever the
+  origin of their registration.
+
 ## The indoor buttress
 
 A buttress has two **halves**: **left = A and C**, **right = B and D** (rhythm 3: left A and C,
@@ -78,12 +87,16 @@ organiser is only told). Beyond 4, the former rule: never 4 archers on their tar
   reserved to compound triple faces never takes recurve triple faces; to accept both, tick both. A
   reserved target that accepts a group of archers is given to it first;
 - the capacity of the buttress and the rhythm;
-- an archer already placed (by hand, by another tool) never moves;
+- an archer entered in ianseo (or placed by hand, by another tool) does not move at the automatic
+  placement; only "Reassign" places them again;
 - a registration waiting for validation is not placed.
 
 ## Soft, by priority
 
-1. **Everyone gets a target.**
+1. **Everyone gets a target.** When the placement leaves someone without a target, a second cut
+   that never mixes two faces on a target is tried, and kept if it places more archers: on a full
+   session, an archer may then shoot alone on their target (a target reserved to their face)
+   rather than another archer having none.
 2. **At least 6 targets in use** (2 archers or more) per session, rule of the regulations with the
    3 clubs: while the 6 targets are not reached, the archers are spread; beyond, the targets are
    filled normally. Never a target of a single archer to reach the minimum. Competition setting
@@ -112,10 +125,15 @@ their target, double registrations, archers not placed.
 
 ## Registration gauge
 
-The places left for a profile (bow, category, face) are counted target by target, around the
-archers already placed, with the rules of the placement (halves of the buttress, faces sharing a
-target, field constraints, wheelchair). Empty targets with the same setting are measured once: the
-gauge stays immediate on a session of 9,999 targets.
+The places left for a profile (bow, category, face) are the number of archers of this profile the
+**next automatic placement would still place**, leaving nobody without a target: it is run again
+with 1, 2, 3… more archers (binary search, each try a real placement). The online registrations
+are therefore movable: an archer of another category on a shared target does not block a category
+that still has room elsewhere. The number shown is always one the placement reaches.
+
+The result is kept while the session does not change (archers, places, field constraints): a
+later display only costs reading the session. Beyond 1,500 archers on a session, the gauge is
+counted target by target around the planned places, without running the placement again.
 
 ## Method
 
@@ -129,6 +147,8 @@ gauge stays immediate on a session of 9,999 targets.
 4. Swaps of one archer, then of two, for the club quota and the pairs of one club.
 5. The archers left go where they can; last moves for the B.1.2 rules.
 6. Letter wishes still unmet, from the oldest to the newest: swaps that make no rule worse.
+7. When archers are still without a target: the same with a cut per face (see "Everyone gets a
+   target"), kept if it leaves fewer of them.
 
 ## Tests
 

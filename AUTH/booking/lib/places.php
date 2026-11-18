@@ -2,10 +2,10 @@
 /**
  * lib/places.php — places left per category on each departure (user's choice, 2026-10-15): the
  * grid of the categories allowed (divisions × classes, as in the Restrictions), each cell the
- * number of archers of THIS category the departure can still take — field constraints, archers
- * already placed and faces sharing a target (REGLES_COHABITATION_FR.md), exactly as the gauge of
- * the registration form (bk_profile_left). Categories share the targets: the numbers do not add
- * up. Shown in the registration state of the organiser; meant for the invitation later.
+ * number of archers of THIS category the next automatic placement would still place — field
+ * constraints, faces sharing a target (REGLES_COHABITATION_FR.md), the organiser's entries where
+ * they stand —, exactly as the gauge of the registration form (bk_profile_left). Categories share
+ * the targets: the numbers do not add up. Shown in the registration state of the organiser.
  */
 
 if (defined('BK_PLACES_LOADED')) return;
