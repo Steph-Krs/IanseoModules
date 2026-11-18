@@ -2,6 +2,11 @@
 
 Une entrée par version publiée, la plus récente en haut. Les notes de `version.json` ne gardent que la série en cours.
 
+## 1.11.1 — 2026-11-18
+- Espace licencié : les pages qui listent les inscriptions de l'archer (accueil, « Mes inscriptions », fiche d'une compétition, calendrier et export agenda, carte, suggestions, documents d'une compétition) ne s'arrêtent plus sur une erreur SQL de collation (Error 1267). Apparue en 1.10.0 sur les serveurs dont la collation par défaut n'est pas `utf8mb4_general_ci` (MySQL 8, MariaDB récents) : le cœur déclare les volées 5 à 8 avec leur propre collation, et la présence de flèches était testée sur la concaténation des huit volées. Chaque volée est désormais testée séparément.
+
+Contribution de Matthieu Bouquet (@matthieu-bouquet) : issue #13, pull request #14, reprise telle quelle.
+
 ## 1.11.0 — 2026-11-18
 - Composition finale, départ par départ (page Attribution des cibles) : refait le départ à partir des archers inscrits à cet instant, inscrits en ligne ou saisis dans ianseo. **Terrain modulable** (terrain monté pour la compétition) : le plan du terrain du départ est réécrit à partir de la première cible choisie, sans trou, chaque cible recevant exactement les distances et les blasons de ses archers ; les cibles suivantes n'ont plus de contrainte. **Terrain fixe** (cibles permanentes) : le plan du terrain est gardé, seules les places sont refaites. Un aperçu avant / après, cible par cible, précède toute écriture ; « Annuler la composition » rétablit le plan du terrain et les places d'avant.
 - Placement automatique après une inscription : un archer déjà placé ne bouge plus sans raison. Le module compare « tout replacer » et « garder les places, placer seulement les nouveaux », et retient celle qui laisse le moins d'archers sans cible, puis occupe le moins de cibles, puis respecte le mieux les règles et les vœux ; à égalité, personne ne bouge. Une composition finale n'est donc pas défaite par les inscriptions suivantes, y compris quand des archers ont été saisis dans ianseo (avant, les inscrits en ligne partaient alors sur les cibles du fond du terrain).

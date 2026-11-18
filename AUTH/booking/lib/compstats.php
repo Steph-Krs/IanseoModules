@@ -64,8 +64,10 @@ function bk_cs_entry($enId, $licence)
  */
 function bk_cs_mine($tourId, $licence)
 {
-    $c = array();
-    for ($d = 1; $d <= 8; $d++) $c[] = "QuD{$d}Arrowstring";
+    // Each arrow string on its own, as in bk_cs_entries(): the core declares QuD5-8Arrowstring with
+    // their own collation, so a CONCAT of all eight has none and comparing it fails (error 1267).
+    $have = array();
+    for ($d = 1; $d <= 8; $d++) $have[] = "TRIM(QuD{$d}Arrowstring) <> ''";
     $out = array();
     $rs = safe_r_sql("SELECT EnId, QuSession, DivDescription, ClDescription
         FROM Entries
@@ -73,7 +75,7 @@ function bk_cs_mine($tourId, $licence)
         LEFT JOIN Divisions ON DivTournament = EnTournament AND DivId = EnDivision
         LEFT JOIN Classes ON ClTournament = EnTournament AND ClId = EnClass
         WHERE EnTournament = " . intval($tourId) . " AND EnCode = " . StrSafe_DB(bk_clean_licence($licence)) . " AND EnAthlete = 1
-          AND TRIM(CONCAT(" . implode(', ', $c) . ")) <> ''
+          AND (" . implode(' OR ', $have) . ")
         ORDER BY QuSession, EnId");
     while ($r = safe_fetch($rs)) $out[] = $r;
     return $out;
