@@ -847,6 +847,8 @@ function bk_my_registrations($licence)
 {
     bk_schema();
     $lic = StrSafe_DB(bk_clean_licence($licence));
+    // BkHasArrows tests each arrow string on its own: the core declares QuD5-8Arrowstring with their
+    // own collation, so a CONCAT of all eight has none and comparing it fails (MySQL error 1267).
     $cols = "EnDivision, EnClass, EnIndClEvent, EnIndFEvent, EnTeamFEvent, EnTeamMixEvent, EnTargetFace,
                 QuSession, QuTarget, QuLetter,
                 DivDescription, ClDescription,
@@ -854,8 +856,9 @@ function bk_my_registrations($licence)
                 ToType, ToTypeName, ToTypeSubRule,
                 BcShowAssignment, BcAllowScoresheet, BcFee, BcMandate, BcShowMandate, BcIanseoUrl,
                 BcShowProgram, BcShowParticipants, BcShowResults, BcPublishLevel,
-                (TRIM(CONCAT(QuD1Arrowstring, QuD2Arrowstring, QuD3Arrowstring, QuD4Arrowstring,
-                    QuD5Arrowstring, QuD6Arrowstring, QuD7Arrowstring, QuD8Arrowstring)) <> '') AS BkHasArrows,
+                (TRIM(QuD1Arrowstring) <> '' OR TRIM(QuD2Arrowstring) <> '' OR TRIM(QuD3Arrowstring) <> ''
+                    OR TRIM(QuD4Arrowstring) <> '' OR TRIM(QuD5Arrowstring) <> '' OR TRIM(QuD6Arrowstring) <> ''
+                    OR TRIM(QuD7Arrowstring) <> '' OR TRIM(QuD8Arrowstring) <> '') AS BkHasArrows,
                 " . bk_comp_calc_sql();
     $joins = "INNER JOIN Qualifications ON QuId = EnId
         LEFT  JOIN Divisions      ON DivTournament = ToId AND DivId = EnDivision
