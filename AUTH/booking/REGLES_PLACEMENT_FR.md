@@ -38,10 +38,12 @@ Un changement s'applique au prochain placement (nouvelle inscription, validation
 Qui est replacé :
 
 - après chaque inscription, validation ou annulation en ligne, **les inscriptions en ligne** du
-  départ sont toutes replacées ; un archer saisi dans ianseo (ou placé par un autre outil) garde sa
-  cible. Ce placement automatique ne fait jamais moins bien que les places déjà attribuées : s'il
-  laissait plus d'archers sans cible, les archers placés restent où ils sont et seuls les nouveaux
-  sont placés ;
+  départ peuvent toutes être replacées ; un archer saisi dans ianseo (ou placé par un autre outil)
+  garde sa cible. Deux solutions sont comparées : tout replacer, ou laisser les archers placés où
+  ils sont et ne placer que les nouveaux. La retenue est celle qui laisse le moins d'archers sans
+  cible, puis qui occupe le moins de cibles, puis qui enfreint le moins de règles souples, puis qui
+  tient le plus de vœux ; à égalité complète, **personne ne bouge**. Une composition finale n'est
+  donc pas défaite par les inscriptions qui suivent ;
 - « **Réattribuer** » (un départ, ou tous) replace **tous les archers** du départ, quelle que soit
   la provenance de leur inscription.
 
@@ -139,6 +141,30 @@ toujours un nombre que le placement atteint.
 Le calcul est gardé tant que le départ ne change pas (inscrits, places, contraintes du terrain) :
 un affichage suivant ne coûte que la lecture du départ. Au-delà de 1 500 archers sur un départ,
 la jauge se compte cible par cible autour du placement prévu, sans le rejouer.
+
+## Composition finale
+
+Bouton de la page Attribution des cibles, **un départ à la fois** : il refait le départ à partir des
+archers inscrits à cet instant, inscrits en ligne ou saisis dans ianseo. Deux modes :
+
+- **Terrain modulable** (terrain monté pour la compétition) : le placement est fait sans tenir compte
+  des contraintes du terrain, sur juste assez de cibles à partir de la **première cible choisie**
+  (la première du départ par défaut), sans trou — y compris pour un départ placé depuis sa dernière
+  cible. Le **plan du terrain du départ est ensuite réécrit** : chaque cible occupée reçoit
+  exactement les distances et les blasons de ses archers, les cibles suivantes n'ont plus de
+  contrainte.
+- **Terrain fixe** (cibles permanentes) : le plan du terrain ne change pas, toutes les places sont
+  refaites dans ses limites.
+
+Les règles ci-dessus s'appliquent dans les deux cas. Un aperçu cible par cible (plan du terrain et
+archers, avant / après) précède toute écriture ; si le départ a changé entre l'aperçu et
+« Appliquer », rien n'est écrit et le nouvel aperçu s'affiche. La dernière composition d'un départ
+s'annule : plan du terrain et places d'avant rétablis, un archer inscrit depuis est placé autour.
+Une inscription en attente de validation qui a déjà une cible la garde.
+
+Après une composition, une nouvelle inscription est placée par le placement automatique habituel
+dans le nouveau plan du terrain, sur les cibles laissées sans contrainte si celles de son profil
+sont pleines. La composition finale se fait donc de préférence une fois les inscriptions closes.
 
 ## Méthode
 

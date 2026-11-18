@@ -13,6 +13,7 @@ require_once dirname(__DIR__) . '/lib/schema.php';
 require_once dirname(__DIR__) . '/lib/competition.php';
 require_once dirname(__DIR__) . '/lib/registration.php';
 require_once dirname(__DIR__) . '/lib/targets.php';
+require_once dirname(__DIR__) . '/lib/compose.php';
 require_once dirname(__DIR__) . '/lib/archer.php';
 require_once dirname(__DIR__) . '/lib/ui.php';
 // Payer trust index (AUTH core): badges and acceptances, shown in its alert and block modes only.
@@ -42,6 +43,100 @@ function bk_assign_msg($prefix, $r)
     return $m;
 }
 
+/**
+ * Block "Final composition" of one departure: options (GET), preview before / after target by
+ * target, Apply (POST, with the fingerprint of the preview). Empty when no departure is asked.
+ */
+function bk_compose_section($tourId, $cfg, $ses, $form)
+{
+    if ($ses <= 0) return '';
+    $read = bk_compose_read($tourId, $ses, $cfg);
+    if ($read === null) return '';
+    $mode = ($_GET['mode'] ?? 'free') === 'fixed' ? 'fixed' : 'free';
+    $first = isset($_GET['first']) ? intval($_GET['first']) : $read['targets'][0];
+    $out = '<div class="bk-sec" id="bk-compose">' . aut_adm_title('h2', bk_t('CpTitle', $ses), bk_e(bk_t('CpHint')));
+
+    $radio = function ($v, $key) use ($mode) {
+        return '<label style="display:block;margin:2px 0"><input type="radio" name="mode" value="' . $v . '"'
+            . ($mode === $v ? ' checked' : '') . '> ' . bk_e(bk_t($key)) . '</label>';
+    };
+    $out .= '<form method="get" action="#bk-compose" style="margin:0 0 8px">'
+        . '<input type="hidden" name="compose" value="' . intval($ses) . '">'
+        . $radio('free', 'CpModeFree') . $radio('fixed', 'CpModeFixed')
+        . '<label style="display:inline-block;margin:4px 0">' . bk_e(bk_t('CpFirst')) . ' <input type="number" name="first" value="' . intval($first) . '"'
+        . ' min="' . intval($read['targets'][0]) . '" max="' . intval(end($read['targets'])) . '" style="width:60px"></label> '
+        . '<button type="submit" class="bk-btn">' . bk_e(bk_t('CpPreview')) . '</button></form>';
+
+    $undo = bk_compose_undo_info($tourId, $ses);
+    if ($undo) {
+        $when = DateTime::createFromFormat('Y-m-d H:i:s', $undo['when']);
+        $out .= '<p class="bk-hint">' . bk_e(bk_t('CpUndoWhen', $when ? $when->format(bk_t('CpWhenFmt')) : $undo['when'])) . ' '
+            . $form(array('action' => 'compose_undo', 'session' => $ses), bk_t('CpUndo'), 'bk-btn', bk_t('CpUndoConfirm', $ses)) . '</p>';
+    }
+    if (!$read['rows']) return $out . '<p class="bk-hint">' . bk_e(bk_t('CpNoArcher')) . '</p></div>';
+
+    $plan = bk_compose_plan($read, $mode, $first);
+    if ($mode === 'free') $first = $plan['first'];
+    $faces = bk_caps_faces($tourId);
+    $rows = bk_compose_rows($read, $plan, $faces);
+
+    $span = function ($places) {
+        $s = bk_compose_span($places);
+        return $s['used'] ? bk_t('CpSpan', $s) : bk_t('CpSpanNone');
+    };
+    $moves = 0;
+    foreach ($read['in']['archers'] as $a) {
+        $id = intval($a['id']);
+        if (($read['before'][$id] ?? null) != ($plan['places'][$id] ?? null)) $moves++;
+    }
+    $waiting = count($read['rows']) - count($read['in']['archers']) - count($read['in']['fixed']);
+    $outBefore = 0;
+    foreach ($read['in']['archers'] as $a) if (!isset($read['before'][intval($a['id'])])) $outBefore++;
+
+    $out .= '<table class="bk-t"><tr><th></th><th>' . bk_e(bk_t('CpPlacement')) . '</th><th>' . bk_e(bk_t('TgPlacement')) . '</th></tr>'
+        . '<tr><th>' . bk_e(bk_t('CpBefore')) . '</th><td>' . bk_e($span($read['before'])) . '</td><td>'
+        . bk_e($outBefore ? bk_t('TgUnplaced', $outBefore) : bk_t('TgComplete')) . '</td></tr>'
+        . '<tr><th>' . bk_e(bk_t('CpAfter')) . '</th><td>' . bk_e($span($plan['places'])) . '</td><td>'
+        . bk_e($plan['unplaced'] ? bk_t('TgUnplaced', count($plan['unplaced'])) : bk_t('TgComplete')) . '</td></tr></table>';
+    $notes = array(bk_t($moves ? 'CpMoves' : 'CpSame', $moves));
+    if ($plan['unplaced']) $notes[] = bk_t('CpUnplaced', count($plan['unplaced']));
+    if ($waiting > 0) $notes[] = bk_t('CpWaiting', $waiting);
+    $out .= '<p class="bk-hint" style="color:#20263d">' . bk_e(implode(' ', $notes)) . '</p>';
+
+    $cell = function ($part) use ($faces) {
+        list($caps, $who) = $part;
+        $w = array();
+        foreach ($who as $lab => $n) $w[] = $n . ' ' . $lab;
+        // A target of one distance (what the composition writes) reads "18 m", not a range.
+        $label = $caps ? ($caps['min'] && $caps['min'] === $caps['max']
+            ? bk_caps_label(array('def' => $caps['min'], 'min' => 0, 'max' => 0, 'f' => $caps['f']), $faces)
+            : bk_caps_label($caps, $faces)) : '';
+        return '<td>' . ($label !== '' ? bk_e($label) : '<span class="bk-empty-cell">—</span>') . '</td>'
+            . '<td>' . ($w ? bk_e(implode(' · ', $w)) : '<span class="bk-empty-cell">—</span>') . '</td>';
+    };
+    $out .= '<table class="bk-t bk-plan"><tr><th rowspan="2">' . bk_e(bk_t('SsTarget')) . '</th>'
+        . '<th colspan="2">' . bk_e(bk_t('CpBefore')) . '</th><th colspan="2">' . bk_e(bk_t('CpAfter')) . '</th></tr><tr>'
+        . '<th>' . bk_e(bk_t('CpSetting')) . '</th><th>' . bk_e(bk_t('CpArchers')) . '</th>'
+        . '<th>' . bk_e(bk_t('CpSetting')) . '</th><th>' . bk_e(bk_t('CpArchers')) . '</th></tr>';
+    foreach ($rows as $t => $r) {
+        $out .= '<tr' . ($r['changed'] ? ' style="background:#fffbe6"' : '') . '><td><b>' . intval($t) . '</b></td>'
+            . $cell($r['before']) . $cell($r['after']) . '</tr>';
+    }
+    $out .= '</table>';
+
+    if ($moves || ($mode === 'free' && json_encode($read['caps']) !== json_encode($plan['caps']))) {
+        $confirm = bk_t($mode === 'free' ? 'CpApplyConfirmFree' : 'CpApplyConfirmFixed', $ses);
+        $out .= '<form method="post" action="?compose=' . intval($ses) . '&amp;mode=' . $mode . '&amp;first=' . intval($first) . '#bk-compose"'
+            . ' onsubmit="return confirm(' . htmlspecialchars(json_encode($confirm, JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')">'
+            . bk_csrf_field()
+            . '<input type="hidden" name="action" value="compose"><input type="hidden" name="session" value="' . intval($ses) . '">'
+            . '<input type="hidden" name="mode" value="' . $mode . '"><input type="hidden" name="first" value="' . intval($first) . '">'
+            . '<input type="hidden" name="hash" value="' . bk_e(bk_compose_hash($read, $mode, $first)) . '">'
+            . '<button type="submit" class="bk-btn bk-btn-primary">' . bk_e(bk_t('CpApply')) . '</button></form>';
+    }
+    return $out . '</div>';
+}
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!bk_csrf_check()) {
         $err = bk_t('SessionExpired');
@@ -63,6 +158,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         } elseif ($act === 'assign_all') {
             $r = bk_replan_all($TOUR, $cfg, true);
             $msg = bk_assign_msg('', $r);
+        } elseif ($act === 'compose') {
+            $r = bk_compose_apply($TOUR, $ses, $cfg, $_POST['mode'] ?? '', intval($_POST['first'] ?? 0), $_POST['hash'] ?? '');
+            if (!empty($r['changed'])) {
+                $err = bk_t('CpChanged');
+            } else {
+                $msg = bk_t('CpDone', array('dep' => $ses, 'n' => $r['places']))
+                    . ($r['unplaced'] ? ' ' . bk_t('CpUnplaced', $r['unplaced']) : '');
+            }
+        } elseif ($act === 'compose_undo') {
+            $r = bk_compose_undo($TOUR, $ses, $cfg);
+            if ($r === null) $err = bk_t('CpUndoNone');
+            else $msg = bk_t('CpUndone', array('dep' => $ses, 'n' => $r['restored'], 'm' => $r['placed']));
         } elseif ($act === 'clear') {
             $n = bk_clear_session($TOUR, $ses);
             $msg = bk_t('TgFreed', array('dep' => $ses, 'n' => $n));
@@ -178,7 +285,9 @@ if (!$sessions) {
             . '<td>' . $registered . '</td><td>' . $placed . ' / ' . $registered . '</td><td>'
             . $form(array('action' => 'assign', 'session' => $o), bk_t('TgReassign'), 'bk-btn bk-btn-primary')
             . $form(array('action' => 'clear', 'session' => $o), bk_t('TgClear'), 'bk-btn', bk_t('TgClearConfirm', $o))
-            . '<a class="bk-btn" style="text-decoration:none;display:inline-block" href="?plan=' . $o . '">' . bk_e(bk_t('TgSeePlan')) . '</a>'
+            . '<a class="bk-btn" style="text-decoration:none;display:inline-block" href="?plan=' . $o . '">' . bk_e(bk_t('TgSeePlan')) . '</a> '
+            . '<a class="bk-btn" style="text-decoration:none;display:inline-block" href="?compose=' . $o . '#bk-compose">' . bk_e(bk_t('CpButton')) . '</a> '
+            . (bk_compose_undo_info($TOUR, $o) ? $form(array('action' => 'compose_undo', 'session' => $o), bk_t('CpUndo'), 'bk-btn', bk_t('CpUndoConfirm', $o)) : '')
             . '</td></tr>';
     }
     $out .= '</table>' . $form(array('action' => 'assign_all'), bk_t('TgReassignAll'), 'bk-btn bk-btn-primary', bk_t('TgReassignAllConfirm'), 'margin-top:8px');
@@ -189,7 +298,7 @@ if (!$sessions) {
             . bk_e($CFG->ROOT_DIR . 'Modules/DragDropTarget/Qualification/index.php') . '">' . bk_e(get_text('MenuLM_DragDropTarget')) . '</a>';
     }
 }
-$out .= '</div>';
+$out .= '</div>' . bk_compose_section($TOUR, $cfg, intval($_GET['compose'] ?? 0), $form);
 
 $out .= '<div class="bk-sec">' . aut_adm_title('h2', bk_t('TgRulesTitle'), $controle ? bk_t('TgRulesHint', array('max' => intval($cfg->BcMaxPerClubPerTarget),
     'clubs' => intval($cfg->BcMinClubsPerSession), 'targets' => intval($cfg->BcMinTargetsPerSession ?? 6))) : '');

@@ -38,9 +38,12 @@ Target assignment page).
 Who is placed again:
 
 - after each online registration, validation or cancellation, **the online registrations** of the
-  session are all placed again; an archer entered in ianseo (or placed by another tool) keeps their
-  target. This automatic placement never does worse than the places already given: if it left more
-  archers without a target, the archers placed stay where they are and only the new ones are placed;
+  session may all be placed again; an archer entered in ianseo (or placed by another tool) keeps
+  their target. Two solutions are compared: placing them all again, or leaving the archers placed
+  where they are and placing only the new ones. The one kept leaves the fewest archers without a
+  target, then uses the fewest targets, then breaks the fewest soft rules, then keeps the most
+  wishes; on a full tie, **nobody moves**. A final layout is therefore not undone by the
+  registrations that follow;
 - "**Reassign**" (one session, or all) places **every archer** of the session again, whatever the
   origin of their registration.
 
@@ -134,6 +137,28 @@ that still has room elsewhere. The number shown is always one the placement reac
 The result is kept while the session does not change (archers, places, field constraints): a
 later display only costs reading the session. Beyond 1,500 archers on a session, the gauge is
 counted target by target around the planned places, without running the placement again.
+
+## Final layout
+
+Button of the Target assignment page, **one session at a time**: it makes the session again from
+the archers registered at that moment, online or entered in ianseo. Two modes:
+
+- **Modular field** (field set up for the competition): the placement ignores the field settings
+  and uses just enough targets from the **chosen first target** (the session's first by default),
+  without gaps — a session placed from its last target included. The **field plan of the session
+  is then written again**: each target used gets exactly the distances and faces of its archers,
+  the targets after them have no setting any more.
+- **Fixed field** (permanent targets): the field plan stays, every place is made again within it.
+
+The rules above apply in both modes. A preview target by target (field plan and archers, before /
+after) comes before anything is written; when the session changed between the preview and
+“Apply”, nothing is written and the new preview is shown. The last layout of a session can be
+undone: former field plan and places back, an archer registered since placed around them. A
+registration waiting for validation that already holds a target keeps it.
+
+After a layout, a new registration is placed by the usual automatic placement within the new field
+plan, on the targets left without a setting when those of its profile are full. The final layout
+is therefore best done once registrations are closed.
 
 ## Method
 

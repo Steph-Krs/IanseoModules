@@ -76,6 +76,8 @@ function bk_session_archers_full($tourId, $sessionOrder)
  *
  * $replan: the departure as the automatic re-planning sees it (bk_replan_session) — the online
  * registrations are archers to place even when they hold a target, only the others stay fixed.
+ * $replan === 'all': every archer is to place (final composition, lib/compose.php), except a
+ * registration still waiting for validation that holds a target.
  *
  * Returns null when the departure does not exist, else
  * ['in' => planner input, 'rows' => [EnId => row], 'type' => ToType, 'disc' => discipline,
@@ -131,13 +133,16 @@ function bk_plan_read($tourId, $sessionOrder, $cfg = null, $replan = false)
                      // Wheelchair or bow stand (ianseo's own field): two places on the target (B.1.2).
                      'wheelchair' => intval($a->EnWChair ?? 0) > 0,
                      'div' => (string) $a->EnDivision, 'cls' => (string) $a->EnClass, 'age' => $cl['age'], 'sex' => $cl['sex']);
-        if (intval($a->QuTarget) > 0 && !($replan && !empty($a->BrEnId))) {
+        $pending = !empty($a->BrEnId) && intval($a->BrValidated) === 0;
+        $held = intval($a->QuTarget) > 0
+            && ($replan === 'all' ? $pending : !($replan && !empty($a->BrEnId)));
+        if ($held) {
             // bytes: target letters are ASCII
             $in['fixed'][] = $one + array('t' => intval($a->QuTarget), 'l' => strtoupper((string) $a->QuLetter));
             continue;
         }
         // Online registration not validated yet (manual mode) → not placed.
-        if (!empty($a->BrEnId) && intval($a->BrValidated) === 0) continue;
+        if ($pending) continue;
         $want = bk_clean_licence($a->BrWantWith ?? '');
         $one['with'] = ($want !== '' && isset($byLicence[$want]) && $byLicence[$want] !== $id) ? $byLicence[$want] : null;
         // bytes: target letters are ASCII
@@ -281,18 +286,48 @@ function bk_profile_ctx($tourId, $sessionOrder, $except = 0)
 }
 
 /**
- * The plan the automatic re-planning keeps (bk_replan_session): everyone placed again ($inAll),
- * unless keeping the archers where they stand and placing only those without a target ($inKeep)
- * leaves fewer archers out. Re-planning from scratch around fixed archers spread over the field
- * (the organiser's entries after a "Reassign") can fail where the places held were a solution:
- * the re-planning never does worse than them. Returns [planner result, 'all'|'keep'].
+ * The plan the automatic re-planning keeps (bk_replan_session): everyone placed again ($inAll)
+ * or the archers kept where they stand and only those without a target placed ($inKeep),
+ * whichever leaves fewer archers out, then uses fewer targets, then breaks fewer soft rules,
+ * then keeps more wishes (bk_plan_quality); a full tie keeps the places held — an archer does
+ * not move for nothing. Re-planning from scratch around fixed archers spread over the field (the
+ * organiser's entries after a "Reassign" or a final composition) can fail, or spread the others
+ * onto new targets, where the places held were a solution: a target partly held by archers who
+ * do not move is not cut again. Returns [planner result, 'all'|'keep'].
  */
 function bk_replan_pick($inAll, $inKeep)
 {
     $all = bk_plan_session($inAll);
-    if (!$all['unplaced']) return array($all, 'all');
     $keep = bk_plan_session($inKeep);
-    return count($keep['unplaced']) < count($all['unplaced']) ? array($keep, 'keep') : array($all, 'all');
+    // Both measured on the same archers: everyone online is an archer of $inAll.
+    $ctx = bk_plan_ctx($inAll);
+    $held = $keep['places'];
+    foreach ($inKeep['fixed'] as $f) {
+        // bytes: target letters are ASCII
+        if (isset($ctx['archers'][intval($f['id'])])) $held[intval($f['id'])] = array('t' => intval($f['t']), 'l' => strtoupper((string) $f['l']));
+    }
+    $sk = array_merge(array(count($keep['unplaced'])), bk_plan_quality($ctx, $held));
+    $sa = array_merge(array(count($all['unplaced'])), bk_plan_quality($ctx, $all['places']));
+    return $sk <= $sa ? array($keep, 'keep') : array($all, 'all');
+}
+
+/**
+ * How good a placement of a departure is, to compare two of them (smaller is better):
+ * [targets carrying someone, soft rules broken (archer alone, two of a club alone, place beside
+ * a wheelchair taken, club over its quota, 40 with a triple face), − wishes kept].
+ */
+function bk_plan_quality($ctx, $places)
+{
+    $occ = bk_plan_occupants($ctx, $places);
+    $issues = 0;
+    foreach ($occ as $here) {
+        $issues += array_sum(bk_plan_target_issues($ctx, $here));
+        $n = array();
+        foreach ($here as $o) $n[$o['club']] = ($n[$o['club']] ?? 0) + 1;
+        foreach ($n as $c) $issues += max(0, $c - $ctx['max']);
+        if (bk_plan_mixed40tri($here)) $issues++;
+    }
+    return array(count($occ), $issues, -bk_plan_wishes($ctx, $places)['kept']);
 }
 
 /**

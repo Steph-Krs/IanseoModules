@@ -11,7 +11,7 @@
  * already" — otherwise the ALTER fails on a new installation and stops the whole function.
  */
 
-if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 43);
+if (!defined('BK_SCHEMA_VERSION')) define('BK_SCHEMA_VERSION', 44);
 
 // Every library of the module loads this file: the right "now" and the texts come with it.
 require_once __DIR__ . '/clock.php';
@@ -798,6 +798,18 @@ function bk_schema()
     // defaults (change: until the registration closes; cancel: until the eve of the competition).
     bk_colonne('BookingCompetitions', 'BcModUntilStart', "TINYINT NOT NULL DEFAULT 0");
     bk_colonne('BookingCompetitions', 'BcCancelUntilStart', "TINYINT NOT NULL DEFAULT 0");
+
+    // v44 — final composition of a departure (lib/compose.php): what it replaced, to undo it
+    // (field settings and places, JSON). One row per departure: the last composition only. Not
+    // moved by a re-import: the places name EnIds of the old version.
+    safe_w_sql("CREATE TABLE IF NOT EXISTS BookingFieldUndo (
+        BuTournament INT UNSIGNED NOT NULL,
+        BuSession    SMALLINT NOT NULL,
+        BuMode       VARCHAR(8) NOT NULL DEFAULT '',
+        BuWhen       DATETIME NOT NULL,
+        BuData       MEDIUMTEXT NOT NULL,
+        PRIMARY KEY (BuTournament, BuSession)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     $_SESSION[$flag] = true;
 }

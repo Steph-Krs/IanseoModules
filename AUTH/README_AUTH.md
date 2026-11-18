@@ -279,6 +279,8 @@ nothing else changes. Later versions will no longer need it for the access rules
 | `UPDATE` | `TournamentInvolved` | `anonymise-lib.php:396` | review scope by hand |
 | `UPDATE` | `Entries` | `booking/lib/adopt.php:244` | review scope by hand |
 | `UPDATE` | `Entries` | `booking/lib/clubmoves.php:94` | review scope by hand |
+| `UPDATE` | `Qualifications` | `booking/lib/compose.php:148` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/compose.php:154` | — |
 | `DELETE FROM` | `LookUpEntries` | `booking/lib/fedlic.php:222` | review scope by hand |
 | `UPDATE` | `Entries` | `booking/lib/licences.php:76` | review scope by hand |
 | `UPDATE` | `Qualifications` | `booking/lib/licences.php:102` | — |
@@ -299,9 +301,9 @@ nothing else changes. Later versions will no longer need it for the access rules
 | `UPDATE` | `Entries` | `booking/lib/registration.php:641` | review scope by hand |
 | `INSERT INTO` | `Qualifications` | `booking/lib/registration.php:646` | — |
 | `UPDATE` | `Entries` | `booking/lib/schema.php:781` | — |
-| `UPDATE` | `Qualifications` | `booking/lib/targets.php:206` | — |
-| `UPDATE` | `Qualifications` | `booking/lib/targets.php:522` | — |
-| `UPDATE` | `Qualifications` | `booking/lib/targets.php:613` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/targets.php:211` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/targets.php:557` | — |
+| `UPDATE` | `Qualifications` | `booking/lib/targets.php:648` | — |
 | `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:224` | review scope by hand |
 | `INSERT INTO` | `LookUpEntries` | `cron/sync-licences.php:240` | — |
 | `UPDATE` | `LookUpPaths` | `cron/sync-licences.php:244` | review scope by hand |
@@ -441,6 +443,8 @@ nothing else changes. Later versions will no longer need it for the access rules
 | `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:773` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:778` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/competition.php:780` | — |
+| `REPLACE INTO` | `BookingFieldUndo` | `booking/lib/compose.php:191` | — |
+| `DELETE FROM` | `BookingFieldUndo` | `booking/lib/compose.php:226` | — |
 | `UPDATE` | `BookingRegistrations` | `booking/lib/events.php:271` | — |
 | `DELETE FROM` | `BookingFedLicences` | `booking/lib/fedlic.php:188` | — |
 | `INSERT IGNORE INTO` | `BookingFedLicences` | `booking/lib/fedlic.php:189` | — |
@@ -497,8 +501,8 @@ nothing else changes. Later versions will no longer need it for the access rules
 | `INSERT INTO` | `BookingSurveys` | `booking/lib/survey.php:193` | — |
 | `INSERT IGNORE INTO` | `BookingSurveyVoters` | `booking/lib/survey.php:196` | — |
 | `UPDATE` | `BookingSurveys` | `booking/lib/survey.php:275` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:589` | — |
-| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:604` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:624` | — |
+| `UPDATE` | `BookingRegistrations` | `booking/lib/targets.php:639` | — |
 | `INSERT INTO` | `BookingWaitlist` | `booking/lib/waitlist.php:107` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:136` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/waitlist.php:227` | — |
