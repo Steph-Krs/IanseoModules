@@ -1,0 +1,8 @@
+{
+    "pages": [
+        "/Modules/Custom/THEME/index.php",
+        "/Modules/Custom/THEME/admin/update.php",
+        "/Modules/Custom/_shared/uninstall.php?module=THEME"
+    ],
+    "languages": ["en", "fr", "it", "de", "es"]
+}

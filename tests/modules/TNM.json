@@ -1,0 +1,8 @@
+{
+    "pages": [
+        "/Modules/Custom/TNM/admin/update.php",
+        "/Modules/Custom/_shared/uninstall.php?module=TNM"
+    ],
+    "tour_pages": ["/Modules/Custom/TNM/index.php", "/Modules/Custom/TNM/config.php", "/Modules/Custom/TNM/BsoSaisie.php", "/Modules/Custom/TNM/BsoCommentateur.php", "/Modules/Custom/TNM/PoolsAssist.php", "/Modules/Custom/TNM/PoolRankingEdit.php", "/Modules/Custom/TNM/PrintScore.php", "/Modules/Custom/TNM/ImportQualScores.php"],
+    "languages": ["en", "fr"]
+}

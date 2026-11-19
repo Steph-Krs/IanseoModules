@@ -1,0 +1,8 @@
+{
+    "pages": [
+        "/Modules/Custom/POULES/admin/update.php",
+        "/Modules/Custom/_shared/uninstall.php?module=POULES"
+    ],
+    "tour_pages": ["/Modules/Custom/POULES/index.php"],
+    "languages": ["en", "fr"]
+}

@@ -18,8 +18,8 @@ services:
 
   bench:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     depends_on:
       - db
     environment:

@@ -247,6 +247,54 @@ function bench_core_version($htdocs)
 }
 
 /**
+ * The ianseo of a run: the updated core prepared by bin/core.php, then the modules of
+ * the repository copied into Modules/Custom/.
+ *
+ * @return array The stamp of the core ('day', 'package', 'version').
+ */
+function bench_prepare_run()
+{
+    $stamp = json_decode((string)@file_get_contents(BENCH_CACHE . '/core/stamp.json'), true);
+    if (!$stamp) bench_die('no prepared core: run bin/core.php first');
+    bench_rmdir(BENCH_HTDOCS);
+    bench_copy(BENCH_CACHE . '/core/htdocs', BENCH_HTDOCS);
+    bench_write_config(BENCH_HTDOCS);
+    foreach (array_merge(glob(BENCH_SRC . '/*/module.json'), [BENCH_SRC . '/_shared/version.json']) as $marker) {
+        if (is_file($marker)) {
+            bench_copy(dirname($marker), BENCH_HTDOCS . '/Modules/Custom/' . basename(dirname($marker)), ['.git', 'node_modules']);
+        }
+    }
+    return $stamp;
+}
+
+/**
+ * A database as a new installation has it: install.sql, then the core migrations.
+ *
+ * @param string $db
+ * @return string The DBUpdate reached.
+ */
+function bench_reference_db($db)
+{
+    bench_create($db);
+    bench_install_sql(BENCH_HTDOCS, $db);
+    $r = bench_child('child-migrate.php', BENCH_HTDOCS, $db);
+    if (!$r['ok']) bench_die("core migrations failed:\n" . $r['out']);
+    return preg_match('/^BENCH-OK (.+)$/m', $r['out'], $m) ? trim($m[1]) : '?';
+}
+
+/**
+ * @return array[] Module name => its description in tests/modules/.
+ */
+function bench_module_confs()
+{
+    $out = [];
+    foreach (glob(dirname(__DIR__) . '/modules/*.json') as $file) {
+        $out[basename($file, '.json')] = json_decode((string)file_get_contents($file), true);
+    }
+    return $out;
+}
+
+/**
  * Copy a directory tree.
  *
  * @param string $from

@@ -20,8 +20,7 @@
  */
 require_once __DIR__ . '/../lib/bench.php';
 
-$stamp = json_decode((string)@file_get_contents(BENCH_CACHE . '/core/stamp.json'), true);
-if (!$stamp) bench_die('no prepared core: run bin/core.php first');
+$stamp = bench_prepare_run();
 
 $server = bench_q("SELECT VERSION()")->fetch_row()[0];
 $lower  = bench_q("SELECT @@lower_case_table_names")->fetch_row()[0];
@@ -33,24 +32,10 @@ bench_drop(BENCH_PREFIX . 'probe');
 bench_say("ianseo {$stamp['version']} (updated {$stamp['day']} from " . BENCH_PACKAGE . ')');
 bench_say("database server $server, utf8mb4 default collation $coll, lower_case_table_names=$lower");
 
-// The ianseo of this run: the updated core, then the modules of the repository.
-bench_rmdir(BENCH_HTDOCS);
-bench_copy(BENCH_CACHE . '/core/htdocs', BENCH_HTDOCS);
-bench_write_config(BENCH_HTDOCS);
-foreach (array_merge(glob(BENCH_SRC . '/*/module.json'), [BENCH_SRC . '/_shared/version.json']) as $marker) {
-    $mod = basename(dirname($marker));
-    if (is_file($marker)) bench_copy(dirname($marker), BENCH_HTDOCS . '/Modules/Custom/' . $mod, ['.git', 'node_modules']);
-}
-
 // The reference database, as a new installation has it.
-$core = BENCH_PREFIX . 'reference';
-bench_create($core);
-bench_install_sql(BENCH_HTDOCS, $core);
-$r = bench_child('child-migrate.php', BENCH_HTDOCS, $core);
-if (!$r['ok']) bench_die("core migrations failed:\n" . $r['out']);
-$coreTables = bench_tables($core);
-bench_say('reference database: ' . count($coreTables) . ' core tables, DBUpdate '
-    . (preg_match('/^BENCH-OK (.+)$/m', $r['out'], $m) ? trim($m[1]) : '?'));
+$core    = BENCH_PREFIX . 'reference';
+$reached = bench_reference_db($core);
+bench_say('reference database: ' . count(bench_tables($core)) . " core tables, DBUpdate $reached");
 
 $wanted = array_slice($argv, 1);
 $files  = glob(dirname(__DIR__) . '/modules/*.json');
@@ -65,6 +50,7 @@ foreach ($files as $file) {
         bench_say("\n== $mod\n  FAIL  $file is not valid JSON");
         continue;
     }
+    if (empty($conf['schema']['call']) && empty($conf['scripts'])) continue;
     if (!is_dir(BENCH_HTDOCS . '/Modules/Custom/' . $mod)) {
         bench_say("\n== $mod\n  skipped: module not in this repository");
         continue;

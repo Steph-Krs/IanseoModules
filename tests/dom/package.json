@@ -1,0 +1,9 @@
+{
+    "name": "ianseo-modules-browser-checks",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Browser-side checks of the test bench (jsdom). Development only: nothing here is distributed.",
+    "devDependencies": {
+        "jsdom": "26.1.0"
+    }
+}

@@ -1,0 +1,8 @@
+{
+    "pages": [
+        "/Modules/Custom/SCORECARD_SPLITTER/index.php",
+        "/Modules/Custom/SCORECARD_SPLITTER/admin/update.php",
+        "/Modules/Custom/_shared/uninstall.php?module=SCORECARD_SPLITTER"
+    ],
+    "languages": ["en", "fr", "it", "de", "es"]
+}

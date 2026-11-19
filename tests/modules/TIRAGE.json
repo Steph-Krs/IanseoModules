@@ -1,3 +1,14 @@
 {
-    "schema": { "require": ["lib/schema.php"], "call": ["tir_schema"] }
+    "pages": [
+        "/Modules/Custom/TIRAGE/index.php",
+        "/Modules/Custom/TIRAGE/display.php",
+        "/Modules/Custom/TIRAGE/speaker.php",
+        "/Modules/Custom/TIRAGE/admin/update.php",
+        "/Modules/Custom/_shared/uninstall.php?module=TIRAGE"
+    ],
+    "languages": ["en", "fr", "it", "de", "es"],
+    "schema": {
+        "require": ["lib/schema.php"],
+        "call": ["tir_schema"]
+    }
 }

@@ -1,3 +1,20 @@
 {
-    "schema": { "require": ["lib/guide-lib.inc.php"], "call": ["guide_ensure_schema"], "legacy_tables": ["GUIDE_*"] }
+    "pages": [
+        "/Modules/Custom/GUIDE/index.php",
+        "/Modules/Custom/GUIDE/admin/index.php",
+        "/Modules/Custom/GUIDE/admin/edit.php",
+        "/Modules/Custom/GUIDE/admin/edit.php?id=n4kp7xm2r9f1a8q5t3wb",
+        "/Modules/Custom/GUIDE/admin/edit-json.php",
+        "/Modules/Custom/GUIDE/admin/conditions.php",
+        "/Modules/Custom/GUIDE/admin/update.php",
+        "/Modules/Custom/GUIDE/admin/help.php",
+        "/Modules/Custom/_shared/uninstall.php",
+        "/Modules/Custom/_shared/uninstall.php?module=GUIDE"
+    ],
+    "languages": ["en", "fr", "it", "de", "es"],
+    "schema": {
+        "require": ["lib/guide-lib.inc.php"],
+        "call": ["guide_ensure_schema"],
+        "legacy_tables": ["GUIDE_*"]
+    }
 }

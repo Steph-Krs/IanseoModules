@@ -22,6 +22,18 @@ the list (MariaDB 10.11 and 11.4, MySQL 8.0 and 8.4), each with its own default 
   table listed in `tables` of its `version.json` (spelled exactly: table names are
   case-sensitive on Linux), and a second run, which is a second session, changes nothing.
 - **Scripts** — the module's own test scripts; exit code 0 means passed.
+- **Pages** — every page listed for the module, in every language it offers, served by a
+  real web server, on a database holding the tables of every module and one made-up
+  competition created through ianseo's own "new competition" form (French rules, 18 m
+  indoor, made-up archers). `pages` are opened without a competition, `tour_pages` after
+  opening the made-up one, in a session that keeps its cookies like a browser. A page
+  fails when it does not answer 200, sends the visitor elsewhere (redirects are not
+  followed: a page bouncing to the home page used to look fine), shows a translation key
+  instead of its text (`[[Key]@…]`), or raises a PHP warning, notice or fatal error in a
+  file of a module. Warnings of the core are counted, not failed.
+- **Browser** — `dom/<MODULE>.js`, for pages that build their content in JavaScript: the
+  real page is loaded with its script in jsdom, then checked (no `[object Object]`, no
+  raw translation key, the content is really built).
 
 ## Running it
 
@@ -42,10 +54,16 @@ Create `modules/<MODULE>.json`:
 
 ```json
 {
+    "pages": ["/Modules/Custom/MODULE/admin/update.php"],
+    "tour_pages": ["/Modules/Custom/MODULE/index.php"],
+    "languages": ["en", "fr"],
     "schema": { "require": ["lib/schema.php"], "call": ["mod_schema"] },
     "scripts": ["MODULE/tests/run.php"]
 }
 ```
+
+- `pages` / `tour_pages`: pages opened without / inside the made-up competition. Only pages
+  that display something on a plain visit: not a login page, not an action URL;
 
 - `schema.require`: files of the module to load, relative to its folder;
 - `schema.call`: the schema function(s), in the order the module's pages call them;
@@ -63,7 +81,9 @@ Test data is always made up: no real name or licence number in this repository.
 | `run.sh` | the single command |
 | `docker/Dockerfile`, `docker/compose.yml` | PHP environment and throwaway database server, images pinned by digest |
 | `bin/core.php` | official package + installation + core update, cached for the day |
-| `bin/check.php` | the checks of the modules |
+| `bin/check.php` | fresh install and scripts |
+| `bin/pages.php` | web server, made-up competition, pages × languages, browser checks |
+| `dom/` | browser-side checks (jsdom, installed from `package-lock.json` in the image) |
 | `lib/` | shared helpers and the child processes (ianseo stops the whole process on an SQL error, so every step that loads ianseo runs in a process of its own) |
 | `modules/` | one description per module |
 | `../.github/workflows/tests.yml` | the runs on GitHub |

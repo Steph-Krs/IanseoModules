@@ -1,4 +1,13 @@
 {
-    "schema": { "require": ["lib/schema.php"], "call": ["selec_schema"] },
+    "pages": [
+        "/Modules/Custom/SELEC/admin/update.php",
+        "/Modules/Custom/_shared/uninstall.php?module=SELEC"
+    ],
+    "tour_pages": ["/Modules/Custom/SELEC/index.php", "/Modules/Custom/SELEC/classement.php", "/Modules/Custom/SELEC/transfert.php"],
+    "languages": ["en", "fr"],
+    "schema": {
+        "require": ["lib/schema.php"],
+        "call": ["selec_schema"]
+    },
     "scripts": ["SELEC/tests/run.php"]
 }

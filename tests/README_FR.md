@@ -25,6 +25,19 @@ défaut :
   sont sensibles à la casse sous Linux), et un second passage, qui est une seconde session,
   ne change rien.
 - **Scripts** — les scripts de test du module ; code de sortie 0 = réussi.
+- **Pages** — chaque page listée pour le module, dans chaque langue qu'il propose, servie
+  par un vrai serveur web, sur une base qui porte les tables de tous les modules et une
+  compétition fictive créée par le formulaire « Nouvelle compétition » de ianseo lui-même
+  (règles françaises, salle 18 m, archers fictifs). `pages` s'ouvrent sans compétition,
+  `tour_pages` après ouverture de la compétition fictive, dans une session qui garde ses
+  cookies comme un navigateur. Une page échoue si elle ne répond pas 200, renvoie ailleurs
+  (les redirections ne sont pas suivies : une page renvoyée vers l'accueil semblait
+  bonne), affiche une clé de traduction au lieu du texte (`[[Clé]@…]`), ou lève un
+  avertissement, une notice ou une erreur fatale PHP dans un fichier de module. Les
+  avertissements du cœur sont comptés, sans faire échouer.
+- **Navigateur** — `dom/<MODULE>.js`, pour les pages qui construisent leur contenu en
+  JavaScript : la vraie page est chargée avec son script dans jsdom, puis contrôlée (pas de
+  `[object Object]`, pas de clé de traduction brute, le contenu est bien construit).
 
 ## Le lancer
 
@@ -45,6 +58,9 @@ Créer `modules/<MODULE>.json` (format détaillé dans `README.md`) :
 
 ```json
 {
+    "pages": ["/Modules/Custom/MODULE/admin/update.php"],
+    "tour_pages": ["/Modules/Custom/MODULE/index.php"],
+    "languages": ["en", "fr"],
     "schema": { "require": ["lib/schema.php"], "call": ["mod_schema"] },
     "scripts": ["MODULE/tests/run.php"]
 }

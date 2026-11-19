@@ -1,0 +1,8 @@
+{
+    "pages": [
+        "/Modules/Custom/EXPORT_LISTE/admin/update.php",
+        "/Modules/Custom/_shared/uninstall.php?module=EXPORT_LISTE"
+    ],
+    "tour_pages": ["/Modules/Custom/EXPORT_LISTE/index.php"],
+    "languages": ["en", "fr"]
+}

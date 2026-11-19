@@ -1,3 +1,13 @@
 {
-    "schema": { "require": ["lib/schema.php"], "call": ["sfa_schema"] }
+    "pages": [
+        "/Modules/Custom/SYNCHRO_FFTA/create.php",
+        "/Modules/Custom/SYNCHRO_FFTA/index.php",
+        "/Modules/Custom/SYNCHRO_FFTA/admin/update.php",
+        "/Modules/Custom/_shared/uninstall.php?module=SYNCHRO_FFTA"
+    ],
+    "languages": ["en", "fr"],
+    "schema": {
+        "require": ["lib/schema.php"],
+        "call": ["sfa_schema"]
+    }
 }

@@ -1,0 +1,11 @@
+{
+    "pages": [
+        "/Modules/Custom/OCR/qualification.php",
+        "/Modules/Custom/OCR/duels.php",
+        "/Modules/Custom/OCR/capture.php",
+        "/Modules/Custom/OCR/verify.php",
+        "/Modules/Custom/OCR/admin/update.php",
+        "/Modules/Custom/_shared/uninstall.php?module=OCR"
+    ],
+    "languages": ["en", "fr", "it", "de", "es"]
+}

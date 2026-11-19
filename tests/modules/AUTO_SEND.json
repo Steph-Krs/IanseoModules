@@ -1,3 +1,13 @@
 {
-    "schema": { "require": ["lib/schema.php"], "call": ["aus_schema"] }
+    "pages": [
+        "/Modules/Custom/AUTO_SEND/index.php",
+        "/Modules/Custom/AUTO_SEND/api/state.php",
+        "/Modules/Custom/AUTO_SEND/admin/update.php",
+        "/Modules/Custom/_shared/uninstall.php?module=AUTO_SEND"
+    ],
+    "languages": ["en", "fr", "it", "de", "es"],
+    "schema": {
+        "require": ["lib/schema.php"],
+        "call": ["aus_schema"]
+    }
 }

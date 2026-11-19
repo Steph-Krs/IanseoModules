@@ -1,3 +1,18 @@
 {
-    "schema": { "require": ["lib/schema.php"], "call": ["prono_install_schema", "prono_migrate"] }
+    "pages": [
+        "/Modules/Custom/PRONO/admin/update.php",
+        "/Modules/Custom/_shared/uninstall.php?module=PRONO"
+    ],
+    "tour_pages": [
+        "/Modules/Custom/PRONO/index.php",
+        "/Modules/Custom/PRONO/admin/markets.php",
+        "/Modules/Custom/PRONO/admin/groups.php",
+        "/Modules/Custom/PRONO/admin/calibrate.php",
+        "/Modules/Custom/PRONO/screen.php"
+    ],
+    "languages": ["en", "fr"],
+    "schema": {
+        "require": ["lib/schema.php"],
+        "call": ["prono_install_schema", "prono_migrate"]
+    }
 }

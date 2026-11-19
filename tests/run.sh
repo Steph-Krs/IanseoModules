@@ -37,4 +37,7 @@ trap '$compose down --volumes --remove-orphans >/dev/null 2>&1 || true' EXIT
 
 $compose build --quiet bench
 $compose run --rm bench bin/core.php $core_args
-$compose run --rm bench bin/check.php "$@"
+status=0
+$compose run --rm bench bin/check.php "$@" || status=1
+$compose run --rm bench bin/pages.php "$@" || status=1
+exit $status
