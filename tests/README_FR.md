@@ -47,12 +47,21 @@ défaut :
 - **Navigateur** — `dom/<MODULE>.js`, pour les pages qui construisent leur contenu en
   JavaScript : la vraie page est chargée avec son script dans jsdom, puis contrôlée (pas de
   `[object Object]`, pas de clé de traduction brute, le contenu est bien construit).
+- **PHPUnit** — `phpunit/<MODULE>/*Test.php` : les bibliothèques du module appelées comme
+  le font ses pages, sur une base construite depuis `install.sql`, les migrations du cœur et
+  les schémas de tous les modules, remise à son état de référence avant chaque test.
+  L'installation neuve ne fait que créer les tables ; ces tests exécutent les requêtes
+  (l'issue 13 venait d'une telle requête).
+
+Le tout tourne sous PHP 8.3 et sous PHP 8.0, la plus ancienne version acceptée par
+l'installeur de ianseo.
 
 ## Le lancer
 
 ```
-tests/run.sh                  # tous les modules, MariaDB 10.11
+tests/run.sh                  # tous les modules, MariaDB 10.11, PHP 8.3
 tests/run.sh --db mysql-8.0   # mariadb-10.11, mariadb-11.4, mysql-8.0, mysql-8.4
+tests/run.sh --php 8.0        # 8.3, 8.0
 tests/run.sh AUTH TIRAGE      # quelques modules
 tests/run.sh --force-core     # retélécharger et remettre à jour le cœur
 ```
@@ -76,3 +85,13 @@ Créer `modules/<MODULE>.json` (format détaillé dans `README.md`) :
 ```
 
 Les données de test sont toujours inventées : aucun nom ni numéro de licence réel dans ce dépôt.
+
+## Ajouter des tests PHPUnit
+
+Les placer dans `phpunit/<MODULE>/`, un fichier `*Test.php` par sujet, et ajouter la suite du
+module dans `phpunit/phpunit.xml`. PHPUnit est en 9.6, la version qui tourne aussi sous
+PHP 8.0 : les jeux de données se déclarent avec `@dataProvider` dans le docblock, pas avec
+des attributs. Un test d'intégration hérite d'`IanseoTestCase` (base remise à zéro avant
+chaque test), en général par une classe de base du module qui charge ses bibliothèques
+(`phpunit/AUTH/AuthTestCase.php`). `TestDb` lit et écrit la base de test ; `Fixtures` crée
+des compétitions, clubs et archers inventés.
