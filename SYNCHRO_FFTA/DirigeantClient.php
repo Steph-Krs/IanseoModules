@@ -98,19 +98,96 @@ class DirigeantClient
         $post = ['_token' => $csrf, 'username' => $user, 'password' => $pass];
         if ($otp !== '') { $post['otp'] = $otp; }
         $r = $this->http->request($this->base . '/auth/login', $post);
+        $post = null;
         if ($f = FftaHttp::failure($r, $this->base)) {
             return $f;
         }
 
-        if (strpos($r['url'], '/login') !== false) {
+        // The two-factor challenge URL does not contain "/login": without this step it was taken
+        // for a success, and the half-open session made the extranet gateway fail.
+        if (!self::signedIn($r['body']) && strpos($r['url'], '/login') === false && self::isChallenge($r)) {
+            if ($otp === '') {
+                return ['ok' => false, 'msg' => self::msg('MFA_NEEDED')];
+            }
+            $r = $this->mfaSecondStep($r['body'], $otp);
+            if ($f = FftaHttp::failure($r, $this->base)) {
+                return $f;
+            }
+            if (!self::signedIn($r['body']) && self::isChallenge($r)) {
+                return ['ok' => false, 'msg' => self::msg('MFA_BAD_CODE')];
+            }
+        }
+
+        if (!self::signedIn($r['body']) && strpos($r['url'], '/login') !== false) {
             if ($r['captcha']) {
                 return ['ok' => false, 'blocked' => true, 'msg' => FftaHttp::blockMessage('captcha', $this->base)];
             }
 
-            return ['ok' => false, 'msg' => 'Identifiants incorrects (ou MFA requise — nécessite le module AUTH).'];
+            return ['ok' => false, 'msg' => 'Identifiants Espace Dirigeant incorrects.'];
         }
 
         return ['ok' => true];
+    }
+
+    /** Signed-in page: the structure menu is only shown to a signed-in officer. */
+    private static function signedIn(string $html): bool
+    {
+        return strpos($html, '/auth/select-structure/') !== false;
+    }
+
+    /** Laravel Fortify two-factor challenge page. */
+    private static function isChallenge(array $r): bool
+    {
+        return strpos($r['url'], 'two-factor') !== false
+            || preg_match('/two[-_]?factor|deux.?[ée]tapes|double.?authentification/iu', $r['body']);
+    }
+
+    /**
+     * Second Fortify step: the code is posted to the challenge form, with its fresh CSRF token.
+     * Field 'code' is preferred; 'recovery_code' (backup codes) is never used.
+     */
+    private function mfaSecondStep(string $page, string $otp): array
+    {
+        $csrf = '';
+        foreach ([
+            '/<input[^>]+name=["\']_token["\'][^>]+value=["\']([^"\']+)["\']/',
+            '/name=["\']csrf-token["\'][^>]*content=["\']([^"\']+)["\']/',
+            '/content=["\']([^"\']+)["\'][^>]*name=["\']csrf-token["\']/',
+        ] as $p) {
+            if (preg_match($p, $page, $m)) { $csrf = $m[1]; break; }
+        }
+
+        $action = $this->base . '/auth/two-factor-challenge';
+        if (preg_match('#<form[^>]*action=["\']([^"\']+)["\']#i', $page, $m) && $m[1] !== '') {
+            $action = (strpos($m[1], 'http') === 0) ? html_entity_decode($m[1]) : $this->base . '/' . ltrim(html_entity_decode($m[1]), '/');
+        }
+
+        $names = [];
+        if (preg_match_all('#<input\b[^>]*>#i', $page, $inp)) {
+            foreach ($inp[0] as $tag) {
+                if (preg_match('/type=["\'](hidden|submit|password|checkbox|radio)["\']/i', $tag)) continue;
+                if (preg_match('/name=["\']([^"\']+)["\']/', $tag, $mm)) $names[] = $mm[1];
+            }
+        }
+        $field = '';
+        foreach (['code', 'otp', 'two_factor_code', 'authenticator_code', 'pin'] as $cand) {
+            if (in_array($cand, $names, true)) { $field = $cand; break; }
+        }
+        if ($field === '') {
+            foreach ($names as $n) {
+                if (stripos($n, 'recovery') === false && preg_match('/code|otp|2fa|pin|digit|chiffre/i', $n)) {
+                    $field = $n;
+                    break;
+                }
+            }
+        }
+
+        $post = [($field !== '' ? $field : 'code') => $otp];
+        if ($csrf !== '') {
+            $post['_token'] = $csrf;
+        }
+
+        return $this->http->request($action, $post);
     }
 
     /** Is the session carried by the cookie still open? */

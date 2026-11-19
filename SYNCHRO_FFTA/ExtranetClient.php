@@ -221,6 +221,9 @@ class ExtranetClient
         // bytes: host names are ASCII
         if (strtolower((string) parse_url($r['url'], PHP_URL_HOST)) !== strtolower((string) parse_url($this->base, PHP_URL_HOST))) {
             // Still on the space: its sign-in page, its session is over.
+            if (strpos($r['url'], 'two-factor') !== false) {
+                return ['ok' => false, 'msg' => 'L\'Espace Dirigeant attend le code de double authentification — reconnecte-toi en le saisissant.', 'relogin' => true];
+            }
             return ['ok' => false, 'msg' => 'Session Espace Dirigeant expirée — reconnecte-toi.', 'relogin' => true];
         }
         $roles = $this->parseRoles($r['body']);
