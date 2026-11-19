@@ -42,7 +42,7 @@ jobs:
           docker compose -f tests/docker/compose.yml down --volumes
 
   check:
-    name: modules on ${{ matrix.db }}
+    name: modules on PHP ${{ matrix.php }}, ${{ matrix.db }}
     needs: core
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -50,6 +50,8 @@ jobs:
       fail-fast: false
       matrix:
         db: [mariadb-10.11, mariadb-11.4, mysql-8.0, mysql-8.4]
+        # 8.0: the oldest PHP the ianseo installer accepts; 8.3: the default of the bench.
+        php: ['8.3', '8.0']
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -58,4 +60,4 @@ jobs:
           key: ianseo-core-${{ hashFiles('tests/lib/bench.php') }}-${{ needs.core.outputs.day }}
           fail-on-cache-miss: true
       - name: Check the modules
-        run: sh tests/run.sh --db ${{ matrix.db }}
+        run: sh tests/run.sh --php ${{ matrix.php }} --db ${{ matrix.db }}

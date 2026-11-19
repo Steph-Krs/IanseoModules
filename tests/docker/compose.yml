@@ -17,9 +17,13 @@ services:
     # No port published: only the bench container reaches this server.
 
   bench:
+    # One image per PHP version (tests/run.sh --php), so that switching does not rebuild.
+    image: ianseo-modules-bench:php${BENCH_PHP:-8.3}
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      args:
+        PHP_IMAGE: ${PHP_IMAGE:-php:8.3-apache-bookworm@sha256:a14446c32a3c8aeb9b4dac7fb73b03dfd8006e670d9b43ea7947e4030d3cbae6}
     depends_on:
       - db
     environment:

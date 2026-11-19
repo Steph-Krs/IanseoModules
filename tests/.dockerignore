@@ -1,2 +1,2 @@
-# Build context of docker/Dockerfile: only dom/package*.json is needed.
+# Build context of docker/Dockerfile: only dom/package*.json and phpunit/composer.* are needed.
 .cache

@@ -1,0 +1,10 @@
+{
+    "description": "PHPUnit for the test bench: a development tool, never distributed (tests/phpunit/README.md).",
+    "require-dev": {
+        "phpunit/phpunit": "9.6.*"
+    },
+    "config": {
+        "platform": { "php": "8.0.30" },
+        "sort-packages": true
+    }
+}

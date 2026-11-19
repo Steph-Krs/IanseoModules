@@ -43,3 +43,7 @@ desktop.ini
 # (upd_install_module le télécharge pour installer un module frère). Son
 # github_token reste vide dans la copie poussée.
 !**/module.json
+
+# Lockfile of the test bench's PHPUnit (tests/phpunit/): exact versions, checked by the
+# image build. Not operating data.
+!tests/phpunit/composer.lock
