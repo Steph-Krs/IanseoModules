@@ -259,7 +259,15 @@ function bench_prepare_run()
     bench_rmdir(BENCH_HTDOCS);
     bench_copy(BENCH_CACHE . '/core/htdocs', BENCH_HTDOCS);
     bench_write_config(BENCH_HTDOCS);
+    // A folder the working copy excludes from git (.git/info/exclude) is not part of
+    // the repository: a module of another author, a private one. The bench leaves it
+    // out, so that a run on a working copy checks what GitHub checks.
+    $excluded = [];
+    foreach (@file(BENCH_SRC . '/.git/info/exclude', FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+        if (preg_match('#^/?([A-Za-z0-9_-]+)/?$#', trim($line), $m)) $excluded[] = $m[1];
+    }
     foreach (array_merge(glob(BENCH_SRC . '/*/module.json'), [BENCH_SRC . '/_shared/version.json']) as $marker) {
+        if (in_array(basename(dirname($marker)), $excluded, true)) continue;
         if (is_file($marker)) {
             bench_copy(dirname($marker), BENCH_HTDOCS . '/Modules/Custom/' . basename(dirname($marker)), ['.git', 'node_modules']);
         }

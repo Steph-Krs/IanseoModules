@@ -41,6 +41,24 @@ $wanted = array_slice($argv, 1);
 $files  = glob(dirname(__DIR__) . '/modules/*.json');
 $failed = [];
 
+// Compliance with the rules of the ianseo team, for every module of the repository:
+// only errors beyond the baseline (known debt of older modules) fail.
+$mods = [];
+foreach (glob(BENCH_HTDOCS . '/Modules/Custom/*/module.json') as $mj) {
+    $mod = basename(dirname($mj));
+    if (!$wanted || in_array($mod, $wanted, true)) $mods[] = $mod;
+}
+if ($mods) {
+    bench_say("\n== compliance (tests/bin/compliance.php, baseline tests/compliance-baseline.json)");
+    putenv('CMOD_CUSTOM_DIR=' . BENCH_HTDOCS . '/Modules/Custom');
+    $out = [];
+    exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/compliance.php') . ' '
+        . implode(' ', array_map('escapeshellarg', $mods))
+        . ' ' . escapeshellarg('--baseline=' . dirname(__DIR__) . '/compliance-baseline.json') . ' 2>&1', $out, $code);
+    foreach ($out as $l) if (trim($l) !== '' && stripos($l, 'imagick') === false) bench_say($l);
+    if ($code !== 0) $failed[] = 'compliance';
+}
+
 foreach ($files as $file) {
     $mod = basename($file, '.json');
     if ($wanted && !in_array($mod, $wanted, true)) continue;

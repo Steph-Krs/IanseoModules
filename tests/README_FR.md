@@ -15,6 +15,15 @@ Le banc prépare ianseo **comme une installation neuve** :
    si un contrôle passe au rouge sans changement dans le dépôt, comparez-la à la dernière
    exécution verte.
 
+**Conformité**, pour chaque module du dépôt : `bin/compliance.php` contrôle les règles que
+l'équipe ianseo demande aux modules contribués (casse exacte des tables du cœur, écritures
+en base, sûreté de `menu.php`, ordre des migrations, commentaires en anglais, textes non
+traduits, fonctions de chaîne octet, BOM, `JsonOut()`, pas d'impression par le navigateur,
+casse des noms de fichiers…). Les modules écrits avant une règle portent une dette connue,
+comptée dans `compliance-baseline.json` par module, contrôle et fichier : seules les erreurs
+au-delà font échouer. Quand vous remboursez une partie de la dette, réécrivez la référence
+dans le même commit (`php tests/bin/compliance.php <modules> --write-baseline=tests/compliance-baseline.json`).
+
 Puis, pour chaque module décrit dans `modules/<MODULE>.json`, sur chaque serveur de base de
 données de la liste (MariaDB 10.11 et 11.4, MySQL 8.0 et 8.4), chacun avec ses réglages par
 défaut :

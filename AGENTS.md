@@ -68,6 +68,9 @@ Breaking one of these causes a real failure, usually on a server you cannot see.
 ## Checking your work
 
 - `php -l` on every PHP file you touched.
+- `php tests/bin/compliance.php <MODULE>`: the rules above, checked statically. GitHub runs it on
+  every pull request; only errors beyond `tests/compliance-baseline.json` (known debt of older
+  modules) fail.
 - **Fresh install**: `tests/run.sh <MODULE>` (Docker) builds the database the way a new installation
   gets it and runs the module's schema function twice: every table must be created and the second
   run must change nothing. A development database already has the tables and hides ordering bugs.

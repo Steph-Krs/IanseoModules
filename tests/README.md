@@ -14,6 +14,14 @@ The bench prepares ianseo **the way a new installation gets it**:
    page). The release reached is printed at the top of every run: when a check turns red
    with no change in this repository, compare it with the last green run.
 
+**Compliance**, for every module of the repository: `bin/compliance.php` checks the rules
+the ianseo team asks of contributed modules (exact case of core table names, database
+writes, `menu.php` safety, migration order, comments in English, untranslated text, byte
+string functions, BOM, `JsonOut()`, no browser printing, file name case…). Modules written
+before a rule existed carry known debt, counted in `compliance-baseline.json` per module,
+check and file: only errors beyond it fail. When you pay some debt down, rewrite the
+baseline in the same commit (`php tests/bin/compliance.php <modules> --write-baseline=tests/compliance-baseline.json`).
+
 Then, for each module described in `modules/<MODULE>.json`, on every database server of
 the list (MariaDB 10.11 and 11.4, MySQL 8.0 and 8.4), each with its own default settings:
 
@@ -81,7 +89,8 @@ Test data is always made up: no real name or licence number in this repository.
 | `run.sh` | the single command |
 | `docker/Dockerfile`, `docker/compose.yml` | PHP environment and throwaway database server, images pinned by digest |
 | `bin/core.php` | official package + installation + core update, cached for the day |
-| `bin/check.php` | fresh install and scripts |
+| `bin/check.php` | compliance, fresh install and scripts |
+| `bin/compliance.php`, `compliance-baseline.json` | the static rules, and the known debt of older modules |
 | `bin/pages.php` | web server, made-up competition, pages × languages, browser checks |
 | `dom/` | browser-side checks (jsdom, installed from `package-lock.json` in the image) |
 | `lib/` | shared helpers and the child processes (ianseo stops the whole process on an SQL error, so every step that loads ianseo runs in a process of its own) |

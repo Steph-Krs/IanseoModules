@@ -80,7 +80,8 @@ les suit pas peut être reprise, mais elle demandera plus de travail avant publi
   (`CREATE TABLE IF NOT EXISTS`, puis seulement les `ALTER`), jamais depuis `menu.php`. Il n'y a
   aucun script SQL à lancer à la main. Testez sur une **base vide** : une base de développement a
   déjà les tables et cache les erreurs d'ordre. `tests/run.sh` le fait pour vous, sous MariaDB et
-  MySQL 8 (voir `tests/README_FR.md`) ; GitHub le lance sur chaque pull request.
+  MySQL 8 (voir `tests/README_FR.md`) ; GitHub le lance sur chaque pull request, avec
+  `php tests/bin/compliance.php <MODULE>`, qui contrôle les règles ci-dessous.
 - Nouvelles tables : préfixe du module, `DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`, et
   `COLLATE utf8mb4_unicode_ci` côté module dans une jointure sur une colonne texte du cœur.
 - Une colonne qui recopie un identifiant du cœur reprend **son type** (`ToId`, `EnId` :
