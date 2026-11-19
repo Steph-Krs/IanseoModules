@@ -76,7 +76,8 @@ does not follow them can still be taken, but it will need more work before relea
 - Module tables are created **when a page of the module opens**, by its schema function
   (`CREATE TABLE IF NOT EXISTS`, and only then the `ALTER`s), never from `menu.php`. There is no
   SQL script to run by hand. Test on an **empty database**: a development database already has
-  the tables and hides ordering mistakes.
+  the tables and hides ordering mistakes. `tests/run.sh` does it for you, on MariaDB and MySQL 8
+  (see `tests/README.md`); GitHub runs it on every pull request.
 - New tables: the module's prefix, `DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`, and
   `COLLATE utf8mb4_unicode_ci` on the module side of a join on a core text column.
 - A column that copies a core identifier takes **its type** (`ToId`, `EnId`: `INT UNSIGNED`).

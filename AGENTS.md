@@ -68,9 +68,11 @@ Breaking one of these causes a real failure, usually on a server you cannot see.
 ## Checking your work
 
 - `php -l` on every PHP file you touched.
-- **Fresh install**: run the module's schema function on an empty database, holding only the core
-  tables it references. Check that every table and column is created, and that a second run changes
-  nothing. A development database already has the tables and hides ordering bugs.
+- **Fresh install**: `tests/run.sh <MODULE>` (Docker) builds the database the way a new installation
+  gets it and runs the module's schema function twice: every table must be created and the second
+  run must change nothing. A development database already has the tables and hides ordering bugs.
+  A module that creates tables is described in `tests/modules/<MODULE>.json`; GitHub runs the bench
+  on every pull request (see `tests/README.md`).
 - Open every page you changed in each language the module offers. Look for missing keys (shown as
   `[[Key]@…]`), PHP warnings, and a broken layout at phone width.
 - Database changes: say in the pull request which tables and columns are created or altered.

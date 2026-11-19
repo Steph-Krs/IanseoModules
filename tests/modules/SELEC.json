@@ -1,0 +1,4 @@
+{
+    "schema": { "require": ["lib/schema.php"], "call": ["selec_schema"] },
+    "scripts": ["SELEC/tests/run.php"]
+}

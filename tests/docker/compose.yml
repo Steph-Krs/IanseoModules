@@ -1,0 +1,32 @@
+# Test bench: a throwaway database server and the PHP environment.
+# Run it through tests/run.sh rather than by hand.
+#
+# DB_IMAGE chooses the database server (default: MariaDB 10.11). Images are pinned by
+# digest; tests/run.sh lists the ones the bench is run against.
+name: ianseo-modules-tests
+
+services:
+  db:
+    image: ${DB_IMAGE:-mariadb:10.11@sha256:7d829180b5b2a9ba74f6242876ab401a0d7dd338a807e522ef92bc9698760f20}
+    environment:
+      MARIADB_ROOT_PASSWORD: bench
+      MYSQL_ROOT_PASSWORD: bench
+    # Data in memory: the server starts empty on every run and leaves nothing behind.
+    tmpfs:
+      - /var/lib/mysql
+    # No port published: only the bench container reaches this server.
+
+  bench:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    environment:
+      BENCH_DB_HOST: db
+      BENCH_DB_PASS: bench
+    volumes:
+      # The repository, read-only: the bench works on copies and cannot change it.
+      - ../..:/src:ro
+      # Downloads and the updated core, kept between runs (ignored by git).
+      - ../.cache:/cache

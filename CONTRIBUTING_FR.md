@@ -79,7 +79,8 @@ les suit pas peut être reprise, mais elle demandera plus de travail avant publi
 - Les tables du module se créent **à l'ouverture d'une page du module**, par sa fonction de schéma
   (`CREATE TABLE IF NOT EXISTS`, puis seulement les `ALTER`), jamais depuis `menu.php`. Il n'y a
   aucun script SQL à lancer à la main. Testez sur une **base vide** : une base de développement a
-  déjà les tables et cache les erreurs d'ordre.
+  déjà les tables et cache les erreurs d'ordre. `tests/run.sh` le fait pour vous, sous MariaDB et
+  MySQL 8 (voir `tests/README_FR.md`) ; GitHub le lance sur chaque pull request.
 - Nouvelles tables : préfixe du module, `DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`, et
   `COLLATE utf8mb4_unicode_ci` côté module dans une jointure sur une colonne texte du cœur.
 - Une colonne qui recopie un identifiant du cœur reprend **son type** (`ToId`, `EnId` :
