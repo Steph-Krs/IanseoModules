@@ -748,6 +748,7 @@ $lang['BuDotDot']       = 'Der Pfad darf kein „..“ enthalten.';
 $lang['BuInsideSite']   = 'Der Ordner liegt innerhalb der Website: Die Sicherungen wären dort herunterladbar. Wählen Sie einen Ordner außerhalb von {$a}.';
 $lang['BuCannotCreate'] = 'Der Ordner existiert nicht und der Webserver kann ihn nicht anlegen.';
 $lang['BuCannotWrite']  = 'Der Ordner existiert, aber der Webserver kann dort nicht schreiben.';
+$lang['BuNoExec']       = 'Die PHP-Funktion exec() ist für den Webserver deaktiviert (disable_functions): Der Befehl kann nicht aus ianseo gestartet werden.';
 $lang['BuBadRemote']    = 'Ungültiges Ziel (erwartetes Format: Name:Ordner).';
 $lang['BuAt']           = '{$a[day]} um {$a[time]}';
 $lang['BuNoNightSince'] = 'Keine nächtliche Wartung seit dem {$a}: geplante Aufgabe angehalten? Keine nächtliche Sicherung, solange sie nicht läuft.';

@@ -111,7 +111,10 @@ function aut_backup_dir_problem($dir, &$fix = '', $create = true)
 function aut_backup_find_bin($names, $extra = array())
 {
     $win = DIRECTORY_SEPARATOR === '\\';
-    foreach ((array) $names as $n) {
+    // A server may disable exec() for the web (disable_functions): calling it then is a fatal
+    // error in PHP 8, which the @ does not silence and which cut the settings page short.
+    // The usual places are still looked at.
+    if (function_exists('exec')) foreach ((array) $names as $n) {
         $out = array(); $rc = 1;
         @exec(($win ? 'where ' : 'command -v ') . escapeshellarg($n) . ($win ? ' 2>NUL' : ' 2>/dev/null'), $out, $rc);
         if ($rc === 0 && !empty($out[0]) && is_file(trim($out[0]))) return trim($out[0]);
@@ -365,6 +368,7 @@ function aut_backup_rclone($args, &$out)
     $out = array();
     $bin = aut_backup_rclone_bin();
     if ($bin === '') { $out[] = aut_t('CfRcloneKo'); return 127; }
+    if (!function_exists('exec')) { $out[] = aut_t('BuNoExec'); return 127; }   // see aut_backup_find_bin()
     $rc = 1;
     exec(escapeshellarg($bin) . ' ' . $args . ' 2>&1', $out, $rc);
     return $rc;

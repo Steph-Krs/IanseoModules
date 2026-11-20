@@ -748,6 +748,7 @@ $lang['BuDotDot']       = 'Le chemin ne doit pas contenir « .. ».';
 $lang['BuInsideSite']   = 'Le dossier est à l\'intérieur du site web : les sauvegardes y seraient téléchargeables. Choisissez un dossier hors de {$a}.';
 $lang['BuCannotCreate'] = 'Le dossier n\'existe pas et le serveur web ne peut pas le créer.';
 $lang['BuCannotWrite']  = 'Le dossier existe mais le serveur web ne peut pas y écrire.';
+$lang['BuNoExec']       = 'La fonction PHP exec() est désactivée pour le serveur web (disable_functions) : la commande ne peut pas être lancée depuis ianseo.';
 $lang['BuBadRemote']    = 'Destination invalide (format attendu : nom:dossier).';
 $lang['BuAt']           = '{$a[day]} à {$a[time]}';
 $lang['BuNoNightSince'] = 'Aucune maintenance nocturne depuis le {$a} : tâche planifiée arrêtée ? Pas de sauvegarde nocturne tant qu\'elle ne tourne pas.';

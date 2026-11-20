@@ -748,6 +748,7 @@ $lang['BuDotDot']       = 'Il percorso non deve contenere «..».';
 $lang['BuInsideSite']   = 'La cartella si trova all\'interno del sito web: i backup vi sarebbero scaricabili. Scelga una cartella esterna a {$a}.';
 $lang['BuCannotCreate'] = 'La cartella non esiste e il server web non può crearla.';
 $lang['BuCannotWrite']  = 'La cartella esiste ma il server web non può scriverci.';
+$lang['BuNoExec']       = 'La funzione PHP exec() è disattivata per il server web (disable_functions): il comando non può essere avviato da ianseo.';
 $lang['BuBadRemote']    = 'Destinazione non valida (formato atteso: nome:cartella).';
 $lang['BuAt']           = '{$a[day]} alle {$a[time]}';
 $lang['BuNoNightSince'] = 'Nessuna manutenzione notturna dal {$a}: attività pianificata ferma? Nessun backup notturno finché non viene eseguita.';
