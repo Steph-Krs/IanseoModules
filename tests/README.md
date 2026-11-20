@@ -42,12 +42,19 @@ the list (MariaDB 10.11 and 11.4, MySQL 8.0 and 8.4), each with its own default 
 - **Browser** — `dom/<MODULE>.js`, for pages that build their content in JavaScript: the
   real page is loaded with its script in jsdom, then checked (no `[object Object]`, no
   raw translation key, the content is really built).
+- **PHPUnit** — `phpunit/<MODULE>/*Test.php`: the module's libraries called the way its
+  pages call them, on a database built from `install.sql`, the core migrations and the
+  schemas of every module, put back in its reference state before each test. A fresh
+  install only creates the tables; these tests run the queries (issue 13 was such a query).
+
+Everything runs on PHP 8.3 and on PHP 8.0, the oldest version the ianseo installer accepts.
 
 ## Running it
 
 ```
-tests/run.sh                  # every module, MariaDB 10.11
+tests/run.sh                  # every module, MariaDB 10.11, PHP 8.3
 tests/run.sh --db mysql-8.0   # mariadb-10.11, mariadb-11.4, mysql-8.0, mysql-8.4
+tests/run.sh --php 8.0        # 8.3, 8.0
 tests/run.sh AUTH TIRAGE      # some modules only
 tests/run.sh --force-core     # download and update the ianseo core again
 ```
@@ -82,6 +89,20 @@ Create `modules/<MODULE>.json`:
 
 Test data is always made up: no real name or licence number in this repository.
 
+## Adding PHPUnit tests
+
+Put them in `phpunit/<MODULE>/`, one `*Test.php` file per subject, and add the module's test
+suite to `phpunit/phpunit.xml`. PHPUnit is 9.6, the version that runs on PHP 8.0 as well:
+data providers are declared with `@dataProvider` in the docblock, not with attributes.
+
+- An integration test extends `IanseoTestCase` (database reset before each test), usually
+  through a base class of the module that loads its libraries (`phpunit/AUTH/AuthTestCase.php`).
+- `TestDb` reads and writes the test database beside ianseo's own connections;
+  `Fixtures` creates made-up competitions, clubs and archers, with the queries of the core
+  screens when the test is about what ianseo writes.
+- ianseo stops the process on an SQL error (`safe_error()`): the run then fails with the
+  error printed, and the tests after it do not run.
+
 ## Files
 
 | File | Role |
@@ -92,6 +113,7 @@ Test data is always made up: no real name or licence number in this repository.
 | `bin/check.php` | compliance, fresh install and scripts |
 | `bin/compliance.php`, `compliance-baseline.json` | the static rules, and the known debt of older modules |
 | `bin/pages.php` | web server, made-up competition, pages × languages, browser checks |
+| `bin/phpunit.php`, `phpunit/` | PHPUnit tests of the modules (`composer.lock`: PHPUnit, installed in the image) |
 | `dom/` | browser-side checks (jsdom, installed from `package-lock.json` in the image) |
 | `lib/` | shared helpers and the child processes (ianseo stops the whole process on an SQL error, so every step that loads ianseo runs in a process of its own) |
 | `modules/` | one description per module |

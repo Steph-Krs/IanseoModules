@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PHPUnit 9.6 (the version that runs on every PHP of the bench, 8.0 included).
+  One test suite per module: bin/phpunit.php runs those of the modules asked for.
+  ianseo is loaded by bootstrap.php as auto_prepend_file, not here (global scope).
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="/opt/bench-php/vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="lib/IanseoTestCase.php"
+         colors="true"
+         cacheResult="false"
+         convertDeprecationsToExceptions="false">
+    <testsuites>
+        <testsuite name="AUTH">
+            <directory>AUTH</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
