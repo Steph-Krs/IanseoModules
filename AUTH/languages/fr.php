@@ -740,6 +740,22 @@ $lang['HlBackupNight']   = 'Dernière nuit : il y a {$a[age]} ({$a[size]})';
 $lang['HlBackupNone']    = 'Aucune sauvegarde nocturne dans {$a}';
 $lang['HlBackupLive']    = ' ; dernière copie à chaud : il y a {$a}.';
 $lang['HlBackupNoLive']  = ' ; pas de copie à chaud (gabarit serveur/cron/ianseo-backup-live).';
+$lang['HlSecT']          = 'Failles de sécurité connues de PHP';
+$lang['HlSecOk']         = 'Les {$a[n]} alertes de sécurité suivies par le module sont corrigées dans la version en service : {$a[php]}.';
+$lang['HlSecWarn']       = '{$a} est exposé à des failles publiées. Commandes ci-dessous, hors compétition (le redémarrage du serveur web interrompt les pages en cours) :';
+$lang['HlSecInfo']       = 'Le correctif manque encore à {$a}, mais la parade recommandée est en place. Appliquer le correctif dès qu\'il est disponible :';
+$lang['HlSecLine']       = '{$a[name]} ({$a[cve]}, {$a[date]}) : {$a[state]}';
+$lang['HlSecMore']       = '{$a[ref]} et {$a[n]} autres';
+$lang['HlSecOpen']       = 'non corrigée, correctif dans PHP {$a}';
+$lang['HlSecEol']        = 'non corrigée : la branche PHP {$a} ne reçoit plus de correctifs, passer à une version suivie';
+$lang['HlSecUnknown']    = 'correctif de la distribution pas encore connu du module (paquet {$a[pkg]} {$a[ver]}) : appliquer les mises à jour du système';
+$lang['HlSecUnknownRpm'] = 'version du paquet PHP illisible ({$a}) : vérifier que les mises à jour du système sont appliquées';
+$lang['HlSecMitigated']  = ' ; parade en place ({$a})';
+$lang['HlSecReload']     = 'corrigée sur le disque, mais le serveur web tourne encore avec l\'ancienne version de PHP';
+$lang['HlSecCmdMitigate'] = 'parade immédiate, en attendant le correctif';
+$lang['HlSecCmdUpdate']  = 'installe le correctif';
+$lang['HlSecCmdRestart'] = 'recharge PHP et ses réglages (hors compétition)';
+$lang['HlSecCmdManual']  = 'Mettre à jour PHP (gestionnaire de paquets du système, ou nouvelle version corrigée), puis redémarrer le serveur web.';
 
 /* Backups (backup-lib.php) */
 $lang['BuNoDir']        = 'Aucun dossier de sauvegarde configuré.';

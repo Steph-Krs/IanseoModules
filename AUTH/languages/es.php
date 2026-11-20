@@ -740,6 +740,22 @@ $lang['HlBackupNight']   = 'Última noche: hace {$a[age]} ({$a[size]})';
 $lang['HlBackupNone']    = 'Ninguna copia nocturna en {$a}';
 $lang['HlBackupLive']    = '; última copia en caliente: hace {$a}.';
 $lang['HlBackupNoLive']  = '; sin copia en caliente (plantilla serveur/cron/ianseo-backup-live).';
+$lang['HlSecT']          = 'Fallos de seguridad conocidos de PHP';
+$lang['HlSecOk']         = 'Las {$a[n]} alertas de seguridad que sigue el módulo están corregidas en la versión en servicio: {$a[php]}.';
+$lang['HlSecWarn']       = '{$a} está expuesto a fallos publicados. Comandos a continuación, fuera de competición (reiniciar el servidor web interrumpe las páginas en curso):';
+$lang['HlSecInfo']       = 'A {$a} aún le falta la corrección, pero la medida paliativa recomendada está aplicada. Aplique la corrección en cuanto esté disponible:';
+$lang['HlSecLine']       = '{$a[name]} ({$a[cve]}, {$a[date]}): {$a[state]}';
+$lang['HlSecMore']       = '{$a[ref]} y {$a[n]} más';
+$lang['HlSecOpen']       = 'sin corregir, corrección en PHP {$a}';
+$lang['HlSecEol']        = 'sin corregir: la rama PHP {$a} ya no recibe correcciones, pase a una versión mantenida';
+$lang['HlSecUnknown']    = 'el módulo aún no conoce la corrección de la distribución (paquete {$a[pkg]} {$a[ver]}): aplique las actualizaciones del sistema';
+$lang['HlSecUnknownRpm'] = 'versión del paquete PHP ilegible ({$a}): compruebe que las actualizaciones del sistema están aplicadas';
+$lang['HlSecMitigated']  = '; medida paliativa aplicada ({$a})';
+$lang['HlSecReload']     = 'corregido en el disco, pero el servidor web sigue funcionando con la versión anterior de PHP';
+$lang['HlSecCmdMitigate'] = 'medida paliativa inmediata, a la espera de la corrección';
+$lang['HlSecCmdUpdate']  = 'instala la corrección';
+$lang['HlSecCmdRestart'] = 'recarga PHP y sus ajustes (fuera de competición)';
+$lang['HlSecCmdManual']  = 'Actualice PHP (gestor de paquetes del sistema, o una nueva versión corregida) y después reinicie el servidor web.';
 
 /* Backups (backup-lib.php) */
 $lang['BuNoDir']        = 'Ninguna carpeta de copias de seguridad configurada.';

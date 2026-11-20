@@ -201,7 +201,7 @@ competition — without being able to change its essential settings.
   to a monitoring service
 - 🩺 **Server state** page: reports the settings that slow down or block an online ianseo server
   (MySQL 8, connections, memory, sessions, import size, oversized sessions, PHP updated but not
-  loaded yet…), the system files missing or outdated against the module's templates, and how long
+  loaded yet, published PHP security flaws not fixed in the version in service…), the system files missing or outdated against the module's templates, and how long
   the site was closed last night, with the fix to apply
 - 🌙 **Nightly maintenance without needless closure**: the site only closes while an update of
   the core or of a module is put in place (a few seconds, downloaded in advance); backup,

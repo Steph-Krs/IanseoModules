@@ -2,6 +2,9 @@
 
 Une entrée par version publiée, la plus récente en haut. Les notes de `version.json` ne gardent que la série en cours.
 
+## 1.12.0 — 2026-11-20
+- État du serveur : nouvelle ligne **Failles de sécurité connues de PHP**. Elle compare la version de PHP en service — paquet de la distribution compris, Debian et Ubuntu reportant les correctifs sans changer le numéro de PHP — à la liste des failles publiées (`security-flaws.json`), tenue à jour par chaque version du module : PHP2Shell (21 octobre 2026) et phpAfterShell (19 novembre 2026, 18 failles). Une seule ligne quel que soit le nombre de failles, pour que la page ne grandisse pas avec le temps : une faille corrigée n'est pas détaillée ; une faille ouverte est listée avec la parade quand il y en a une (`session.upload_progress.enabled = 0` pour phpAfterShell) et les commandes à lancer — parade, mise à jour du système, redémarrage du serveur web hors compétition. Un correctif installé mais pas encore chargé par le serveur web est signalé aussi.
+
 ## 1.11.1 — 2026-11-18
 - Espace licencié : les pages qui listent les inscriptions de l'archer (accueil, « Mes inscriptions », fiche d'une compétition, calendrier et export agenda, carte, suggestions, documents d'une compétition) ne s'arrêtent plus sur une erreur SQL de collation (Error 1267). Apparue en 1.10.0 sur les serveurs dont la collation par défaut n'est pas `utf8mb4_general_ci` (MySQL 8, MariaDB récents) : le cœur déclare les volées 5 à 8 avec leur propre collation, et la présence de flèches était testée sur la concaténation des huit volées. Chaque volée est désormais testée séparément.
 

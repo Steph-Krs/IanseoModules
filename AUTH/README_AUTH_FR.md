@@ -209,7 +209,8 @@ essentielles.
   vers un service de supervision
 - 🩺 Page **État du serveur** : signale les réglages qui ralentissent ou bloquent un serveur ianseo
   en ligne (MySQL 8, connexions, mémoire, sessions, taille des imports, départs surdimensionnés,
-  PHP mis à jour mais pas encore chargé…), les fichiers système manquants ou périmés par rapport
+  PHP mis à jour mais pas encore chargé, failles de sécurité de PHP publiées et non corrigées dans
+  la version en service…), les fichiers système manquants ou périmés par rapport
   aux gabarits du module, et la durée de fermeture du site la dernière nuit, avec la correction à
   appliquer
 - 🌙 **Maintenance de nuit sans fermeture inutile** : le site ne ferme que le temps de mettre en

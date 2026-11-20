@@ -585,7 +585,11 @@ the admin can assign/correct it via the "Competitions & sharing" page.
   pitfalls lived through on a production server — MySQL 8 setting (§ 6.3), database connections and
   memory, slow query log, session length and import size (§ 6.1), ModSecurity
   limit (§ 4.3), OPcache, time of the system updates and no catching up in the daytime (§ 4.1),
-  PHP updated but not loaded yet by the web server and night restart in place (§ 4.1), **server
+  PHP updated but not loaded yet by the web server and night restart in place (§ 4.1), known PHP
+  security flaws (one line, whatever their number: the version in service — distribution package
+  included, fixes being backported under the same PHP number — against the list
+  `security-flaws.json` that comes with each module update, with the workaround and the commands
+  when a flaw is still open), **server
   templates** (each file of `serveur/`: installed, missing or different from the template of the
   module's version, with the `install` commands to run and a `diff` for those that differ),
   oversized sessions, age of the backups, how long the site was closed last night — each with

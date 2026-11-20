@@ -740,6 +740,22 @@ $lang['HlBackupNight']   = 'Ultima notte: {$a[age]} fa ({$a[size]})';
 $lang['HlBackupNone']    = 'Nessun backup notturno in {$a}';
 $lang['HlBackupLive']    = '; ultima copia a caldo: {$a} fa.';
 $lang['HlBackupNoLive']  = '; nessuna copia a caldo (modello serveur/cron/ianseo-backup-live).';
+$lang['HlSecT']          = 'Falle di sicurezza note di PHP';
+$lang['HlSecOk']         = 'I {$a[n]} avvisi di sicurezza seguiti dal modulo sono corretti nella versione in servizio: {$a[php]}.';
+$lang['HlSecWarn']       = '{$a} è esposto a falle pubblicate. Comandi qui sotto, fuori gara (il riavvio del server web interrompe le pagine in corso):';
+$lang['HlSecInfo']       = 'A {$a} manca ancora la correzione, ma il rimedio consigliato è in atto. Applicare la correzione appena disponibile:';
+$lang['HlSecLine']       = '{$a[name]} ({$a[cve]}, {$a[date]}): {$a[state]}';
+$lang['HlSecMore']       = '{$a[ref]} e altri {$a[n]}';
+$lang['HlSecOpen']       = 'non corretta, correzione in PHP {$a}';
+$lang['HlSecEol']        = 'non corretta: il ramo PHP {$a} non riceve più correzioni, passare a una versione supportata';
+$lang['HlSecUnknown']    = 'correzione della distribuzione non ancora nota al modulo (pacchetto {$a[pkg]} {$a[ver]}): applicare gli aggiornamenti di sistema';
+$lang['HlSecUnknownRpm'] = 'versione del pacchetto PHP illeggibile ({$a}): verificare che gli aggiornamenti di sistema siano applicati';
+$lang['HlSecMitigated']  = '; rimedio in atto ({$a})';
+$lang['HlSecReload']     = 'corretta sul disco, ma il server web funziona ancora con la versione precedente di PHP';
+$lang['HlSecCmdMitigate'] = 'rimedio immediato, in attesa della correzione';
+$lang['HlSecCmdUpdate']  = 'installa la correzione';
+$lang['HlSecCmdRestart'] = 'ricarica PHP e le sue impostazioni (fuori gara)';
+$lang['HlSecCmdManual']  = 'Aggiornare PHP (gestore di pacchetti del sistema, o una nuova versione corretta), poi riavviare il server web.';
 
 /* Backups (backup-lib.php) */
 $lang['BuNoDir']        = 'Nessuna cartella di backup configurata.';

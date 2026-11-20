@@ -93,6 +93,206 @@ function aut_health_stale_files($maps = null)
     return array_keys($files);
 }
 
+/** Debian version comparison, as dpkg --compare-versions: <0, 0 or >0. */
+function aut_health_dpkg_cmp($a, $b)
+{
+    $parse = function ($v) {
+        preg_match('/^(?:(\d+):)?(.+?)(?:-([^-]+))?$/', trim((string) $v), $m);
+        return array((int) ($m[1] ?? 0), $m[2] ?? '', $m[3] ?? '');
+    };
+    $x = $parse($a);
+    $y = $parse($b);
+    if ($x[0] !== $y[0]) return $x[0] <=> $y[0];
+    $c = aut_health_verrevcmp($x[1], $y[1]);
+    return $c !== 0 ? $c : aut_health_verrevcmp($x[2], $y[2]);
+}
+
+/** dpkg's verrevcmp(): letters before other signs, "~" before everything, even the end. */
+function aut_health_verrevcmp($a, $b)
+{
+    $a = preg_split('//', (string) $a, -1, PREG_SPLIT_NO_EMPTY);
+    $b = preg_split('//', (string) $b, -1, PREG_SPLIT_NO_EMPTY);
+    $digit = function ($c) { return $c !== null && ctype_digit($c); };
+    $order = function ($c) use ($digit) {
+        if ($c === null || $digit($c)) return 0;
+        if (ctype_alpha($c)) return ord($c);
+        return $c === '~' ? -1 : ord($c) + 256;
+    };
+    $i = $j = 0;
+    while (isset($a[$i]) || isset($b[$j])) {
+        while ((isset($a[$i]) && !$digit($a[$i])) || (isset($b[$j]) && !$digit($b[$j]))) {
+            $ac = $order($a[$i] ?? null);
+            $bc = $order($b[$j] ?? null);
+            if ($ac !== $bc) return $ac <=> $bc;
+            $i++;
+            $j++;
+        }
+        while (($a[$i] ?? null) === '0') $i++;
+        while (($b[$j] ?? null) === '0') $j++;
+        $first = 0;
+        while ($digit($a[$i] ?? null) && $digit($b[$j] ?? null)) {
+            if ($first === 0) $first = (int) $a[$i] <=> (int) $b[$j];
+            $i++;
+            $j++;
+        }
+        if ($digit($a[$i] ?? null)) return 1;
+        if ($digit($b[$j] ?? null)) return -1;
+        if ($first !== 0) return $first;
+    }
+    return 0;
+}
+
+/**
+ * Where PHP comes from on this server: distribution ("debian12", "ubuntu24.04", '' unknown),
+ * the package holding the PHP of this web process and its installed version ('' when PHP was
+ * not installed by dpkg: Windows, RPM, compiled by hand). $root: a folder standing for "/" (tests).
+ */
+function aut_health_php_origin($root = '', $sapi = null, $branch = null)
+{
+    $sapi   = $sapi ?? php_sapi_name();
+    $branch = $branch ?? PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+    $os = aut_health_read($root . '/etc/os-release');
+    $distro = '';
+    if (preg_match('/^ID="?([a-z0-9._-]+)"?\s*$/mi', $os, $m)) {
+        $distro = mb_strtolower($m[1]) .(preg_match('/^VERSION_ID="?([0-9.]+)"?\s*$/mi', $os, $v) ? $v[1] : '');
+    }
+    $status = aut_health_read($root . '/var/lib/dpkg/status');
+    $names = array('apache2handler' => "libapache2-mod-php$branch", 'fpm-fcgi' => "php$branch-fpm", 'cgi-fcgi' => "php$branch-cgi");
+    $pkg = '';
+    $ver = '';
+    foreach (array_unique(array($names[$sapi] ?? "php$branch-cli", "php$branch-common")) as $p) {
+        $at = strpos($status, "Package: $p\n");
+        if ($at !== false && preg_match('/\GPackage: \S+\nStatus: install ok installed\n(?:.+\n)*?Version: (\S+)$/m', $status, $m, 0, $at)) {
+            $pkg = $p;
+            $ver = $m[1];
+            break;
+        }
+    }
+    return array('distro' => $distro, 'pkg' => $pkg, 'pkgver' => $ver);
+}
+
+/**
+ * The known PHP flaws of security-flaws.json, each with its state on this server:
+ * fixed — the PHP in service has the fix; reload — the fix is installed but the web server still
+ * runs the previous PHP; open — not fixed; eol — PHP branch that upstream no longer fixes;
+ * unknown — a distribution package whose fix (backported under the same upstream number) is not
+ * in the list yet. 'mitigated' / 'missing': the php.ini settings of the workaround in place or not.
+ * $env (tests): php, branch, distro, pkg, pkgver, stale, ini => [name => value]. null without list.
+ */
+function aut_health_php_flaws($env = null, $list = null)
+{
+    if ($list === null) {
+        $list = json_decode((string) @file_get_contents(__DIR__ . '/security-flaws.json'), true);
+        $list = is_array($list) && isset($list['php']) ? $list['php'] : null;
+        if ($list === null) return null;
+    }
+    if ($env === null) {
+        $stale = aut_health_stale_files();
+        $env = aut_health_php_origin() + array(
+            'php'    => PHP_VERSION,
+            'branch' => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,
+            'stale'  => $stale && preg_grep('#/(libphp[^/]*|php-fpm[^/]*)$|/lib/php/#', $stale),
+            'ini'    => null,
+        );
+    }
+    // Distributions that backport fixes under the PHP number they shipped with.
+    $backports = (bool) preg_match('/^(debian|ubuntu|rhel|centos|rocky|almalinux|ol|amzn|sles|opensuse)/', $env['distro']);
+    $upstream  = preg_replace('/^\d+:|-[^-]*$/', '', $env['pkgver']);
+    $out = array();
+    foreach ($list as $f) {
+        $branches = array_keys($f['fixed']);
+        usort($branches, 'version_compare');
+        $fix = $f['fixed'][$env['branch']] ?? '';
+        $old = $fix === '' && version_compare($env['branch'], $branches[0], '<');
+        if ($fix === '' && !$old) {
+            $state = 'fixed';   // a branch released after the fix
+        } elseif (!$old && version_compare($env['php'], $fix, '>=')) {
+            $state = 'fixed';
+        } elseif ($env['pkgver'] !== '') {
+            $distroFix = $f['distro'][$env['distro']] ?? '';
+            if (!$old && version_compare($upstream, $fix, '>=')) {
+                $state = 'fixed';
+            } elseif ($distroFix !== '') {
+                $state = aut_health_dpkg_cmp($env['pkgver'], $distroFix) >= 0 ? 'fixed' : 'open';
+            } else {
+                $state = $backports ? 'unknown' : ($old ? 'eol' : 'open');
+            }
+            if ($state === 'fixed' && $env['stale']) $state = 'reload';
+        } else {
+            // A distribution PHP not read from dpkg (RPM): its number does not tell the fixes.
+            $state = $backports ? 'unknown' : ($old ? 'eol' : 'open');
+        }
+        $f['state'] = $state;
+        $f['fix'] = $fix;
+        $f['mitigated'] = $f['missing'] = array();
+        foreach ($f['mitigate'] ?? array() as $w) {
+            $val = $env['ini'] !== null ? ($env['ini'][$w['ini']] ?? '') : ini_get($w['ini']);
+            $off = !filter_var($val, FILTER_VALIDATE_BOOLEAN);
+            if ($off === !empty($w['off'])) $f['mitigated'][] = $w['ini'];
+            else $f['missing'][] = $w['ini'] . ' = ' . (!empty($w['off']) ? '0' : '1');
+        }
+        $out[] = $f;
+    }
+    return array('env' => $env, 'flaws' => $out);
+}
+
+/** The "known PHP flaws" line of the server state: one line however many flaws are known. */
+function aut_health_flaws_item($sec, $ini)
+{
+    $env  = $sec['env'];
+    $list = array();
+    $warn = false;
+    $update = false;
+    $restart = false;
+    $set = array();
+    foreach ($sec['flaws'] as $f) {
+        if ($f['state'] === 'fixed') continue;
+        $refs = (array) $f['ref'];
+        $cve = count($refs) >= $f['count'] ? implode(', ', $refs) : aut_t('HlSecMore', array('ref' => $refs[0], 'n' => $f['count'] - 1));
+        if ($f['state'] === 'reload') {
+            $txt = aut_t('HlSecReload');
+            $restart = true;
+            $warn = true;
+        } else {
+            $txt = $f['state'] === 'unknown'
+                ? ($env['pkg'] !== '' ? aut_t('HlSecUnknown', array('pkg' => $env['pkg'], 'ver' => $env['pkgver'])) : aut_t('HlSecUnknownRpm', $env['distro']))
+                : ($f['state'] === 'eol' ? aut_t('HlSecEol', $env['branch']) : aut_t('HlSecOpen', $f['fix']));
+            if ($f['mitigated'] && !$f['missing']) {
+                $txt .= aut_t('HlSecMitigated', implode(', ', $f['mitigated']));
+            } else {
+                $warn = true;
+            }
+            foreach ($f['missing'] as $m) $set[$m] = true;
+            $update = true;
+        }
+        $list[] = aut_t('HlSecLine', array('name' => $f['name'], 'cve' => $cve, 'date' => $f['date'], 'state' => $txt));
+    }
+    $running = 'PHP ' . $env['php'] . ($env['pkgver'] !== '' ? ' (' . $env['pkg'] . ' ' . $env['pkgver'] . ')' : '');
+    if (!$list) {
+        return aut_health_item('ok', aut_t('HlSecT'), aut_t('HlSecOk', array('n' => count($sec['flaws']), 'php' => $running)));
+    }
+    $cmd = array();
+    if ($set) {
+        $scanned = (string) php_ini_scanned_files();
+        $dir = $scanned !== '' ? dirname(trim(explode(',', $scanned)[0])) : '';
+        $cmd[] = $dir !== '' && $env['pkgver'] !== ''
+            ? "printf '%s\\n' '" . implode("' '", array_keys($set)) . "' | sudo tee -a " . $dir . '/99-ianseo-security.ini   # ' . aut_t('HlSecCmdMitigate')
+            : implode("\n", array_keys($set)) . "\n" . aut_t('HlRestartApache', $ini);
+        $restart = true;
+    }
+    if ($update) {
+        $cmd[] = $env['pkgver'] !== '' ? 'sudo apt update && sudo apt upgrade   # ' . aut_t('HlSecCmdUpdate') : aut_t('HlSecCmdManual');
+        $restart = true;
+    }
+    if ($restart && $env['pkgver'] !== '') {
+        $cmd[] = (php_sapi_name() === 'fpm-fcgi'
+            ? 'sudo systemctl restart php' . $env['branch'] . '-fpm'
+            : 'sudo systemctl restart apache2') . '   # ' . aut_t('HlSecCmdRestart');
+    }
+    return aut_health_item($warn ? 'warn' : 'info', aut_t('HlSecT'),
+        aut_t($warn ? 'HlSecWarn' : 'HlSecInfo', $running), implode("\n", $cmd), $list);
+}
+
 /**
  * The system files of the module's templates (serveur/README.md): where each one goes, how it is
  * installed, whether the server cannot do without it, and whether it is copied as it is — then
@@ -386,6 +586,11 @@ function aut_health_checks()
     } elseif (aut_health_read('/lib/systemd/system/apt-daily-upgrade.timer') !== '') {
         $out[] = aut_health_item('warn', aut_t('HlAptT'), aut_t('HlAptDefault'), aut_t('HlAptFix'));
     }
+
+    // Known PHP flaws — PHP2Shell (October 2026), phpAfterShell (November 2026): the list grows
+    // with each AUTH version, the page keeps one line.
+    $sec = aut_health_php_flaws();
+    if ($sec !== null) $out[] = aut_health_flaws_item($sec, $ini);
 
     // Updates installed but not loaded — in October 2026, PHP 8.2.35 (two critical flaws) sat on
     // a test server's disk for 34 hours while Apache served the vulnerable 8.2.34: Debian restarts

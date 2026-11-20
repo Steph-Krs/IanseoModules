@@ -742,6 +742,22 @@ $lang['HlBackupNight']   = 'Last night: {$a[age]} ago ({$a[size]})';
 $lang['HlBackupNone']    = 'No nightly backup in {$a}';
 $lang['HlBackupLive']    = '; last live copy: {$a} ago.';
 $lang['HlBackupNoLive']  = '; no live copy (template serveur/cron/ianseo-backup-live).';
+$lang['HlSecT']          = 'Known PHP security flaws';
+$lang['HlSecOk']         = 'The {$a[n]} security advisories followed by the module are fixed in the version in service: {$a[php]}.';
+$lang['HlSecWarn']       = '{$a} is exposed to published flaws. Commands below, outside competitions (restarting the web server interrupts the pages in progress):';
+$lang['HlSecInfo']       = '{$a} still lacks the fix, but the recommended workaround is in place. Apply the fix as soon as it is available:';
+$lang['HlSecLine']       = '{$a[name]} ({$a[cve]}, {$a[date]}): {$a[state]}';
+$lang['HlSecMore']       = '{$a[ref]} and {$a[n]} others';
+$lang['HlSecOpen']       = 'not fixed, fix in PHP {$a}';
+$lang['HlSecEol']        = 'not fixed: the PHP {$a} branch no longer receives fixes, move to a supported version';
+$lang['HlSecUnknown']    = 'distribution fix not yet known to the module (package {$a[pkg]} {$a[ver]}): apply the system updates';
+$lang['HlSecUnknownRpm'] = 'PHP package version not readable ({$a}): check that the system updates are applied';
+$lang['HlSecMitigated']  = '; workaround in place ({$a})';
+$lang['HlSecReload']     = 'fixed on disk, but the web server still runs the previous version of PHP';
+$lang['HlSecCmdMitigate'] = 'immediate workaround, until the fix';
+$lang['HlSecCmdUpdate']  = 'installs the fix';
+$lang['HlSecCmdRestart'] = 'reloads PHP and its settings (outside competitions)';
+$lang['HlSecCmdManual']  = 'Update PHP (system package manager, or a new fixed version), then restart the web server.';
 
 /* Backups (backup-lib.php) */
 $lang['BuNoDir']        = 'No backup folder configured.';

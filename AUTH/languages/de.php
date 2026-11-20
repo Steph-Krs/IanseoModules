@@ -740,6 +740,22 @@ $lang['HlBackupNight']   = 'Letzte Nacht: vor {$a[age]} ({$a[size]})';
 $lang['HlBackupNone']    = 'Keine nächtliche Sicherung in {$a}';
 $lang['HlBackupLive']    = '; letzte Livekopie: vor {$a}.';
 $lang['HlBackupNoLive']  = '; keine Livekopie (Vorlage serveur/cron/ianseo-backup-live).';
+$lang['HlSecT']          = 'Bekannte Sicherheitslücken von PHP';
+$lang['HlSecOk']         = 'Die {$a[n]} vom Modul verfolgten Sicherheitswarnungen sind in der laufenden Version behoben: {$a[php]}.';
+$lang['HlSecWarn']       = '{$a} ist veröffentlichten Lücken ausgesetzt. Befehle unten, außerhalb von Wettkämpfen (der Neustart des Webservers unterbricht laufende Seiten):';
+$lang['HlSecInfo']       = '{$a} fehlt die Korrektur noch, aber die empfohlene Abhilfe ist eingerichtet. Die Korrektur einspielen, sobald sie verfügbar ist:';
+$lang['HlSecLine']       = '{$a[name]} ({$a[cve]}, {$a[date]}): {$a[state]}';
+$lang['HlSecMore']       = '{$a[ref]} und {$a[n]} weitere';
+$lang['HlSecOpen']       = 'nicht behoben, Korrektur in PHP {$a}';
+$lang['HlSecEol']        = 'nicht behoben: der PHP-Zweig {$a} erhält keine Korrekturen mehr, auf eine gepflegte Version wechseln';
+$lang['HlSecUnknown']    = 'Korrektur der Distribution dem Modul noch nicht bekannt (Paket {$a[pkg]} {$a[ver]}): Systemaktualisierungen einspielen';
+$lang['HlSecUnknownRpm'] = 'Version des PHP-Pakets nicht lesbar ({$a}): prüfen, ob die Systemaktualisierungen eingespielt sind';
+$lang['HlSecMitigated']  = '; Abhilfe eingerichtet ({$a})';
+$lang['HlSecReload']     = 'auf der Festplatte behoben, aber der Webserver läuft noch mit der vorherigen PHP-Version';
+$lang['HlSecCmdMitigate'] = 'sofortige Abhilfe bis zur Korrektur';
+$lang['HlSecCmdUpdate']  = 'installiert die Korrektur';
+$lang['HlSecCmdRestart'] = 'lädt PHP und seine Einstellungen neu (außerhalb von Wettkämpfen)';
+$lang['HlSecCmdManual']  = 'PHP aktualisieren (Paketverwaltung des Systems oder neue korrigierte Version), danach den Webserver neu starten.';
 
 /* Backups (backup-lib.php) */
 $lang['BuNoDir']        = 'Kein Sicherungsordner konfiguriert.';

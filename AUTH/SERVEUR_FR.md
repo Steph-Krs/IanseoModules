@@ -588,7 +588,11 @@ l'admin peut l'attribuer/corriger via la page « Compétitions & partage ».
   pièges vécus sur un serveur en production — réglage MySQL 8 (§ 6.3), connexions et mémoire de la
   base, journal des requêtes lentes, durée des sessions et taille des imports (§ 6.1), limite
   ModSecurity (§ 4.3), OPcache, heure des mises à jour du système et absence de rattrapage en
-  journée (§ 4.1), PHP mis à jour mais pas encore chargé par le serveur web et redémarrage de nuit
+  journée (§ 4.1), failles de sécurité connues de PHP (une ligne, quel que soit leur nombre : la
+  version en service — paquet de la distribution compris, les correctifs y étant reportés sous le
+  même numéro de PHP — comparée à la liste `security-flaws.json` qu'apporte chaque mise à jour du
+  module, avec la parade et les commandes quand une faille reste ouverte), PHP mis à jour mais pas
+  encore chargé par le serveur web et redémarrage de nuit
   en place (§ 4.1), **gabarits du serveur** (chaque fichier de `serveur/` : installé, manquant ou
   différent du gabarit de la version du module, avec les commandes `install` à lancer et un
   `diff` pour ceux qui diffèrent), départs surdimensionnés, âge des sauvegardes, durée de
