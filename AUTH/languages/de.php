@@ -629,6 +629,7 @@ $lang['CfStepCore']     = 'ianseo-Kern aktualisieren';
 $lang['CfStepModules']  = 'Module aktualisieren';
 $lang['CfStepLicences'] = 'FFTA-Lizenzen synchronisieren';
 $lang['CfStepLogos']    = 'Vereinslogos synchronisieren';
+$lang['CfStepFed']      = 'Lizenzdateien ausländischer Verbände synchronisieren';
 $lang['CfSteps']        = 'Schritte';
 $lang['CfStepsHint']    = 'Die Sicherung wird im vorherigen Abschnitt eingestellt.';
 $lang['CfNotice']       = 'Den Benutzern angezeigte Vorankündigung';

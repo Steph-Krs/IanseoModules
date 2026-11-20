@@ -629,6 +629,7 @@ $lang['CfStepCore']     = 'Aggiornare il nucleo di ianseo';
 $lang['CfStepModules']  = 'Aggiornare i moduli';
 $lang['CfStepLicences'] = 'Sincronizzare le licenze FFTA';
 $lang['CfStepLogos']    = 'Sincronizzare i loghi delle società';
+$lang['CfStepFed']      = 'Sincronizzare i file dei tesserati stranieri';
 $lang['CfSteps']        = 'Fasi';
 $lang['CfStepsHint']    = 'Il backup si imposta nella sezione precedente.';
 $lang['CfNotice']       = 'Preavviso mostrato agli utenti';
