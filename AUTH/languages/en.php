@@ -766,6 +766,7 @@ $lang['BuDotDot']       = 'The path must not contain "..".';
 $lang['BuInsideSite']   = 'The folder is inside the web site: the backups could be downloaded there. Choose a folder outside {$a}.';
 $lang['BuCannotCreate'] = 'The folder does not exist and the web server cannot create it.';
 $lang['BuCannotWrite']  = 'The folder exists but the web server cannot write into it.';
+$lang['BuNoExec']       = 'The PHP function exec() is disabled for the web server (disable_functions): the command cannot be run from ianseo.';
 $lang['BuBadRemote']    = 'Invalid destination (expected format: name:folder).';
 $lang['BuAt']           = '{$a[day]} at {$a[time]}';
 $lang['BuNoNightSince'] = 'No nightly maintenance since {$a}: scheduled task stopped? No nightly backup as long as it does not run.';

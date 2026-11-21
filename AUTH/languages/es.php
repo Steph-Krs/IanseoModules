@@ -764,6 +764,7 @@ $lang['BuDotDot']       = 'La ruta no debe contener «..».';
 $lang['BuInsideSite']   = 'La carpeta está dentro del sitio web: las copias de seguridad se podrían descargar. Elija una carpeta fuera de {$a}.';
 $lang['BuCannotCreate'] = 'La carpeta no existe y el servidor web no puede crearla.';
 $lang['BuCannotWrite']  = 'La carpeta existe, pero el servidor web no puede escribir en ella.';
+$lang['BuNoExec']       = 'La función PHP exec() está desactivada para el servidor web (disable_functions): el comando no puede lanzarse desde ianseo.';
 $lang['BuBadRemote']    = 'Destino no válido (formato esperado: nombre:carpeta).';
 $lang['BuAt']           = '{$a[day]} a las {$a[time]}';
 $lang['BuNoNightSince'] = 'Ningún mantenimiento nocturno desde el {$a}: ¿tarea programada detenida? No hay copia de seguridad nocturna mientras no se ejecute.';
