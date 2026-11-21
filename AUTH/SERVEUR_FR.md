@@ -497,7 +497,7 @@ lecture JSON et **toute** la configuration serait ignorée en silence) :
     "off":    "sudo /usr/local/bin/ianseo-maintenance-off",
     "unlock": "",
     "lock":   "",
-    "steps":  { "core": false, "modules": true, "licences": true, "logos": true },
+    "steps":  { "core": false, "modules": true, "licences": true, "logos": true, "fed": true },
     "notice": { "at": "03:15", "lead_minutes": 15 },
     "ping_url": ""
   }
@@ -1090,7 +1090,7 @@ quel** et retenté la nuit suivante : un module à moitié mis à jour ferait to
     "off":    "sudo /usr/local/bin/ianseo-maintenance-off",
     "unlock": "",
     "lock":   "",
-    "steps":  { "core": false, "modules": true, "licences": true, "logos": true },
+    "steps":  { "core": false, "modules": true, "licences": true, "logos": true, "fed": true },
     "notice": { "at": "03:15", "lead_minutes": 15 }
 } }
 ```
@@ -1122,7 +1122,7 @@ quel** et retenté la nuit suivante : un module à moitié mis à jour ferait to
   sauter la MàJ du cœur au lieu de la tenter pour rien.)*
 - Options : `--dry-run` (affiche le plan sans rien installer — les vérifications de mise à jour
   tournent, elles ne font que lire ; à lancer en premier), `--core` / `--no-core`,
-  `--only=modules,licences,logos`, `--close` (ferme le site même sans rien à installer : pour
+  `--only=modules,licences,logos,fed`, `--close` (ferme le site même sans rien à installer : pour
   vérifier la mise en maintenance et sa sortie).
 - Une étape arrêtée par une erreur SQL est **signalée en échec** : le `safe_error()` du cœur
   affiche une page d'erreur et se termine avec le code 0, ce que le journal lisait comme un

@@ -629,6 +629,7 @@ $lang['CfStepCore']     = 'Mettre à jour le cœur ianseo';
 $lang['CfStepModules']  = 'Mettre à jour les modules';
 $lang['CfStepLicences'] = 'Synchroniser les licences FFTA';
 $lang['CfStepLogos']    = 'Synchroniser les logos de club';
+$lang['CfStepFed']      = 'Synchroniser les fichiers des licenciés étrangers';
 $lang['CfSteps']        = 'Étapes';
 $lang['CfStepsHint']    = 'La sauvegarde se règle dans la section précédente.';
 $lang['CfNotice']       = 'Préavis affiché aux utilisateurs';

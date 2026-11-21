@@ -494,7 +494,7 @@ JSON reading fail and **the whole** configuration would be silently ignored):
     "off":    "sudo /usr/local/bin/ianseo-maintenance-off",
     "unlock": "",
     "lock":   "",
-    "steps":  { "core": false, "modules": true, "licences": true, "logos": true },
+    "steps":  { "core": false, "modules": true, "licences": true, "logos": true, "fed": true },
     "notice": { "at": "03:15", "lead_minutes": 15 },
     "ping_url": ""
   }
@@ -1085,7 +1085,7 @@ the next night: a half-updated module would run two versions at once.
     "off":    "sudo /usr/local/bin/ianseo-maintenance-off",
     "unlock": "",
     "lock":   "",
-    "steps":  { "core": false, "modules": true, "licences": true, "logos": true },
+    "steps":  { "core": false, "modules": true, "licences": true, "logos": true, "fed": true },
     "notice": { "at": "03:15", "lead_minutes": 15 }
 } }
 ```
@@ -1115,7 +1115,7 @@ the next night: a half-updated module would run two versions at once.
   files stayed locked, core update refused. Since then, a failed unlock makes
   the core update skip instead of attempting it for nothing.)*
 - Options: `--dry-run` (shows the plan without installing anything — the update checks do run,
-  they only read; run it first), `--core` / `--no-core`, `--only=modules,licences,logos`,
+  they only read; run it first), `--core` / `--no-core`, `--only=modules,licences,logos,fed`,
   `--close` (closes the site even with nothing to install: to check maintenance on/off).
 - A step stopped by an SQL error is **reported as failed**: the core's `safe_error()` prints an
   error page and ends with code 0, which the log used to read as a success (the files of the

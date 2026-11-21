@@ -45,7 +45,7 @@
  *       "off":    "sudo /usr/local/bin/ianseo-maintenance-off",
  *       "unlock": "",   ← empty: unlocking done by root in the cron line
  *       "lock":   "",   ← (serveur/cron/ianseo-nightly), never through sudo for www-data
- *       "steps":  { "core": false, "modules": true, "licences": true, "logos": true },
+ *       "steps":  { "core": false, "modules": true, "licences": true, "logos": true, "fed": true },
  *       "ping_url": ""   ← optional heartbeat (healthchecks.io…), see aut_backup_ping()
  *   },
  *   "backup": { "enabled": true, "dir": "/var/backups/ianseo", "keep_days": 14, … } }
@@ -53,7 +53,7 @@
  *
  * Options: --dry-run (installs nothing, shows the plan — the update checks themselves do run,
  * they only read), --core (forces the core update for this run), --no-core, --no-backup,
- * --only=backup,modules,licences,logos, --close (closes the site even with nothing to install:
+ * --only=backup,modules,licences,logos,fed, --close (closes the site even with nothing to install:
  * to check that maintenance on/off work, e.g. "--only=none --close" at installation time)
  *
  * The log is written in English, like ianseo's own scripts: it is read on the server, not in
@@ -114,6 +114,8 @@ if (in_array('--no-backup', $args, true)) $doBackup = false;
 $doModules  = mt_want('modules',  true);
 $doLicences = mt_want('licences', true);
 $doLogos    = mt_want('logos',    true);
+// Off for an installation that takes only FFTA licensees: no foreign file is downloaded.
+$doFed      = mt_want('fed',      true);
 
 /* ------------------------------------------------------------------ */
 /* Lock: never two maintenance windows at once                         */
@@ -531,7 +533,7 @@ if (is_file(dirname(__DIR__) . '/booking/cron/purge-other.php')) {
 /* ---- 7e. Licensee files of foreign federations ---- */
 // Italy, Canada, Slovenia, Baltic countries (booking/lib/fedlic.php): the accounts of their
 // archers are taken from these files, refreshed here.
-if (is_file(dirname(__DIR__) . '/booking/cron/sync-fed.php')) {
+if ($doFed && is_file(dirname(__DIR__) . '/booking/cron/sync-fed.php')) {
     mt_step('7e. Licensee files of foreign federations');
     $since = $dryRun ? 0 : aut_job_last_id();
     $ok = mt_php(dirname(__DIR__) . '/booking/cron/sync-fed.php');

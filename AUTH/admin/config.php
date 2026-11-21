@@ -52,8 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cfg !== null) {
             'live_keep_hours'   => acf_int($_POST['bk_lkeep'] ?? '', 6, 720, $d['live_keep_hours']),
         ));
         $m = is_array($cfg['maintenance'] ?? null) ? $cfg['maintenance'] : array();
+        $acfOld = is_array($m['steps'] ?? null) ? $m['steps'] : array();
         $m['steps'] = array();
         foreach (array('core', 'modules', 'licences', 'logos') as $s) $m['steps'][$s] = !empty($_POST['st_' . $s]);
+        // The box is shown only when the module has the foreign files: without it, keep the value.
+        if ($acfFed) $m['steps']['fed'] = !empty($_POST['st_fed']);
+        elseif (array_key_exists('fed', $acfOld)) $m['steps']['fed'] = !empty($acfOld['fed']);
         $at = trim((string) ($_POST['nt_at'] ?? ''));
         if ($at !== '' && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $at)) {
             $msgErr = aut_t('CfBadTime');
@@ -291,6 +295,7 @@ $lbl = array(
     'licences' => array(aut_t('CfStepLicences'), true),
     'logos'    => array(aut_t('CfStepLogos'), true),
 );
+if ($acfFed) $lbl['fed'] = array(aut_t('CfStepFed'), true);
 $stepsHtml = '';
 foreach ($lbl as $k => $l) {
     $stepsHtml .= $check('st_' . $k, array_key_exists($k, $steps) ? !empty($steps[$k]) : $l[1], acf_h($l[0])) . '<br>';
