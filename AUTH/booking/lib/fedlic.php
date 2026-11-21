@@ -283,20 +283,59 @@ function bk_fed_sources()
 }
 
 /**
- * Every file, then the accounts; one summary line in the journal. Returns ['states' => [source
- * => state], 'accounts' => accounts refreshed].
+ * Is file $src loaded automatically? config.local.json → maintenance.fed.<SOURCE> (admin/config.php),
+ * on unless set to false. $all: the whole configuration, when the caller has a fresher copy.
+ */
+function bk_fed_enabled($src, $all = null)
+{
+    if ($all === null) $all = function_exists('aut_local_config') ? aut_local_config() : array();
+    $map = ($all['maintenance'] ?? array())['fed'] ?? null;
+    return !is_array($map) || !array_key_exists($src, $map) || !empty($map[$src]);
+}
+
+/**
+ * Every file turned on, then the accounts; one summary line in the journal. A file turned off is
+ * neither downloaded nor emptied: its licences stay in use as they are, until bk_fed_purge_source().
+ * Returns ['states' => [source => state], 'accounts' => accounts refreshed].
  */
 function bk_fed_sync_all()
 {
     $states = array();
-    foreach (array_keys(bk_fed_sources()) as $src) $states[$src] = bk_fed_sync_source($src);
+    foreach (array_keys(bk_fed_sources()) as $src) {
+        if (bk_fed_enabled($src)) $states[$src] = bk_fed_sync_source($src);
+    }
+    // Also run with every file off: it writes back the LookUpEntries row of every account of an
+    // archer without an FFTA licence, which an organiser's synchronisation may have erased.
     $n = bk_fed_refresh_accounts();
     $ok = count(array_filter($states, function ($s) { return $s === 'ok'; }));
-    $status = $ok === count($states) ? 'ok' : ($ok > 0 ? 'warn' : 'fail');
     if (function_exists('aut_job_log')) {
-        aut_job_log('fed-sync', $status, 'JbFedSummary', array('ok' => $ok, 'all' => count($states), 'acc' => $n));
+        if (!$states) {
+            aut_job_log('fed-sync', 'skip', 'JbFedAllOff', array('acc' => $n));
+        } else {
+            $status = $ok === count($states) ? 'ok' : ($ok > 0 ? 'warn' : 'fail');
+            aut_job_log('fed-sync', $status, 'JbFedSummary', array('ok' => $ok, 'all' => count($states), 'acc' => $n));
+        }
     }
     return array('states' => $states, 'accounts' => $n);
+}
+
+/**
+ * Deletes the licences of file $src and its state: its countries are then handled like a country
+ * without a file (bk_fed_active). Accounts already created are kept, with their last values.
+ * Returns the number of licences deleted.
+ */
+function bk_fed_purge_source($src)
+{
+    bk_schema();
+    $q = StrSafe_DB($src);
+    $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM BookingFedLicences WHERE BflSource = $q"));
+    $n = $r ? intval($r->n) : 0;
+    safe_w_BeginTransaction();
+    safe_w_sql("DELETE FROM BookingFedLicences WHERE BflSource = $q");
+    safe_w_sql("DELETE FROM BookingFedSources WHERE BfsSource = $q");
+    safe_w_Commit();
+    if (function_exists('aut_job_log')) aut_job_log('fed:' . $src, 'skip', 'JbFedPurged', array('n' => $n));
+    return $n;
 }
 
 /** State of the files, for the administrator: [source => row of BookingFedSources or null]. */

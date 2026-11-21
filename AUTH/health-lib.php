@@ -553,6 +553,19 @@ function aut_health_checks()
         $out[] = aut_health_item('ok', 'OPcache', aut_t('HlActive'));
     }
 
+    // Commands run by the site — SERVEUR.md § 6.1 turns them off (a flaw in PHP or in a module
+    // could not start a command), at the cost of two core screens that call them: ODS export /
+    // import (Common/ods/ods.php) and SVG flag upload (Tournament/Countries.php).
+    // bytes: PHP function names are ASCII
+    $off = array_map('trim', explode(',', strtolower((string) ini_get('disable_functions'))));
+    $execOff = array_values(array_intersect(array('exec', 'shell_exec'), $off));
+    if ($execOff) {
+        $out[] = aut_health_item('ok', aut_t('HlExecOffT'), aut_t('HlExecOff', implode(', ', array_map(function ($f) { return $f . '()'; }, $execOff))));
+    } else {
+        $out[] = aut_health_item('info', aut_t('HlExecOnT'), aut_t('HlExecOn'),
+            "disable_functions = exec,passthru,shell_exec,system,proc_open,popen,pcntl_exec\n" . $restart);
+    }
+
     // Departure size — the core builds one UNION branch per place to check a target number.
     $rs = safe_r_sql("SELECT ToCode, ToName, SesOrder, SesTar4Session, SesAth4Target
         FROM Session INNER JOIN Tournament ON ToId = SesTournament

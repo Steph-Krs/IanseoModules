@@ -43,6 +43,10 @@ require_once('Common/Lib/Fun_DateTime.inc.php');
 ini_set('memory_limit', '512M');
 
 $ifNew = in_array('--if-new', $argv ?? array(), true);
+// The morning runs follow the box of the server settings page, like the night (which does not
+// call this script at all when it is unticked).
+$licSteps = (aut_local_config()['maintenance'] ?? array())['steps'] ?? array();
+if ($ifNew && is_array($licSteps) && array_key_exists('licences', $licSteps) && empty($licSteps['licences'])) exit(0);
 // Hour the federation publishes its file of the day (local time of the server).
 $publishAt = (string) (aut_local_config()['licsync']['publish_at'] ?? '08:00');
 if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9]$/', $publishAt)) $publishAt = '08:00';

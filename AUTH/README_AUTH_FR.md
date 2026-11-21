@@ -285,6 +285,7 @@ les règles d'accès.
 
 | Statement | Table | Location | Notes |
 |---|---|---|---|
+| `DELETE FROM` | `LookUpEntries` | `admin/config.php:42` | review scope by hand |
 | `DELETE FROM` | `LookUpEntries` | `admin/index.php:231` | review scope by hand |
 | `DELETE FROM` | `TournamentInvolved` | `anonymise-lib.php:249` | — |
 | `UPDATE` | `Entries` | `anonymise-lib.php:382` | review scope by hand |
@@ -319,15 +320,15 @@ les règles d'accès.
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:211` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:557` | — |
 | `UPDATE` | `Qualifications` | `booking/lib/targets.php:648` | — |
-| `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:224` | review scope by hand |
-| `INSERT INTO` | `LookUpEntries` | `cron/sync-licences.php:240` | — |
-| `UPDATE` | `LookUpPaths` | `cron/sync-licences.php:244` | review scope by hand |
-| `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:274` | review scope by hand |
-| `INSERT IGNORE INTO` | `LookUpEntries` | `cron/sync-licences.php:285` | — |
-| `INSERT INTO` | `LookUpPaths` | `cron/sync-licences.php:321` | — |
-| `UPDATE` | `Entries` | `cron/sync-licences.php:338` | — |
-| `UPDATE` | `Entries` | `cron/sync-licences.php:351` | — |
-| `UPDATE` | `Entries` | `cron/sync-licences.php:361` | — |
+| `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:228` | review scope by hand |
+| `INSERT INTO` | `LookUpEntries` | `cron/sync-licences.php:244` | — |
+| `UPDATE` | `LookUpPaths` | `cron/sync-licences.php:248` | review scope by hand |
+| `DELETE FROM` | `LookUpEntries` | `cron/sync-licences.php:278` | review scope by hand |
+| `INSERT IGNORE INTO` | `LookUpEntries` | `cron/sync-licences.php:289` | — |
+| `INSERT INTO` | `LookUpPaths` | `cron/sync-licences.php:325` | — |
+| `UPDATE` | `Entries` | `cron/sync-licences.php:342` | — |
+| `UPDATE` | `Entries` | `cron/sync-licences.php:355` | — |
+| `UPDATE` | `Entries` | `cron/sync-licences.php:365` | — |
 | `INSERT INTO` | `Flags` | `logos-lib.php:267` | — |
 | `INSERT INTO` | `Flags` | `logos-lib.php:326` | — |
 | `UPDATE` | `Entries` | `shop/lib/desk.php:261` | review scope by hand |
@@ -464,7 +465,9 @@ les règles d'accès.
 | `DELETE FROM` | `BookingFedLicences` | `booking/lib/fedlic.php:188` | — |
 | `INSERT IGNORE INTO` | `BookingFedLicences` | `booking/lib/fedlic.php:189` | — |
 | `INSERT INTO` | `BookingFedSources` | `booking/lib/fedlic.php:241` | — |
-| `UPDATE` | `BookingArchers` | `booking/lib/fedlic.php:337` | — |
+| `DELETE FROM` | `BookingFedLicences` | `booking/lib/fedlic.php:334` | — |
+| `DELETE FROM` | `BookingFedSources` | `booking/lib/fedlic.php:335` | — |
+| `UPDATE` | `BookingArchers` | `booking/lib/fedlic.php:376` | — |
 | `UPDATE` | `BookingArchers` | `booking/lib/ffta.php:116` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:198` | — |
 | `INSERT INTO` | `BookingCompetitions` | `booking/lib/geo.php:202` | — |
@@ -587,6 +590,7 @@ les règles d'accès.
 | `INSERT INTO` | `AuthClubLogos` | `logos-lib.php:158` | — |
 | `UPDATE` | `AuthClubLogos` | `logos-lib.php:166` | — |
 | `UPDATE` | `AuthClubLogos` | `logos-lib.php:177` | — |
+| `DELETE FROM` | `AuthClubLogos` | `logos-lib.php:349` | — |
 | `UPDATE` | `ShopStands` | `shop/lib/catalog-admin.php:169` | — |
 | `INSERT INTO` | `ShopStands` | `shop/lib/catalog-admin.php:171` | — |
 | `DELETE FROM` | `ShopStaffStands` | `shop/lib/catalog-admin.php:187` | — |

@@ -290,8 +290,14 @@ open_basedir = /var/www/ianseo:/tmp
 upload_max_filesize = 64M
 post_max_size = 64M
 ```
-> Test afterwards: ianseo export/import and PDF printing must
-> work (TCPDF does not need the disabled functions).
+> What still works: `.ianseo` export/import, PDF printing (TCPDF does not need the disabled
+> functions), backups and the nightly maintenance (command line, which has its own `php.ini`).
+> **What no longer works**: two screens of the ianseo core call `exec()` / `shell_exec()` and stop
+> on an error — **ODS export/import** (`Common/ods/ods.php`) and **SVG flag upload**
+> (`Tournament/Countries.php`) — as well as the online-copy test button of the server configuration
+> page. On a shared server this is a fair price: club logos arrive through the synchronisation,
+> and ODS export remains available in the organiser's local ianseo. **Multi-account › Server
+> configuration › Server state** tells whether the restriction is in place.
 
 `session.gc_maxlifetime = 43200`: **12 h**, the inactivity time the module provides for (§ 3).
 PHP's default value (1440 s) erases an inactive session after **24 minutes**:
@@ -1086,9 +1092,16 @@ the next night: a half-updated module would run two versions at once.
     "unlock": "",
     "lock":   "",
     "steps":  { "core": false, "modules": true, "licences": true, "logos": true },
+    "fed":    { "ITA": true, "CAN": true, "SLO": true, "BALT": true },
     "notice": { "at": "03:15", "lead_minutes": 15 }
 } }
 ```
+
+- **`licences`, `logos`, `fed` — licensee files.** Set one by one in **Server configuration ›
+  Licensee files** (the "Automatic loading" box of each line), all ticked by default. `licences`
+  also applies to the morning runs (`ianseo-licences`). `fed` lists the files of foreign
+  federations; an unticked file is no longer downloaded, and its licences stay in use. Each line
+  has a button that deletes its data (FFTA licences, logo cache, licences of a foreign file).
 
 - **`notice` — advance warning to the users.** During the
   `lead_minutes` that precede the time `at`, a permanent banner is shown on
@@ -1115,7 +1128,7 @@ the next night: a half-updated module would run two versions at once.
   files stayed locked, core update refused. Since then, a failed unlock makes
   the core update skip instead of attempting it for nothing.)*
 - Options: `--dry-run` (shows the plan without installing anything — the update checks do run,
-  they only read; run it first), `--core` / `--no-core`, `--only=modules,licences,logos`,
+  they only read; run it first), `--core` / `--no-core`, `--only=modules,licences,logos,fed`,
   `--close` (closes the site even with nothing to install: to check maintenance on/off).
 - A step stopped by an SQL error is **reported as failed**: the core's `safe_error()` prints an
   error page and ends with code 0, which the log used to read as a success (the files of the

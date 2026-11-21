@@ -338,6 +338,18 @@ function aut_logos_ensure_club($tourId, $clubCode)
     }
 }
 
+/**
+ * Empties the cache (server settings page). The logos already copied into the competitions
+ * (Flags, TV/Photos) stay; the next sync downloads every logo again. Returns the rows deleted.
+ */
+function aut_logos_purge()
+{
+    aut_logos_schema();
+    $r = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM AuthClubLogos", false, true));
+    safe_w_sql("DELETE FROM AuthClubLogos");
+    return $r ? intval($r->n) : 0;
+}
+
 /** Statistics of the cache (administration page / cron log). */
 function aut_logos_stats()
 {

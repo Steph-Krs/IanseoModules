@@ -6,6 +6,8 @@
  * unless it holds fewer than 90 % of its licences of the day before, or cannot be read: then the
  * former one stays. The accounts of archers without an FFTA licence are refreshed afterwards.
  *
+ * A file turned off on the server settings page (bk_fed_enabled) is skipped.
+ *
  * Run by the nightly maintenance (cron/maintenance.php) as a sub-process; harmless to run by
  * hand at any time. The administrator does the same from the server settings page, where the
  * state of each file and the journal are shown (bk_fed_sync_all). Exit 1 when no file could be
@@ -27,6 +29,7 @@ ini_set('memory_limit', '512M');
 
 $_SESSION = array();
 $res = bk_fed_sync_all();
+if (!$res['states']) echo "Every file is turned off (server settings page): nothing downloaded.\n";
 foreach ($res['states'] as $src => $state) {
     $r = bk_fed_state()[$src];
     echo "$src: $state" . ($r ? " ({$r->BfsCount} licences loaded" . ($r->BfsPending ? ", {$r->BfsPending} in the file refused" : '')

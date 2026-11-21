@@ -291,8 +291,16 @@ open_basedir = /var/www/ianseo:/tmp
 upload_max_filesize = 64M
 post_max_size = 64M
 ```
-> Tester après coup : l'export/import ianseo et les impressions PDF doivent
-> fonctionner (TCPDF n'a pas besoin des fonctions désactivées).
+> Ce qui fonctionne toujours : l'export/import `.ianseo`, les impressions PDF (TCPDF n'a pas
+> besoin des fonctions désactivées), les sauvegardes et la nuit de maintenance (ligne de commande,
+> qui a son propre `php.ini`).
+> **Ce qui ne fonctionne plus** : deux écrans du cœur ianseo appellent `exec()` / `shell_exec()` et
+> s'arrêtent sur une erreur — l'**export/import ODS** (`Common/ods/ods.php`) et l'**envoi d'un
+> drapeau SVG** (`Tournament/Countries.php`) — ainsi que le bouton de test de la copie en ligne de
+> la page Configuration du serveur. Sur un serveur partagé, c'est un prix raisonnable : les logos
+> des clubs arrivent par la synchronisation, et l'export ODS reste possible dans l'ianseo local de
+> l'organisateur. **Multi-comptes › Configuration du serveur › État du serveur** dit si la
+> désactivation est en place.
 
 `session.gc_maxlifetime = 43200` : **12 h**, la durée d'inactivité que prévoit le module (§ 3).
 La valeur par défaut de PHP (1440 s) efface une session inactive au bout de **24 minutes** :
@@ -1091,9 +1099,17 @@ quel** et retenté la nuit suivante : un module à moitié mis à jour ferait to
     "unlock": "",
     "lock":   "",
     "steps":  { "core": false, "modules": true, "licences": true, "logos": true },
+    "fed":    { "ITA": true, "CAN": true, "SLO": true, "BALT": true },
     "notice": { "at": "03:15", "lead_minutes": 15 }
 } }
 ```
+
+- **`licences`, `logos`, `fed` — fichiers des licenciés.** Réglés un par un dans
+  **Configuration du serveur › Fichiers des licenciés** (case « Chargement automatique » de
+  chaque ligne), tous cochés par défaut. `licences` vaut aussi pour les passages du matin
+  (`ianseo-licences`). `fed` liste les fichiers des fédérations étrangères ; un fichier décoché
+  n'est plus téléchargé, ses licences restent utilisées. Chaque ligne a un bouton qui supprime
+  ses données (licences FFTA, cache des logos, licences d'un fichier étranger).
 
 - **`notice` — avertissement préalable aux utilisateurs.** Pendant les
   `lead_minutes` qui précèdent l'heure `at`, un bandeau permanent s'affiche sur
@@ -1122,7 +1138,7 @@ quel** et retenté la nuit suivante : un module à moitié mis à jour ferait to
   sauter la MàJ du cœur au lieu de la tenter pour rien.)*
 - Options : `--dry-run` (affiche le plan sans rien installer — les vérifications de mise à jour
   tournent, elles ne font que lire ; à lancer en premier), `--core` / `--no-core`,
-  `--only=modules,licences,logos`, `--close` (ferme le site même sans rien à installer : pour
+  `--only=modules,licences,logos,fed`, `--close` (ferme le site même sans rien à installer : pour
   vérifier la mise en maintenance et sa sortie).
 - Une étape arrêtée par une erreur SQL est **signalée en échec** : le `safe_error()` du cœur
   affiche une page d'erreur et se termine avec le code 0, ce que le journal lisait comme un
