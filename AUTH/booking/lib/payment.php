@@ -278,6 +278,7 @@ function bk_account_registrations($tourId, $account = null)
     $tourId = intval($tourId);
     $cfg = bk_comp_config($tourId);
     $pricing = bk_pricing_norm($cfg->BcPricing ?? '');
+    $org = bk_pricing_has_free($pricing) ? bk_org_agrement($tourId) : '';
     $where = "EnTournament = $tourId AND EnAthlete = 1";
     if ($account !== null) {
         $id = bk_account_enid($account);
@@ -302,7 +303,7 @@ function bk_account_registrations($tourId, $account = null)
                 'online' => false, 'reg' => 0.0, 'rows' => array());
         }
         $calc = bk_price_calc($cfg->BcFee, $pricing, $r->EnDivision, $r->EnClass, intval($r->QuSession),
-            bk_prov_tier($pricing, $r->CoCode), count($out[$k]['rows']) + 1);
+            bk_prov_tier($pricing, $r->CoCode), count($out[$k]['rows']) + 1, bk_free_reason($pricing, $r->CoCode, $org));
         $online = $r->BrEnId !== null;
         $out[$k]['rows'][] = array('enid' => intval($r->EnId), 'session' => intval($r->QuSession), 'online' => $online,
             'category' => ($r->DivDescription ?: $r->EnDivision) . ' / ' . ($r->ClDescription ?: $r->EnClass),

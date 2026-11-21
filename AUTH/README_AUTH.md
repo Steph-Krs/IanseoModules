@@ -287,7 +287,7 @@ nothing else changes. Later versions will no longer need it for the access rules
 | `UPDATE` | `Entries` | `booking/lib/licences.php:105` | review scope by hand |
 | `UPDATE` | `Qualifications` | `booking/lib/licences.php:142` | — |
 | `UPDATE` | `Entries` | `booking/lib/licences.php:145` | review scope by hand |
-| `UPDATE` | `IdCards` | `booking/lib/mandate.php:1080` | review scope by hand |
+| `UPDATE` | `IdCards` | `booking/lib/mandate.php:1083` | review scope by hand |
 | `UPDATE` | `Entries` | `booking/lib/modify.php:111` | review scope by hand |
 | `UPDATE` | `Qualifications` | `booking/lib/modify.php:122` | — |
 | `DELETE FROM` | `LookUpEntries` | `booking/lib/other.php:215` | review scope by hand |
@@ -369,10 +369,10 @@ nothing else changes. Later versions will no longer need it for the access rules
 | `DELETE FROM` | `BookingArchers` | `anonymise-lib.php:406` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:411` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:412` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:104` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:131` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:147` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:220` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:105` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:132` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:148` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:221` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/admin/mandate.php:44` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/adopt.php:66` | — |
 | `INSERT INTO` | `BookingReimportConflicts` | `booking/lib/adopt.php:124` | — |
@@ -472,13 +472,13 @@ nothing else changes. Later versions will no longer need it for the access rules
 | `INSERT INTO` | `BookingPalmares` | `booking/lib/palmares.php:428` | — |
 | `DELETE FROM` | `BookingPalmares` | `booking/lib/palmares.php:441` | — |
 | `INSERT INTO` | `BookingPayments` | `booking/lib/payment.php:194` | — |
-| `UPDATE` | `BookingPayments` | `booking/lib/payment.php:331` | — |
-| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/payment.php:613` | — |
-| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:617` | — |
-| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:673` | — |
-| `UPDATE` | `BookingLedger` | `booking/lib/payment.php:689` | — |
-| `INSERT INTO` | `BookingRefunds` | `booking/lib/payment.php:784` | — |
-| `UPDATE` | `BookingRefunds` | `booking/lib/payment.php:813` | — |
+| `UPDATE` | `BookingPayments` | `booking/lib/payment.php:332` | — |
+| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/payment.php:614` | — |
+| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:618` | — |
+| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:674` | — |
+| `UPDATE` | `BookingLedger` | `booking/lib/payment.php:690` | — |
+| `INSERT INTO` | `BookingRefunds` | `booking/lib/payment.php:785` | — |
+| `UPDATE` | `BookingRefunds` | `booking/lib/payment.php:814` | — |
 | `UPDATE` | `BookingArchers` | `booking/lib/registration.php:469` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/registration.php:538` | — |
 | `INSERT INTO` | `BookingRegistrations` | `booking/lib/registration.php:693` | — |

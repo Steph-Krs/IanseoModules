@@ -367,7 +367,7 @@ function bk_mandate_pdf_draw($pdf, $data, $m, $ctx)
             if ($ft['notes']) {
                 $pdf->Ln(1);
                 $html('<b>' . $esc(bk_t('MnFeeAdjustTitle')) . '</b>');
-                foreach ($ft['notes'] as $nt) $bullet($esc($nt[0]) . ' ' . $esc(bk_eur($nt[1], true, $tourId)));
+                foreach ($ft['notes'] as $nt) $bullet($esc($nt[0]) . ($nt[1] !== null ? ' ' . $esc(bk_eur($nt[1], true, $tourId)) : ''));
             }
             $html('<span style="color:#4c4e50">' . $esc(bk_t('MnFeeExact')) . '</span>');
         }

@@ -42,13 +42,16 @@ document.addEventListener('click', function (e) {
     });
     cfg.prov = { dept: num((form.elements['prov_dept'] || {}).value), region: num((form.elements['prov_region'] || {}).value) };
     [2, 3].forEach(function (t) { var el = form.elements['rank[' + t + ']']; var v = el ? num(el.value) : 0; if (v !== 0) cfg.rank[t] = v; });
+    var fo = form.elements['free_org'], fc = form.elements['free_clubs'];
+    cfg.free = { org: !!(fo && fo.checked), clubs: !!(fc && /[0-9A-Za-z]/.test(fc.value)) };
     return cfg;
   }
 
   function simulate() {
     if (!document.getElementById('sim-total')) return;
     var cfg = readConfig();
-    var div = val('sim-div'), cls = val('sim-cls'), ses = val('sim-ses'), prov = val('sim-prov'), rank = parseInt(val('sim-rank') || '1', 10);
+    var div = val('sim-div'), cls = val('sim-cls'), ses = val('sim-ses'), prov = val('sim-prov'), rank = parseInt(val('sim-rank') || '1', 10),
+        free = val('sim-free');
     var base = cfg.base, label = BK_T.base;
     for (var i = 0; i < cfg.cats.length; i++) {
       var c = cfg.cats[i];
@@ -63,6 +66,9 @@ document.addEventListener('click', function (e) {
     for (var k in cfg.rank) { var kk = parseInt(k, 10); if (rank >= kk && kk > th) { th = kk; rd = cfg.rank[k]; } }
     if (rd) { lines.push([tx(BK_T.rank, rank), rd, true]); total += rd; }
     total = Math.max(0, total);
+    // Same order as the server: the organising club first, then the free list.
+    var freeLabel = free === 'org' && cfg.free.org ? BK_T.freeOrg : (free === 'club' && cfg.free.clubs ? BK_T.freeClub : '');
+    if (freeLabel && total > 0) { lines.push([freeLabel, -total, true]); total = 0; }
     var html = '';
     for (var j = 0; j < lines.length; j++) html += '<tr><td>' + esc(lines[j][0]) + '</td><td>' + eur(lines[j][1], lines[j][2]) + '</td></tr>';
     document.getElementById('sim-lines').innerHTML = html;

@@ -290,6 +290,9 @@ function bk_mandate_fee_table($tourId, $base, $p, $sessions)
     $rank = $p['rank'];
     ksort($rank, SORT_NUMERIC);
     foreach ($rank as $th => $d) $notes[] = array(bk_t('MnFeeRank', intval($th)), (float) $d);
+    // Free registrations: a sentence, no amount (null).
+    if (!empty($p['free']['org'])) $notes[] = array(bk_t('MnFeeFreeOrg'), null);
+    if (!empty($p['free']['clubs'])) $notes[] = array(bk_t('MnFeeFreeClubs', implode(', ', $p['free']['clubs'])), null);
     return array('cols' => $cols, 'rows' => $rows, 'notes' => $notes);
 }
 
@@ -1324,7 +1327,7 @@ body.tpl-ligne .mn-title h1{ font-weight:600; letter-spacing:.01em; }
             $out .= '</table></div>';
             if ($ft['notes']) {
                 $out .= '<p style="margin:8px 0 2px"><b>' . bk_e(bk_t('MnFeeAdjustTitle')) . '</b></p><ul class="mn-list">';
-                foreach ($ft['notes'] as $n) $out .= '<li>' . bk_e($n[0]) . ' ' . bk_e(bk_eur($n[1], true, $tourId)) . '</li>';
+                foreach ($ft['notes'] as $n) $out .= '<li>' . bk_e($n[0]) . ($n[1] !== null ? ' ' . bk_e(bk_eur($n[1], true, $tourId)) : '') . '</li>';
                 $out .= '</ul>';
             }
             $out .= '<p class="mn-text" style="margin:4px 0 0; color:#4c4e50">' . bk_e(bk_t('MnFeeExact')) . '</p>';

@@ -77,6 +77,7 @@ function bk_adm_pricing_from_post($post)
             'dept'       => $num($post['prov_dept'] ?? 0),
             'region'     => $num($post['prov_region'] ?? 0),
         ),
+        'free' => array('org' => !empty($post['free_org']), 'clubs' => (string) ($post['free_clubs'] ?? '')),
     );
     foreach ((array) ($post['cat'] ?? array()) as $row) {
         if (!is_array($row)) continue;
@@ -980,7 +981,11 @@ $out .= $panel('1 3', 'tariffs', '<input type="hidden" name="tariffs_present" va
     . '</div>' . bk_title('h3', bk_t('AcRankTitle'), bk_e(bk_t('AcRankHint'))) . '<div class="bk-row">'
     . bk_fld(bk_t('AcFromNth', array('n' => 2, 'cur' => $CUR)), '<input type="text" name="rank[2]" size="6" value="' . bk_e(bk_amt($pricing['rank']['2'] ?? '')) . '">')
     . bk_fld(bk_t('AcFromNth', array('n' => 3, 'cur' => $CUR)), '<input type="text" name="rank[3]" size="6" value="' . bk_e(bk_amt($pricing['rank']['3'] ?? '')) . '">')
-    . '</div>' . bk_title('h3', bk_t('AcPreview'), bk_e(bk_t('AcPreviewHint')))
+    . '</div>' . bk_title('h3', bk_t('AcFreeTitle'), bk_e(bk_t('AcFreeHint')))
+    . bk_chk('free_org', $pricing['free']['org'], $orgc !== '' ? bk_e(bk_t('AcFreeOrg', $orgc)) : bk_e(bk_t('AcFreeOrgNone')))
+    . '<div class="bk-row">' . bk_fld(bk_t('AcFreeClubs'), '<input type="text" name="free_clubs" size="40" value="'
+        . bk_e(implode(' ', $pricing['free']['clubs'])) . '">') . '</div>'
+    . bk_title('h3', bk_t('AcPreview'), bk_e(bk_t('AcPreviewHint')))
     . '<div class="bk-row bk-sim-in">'
     . bk_fld(bk_t('AcSimBow'), '<select id="sim-div">' . $simDiv . '</select>')
     . bk_fld(bk_t('SsCategory'), '<select id="sim-cls">' . $simCls . '</select>')
@@ -989,6 +994,8 @@ $out .= $panel('1 3', 'tariffs', '<input type="hidden" name="tariffs_present" va
         . bk_e(bk_t('AcSimRegion')) . '</option><option value="dept">' . bk_e(bk_t('AcSimDept')) . '</option></select>')
     . bk_fld(bk_t('AcSimRankNo'), '<select id="sim-rank"><option value="1">' . bk_e(bk_t('AcSimR1')) . '</option><option value="2">'
         . bk_e(bk_t('AcSimR2')) . '</option><option value="3">' . bk_e(bk_t('AcSimR3')) . '</option></select>')
+    . bk_fld(bk_t('AcSimClub'), '<select id="sim-free"><option value="">' . bk_e(bk_t('AcSimClubOther')) . '</option><option value="org">'
+        . bk_e(bk_t('AcSimClubOrg')) . '</option><option value="club">' . bk_e(bk_t('AcSimClubFree')) . '</option></select>')
     . '</div><div class="bk-sim-out"><table class="bk-sim-t"><tbody id="sim-lines"></tbody></table>'
     . '<p class="bk-sim-tot">' . bk_e(bk_t('AcSimTotal')) . ' <b id="sim-total">—</b></p></div></details></div>'
     . '<div class="bk-sec">' . bk_title('h2', bk_t('PayMeansTitle'), bk_e(bk_t('AcPayHint'))) . $payRows . '</div>');
@@ -1154,6 +1161,7 @@ $jsT = array(
     'lang' => aut_lang_code(), 'dec' => $seps['dec'], 'th' => $seps['thousands'], 'cur' => $CUR,
     'base' => bk_t('PriceBase'), 'cat' => bk_t('PriceCat'), 'catNamed' => bk_t('PriceCatNamed'), 'dep' => bk_t('DepCap'),
     'dept' => bk_t('PriceDept'), 'region' => bk_t('PriceRegion'), 'rank' => bk_t('PriceRank'),
+    'freeOrg' => bk_t('PriceFreeOrg'), 'freeClub' => bk_t('PriceFreeClub'),
     'catsFrom' => bk_t('AcCatsFrom'), 'catsTo' => bk_t('AcCatsTo'), 'pickSrc' => bk_t('FjPickSrc'), 'pickDest' => bk_t('FjPickDest'),
 );
 echo '<script>var BK_T = ' . json_encode($jsT, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . ', BK_CATN = ' . count($pricing['categories']) . ', BK_TOUR = ' . $TOUR . ';</script>';
