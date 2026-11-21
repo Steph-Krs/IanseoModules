@@ -6,7 +6,7 @@
  * imported in ianseo): what is due according to the competition's tariff, plus the shop;
  * what was paid (journal BookingLedger: when, how much, how); what is left. Payments, refunds
  * and cancellations are journal lines, never edited nor deleted. A whole club can be settled
- * in one go. Receipt of an account and list of the accounts as PDF (core PDF class).
+ * in one go. What is left can be offered ("Offer the rest", a 'waiver' line, no money). Receipt of an account and list of the accounts as PDF (core PDF class).
  * Refunds owed after an anonymisation (BookingRefunds) are shown at the top.
  * The food & shop stands write in the same journal: an archer's purchases are on their account;
  * the sales without a name (counter, visitors) make one summary line, opened on its own
@@ -94,6 +94,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 array('ref' => bk_cheque_ref($method, $_POST['ref'] ?? '')));
             $done = $id ? $act : 'amount';
         }
+    } elseif ($act === 'waive') {
+        // The rest as it stands now, not an amount sent by the page.
+        $row = due_row($acc);
+        $left = $row ? bk_account($TOUR, $acc)['remaining'] : 0.0;
+        if (!$row) {
+            $done = 'unknown';
+        } elseif (trim((string) ($_POST['reason'] ?? '')) === '') {
+            $done = 'waive_reason';
+        } elseif ($left <= 0.005) {
+            $done = 'waive_none';
+        } else {
+            $done = bk_ledger_waive($TOUR, $acc, $left, (string) $_POST['reason'], $WHO) ? 'waive' : 'waive_none';
+        }
     } elseif ($act === 'cancel') {
         $done = bk_ledger_cancel($TOUR, intval($_POST['id'] ?? 0), $WHO) ? 'cancel' : 'cancel_no';
     } elseif ($act === 'reject') {
@@ -147,6 +160,9 @@ $messages = array(
     'pay' => array('ok', bk_t('DuPaySaved')),
     'refund' => array('ok', bk_t('DuRefundSaved')),
     'cancel' => array('ok', bk_t('DuCancelled')),
+    'waive' => array('ok', bk_t('DuWaiveSaved')),
+    'waive_reason' => array('err', bk_t('DuWaiveNoReason')),
+    'waive_none' => array('err', bk_t('DuWaiveNothing')),
     'cancel_no' => array('err', bk_t('DuAlreadyCancelled')),
     'reject' => array('ok', bk_t('DuRejected')),
     'reject_no' => array('err', bk_t('DuRejectNo')),
@@ -165,10 +181,10 @@ usort($rows, function ($x, $y) use ($sort) {
     return strcasecmp(due_name($x), due_name($y));
 });
 
-$tot = array('due' => 0.0, 'paid' => 0.0, 'remaining' => 0.0, 'over' => 0.0);
+$tot = array('due' => 0.0, 'paid' => 0.0, 'waived' => 0.0, 'remaining' => 0.0, 'over' => 0.0);
 $clubs = array();   // club code => [name, count, total] of what is left to pay
 foreach ($rows as $a) {
-    $tot['due'] += $a['due']; $tot['paid'] += $a['paid'];
+    $tot['due'] += $a['due']; $tot['paid'] += $a['paid']; $tot['waived'] += $a['waived'];
     if ($a['remaining'] > 0) $tot['remaining'] += $a['remaining']; else $tot['over'] -= $a['remaining'];
     if ($a['remaining'] > 0.005 && $a['club_code'] !== '') {
         if (!isset($clubs[$a['club_code']])) $clubs[$a['club_code']] = array('name' => $a['club_name'], 'count' => 0, 'total' => 0.0);
@@ -308,7 +324,8 @@ if (!bk_comp_payments_on($cfg)) {
 
 echo '<div class="due-kpis">'
     . '<div class="due-kpi"><b>' . due_eur($tot['due']) . '</b><span>' . bk_e(bk_t('TotalDue')) . '</span></div>'
-    . '<div class="due-kpi"><b>' . due_eur($tot['paid']) . '</b><span>' . bk_e(bk_t('DuCollected')) . '</span></div>'
+    . '<div class="due-kpi"><b>' . due_eur($tot['paid'] - $tot['waived']) . '</b><span>' . bk_e(bk_t('DuCollected')) . '</span></div>'
+    . ($tot['waived'] > 0.005 ? '<div class="due-kpi"><b>' . due_eur($tot['waived']) . '</b><span>' . bk_e(bk_t('DuOffered')) . '</span></div>' : '')
     . '<div class="due-kpi' . ($tot['remaining'] > 0.005 ? ' warn' : '') . '"><b>' . due_eur($tot['remaining']) . '</b><span>' . bk_e(bk_t('DuToCollect')) . '</span></div>'
     . ($tot['over'] > 0.005 ? '<div class="due-kpi warn"><b>' . due_eur($tot['over']) . '</b><span>' . bk_e(bk_t('DuOverToReturn')) . '</span></div>' : '')
     . '</div>';
@@ -434,7 +451,10 @@ if ($open === BK_SHOP_SUMMARY && isset($accounts[$open])) {
             }
             echo '</td></tr>';
         }
-        echo '<tr class="tot"><td colspan="4">' . bk_e(bk_t('TotalPaid')) . '</td><td class="num">' . due_eur($acc['paid']) . '</td><td colspan="2"></td></tr></table></div>';
+        echo '<tr class="tot"><td colspan="4">' . bk_e(bk_t('TotalPaid')) . '</td><td class="num">' . due_eur($acc['paid']) . '</td><td colspan="2"></td></tr>'
+            . ($acc['waived'] > 0.005 ? '<tr><td colspan="4" class="num due-mut">' . bk_e(bk_t('TotalWaived')) . '</td><td class="num due-mut">'
+                . due_eur($acc['waived']) . '</td><td colspan="2"></td></tr>' : '')
+            . '</table></div>';
     }
 
     echo '<p style="font-size:16px;margin:12px 0 4px"><span class="due-state st-' . $state . '">'
@@ -442,6 +462,18 @@ if ($open === BK_SHOP_SUMMARY && isset($accounts[$open])) {
         . ($state === 'over' ? bk_e(bk_t('DuOverX')) . ' <b>' . due_eur(-$acc['remaining']) . '</b>'
             : bk_e(bk_t('DuLeftX')) . ' <b>' . due_eur(max(0, $acc['remaining'])) . '</b>') . '</p>';
     echo due_form('pay', $open, max(0, $acc['remaining']), $row['decl_method'], $sort, bk_t('DuCollect'));
+    if ($acc['remaining'] > 0.005) {
+        // Offer the rest: settles the account without money (organising club, volunteer, judge…).
+        echo '<details class="due-box" style="margin-top:8px"><summary>' . bk_e(bk_t('DuWaiveTitle')) . '</summary>'
+            . '<p class="due-mut" style="margin:6px 0">' . bk_e(bk_t('DuWaiveHint')) . '</p>'
+            . '<form method="post" class="due-form" onsubmit="return confirm('
+            . htmlspecialchars(json_encode(bk_t('DuWaiveConfirm', due_eur($acc['remaining'])), JSON_UNESCAPED_UNICODE), ENT_QUOTES) . ')">' . bk_csrf_field()
+            . '<input type="hidden" name="act" value="waive"><input type="hidden" name="acc" value="' . bk_e($open) . '">'
+            . '<input type="hidden" name="sort" value="' . bk_e($sort) . '">'
+            . '<label class="due-note">' . bk_e(bk_t('DuWaiveReason')) . ' <input type="text" name="reason" maxlength="120" required placeholder="'
+            . bk_e(bk_t('DuWaiveReasonPh')) . '"></label>'
+            . '<button type="submit" class="due-btn due-btn-light">' . bk_e(bk_t('DuWaiveBtn', due_eur($acc['remaining']))) . '</button></form></details>';
+    }
     if ($acc['paid'] > 0.005) {
         echo '<details class="due-box" style="margin-top:8px"' . ($state === 'over' ? ' open' : '') . '><summary>' . bk_e(bk_t('DuRefund')) . '</summary>'
             . due_form('refund', $open, $state === 'over' ? -$acc['remaining'] : 0, '', $sort, bk_t('DuRefundSave'))

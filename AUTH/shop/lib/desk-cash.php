@@ -34,9 +34,12 @@ require_once __DIR__ . '/desk.php';
 function shp_cash_where($tourId)
 {
     $t = intval($tourId);
+    // An offer ('waiver') is no money: neither it nor its cancellation goes into the till.
     return "BlgTournament = $t AND BlgStand = 0 AND BlgOrder = 0 AND BlgStatus = 'done' AND BlgProvider = 'manual'
+        AND BlgKind <> 'waiver'
         AND (BlgStaff > 0 OR BlgCancels IN (SELECT BlgId FROM BookingLedger
-            WHERE BlgTournament = $t AND BlgStand = 0 AND BlgOrder = 0 AND BlgStaff > 0 AND BlgCancels = 0))";
+            WHERE BlgTournament = $t AND BlgStand = 0 AND BlgOrder = 0 AND BlgStaff > 0 AND BlgCancels = 0))
+        AND BlgCancels NOT IN (SELECT BlgId FROM BookingLedger WHERE BlgTournament = $t AND BlgKind = 'waiver')";
 }
 
 /**

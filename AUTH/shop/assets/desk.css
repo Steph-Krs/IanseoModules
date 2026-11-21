@@ -65,6 +65,9 @@
 #shp .dk-notes small, #shp .dk-history small { color: var(--shp-grey); }
 #shp .dk-noteform { margin-top: 10px; }
 #shp .dk-methods { margin-top: 10px; }
+#shp details.dk-waive { margin-top: 14px; }
+#shp details.dk-waive > summary { cursor: pointer; font-weight: 600; }
+#shp input.dk-waive-reason { display: block; width: 100%; box-sizing: border-box; min-height: 44px; margin: 8px 0; padding: 6px 10px; font-size: 1rem; }
 #shp .dk-history summary { cursor: pointer; font-weight: 700; color: var(--shp-blue-dark); min-height: 32px; }
 #shp .dk-history ul { margin: 8px 0 0; padding-left: 18px; }
 #shp .dk-history p { margin: 2px 0 0; }

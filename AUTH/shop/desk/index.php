@@ -57,6 +57,7 @@ $texts = shp_ts(array(
     'DkUndoSure', 'DkStateNone', 'DkStateOk', 'DkStateKo', 'DkReason', 'DkReasonPh', 'DkStatus9', 'DkPowerTitle', 'DkPowerPh',
     'DkPowerAdd', 'DkPowerNone', 'DkPowerUnit', 'DkNotesTitle', 'DkNotePh', 'DkNoteAdd', 'DkNotesNone', 'DkPostReg', 'DkPostEquip',
     'DkPayTitle', 'DkPayReg', 'DkPayShop', 'DkPayPaid', 'DkPayLeft', 'DkPayNothing', 'DkPayAmount', 'DkPayDone', 'DkPayConfirm', 'DkPayChequeNo',
+    'DkWaive', 'DkWaiveSure', 'DkWaiveReasonPh', 'DkWaiveDone', 'DkWaiveNoReason',
     'DkHistory', 'DkKindOk', 'DkKindKo', 'DkKindUndo', 'DkSaved', 'DkTodoLeft', 'DkTodoNone', 'DkAllSessions', 'DkAllWeapons',
     'DkAllClasses', 'DkAllEvents', 'DkFilterSession',
     'DkFilterWeapon', 'DkFilterClass', 'DkFilterEvent', 'DkOf', 'DkErrArcher',
