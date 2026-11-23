@@ -1,0 +1,251 @@
+<?php
+/**
+ * Spanish strings of the training module. Keys missing here fall back to the
+ * English file, which holds the reference list.
+ */
+
+// Module and menu
+$lang['ModuleName'] = 'Entrenamiento';
+$lang['MenuCreate'] = 'Crear un entrenamiento';
+$lang['MenuHome'] = 'Entrenamientos';
+$lang['MenuDashboard'] = 'Panel del entrenamiento';
+$lang['MenuParticipants'] = 'Arqueros del entrenamiento';
+$lang['MenuTeams'] = 'Equipos';
+$lang['MenuRanking'] = 'Clasificación y duelos';
+$lang['MenuResults'] = 'Resultados';
+$lang['MenuFormats'] = 'Formatos de referencia';
+$lang['MenuArchers'] = 'Arqueros habituales';
+$lang['MenuFull'] = 'Menú completo en este navegador';
+$lang['MenuSimple'] = 'Menú simplificado en este navegador';
+$lang['MenuIsFull'] = 'Este navegador muestra el menú completo de ianseo.';
+$lang['MenuIsSimple'] = 'Este navegador muestra el menú simplificado de los entrenamientos.';
+$lang['MenuUpdate'] = 'Actualizar el módulo';
+$lang['UpdateTitle'] = 'Entrenamiento - actualización del módulo';
+$lang['BackToPage'] = 'Volver a los entrenamientos';
+$lang['DateFmt'] = 'd/m/Y';
+
+// Common words
+$lang['Save'] = 'Guardar';
+$lang['Saved'] = 'Guardado.';
+$lang['Cancel'] = 'Cancelar';
+$lang['Delete'] = 'Eliminar';
+$lang['Edit'] = 'Modificar';
+$lang['Add'] = 'Añadir';
+$lang['Remove'] = 'Quitar';
+$lang['Rename'] = 'Renombrar';
+$lang['Open'] = 'Abrir';
+$lang['Choose'] = 'Elegir';
+$lang['Filter'] = 'Filtrar…';
+$lang['CheckAll'] = 'Marcar todos';
+$lang['BackDashboard'] = 'Volver al panel';
+$lang['SessionN'] = 'Turno {$a}';
+$lang['SexM'] = 'Hombre';
+$lang['SexF'] = 'Mujer';
+$lang['DuelsOnly'] = 'Solo duelos';
+$lang['ErrToken'] = 'El formulario había caducado. Vuelva a intentarlo.';
+
+// Columns
+$lang['ColDate'] = 'Fecha';
+$lang['ColName'] = 'Nombre';
+$lang['ColFormat'] = 'Formato';
+$lang['ColArchers'] = 'Arqueros';
+$lang['ColArcher'] = 'Arquero';
+$lang['ColCategory'] = 'Categoría';
+$lang['ColSession'] = 'Turno';
+$lang['ColTarget'] = 'Diana';
+$lang['ColContent'] = 'Contenido';
+$lang['ColUpdated'] = 'Actualizado';
+
+// Home
+$lang['HomeTitle'] = 'Entrenamientos';
+$lang['HomeLead'] = 'Un entrenamiento es una verdadera competición ianseo creada en pocos clics a partir de un formato de referencia: elija el formato, la fecha y la hora de inicio, marque los arqueros, y todo lo demás queda listo - categorías, pruebas, blasones, distancias, programa. El entrenador sigue luego los pasos del panel del entrenamiento.';
+$lang['HomeRuns'] = 'Entrenamientos ya creados';
+$lang['HomeNoRun'] = 'Todavía ningún entrenamiento.';
+$lang['HomeNoFormat'] = 'Todavía ningún formato de referencia. Prepare una competición en ianseo con todos los ajustes deseados, ábrala y guárdela en la página Formatos de referencia.';
+$lang['HomePrepare'] = 'Preparar los entrenamientos';
+
+// Formats
+$lang['FormatsTitle'] = 'Formatos de referencia';
+$lang['FormatsLead'] = 'Un formato es la copia de una competición entera sin sus arqueros: divisiones y clases, pruebas, blasones, distancias, imágenes, ajustes de la competición y programa. Una vez guardado, la competición de origen ya no hace falta y puede eliminarse.';
+$lang['FormatsFromOpen'] = 'Guardar la competición abierta';
+$lang['FormatsNoOpen'] = 'Abra primero la competición que desea guardar como formato.';
+$lang['FormatsOpenIs'] = 'Competición abierta: {$a[code]} - {$a[name]}';
+$lang['FormatName'] = 'Nombre del formato';
+$lang['FormatSimple'] = 'Menú simplificado para los entrenamientos creados con este formato';
+$lang['FormatSimpleShort'] = 'Menú simplificado';
+$lang['FormatReplace'] = 'Reemplazar un formato existente';
+$lang['FormatReplaceNone'] = 'No, crear un formato nuevo';
+$lang['FormatsWhatKept'] = 'Arqueros, equipos, puntuaciones y resultados no se conservan, ni los códigos ianseo.net de la competición. Los horarios del programa se guardan como intervalos desde el primer inicio.';
+$lang['FormatSave'] = 'Guardar como formato';
+$lang['FormatSaved'] = 'Formato «{$a}» guardado.';
+$lang['FormatReplaced'] = 'Formato «{$a}» reemplazado por la competición abierta.';
+$lang['FormatsList'] = 'Formatos guardados';
+$lang['FormatContent'] = '{$a[type]} - {$a[sessions]} turno(s) - pruebas: {$a[events]}';
+$lang['FormatSource'] = 'De {$a}';
+$lang['FormatDeleteConfirm'] = '¿Eliminar el formato «{$a}»? Los entrenamientos ya creados no cambian.';
+$lang['FormatDeleted'] = 'Formato eliminado.';
+
+// Regular archers
+$lang['ArchersTitle'] = 'Arqueros habituales';
+$lang['ArchersLead'] = 'Los arqueros que participan a menudo en los entrenamientos: basta con marcarlos al crear un entrenamiento. Los grupos marcan varios arqueros a la vez.';
+$lang['ArcherAdd'] = 'Añadir un arquero';
+$lang['ArcherEdit'] = 'Modificar un arquero';
+$lang['LookupLabel'] = 'Buscar en el fichero de licencias:';
+$lang['LookupPlaceholder'] = 'licencia o apellido';
+$lang['LookupNone'] = 'Nadie encontrado en el fichero de licencias.';
+$lang['FieldFamily'] = 'Apellido';
+$lang['FieldGiven'] = 'Nombre';
+$lang['FieldSex'] = 'Sexo';
+$lang['FieldDob'] = 'Fecha de nacimiento';
+$lang['FieldCode'] = 'Licencia';
+$lang['FieldIoc'] = 'País';
+$lang['FieldClub'] = 'Club';
+$lang['FieldClubName'] = 'Nombre del club';
+$lang['FieldDiv'] = 'División (arco)';
+$lang['FieldCls'] = 'Clase';
+$lang['FieldActive'] = 'Propuesto al crear un entrenamiento';
+$lang['FieldGroups'] = 'Grupos';
+$lang['FieldDate'] = 'Fecha';
+$lang['FieldStart'] = 'Hora de inicio';
+$lang['ErrNoName'] = 'El apellido es obligatorio.';
+$lang['ArchersList'] = 'Arqueros ({$a})';
+$lang['ArchersNone'] = 'Todavía ningún arquero habitual.';
+$lang['ArcherDeleteConfirm'] = '¿Quitar a {$a} de los arqueros habituales?';
+$lang['ArcherDeleted'] = 'Arquero eliminado.';
+$lang['GroupsTitle'] = 'Grupos';
+$lang['GroupNew'] = 'Nuevo grupo';
+$lang['GroupDeleteConfirm'] = '¿Eliminar el grupo «{$a}»? Sus arqueros siguen en la lista.';
+$lang['ImportTitle'] = 'Copiar arqueros de la competición abierta';
+$lang['ImportNone'] = 'Todos los arqueros de la competición abierta ya están en la lista.';
+$lang['ImportDo'] = 'Copiar los arqueros marcados';
+$lang['ArchersImported'] = '{$a} arquero(s) copiado(s).';
+
+// Creation
+$lang['CreateTitle'] = 'Crear un entrenamiento';
+$lang['ChooseFormat'] = '- elegir un formato -';
+$lang['CreateDays'] = 'Este formato dura {$a} días: los días siguientes también se desplazan.';
+$lang['CreateShift'] = 'Todos los horarios del programa siguen la hora de inicio y conservan los intervalos del formato.';
+$lang['QualSim'] = 'Solo duelos (clasificatoria simulada)';
+$lang['QualSimHelp'] = 'Cada arquero recibe un punto; el orden de los cuadros se elige luego en la página Clasificación y duelos.';
+$lang['PlaceAuto'] = 'Asignar las dianas a los arqueros';
+$lang['CreateArchers'] = 'Arqueros';
+$lang['CountPicked'] = '{$a} arquero(s) marcado(s)';
+$lang['CreateDo'] = 'Crear el entrenamiento';
+$lang['Created'] = 'Entrenamiento {$a[code]} creado con {$a[n]} arquero(s).';
+$lang['CreatedSkipped'] = '{$a} arquero(s) no se pudieron inscribir: categoría ausente del formato.';
+$lang['ErrNoFormat'] = 'Elija un formato.';
+$lang['ErrDate'] = 'La fecha no es válida.';
+$lang['ErrNoArcher'] = 'Marque al menos un arquero.';
+$lang['ErrNoCode'] = 'Todos los códigos de ese día están ocupados (99 entrenamientos).';
+$lang['ErrImport'] = 'El formato fue guardado por un ianseo más reciente: actualice primero ianseo.';
+
+// Teams
+$lang['TeamsTitleAll'] = 'Equipos';
+$lang['TeamsTitle'] = 'Equipos';
+$lang['MixedTitle'] = 'Equipos mixtos';
+$lang['TeamN'] = 'Equipo {$a}';
+$lang['MixedN'] = 'Mixto {$a}';
+$lang['TeamAdd'] = 'Añadir un equipo';
+$lang['MixedAdd'] = 'Añadir un equipo mixto';
+$lang['AddArcher'] = '+ arquero';
+$lang['RemoveTeam'] = 'Quitar el equipo';
+$lang['TeamsHelpCreate'] = 'Solo se pueden elegir los arqueros marcados. Los equipos también se pueden formar o cambiar más tarde, desde el panel.';
+$lang['TeamsHelp'] = 'Forme los equipos ahora o en cualquier momento: antes, durante o después de la clasificatoria. Un arquero puede estar en un equipo y en un equipo mixto distinto. Los cuadros por equipos se completan en la página Clasificación y duelos.';
+$lang['TeamsNone'] = 'Este entrenamiento no tiene pruebas por equipos.';
+
+// Dashboard
+$lang['DashTitle'] = 'Panel del entrenamiento';
+$lang['DashNotRun'] = 'Esta competición no fue creada por el módulo Entrenamiento; el panel funciona igualmente.';
+$lang['StepArchers'] = 'Arqueros';
+$lang['StepTargets'] = 'Dianas';
+$lang['StepScorecards'] = 'Hojas de puntuación';
+$lang['StepScores'] = 'Puntuaciones';
+$lang['StepQualSim'] = 'Clasificatoria';
+$lang['StepDuels'] = 'Duelos';
+$lang['StepResults'] = 'Resultados';
+$lang['DashArchers'] = '{$a} arquero(s) en el entrenamiento.';
+$lang['DashTeams'] = '{$a} equipo(s) formado(s)';
+$lang['DashPlaced'] = '{$a[on]} de {$a[all]} arquero(s) con diana';
+$lang['PlaceDo'] = 'Asignar los arqueros sin diana';
+$lang['PlaceAgain'] = 'Reasignar a todos';
+$lang['PlaceAgainConfirm'] = '¿Quitar todas las dianas de este turno y reasignar a todos?';
+$lang['PlaceManual'] = 'Plano de dianas: mover arqueros a mano';
+$lang['Placed'] = '{$a} arquero(s) asignado(s).';
+$lang['PlacedLeft'] = '{$a} arquero(s) sin diana: no hay dianas suficientes en el turno.';
+$lang['ScorecardsOf'] = 'Hojas de puntuación - {$a}';
+$lang['MoreOptions'] = 'Más opciones';
+$lang['DashScores'] = '{$a[done]} de {$a[all]} arquero(s) tienen puntuación.';
+$lang['QualRanking'] = 'Clasificación de la clasificatoria';
+$lang['QualRankingTeam'] = 'Clasificación por equipos de la clasificatoria';
+$lang['QualSimDone'] = 'Simulada: cada arquero tiene un punto. Elija el orden de los cuadros en la página Clasificación y duelos.';
+$lang['EventLaunched'] = 'cuadro completado';
+$lang['EventWaiting'] = 'cuadro por completar';
+$lang['EventCore'] = 'eliminatorias o grupos: pantallas de ianseo';
+$lang['FinalRanking'] = 'Clasificación final';
+$lang['FinalRankingTeam'] = 'Clasificación final por equipos';
+
+// Participants
+$lang['ParticipantsTitle'] = 'Arqueros del entrenamiento';
+$lang['ParticipantsIn'] = 'En el entrenamiento ({$a})';
+$lang['ParticipantsAdd'] = 'Añadir arqueros habituales';
+$lang['ParticipantsAllIn'] = 'Todos los arqueros habituales ya están en el entrenamiento.';
+$lang['ParticipantsAddDo'] = 'Añadir los arqueros marcados';
+$lang['ArchersAdded'] = '{$a} arquero(s) añadido(s).';
+$lang['ArcherRemoveConfirm'] = '¿Quitar a {$a} del entrenamiento, con sus puntuaciones?';
+$lang['ArcherRemoved'] = 'Arquero quitado.';
+
+// Ranking and duels
+$lang['RankingTitle'] = 'Clasificación y duelos';
+$lang['RankingLead'] = 'Cada lista es el orden del cuadro, el mejor primero: el orden de la clasificatoria, los empates uno al lado del otro. Arrastre los nombres, o use las flechas, y luego complete el cuadro.';
+$lang['RankingNone'] = 'Este entrenamiento no tiene pruebas con duelos.';
+$lang['RankingCore'] = 'Esta prueba tiene eliminatorias o grupos: use la pantalla de ianseo.';
+$lang['OpenCore'] = 'Abrir';
+$lang['RankingNoArcher'] = 'Ningún arquero en esta prueba.';
+$lang['RankingNoTeam'] = 'Todavía ningún equipo: forme los equipos y compruebe que sus arqueros tienen puntuación.';
+$lang['RankingQualified'] = 'Los {$a[n]} primeros de {$a[all]} entran en el cuadro.';
+$lang['Tie'] = 'empate';
+$lang['MoveUp'] = 'Subir';
+$lang['MoveDown'] = 'Bajar';
+$lang['Launch'] = 'Completar el cuadro';
+$lang['Relaunch'] = 'Completar de nuevo el cuadro';
+$lang['RelaunchConfirm'] = 'El cuadro de {$a} ya está completado: completarlo de nuevo borra los duelos ya introducidos. ¿Continuar?';
+$lang['DuelsLaunched'] = 'Cuadro de {$a} completado.';
+$lang['ErrLaunch'] = 'El cuadro de {$a} no se pudo completar: recargue la página y vuelva a intentarlo.';
+
+// Import and export
+$lang['MenuTransfer'] = 'Importar / exportar';
+$lang['TransferTitle'] = 'Importar / exportar';
+$lang['TransferLead'] = 'Transferir los formatos de referencia, los arqueros habituales y sus grupos a otra instalación, por ejemplo para configurar igual otro centro de entrenamiento.';
+$lang['ExportTitle'] = 'Exportar';
+$lang['ExportArchers'] = 'Arqueros habituales ({$a[archers]}) y grupos ({$a[groups]})';
+$lang['ExportPersonal'] = 'El fichero contiene entonces datos personales (nombres, fechas de nacimiento, licencias): consérvelo como cualquier lista de arqueros.';
+$lang['ExportDo'] = 'Descargar el fichero';
+$lang['ExportNothing'] = 'Elija al menos un formato, o los arqueros.';
+$lang['ImportFileTitle'] = 'Importar';
+$lang['ImportReplace'] = 'Reemplazar un formato con el mismo nombre';
+$lang['ImportHelp'] = 'Un arquero que ya está en la lista (misma licencia, si no mismo nombre y misma fecha de nacimiento) se actualiza a partir del fichero; los demás se añaden. Los grupos se reconocen por su nombre. Un formato guardado por un ianseo más reciente que este se rechaza: actualice primero ianseo.';
+$lang['ImportFileDo'] = 'Importar el fichero';
+$lang['ImportedSummary'] = 'Importado: {$a[formats]} formato(s) nuevo(s), {$a[replaced]} reemplazado(s), {$a[archers]} arquero(s) nuevo(s), {$a[updated]} actualizado(s), {$a[groups]} grupo(s) nuevo(s).';
+$lang['ImportRefused'] = 'Formatos rechazados (ilegibles, o guardados por un ianseo más reciente): {$a}';
+$lang['ErrFile'] = 'Este fichero no es una exportación del módulo Entrenamiento.';
+$lang['ErrFileSize'] = 'No se pudo recibir el fichero: quizá supera lo que acepta el servidor.';
+$lang['ClassAuto'] = 'La clase se rellena a partir de la fecha de nacimiento y el sexo; se vuelve a calcular para la fecha de cada entrenamiento.';
+
+// ISK-Lite
+$lang['IskTitle'] = 'Introducción de puntuaciones con ISK-Lite';
+$lang['IskLead'] = 'Cada entrenamiento se configura para la introducción con la aplicación ISK en su versión gratuita (ISK-Lite): las hojas de puntuación llevan los códigos QR de la aplicación, y las puntuaciones llegan solas a ianseo.';
+$lang['IskUrl'] = 'Dirección del servidor para los teléfonos:';
+$lang['IskUrlHelp'] = 'Se da a cada nuevo entrenamiento. Los teléfonos deben llegar a esta dirección: indique la dirección de este ordenador en la red, no localhost.';
+$lang['IskUrlNone'] = 'Todavía sin dirección: los entrenamientos tendrán ISK-Lite sin dirección de servidor, que habrá que introducir en los datos de la competición. Indique la dirección de este ordenador en la red, no localhost.';
+$lang['IskUrlBad'] = 'Esta dirección no es legible. Ejemplo: http://192.168.1.10';
+
+// Targets and rhythm
+$lang['ManualQualEntry'] = 'Introducción manual de las puntuaciones de la clasificatoria';
+$lang['Rhythm'] = 'Arqueros por diana:';
+$lang['RhythmConfirm'] = '¿Pasar a {$a} y reasignar todos los arqueros de este turno?';
+$lang['RhythmChanged'] = 'Número de arqueros por diana cambiado: todos reasignados.';
+$lang['TargetsMissing'] = '{$a[off]} arquero(s) sin diana: el turno tiene {$a[have]} dianas, hacen falta {$a[need]} para asignar a todos en {$a[rhythm]}.';
+$lang['TargetsOff'] = '{$a[off]} arquero(s) sin diana: use Asignar los arqueros sin diana.';
+$lang['TargetsHave'] = '{$a} dianas';
+$lang['TargetsAdjust'] = 'Ajustar a {$a} dianas';
+$lang['TargetsAdjusted'] = 'El turno tiene ahora {$a} dianas: todos reasignados.';

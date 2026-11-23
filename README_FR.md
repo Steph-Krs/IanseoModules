@@ -69,6 +69,11 @@ Modules pour le projet I@nseo :
   et les feuilles de duel (tableaux et poules) : match reconnu par le code-barres ou les noms, points
   de set et vainqueur contrôlés sur les deux cartes, match confirmé comme par la vérification par
   code-barres. En développement. Aucune table.
+- [Entraînement](TRAINING/README_TRAINING_FR.md) — Entraînements créés en quelques clics depuis des
+  formats de référence (copie enregistrée d'une compétition entière sans ses archers) : date et heure
+  de départ, tous les horaires du programme décalés d'autant, archers habituels cochés, catégorie
+  par archer, équipes et équipes mixtes composées à tout moment, qualifications simulées pour des
+  duels seuls. Un tableau de bord pour l'entraîneur et un menu simplifié, par navigateur.
 
 ## Installation automatique (Mac / Linux)
 

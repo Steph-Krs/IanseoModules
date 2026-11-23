@@ -63,6 +63,11 @@ Modules for the I@nseo project:
   every box read and checked, then written into ianseo; and match scorecards (brackets and pools):
   match recognised by the barcode or the names, set points and winner checked on both cards, match
   confirmed as by barcode verification. In development. No table.
+- [Training](TRAINING/README_TRAINING.md) — Trainings made in a few clicks from reference
+  formats (a saved copy of a whole competition without its archers): date and starting time, every
+  time of the programme moved with it, regular archers ticked, category per archer, teams and mixed
+  teams composed at any time, simulated qualification round for duels only. A coach's dashboard and
+  a simplified menu, per browser.
 
 ## Automatic installation (Mac / Linux)
 

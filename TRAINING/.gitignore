@@ -1,0 +1,30 @@
+# What must not reach the module repository.
+#
+# The repository is the distribution channel: whatever is published there is
+# downloaded by the installations. Anything listed here is local to this
+# installation, or of no use to whoever installs the module.
+
+# Local configuration and secrets. Never published, never distributed.
+*.local.json
+*.key
+*.pem
+.env
+
+# Runtime data: locks, caches, logs. May hold personal data.
+*.lock
+*.log
+*.cache
+
+# Editor and operating-system leftovers.
+*.bak
+*.orig
+*.tmp
+*~
+.DS_Store
+Thumbs.db
+
+# NOT ignored, deliberately:
+#   module.json  — this is what identifies a folder of Custom/ as a managed
+#                  module. Its github_token MUST stay empty in the committed
+#                  copy; an existing module.json is never overwritten by an
+#                  update, so a local token never comes back.
