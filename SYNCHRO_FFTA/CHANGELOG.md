@@ -2,6 +2,10 @@
 
 Une entrée par version publiée, la plus récente en haut. Les notes de `version.json` ne gardent que la série en cours.
 
+## 0.10.8 — 2026-11-23
+
+Création depuis le calendrier de l’extranet : après un changement de rôle extranet (choisi dans la barre, ou aligné automatiquement sur la vue du module AUTH), la recherche pouvait ne renvoyer aucune épreuve. Le formulaire du calendrier lu sous l’ancien rôle était renvoyé avec le nouveau niveau ; il est désormais relu après chaque changement de rôle.
+
 ## 0.10.7 — 2026-11-19
 
 Connexion sans le module AUTH (installation locale) : un compte de l’Espace Dirigeant protégé par la double authentification ne pouvait plus entrer dans l’extranet (message « Session Espace Dirigeant expirée — reconnecte-toi »). Le code à 6 chiffres est désormais envoyé à la page de double authentification de l’Espace Dirigeant ; sans code, ou avec un code refusé, la page le dit au lieu de prétendre la session expirée.

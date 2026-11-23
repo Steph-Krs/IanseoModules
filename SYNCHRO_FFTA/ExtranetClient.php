@@ -346,6 +346,9 @@ class ExtranetClient
         }
 
         $this->forgetAnswers();   // the events visible depend on the role
+        // The calendar form carries the structure filters of the role it was read under: posted
+        // again after a switch, they restrict the new level to the old structure (empty list).
+        unset($_SESSION[$this->ctxKey()]['ctx']['calForm']);
         $this->remember($r['body']);
 
         return ['ok' => true, 'roles' => $this->parseRoles($r['body'])];
