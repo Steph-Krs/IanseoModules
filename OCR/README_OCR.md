@@ -212,6 +212,26 @@ cards side by side), for individual and team brackets as for round robins.
   picture imported; no video mode for matches.
 - The sheet "per archer" (all of an archer's rounds on a page) is not read yet.
 
+## Sheet formats
+
+The layouts are those the core prints, worked out from the competition's settings, not from a list
+of known sheets: what the module reads is checked against the core's own printouts of a grid of
+formats (all but a rare one match).
+
+- 📋 **Qualification cards**: any count of ends and arrows the core prints (one, two or three
+  lines an end, 1 to 6 arrows), with one or two count columns (10+X and X, or 11 and 10 on a 3D
+  face), with or without the grand total column, 2 to 4 cards a sheet side by side or two by two.
+  A 3D round (24 ends of 2 arrows, one line an end) is read like any other.
+- 🤺 **Match sheets**: individual, team and mixed team brackets and round robins, in sets or in
+  points, 1 to 8 arrows an end. The rows' height follows the count of ends as the core sets it
+  (8 mm for six ends), and so do the Winner and closest boxes; the shoot-off's lines (one on an
+  event with eliminations, three otherwise) are seen on the sheet, as it was printed.
+- 🖨️ **Scanned sheets**: a page scanned at 200 dpi is searched at its own size, where its thin
+  printed lines stay whole, and at the usual size, where a page of small cells overrun by the
+  writing keeps its tables whole. Sheets printed smaller (an A4 sheet on A5) read as well.
+- A 3D face's 11 is read from the sums for now: the reading networks learn it at their next
+  training.
+
 ## Privacy
 
 On the reading page, the photo is analysed **in the browser** and never sent to the server: the

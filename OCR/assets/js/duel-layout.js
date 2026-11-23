@@ -134,7 +134,9 @@
         var rows = [];
         for (var i = 0; i <= E + 2; i++) rows.push(i);
         var py = frame.hlines.filter(function (l) { return l.cov >= 0.1 * W && l.cov < 0.6 * W; }).map(function (l) { return l.v; });
-        var rowH = frame.rowH, anchors = [];
+        // As OcrLayout's: a row height read twice the row falls back on the outline's height.
+        var rowH = frame.rowH, anchors = [], geo = Hb / (E + 2);
+        if (rowH > 1.5 * geo || rowH < 0.6 * geo) rowH = geo;
         // The table's left border starts at the first end, the arrows' borders at the numbers' row.
         function top(l) {
             var t = Infinity;
@@ -200,12 +202,55 @@
             if (!best || e.score > best.score) best = e;
         });
         if (!best) return {ok: false};
+        // The outline a row or two short (a border cut by a tick or the writing): grown (OcrLayout).
+        best = Lay._grow(V, a, best, function (f2) { return evaluate(f2, s); });
         best.ok = best.colScore >= 0.7 && best.rowScore >= 0.7;
+        if (best.ok && !teamCard(s)) soRowsSeen(V, a, best);
         best.printed = printed(s);
         if (s.shift) shiftRows(best, s.shift);
         best.cells = cells(best);
         best.marks = marks(best);
         return best;
+    }
+
+    /**
+     * Share of a vertical line of the frame, at u from v0 to v1, ruled in the picture: a stroke
+     * darker than the paper just left and right of it (the picture itself, not the grid's blot,
+     * which often stops at the table).
+     */
+    function ruledAt(V, a, f, u, v0, v1, du) {
+        var n = 24, ruled = 0, seen = 0;
+        for (var k = 0; k < n; k++) {
+            var v = v0 + (k + 0.5) / n * (v1 - v0), lo = 255, hi = 0, ok = true;
+            for (var t = -4; t <= 4; t++) {
+                var p = V.apply(f.H, u + t * du / 2, v), g = V.sample(a.work, p.x, p.y);
+                if (isNaN(g)) { ok = false; break; }
+                if (Math.abs(t) <= 1) lo = Math.min(lo, g);
+                else hi = Math.max(hi, g);
+            }
+            if (!ok) continue;
+            seen++;
+            if (hi - lo > 40) ruled++;
+        }
+        return seen >= n / 2 ? ruled / seen : 0;
+    }
+
+    /**
+     * The shoot-off's lines as printed: one on an event with eliminations, three otherwise, as
+     * the event was set when the sheet was printed, which may not be how it is now (the sheets
+     * of a 3D championship printed with one line, its events set without eliminations since).
+     * Told by the grey "S.O." cell left of the boxes, 11/8 of a row high for one line, 23/8 for
+     * three: its right border under the first line's depth. The spec changed for this card only.
+     */
+    function soRowsSeen(V, a, e) {
+        var s = e.spec, f = e.frame, step = e.rowStep;
+        if (!f || !f.H || !a.work) return;
+        var tv0 = e.v[s.ends + 2], u = e.u(1);
+        var deep = ruledAt(V, a, f, u, tv0 + 1.7 * step, tv0 + 2.7 * step, 0.12 * step);
+        var near = ruledAt(V, a, f, u, tv0 + 0.4 * step, tv0 + 1.2 * step, 0.12 * step);
+        e.soLines = [near, deep];
+        var rows = near < 0.6 ? s.soRows : deep > 0.6 ? 3 : deep < 0.2 ? 1 : s.soRows;
+        if (rows !== s.soRows) e.spec = Object.assign({}, s, {soRows: rows});
     }
 
     /** The rows of a fit moved k lines (up for -1). -> the fit. */
@@ -285,10 +330,13 @@
         }
         // The closest box: under the shoot-off (a team card just under it, else from the total's
         // box), half a box wide and half a row high, in its first box's right half.
-        var cv0 = team ? soTop + s.soRows * soH + vmm : tv1 + (s.soRows === 1 ? 1 : 13 / 8) * e.rowStep;
+        var cv0 = team ? soTop + s.soRows * soH + vmm : tv1 + (s.soRows === 1 ? 1 : 13) / 8 * e.rowStep;
         out.push(cell('closest', 'closest', 'box', uOf(1 + sw / 2), uOf(1 + sw), cv0, cv0 + 0.5 * e.rowStep));
         // The Winner box, in the title's row: 2 mm from its left and top, a row less 4 mm wide.
-        var side = Math.max(2, ROW_MM - 4);
+        // The rows are 9 mm at most, a whole number of mm: fewer when the ends do not fit (8 mm
+        // for six ends, as a 3D round's elimination prints them); the box follows them.
+        var rowMM = Math.max(5, Math.min(ROW_MM, Math.round(e.rowStep / vmm)));
+        var side = Math.max(2, rowMM - 4);
         out.push(cell('winner', 'winner', 'box', u(1) + 2 * mm, u(1) + (2 + side) * mm, v[0] + 2 * vmm, v[0] + (2 + side) * vmm));
         return out;
     }

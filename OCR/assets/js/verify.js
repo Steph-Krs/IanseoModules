@@ -28,9 +28,15 @@ document.addEventListener('DOMContentLoaded', function () {
         return s;
     }
 
+    // The order the cells come in: the least sure first, or the surest first, alike side by
+    // side (kept for this browser).
+    var ORDER_KEY = 'ocr-verify-order', order = el('ocr-verify-order');
+    try { if (localStorage.getItem(ORDER_KEY) === 'sure') order.value = 'sure'; } catch (e) { /* storage blocked */ }
+
     function post(fields) {
         var fd = new FormData();
         Object.keys(fields).forEach(function (k) { fd.append(k, fields[k]); });
+        fd.append('order', order.value);
         fd.append('csrf', csrf);
         return fetch(api, {method: 'POST', credentials: 'same-origin', body: fd}).then(function (r) { return r.json(); });
     }
@@ -57,8 +63,15 @@ document.addEventListener('DOMContentLoaded', function () {
         return top === null ? name : name + ' · ' + t('VerifyMax', top);
     }
 
-    /** A value the cell cannot hold: a number its archer's face cannot make, or above its highest. */
+    /**
+     * A value the cell cannot hold: one its card's face does not have (face: a training set's
+     * arrow, "0" standing for M), a number its archer's face cannot make, or above its highest.
+     */
     function beyond(it, v) {
+        if (it.face && it.face.length) {
+            if (v === '' || v === '-' || v === '?' || v === MISFRAMED) return false;
+            return it.face.indexOf(v === '0' ? 'M' : v) < 0;
+        }
         if (!/^\d+$/.test(v)) return false;
         if (it.allowed) return !it.allowed.some(function (r) { return +v >= r[0] && +v <= r[1]; });
         return it.max !== null && it.max !== undefined && +v > it.max;
@@ -118,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
             box.classList.toggle('ocr-verify-misframed', input.value === MISFRAMED);
             var odd = beyond(it, input.value.trim());
             box.classList.toggle('ocr-verify-odd', odd);
-            input.title = odd ? t('VerifyBeyond', highest(it)) : '';
+            input.title = !odd ? '' : it.face && it.face.length ? t('VerifyNotOnFace', it.face.join(', ')) : t('VerifyBeyond', highest(it));
         };
         input.addEventListener('input', function () {
             input.value = input.value.toUpperCase();
@@ -191,8 +204,18 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    post({action: 'next'}).then(function (j) {
-        if (j.error) return fail(j);
-        render(j);
-    }, function () { fail(null); });
+    function next() {
+        post({action: 'next'}).then(function (j) {
+            if (j.error) return fail(j);
+            render(j);
+        }, function () { fail(null); });
+    }
+
+    // A new order shows the first cells of that order (nothing typed on the page is saved).
+    order.addEventListener('change', function () {
+        try { localStorage.setItem(ORDER_KEY, order.value); } catch (e) { /* storage blocked */ }
+        next();
+    });
+
+    next();
 });

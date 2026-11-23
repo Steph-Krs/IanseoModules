@@ -161,18 +161,28 @@
         var N1 = p.perLine;   // index in m.cols of the last arrow column
 
         // Columns: borders crossing the body, and the end/running total split (on some lines only).
-        var vl = frame.vlines.filter(function (l) { return within(l.segs, 0, Hb) >= 0.35 * Hb; });
-        var vx = vl.map(function (l) { return l.u; });
         var required = [0], optional = [];
         m.cols.forEach(function (c) {
             if (c.x0 > 0) required.push(c.x0);
             if (c.split) optional.push(c.split);
         });
         required.push(units);
-        var fc = fit1D(required, vx, 0.12, W / units);
-        var mo = match(optional.map(function (x) { return fc.a + fc.b * x; }), vx, 0.12 * fc.b);
-        var extra = vx.length - fc.hits - hits(mo);
-        var colScore = (fc.hits - 0.4 * Math.max(0, extra)) / required.length;
+        function colsAt(cover) {
+            var vl = frame.vlines.filter(function (l) { return within(l.segs, 0, Hb) >= cover * Hb; });
+            var vx = vl.map(function (l) { return l.u; });
+            var fc = fit1D(required, vx, 0.12, W / units);
+            var mo = match(optional.map(function (x) { return fc.a + fc.b * x; }), vx, 0.12 * fc.b);
+            var extra = vx.length - fc.hits - hits(mo);
+            return {vl: vl, vx: vx, fc: fc, mo: mo, score: (fc.hits - 0.4 * Math.max(0, extra)) / required.length};
+        }
+        // Small cells overrun by the writing (a 3D card, one line an end) leave the columns'
+        // borders in pieces: looked for again among shorter lines when the usual ones miss.
+        var cs = colsAt(0.35);
+        if (cs.score < 0.7) {
+            var c2 = colsAt(0.2);
+            if (c2.score > cs.score) cs = c2;
+        }
+        var vl = cs.vl, vx = cs.vx, fc = cs.fc, mo = cs.mo, colScore = cs.score;
 
         // Rows: the lines across the table, header top to body bottom; then two partial
         // lines that only the right alignment and the right way up both find: the
@@ -187,7 +197,10 @@
         // Where the header is, from the columns: the arrow columns' lines start at the
         // header top, the table's left border only at the first end. Evenly spaced rows
         // alone cannot tell a missed header line from a missed body line.
-        var rowH = frame.rowH, anchors = [];
+        // The frame's row height comes from its whole lines; with every other one cut by the
+        // writing it reads twice the row: the outline's height over the model's rows then.
+        var rowH = frame.rowH, anchors = [], geo = Hb / (L + 1);
+        if (rowH > 1.5 * geo || rowH < 0.6 * geo) rowH = geo;
         function top(l) {
             var t = Infinity;
             l.segs.forEach(function (s) { if (s[1] - s[0] >= 0.4 * rowH && s[0] < t) t = s[0]; });
@@ -263,6 +276,7 @@
                 var e = evaluate(f, p, grand, s.golds !== false);
                 e.turn = t;
                 e.frame = f;
+                e = grow(V, a, e, function (f2) { return evaluate(f2, p, grand, s.golds !== false); });
                 if (!best || e.score > best.score) best = e;
             });
         });
@@ -294,6 +308,42 @@
             best.alt2 = shiftRows(Object.assign({}, best), -k);
             best.alt2.cells = cells(best.alt2);
             best.alt2.marks = marks(best.alt2);
+        }
+        return best;
+    }
+
+    /**
+     * A fit whose columns are found but not all its rows: the outline stopped a row or two short
+     * (a border cut by the writing or a tick). The frame drawn again a row or two longer up or
+     * down, the same way up, kept when the card fits it better. Shared with duel-layout.js.
+     *
+     * @param {Function} again The fit's evaluation on another frame.
+     * @return {Object} The better fit (grown: [rows up, rows down]), or e as it was.
+     */
+    function grow(V, a, e, again) {
+        var f0 = e.frame;
+        if (!(e.colScore >= 0.7 && e.rowScore < 0.7 && f0 && f0.H)) return e;
+        var H = f0.H, rh = e.rowStep || (e.v && e.v.length > 1 ? e.v[1] - e.v[0] : f0.rowH), best = e;
+        var at = function (x, y) {
+            var w = H[6] * x + H[7] * y + H[8];
+            return {x: (H[0] * x + H[1] * y + H[2]) / w, y: (H[3] * x + H[4] * y + H[5]) / w};
+        };
+        for (var up = 0; up <= 2; up++) {
+            for (var down = 0; down <= 2; down++) {
+                if (!up && !down) continue;
+                var q = [at(0, -up * rh), at(f0.W, -up * rh), at(f0.W, f0.Hb + down * rh), at(0, f0.Hb + down * rh)], c = [];
+                // V.frame() turns the analysis' quad t quarters: the frame's corners given, undone.
+                for (var i = 0; i < 4; i++) c[(i + e.turn) % 4] = q[i];
+                var f2 = V.frame(Object.assign({}, a, {quad: {tl: c[0], tr: c[1], br: c[2], bl: c[3]}, frames: {}}), e.turn);
+                if (!f2) continue;
+                var e2 = again(f2);
+                if (e2.score > best.score + 0.05) {
+                    e2.turn = e.turn;
+                    e2.frame = f2;
+                    e2.grown = [up, down];
+                    best = e2;
+                }
+            }
         }
         return best;
     }
@@ -677,5 +727,5 @@
     }
 
     return {printed: printed, closesEnd: closesEnd, columns: columns, fit: fit, cellAllowed: cellAllowed, canHold: canHold, shotEnds: shotEnds,
-        upOf: upOf, turnFacing: turnFacing, oneWay: oneWay, _evaluate: evaluate, _fit1D: fit1D, _sums: sums};
+        upOf: upOf, turnFacing: turnFacing, oneWay: oneWay, _evaluate: evaluate, _fit1D: fit1D, _sums: sums, _grow: grow};
 });

@@ -27,7 +27,11 @@ $html .= '<h1>' . ocr_t('VerifyTitle') . '</h1>';
 $html .= '<p class="ocr-lead">' . ocr_t('VerifyLead') . '</p>';
 $html .= '<p class="ocr-hint">' . ocr_t('VerifyKeys') . '</p>';
 $html .= '<form id="ocr-verify" class="ocr-card" autocomplete="off">';
-$html .= '<div class="ocr-counter" id="ocr-verify-count" role="status" aria-live="polite"></div>';
+$html .= '<div class="ocr-verify-head"><div class="ocr-counter" id="ocr-verify-count" role="status" aria-live="polite"></div>';
+$html .= '<label class="ocr-verify-order">' . ocr_t('VerifyOrder') . ' <select id="ocr-verify-order">'
+    . '<option value="doubt">' . ocr_t('VerifyOrderDoubt') . '</option>'
+    . '<option value="sure">' . ocr_t('VerifyOrderSure') . '</option>'
+    . '</select></label></div>';
 $html .= '<div id="ocr-verify-cells" class="ocr-verify-cells"></div>';
 $html .= '<div class="ocr-buttons"><button type="submit" class="ocr-btn ocr-btn-primary" id="ocr-verify-ok">'
     . ocr_t('VerifySave') . '</button></div>';

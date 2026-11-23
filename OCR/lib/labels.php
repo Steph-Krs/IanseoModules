@@ -18,6 +18,7 @@
 
 define('OCR_LABEL_DAYS', 60);
 define('OCR_LABEL_BATCH', 12);    // cells shown at once (each large, with its neighbours)
+define('OCR_LABEL_BATCH_SURE', 30); // ...when the surest come first, alike side by side: checked at a glance
 define('OCR_LABEL_MAX', 400);     // cells sent at once, at most
 define('OCR_LABEL_PNG', 262144);  // bytes of a cell's picture, at most
 
@@ -99,14 +100,16 @@ function ocr_label_lines($file) {
  * Cells sent by the reading page. Each: {uid, kind, key, line, src, enId, dist, allowed
  * (the numbers the cell can hold with the archer's face, [[from, to]…], null: any), reading:
  * [[value, p]…], box: [x0, y0, x1, y1] (the cell in its picture), png: base64}. A cell
- * already kept is left as it is.
+ * already kept is left as it is. A cell sent with a value (what the operator chose for it in
+ * the reading page's grid) is saved as checked, kept before or not: not left to check again.
  *
- * @return array ['added' => n, 'skipped' => n]
+ * @return array ['added' => n, 'skipped' => n, 'checked' => n]
  */
 function ocr_label_add(array $items, $tour = 0) {
     $dir = ocr_label_dir($tour, true);
     $added = $skipped = 0;
     $lines = '';
+    $checked = [];
     foreach (array_slice($items, 0, OCR_LABEL_MAX) as $it) {
         $uid = ocr_label_uid($it['uid'] ?? '');
         $png = base64_decode((string)($it['png'] ?? ''), true);
@@ -115,7 +118,9 @@ function ocr_label_add(array $items, $tour = 0) {
             $skipped++;
             continue;
         }
-        if (is_file($dir . '/' . $uid . '.png')) {
+        $value = array_key_exists('value', $it) ? ocr_label_value($it['value']) : null;
+        if (ocr_label_find($uid) !== '' || is_file($dir . '/' . $uid . '.png')) {
+            if ($value !== null) $checked[] = ['uid' => $uid, 'value' => $value];
             $skipped++;
             continue;
         }
@@ -123,6 +128,7 @@ function ocr_label_add(array $items, $tour = 0) {
             $skipped++;
             continue;
         }
+        if ($value !== null) $checked[] = ['uid' => $uid, 'value' => $value];
         $reading = [];
         foreach (array_slice((array)($it['reading'] ?? []), 0, 6) as $r) {
             if (is_array($r) && count($r) >= 2) $reading[] = [(string)$r[0], round((float)$r[1], 4)];
@@ -144,7 +150,7 @@ function ocr_label_add(array $items, $tour = 0) {
         $added++;
     }
     if ($lines !== '') @file_put_contents($dir . '/items.jsonl', $lines, FILE_APPEND | LOCK_EX);
-    return ['added' => $added, 'skipped' => $skipped];
+    return ['added' => $added, 'skipped' => $skipped, 'checked' => $checked ? ocr_label_save($checked) : 0];
 }
 
 /** What was typed for each cell of a folder so far. -> [uid => value] */
@@ -155,12 +161,14 @@ function ocr_label_done($dir) {
 }
 
 /**
- * The next cells to check, of every folder: the least sure reading first, each with its
- * picture.
+ * The next cells to check, of every folder, each with its picture: the least sure reading
+ * first, or (order "sure") the surest first, those read alike side by side, so that a page
+ * of them is checked at a glance and the one read wrong stands out.
  *
+ * @param string $order "doubt" or "sure".
  * @return array ['pending' => n, 'done' => n, 'items' => [...]]
  */
-function ocr_label_next() {
+function ocr_label_next($order = 'doubt') {
     $todo = [];
     $done = 0;
     foreach (ocr_label_folders() as $dir) {
@@ -173,11 +181,20 @@ function ocr_label_next() {
         }
     }
     $todo = array_values($todo);
-    usort($todo, function ($a, $b) {
-        return ($a['reading'][0][1] ?? 0) <=> ($b['reading'][0][1] ?? 0);
-    });
+    if ($order === 'sure') {
+        $tier = function ($p) { return $p >= 0.99 ? 0 : ($p >= 0.9 ? 1 : 2); };
+        usort($todo, function ($a, $b) use ($tier) {
+            $pa = $a['reading'][0][1] ?? 0;
+            $pb = $b['reading'][0][1] ?? 0;
+            return [$tier($pa), (string)($a['reading'][0][0] ?? ''), $pb] <=> [$tier($pb), (string)($b['reading'][0][0] ?? ''), $pa];
+        });
+    } else {
+        usort($todo, function ($a, $b) {
+            return ($a['reading'][0][1] ?? 0) <=> ($b['reading'][0][1] ?? 0);
+        });
+    }
     $items = $byTour = [];
-    foreach (array_slice($todo, 0, OCR_LABEL_BATCH) as $it) {
+    foreach (array_slice($todo, 0, $order === 'sure' ? OCR_LABEL_BATCH_SURE : OCR_LABEL_BATCH) as $it) {
         $it['png'] = base64_encode((string)@file_get_contents($it['dir'] . '/' . $it['uid'] . '.png'));
         $it['tour'] = ctype_digit(basename($it['dir'])) ? (int)basename($it['dir']) : 0;
         unset($it['dir']);

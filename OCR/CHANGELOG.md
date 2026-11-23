@@ -1,5 +1,48 @@
 # Changelog — Scorecard reader (OCR)
 
+## 0.3.0 — 2026-11-23
+
+The sheet formats worked out from how the core prints them, and checked against the core itself: a
+bench has the core print a grid of formats (DrawScoreNew for the qualification cards, the match
+printouts on a throwaway copy of the database) and compares every line with the module's layouts —
+439 of 441 qualification cards (the other two, a rare format whose PDF does not draw one row
+across) and 684 of 684 match cards matching. Any count of ends and arrows the core
+prints, one or two count columns (11 and 10 on a 3D face), 3D rounds of 24 ends of 2 arrows on one
+line each; individual, team and mixed team brackets and round robins, in sets or in points.
+
+On a match sheet the rows' height follows the count of ends as the core sets it (9 mm up to five
+ends, 8 mm for six), and the boxes with it: the Winner box of a 3D elimination no longer reads ticked
+when empty (winner boxes right 397 to 570 of 610). The closest box of an event with eliminations is
+where the core prints it. The shoot-off's lines (one with eliminations, three otherwise) are seen on
+the sheet, as it was printed, whatever the event is set to now.
+
+A page scanned at 200 dpi is searched at its own size, where its thin printed lines stay whole, and
+at the usual size, where a page of small cells overrun by the writing keeps its tables whole: round
+robin team sheets, cards missed 39 of 494 to 3; 3D qualification cards fitted 136 to 390 on 157
+pages. A grid whose outline stops a row or two short is grown to the table; the columns of small
+cells overrun by the writing are found among shorter lines. Photos are read as before.
+
+A match cell without ink inside an end with arrows written is no longer taken for blank for sure:
+an end is always shot whole, so it is a mark too faint (a pencil "x"), left to the networks and
+the end's total (a team sheet of the D1: 15 to 23 arrows of 24 right on one card, 7 wrong ones no
+longer shown as sure).
+
+Developer tools: the cells in doubt of a match sheet are sent to the page of the cells to check, as a
+qualification card's are; an arrow the operator chooses in the reading page's grid is saved there as
+checked, with its picture, so that it is neither left to check again nor lost for the training. The
+page of the cells to check can show the surest readings first, those read alike side by side, thirty
+at a time: a page of them is checked at a glance, the one read wrong stands out (the least sure first
+stays the default). An arrow typed with a value its face does not have (a 9 on a 3D face) shows red.
+
+Measured on 2,700 scanned pages of six competitions (qualifications, individual, team and mixed team
+matches, round robins, 3D, sheets printed on A5).
+
+The arrow and digit networks trained again on these scans, with the cells checked by hand; the arrow
+network learns a 3D face's 11 and a miss written "0" or a dash. Every reading is kept to the values the
+card's face allows. 3D match sheets, arrows right 79.1 % to 99.0 % with a network that never saw
+them; 3D qualification cards 83.9 % to 97.5 % (cards all right 10 to 311 of 390); the other new
+qualification cards 97.8–99.1 % to 98.8–99.3 %; the sheets measured before unchanged.
+
 ## 0.2.1 — 2026-11-16
 
 Contact address of the module updated (credits page).

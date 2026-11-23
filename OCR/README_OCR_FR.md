@@ -234,6 +234,27 @@ ses deux cartes côte à côte), pour les tableaux individuels et par équipes c
   ou une photo importée ; pas de mode vidéo pour les duels.
 - La feuille « par archer » (tous les tours d'un archer sur une page) n'est pas encore lue.
 
+## Formats de feuilles
+
+Les mises en page sont celles que le cœur imprime, déduites du paramétrage de la compétition, et non
+une liste de feuilles connues : ce que le module lit est comparé aux impressions du cœur lui-même
+pour toute une grille de formats (toutes conformes sauf un format rare).
+
+- 📋 **Feuilles de qualification** : tout nombre de volées et de flèches que le cœur imprime (une,
+  deux ou trois lignes par volée, 1 à 6 flèches), avec une ou deux colonnes de comptes (10+X et X,
+  ou 11 et 10 sur un blason 3D), avec ou sans colonne Total, 2 à 4 cartes par feuille côte à côte ou
+  deux par deux. Un parcours 3D (24 volées de 2 flèches, une ligne par volée) se lit comme les autres.
+- 🤺 **Feuilles de match** : tableaux et poules, individuels, par équipes et en double mixte, en sets
+  ou en points, 1 à 8 flèches par volée. La hauteur des lignes suit le nombre de volées comme le cœur
+  la fixe (8 mm pour six volées), et les cases « Gagnant » et « Plus près du centre » avec elle ; les
+  lignes de barrage (une pour une épreuve avec éliminatoires, trois sinon) sont lues sur la feuille,
+  telle qu'elle a été imprimée.
+- 🖨️ **Feuilles scannées** : une page scannée à 200 dpi est cherchée à sa taille, où ses traits fins
+  restent entiers, et à la taille habituelle, où une page de petites cases débordées par l'écriture
+  garde ses tableaux entiers. Les feuilles imprimées en plus petit (une A4 sur une A5) se lisent aussi.
+- Le 11 d'un blason 3D se lit pour l'instant par les sommes : les réseaux de lecture l'apprendront à
+  leur prochain entraînement.
+
 ## Confidentialité
 
 Sur la page de lecture, la photo est analysée **dans le navigateur** et n'est jamais envoyée au

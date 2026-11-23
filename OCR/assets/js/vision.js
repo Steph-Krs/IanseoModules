@@ -974,7 +974,7 @@
      * top line and the left border, (W, Hb) the corner of the body bottom and the right
      * border; the mask covers [-mx, W + mx] x [-my, Hb + my2].
      */
-    function frameLines(R) {
+    function frameLines(R, small) {
         var w = R.w, h = R.h, m = R.d, ox = R.ox, oy = R.oy, x, y, i, GAP = 3;
         var T = Math.max(4, Math.round(0.006 * R.W));
         // Ink of a thin horizontal stroke: paper T pixels above or below it. A band of
@@ -1017,10 +1017,26 @@
 
         // Row height: spacing of the lines that cross (nearly) the whole table.
         var full = hlines.filter(function (l) { return l.cov >= 0.7 * R.W; }).map(function (l) { return l.v; });
+        // Small cells overrun by the writing (a 3D card, one line an end) leave few lines whole:
+        // their spacing then comes from those crossing a good part of the table.
+        var fewWhole = small && full.length < 4;
+        if (fewWhole) full = hlines.filter(function (l) { return l.cov >= 0.25 * R.W; }).map(function (l) { return l.v; });
         var diffs = [];
         for (i = 1; i < full.length; i++) diffs.push(full[i] - full[i - 1]);
         diffs.sort(function (a, b) { return a - b; });
         var rowH = diffs.length ? diffs[Math.floor(diffs.length / 2)] : R.Hb / 10;
+        // Every other line missing (cut by the writing) doubles the median spacing: a quarter of
+        // the spacings at a half or a third of it are the row. Only on a scan (small): a photo's
+        // whole lines tell the row as they are.
+        if (small && diffs.length >= 4) {
+            var low = diffs[Math.floor(diffs.length / 4)];
+            [2, 3].forEach(function (k) {
+                if (Math.abs(rowH / low - k) < 0.25 * k) {
+                    var near = diffs.filter(function (d) { return Math.abs(d - low) < 0.15 * low; }).length;
+                    if (near >= diffs.length / 4) rowH = low;
+                }
+            });
+        }
 
         var Lv = Math.max(8, Math.round(0.7 * rowH));
         m = vm;
@@ -1068,7 +1084,7 @@
      * Straighten the grid seen through the quad tl, tr, br, bl (working-image points),
      * and find its lines.
      */
-    function straighten(work, gridMask, quad, scaleToFull) {
+    function straighten(work, gridMask, quad, scaleToFull, small) {
         var W = (dist(quad.tl, quad.tr) + dist(quad.bl, quad.br)) / 2;
         var Hb = (dist(quad.tl, quad.bl) + dist(quad.tr, quad.br)) / 2;
         var H = homography(
@@ -1077,7 +1093,7 @@
         );
         if (!H) return null;
         var R = warpMask(gridMask, work.w, work.h, H, W, Hb, 0.08 * W, 0.12 * Hb, 0.3 * Hb);
-        var lines = frameLines(R);
+        var lines = frameLines(R, small);
         return {
             W: W, Hb: Hb, H: H, Hfull: scaleAfter(H, 1 / scaleToFull), quad: quad,
             hlines: lines.hlines, vlines: lines.vlines, rowH: lines.rowH, mask: R
@@ -1136,6 +1152,16 @@
      */
     function analyse(full, opts) {
         opts = opts || {};
+        // A scanned sheet (opts.scan, with all): searched at its own size, where its thin printed
+        // lines stay whole, and at the usual size, where a page of small cells overrun by the
+        // writing keeps its tables whole; each search finds grids the other misses. The grids of
+        // both, the second's only where the first has none (each grid keeps its own scale).
+        if (opts.scan && opts.all) {
+            var big = analyse(full, Object.assign({}, opts, {scan: false, small: true, workSide: Math.max(full.w, full.h)}));
+            var usual = Object.assign({}, opts, {scan: false, small: true});
+            delete usual.workSide;
+            return mergeScan(big, analyse(full, usual));
+        }
         var P = analysePlan(full, opts), found = [], c, u;
         for (c = 0; c < P.cands.length; c++) {
             u = analyseUnit(P, 1, c);
@@ -1201,7 +1227,7 @@
      */
     function analyseUnit(P, pass, c, found) {
         var q = P.passes[pass], cand = pass === 1 ? P.cands[c] : P.more[c], opts = P.opts, w = P.work.w;
-        var tryPart = function (part) { return tryGrid(P.work, q.ink, q.cc, part, P.scale, opts.trace, opts.lone); };
+        var tryPart = function (part) { return tryGrid(P.work, q.ink, q.cc, part, P.scale, opts.trace, opts.lone, opts.small); };
         var u = {a: tryPart(cand), parts: null, grids: null};
         if (u.a || !opts.all) return u;
         u.parts = splitBlot(q.cc, w, cand);
@@ -1221,7 +1247,7 @@
     /** One table looked for (tryGrid): in candidate c of a pass, or (k >= 0) in the k-th part it cuts into. */
     function analyseJob(P, pass, c, k) {
         var q = P.passes[pass], cand = pass === 1 ? P.cands[c] : P.more[c];
-        return tryGrid(P.work, q.ink, q.cc, k >= 0 ? analyseCuts(P, pass)[c][k] : cand, P.scale, null, P.opts.lone);
+        return tryGrid(P.work, q.ink, q.cc, k >= 0 ? analyseCuts(P, pass)[c][k] : cand, P.scale, null, P.opts.lone, P.opts.small);
     }
 
     /** The grids found with a candidate's: its table, or its parts' when they all make like tables. */
@@ -1241,6 +1267,20 @@
     /** A blot on a grid found already. */
     function covered(found, box) {
         return found.some(function (g) { return overlap(g.gridBox, box) > 0.3; });
+    }
+
+    /** A scan's two searches put together (analyse, opts.scan): the second's grids where the first has none. */
+    function mergeScan(big, small) {
+        var inFull = function (g) {
+            var b = g.gridBox, k = 1 / g.scale;
+            return {x0: b.x0 * k, y0: b.y0 * k, x1: b.x1 * k, y1: b.y1 * k};
+        };
+        var grids = (big.ok ? big.grids : []).slice();
+        (small.ok ? small.grids : []).forEach(function (g) {
+            if (!grids.some(function (h) { return overlap(inFull(h), inFull(g)) > 0.3; })) grids.push(g);
+        });
+        if (!grids.length) return big;
+        return {ok: true, grids: grids, work: big.work, scale: big.scale};
     }
 
     function analysed(P, found, tried) {
@@ -1399,7 +1439,7 @@
      * Lines, quad and frame of one candidate blot, or null when they do not make a
      * table: at least four long lines each way in the straightened frame.
      */
-    function tryGrid(work, ink, cc, grid, scale, trace, lone) {
+    function tryGrid(work, ink, cc, grid, scale, trace, lone, small) {
         var w = work.w, h = work.h;
         function fail(stage, info) {
             if (trace) trace.push({stage: stage, box: [grid.x0, grid.y0, grid.x1, grid.y1], info: info});
@@ -1460,10 +1500,12 @@
         var quad = {tl: tl, tr: tr, br: br, bl: bl};
 
         var a = {ok: true, work: work, scale: scale, gridMask: gridMask, gridBox: grid, families: fam,
-            quad: quad, frames: {}};
+            quad: quad, frames: {}, small: !!small};
         var f0 = frame(a, 0);
         if (!f0) return fail('frame');
         var longH = f0.hlines.filter(function (l) { return l.cov >= 0.6 * f0.W; }).length;
+        // The same small cells overrun by the writing (a scan's: small): lines crossing a good part of the table.
+        if (small && longH < 4) longH = f0.hlines.filter(function (l) { return l.cov >= 0.25 * f0.W; }).length;
         var longV = f0.vlines.filter(function (l) { return l.cov >= 0.35 * f0.Hb; }).length;
         if (longH < 4 || longV < 4) return fail('lines', {h: longH, v: longV, W: Math.round(f0.W), Hb: Math.round(f0.Hb), rowH: f0.rowH});
         a.guess = orientationGuess(f0);
@@ -1476,7 +1518,7 @@
      */
     function frame(a, k) {
         k = ((k % 4) + 4) % 4;
-        if (!(k in a.frames)) a.frames[k] = straighten(a.work, a.gridMask, turnQuad(a.quad, k), a.scale);
+        if (!(k in a.frames)) a.frames[k] = straighten(a.work, a.gridMask, turnQuad(a.quad, k), a.scale, a.small);
         return a.frames[k];
     }
 
@@ -1525,7 +1567,7 @@
         components: components, homography: homography, apply: apply, invert: invert, sample: sample,
         analyse: analyse, frame: frame, turns: turns, scanline: scanline, crop: crop, fullLength: fullLength,
         analysePlan: analysePlan, secondPlan: secondPlan, analyseUnit: analyseUnit, analyseCuts: analyseCuts, analyseJob: analyseJob, workCopy: workCopy,
-        joinUnit: joinUnit, enough: enough, covered: covered,
+        joinUnit: joinUnit, enough: enough, covered: covered, mergeScan: mergeScan,
         lensOf: lensOf, undistort: undistort, undistortRGBA: undistortRGBA, lensPoint: lensPoint, lensBack: lensBack,
         _internal: {integral: integral, fitLine: fitLine, intersect: intersect, profilePeaks: profilePeaks,
             frameLines: frameLines, orientationGuess: orientationGuess, turnQuad: turnQuad,

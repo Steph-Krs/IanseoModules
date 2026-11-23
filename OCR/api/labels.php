@@ -3,8 +3,8 @@
  * Endpoint of the cells to check (lib/labels.php): the reading page sends the cells it
  * could not make sure of, the checking page shows them and saves what was typed.
  *
- *   POST action=add    items=<JSON>   csrf=<token>   -> {added, skipped}
- *   POST action=next                                 -> {pending, done, items}
+ *   POST action=add    items=<JSON>   csrf=<token>   -> {added, skipped, checked}
+ *   POST action=next   [order=sure]                  -> {pending, done, items}
  *   POST action=save   labels=<JSON>  csrf=<token>   -> {saved, pending, done, items}
  *
  * Read-write access to the qualification round is required. Nothing goes to the
@@ -32,6 +32,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || ($action !== 'next' && !ocr
 }
 // The token is checked: the session is no longer needed, other pages may run.
 session_write_close();
+$order = ($_POST['order'] ?? '') === 'sure' ? 'sure' : 'doubt';
 
 if ($action === 'add') {
     ocr_label_purge();
@@ -43,12 +44,12 @@ if ($action === 'add') {
 if ($action === 'save') {
     $labels = json_decode((string)($_POST['labels'] ?? ''), true);
     $saved = ocr_label_save(is_array($labels) ? $labels : []);
-    $JSON = array_merge(['error' => 0, 'msg' => '', 'saved' => $saved], ocr_label_next());
+    $JSON = array_merge(['error' => 0, 'msg' => '', 'saved' => $saved], ocr_label_next($order));
     JsonOut($JSON);
 }
 
 if ($action === 'next') {
-    $JSON = array_merge(['error' => 0, 'msg' => ''], ocr_label_next());
+    $JSON = array_merge(['error' => 0, 'msg' => ''], ocr_label_next($order));
     JsonOut($JSON);
 }
 

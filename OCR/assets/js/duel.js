@@ -457,14 +457,22 @@
      * its arrows chosen by the checks, then its match worked out with the other card if read.
      */
     K.finish = function (ctx, reads, msgs, time) {
-        var pickInks = {};
+        var pickInks = {}, dark = {}, written = {};
+        ctx.fit.cells.forEach(function (c) {
+            if (c.kind === 'pick' || c.kind === 'box') return;
+            var k = c.line + '.' + c.key;
+            dark[k] = ink(ctx, c.u0, c.v0, c.u1, c.v1, 0.15) >= EMPTY_INK;
+            if (dark[k] && c.kind === 'arrow') written[c.line] = true;
+        });
         ctx.fit.cells.forEach(function (c) {
             var k = c.line + '.' + c.key;
             if (c.kind === 'pick') pickInks[c.line] = pickInk(ctx, c);
             else if (c.kind === 'box') reads[k] = readBox(ctx, c);
             // A cell without ink is blank for sure: the networks, given nothing, answer their
             // prior (an 8 likelier than a blank), and the ends a match did not need are left so.
-            else if (ink(ctx, c.u0, c.v0, c.u1, c.v1, 0.15) < EMPTY_INK) reads[k] = c.kind === 'arrow' ? [{label: '', p: 0.99}] : [{value: -1, p: 0.99}];
+            // Not in an end with arrows written, which is always shot whole: there it is a mark
+            // too faint (a pencil "x"), left to the networks and the end's total.
+            else if (!dark[k] && !(c.kind === 'arrow' && written[c.line])) reads[k] = c.kind === 'arrow' ? [{label: '', p: 0.99}] : [{value: -1, p: 0.99}];
         });
         var values = {};
         ctx.card.values.forEach(function (v) { values[v.p] = {n: v.n, g: v.g, x: v.x}; });

@@ -176,6 +176,8 @@
 #ocr .ocr-rec-bad::before { background: #e57b10; }
 
 /* Cells to check */
+#ocr .ocr-verify-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; }
+#ocr .ocr-verify-order select { background: #fff; color: #20263d; border: 1px solid #a7d6ff; border-radius: 4px; padding: 2px 4px; }
 #ocr .ocr-verify-cells { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
 #ocr .ocr-verify-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; border: 2px solid #d2d4d6;
     border-radius: 6px; background: #fff; color: #20263d; }

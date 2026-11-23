@@ -234,6 +234,13 @@
     function analyse(pool, img, opts) {
         var V = root.OcrVision;
         if (pool.broken || !V || !V.analysePlan || !opts.all || opts.trace) return Promise.reject(new Error('no workers'));
+        // A scanned sheet: searched at its own size and at the usual one, put together (OcrVision.analyse).
+        if (opts.scan) {
+            if (!V.mergeScan) return Promise.reject(new Error('no workers'));
+            var big = Object.assign({}, opts, {scan: false, small: true, workSide: Math.max(img.w, img.h)}), usual = Object.assign({}, opts, {scan: false, small: true});
+            delete usual.workSide;
+            return Promise.all([analyse(pool, img, big), analyse(pool, img, usual)]).then(function (r) { return V.mergeScan(r[0], r[1]); });
+        }
         photo(pool, img);
         var key = pool.imageId + ':' + JSON.stringify(opts), n = Math.min(SHARES_MAX, users(pool, img).length), ds = null;
         var plan = function (pass) {

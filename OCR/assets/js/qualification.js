@@ -1570,7 +1570,13 @@ document.addEventListener('DOMContentLoaded', function () {
             data.data.set(V.undistortRGBA(data.data, data.width, data.height, lens));
             g.putImageData(data, 0, 0);
         }
-        var t2 = performance.now(), gen = state.gen, found = analysis(state.full, kindOpts({all: true, want: expectedGrids()}));
+        // A flat sheet scanned at 200 dpi (2000 to 2600 pixels long): its thin printed lines are
+        // under a pixel once brought down to the usual working size, and cells drop out of the
+        // grids; searched at its own size too (OcrVision.analyse scan). A camera's picture keeps
+        // the usual size.
+        var long = Math.max(state.full.w, state.full.h), opts = {all: true, want: expectedGrids()};
+        if (!lens && long > SCAN_MIN && long <= SCAN_MAX) opts.scan = true;
+        var t2 = performance.now(), gen = state.gen, found = analysis(state.full, kindOpts(opts));
         tm.lens = Math.round(t2 - t1);
         // The sheet's codes read here meanwhile (the workers analyse it).
         var P = poolUp(), far = P && window.OcrPool.qr ? function (d, w, h) { return window.OcrPool.qr(P, d, w, h); } : null;
@@ -1687,6 +1693,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     var POOL_WAIT = 20000;   // ms a photo's analysis waits for the workers at most
+    var SCAN_MIN = 2000, SCAN_MAX = 2600;   // a scanned sheet's longest side (pixels), searched at its own size
 
     /** The reading workers when one at least is up (its networks loaded), else null: the page works on its own. */
     function poolUp() {
@@ -2218,6 +2225,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 var finish = function () {
                     if (K) {
                         K.finish(ctx, reads, msgs, busy / 1000);
+                        sendDoubts(ctx);
                         done();
                         return;
                     }
@@ -2356,28 +2364,68 @@ document.addEventListener('DOMContentLoaded', function () {
     var DOUBTS_LATER = 1000;   // ms after a card is read: its cells' pictures cut out once the sheet is shown
 
     function sendDoubts(ctx) {
-        if (K || !readOpts.doubts || !root.getAttribute('data-labels-api') || ctx.doubtsSent) return;
+        if (!readOpts.doubts || !root.getAttribute('data-labels-api') || ctx.doubtsSent) return;
         var gen = state.gen;
         setTimeout(function () { if (gen === state.gen) sendDoubtsNow(ctx); }, DOUBTS_LATER);
+    }
+
+    /** A cell's name on the page of the cells to check: the same at every reading of the card. */
+    function cellUid(ctx, key) {
+        return K ? uid([tourCode, 'D', ctx.match.id, ctx.side, key].join('|')) : uid([tourCode, ctx.card.archer.enId, ctx.card.dist, key].join('|'));
+    }
+
+    /** An arrow cell's choice: the checks' (a match's shoot-off: its box's likeliest value). */
+    function doubtArrow(rd, c) {
+        var index = +c.key.slice(1), line = String(c.line);
+        if (line.indexOf('so') === 0) return (rd.so || []).find(function (a) { return 'so' + a.row === line && a.index === index; }) || null;
+        return rd.chosen[c.line + '.' + index] || null;
+    }
+
+    /** A cell as the page of the cells to check keeps it: its picture and what was read. */
+    function doubtItem(ctx, c, r) {
+        var p = ctx.fit.printed, card = ctx.card, pic = doubtPicture(ctx.fit, c), arrow = c.kind === 'arrow';
+        return {uid: cellUid(ctx, c.line + '.' + c.key), kind: arrow ? 'arrow' : 'number',
+            key: c.key, line: String(c.line), src: ctx.live ? 'live' : 'photo', enId: K ? 0 : card.archer.enId, dist: K ? 0 : card.dist,
+            allowed: arrow ? null : Lay.cellAllowed(c, p, card.values),
+            label: c.key === 'gold' ? card.structure.goldsLabel : c.key === 'xnine' ? card.structure.xnineLabel : '',
+            reading: (r || []).slice(0, 4).map(function (o) {
+                var v = arrow ? o.label : o.value === -1 ? '' : String(o.value);
+                return [v, o.p];
+            }), box: pic.box, png: pic.png};
+    }
+
+    function postCells(items, then) {
+        var fd = new FormData();
+        fd.append('action', 'add');
+        fd.append('items', JSON.stringify(items));
+        fd.append('csrf', root.getAttribute('data-csrf') || '');
+        fetch(root.getAttribute('data-labels-api'), {method: 'POST', credentials: 'same-origin', body: fd}).then(function (r) { return r.json(); })
+            .then(then || function () { return null; }, function () { return null; });
     }
 
     function sendDoubtsNow(ctx) {
         var url = root.getAttribute('data-labels-api'), rd = ctx.reading;
         if (!readOpts.doubts || !url || ctx.doubtsSent || !rd || !rd.sol) return;
+        // A match card not told whose it is: its cells could not be named.
+        if (K && !ctx.match) return;
         // Written numbers agreeing too little with the arrows: the grid is likely set a row
         // or a column off, its cells cut out across two (the person checking found many).
         if (rd.sol.agreement.low) return;
         // A card not shot: nothing on it to check.
-        if (notShot(ctx.fit, rd.reads)) return;
+        if (!K && notShot(ctx.fit, rd.reads)) return;
         ctx.doubtsSent = true;
-        var items = [], p = ctx.fit.printed, card = ctx.card;
+        var items = [], p = ctx.fit.printed;
         ctx.fit.cells.forEach(function (c) {
             var key = c.line + '.' + c.key, r = rd.reads[key];
             if (!r || !r.length) return;
+            // A match sheet: its arrows only (its numbers and boxes are measured or checked).
+            if (K && c.kind !== 'arrow') return;
             var doubt;
             if (c.kind === 'arrow') {
-                var a = rd.chosen[c.line + '.' + c.key.slice(1)];
-                doubt = !a || !isSure(rd, a);
+                // A match cell without ink: an end the match did not need (OcrKind.finish).
+                if (K && r[0].label === '' && r[0].p >= 0.99) return;
+                var a = doubtArrow(rd, c);
+                doubt = !a || !a.forced && (a.conf < SURE || rd.sol.agreement.low);
             } else {
                 // Nothing written, clearly: no doubt of the reading (a count or a sum the
                 // archer left blank). Checked by hand: 247 such cells out of 247 were blank.
@@ -2387,27 +2435,29 @@ document.addEventListener('DOMContentLoaded', function () {
                 // (ianseo keeps both), in doubt only when read unsurely.
                 doubt = !blank && (r[0].p < DOUBT_P || c.line !== 'total' && (want === null || r[0].value !== want));
             }
-            if (!doubt) return;
-            var pic = doubtPicture(ctx.fit, c);
-            items.push({uid: uid([tourCode, card.archer.enId, card.dist, key].join('|')), kind: c.kind === 'arrow' ? 'arrow' : 'number',
-                key: c.key, line: String(c.line), src: ctx.live ? 'live' : 'photo', enId: card.archer.enId, dist: card.dist,
-                allowed: c.kind === 'arrow' ? null : Lay.cellAllowed(c, p, card.values),
-                label: c.key === 'gold' ? card.structure.goldsLabel : c.key === 'xnine' ? card.structure.xnineLabel : '',
-                reading: r.slice(0, 4).map(function (o) {
-                    var v = c.kind === 'arrow' ? o.label : o.value === -1 ? '' : String(o.value);
-                    return [v, o.p];
-                }), box: pic.box, png: pic.png});
+            if (doubt) items.push(doubtItem(ctx, c, r));
         });
         if (!items.length) return;
-        var fd = new FormData();
-        fd.append('action', 'add');
-        fd.append('items', JSON.stringify(items));
-        fd.append('csrf', root.getAttribute('data-csrf') || '');
-        fetch(url, {method: 'POST', credentials: 'same-origin', body: fd}).then(function (r) { return r.json(); }).then(function (j) {
+        postCells(items, function (j) {
             if (j.error || !j.added || ctx.reading !== rd) return;
             rd.msgs = rd.msgs.concat([{kind: 'info', html: esc(t('DoubtsSent', j.added))}]);
             show(ctx, rd.msgs.concat(readingSummary(ctx)));
-        }, function () { return null; });
+        });
+    }
+
+    /**
+     * An arrow the operator chose in the grid: checked there, so saved as checked (with its
+     * picture, the cell in doubt or not): not left on the page of the cells to check.
+     */
+    function labelChosen(ctx, line, index, value) {
+        if (!readOpts.doubts || !root.getAttribute('data-labels-api') || !ctx.fit || state.sheet.indexOf(ctx) < 0) return;
+        if (K && !ctx.match) return;
+        var key = (String(line).indexOf('so') === 0 ? 's' : 'a') + index;
+        var c = ctx.fit.cells.find(function (x) { return String(x.line) === String(line) && x.key === key; });
+        if (!c) return;
+        var item = doubtItem(ctx, c, ctx.reading && ctx.reading.reads[c.line + '.' + c.key]);
+        item.value = value;
+        postCells([item]);
     }
 
     /**
@@ -2502,6 +2552,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 e.stopPropagation();
                 ctx.reading.forced[line + '.' + index] = v;
                 box.parentNode.removeChild(box);
+                labelChosen(ctx, line, index, v);
                 resolveReading(ctx);
             });
             box.appendChild(b);
