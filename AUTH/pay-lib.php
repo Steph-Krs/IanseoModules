@@ -22,6 +22,10 @@
  *   offerable($tourId, $keys), info($tourId, $text) — optional
  *       The means of payment an organiser may offer, and the text shown with each.
  *
+ *   allows($tourId, $feature) — optional
+ *       Whether the organiser may use a feature of the accounts on this competition:
+ *       'waive' (offer what is left on an account), 'free' (registrations offered in the tariff).
+ *
  *   session($tourId, $account, $amount, array $orders, $returnUrl, $idem)
  *       Opens a payment on the provider's hosted page for $amount on journal account $account
  *       (and, for the shop, the orders paid by it). Writes a journal line BlgStatus = 'pending',
@@ -142,6 +146,19 @@ function aut_pay_info_text($tourId, $text)
         if ($p['enabled'] && function_exists($fn)) $text = (string) $fn(intval($tourId), $text);
     }
     return $text;
+}
+
+/**
+ * May the organiser of competition $tourId use $feature ('waive', 'free')? Yes, unless an
+ * enabled provider says no (operation allows($tourId, $feature)).
+ */
+function aut_pay_allows($tourId, $feature)
+{
+    foreach (aut_pay_providers() as $code => $p) {
+        $fn = 'aut_pay_' . $code . '_allows';
+        if ($p['enabled'] && function_exists($fn) && !$fn(intval($tourId), (string) $feature)) return false;
+    }
+    return true;
 }
 
 /**

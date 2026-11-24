@@ -12,6 +12,10 @@
  *   payments — signed), the payments taken at the stands included.
  * Sales without a name go to technical accounts: 'G<id>' (a guest known by a nickname) and
  * 'C' (counter, anonymous). The payments page shows them as one summary line.
+ * - WAIVED: what the organiser offered ('waiver' lines, "Offer the rest"): it settles the
+ *   account like a payment but is no money. It covers only what is due: when the due drops
+ *   below the money really received, the surplus of an offer is never a refund to make.
+ *   'paid' counts the money and the part of the offers in use; 'waived' is that part.
  * - REMAINING = due - paid; negative = paid too much, a refund to make.
  * The organiser manages it on admin/dues.php ("Paiements"); the archer sees it in "Mes
  * inscriptions", on the receipt (any time, with every line and movement) and, for a
@@ -259,7 +263,7 @@ function bk_account_enid($account)
 function bk_ledger_kinds()
 {
     return array('payment' => bk_t('KindPayment'), 'refund' => bk_t('KindRefund'), 'cancel' => bk_t('KindCancel'),
-        'reject' => bk_t('KindReject'));
+        'reject' => bk_t('KindReject'), 'waiver' => bk_t('KindWaiver'));
 }
 
 /**
@@ -277,7 +281,8 @@ function bk_account_registrations($tourId, $account = null)
 {
     $tourId = intval($tourId);
     $cfg = bk_comp_config($tourId);
-    $pricing = bk_pricing_norm($cfg->BcPricing ?? '');
+    $pricing = bk_pricing_for($tourId, bk_pricing_norm($cfg->BcPricing ?? ''));
+    $org = bk_pricing_has_free($pricing) ? bk_org_agrement($tourId) : '';
     $where = "EnTournament = $tourId AND EnAthlete = 1";
     if ($account !== null) {
         $id = bk_account_enid($account);
@@ -302,7 +307,7 @@ function bk_account_registrations($tourId, $account = null)
                 'online' => false, 'reg' => 0.0, 'rows' => array());
         }
         $calc = bk_price_calc($cfg->BcFee, $pricing, $r->EnDivision, $r->EnClass, intval($r->QuSession),
-            bk_prov_tier($pricing, $r->CoCode), count($out[$k]['rows']) + 1);
+            bk_prov_tier($pricing, $r->CoCode), count($out[$k]['rows']) + 1, bk_free_reason($pricing, $r->CoCode, $org));
         $online = $r->BrEnId !== null;
         $out[$k]['rows'][] = array('enid' => intval($r->EnId), 'session' => intval($r->QuSession), 'online' => $online,
             'category' => ($r->DivDescription ?: $r->EnDivision) . ' / ' . ($r->ClDescription ?: $r->EnClass),
@@ -402,8 +407,17 @@ function bk_account($tourId, $account)
     bk_ledger_migrate($tourId);
     $d = bk_account_due($tourId, $account);
     $moves = bk_ledger_moves($tourId, $account);
-    $paid = 0.0;
-    foreach ($moves as $m) if ((string) $m->BlgStatus === 'done') $paid += (float) $m->BlgAmount;
+    $kindOf = array();
+    foreach ($moves as $m) $kindOf[intval($m->BlgId)] = (string) $m->BlgKind;
+    $money = 0.0; $offered = 0.0;
+    foreach ($moves as $m) {
+        if ((string) $m->BlgStatus !== 'done') continue;
+        // An offer and its cancellation are no money.
+        $isOffer = $m->BlgKind === 'waiver' || ($kindOf[intval($m->BlgCancels)] ?? '') === 'waiver';
+        if ($isOffer) $offered += (float) $m->BlgAmount; else $money += (float) $m->BlgAmount;
+    }
+    $waived = bk_waived_in_use($d['due'], $money, $offered);
+    $paid = $money + $waived;
     $a = $d['registrations'];
     $tech = bk_account_is_tech($account);
     return array(
@@ -413,8 +427,14 @@ function bk_account($tourId, $account)
         'shp_lines' => bk_shp() ? shp_account_lines($tourId, $account) : array(),
         'reg' => $d['reg'], 'shop' => $d['shop'], 'shop_old' => $d['shop_old'], 'shp' => $d['shp'],
         'due' => $d['due'], 'moves' => $moves,
-        'paid' => round($paid, 2), 'remaining' => round($d['due'] - $paid, 2),
+        'paid' => round($paid, 2), 'waived' => $waived, 'remaining' => round($d['due'] - $paid, 2),
     );
+}
+
+/** Part of the offers that settles an account: what the money left unpaid, at most what was offered. */
+function bk_waived_in_use($due, $money, $offered)
+{
+    return round(max(0.0, min((float) $offered, (float) $due - (float) $money)), 2);
 }
 
 /**
@@ -435,13 +455,17 @@ function bk_accounts($tourId)
     bk_ledger_migrate($tourId);
     $out = array();
     $blank = array('licence' => '', 'name' => '', 'club_code' => '', 'club_name' => '', 'count' => 0,
-        'online' => false, 'reg' => 0.0, 'shop' => 0.0, 'shp' => 0.0, 'paid' => 0.0, 'moves' => 0, 'decl' => '');
+        'online' => false, 'reg' => 0.0, 'shop' => 0.0, 'shp' => 0.0, 'paid' => 0.0, 'offered' => 0.0, 'waived' => 0.0,
+        'moves' => 0, 'decl' => '');
     foreach (bk_account_registrations($tourId) as $k => $a) {
         $out[$k] = array_merge($blank, array('account' => $k, 'licence' => $a['licence'], 'name' => $a['name'],
             'club_code' => $a['club_code'], 'club_name' => $a['club_name'], 'count' => count($a['rows']),
             'online' => $a['online'], 'reg' => $a['reg']));
     }
-    $rs = safe_r_sql("SELECT BlgAccount AS k, SUM(IF(BlgStatus = 'done', BlgAmount, 0)) AS p, COUNT(*) AS n FROM BookingLedger
+    // p: the money; w: the offers and their cancellations (bk_account).
+    $offer = "(BlgKind = 'waiver' OR BlgCancels IN (SELECT BlgId FROM BookingLedger WHERE BlgTournament = $tourId AND BlgKind = 'waiver'))";
+    $rs = safe_r_sql("SELECT BlgAccount AS k, SUM(IF(BlgStatus = 'done' AND NOT $offer, BlgAmount, 0)) AS p,
+            SUM(IF(BlgStatus = 'done' AND $offer, BlgAmount, 0)) AS w, COUNT(*) AS n FROM BookingLedger
         WHERE BlgTournament = $tourId GROUP BY BlgAccount");
     while ($r = safe_fetch($rs)) {
         if (!isset($out[$r->k])) {
@@ -449,6 +473,7 @@ function bk_accounts($tourId)
                 'licence' => (bk_account_enid($r->k) || bk_account_is_tech($r->k)) ? '' : $r->k));
         }
         $out[$r->k]['paid'] = round((float) $r->p, 2);
+        $out[$r->k]['offered'] = round((float) $r->w, 2);
         $out[$r->k]['moves'] = intval($r->n);
     }
     $shpLabels = array();
@@ -474,6 +499,8 @@ function bk_accounts($tourId)
         }
         if ($a['name'] === '' && isset($shpLabels[$k])) $a['name'] = $shpLabels[$k];   // as typed at a stand
         $a['due'] = round($a['reg'] + $a['shop'], 2);
+        $a['waived'] = bk_waived_in_use($a['due'], $a['paid'], $a['offered']);
+        $a['paid'] = round($a['paid'] + $a['waived'], 2);
         $a['remaining'] = round($a['due'] - $a['paid'], 2);
         $py = $decl[$k] ?? null;
         $a['decl'] = $py ? bk_payment_decl_label($py->PyDeclMethod ?? '', $py->PyDeclWhen ?? '') : '';
@@ -492,7 +519,7 @@ function bk_accounts($tourId)
         $sum = array_merge($blank, array('account' => BK_SHOP_SUMMARY, 'synthetic' => true, 'name' => bk_t('DuShopNoAccount'),
             'decl_method' => '', 'due' => 0.0, 'remaining' => 0.0, 'accounts' => $tech));
         foreach ($tech as $a) {
-            foreach (array('shop', 'shp', 'due', 'paid', 'remaining') as $f) $sum[$f] = round($sum[$f] + $a[$f], 2);
+            foreach (array('shop', 'shp', 'due', 'paid', 'waived', 'remaining') as $f) $sum[$f] = round($sum[$f] + $a[$f], 2);
             $sum['moves'] += $a['moves'];
         }
         $out[BK_SHOP_SUMMARY] = $sum;
@@ -578,8 +605,8 @@ function bk_ledger_benef($tourId)
 }
 
 /**
- * Writes a journal line. $kind 'payment' or 'refund' (amount given positive, stored with its
- * sign); $date 'YYYY-MM-DD' typed by the organiser ('' = now, local time of the competition).
+ * Writes a journal line. $kind 'payment', 'refund' or 'waiver' (amount given positive, stored
+ * with its sign; a waiver is no money: no means of payment, bk_ledger_waive); $date 'YYYY-MM-DD' typed by the organiser ('' = now, local time of the competition).
  * $extra (all optional):
  *   order, stand, staff  food & shop order, stand and volunteer of the line
  *   provider, ref        'manual' (default) or an online provider, and its id of the payment
@@ -596,7 +623,8 @@ function bk_ledger_add($tourId, $account, $kind, $amount, $method, $date, $label
     bk_ledger_existing(false);
     $tourId = intval($tourId);
     $amount = round((float) $amount, 2);
-    if (!in_array($kind, array('payment', 'refund'), true) || $amount <= 0 || $amount > 999999) return 0;
+    if (!in_array($kind, array('payment', 'refund', 'waiver'), true) || $amount <= 0 || $amount > 999999) return 0;
+    if ($kind === 'waiver') { $method = ''; $extra['ref'] = ''; }
     $idem = strtolower(trim((string) ($extra['idem'] ?? '')));   // bytes: a UUID is ASCII
     if ($idem !== '' && !preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $idem)) return 0;
     if ($idem !== '' && ($id = bk_ledger_by_idem($tourId, $idem))) {
@@ -706,6 +734,20 @@ function bk_ledger_cancel($tourId, $id, $by, $staffId = 0)
 function bk_ledger_reject($tourId, $id, $by, $note = '', $staffId = 0)
 {
     return bk_ledger_counter($tourId, $id, $by, 'reject', $note, $staffId);
+}
+
+/**
+ * Offers what is left to pay on an account ("Offer the rest"): one 'waiver' line of $amount,
+ * with the reason, required (volunteer, judge, mistake…). The line can be cancelled like any
+ * other. $staffId: the volunteer at the check-in desk, 0 on the Payments page. Returns the
+ * line id, 0 when refused (nothing to offer, no reason).
+ */
+function bk_ledger_waive($tourId, $account, $amount, $reason, $by, $staffId = 0, $idem = '')
+{
+    $reason = trim((string) $reason);
+    if ($reason === '' || round((float) $amount, 2) <= 0) return 0;
+    return bk_ledger_add($tourId, $account, 'waiver', $amount, '', '', bk_t('LedgerWaiver', mb_substr($reason, 0, 120)), $by, 0,
+        array('staff' => intval($staffId), 'idem' => $idem));
 }
 
 /** 'YYYY-MM-DD…' → 'YYYY-MM-DD', '' when not a date. */

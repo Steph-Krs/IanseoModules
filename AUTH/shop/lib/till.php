@@ -556,8 +556,11 @@ function shp_till_report($me, $standId)
     $day = "DATE(BlgWhen) = DATE(" . shp_local_now_sql($tour) . ")";
     $labels = shp_pay_methods();
     $sum = function ($where) use ($tour, $day, $labels) {
+        // An offer made at the check-in desk ('waiver') is no money: left out with its cancellation.
         $rs = safe_r_sql("SELECT BlgMethod, BlgKind, COUNT(*) AS n, SUM(BlgAmount) AS s FROM BookingLedger
-            WHERE BlgTournament = $tour AND BlgStatus = 'done' AND $day AND $where GROUP BY BlgMethod, BlgKind");
+            WHERE BlgTournament = $tour AND BlgStatus = 'done' AND $day AND $where AND BlgKind <> 'waiver'
+              AND BlgCancels NOT IN (SELECT BlgId FROM BookingLedger WHERE BlgTournament = $tour AND BlgKind = 'waiver')
+            GROUP BY BlgMethod, BlgKind");
         $rows = array();
         while ($r = safe_fetch($rs)) {
             $m = (string) $r->BlgMethod;

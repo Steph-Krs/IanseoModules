@@ -189,6 +189,9 @@ function bk_ledger_pdf_account($pdf, $a, $newPage = true, $known = true)
     }
     $pdf->Ln(1);
     bk_pdf_row($pdf, array(array($w - 30, bk_t('TotalPaid'), 'R', 'B'), array(30, bk_pdf_eur($a['paid']), 'R', 'B')), '');
+    if (($a['waived'] ?? 0) > 0.005) {
+        bk_pdf_row($pdf, array(array($w - 30, bk_t('TotalWaived'), 'R'), array(30, bk_pdf_eur($a['waived']), 'R')), '');
+    }
 
     // Balance.
     $pdf->Ln(3);

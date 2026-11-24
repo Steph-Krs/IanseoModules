@@ -11,6 +11,9 @@
  *                 + Δ origin                   (local department / region, the best only)
  *                 + Δ rank )                   (2nd, 3rd… registration of the person)
  *
+ * then brought down to 0 when the registration is free: archer of the organising club, or of a
+ * club of the free list (the competition offered to its own members, to a partner club…).
+ *
  * The server is the authority (receipt). The live display on the archer side reproduces the
  * same formula in JavaScript.
  */
@@ -28,7 +31,7 @@ function bk_pricing_norm($raw)
 
     $out = array('categories' => array(), 'departures' => array(),
                  'prov' => array('deptCode' => '', 'regionCode' => '', 'dept' => 0.0, 'region' => 0.0),
-                 'rank' => array());
+                 'rank' => array(), 'free' => array('org' => false, 'clubs' => array()));
 
     foreach (($raw['categories'] ?? array()) as $r) {
         if (!is_array($r)) continue;
@@ -53,7 +56,22 @@ function bk_pricing_norm($raw)
         $th = (int) $th;
         if ($th >= 2 && (float) $delta != 0.0) $out['rank'][(string) $th] = round((float) $delta, 2);
     }
+    $free = $raw['free'] ?? array();
+    $out['free']['org'] = !empty($free['org']);
+    $clubs = is_array($free['clubs'] ?? null) ? $free['clubs'] : preg_split('/[\s,;]+/', (string) ($free['clubs'] ?? ''));
+    foreach ($clubs as $c) {
+        $c = bk_club_code_norm($c);
+        if ($c !== '' && !in_array($c, $out['free']['clubs'], true)) $out['free']['clubs'][] = $c;
+    }
+    $out['free']['clubs'] = array_slice($out['free']['clubs'], 0, 100);
     return $out;
+}
+
+/** A club code (agreement number) as compared: letters and digits, upper case. */
+function bk_club_code_norm($code)
+{
+    // bytes: agreement numbers are ASCII letters and digits.
+    return strtoupper(substr(preg_replace('/[^0-9A-Za-z]/', '', (string) $code), 0, 16));
 }
 
 /** Normalised tariff setup of a competition (object of bk_comp_config). */
@@ -66,7 +84,38 @@ function bk_pricing_get($cfg)
 function bk_pricing_is_advanced($p)
 {
     return $p['categories'] || $p['departures']
-        || $p['prov']['dept'] != 0.0 || $p['prov']['region'] != 0.0 || $p['rank'];
+        || $p['prov']['dept'] != 0.0 || $p['prov']['region'] != 0.0 || $p['rank'] || bk_pricing_has_free($p);
+}
+
+/** Is any registration made free (organising club, free list)? */
+function bk_pricing_has_free($p)
+{
+    return !empty($p['free']['org']) || !empty($p['free']['clubs']);
+}
+
+/**
+ * The tariff $p as it applies on competition $tourId: the free registrations are left out when
+ * a payment module does not allow them there (aut_pay_allows, 'free').
+ */
+function bk_pricing_for($tourId, $p)
+{
+    if (!bk_pricing_has_free($p)) return $p;
+    require_once dirname(__DIR__, 2) . '/pay-lib.php';
+    if (!aut_pay_allows(intval($tourId), 'free')) $p['free'] = array('org' => false, 'clubs' => array());
+    return $p;
+}
+
+/**
+ * Why a club's registrations are free: 'org' (the organising club, $orgCode = Tournament.ToCommitee,
+ * see bk_org_agrement), 'club' (on the free list), '' (paying). The organising club wins.
+ */
+function bk_free_reason($p, $clubCode, $orgCode)
+{
+    $club = bk_club_code_norm($clubCode);
+    if ($club === '') return '';
+    if (!empty($p['free']['org']) && $club === bk_club_code_norm($orgCode)) return 'org';
+    if (in_array($club, $p['free']['clubs'] ?? array(), true)) return 'club';
+    return '';
 }
 
 /**
@@ -91,15 +140,17 @@ function bk_prov_tier($p, $clubCode)
 function bk_price_labels()
 {
     return array('base' => bk_t('PriceBase'), 'cat' => bk_t('PriceCat'), 'dept' => bk_t('PriceDept'),
-        'region' => bk_t('PriceRegion'));
+        'region' => bk_t('PriceRegion'), 'freeOrg' => bk_t('PriceFreeOrg'), 'freeClub' => bk_t('PriceFreeClub'));
 }
 
 /**
- * Price of a registration and its detail, line by line.
+ * Price of a registration and its detail, line by line. $free: bk_free_reason() of the archer's
+ * club; a free registration keeps its detail and gets one last line that brings it to 0, so the
+ * receipt shows what was offered. It still counts in the rank of the person's registrations.
  *
  * @return array ['total' => float, 'lines' => [['label' => …, 'amount' => float], …]]
  */
-function bk_price_calc($base, $p, $division, $class, $sessionOrder, $tier, $rank)
+function bk_price_calc($base, $p, $division, $class, $sessionOrder, $tier, $rank, $free = '')
 {
     $lines = array();
 
@@ -144,13 +195,18 @@ function bk_price_calc($base, $p, $division, $class, $sessionOrder, $tier, $rank
         $price += $rd;
     }
 
-    return array('total' => max(0.0, round($price, 2)), 'lines' => $lines);
+    $price = max(0.0, round($price, 2));
+    if (($free === 'org' || $free === 'club') && $price > 0) {
+        $lines[] = array('label' => bk_t($free === 'org' ? 'PriceFreeOrg' : 'PriceFreeClub'), 'amount' => -$price);
+        $price = 0.0;
+    }
+    return array('total' => $price, 'lines' => $lines);
 }
 
 /** Price alone (no detail). */
-function bk_price_of($base, $p, $division, $class, $sessionOrder, $tier, $rank)
+function bk_price_of($base, $p, $division, $class, $sessionOrder, $tier, $rank, $free = '')
 {
-    $r = bk_price_calc($base, $p, $division, $class, $sessionOrder, $tier, $rank);
+    $r = bk_price_calc($base, $p, $division, $class, $sessionOrder, $tier, $rank, $free);
     return $r['total'];
 }
 
@@ -179,7 +235,8 @@ function bk_org_agrement($tourId)
 
 /**
  * Lowest price that can be shown ("from"): the smallest base (base or smallest category)
- * with the best negative adjustments. Used by the calendar and the detail page when the
+ * with the best negative adjustments. The free registrations are left out: "from 0" would
+ * mislead every archer who is not of a free club. Used by the calendar and the detail page when the
  * tariff is detailed.
  */
 function bk_price_min($base, $p)
@@ -217,8 +274,8 @@ function bk_price_cat_lines($base, $p)
     return $out;
 }
 
-/** Are there adjustments the fixed prices do not show (departure, origin, several registrations)? */
+/** Are there adjustments the fixed prices do not show (departure, origin, several registrations, free clubs)? */
 function bk_pricing_has_adjust($p)
 {
-    return $p['departures'] || $p['prov']['dept'] != 0.0 || $p['prov']['region'] != 0.0 || $p['rank'];
+    return $p['departures'] || $p['prov']['dept'] != 0.0 || $p['prov']['region'] != 0.0 || $p['rank'] || bk_pricing_has_free($p);
 }

@@ -217,14 +217,15 @@ function aut_anon_plan($lic)
         $o = safe_fetch(safe_r_sql("SELECT COUNT(*) AS n FROM TournamentInvolved WHERE TiTournament = $t AND TiCode = $l"));
         $out[$t]['officials'] = $o ? intval($o->n) : 0;
         $acc = bk_account($t, $lic);
-        if ($acc['paid'] > 0.005) {
+        $money = round($acc['paid'] - ($acc['waived'] ?? 0), 2);   // what was offered is not given back
+        if ($money > 0.005) {
             $method = '';
             foreach ($acc['moves'] as $m) if ($m->BlgKind === 'payment' && !intval($m->BlgCancelled)) $method = (string) $m->BlgMethod;
             $club = safe_fetch(safe_r_sql("SELECT CoCode AS c, CoName AS n FROM Entries
                 INNER JOIN Countries ON CoId = EnCountry WHERE EnTournament = $t AND EnCode = $l LIMIT 1"))
                 ?: safe_fetch(safe_r_sql("SELECT LueCountry AS c, LueCoDescr AS n FROM LookUpEntries
                 WHERE LueCode = $l ORDER BY LueDefault DESC LIMIT 1"));
-            $out[$t]['refund'] = array('amount' => $acc['paid'], 'method' => $method,
+            $out[$t]['refund'] = array('amount' => $money, 'method' => $method,
                 'club_code' => $club ? (string) $club->c : '', 'club_name' => $club ? (string) $club->n : '');
         }
     }

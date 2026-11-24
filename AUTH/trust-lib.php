@@ -486,8 +486,11 @@ function aut_trust_tour_incidents($tourId, $end, $cfg, $today)
     $accounts = array();   // licence => ['due', 'reg', 'club']
     if ($regTracked) {
         foreach (bk_accounts($tourId) as $k => $a) {
-            if (aut_trust_subject($k) === '' || $a['due'] <= 0) continue;
-            $accounts[$k] = array('due' => $a['due'], 'reg' => $a['reg'], 'club' => (string) $a['club_code']);
+            // What was offered ('waiver' lines) is no longer owed, and was never paid late.
+            $waived = (float) ($a['waived'] ?? 0);
+            $due = round($a['due'] - $waived, 2);
+            if (aut_trust_subject($k) === '' || $due <= 0) continue;
+            $accounts[$k] = array('due' => $due, 'reg' => max(0.0, round($a['reg'] - $waived, 2)), 'club' => (string) $a['club_code']);
         }
     } elseif (function_exists('shp_account_due')) {
         // Only the shop lends on this competition: its part of the account, nothing else.
@@ -544,6 +547,7 @@ function aut_trust_tour_incidents($tourId, $end, $cfg, $today)
         // When was the account settled? The last time the payments reached what is due.
         $paid = 0.0; $settledAt = '';
         foreach ($moves[$lic] ?? array() as $m) {
+            if ($m->BlgKind === 'waiver' || (($byId[intval($m->BlgCancels)] ?? null) && $byId[intval($m->BlgCancels)]->BlgKind === 'waiver')) continue;
             $before = $paid;
             $paid = round($paid + (float) $m->BlgAmount, 2);
             $when = substr((string) ($m->BlgWhen ?: $m->BlgCreated), 0, 10);   // bytes: ASCII date

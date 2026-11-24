@@ -64,7 +64,9 @@ des espaces en ligne (le module est prêt à basculer le jour venu).
 - 💶 **Paiements** : un compte par participant (inscrit en ligne ou saisi dans ianseo) — total dû
   d'après les tarifs de la compétition, déjà payé, reste à payer ; historique des encaissements,
   annulations et remboursements ; règlement d'un club en une fois, du montant choisi ; reçus et liste
-  en PDF. L'archer voit son compte et imprime son reçu à tout moment, et l'accueil lui rappelle ce
+  en PDF. Inscriptions offertes dans le tarif au club organisateur ou à une liste de clubs, et
+  « Offrir le reste » sur un compte (page Paiements et greffe, motif obligatoire) : le compte est
+  soldé sans compter dans l'encaissé, la caisse ni un remboursement. L'archer voit son compte et imprime son reçu à tout moment, et l'accueil lui rappelle ce
   qu'il doit encore pour une compétition terminée. Aussi pour une compétition **fermée** sur le
   serveur (participants importés dans ianseo) : une case active tarifs, paiements et boutique sans
   ouvrir les inscriptions en ligne
@@ -287,12 +289,12 @@ les règles d'accès.
 |---|---|---|---|
 | `DELETE FROM` | `LookUpEntries` | `admin/config.php:42` | review scope by hand |
 | `DELETE FROM` | `LookUpEntries` | `admin/index.php:231` | review scope by hand |
-| `DELETE FROM` | `TournamentInvolved` | `anonymise-lib.php:249` | — |
-| `UPDATE` | `Entries` | `anonymise-lib.php:382` | review scope by hand |
-| `DELETE FROM` | `Photos` | `anonymise-lib.php:387` | — |
-| `DELETE FROM` | `ExtraData` | `anonymise-lib.php:389` | — |
-| `UPDATE` | `ExtraData` | `anonymise-lib.php:391` | — |
-| `UPDATE` | `TournamentInvolved` | `anonymise-lib.php:396` | review scope by hand |
+| `DELETE FROM` | `TournamentInvolved` | `anonymise-lib.php:250` | — |
+| `UPDATE` | `Entries` | `anonymise-lib.php:383` | review scope by hand |
+| `DELETE FROM` | `Photos` | `anonymise-lib.php:388` | — |
+| `DELETE FROM` | `ExtraData` | `anonymise-lib.php:390` | — |
+| `UPDATE` | `ExtraData` | `anonymise-lib.php:392` | — |
+| `UPDATE` | `TournamentInvolved` | `anonymise-lib.php:397` | review scope by hand |
 | `UPDATE` | `Entries` | `booking/lib/adopt.php:244` | review scope by hand |
 | `UPDATE` | `Entries` | `booking/lib/clubmoves.php:94` | review scope by hand |
 | `UPDATE` | `Qualifications` | `booking/lib/compose.php:148` | — |
@@ -303,7 +305,7 @@ les règles d'accès.
 | `UPDATE` | `Entries` | `booking/lib/licences.php:105` | review scope by hand |
 | `UPDATE` | `Qualifications` | `booking/lib/licences.php:142` | — |
 | `UPDATE` | `Entries` | `booking/lib/licences.php:145` | review scope by hand |
-| `UPDATE` | `IdCards` | `booking/lib/mandate.php:1080` | review scope by hand |
+| `UPDATE` | `IdCards` | `booking/lib/mandate.php:1083` | review scope by hand |
 | `UPDATE` | `Entries` | `booking/lib/modify.php:111` | review scope by hand |
 | `UPDATE` | `Qualifications` | `booking/lib/modify.php:122` | — |
 | `DELETE FROM` | `LookUpEntries` | `booking/lib/other.php:215` | review scope by hand |
@@ -357,38 +359,38 @@ les règles d'accès.
 | `DELETE FROM` | `BookingSessions` | `admin/index.php:225` | — |
 | `DELETE FROM` | `BookingPalmares` | `admin/index.php:228` | — |
 | `DELETE FROM` | `BookingArchers` | `admin/index.php:234` | — |
-| `DELETE FROM` | `BookingShopOrders` | `anonymise-lib.php:250` | — |
-| `DELETE FROM` | `BookingPayments` | `anonymise-lib.php:251` | — |
-| `UPDATE` | `BookingRegistrations` | `anonymise-lib.php:287` | — |
+| `DELETE FROM` | `BookingShopOrders` | `anonymise-lib.php:251` | — |
+| `DELETE FROM` | `BookingPayments` | `anonymise-lib.php:252` | — |
 | `UPDATE` | `BookingRegistrations` | `anonymise-lib.php:288` | — |
 | `UPDATE` | `BookingRegistrations` | `anonymise-lib.php:289` | — |
-| `UPDATE` | `BookingLedger` | `anonymise-lib.php:293` | — |
-| `DELETE FROM` | `BookingPalmares` | `anonymise-lib.php:295` | — |
-| `UPDATE IGNORE` | `BookingPayments` | `anonymise-lib.php:297` | — |
-| `DELETE FROM` | `BookingPayments` | `anonymise-lib.php:298` | — |
-| `UPDATE IGNORE` | `BookingShopOrders` | `anonymise-lib.php:301` | — |
-| `DELETE FROM` | `BookingShopOrders` | `anonymise-lib.php:302` | — |
-| `UPDATE` | `ShopOrders` | `anonymise-lib.php:305` | — |
-| `DELETE FROM` | `ShopStaffSessions` | `anonymise-lib.php:308` | — |
-| `UPDATE` | `ShopStaff` | `anonymise-lib.php:310` | — |
-| `UPDATE` | `BookingSurveys` | `anonymise-lib.php:316` | — |
-| `DELETE FROM` | `BookingSurveyVoters` | `anonymise-lib.php:317` | — |
-| `UPDATE` | `BookingLog` | `anonymise-lib.php:318` | — |
-| `UPDATE` | `BookingClubMoves` | `anonymise-lib.php:320` | — |
-| `UPDATE` | `BookingRefunds` | `anonymise-lib.php:321` | — |
-| `UPDATE` | `BookingReimportConflicts` | `anonymise-lib.php:323` | — |
-| `DELETE FROM` | `BookingChecks` | `anonymise-lib.php:326` | — |
-| `DELETE FROM` | `BookingCheckLog` | `anonymise-lib.php:327` | — |
-| `DELETE FROM` | `BookingWaitlist` | `anonymise-lib.php:365` | — |
-| `DELETE FROM` | `BookingSessions` | `anonymise-lib.php:404` | — |
-| `DELETE FROM` | `BookingClubManagers` | `anonymise-lib.php:405` | — |
-| `DELETE FROM` | `BookingArchers` | `anonymise-lib.php:406` | — |
-| `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:411` | — |
+| `UPDATE` | `BookingRegistrations` | `anonymise-lib.php:290` | — |
+| `UPDATE` | `BookingLedger` | `anonymise-lib.php:294` | — |
+| `DELETE FROM` | `BookingPalmares` | `anonymise-lib.php:296` | — |
+| `UPDATE IGNORE` | `BookingPayments` | `anonymise-lib.php:298` | — |
+| `DELETE FROM` | `BookingPayments` | `anonymise-lib.php:299` | — |
+| `UPDATE IGNORE` | `BookingShopOrders` | `anonymise-lib.php:302` | — |
+| `DELETE FROM` | `BookingShopOrders` | `anonymise-lib.php:303` | — |
+| `UPDATE` | `ShopOrders` | `anonymise-lib.php:306` | — |
+| `DELETE FROM` | `ShopStaffSessions` | `anonymise-lib.php:309` | — |
+| `UPDATE` | `ShopStaff` | `anonymise-lib.php:311` | — |
+| `UPDATE` | `BookingSurveys` | `anonymise-lib.php:317` | — |
+| `DELETE FROM` | `BookingSurveyVoters` | `anonymise-lib.php:318` | — |
+| `UPDATE` | `BookingLog` | `anonymise-lib.php:319` | — |
+| `UPDATE` | `BookingClubMoves` | `anonymise-lib.php:321` | — |
+| `UPDATE` | `BookingRefunds` | `anonymise-lib.php:322` | — |
+| `UPDATE` | `BookingReimportConflicts` | `anonymise-lib.php:324` | — |
+| `DELETE FROM` | `BookingChecks` | `anonymise-lib.php:327` | — |
+| `DELETE FROM` | `BookingCheckLog` | `anonymise-lib.php:328` | — |
+| `DELETE FROM` | `BookingWaitlist` | `anonymise-lib.php:366` | — |
+| `DELETE FROM` | `BookingSessions` | `anonymise-lib.php:405` | — |
+| `DELETE FROM` | `BookingClubManagers` | `anonymise-lib.php:406` | — |
+| `DELETE FROM` | `BookingArchers` | `anonymise-lib.php:407` | — |
 | `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:412` | — |
-| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:104` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:131` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:147` | — |
-| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:220` | — |
+| `UPDATE` | `BookingWaitlist` | `anonymise-lib.php:413` | — |
+| `INSERT INTO` | `BookingCompetitions` | `booking/admin/competition.php:105` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:132` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:148` | — |
+| `UPDATE` | `BookingCompetitions` | `booking/admin/competition.php:221` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/admin/mandate.php:44` | — |
 | `UPDATE` | `BookingCompetitions` | `booking/lib/adopt.php:66` | — |
 | `INSERT INTO` | `BookingReimportConflicts` | `booking/lib/adopt.php:124` | — |
@@ -489,14 +491,14 @@ les règles d'accès.
 | `DELETE FROM` | `BookingPalmares` | `booking/lib/palmares.php:419` | — |
 | `INSERT INTO` | `BookingPalmares` | `booking/lib/palmares.php:428` | — |
 | `DELETE FROM` | `BookingPalmares` | `booking/lib/palmares.php:441` | — |
-| `INSERT INTO` | `BookingPayments` | `booking/lib/payment.php:194` | — |
-| `UPDATE` | `BookingPayments` | `booking/lib/payment.php:331` | — |
-| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/payment.php:613` | — |
-| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:617` | — |
-| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:673` | — |
-| `UPDATE` | `BookingLedger` | `booking/lib/payment.php:689` | — |
-| `INSERT INTO` | `BookingRefunds` | `booking/lib/payment.php:784` | — |
-| `UPDATE` | `BookingRefunds` | `booking/lib/payment.php:813` | — |
+| `INSERT INTO` | `BookingPayments` | `booking/lib/payment.php:198` | — |
+| `UPDATE` | `BookingPayments` | `booking/lib/payment.php:336` | — |
+| `INSERT IGNORE INTO` | `BookingCompetitions` | `booking/lib/payment.php:641` | — |
+| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:645` | — |
+| `INSERT INTO` | `BookingLedger` | `booking/lib/payment.php:701` | — |
+| `UPDATE` | `BookingLedger` | `booking/lib/payment.php:717` | — |
+| `INSERT INTO` | `BookingRefunds` | `booking/lib/payment.php:826` | — |
+| `UPDATE` | `BookingRefunds` | `booking/lib/payment.php:855` | — |
 | `UPDATE` | `BookingArchers` | `booking/lib/registration.php:469` | — |
 | `UPDATE` | `BookingWaitlist` | `booking/lib/registration.php:538` | — |
 | `INSERT INTO` | `BookingRegistrations` | `booking/lib/registration.php:693` | — |
@@ -619,11 +621,11 @@ les règles d'accès.
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:79` | — |
 | `INSERT INTO` | `ShopGuests` | `shop/lib/customer.php:85` | — |
 | `UPDATE` | `ShopGuests` | `shop/lib/customer.php:98` | — |
-| `UPDATE` | `ShopDeskCloses` | `shop/lib/desk-cash.php:123` | — |
-| `INSERT INTO` | `ShopDeskCloses` | `shop/lib/desk-cash.php:211` | — |
-| `UPDATE` | `BookingLedger` | `shop/lib/desk-cash.php:214` | — |
-| `UPDATE` | `BookingLedger` | `shop/lib/desk-cash.php:232` | — |
-| `DELETE FROM` | `ShopDeskCloses` | `shop/lib/desk-cash.php:233` | — |
+| `UPDATE` | `ShopDeskCloses` | `shop/lib/desk-cash.php:126` | — |
+| `INSERT INTO` | `ShopDeskCloses` | `shop/lib/desk-cash.php:214` | — |
+| `UPDATE` | `BookingLedger` | `shop/lib/desk-cash.php:217` | — |
+| `UPDATE` | `BookingLedger` | `shop/lib/desk-cash.php:235` | — |
+| `DELETE FROM` | `ShopDeskCloses` | `shop/lib/desk-cash.php:236` | — |
 | `INSERT IGNORE INTO` | `BookingCheckEntries` | `shop/lib/desk.php:259` | — |
 | `INSERT INTO` | `BookingCheckLog` | `shop/lib/desk.php:494` | — |
 | `DELETE FROM` | `BookingChecks` | `shop/lib/desk.php:545` | — |

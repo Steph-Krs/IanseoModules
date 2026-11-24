@@ -208,7 +208,7 @@ foreach ($sessions as $s) {
 // Tariff: origin and rank are fixed for this registration (the club and the number of
 // registrations already made do not depend on the form); only category and departure change
 // the price, computed again live on the browser side.
-$pricing  = bk_pricing_get($cfg);
+$pricing  = bk_pricing_for($tourId, bk_pricing_get($cfg));
 $provTier = bk_prov_tier($pricing, $lue->LueCountry);
 $nextRank = count($mine) + 1;
 if ($editRow) {
@@ -224,7 +224,8 @@ foreach ($pricing['rank'] as $th => $d) {
     $th = (int) $th;
     if ($nextRank >= $th && $th > $rankTh) { $rankTh = $th; $rankDelta = (float) $d; }
 }
-$calc = bk_price_calc($cfg->BcFee, $pricing, $division, $class, $sessionOrder, $provTier, $nextRank);
+$freeReason = bk_free_reason($pricing, $lue->LueCountry, bk_org_agrement($tourId));
+$calc = bk_price_calc($cfg->BcFee, $pricing, $division, $class, $sessionOrder, $provTier, $nextRank, $freeReason);
 $showPrice = ((float) $cfg->BcFee > 0) || bk_pricing_is_advanced($pricing);
 
 // Payment choices offered to the competitor (means + when), when there is a fee.
@@ -660,6 +661,7 @@ var BK_PRICE = <?= json_encode(array(
     'provLabel' => $provTier === 'dept' ? bk_t('PriceDept') : ($provTier === 'region' ? bk_t('PriceRegion') : ''),
     'rank'      => $rankDelta,
     'rankLabel' => $rankTh > 0 ? bk_t('PriceRank', $nextRank) : '',
+    'freeLabel' => $freeReason !== '' ? bk_t($freeReason === 'org' ? 'PriceFreeOrg' : 'PriceFreeClub') : '',
     // Texts of the visitor's language, number separators of the core, currency of the competition.
     't'         => array('base' => bk_t('PriceBase'), 'cat' => bk_t('PriceCat'), 'catNamed' => bk_t('PriceCatNamed'),
                          'dep' => bk_t('DepCap'), 'cur' => bk_currency($tourId)) + bk_number_seps(),
@@ -689,6 +691,7 @@ var BK_PRICE = <?= json_encode(array(
     if (BK_PRICE.prov) { lines.push([BK_PRICE.provLabel, BK_PRICE.prov, true]); total += BK_PRICE.prov; }
     if (BK_PRICE.rank) { lines.push([BK_PRICE.rankLabel, BK_PRICE.rank, true]); total += BK_PRICE.rank; }
     total = Math.max(0, total);
+    if (BK_PRICE.freeLabel && total > 0) { lines.push([BK_PRICE.freeLabel, -total, true]); total = 0; }
     var html = '';
     for (var j = 0; j < lines.length; j++) html += '<tr><td>' + esc(lines[j][0]) + '</td><td class="bk-price-num">' + eur(lines[j][1], lines[j][2]) + '</td></tr>';
     var body = document.getElementById('bk-price-lines'); if (body) body.innerHTML = html;

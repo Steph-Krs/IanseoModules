@@ -449,6 +449,15 @@
                 write({ act: 'pay', method: m.code, amount: amount.value.trim(), ref: ref ? ref.value.trim() : '' }, T('DkPayDone'));
             });
         })));
+        // Offer the rest (no money, not in the till): a reason is required.
+        if (!C.waive) return box;
+        var reason = h('input', { type: 'text', maxlength: '120', class: 'dk-waive-reason', placeholder: T('DkWaiveReasonPh'), 'aria-label': T('DkWaiveReasonPh') });
+        box.push(h('details', { class: 'dk-waive' }, [h('summary', { text: T('DkWaive') }), reason,
+            h('div', { class: 'dk-btns' }, [confirmBtn(T('DkWaive'), T('DkWaiveSure'), '', function (b) {
+                if (!reason.value.trim()) { Shp.toast(T('DkWaiveNoReason')); reason.focus(); return; }
+                b.disabled = true;
+                write({ act: 'waive', reason: reason.value.trim() }, T('DkWaiveDone'));
+            })])]));
         return box;
     }
 

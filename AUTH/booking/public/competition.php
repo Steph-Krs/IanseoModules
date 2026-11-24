@@ -114,13 +114,14 @@ if (!$sessions) {
 }
 
 echo '<div class="bk-detail-act">';
-$cp = bk_pricing_get($c);
+$cp = bk_pricing_for($tourId, bk_pricing_get($c));
 if (bk_pricing_is_advanced($cp)) {
     // The fixed prices (base, then "Young tariff: …" per category rule); the other adjustments
     // (origin, several sessions, session chosen) are too many to detail here.
     foreach (bk_price_cat_lines($c->BcFee, $cp) as $line) {
         echo '<p class="bk-fee">' . bk_e(bk_t('LabelColon', $line['label'])) . ' ' . bk_e(bk_eur($line['amount'])) . '</p>';
     }
+    if (!empty($cp['free']['org'])) echo '<p class="bk-fee">' . bk_e(bk_t('FeeFreeOrg')) . '</p>';
     if (bk_pricing_has_adjust($cp)) echo '<p class="bk-hint">' . bk_e(bk_t('FeeAdjustOther')) . '</p>';
 } elseif ((float) $c->BcFee > 0) {
     echo '<p class="bk-fee">' . bk_e(bk_t('Fee', bk_eur($c->BcFee))) . '</p>';

@@ -131,7 +131,9 @@ if (!$a['moves']) {
             . ($m->BlgLabel !== '' ? '<br><span class="bk-hint">' . bk_e($m->BlgLabel) . '</span>' : '')
             . ($off ? ' <span class="bk-hint">(' . bk_e(bk_ledger_off_word($m)) . ')</span>' : '') . '</td><td class="n">' . rc_eur($m->BlgAmount) . '</td></tr>';
     }
-    echo '<tr class="tot"><td colspan="2">' . bk_e(bk_t('TotalPaid')) . '</td><td class="n">' . rc_eur($a['paid']) . '</td></tr></table></div>';
+    echo '<tr class="tot"><td colspan="2">' . bk_e(bk_t('TotalPaid')) . '</td><td class="n">' . rc_eur($a['paid']) . '</td></tr>'
+        . (($a['waived'] ?? 0) > 0.005 ? '<tr><td colspan="2">' . bk_e(bk_t('TotalWaived')) . '</td><td class="n">' . rc_eur($a['waived']) . '</td></tr>' : '')
+        . '</table></div>';
 }
 
 if (!$known) {

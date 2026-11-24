@@ -16,6 +16,7 @@
 require_once dirname(__DIR__) . '/staff/boot.php';
 require_once dirname(__DIR__) . '/lib/desk.php';
 require_once dirname(__DIR__) . '/lib/posts.php';
+require_once dirname(__DIR__, 2) . '/pay-lib.php';   // aut_pay_allows
 
 $key = (string) ($_GET['k'] ?? '');
 $keyTour = shp_tour_by_key($key);
@@ -57,6 +58,7 @@ $texts = shp_ts(array(
     'DkUndoSure', 'DkStateNone', 'DkStateOk', 'DkStateKo', 'DkReason', 'DkReasonPh', 'DkStatus9', 'DkPowerTitle', 'DkPowerPh',
     'DkPowerAdd', 'DkPowerNone', 'DkPowerUnit', 'DkNotesTitle', 'DkNotePh', 'DkNoteAdd', 'DkNotesNone', 'DkPostReg', 'DkPostEquip',
     'DkPayTitle', 'DkPayReg', 'DkPayShop', 'DkPayPaid', 'DkPayLeft', 'DkPayNothing', 'DkPayAmount', 'DkPayDone', 'DkPayConfirm', 'DkPayChequeNo',
+    'DkWaive', 'DkWaiveSure', 'DkWaiveReasonPh', 'DkWaiveDone', 'DkWaiveNoReason',
     'DkHistory', 'DkKindOk', 'DkKindKo', 'DkKindUndo', 'DkSaved', 'DkTodoLeft', 'DkTodoNone', 'DkAllSessions', 'DkAllWeapons',
     'DkAllClasses', 'DkAllEvents', 'DkFilterSession',
     'DkFilterWeapon', 'DkFilterClass', 'DkFilterEvent', 'DkOf', 'DkErrArcher',
@@ -78,7 +80,7 @@ echo '  <div id="desk" class="dk"><p class="shp-muted dk-pad">' . shp_e(shp_t('S
         'logout' => shp_url('staff/api/logout.php'),
         'login' => shp_url('staff/login.php?k=' . rawurlencode($deskKey) . '&to=desk'),
         'post' => $post, 'bar' => shp_staff_bar_cfg($me, $post),
-        'rights' => $rights, 'methods' => $methods,
+        'rights' => $rights, 'methods' => $methods, 'waive' => aut_pay_allows($TOUR, 'waive'),
         'open' => shp_desk_account_ok((string) ($_GET['a'] ?? '')) ? (string) $_GET['a'] : '',
         'title' => $title)));
 shp_foot(array('desk.js'));

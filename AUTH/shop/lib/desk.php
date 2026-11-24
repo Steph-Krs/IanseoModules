@@ -601,6 +601,44 @@ function shp_desk_pay($me, $account, $method, $amount, $idem, $ref = '')
         (string) $ref);
 }
 
+/**
+ * Offers what an archer still owes ("Offer the rest": a 'waiver' line, no money, not in the
+ * till), with the reason, required. Right pay. The rest is read under the same lock as a
+ * payment (shp_pay_account), so that an offer and a payment cannot both settle it.
+ */
+function shp_desk_waive($me, $account, $reason, $idem)
+{
+    if (!shp_desk_can($me, 'pay')) return shp_err('forbidden', 'ShPayErrRight');
+    $tourId = intval($me->SfTournament);
+    require_once dirname(__DIR__, 2) . '/pay-lib.php';
+    if (!aut_pay_allows($tourId, 'waive')) return shp_err('forbidden', 'ShErrBadRequest');
+    if (!shp_desk_account_ok($account) || !shp_desk_entries($tourId, (string) $account)) return shp_err('account', 'DkErrArcher');
+    if (trim((string) $reason) === '') return shp_err('reason', 'DkWaiveNoReason');
+    $idem = shp_pay_idem($idem);
+    if ($idem === false) return shp_err('bad_request', 'ShErrBadRequest');
+    if (bk_ledger_by_idem($tourId, $idem)) return array('error' => 0, 'existing' => true);
+    bk_ledger_migrate($tourId);   // writes, if any, before the lock
+
+    safe_w_BeginTransaction();
+    safe_w_sql("SELECT SgTournament FROM ShopSettings WHERE SgTournament = $tourId FOR UPDATE");
+    if (bk_ledger_by_idem($tourId, $idem)) {
+        safe_w_Rollback();
+        return array('error' => 0, 'existing' => true);
+    }
+    $st = shp_account_state($tourId, (string) $account);
+    if ($st['remaining'] <= 0.004) {
+        safe_w_Rollback();
+        return shp_err('nothing_due', 'ShPayErrNothingAccount');
+    }
+    $line = bk_ledger_waive($tourId, (string) $account, $st['remaining'], $reason, shp_pay_by(intval($me->SfId)), intval($me->SfId), $idem);
+    if (!$line) {
+        safe_w_Rollback();
+        return shp_err('bad_request', 'ShErrBadRequest');
+    }
+    safe_w_Commit();
+    return array('error' => 0, 'line' => $line);
+}
+
 /* ------------------------------------------------------------------ */
 /* Lists                                                               */
 /* ------------------------------------------------------------------ */
