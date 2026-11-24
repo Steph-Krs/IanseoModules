@@ -305,7 +305,7 @@ les règles d'accès.
 | `UPDATE` | `Entries` | `booking/lib/licences.php:105` | review scope by hand |
 | `UPDATE` | `Qualifications` | `booking/lib/licences.php:142` | — |
 | `UPDATE` | `Entries` | `booking/lib/licences.php:145` | review scope by hand |
-| `UPDATE` | `IdCards` | `booking/lib/mandate.php:1083` | review scope by hand |
+| `UPDATE` | `IdCards` | `booking/lib/mandate.php:1084` | review scope by hand |
 | `UPDATE` | `Entries` | `booking/lib/modify.php:111` | review scope by hand |
 | `UPDATE` | `Qualifications` | `booking/lib/modify.php:122` | — |
 | `DELETE FROM` | `LookUpEntries` | `booking/lib/other.php:215` | review scope by hand |
