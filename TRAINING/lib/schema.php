@@ -8,7 +8,7 @@
  * on EVERY new session: anything added here that rewrites existing rows must be
  * gated on a column having just been created, never on appearances.
  *
- * Five tables, one prefix each, none shared with the core:
+ * Seven tables, one prefix each, none shared with the core:
  *   TrainingTemplates     (Tm) a reference format: a snapshot of a whole
  *                              competition without its archers, as the core's
  *                              export builds it, plus a summary for the forms;
@@ -18,14 +18,21 @@
  *   TrainingGroupMembers  (Gm) who belongs to which group;
  *   TrainingRuns          (Rn) the competitions created by the module, whether
  *                              they show the simplified menu, and whether their
- *                              qualification round is simulated (duels only).
+ *                              qualification round is simulated (duels only);
+ *   TrainingResults       (Rs) the results of each archer of each training, kept
+ *                              so that they outlive the competition;
+ *   TrainingGhosts        (Gh) the fictitious competitors of a training and the
+ *                              average their scores are drawn around.
  *
- * RnTournament holds a Tournament.ToId and takes its type, INT UNSIGNED: an
+ * Version 2 added TrainingResults and TrainingGhosts (new tables only).
+ *
+ * RnTournament, RsTournament, GhTournament hold a Tournament.ToId, RsEntry and
+ * GhEntry an Entries.EnId, and take their type, INT UNSIGNED: an
  * AUTO_INCREMENT counter can sit far above the number of competitions that
  * exist, and a narrower column truncates without a warning.
  */
 
-const TRN_SCHEMA_VERSION = 1;
+const TRN_SCHEMA_VERSION = 2;
 
 /**
  * Create the module's tables if they are missing.
@@ -85,6 +92,45 @@ function trn_schema() {
         RnQualSim    TINYINT UNSIGNED NOT NULL DEFAULT 0,
         RnCreated    DATETIME     NULL,
         PRIMARY KEY (RnTournament)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    safe_w_sql("CREATE TABLE IF NOT EXISTS TrainingResults (
+        RsTournament INT UNSIGNED NOT NULL,
+        RsEntry      INT UNSIGNED NOT NULL,
+        RsCode       VARCHAR(8)   NOT NULL DEFAULT '',
+        RsName       VARCHAR(200) NOT NULL DEFAULT '',
+        RsDate       DATE         NULL,
+        RsFormat     VARCHAR(100) NOT NULL DEFAULT '',
+        RsSim        TINYINT UNSIGNED NOT NULL DEFAULT 0,
+        RsKey        VARCHAR(100) NOT NULL DEFAULT '',
+        RsLicence    VARCHAR(25)  NOT NULL DEFAULT '',
+        RsFamily     VARCHAR(60)  NOT NULL DEFAULT '',
+        RsGiven      VARCHAR(30)  NOT NULL DEFAULT '',
+        RsDivision   VARCHAR(4)   NOT NULL DEFAULT '',
+        RsClass      VARCHAR(6)   NOT NULL DEFAULT '',
+        RsDistances  VARCHAR(60)  NOT NULL DEFAULT '',
+        RsFace       VARCHAR(80)  NOT NULL DEFAULT '',
+        RsScore      INT          NOT NULL DEFAULT 0,
+        RsGolds      INT          NOT NULL DEFAULT 0,
+        RsXNine      INT          NOT NULL DEFAULT 0,
+        RsArrows     INT          NOT NULL DEFAULT 0,
+        RsQualRank   INT          NOT NULL DEFAULT 0,
+        RsEvent      VARCHAR(10)  NOT NULL DEFAULT '',
+        RsFinalRank  INT          NOT NULL DEFAULT 0,
+        RsWon        INT          NOT NULL DEFAULT 0,
+        RsLost       INT          NOT NULL DEFAULT 0,
+        RsUpdated    DATETIME     NULL,
+        PRIMARY KEY (RsTournament, RsEntry),
+        KEY RsKey (RsKey)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    safe_w_sql("CREATE TABLE IF NOT EXISTS TrainingGhosts (
+        GhEntry      INT UNSIGNED NOT NULL,
+        GhTournament INT UNSIGNED NOT NULL,
+        GhAverage    DECIMAL(4,2) NOT NULL DEFAULT 8.00,
+        GhSpread     DECIMAL(4,2) NOT NULL DEFAULT 1.00,
+        PRIMARY KEY (GhEntry),
+        KEY GhTournament (GhTournament)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     $_SESSION[$flag] = true;

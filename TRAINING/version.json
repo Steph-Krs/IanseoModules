@@ -1,7 +1,7 @@
 {
-    "version": "0.1.0",
-    "date": "2026-11-23",
-    "notes": "0.1.0: first version.\n\nTrainings made in a few clicks from reference formats. A reference format is the open competition saved without its archers, teams, scores nor ianseo.net codes: divisions and classes, events, target faces, distances, images, settings and programme. The competition it comes from can then be deleted.\n\nCreating a training: a format, a date and a starting time; every time of the programme moves with it and keeps the gaps of the format. The code is the date and a number (YYMMDDXX). Regular archers are ticked, by group if needed. Their division is recurve unless another is recorded, and their class is the one their date of birth allows, computed for the date of the training with the French rule: a competition from September to December counts in the next season, and the class bounds of the training follow the season of its date. Each category can still be changed by hand. Teams and mixed teams are composed by the coach, named freely, and can be changed at any time.\n\nEvery training is set up for scoring with ISK-Lite, the free ISK app: the scorecards carry its QR codes and the scores reach ianseo on their own. The server address given to the phones is set once, on the formats page.\n\nThe coach's dashboard lists the steps in order: archers, automatic placement on the targets, scorecards, scores, duels, results. The placement follows the order of the AUTH module (distance, face, bow, age, sex) with the physical rules only: one distance per target, indoors one family of faces per half of the buttress and an 80 cm face alone, outdoors one family per target; identical archers are spread evenly. Manual moves are done on the visual target plan of ianseo. The number of archers per target is switched with one button (A, AB, ABC, AB-CD), and the number of targets adjusted to what the archers need with another; targets are never added on their own, the dashboard says how many are missing. The Ranking and duels page puts the archers or teams of each event in the order of the bracket (qualification order, ties next to each other, rearranged by dragging) and fills the bracket with the core's functions. A training can also simulate its qualification round, for duels only.\n\nFormats, regular archers and groups can be exported to one file and imported on another installation, to set up another training centre the same way.\n\nOn a training made from a format with the option, the menu keeps only the competition and the training screens; each browser can switch to the full menu.\n\nFive tables of its own, created on the first opening of a page of the module, and one row of the core's Parameters table for the ISK server address.",
+    "version": "0.2.0",
+    "date": "2026-11-24",
+    "notes": "0.2.0: fictitious competitors and follow-up of the archers.\n\nFictitious competitors can be added to a training with an average per arrow: their qualification scores are drawn around it, and they take part in the rankings, the teams and the brackets, without a target nor a scorecard.\n\nThe follow-up of the archers shows every shoot of an archer on the server, trainings and real competitions, grouped by situation (format, distances, face) with averages, best and last scores and duels won and lost, a chart of the average per arrow and CSV exports. The results of the trainings are kept by the module, so they stay once a training is deleted from ianseo.\n\nTwo new tables of its own, created on the first opening of a page of the module.",
     "files": [
         "menu.php",
         "index.php",
@@ -13,6 +13,7 @@
         "templates.php",
         "archers.php",
         "transfer.php",
+        "followup.php",
         "menu-mode.php",
         "credits.php",
         "version.json",
@@ -29,6 +30,8 @@
         "lib/duels.php",
         "lib/transfer.php",
         "lib/placement.php",
+        "lib/results.php",
+        "lib/ghosts.php",
         "assets/training.css",
         "assets/training.js",
         "languages/en.php",
@@ -42,7 +45,9 @@
         "TrainingArchers",
         "TrainingGroups",
         "TrainingGroupMembers",
-        "TrainingRuns"
+        "TrainingRuns",
+        "TrainingResults",
+        "TrainingGhosts"
     ],
     "uninstall_warning": "The trainings already created stay in ianseo as ordinary competitions."
 }

@@ -22,6 +22,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $r = trn_set_rhythm($tourId, $ses, intval($_POST['n'] ?? 0));
         trn_flash(trn_text('RhythmChanged'));
     }
+    if ($act === 'ghosts') {
+        trn_flash(trn_text('GhostsScored', trn_ghost_scores($tourId)));
+    }
     if ($act === 'targets') {
         // Computed again here: what the page showed may be out of date.
         $need = trn_targets_needed($tourId, $ses)['need'];
@@ -82,6 +85,8 @@ if (!$sim) {
     // 2. Targets.
     $count = [];
     foreach ($entries as $e) {
+        // Fictitious competitors take no target.
+        if ($e->GhostAvg !== null) continue;
         $s = intval($e->QuSession);
         $count[$s]['all'] = ($count[$s]['all'] ?? 0) + 1;
         if (intval($e->QuTarget) > 0) $count[$s]['on'] = ($count[$s]['on'] ?? 0) + 1;
@@ -133,9 +138,16 @@ if (!$sim) {
     echo $card(trn_text('StepScorecards'), $body);
 
     // 4. Scores.
-    $done = 0;
-    foreach ($entries as $e) if (intval($e->QuScore) > 0) $done++;
-    $body = '<p>' . trn_t('DashScores', ['done' => $done, 'all' => count($entries)]) . '</p><p>'
+    $done = $real = 0;
+    foreach ($entries as $e) {
+        if ($e->GhostAvg !== null) continue;
+        $real++;
+        if (intval($e->QuScore) > 0) $done++;
+    }
+    $ghosts = count($entries) - $real;
+    $body = '<p>' . trn_t('DashScores', ['done' => $done, 'all' => $real]) . '</p>'
+        . ($ghosts ? '<p class="trn-note">' . trn_t('DashGhosts', $ghosts) . ' ' . $post('ghosts', 0, trn_text('GhostsRedraw')) . '</p>' : '')
+        . '<p>'
         . $link($root . 'Qualification/index.php', trn_text('ManualQualEntry'), false, true)
         . $link($root . 'Api/ISK-NG/Sessions.php', get_text('ManageLockedSessions', 'Api'))
         . $link($root . 'Qualification/PrnIndividualAbs.php', trn_text('QualRanking'), true) . '</p>';
@@ -179,7 +191,9 @@ if ($hasTeam) {
     $body .= $link($root . 'Final/Team/PrnBracket.php?ShowTargetNo=1&ShowSchedule=1', get_text('BracketsSq'), true)
         . $link($root . 'Final/Team/PrnRanking.php', trn_text('FinalRankingTeam'), true);
 }
-echo '<div id="trn-results"></div>' . $card(trn_text('StepResults'), $body . '</p>');
+$body .= '</p><p>' . $link('followup.php', trn_text('MenuFollowup'), false, true)
+    . $link('followup.php?csv=run', trn_text('CsvRun')) . '</p>';
+echo '<div id="trn-results"></div>' . $card(trn_text('StepResults'), $body);
 
 // Menu of this browser.
 $full = !empty($_COOKIE['TRN_FULL']);

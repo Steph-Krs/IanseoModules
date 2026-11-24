@@ -51,6 +51,16 @@ du cœur, et les archers ont l'impression d'une vraie compétition.
   ex-aequo côte à côte ; l'entraîneur fait glisser les noms dans l'ordre du tableau et le remplit.
   Les tableaux sont remplis par les fonctions du cœur (classes de classement, grilles du règlement,
   exempts).
+- 👻 **Concurrents fictifs** : des adversaires sans archer derrière, ajoutés avec une moyenne par
+  flèche et un écart ; leurs scores de qualification sont tirés flèche par flèche autour de cette
+  moyenne, et ils participent aux classements, aux équipes et aux tableaux. Ils n'ont ni cible ni
+  feuille de marque ; leurs duels se saisissent comme les autres.
+- 📈 **Suivi des archers** : tous les tirs d'un archer sur le serveur, entraînements et vraies
+  compétitions, regroupés par situation (type, format, distances, blason) avec la moyenne, la moyenne
+  par flèche, le meilleur et le dernier score et les duels gagnés et perdus ; un graphique de la
+  moyenne par flèche dans le temps ; des exports CSV (un archer, un entraînement, tous les
+  entraînements). Les résultats des entraînements sont conservés par le module, ils restent une fois
+  la compétition supprimée d'ianseo.
 - ⚔️ **Duels seuls** : un entraînement peut simuler ses qualifications — chaque archer reçoit un
   point, et l'ordre des tableaux est entièrement au choix de l'entraîneur.
 - 🧭 **Tableau de bord de l'entraîneur** : archers, cibles, feuilles de marque, scores, duels,
@@ -79,9 +89,10 @@ round robin.
 
 ## Base de données
 
-Cinq tables propres, créées à la première ouverture d'une page du module : `TrainingTemplates`
+Sept tables propres, créées à la première ouverture d'une page du module : `TrainingTemplates`
 (formats), `TrainingArchers`, `TrainingGroups`, `TrainingGroupMembers` (archers habituels et leurs
-groupes), `TrainingRuns` (les compétitions créées par le module). Les compétitions elles-mêmes sont
+groupes), `TrainingRuns` (les compétitions créées par le module), `TrainingResults` (résultats des
+entraînements, conservés pour le suivi), `TrainingGhosts` (concurrents fictifs). Les compétitions elles-mêmes sont
 des compétitions ianseo ordinaires, écrites par l'import du cœur. L'adresse du serveur pour
 ISK-Lite est une ligne de la table `Parameters` du cœur (`TrnIskUrl`).
 
@@ -111,13 +122,14 @@ ianseo les entraînements déjà créés, comme des compétitions ordinaires.
 | `INSERT INTO` | `Entries` | `lib/entries.php:133` | — |
 | `INSERT INTO` | `Qualifications` | `lib/entries.php:152` | — |
 | `UPDATE` | `Entries` | `lib/entries.php:174` | review scope by hand |
-| `UPDATE` | `Qualifications` | `lib/entries.php:258` | — |
-| `UPDATE` | `Session` | `lib/entries.php:341` | review scope by hand |
-| `UPDATE` | `Entries` | `lib/entries.php:343` | review scope by hand |
-| `UPDATE` | `Session` | `lib/entries.php:360` | review scope by hand |
-| `UPDATE` | `Entries` | `lib/entries.php:362` | review scope by hand |
-| `UPDATE` | `Qualifications` | `lib/entries.php:398` | — |
-| `UPDATE` | `Qualifications` | `lib/entries.php:412` | — |
+| `UPDATE` | `Qualifications` | `lib/entries.php:260` | — |
+| `UPDATE` | `Session` | `lib/entries.php:343` | review scope by hand |
+| `UPDATE` | `Entries` | `lib/entries.php:345` | review scope by hand |
+| `UPDATE` | `Session` | `lib/entries.php:362` | review scope by hand |
+| `UPDATE` | `Entries` | `lib/entries.php:364` | review scope by hand |
+| `UPDATE` | `Qualifications` | `lib/entries.php:400` | — |
+| `UPDATE` | `Qualifications` | `lib/entries.php:414` | — |
+| `UPDATE` | `Qualifications` | `lib/ghosts.php:123` | — |
 | `UPDATE` | `Entries` | `lib/teams.php:73` | — |
 | `UPDATE` | `Countries` | `lib/teams.php:92` | review scope by hand |
 | `INSERT INTO` | `Countries` | `lib/teams.php:98` | — |
@@ -139,6 +151,10 @@ ianseo les entraînements déjà créés, comme des compétitions ordinaires.
 | `INSERT INTO` | `TrainingGroups` | `lib/archers.php:128` | — |
 | `DELETE FROM` | `TrainingGroupMembers` | `lib/archers.php:139` | — |
 | `DELETE FROM` | `TrainingGroups` | `lib/archers.php:140` | — |
+| `DELETE FROM` | `TrainingGhosts` | `lib/entries.php:189` | — |
+| `INSERT INTO` | `TrainingGhosts` | `lib/ghosts.php:64` | — |
+| `DELETE FROM` | `TrainingResults` | `lib/results.php:124` | — |
+| `INSERT INTO` | `TrainingResults` | `lib/results.php:131` | — |
 | `UPDATE` | `TrainingTemplates` | `lib/template.php:394` | — |
 | `INSERT INTO` | `TrainingTemplates` | `lib/template.php:397` | — |
 | `UPDATE` | `TrainingTemplates` | `lib/template.php:417` | — |

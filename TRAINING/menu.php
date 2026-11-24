@@ -76,6 +76,7 @@ if ($_trn_run && intval($_trn_run->RnSimple) && !$_trn_full) {
     }
     $_trn_menu[] = MENU_DIVIDER;
     $_trn_menu[] = trn_esc(trn_text('MenuResults')) . '|' . $_trn_url . 'dashboard.php#trn-results';
+    $_trn_menu[] = trn_esc(trn_text('MenuFollowup')) . '|' . $_trn_url . 'followup.php';
     $_trn_menu[] = MENU_DIVIDER;
     $_trn_menu[] = trn_esc(trn_text('MenuFull')) . '|' . $_trn_url . 'menu-mode.php?full=1';
 
@@ -94,6 +95,7 @@ if ($_trn_run && intval($_trn_run->RnSimple) && !$_trn_full) {
     if (!isset($ret['MODS'])) $ret['MODS'] = [get_text('MenuLM_Modules')];
     if (!isset($ret['MODS']['TRAINING'])) $ret['MODS']['TRAINING'][] = trn_esc(trn_text('ModuleName'));
     if ($_trn_can) $ret['MODS']['TRAINING'][] = trn_esc(trn_text('MenuHome')) . '|' . $_trn_url . 'index.php';
+    if ($_trn_can) $ret['MODS']['TRAINING'][] = trn_esc(trn_text('MenuFollowup')) . '|' . $_trn_url . 'followup.php';
     if (!empty($on) && intval($_SESSION['TourId'] ?? 0) > 0) {
         $ret['MODS']['TRAINING'][] = trn_esc(trn_text('MenuDashboard')) . '|' . $_trn_url . 'dashboard.php';
     }

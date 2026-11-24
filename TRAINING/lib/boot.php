@@ -27,6 +27,8 @@ require_once __DIR__ . '/entries.php';
 require_once __DIR__ . '/teams.php';
 require_once __DIR__ . '/duels.php';
 require_once __DIR__ . '/transfer.php';
+require_once __DIR__ . '/ghosts.php';
+require_once __DIR__ . '/results.php';
 
 trn_schema();
 

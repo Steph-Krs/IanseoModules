@@ -66,8 +66,9 @@ Modules for the I@nseo project:
 - [Training](TRAINING/README_TRAINING.md) — Trainings made in a few clicks from reference
   formats (a saved copy of a whole competition without its archers): date and starting time, every
   time of the programme moved with it, regular archers ticked, category per archer, teams and mixed
-  teams composed at any time, simulated qualification round for duels only. A coach's dashboard and
-  a simplified menu, per browser.
+  teams composed at any time, simulated qualification round for duels only, fictitious competitors
+  drawn around an average, ISK-Lite set up. A coach's dashboard, a simplified menu per browser, and
+  a follow-up of every archer (trainings and competitions, by situation, CSV).
 
 ## Automatic installation (Mac / Linux)
 

@@ -186,6 +186,7 @@ function trn_remove_entry($tourId, $enId) {
     $rs = safe_r_sql("SELECT EnId FROM Entries WHERE EnId = " . intval($enId) . " AND EnTournament = " . intval($tourId));
     if (!safe_fetch($rs)) return;
     deleteArcher(intval($enId));
+    safe_w_sql("DELETE FROM TrainingGhosts WHERE GhEntry = " . intval($enId));
 }
 
 /**
@@ -197,7 +198,8 @@ function trn_remove_entry($tourId, $enId) {
 function trn_entries($tourId) {
     $out = [];
     $rs = safe_r_sql("SELECT EnId, EnCode, EnFirstName, EnName, EnSex, EnDivision, EnClass, EnCountry2, EnCountry3,
-            QuSession, QuTarget, QuLetter, QuScore, CoCode, CoName
+            QuSession, QuTarget, QuLetter, QuScore, CoCode, CoName,
+            (SELECT GhAverage FROM TrainingGhosts WHERE GhEntry = EnId) AS GhostAvg
         FROM Entries
         INNER JOIN Qualifications ON QuId = EnId
         LEFT JOIN Countries ON CoId = EnCountry AND CoTournament = EnTournament
@@ -301,7 +303,7 @@ function trn_session_plan_input($tourId, $session) {
         INNER JOIN Qualifications ON QuId = EnId
         LEFT JOIN Divisions ON DivTournament = EnTournament AND DivId = EnDivision
         LEFT JOIN Classes ON ClTournament = EnTournament AND ClId = EnClass
-        WHERE EnTournament = $tourId AND QuSession = " . intval($session));
+        WHERE EnTournament = $tourId AND QuSession = " . intval($session) . " AND " . trn_not_ghost_sql($tourId));
     while ($r = safe_fetch($rs)) {
         $a = [
             'id'       => intval($r->EnId),

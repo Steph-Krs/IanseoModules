@@ -21,7 +21,8 @@ $formats = trn_tpl_list();
 trn_page_open(trn_text('HomeTitle'));
 
 echo '<p class="trn-lead">' . trn_t('HomeLead') . '</p>';
-echo '<p><a class="trn-btn trn-primary" href="create.php">' . trn_t('MenuCreate') . '</a></p>';
+echo '<p><a class="trn-btn trn-primary" href="create.php">' . trn_t('MenuCreate') . '</a> '
+    . '<a class="trn-btn" href="followup.php">' . trn_t('MenuFollowup') . '</a></p>';
 if (!$formats) echo '<p class="trn-note">' . trn_t('HomeNoFormat') . '</p>';
 
 echo '<h2>' . trn_t('HomeRuns') . '</h2>';

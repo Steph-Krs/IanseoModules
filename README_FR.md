@@ -73,7 +73,9 @@ Modules pour le projet I@nseo :
   formats de référence (copie enregistrée d'une compétition entière sans ses archers) : date et heure
   de départ, tous les horaires du programme décalés d'autant, archers habituels cochés, catégorie
   par archer, équipes et équipes mixtes composées à tout moment, qualifications simulées pour des
-  duels seuls. Un tableau de bord pour l'entraîneur et un menu simplifié, par navigateur.
+  duels seuls, concurrents fictifs tirés autour d'une moyenne, ISK-Lite configuré. Un tableau de bord
+  pour l'entraîneur, un menu simplifié par navigateur, et le suivi de chaque archer (entraînements
+  et compétitions, par situation, CSV).
 
 ## Installation automatique (Mac / Linux)
 

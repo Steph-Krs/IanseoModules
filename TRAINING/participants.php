@@ -33,6 +33,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach (array_keys($sessions) as $s) trn_place_session($tourId, $s);
         }
         trn_flash(trn_text('ArchersAdded', $n));
+    } elseif ($act === 'ghosts_add') {
+        $cat = explode('|', (string)($_POST['cat'] ?? ''), 2);
+        $sessions = trn_sessions($tourId);
+        $ses = intval($_POST['ses'] ?? 0);
+        if (!isset($sessions[$ses])) $ses = $sessions ? array_key_first($sessions) : 0;
+        $n = count($cat) === 2 ? trn_ghost_add($tourId, intval($_POST['count'] ?? 1), $cat[0], $cat[1], $ses,
+            str_replace(',', '.', (string)($_POST['avg'] ?? '8')), str_replace(',', '.', (string)($_POST['spread'] ?? '1'))) : 0;
+        if ($sim) trn_simulate_qualification($tourId); elseif ($n) trn_ghost_scores($tourId);
+        trn_flash(trn_text('GhostsAdded', $n));
     } elseif ($act === 'remove') {
         trn_remove_entry($tourId, intval($_POST['en'] ?? 0));
         trn_recalc($tourId);
@@ -70,7 +79,8 @@ if ($entries) {
         . trn_t('ColCategory') . '</th><th>' . trn_t('ColTarget') . '</th><th></th></tr>';
     foreach ($entries as $e) {
         $form = 'trn-c' . intval($e->EnId);
-        echo '<tr><td>' . trn_esc(trim($e->EnFirstName . ' ' . $e->EnName)) . '</td><td>' . trn_esc($e->CoCode) . '</td>'
+        $ghost = $e->GhostAvg !== null ? ' <span class="trn-badge">' . trn_t('GhostBadge', number_format(floatval($e->GhostAvg), 2, ',', '')) . '</span>' : '';
+        echo '<tr><td>' . trn_esc(trim($e->EnFirstName . ' ' . $e->EnName)) . $ghost . '</td><td>' . trn_esc($e->CoCode) . '</td>'
             . '<td><form method="post" id="' . $form . '">' . trn_token_field() . '<input type="hidden" name="act" value="category">'
             . '<input type="hidden" name="en" value="' . intval($e->EnId) . '"></form>' . $catSelect('cat', $e->EnDivision . '|' . $e->EnClass, $form) . '</td>'
             . '<td>' . (intval($e->QuTarget) ? trn_esc($e->QuSession . ' - ' . $e->QuTarget . $e->QuLetter) : '') . '</td>'
@@ -116,5 +126,20 @@ if (!$free) {
     if (!$sim) echo '<p><label><input type="checkbox" name="place" value="1" checked> ' . trn_t('PlaceAuto') . '</label></p>';
     echo '<p><button type="submit" class="trn-btn trn-primary">' . trn_t('ParticipantsAddDo') . '</button></p></form>';
 }
+
+// Fictitious competitors.
+echo '<h2>' . trn_t('GhostsTitle') . '</h2>';
+echo '<form method="post" class="trn-card">' . trn_token_field() . '<input type="hidden" name="act" value="ghosts_add">'
+    . '<p class="trn-note">' . trn_t('GhostsLead') . '</p><div class="trn-grid">'
+    . '<label>' . trn_t('GhostsCount') . ' <input type="number" name="count" min="1" max="32" value="4"></label>'
+    . '<label>' . trn_t('ColCategory') . ' ' . $catSelect('cat', '') . '</label>';
+if (count($sessions) > 1) {
+    echo '<label>' . trn_t('ColSession') . ' <select name="ses">';
+    foreach ($sessions as $o => $ses) echo '<option value="' . intval($o) . '">' . trn_esc($ses->SesName !== '' ? $ses->SesName : trn_text('SessionN', $o)) . '</option>';
+    echo '</select></label>';
+}
+echo '<label>' . trn_t('GhostsAvg') . ' <input type="number" name="avg" min="0" max="20" step="0.1" value="8"></label>'
+    . '<label>' . trn_t('GhostsSpread') . ' <input type="number" name="spread" min="0" max="10" step="0.1" value="1"></label>'
+    . '</div><p><button type="submit" class="trn-btn trn-primary">' . trn_t('GhostsAdd') . '</button></p></form>';
 
 trn_page_close();

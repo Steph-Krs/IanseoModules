@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 — 2026-11-24
+
+Fictitious competitors with qualification scores drawn around an average per arrow (rankings, teams
+and brackets, without a target nor a scorecard). Follow-up of the archers: trainings and real
+competitions by situation, averages, best and last scores, duels won and lost, chart of the average
+per arrow, CSV exports; the results of the trainings are kept by the module once a training is
+deleted from ianseo. Two new tables, created on the first opening of a page of the module.
+
 ## 0.1.0 — 2026-11-23
 
 First version: reference formats, regular archers and groups, creation of a training from a format

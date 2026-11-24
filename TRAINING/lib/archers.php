@@ -188,7 +188,7 @@ function trn_competition_archers($tourId) {
     $rs = safe_r_sql("SELECT EnId, EnCode, EnIocCode, EnFirstName, EnName, EnSex, EnDob, EnDivision, EnClass,
             CoCode, CoName, CoNameComplete
         FROM Entries LEFT JOIN Countries ON CoId = EnCountry AND CoTournament = EnTournament
-        WHERE EnTournament = " . intval($tourId) . " AND EnAthlete = 1
+        WHERE EnTournament = " . intval($tourId) . " AND EnAthlete = 1 AND COALESCE(CoCode, '') <> '" . TRN_GHOST_CLUB . "'
         ORDER BY EnFirstName, EnName");
     while ($r = safe_fetch($rs)) $out[intval($r->EnId)] = $r;
     return $out;
