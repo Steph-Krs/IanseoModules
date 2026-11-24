@@ -1,11 +1,12 @@
 {
-    "version": "0.2.0",
-    "date": "2026-11-24",
-    "notes": "0.2.0: fictitious competitors and follow-up of the archers.\n\nFictitious competitors can be added to a training with an average per arrow: their qualification scores are drawn around it, and they take part in the rankings, the teams and the brackets, without a target nor a scorecard.\n\nThe follow-up of the archers shows every shoot of an archer on the server, trainings and real competitions, grouped by situation (format, distances, face) with averages, best and last scores and duels won and lost, a chart of the average per arrow and CSV exports. The results of the trainings are kept by the module, so they stay once a training is deleted from ianseo.\n\nTwo new tables of its own, created on the first opening of a page of the module.",
+    "version": "0.3.0",
+    "date": "2026-11-25",
+    "notes": "0.3.0: fictitious competitors at a level, live page, trainings from a World Archery competition.\n\nA fictitious competitor is given a final qualification score plus or minus a delta, and a level for the duels: an average per arrow for the duels by sets, a match score for the duels by points, each with its delta. A level beyond what the face and the arrows allow is refused.\n\nLive page: while it is open, the simulated competitors shoot. Their qualification arrows appear at the pace of the archer of the training who has shot the most; in the duels they follow their real opponent, end by end, and play their own matches at the pace of the real matches of the same phase. Keep it open during the training: the dashboard says so. Each screen chooses the events it shows.\n\nTraining from a World Archery competition, the second way of \"Create a training\": find a competition whose results World Archery publishes, pick the day, tick your archers, and the training is created with its events, its athletes and teams and their real results. Your archers slot into the real field; in the duels the athletes shoot their real arrows (a real meeting replays that match; beyond the round an athlete reached, the arrows of the one who eliminated them). Target outdoor, indoor, field and 3D.\n\nIn every training the winners of the duels go on to the next round without a click, and a \"Shoot-offs to enter\" page in the coach's menu takes the shoot-off arrows and the archer closest to the centre. The event rankings now follow every change of score.\n\nTwo new tables and new columns of the module, created on the first opening of a page of the module.",
     "files": [
         "menu.php",
         "index.php",
         "create.php",
+        "create-wa.php",
         "dashboard.php",
         "participants.php",
         "teams.php",
@@ -38,7 +39,13 @@
         "languages/fr.php",
         "languages/it.php",
         "languages/de.php",
-        "languages/es.php"
+        "languages/es.php",
+        "live.php",
+        "shootoffs.php",
+        "lib/arrows.php",
+        "lib/live.php",
+        "lib/wa.php",
+        "assets/live.js"
     ],
     "tables": [
         "TrainingTemplates",
@@ -47,7 +54,9 @@
         "TrainingGroupMembers",
         "TrainingRuns",
         "TrainingResults",
-        "TrainingGhosts"
+        "TrainingGhosts",
+        "TrainingSimDuels",
+        "TrainingWaData"
     ],
     "uninstall_warning": "The trainings already created stay in ianseo as ordinary competitions."
 }

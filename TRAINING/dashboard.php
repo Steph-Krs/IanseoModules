@@ -22,9 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $r = trn_set_rhythm($tourId, $ses, intval($_POST['n'] ?? 0));
         trn_flash(trn_text('RhythmChanged'));
     }
-    if ($act === 'ghosts') {
-        trn_flash(trn_text('GhostsScored', trn_ghost_scores($tourId)));
-    }
     if ($act === 'targets') {
         // Computed again here: what the page showed may be out of date.
         $need = trn_targets_needed($tourId, $ses)['need'];
@@ -40,6 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     trn_redirect('dashboard.php');
 }
 
+// The simulated competitors catch up with the archers at each opening (lib/live.php).
+trn_live_tick($tourId);
 $tour = safe_fetch(safe_r_sql("SELECT ToCode, ToName, ToWhenFrom, ToWhenTo FROM Tournament WHERE ToId = $tourId"));
 $run = trn_run($tourId);
 $entries = trn_entries($tourId);
@@ -71,6 +70,20 @@ echo '<p class="trn-lead"><b>' . trn_esc($tour->ToName) . '</b> - ' . trn_esc(tr
     . ' - <span class="trn-note">' . trn_esc($tour->ToCode) . ($run && $run->TmName ? ' - ' . trn_esc($run->TmName) : '') . '</span>'
     . ($run && intval($run->RnQualSim) ? ' <span class="trn-badge">' . trn_t('DuelsOnly') . '</span>' : '') . '</p>';
 if (!$run) echo '<p class="trn-note">' . trn_t('DashNotRun') . '</p>';
+$simCount = 0;
+foreach ($entries as $e) if ($e->GhostKind !== null) $simCount++;
+if ($run && intval($run->RnWaComp)) {
+    $waComp = trn_wa_data($tourId, 'comp');
+    echo '<p class="trn-note">' . trn_t('DashFromWa', (string)($waComp['Name'] ?? '')) . '</p>';
+}
+// The live page moves the simulated competitors and the winners of the duels: wanted as soon
+// as there are simulated competitors or a launched bracket.
+$launched = false;
+foreach ($duelEvents as $e) if (intval($e->EvShootOff)) $launched = true;
+if ($simCount || $launched) {
+    echo '<div class="trn-live-alert"><b>' . trn_t('LiveKeepOpen') . '</b><br>' . trn_t('LiveKeepOpenWhy')
+        . '<br><a class="trn-btn trn-primary" href="live.php" target="TrainingLive">' . trn_t('LiveOpen') . '</a></div>';
+}
 
 // 1. Archers and teams.
 $body = '<p>' . trn_t('DashArchers', count($entries)) . '</p><p>' . $link('participants.php', trn_text('MenuParticipants'), false, true);
@@ -85,8 +98,8 @@ if (!$sim) {
     // 2. Targets.
     $count = [];
     foreach ($entries as $e) {
-        // Fictitious competitors take no target.
-        if ($e->GhostAvg !== null) continue;
+        // Simulated competitors take no target.
+        if ($e->GhostKind !== null) continue;
         $s = intval($e->QuSession);
         $count[$s]['all'] = ($count[$s]['all'] ?? 0) + 1;
         if (intval($e->QuTarget) > 0) $count[$s]['on'] = ($count[$s]['on'] ?? 0) + 1;
@@ -140,13 +153,13 @@ if (!$sim) {
     // 4. Scores.
     $done = $real = 0;
     foreach ($entries as $e) {
-        if ($e->GhostAvg !== null) continue;
+        if ($e->GhostKind !== null) continue;
         $real++;
         if (intval($e->QuScore) > 0) $done++;
     }
     $ghosts = count($entries) - $real;
     $body = '<p>' . trn_t('DashScores', ['done' => $done, 'all' => $real]) . '</p>'
-        . ($ghosts ? '<p class="trn-note">' . trn_t('DashGhosts', $ghosts) . ' ' . $post('ghosts', 0, trn_text('GhostsRedraw')) . '</p>' : '')
+        . ($ghosts ? '<p class="trn-note">' . trn_t('DashGhosts', $ghosts) . ' <a class="trn-btn" href="live.php" target="TrainingLive">' . trn_t('LiveTitle') . '</a></p>' : '')
         . '<p>'
         . $link($root . 'Qualification/index.php', trn_text('ManualQualEntry'), false, true)
         . $link($root . 'Api/ISK-NG/Sessions.php', get_text('ManageLockedSessions', 'Api'))
@@ -163,7 +176,10 @@ if ($duelEvents) {
         $state = intval($e->EvElimType) !== 0 ? trn_text('EventCore') : (intval($e->EvShootOff) ? trn_text('EventLaunched') : trn_text('EventWaiting'));
         $body .= '<li>' . trn_esc($e->EvCode . ' - ' . $e->EvEventName) . ' : <span class="trn-note">' . trn_esc($state) . '</span></li>';
     }
-    $body .= '</ul><p>' . $link('ranking.php', trn_text('MenuRanking'), false, true) . '</p>';
+    $pending = count(trn_shootoffs($tourId));
+    $body .= '</ul><p>' . $link('ranking.php', trn_text('MenuRanking'), false, true)
+        . $link('shootoffs.php', trn_text('MenuShootoffs')) . '</p>';
+    if ($pending) $body .= '<p class="trn-msg trn-err">' . trn_t('SoPending', $pending) . ' ' . $link('shootoffs.php', trn_text('SoGo'), false, true) . '</p>';
     if ($hasInd) {
         $body .= '<p><b>' . trn_esc(get_text('MenuLM_Individual Finals')) . '</b> : '
             . $link($root . 'Final/Individual/PrintScore.php', get_text('MenuLM_Scorecard Printout'))

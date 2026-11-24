@@ -38,10 +38,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sessions = trn_sessions($tourId);
         $ses = intval($_POST['ses'] ?? 0);
         if (!isset($sessions[$ses])) $ses = $sessions ? array_key_first($sessions) : 0;
-        $n = count($cat) === 2 ? trn_ghost_add($tourId, intval($_POST['count'] ?? 1), $cat[0], $cat[1], $ses,
-            str_replace(',', '.', (string)($_POST['avg'] ?? '8')), str_replace(',', '.', (string)($_POST['spread'] ?? '1'))) : 0;
-        if ($sim) trn_simulate_qualification($tourId); elseif ($n) trn_ghost_scores($tourId);
+        $levels = trn_ghost_levels($_POST);
+        $why = count($cat) === 2 ? trn_ghost_check($tourId, $cat[0], $cat[1], $levels) : '';
+        if ($why !== '') {
+            trn_flash($why, 'err');
+            trn_redirect('participants.php#trn-ghosts');
+        }
+        $n = count($cat) === 2 ? trn_ghost_add($tourId, intval($_POST['count'] ?? 1), $cat[0], $cat[1], $ses, $levels) : 0;
+        if ($sim) trn_simulate_qualification($tourId); else trn_recalc($tourId);
         trn_flash(trn_text('GhostsAdded', $n));
+    } elseif ($act === 'ghost_levels') {
+        $ghosts = trn_ghosts($tourId);
+        $all = trn_entries($tourId);
+        $refused = 0;
+        foreach ((array)($_POST['lv'] ?? []) as $en => $levels) {
+            $en = intval($en);
+            if (!isset($ghosts[$en]) || intval($ghosts[$en]->GhKind) !== 0 || !isset($all[$en])) continue;
+            $levels = trn_ghost_levels((array)$levels);
+            $why = trn_ghost_check($tourId, $all[$en]->EnDivision, $all[$en]->EnClass, $levels);
+            if ($why !== '') {
+                trn_flash(trim($all[$en]->EnFirstName . ' ' . $all[$en]->EnName) . ' : ' . $why, 'err');
+                $refused++;
+                continue;
+            }
+            // Unchanged levels draw nothing again.
+            $g = $ghosts[$en];
+            if (intval($g->GhQualScore) === $levels['qscore'] && floatval($g->GhQualDelta) == $levels['qdelta']
+                && floatval($g->GhDuelAvg) == $levels['davg'] && floatval($g->GhDuelAvgDelta) == $levels['ddelta']
+                && intval($g->GhDuelScore) === $levels['dscore'] && floatval($g->GhDuelScoreDelta) == $levels['dsdelta']) continue;
+            trn_ghost_set_levels($tourId, $en, $levels);
+        }
+        if (!$refused) trn_flash(trn_text('Saved'));
     } elseif ($act === 'remove') {
         trn_remove_entry($tourId, intval($_POST['en'] ?? 0));
         trn_recalc($tourId);
@@ -58,7 +85,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $entries = trn_entries($tourId);
+$ghosts = trn_ghosts($tourId);
 $cats = trn_tour_categories($tourId);
+$waCount = 0;
+foreach ($entries as $id => $e) {
+    if ($e->GhostKind !== null && intval($e->GhostKind) === 1) { $waCount++; unset($entries[$id]); }
+}
 $sessions = trn_sessions($tourId);
 $year = intval(safe_fetch(safe_r_sql("SELECT YEAR(ToWhenTo) AS Y FROM Tournament WHERE ToId = $tourId"))->Y);
 $catSelect = function ($name, $current, $form = '') use ($cats) {
@@ -73,13 +105,15 @@ $catSelect = function ($name, $current, $form = '') use ($cats) {
 trn_page_open(trn_text('ParticipantsTitle'), ['assets/training.js']);
 echo '<p><a class="trn-btn" href="dashboard.php">' . trn_t('BackDashboard') . '</a></p>';
 
-echo '<h2>' . trn_t('ParticipantsIn', count($entries)) . '</h2>';
+echo '<h2>' . trn_t('ParticipantsIn', count($entries) + $waCount) . '</h2>';
+if ($waCount) echo '<p class="trn-note">' . trn_t('WaAthletesIn', $waCount) . ' <a class="trn-btn" href="live.php">' . trn_t('LiveTitle') . '</a></p>';
 if ($entries) {
     echo '<table class="Tabella trn-table"><tr><th>' . trn_t('ColArcher') . '</th><th>' . trn_t('FieldClub') . '</th><th>'
         . trn_t('ColCategory') . '</th><th>' . trn_t('ColTarget') . '</th><th></th></tr>';
     foreach ($entries as $e) {
         $form = 'trn-c' . intval($e->EnId);
-        $ghost = $e->GhostAvg !== null ? ' <span class="trn-badge">' . trn_t('GhostBadge', number_format(floatval($e->GhostAvg), 2, ',', '')) . '</span>' : '';
+        $g = $ghosts[intval($e->EnId)] ?? null;
+        $ghost = $g ? ' <span class="trn-badge">' . trn_t('GhostBadge', intval($g->GhQualScore)) . '</span>' : '';
         echo '<tr><td>' . trn_esc(trim($e->EnFirstName . ' ' . $e->EnName)) . $ghost . '</td><td>' . trn_esc($e->CoCode) . '</td>'
             . '<td><form method="post" id="' . $form . '">' . trn_token_field() . '<input type="hidden" name="act" value="category">'
             . '<input type="hidden" name="en" value="' . intval($e->EnId) . '"></form>' . $catSelect('cat', $e->EnDivision . '|' . $e->EnClass, $form) . '</td>'
@@ -128,18 +162,69 @@ if (!$free) {
 }
 
 // Fictitious competitors.
-echo '<h2>' . trn_t('GhostsTitle') . '</h2>';
+$qmax = trn_cat_qual_max($tourId);
+$kinds = trn_duel_kinds($tourId);
+$pmax = $kinds['points'] ? max($kinds['points']) : 0;
+$firstMax = $cats ? intval($qmax[$cats[0]['div'] . '|' . $cats[0]['cls']] ?? 0) : 0;
+$num = function ($name, $value, $step, $cls = '') {
+    return '<input type="number" name="' . $name . '" min="0" step="' . $step . '" value="' . trn_esc($value) . '" class="trn-num-in' . ($cls !== '' ? ' ' . $cls : '') . '">';
+};
+$levelFields = function ($prefix, $l) use ($kinds, $num, $sim, $firstMax, $pmax) {
+    $d = TRN_GHOST_DEFAULTS;
+    // New competitors: about four fifths of the maximum, as a starting point.
+    if (!$l) {
+        $d['qscore'] = intval(round(0.8 * $firstMax));
+        $d['dscore'] = intval(round(0.85 * $pmax));
+    }
+    $v = function ($k, $col) use ($l, $d) { return $l ? rtrim(rtrim(number_format(floatval($l->$col), 2, '.', ''), '0'), '.') : $d[$k]; };
+    $name = function ($k) use ($prefix) { return $prefix === '' ? $k : $prefix . '[' . $k . ']'; };
+    $out = '';
+    if (!$sim) {
+        $out .= '<label>' . trn_t('GhostsQual') . ' <span>' . $num($name('qscore'), $v('qscore', 'GhQualScore'), 1, $prefix === '' ? 'trn-qmax-in' : '') . ' &plusmn; '
+            . $num($name('qdelta'), $v('qdelta', 'GhQualDelta'), 1) . '</span></label>';
+    }
+    if ($kinds['sets']) {
+        $out .= '<label>' . trn_t('GhostsDuelSets') . ' <span>' . $num($name('davg'), $v('davg', 'GhDuelAvg'), 0.1) . ' &plusmn; '
+            . $num($name('ddelta'), $v('ddelta', 'GhDuelAvgDelta'), 0.1) . '</span></label>';
+    }
+    if ($kinds['points']) {
+        $out .= '<label>' . trn_t('GhostsDuelPoints') . ' <span>' . $num($name('dscore'), $v('dscore', 'GhDuelScore'), 1) . ' &plusmn; '
+            . $num($name('dsdelta'), $v('dsdelta', 'GhDuelScoreDelta'), 1) . '</span></label>';
+    }
+    return $out;
+};
+
+echo '<h2 id="trn-ghosts">' . trn_t('GhostsTitle') . '</h2>';
 echo '<form method="post" class="trn-card">' . trn_token_field() . '<input type="hidden" name="act" value="ghosts_add">'
     . '<p class="trn-note">' . trn_t('GhostsLead') . '</p><div class="trn-grid">'
     . '<label>' . trn_t('GhostsCount') . ' <input type="number" name="count" min="1" max="32" value="4"></label>'
-    . '<label>' . trn_t('ColCategory') . ' ' . $catSelect('cat', '') . '</label>';
+    . '<label>' . trn_t('ColCategory') . ' <select name="cat" class="trn-qmax-src" data-qmax="' . trn_esc(json_encode($qmax)) . '">';
+foreach ($cats as $c) {
+    $k = $c['div'] . '|' . $c['cls'];
+    echo '<option value="' . trn_esc($k) . '">' . trn_esc($c['div'] . ' ' . $c['cls']) . '</option>';
+}
+echo '</select></label>';
 if (count($sessions) > 1) {
     echo '<label>' . trn_t('ColSession') . ' <select name="ses">';
     foreach ($sessions as $o => $ses) echo '<option value="' . intval($o) . '">' . trn_esc($ses->SesName !== '' ? $ses->SesName : trn_text('SessionN', $o)) . '</option>';
     echo '</select></label>';
 }
-echo '<label>' . trn_t('GhostsAvg') . ' <input type="number" name="avg" min="0" max="20" step="0.1" value="8"></label>'
-    . '<label>' . trn_t('GhostsSpread') . ' <input type="number" name="spread" min="0" max="10" step="0.1" value="1"></label>'
-    . '</div><p><button type="submit" class="trn-btn trn-primary">' . trn_t('GhostsAdd') . '</button></p></form>';
+echo $levelFields('', null) . '</div>';
+if (!$sim) echo '<p class="trn-note">' . trn_t('GhostsQualMax') . ' <b class="trn-qmax-out"></b></p>';
+if ($pmax) echo '<p class="trn-note">' . trn_t('GhostsPointsMax', $pmax) . '</p>';
+echo '<p class="trn-note">' . trn_t('GhostsPace') . '</p>'
+    . '<p><button type="submit" class="trn-btn trn-primary">' . trn_t('GhostsAdd') . '</button></p></form>';
+
+$fict = array_filter($ghosts, function ($g) { return intval($g->GhKind) === 0; });
+if ($fict) {
+    $names = [];
+    foreach (trn_entries($tourId) as $e) $names[intval($e->EnId)] = trim($e->EnFirstName . ' ' . $e->EnName) . ' (' . $e->EnDivision . ' ' . $e->EnClass . ')';
+    echo '<h3>' . trn_t('GhostsLevels') . '</h3><form method="post">' . trn_token_field() . '<input type="hidden" name="act" value="ghost_levels">'
+        . '<table class="Tabella trn-table">';
+    foreach ($fict as $id => $g) {
+        echo '<tr><td>' . trn_esc($names[$id] ?? '') . '</td><td><div class="trn-grid">' . $levelFields('lv[' . intval($id) . ']', $g) . '</div></td></tr>';
+    }
+    echo '</table><p class="trn-note">' . trn_t('GhostsLevelsNote') . '</p><p><button type="submit" class="trn-btn trn-primary">' . trn_t('Save') . '</button></p></form>';
+}
 
 trn_page_close();

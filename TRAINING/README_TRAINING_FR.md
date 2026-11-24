@@ -51,10 +51,33 @@ du cœur, et les archers ont l'impression d'une vraie compétition.
   ex-aequo côte à côte ; l'entraîneur fait glisser les noms dans l'ordre du tableau et le remplit.
   Les tableaux sont remplis par les fonctions du cœur (classes de classement, grilles du règlement,
   exempts).
-- 👻 **Concurrents fictifs** : des adversaires sans archer derrière, ajoutés avec une moyenne par
-  flèche et un écart ; leurs scores de qualification sont tirés flèche par flèche autour de cette
-  moyenne, et ils participent aux classements, aux équipes et aux tableaux. Ils n'ont ni cible ni
-  feuille de marque ; leurs duels se saisissent comme les autres.
+- 👻 **Concurrents fictifs** : des adversaires sans archer derrière, chacun à un niveau : un score
+  final de qualification plus ou moins un écart, une moyenne par flèche plus ou moins un écart pour
+  les duels en sets, un score de duel plus ou moins un écart pour les duels en points. Un niveau
+  au-delà de ce que permettent le blason et les flèches est refusé. Ils participent aux
+  classements, aux équipes et aux tableaux, sans cible ni feuille de marque.
+- ⏱️ **Page Direct** : tant qu'elle est ouverte, les concurrents simulés tirent. Leurs flèches de
+  qualification apparaissent au rythme de l'archer de l'entraînement qui en a tiré le plus, pour que
+  le classement bouge pendant l'entraînement ; en duel, ils montrent autant de flèches que leur
+  adversaire réel en a saisi, et jouent leurs propres matchs au rythme des vrais matchs de la même
+  phase. Les flèches sont écrites par les fonctions du cœur, qui totalisent les matchs et font
+  passer les vainqueurs. Le tableau de bord rappelle à l'entraîneur de laisser la page ouverte.
+  Chaque écran choisit les épreuves qu'il affiche.
+- ⏭️ **Tour suivant sans clic** : dans tous les entraînements, le vainqueur de chaque match décidé
+  passe au tour suivant (ianseo le laisse à ses écrans de saisie, ISK-Lite ne le fait jamais), et
+  les exempts des tours suivants sont donnés. Une page **Barrages à saisir** dans le menu de
+  l'entraîneur liste les matchs qui attendent un barrage : saisir les flèches et, si elles sont
+  égales, cocher l'archer le plus proche du centre.
+- 🌍 **Entraînement depuis une compétition World Archery**, seconde façon de « Créer un
+  entraînement » : trouver une compétition dont World Archery publie les résultats (période, pays,
+  discipline, niveau, nom), choisir le jour et cocher les archers de l'entraînement :
+  l'entraînement est créé avec les épreuves et les formats de match de la vraie compétition et tous
+  ses athlètes et équipes avec leurs vrais résultats ; les archers de l'entraînement s'intercalent
+  dans le vrai plateau. Qualification : le vrai score, les 10 et les X de chaque athlète, affichés
+  au rythme de l'entraînement. Duels, la réalité d'abord : deux athlètes qui se sont vraiment
+  rencontrés tirent ce match ; sinon un athlète tire ses propres flèches de cette phase, ou, au-delà
+  du tour qu'il a atteint, celles de celui qui l'a éliminé (et ainsi de suite en remontant le
+  tableau). Cible extérieure, salle, campagne et 3D, épreuves individuelles et par équipes.
 - 📈 **Suivi des archers** : tous les tirs d'un archer sur le serveur, entraînements et vraies
   compétitions, regroupés par situation (type, format, distances, blason) avec la moyenne, la moyenne
   par flèche, le meilleur et le dernier score et les duels gagnés et perdus ; un graphique de la
@@ -89,10 +112,13 @@ round robin.
 
 ## Base de données
 
-Sept tables propres, créées à la première ouverture d'une page du module : `TrainingTemplates`
+Neuf tables propres, créées à la première ouverture d'une page du module : `TrainingTemplates`
 (formats), `TrainingArchers`, `TrainingGroups`, `TrainingGroupMembers` (archers habituels et leurs
 groupes), `TrainingRuns` (les compétitions créées par le module), `TrainingResults` (résultats des
-entraînements, conservés pour le suivi), `TrainingGhosts` (concurrents fictifs). Les compétitions elles-mêmes sont
+entraînements, conservés pour le suivi), `TrainingGhosts` (concurrents simulés et leurs niveaux),
+`TrainingSimDuels` (flèches tirées pour eux en duel), `TrainingWaData` (résultats de la compétition
+World Archery d'un entraînement). Créer un entraînement depuis World Archery lit son API publique
+(`api.worldarchery.org`) : le serveur a besoin d'internet pour cela, pas ensuite. Les compétitions elles-mêmes sont
 des compétitions ianseo ordinaires, écrites par l'import du cœur. L'adresse du serveur pour
 ISK-Lite est une ligne de la table `Parameters` du cœur (`TrnIskUrl`).
 
@@ -118,24 +144,29 @@ ianseo les entraînements déjà créés, comme des compétitions ordinaires.
 | `UPDATE` | `TeamFinals` | `lib/duels.php:219` | review scope by hand |
 | `INSERT INTO` | `TeamFinComponent` | `lib/duels.php:226` | — |
 | `UPDATE` | `Events` | `lib/duels.php:234` | — |
-| `INSERT INTO` | `Countries` | `lib/entries.php:93` | — |
-| `INSERT INTO` | `Entries` | `lib/entries.php:133` | — |
-| `INSERT INTO` | `Qualifications` | `lib/entries.php:152` | — |
-| `UPDATE` | `Entries` | `lib/entries.php:174` | review scope by hand |
-| `UPDATE` | `Qualifications` | `lib/entries.php:260` | — |
-| `UPDATE` | `Session` | `lib/entries.php:343` | review scope by hand |
-| `UPDATE` | `Entries` | `lib/entries.php:345` | review scope by hand |
-| `UPDATE` | `Session` | `lib/entries.php:362` | review scope by hand |
-| `UPDATE` | `Entries` | `lib/entries.php:364` | review scope by hand |
-| `UPDATE` | `Qualifications` | `lib/entries.php:400` | — |
-| `UPDATE` | `Qualifications` | `lib/entries.php:414` | — |
-| `UPDATE` | `Qualifications` | `lib/ghosts.php:123` | — |
+| `INSERT INTO` | `Countries` | `lib/entries.php:98` | — |
+| `INSERT INTO` | `Entries` | `lib/entries.php:138` | — |
+| `INSERT INTO` | `Qualifications` | `lib/entries.php:157` | — |
+| `UPDATE` | `Entries` | `lib/entries.php:179` | review scope by hand |
+| `UPDATE` | `Qualifications` | `lib/entries.php:302` | — |
+| `UPDATE` | `Session` | `lib/entries.php:385` | review scope by hand |
+| `UPDATE` | `Entries` | `lib/entries.php:387` | review scope by hand |
+| `UPDATE` | `Session` | `lib/entries.php:404` | review scope by hand |
+| `UPDATE` | `Entries` | `lib/entries.php:406` | review scope by hand |
+| `UPDATE` | `Qualifications` | `lib/entries.php:442` | — |
+| `UPDATE` | `Qualifications` | `lib/entries.php:456` | — |
+| `UPDATE` | `Qualifications` | `lib/ghosts.php:411` | — |
 | `UPDATE` | `Entries` | `lib/teams.php:73` | — |
 | `UPDATE` | `Countries` | `lib/teams.php:92` | review scope by hand |
 | `INSERT INTO` | `Countries` | `lib/teams.php:98` | — |
 | `UPDATE` | `Entries` | `lib/teams.php:104` | review scope by hand |
 | `DELETE FROM` | `Countries` | `lib/teams.php:109` | review scope by hand |
 | `UPDATE` | `Events` | `lib/teams.php:113` | — |
+| `INSERT INTO` | `Tournament` | `lib/wa.php:398` | — |
+| `UPDATE` | `Events` | `lib/wa.php:441` | review scope by hand |
+| `UPDATE` | `Events` | `lib/wa.php:446` | — |
+| `DELETE FROM` | `EventClass` | `lib/wa.php:454` | — |
+| `DELETE FROM` | `Events` | `lib/wa.php:455` | — |
 
 ### Tables owned by this module
 
@@ -151,8 +182,13 @@ ianseo les entraînements déjà créés, comme des compétitions ordinaires.
 | `INSERT INTO` | `TrainingGroups` | `lib/archers.php:128` | — |
 | `DELETE FROM` | `TrainingGroupMembers` | `lib/archers.php:139` | — |
 | `DELETE FROM` | `TrainingGroups` | `lib/archers.php:140` | — |
-| `DELETE FROM` | `TrainingGhosts` | `lib/entries.php:189` | — |
-| `INSERT INTO` | `TrainingGhosts` | `lib/ghosts.php:64` | — |
+| `DELETE FROM` | `TrainingGhosts` | `lib/entries.php:194` | — |
+| `DELETE FROM` | `TrainingSimDuels` | `lib/entries.php:195` | — |
+| `INSERT INTO` | `TrainingGhosts` | `lib/ghosts.php:163` | — |
+| `UPDATE` | `TrainingGhosts` | `lib/ghosts.php:179` | — |
+| `DELETE FROM` | `TrainingSimDuels` | `lib/ghosts.php:181` | — |
+| `UPDATE` | `TrainingGhosts` | `lib/ghosts.php:393` | — |
+| `REPLACE INTO` | `TrainingSimDuels` | `lib/live.php:429` | — |
 | `DELETE FROM` | `TrainingResults` | `lib/results.php:124` | — |
 | `INSERT INTO` | `TrainingResults` | `lib/results.php:131` | — |
 | `UPDATE` | `TrainingTemplates` | `lib/template.php:394` | — |
@@ -162,6 +198,11 @@ ianseo les entraînements déjà créés, comme des compétitions ordinaires.
 | `UPDATE` | `TrainingTemplates` | `lib/transfer.php:87` | — |
 | `INSERT INTO` | `TrainingTemplates` | `lib/transfer.php:90` | — |
 | `INSERT INTO` | `TrainingGroups` | `lib/transfer.php:102` | — |
+| `INSERT INTO` | `TrainingGhosts` | `lib/wa.php:480` | — |
+| `INSERT INTO` | `TrainingRuns` | `lib/wa.php:503` | — |
+| `REPLACE INTO` | `TrainingWaData` | `lib/wa.php:505` | — |
+| `REPLACE INTO` | `TrainingWaData` | `lib/wa.php:508` | — |
+| `UPDATE` | `TrainingRuns` | `live.php:33` | — |
 | `UPDATE` | `TrainingTemplates` | `templates.php:41` | — |
 | `DELETE FROM` | `TrainingTemplates` | `templates.php:49` | — |
 

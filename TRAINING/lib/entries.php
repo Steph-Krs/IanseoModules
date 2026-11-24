@@ -33,6 +33,9 @@ function trn_tour_categories($tourId) {
 /** Division of an archer who has none recorded: recurve, the bow of most trainings. */
 const TRN_DEFAULT_DIVISION = 'CL';
 
+/** The same bows in the international set (a training made from a World Archery competition). */
+const TRN_DIVISION_ALIASES = ['CL' => 'R', 'CO' => 'C', 'BB' => 'B', 'R' => 'CL', 'C' => 'CO', 'B' => 'BB'];
+
 /**
  * The category proposed for a regular archer: their bow (recurve when none is
  * recorded), and the class their date of birth allows in the competition,
@@ -51,6 +54,8 @@ const TRN_DEFAULT_DIVISION = 'CL';
 function trn_default_category($cats, $archer, $year) {
     if (!$cats) return '';
     $div = (string)$archer->ArDivision !== '' ? (string)$archer->ArDivision : TRN_DEFAULT_DIVISION;
+    $known = array_column($cats, 'div', 'div');
+    if (!isset($known[$div]) && isset(TRN_DIVISION_ALIASES[$div]) && isset($known[TRN_DIVISION_ALIASES[$div]])) $div = TRN_DIVISION_ALIASES[$div];
     $age = trn_is_date($archer->ArDob ?? null) ? intval($year) - intval(mb_substr($archer->ArDob, 0, 4)) : null;
     $fits = function ($c) use ($archer, $age) {
         if ($c['sex'] !== -1 && $c['sex'] !== intval($archer->ArSex)) return false;
@@ -187,6 +192,7 @@ function trn_remove_entry($tourId, $enId) {
     if (!safe_fetch($rs)) return;
     deleteArcher(intval($enId));
     safe_w_sql("DELETE FROM TrainingGhosts WHERE GhEntry = " . intval($enId));
+    safe_w_sql("DELETE FROM TrainingSimDuels WHERE SdTournament = " . intval($tourId) . " AND SdTeam = 0 AND SdWho = " . intval($enId));
 }
 
 /**
@@ -199,7 +205,7 @@ function trn_entries($tourId) {
     $out = [];
     $rs = safe_r_sql("SELECT EnId, EnCode, EnFirstName, EnName, EnSex, EnDivision, EnClass, EnCountry2, EnCountry3,
             QuSession, QuTarget, QuLetter, QuScore, CoCode, CoName,
-            (SELECT GhAverage FROM TrainingGhosts WHERE GhEntry = EnId) AS GhostAvg
+            (SELECT GhKind FROM TrainingGhosts WHERE GhEntry = EnId) AS GhostKind
         FROM Entries
         INNER JOIN Qualifications ON QuId = EnId
         LEFT JOIN Countries ON CoId = EnCountry AND CoTournament = EnTournament
@@ -224,20 +230,56 @@ function trn_sessions($tourId) {
 }
 
 /**
- * Bring the core's rankings up to date after archers came in or went out.
+ * Bring the core's rankings up to date after archers came in or went out, or
+ * after scores changed.
  *
  * @param int $tourId Must be the open competition.
  */
 function trn_recalc($tourId) {
     require_once 'Qualification/Fun_Qualification.local.inc.php';
+    require_once 'Common/Lib/Obj_RankFactory.php';
+    require_once 'Common/Fun_Sessions.inc.php';
     $tourId = intval($tourId);
     $t = safe_fetch(safe_r_sql("SELECT ToNumDist FROM Tournament WHERE ToId = $tourId"));
+    $nDist = intval($t ? $t->ToNumDist : 0);
     $rs = safe_r_sql("SELECT DISTINCT CONCAT(EnDivision, EnClass) AS Cat FROM Entries WHERE EnTournament = $tourId");
     while ($r = safe_fetch($rs)) {
-        for ($i = 0; $i <= intval($t ? $t->ToNumDist : 0); $i++) CalcQualRank($i, $r->Cat);
+        for ($i = 0; $i <= $nDist; $i++) CalcQualRank($i, $r->Cat);
     }
     MakeIndAbs();
     MakeTeamsAbs();
+
+    // MakeIndAbs() ranks again only the events whose archers changed: scores alone move
+    // nothing. Every event is ranked again, as ISK does after each score
+    // (CalculateRanks() in Api/ISK-NG/Lib.php). The shoot-off flags and final ranks are
+    // reset as the core does, but only where the bracket is not launched yet: a running
+    // bracket is never undone by a late score.
+    $events = [0 => [], 1 => []];
+    $launched = [];
+    $rs = safe_r_sql("SELECT EvCode, EvTeamEvent, EvShootOff FROM Events WHERE EvTournament = $tourId AND EvCodeParent = ''");
+    while ($r = safe_fetch($rs)) {
+        $events[intval($r->EvTeamEvent)][] = (string)$r->EvCode;
+        if (intval($r->EvShootOff)) $launched[intval($r->EvTeamEvent) . '|' . $r->EvCode] = true;
+    }
+    if ($events[0]) {
+        for ($i = 1; $i <= $nDist; $i++) {
+            Obj_RankFactory::create('Abs', ['tournament' => $tourId, 'events' => $events[0], 'dist' => $i])->calculate();
+        }
+        $abs = Obj_RankFactory::create('Abs', ['tournament' => $tourId, 'events' => $events[0], 'dist' => 0]);
+        if ($abs->calculate()) {
+            foreach ($abs->getEventsRankChanged() as $e) {
+                if (!isset($launched['0|' . $e])) ResetShootoff($e, 0, 0, $tourId);
+            }
+        }
+    }
+    if ($events[1]) {
+        $abs = Obj_RankFactory::create('AbsTeam', ['tournament' => $tourId, 'events' => $events[1]]);
+        if ($abs->calculate()) {
+            foreach ($abs->getEventsRankChanged() as $e) {
+                if (!isset($launched['1|' . $e])) ResetShootoff($e, 1, 0, $tourId);
+            }
+        }
+    }
 }
 
 /**

@@ -492,7 +492,7 @@ function trn_create_competition($tmId, $name, $date, $time, $qualSim) {
  * @return object|null
  */
 function trn_run($tourId) {
-    $rs = safe_r_sql("SELECT RnTournament, RnTemplate, RnSimple, RnQualSim, TmName
+    $rs = safe_r_sql("SELECT RnTournament, RnTemplate, RnSimple, RnQualSim, RnWaComp, RnRevealAll, TmName
         FROM TrainingRuns LEFT JOIN TrainingTemplates ON TmId = RnTemplate
         WHERE RnTournament = " . intval($tourId));
     return safe_fetch($rs) ?: null;

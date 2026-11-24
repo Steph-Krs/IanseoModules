@@ -1,7 +1,11 @@
 <?php
 /**
- * Create a training: a format, a date and a starting time, the archers ticked,
- * their category when it differs, and the teams when the format has team events.
+ * Create a training, two ways chosen at the top of the page:
+ *   - from a reference format: a format, a date and a starting time, the archers
+ *     ticked, their category when it differs, and the teams when the format has
+ *     team events;
+ *   - from a World Archery competition (create-wa.php, src=wa): the competition
+ *     found with filters, the day, the archers ticked.
  *
  * Every time of the format moves with the starting time, keeping its gaps. The
  * new competition is opened at once and the coach lands on its dashboard.
@@ -12,6 +16,20 @@ trn_require_admin();
 
 $formats = trn_tpl_list();
 $archers = trn_archers(true);
+
+// The way of creating: a format, or a World Archery competition (the only way while no format exists).
+$src = (string)($_REQUEST['src'] ?? '') === 'wa' || !$formats ? 'wa' : 'fmt';
+$tabs = '<p class="trn-tabs">';
+foreach (['fmt' => ['create.php', 'CreateFromFormat'], 'wa' => ['create.php?src=wa', 'CreateFromWa']] as $k => $t) {
+    if ($k === 'fmt' && !$formats) continue;
+    $tabs .= '<a class="trn-btn' . ($k === $src ? ' trn-primary' : '') . '" href="' . $t[0] . '">' . trn_t($t[1]) . '</a> ';
+}
+$tabs .= '</p>';
+if ($src === 'wa') {
+    define('TRN_CREATE', true);
+    require __DIR__ . '/create-wa.php';
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!trn_token_ok()) {
@@ -75,12 +93,7 @@ if (!$tm && count($formats) === 1) $tm = intval(array_key_first($formats));
 $fmt = $formats[$tm] ?? null;
 
 trn_page_open(trn_text('CreateTitle'), ['assets/training.js']);
-
-if (!$formats) {
-    echo '<p class="trn-note">' . trn_t('HomeNoFormat') . '</p>';
-    trn_page_close();
-    exit;
-}
+echo $tabs;
 
 echo '<form method="get" class="trn-card"><label>' . trn_t('ColFormat') . ' <select name="tpl" onchange="this.form.submit()">';
 echo '<option value="0">' . trn_t('ChooseFormat') . '</option>';

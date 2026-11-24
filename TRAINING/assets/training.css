@@ -68,3 +68,11 @@
 #trn .trn-key { display: inline-block; width: 10px; height: 10px; border-radius: 5px; vertical-align: middle; }
 #trn span.trn-key.trn-dot-training { background: var(--header-dark, #004488); }
 #trn span.trn-key.trn-dot-competition { background: #c0392b; }
+#trn .trn-live-alert {
+    border: 2px solid #e0a800; background: #fff8e1; color: #5c4400; border-radius: 4px; padding: 10px 14px; margin: 10px 0;
+}
+#trn .trn-live-alert b { font-size: 15px; }
+#trn .trn-live-status { margin: 8px 0; }
+#trn tr.trn-sim td { color: var(--text-muted, #666); }
+#trn .trn-num-in { width: 4.5em; }
+#trn .trn-grid label span { white-space: nowrap; }

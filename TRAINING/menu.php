@@ -57,6 +57,7 @@ if ($_trn_run && intval($_trn_run->RnSimple) && !$_trn_full) {
 
     $_trn_menu = [trn_esc(trn_text('ModuleName'))];
     $_trn_menu[] = trn_esc(trn_text('MenuDashboard')) . '|' . $_trn_url . 'dashboard.php';
+    $_trn_menu[] = trn_esc(trn_text('MenuLive')) . '|' . $_trn_url . 'live.php';
     $_trn_menu[] = trn_esc(trn_text('MenuParticipants')) . '|' . $_trn_url . 'participants.php';
     $_trn_menu[] = MENU_DIVIDER;
     $_trn_menu[] = get_text('MenuLM_Scorecard Printout') . '|' . $CFG->ROOT_DIR . 'Qualification/PrintScore.php';
@@ -65,6 +66,7 @@ if ($_trn_run && intval($_trn_run->RnSimple) && !$_trn_full) {
     if ($_trn_duels[0] || $_trn_duels[1]) {
         $_trn_menu[] = MENU_DIVIDER;
         $_trn_menu[] = trn_esc(trn_text('MenuRanking')) . '|' . $_trn_url . 'ranking.php';
+        $_trn_menu[] = trn_esc(trn_text('MenuShootoffs')) . '|' . $_trn_url . 'shootoffs.php';
     }
     if ($_trn_duels[0]) {
         $_trn_menu[] = get_text('MenuLM_Individual Finals') . ' - ' . get_text('MenuLM_Scorecard Printout') . '|' . $CFG->ROOT_DIR . 'Final/Individual/PrintScore.php';
@@ -99,6 +101,8 @@ if ($_trn_run && intval($_trn_run->RnSimple) && !$_trn_full) {
     if (!empty($on) && intval($_SESSION['TourId'] ?? 0) > 0) {
         $ret['MODS']['TRAINING'][] = trn_esc(trn_text('MenuDashboard')) . '|' . $_trn_url . 'dashboard.php';
     }
+    if ($_trn_run) $ret['MODS']['TRAINING'][] = trn_esc(trn_text('MenuLive')) . '|' . $_trn_url . 'live.php';
+    if ($_trn_run) $ret['MODS']['TRAINING'][] = trn_esc(trn_text('MenuShootoffs')) . '|' . $_trn_url . 'shootoffs.php';
     if ($_trn_run && intval($_trn_run->RnSimple)) {
         $ret['MODS']['TRAINING'][] = trn_esc(trn_text('MenuSimple')) . '|' . $_trn_url . 'menu-mode.php?full=0';
     }

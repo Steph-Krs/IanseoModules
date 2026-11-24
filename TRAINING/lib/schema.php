@@ -8,7 +8,7 @@
  * on EVERY new session: anything added here that rewrites existing rows must be
  * gated on a column having just been created, never on appearances.
  *
- * Seven tables, one prefix each, none shared with the core:
+ * Ten tables, one prefix each, none shared with the core:
  *   TrainingTemplates     (Tm) a reference format: a snapshot of a whole
  *                              competition without its archers, as the core's
  *                              export builds it, plus a summary for the forms;
@@ -21,10 +21,17 @@
  *                              qualification round is simulated (duels only);
  *   TrainingResults       (Rs) the results of each archer of each training, kept
  *                              so that they outlive the competition;
- *   TrainingGhosts        (Gh) the fictitious competitors of a training and the
- *                              average their scores are drawn around.
+ *   TrainingGhosts        (Gh) the simulated competitors of a training: fictitious
+ *                              ones with their levels, or World Archery athletes,
+ *                              and the qualification arrows drawn for them;
+ *   TrainingSimDuels      (Sd) the arrows drawn for a simulated competitor in one
+ *                              match of a bracket, shown at the pace of the match;
+ *   TrainingWaData        (Wd) the results of the World Archery competition a
+ *                              training was created from, as the API sent them.
  *
  * Version 2 added TrainingResults and TrainingGhosts (new tables only).
+ * Version 4 added the levels of TrainingGhosts, TrainingSimDuels, TrainingWaData
+ * and two columns of TrainingRuns (3 was never published).
  *
  * RnTournament, RsTournament, GhTournament hold a Tournament.ToId, RsEntry and
  * GhEntry an Entries.EnId, and take their type, INT UNSIGNED: an
@@ -32,7 +39,29 @@
  * exist, and a narrower column truncates without a warning.
  */
 
-const TRN_SCHEMA_VERSION = 2;
+const TRN_SCHEMA_VERSION = 4;
+
+/**
+ * Add a column when it is missing. Never fatal: a table that does not exist yet
+ * returns false without any attempt, and the next session adds the column.
+ *
+ * @param string $table
+ * @param string $column
+ * @param string $definition
+ * @return bool True only when the column has just been added.
+ */
+function trn_column($table, $column, $definition) {
+    $rs = safe_r_sql("SELECT COUNT(*) AS N FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = " . StrSafe_DB($table));
+    $r = $rs ? safe_fetch($rs) : null;
+    if (!$r || intval($r->N) === 0) return false;
+    $rs = safe_r_sql("SELECT COUNT(*) AS N FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = " . StrSafe_DB($table) . " AND COLUMN_NAME = " . StrSafe_DB($column));
+    $r = $rs ? safe_fetch($rs) : null;
+    if (!$r || intval($r->N) !== 0) return false;
+    safe_w_sql("ALTER TABLE `$table` ADD COLUMN `$column` $definition");
+    return true;
+}
 
 /**
  * Create the module's tables if they are missing.
@@ -132,6 +161,43 @@ function trn_schema() {
         PRIMARY KEY (GhEntry),
         KEY GhTournament (GhTournament)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // Version 4: levels instead of an average per arrow, World Archery athletes, drawn arrows.
+    // A score of 0 means "no level given": the competitors of version 2 keep their average.
+    trn_column('TrainingGhosts', 'GhKind', "TINYINT UNSIGNED NOT NULL DEFAULT 0");
+    trn_column('TrainingGhosts', 'GhQualScore', "INT UNSIGNED NOT NULL DEFAULT 0");
+    trn_column('TrainingGhosts', 'GhQualDelta', "DECIMAL(6,2) NOT NULL DEFAULT 0.00");
+    trn_column('TrainingGhosts', 'GhDuelAvg', "DECIMAL(4,2) NOT NULL DEFAULT 8.00");
+    trn_column('TrainingGhosts', 'GhDuelAvgDelta', "DECIMAL(4,2) NOT NULL DEFAULT 0.50");
+    trn_column('TrainingGhosts', 'GhDuelScore', "INT UNSIGNED NOT NULL DEFAULT 0");
+    trn_column('TrainingGhosts', 'GhDuelScoreDelta', "DECIMAL(6,2) NOT NULL DEFAULT 0.00");
+    trn_column('TrainingGhosts', 'GhWaId', "VARCHAR(16) NOT NULL DEFAULT ''");
+    trn_column('TrainingGhosts', 'GhQualKey', "VARCHAR(64) NOT NULL DEFAULT ''");
+    trn_column('TrainingGhosts', 'GhQualArrows', "TEXT NULL");
+
+    safe_w_sql("CREATE TABLE IF NOT EXISTS TrainingSimDuels (
+        SdTournament INT UNSIGNED NOT NULL,
+        SdTeam       TINYINT UNSIGNED NOT NULL DEFAULT 0,
+        SdEvent      VARCHAR(10)  NOT NULL DEFAULT '',
+        SdMatchNo    INT UNSIGNED NOT NULL,
+        SdWho        INT UNSIGNED NOT NULL DEFAULT 0,
+        SdSource     VARCHAR(16)  NOT NULL DEFAULT '',
+        SdArrows     VARCHAR(255) NOT NULL DEFAULT '',
+        SdTiebreak   VARCHAR(64)  NOT NULL DEFAULT '',
+        SdClosest    VARCHAR(16)  NOT NULL DEFAULT '',
+        PRIMARY KEY (SdTournament, SdTeam, SdEvent, SdMatchNo)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    safe_w_sql("CREATE TABLE IF NOT EXISTS TrainingWaData (
+        WdTournament INT UNSIGNED NOT NULL,
+        WdKind       VARCHAR(16)  NOT NULL DEFAULT '',
+        WdData       MEDIUMTEXT   NULL,
+        WdFetched    DATETIME     NULL,
+        PRIMARY KEY (WdTournament, WdKind)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    trn_column('TrainingRuns', 'RnWaComp', "INT UNSIGNED NOT NULL DEFAULT 0");
+    trn_column('TrainingRuns', 'RnRevealAll', "TINYINT UNSIGNED NOT NULL DEFAULT 0");
 
     $_SESSION[$flag] = true;
 }

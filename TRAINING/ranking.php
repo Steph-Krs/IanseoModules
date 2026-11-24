@@ -16,6 +16,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         trn_flash(trn_text('ErrToken'), 'err');
         trn_redirect('ranking.php');
     }
+    if (!empty($_POST['all'])) {
+        $n = 0;
+        foreach (trn_duel_events($tourId) as $e) {
+            if (intval($e->EvElimType) !== 0 || intval($e->EvShootOff)) continue;
+            $team = intval($e->EvTeamEvent) === 1;
+            $list = $team ? trn_duel_list_team($tourId, $e->EvCode) : trn_duel_list_ind($tourId, $e->EvCode);
+            if (!$list) continue;
+            $order = array_column($list, 'key');
+            if ($team ? trn_duel_launch_team($tourId, $e->EvCode, $order) : trn_duel_launch_ind($tourId, $e->EvCode, $order)) $n++;
+        }
+        trn_flash(trn_text('DuelsLaunchedAll', $n));
+        trn_redirect('ranking.php');
+    }
     $event = (string)($_POST['event'] ?? '');
     $team = !empty($_POST['team']);
     $order = array_filter(explode(',', (string)($_POST['order'] ?? '')), 'strlen');
@@ -31,6 +44,13 @@ echo '<p><a class="trn-btn" href="dashboard.php">' . trn_t('BackDashboard') . '<
 echo '<p class="trn-lead">' . trn_t('RankingLead') . '</p>';
 
 if (!$events) echo '<p class="trn-note">' . trn_t('RankingNone') . '</p>';
+$waiting = 0;
+foreach ($events as $e) if (intval($e->EvElimType) === 0 && !intval($e->EvShootOff)) $waiting++;
+if ($waiting > 1) {
+    echo '<form method="post" class="trn-card" onsubmit="return confirm(this.dataset.confirm)" data-confirm="' . trn_esc(trn_text('LaunchAllConfirm')) . '">'
+        . trn_token_field() . '<input type="hidden" name="all" value="1"><p>' . trn_t('LaunchAllLead', $waiting) . '</p>'
+        . '<button type="submit" class="trn-btn trn-primary">' . trn_t('LaunchAll') . '</button></form>';
+}
 
 foreach ($events as $e) {
     $team = intval($e->EvTeamEvent) === 1;

@@ -26,6 +26,22 @@
             return e;
         }
 
+        /* Highest qualification score of the category chosen for fictitious competitors. */
+        all('.trn-qmax-src').forEach(function (sel) {
+            var map = {};
+            try { map = JSON.parse(sel.dataset.qmax || '{}'); } catch (e) { map = {}; }
+            var out = sel.form ? sel.form.querySelector('.trn-qmax-out') : null;
+            if (!out) return;
+            var field = sel.form.querySelector('.trn-qmax-in');
+            function show() {
+                var max = map[sel.value];
+                out.textContent = max !== undefined ? String(max) : '';
+                if (field && max) field.max = String(max);
+            }
+            sel.addEventListener('change', show);
+            show();
+        });
+
         /* Filter of a list by typed text. */
         all('.trn-filter').forEach(function (input) {
             input.addEventListener('input', function () {

@@ -8,7 +8,7 @@ require_once __DIR__ . '/lib/boot.php';
 trn_require_admin();
 
 $runs = [];
-$rs = safe_r_sql("SELECT RnTournament, RnQualSim, ToCode, ToName, ToWhenFrom, TmName,
+$rs = safe_r_sql("SELECT RnTournament, RnQualSim, RnWaComp, ToCode, ToName, ToWhenFrom, TmName,
         (SELECT COUNT(*) FROM Entries WHERE EnTournament = ToId) AS Archers
     FROM TrainingRuns
     INNER JOIN Tournament ON ToId = RnTournament
@@ -22,6 +22,7 @@ trn_page_open(trn_text('HomeTitle'));
 
 echo '<p class="trn-lead">' . trn_t('HomeLead') . '</p>';
 echo '<p><a class="trn-btn trn-primary" href="create.php">' . trn_t('MenuCreate') . '</a> '
+    . '<a class="trn-btn" href="create.php?src=wa">' . trn_t('CreateFromWa') . '</a> '
     . '<a class="trn-btn" href="followup.php">' . trn_t('MenuFollowup') . '</a></p>';
 if (!$formats) echo '<p class="trn-note">' . trn_t('HomeNoFormat') . '</p>';
 
@@ -36,7 +37,7 @@ if (!$runs) {
         echo '<tr><td>' . trn_esc(trn_date($r->ToWhenFrom)) . '</td>'
             . '<td>' . trn_esc($r->ToName) . ' <span class="trn-note">' . trn_esc($r->ToCode) . '</span>'
             . (intval($r->RnQualSim) ? ' <span class="trn-badge">' . trn_t('DuelsOnly') . '</span>' : '') . '</td>'
-            . '<td>' . trn_esc((string)$r->TmName) . '</td>'
+            . '<td>' . trn_esc(intval($r->RnWaComp) ? trn_text('FromWa') : (string)$r->TmName) . '</td>'
             . '<td class="Center">' . intval($r->Archers) . '</td>'
             . '<td><a class="trn-btn" href="' . trn_esc($open) . '">' . trn_t('Open') . '</a></td></tr>';
     }
